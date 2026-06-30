@@ -812,3 +812,59 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
     assert result["intervention_lane"]["route_target"] == "review"
     assert result["intervention_lane"].get("handoff_source") is None
     assert result["user_visible_projection"]["next_owner"] == "review"
+
+
+def test_dm004_unmapped_next_action_projection_keeps_family_authority(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "004-synthetic-unmapped-next-action-route"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm004")
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "study_id": study_id,
+        "stage_id": "publication_supervision",
+        "action_id": "next-action::dm004::unmapped-runtime-route",
+        "idempotency_key": "next-action::dm004::unmapped-runtime-route",
+        "action_family": "runtime.opl_route",
+        "action_type": "request_opl_stage_attempt",
+        "work_unit_id": "dm004-unmapped-exact-work-unit",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "authority_boundary": {
+            "action_family_authority": True,
+            "exact_work_unit_id_authority": False,
+        },
+    }
+    status_payload = {
+        "study_id": study_id,
+        "publication_supervisor_state": {},
+        "progress_projection": {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": "quest-dm004",
+            "next_action": next_action,
+            "current_work_unit": {"surface_kind": "current_work_unit", "status": "ready"},
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "action_type": "legacy_complete_owner_action",
+            },
+            "provider_admission_pending_count": 1,
+            "provider_admission_candidates": [{"action_type": "legacy_provider_admission"}],
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+        },
+    }
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload=status_payload,
+        materialize_read_model_artifacts=False,
+    )
+
+    assert_default_next_action_legacy_surfaces_retired(result)
+    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert result["next_action"]["action_family"] == "runtime.opl_route"
+    assert result["next_action"]["work_unit_id"] == "dm004-unmapped-exact-work-unit"
+    assert result["next_action"]["authority_boundary"]["exact_work_unit_id_authority"] is False

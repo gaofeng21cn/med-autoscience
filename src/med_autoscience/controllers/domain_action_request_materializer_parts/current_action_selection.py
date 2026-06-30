@@ -27,6 +27,7 @@ LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
     legacy_next_action_authority.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
 )
 _attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_missing
+_attach_canonical_next_action_if_missing = current_action_queue.attach_canonical_next_action_if_missing
 _ignored_action = current_action_queue.ignored_action
 _top_level_study_actions = current_action_queue.top_level_study_actions
 _unique_actions = current_action_queue.unique_actions
@@ -121,7 +122,7 @@ def current_actions_for_studies(
         )
         transition_actions = domain_transition_current_actions.consumed_current_actions(study_payload)
         per_study_queue_actions = [
-            dict(item)
+            _attach_canonical_next_action_if_missing(dict(item), study_payload)
             for item in study_payload.get("action_queue") or []
             if isinstance(item, Mapping)
         ]
@@ -585,7 +586,10 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
         payload["study_id"] = _text(payload.get("study_id")) or study_id
         if quest_id is not None:
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-        return _attach_owner_route_if_missing(payload, owner_route)
+        return _attach_canonical_next_action_if_missing(
+            _attach_owner_route_if_missing(payload, owner_route),
+            study,
+        )
     return None
 
 

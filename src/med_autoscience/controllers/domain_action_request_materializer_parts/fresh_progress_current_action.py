@@ -747,6 +747,7 @@ def _accepted_owner_gate_decision_action(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
         "action_fingerprint": work_unit_fingerprint,
+        "next_action": dict(next_action),
         "provider_admission_allowed": provider_admission_allowed,
         "provider_admission_requires_opl_runtime_result": True,
         "paper_progress_stall": (
@@ -770,6 +771,7 @@ def _accepted_owner_gate_decision_action(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "action_fingerprint": work_unit_fingerprint,
+            "next_action": dict(next_action),
             "provider_admission_allowed": provider_admission_allowed,
             "provider_admission_requires_opl_runtime_result": True,
             "owner_route": owner_route,

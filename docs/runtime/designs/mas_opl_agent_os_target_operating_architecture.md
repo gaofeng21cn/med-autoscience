@@ -16,11 +16,11 @@ Date: `2026-06-16`
 
 - `OPL` 是 Agent OS / runtime substrate。
 - `MAS` 是 Medical Research Pack + Medical Authority Kernel。
-- `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` 默认读根和 false-authority flags。
+- `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` owner projection / audit drilldown 和 false-authority flags；默认 next-action authority 仍是 `StageOutcome -> NextActionEnvelope`。
 - 外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 Scientific Capability Registry 或 refs-only advisory worker；它们不是 MAS runtime owner，也不是 publication / artifact / memory authority。
 - OPL family 计划已经把 Scientific Capability Registry 抽象为 `Atlas + Pack + Stagecraft` 的 family-level ABI / use-policy；Agent Tool Arsenal / Capability Invocation OS 的品牌 owner 归 OPL Pack，Atlas / Stagecraft / Runway / Console / Connect 协同消费。MAS 不新增独立 external-learning selector、第二 active backlog、always-on advisory pipeline 或第 11 个 OPL 品牌模块；MAS 后续只声明 domain refs consumption、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。
 - `Agent Tool Arsenal` 是 OPL generated surfaces 与 MAS authority kernel 之间的 agent-facing invocation ABI；工具给 autonomous agent 用，不给人类用户学习和手动拼装。
-- 默认 operator / executor 读面固定为 `current_owner_delta`；audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
+- 默认 operator / executor next-action authority 固定为 `StageOutcome -> NextActionEnvelope`；`current_owner_delta` 只是同一 envelope 的 owner projection / workbench summary。audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
 
 ## 目标结论
 
@@ -104,10 +104,10 @@ OPL 是跨 domain 的通用运行基座。它的目标能力包括：
 - `Pack Compiler`：读取 `agent/` 与 `contracts/`，生成 CLI / MCP / Skill / product-entry / workbench / action catalog descriptors。
 - `StageRun Kernel`：管理 stage attempt、attempt identity、current pointer、retry/dead-letter、resume、human gate transport、lease、provider query。
 - `State Index Kernel`：从文件 truth、receipt、blocker、locator 和 artifact refs 重建 read model；SQLite / index 只存 refs、fingerprint、cursor、checksum、bounded preview hash。
-- `Route Reconciler`：把 MAS desired route、current owner delta 和 OPL provider currentness 对齐；只生成 next safe transport action，不生成医学 truth。
+- `Route Reconciler`：把 MAS canonical `NextActionEnvelope`、owner projection 和 OPL provider currentness 对齐；只生成 next safe transport action，不生成医学 truth。
 - `Lifecycle Plane`：generic artifact / memory locator、restore、retention、cold-store、cleanup plan 和 workbench drilldown。
 - `Observability Plane`：trace / metrics / logs / failure class / SLO drift / repair diagnostics。
-- `Workbench Shell`：默认只显示 `current_owner_delta` 和用户可执行动作；audit detail 进入 drilldown。
+- `Workbench Shell`：默认显示 canonical `NextActionEnvelope` 投影出的 owner summary 和用户可执行动作；audit detail 进入 drilldown。
 
 OPL 不能持有：
 
@@ -226,7 +226,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | --- | --- | --- |
 | `DomainAgentPack` | MAS declares, OPL compiles | 声明 stage、skill、knowledge、quality gate、action、receipt refs、forbidden authority |
 | `StageRun` | OPL lifecycle, MAS semantic refs | 表达 stage attempt、manifest、input/output refs、current pointer、owner closeout |
-| `CurrentOwnerDelta` | MAS owner truth, OPL projection | 默认读面；说明当前 owner、action、target surface、required delta、hard gate |
+| `CurrentOwnerDelta` | MAS owner projection, OPL projection | 从 canonical `NextActionEnvelope` 派生的 owner summary / audit drilldown；说明当前 owner、action、target surface、required delta、hard gate，但不选择默认 next action |
 | `ProgressDeltaReceipt` | MAS / executor output | 记录非终局 concrete delta，接力下一 owner；不替代 full owner receipt |
 | `OwnerReceipt` | MAS authority | 关闭 owner action 或 stage transition 的 domain receipt |
 | `TypedBlocker` | MAS / gate owner | 命名 blocker、route-back owner、repair condition、avoided forbidden shortcut |
@@ -298,9 +298,9 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 - OPL provider completion 只能作为 transport evidence，不能关闭 MAS domain verdict。
 - 缺 OPL execution authorization 时 MAS apply fail closed 到 typed blocker。
 
-### Lane 3：CurrentOwnerDelta 唯一默认读面
+### Lane 3：NextActionEnvelope 默认读面与 CurrentOwnerDelta 投影
 
-目标：operator / executor 默认只看当前 owner、当前 action、target surface、required delta、hard gate。
+目标：operator / executor 默认 next-action authority 只看 canonical `StageOutcome -> NextActionEnvelope`；`current_owner_delta` 只投影当前 owner、当前 action、target surface、required delta、hard gate 和 audit drilldown。
 
 实施步骤：
 
@@ -481,7 +481,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 | PaperProgressPolicyAdapter | `evaluate_current_owner_delta` / `accept_transition_readback` / `emit_policy_result` | OPL 只消费 policy result / transition request；不能从 MAS read-model 文案推导 domain action |
 | PaperAuthorityResultShapes | owner receipt / typed blocker / quality gate receipt / human gate / route-back / no-forbidden-write envelope | OPL 只验证 shape 与 identity，不能生成或修改语义 |
 | Authority functions | `runtime/authority_functions/*` / `src/...` | OPL dispatch 回 MAS owner surface |
-| Owner route | `current_owner_delta` | OPL 默认读面和 stage admission |
+| Owner route | `NextActionEnvelope` + derived `current_owner_delta` | OPL 默认 next-action 读取 envelope；`current_owner_delta` 只作 owner projection / stage admission summary |
 | Receipt / blocker | `OwnerReceipt` / `TypedBlocker` | OPL closeout / workbench / retry decision |
 | Source/data binding | source readiness / data asset contract refs | OPL 只索引 locator，不裁决医学可用性 |
 | Quality OS | reviewer/auditor record refs | OPL 展示和 route-back，不签 verdict |
@@ -495,7 +495,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 - 新 runtime-like 功能必须归 OPL primitive；MAS 只留 authority function 或 refs-only projection。
 - 新 agent-facing 工具必须有 ToolUseCard、risk annotations、output schema、ToolResultEnvelope 和 current-delta applicability。
 - 新 external-learning 功能必须进入 OPL Capability Registry；MAS 不能新增私有 selector、第二 active backlog、always-on sidecar 或默认 preflight。
-- 新 workbench / status surface 默认显示 `current_owner_delta`；audit detail 不能抢默认入口。
+- 新 workbench / status surface 默认显示 canonical `NextActionEnvelope` 派生 owner summary；`current_owner_delta` 只作 projection，audit detail 不能抢默认入口。
 - 新 lifecycle / artifact / memory 功能必须证明 body / refs / index / authority 分离。
 
 ### Evidence gate
@@ -532,7 +532,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
 3. **Lane 1 tool arsenal consumption tail**：`contracts/agent_tool_arsenal.json` 已把 action catalog、MCP tool、owner callable registry、plugin skill、stage route 和 `scientific_capability_registry` 映射成 ToolArsenalIndex / ToolUseCard / CapabilityInvocationPlan；`display_pack_agent` 已从 CLI/domain-handler descriptor 升级为聚合 MCP runtime，`scientific_capability_registry` 已把 external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack 折成 public MCP/CLI/product-entry capability runtime，并提供 repo-side refs-only owner-consumption / live-soak evidence packet；该 packet 现已包含 `standard_agent_feedback_loop_tail`，机器标记 production generated-surface caller negative samples、real owner accepted answer / typed blocker scaleout 和 long-soak negative conformance 仍需 OPL hosted/runtime evidence，不能由 MAS repo-side shape 关闭；`hosted_ordinary_path_consumption` 已把 OPL hosted ordinary path 所需 consumption evidence 接到 MCP `agent_tool_arsenal(mode=hosted_consumption)`。下一步是 direct/hosted parity、OPL generated caller negative samples 和真实 paper-line owner-consumed refs。
-4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
+4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 canonical `NextActionEnvelope` 为 next-action authority，并把 `current_owner_delta` 限定为 owner projection / drilldown。
 5. **Lane 4 authority function inventory**：`contracts/authority_kernel_inventory.json` 已给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类；下一步按该 inventory 做物理收薄、旧 residue 删除门、OPL upcollect consumption 和真实 evidence 验证。
 6. **Lane 7 capability registry runtime ABI**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 已折回 `scientific_capability_registry`，MAS 提供 current-delta-bound `index / resolve / invoke` ABI、allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界、owner-consumption / live-soak evidence shape、standard-agent feedback-loop tail schema 和 hosted OPL consumption evidence；剩余是真实 owner evidence、direct/hosted parity、OPL production caller negative samples 和 long-soak negative conformance。
 7. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。

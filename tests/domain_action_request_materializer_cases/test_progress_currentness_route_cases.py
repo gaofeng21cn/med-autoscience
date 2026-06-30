@@ -411,7 +411,7 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
         if item["study_id"] == study_id
         } == {
             "complete_medical_paper_readiness_surface": (
-                "legacy_next_action_authority_retired_use_next_action_envelope"
+                "superseded_by_fresh_study_progress_current_owner_ticket"
             ),
         }
 

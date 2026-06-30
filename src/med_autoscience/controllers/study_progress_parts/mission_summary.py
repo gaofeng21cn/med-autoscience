@@ -283,8 +283,14 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
 
 def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
+    existing_next_action = (
+        _mapping(payload.get("next_action")) if has_canonical_next_action(payload) else {}
+    )
+    existing_next_action_source = _non_empty_text(
+        payload.get("canonical_next_action_source")
+    )
     summary = build_artifact_first_mission_summary(updated)
-    next_action = _mapping(summary.get("next_action"))
+    next_action = existing_next_action or _mapping(summary.get("next_action"))
     if next_action:
         summary = {
             key: value for key, value in summary.items() if key != "next_action"
@@ -313,7 +319,12 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     if next_action:
         updated["next_action"] = next_action
         updated["canonical_next_action_source"] = (
-            "artifact_first_mission_summary.next_action"
+            existing_next_action_source
+            or (
+                "precomputed_canonical_next_action"
+                if existing_next_action
+                else "artifact_first_mission_summary.next_action"
+            )
         )
         updated = without_legacy_next_action_authority(updated)
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]

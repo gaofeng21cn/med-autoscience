@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -53,32 +54,43 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
         owner_reason="manuscript_story_surface_delta_missing",
         allowed_actions=["run_quality_repair_batch"],
     )
+    action = {
+        "study_id": study_id,
+        "quest_id": "quest-dpcc",
+        "action_type": "run_quality_repair_batch",
+        "authority": "observability_only",
+        "owner": "write",
+        "recommended_owner": "write",
+        "reason": "manuscript_story_surface_delta_missing",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "run_quality_repair_batch",
+            "authority": "observability_only",
+            "request_owner": "write",
+            "owner_route": route,
+        },
+    }
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
-            "action_queue": [
+            "studies": [
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dpcc",
-                    "action_type": "run_quality_repair_batch",
-                    "authority": "observability_only",
-                    "owner": "write",
-                    "recommended_owner": "write",
-                    "reason": "manuscript_story_surface_delta_missing",
-                    "required_output_surface": (
-                        "canonical manuscript story-surface delta or "
-                        "typed blocker:manuscript_story_surface_delta_missing"
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="dm003-unmapped-story-surface-repair",
                     ),
                     "owner_route": route,
-                    "handoff_packet": {
-                        "request_kind": "run_quality_repair_batch",
-                        "authority": "observability_only",
-                        "request_owner": "write",
-                        "owner_route": route,
-                    },
-                },
+                    "action_queue": [action],
+                }
             ],
         },
     )
@@ -133,6 +145,69 @@ def test_materialize_domain_action_requests_writes_quality_repair_request_to_can
     assert not legacy_consumer_request_path.exists()
     assert result["apply_writes_domain_intent_projection_only"] is True
     assert result["written_files"] == []
+
+
+def test_dm004_unmapped_work_unit_materializes_from_action_family_envelope(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "004-synthetic-unmapped-next-action-route"
+    write_study(profile.workspace_root, study_id, quest_id="quest-dm004")
+    route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm004",
+        next_owner="write",
+        owner_reason="dm004_unmapped_story_surface_delta_missing",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": "quest-dm004",
+        "action_type": "run_quality_repair_batch",
+        "authority": "observability_only",
+        "owner": "write",
+        "recommended_owner": "write",
+        "reason": "dm004_unmapped_story_surface_delta_missing",
+        "work_unit_id": "dm004-unmapped-exact-work-unit",
+        "owner_route": route,
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_paper_mission_owner_surface",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm004",
+                    "next_action": next_action_envelope(
+                        study_id=study_id,
+                        action_type="run_quality_repair_batch",
+                        work_unit_id="dm004-unmapped-exact-work-unit",
+                    ),
+                    "owner_route": route,
+                    "action_queue": [action],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    request = result["domain_progress_transition_requests"][0]
+    assert request["study_id"] == study_id
+    assert request["next_action"]["identity_source"] == "NextActionEnvelope"
+    assert request["next_action"]["action_family"] == "runtime.opl_route"
+    assert "work_unit_id" not in request["next_action"]
+    assert request["opl_transition_handoff_contract"]["exact_work_unit_id_authority"] is False
 
 
 def test_canonical_transition_request_projection_carries_dispatcher_boundary_fields() -> None:

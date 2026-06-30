@@ -143,6 +143,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "provider_admission_allowed",
     "provider_admission_requires_opl_runtime_result",
     "paper_progress_stall",
+    "next_action",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )
