@@ -353,7 +353,7 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
 
     policy = payload["anti_loop_policy"]
 
-    assert policy["ordinary_path_root"] == "current_owner_delta"
+    assert policy["ordinary_path_root"] == "NextActionEnvelope"
     assert policy["same_tick_max_passes"] == 3
     assert set(policy["same_tick_continue_reasons"]) == {
         "continue_same_tick_after_sync_owner_delta",

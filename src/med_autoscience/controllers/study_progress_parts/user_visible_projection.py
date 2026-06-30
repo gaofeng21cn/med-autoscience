@@ -576,7 +576,6 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     next_action = _mapping_copy(payload.get("next_action"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
     interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
-    opl_handoff_action = current_owner_handoff_action(payload)
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(executable_action.get("next_owner"))
@@ -593,7 +592,6 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
         or _non_empty_text(details.get("decision_owner"))
         or _non_empty_text(paper_progress_stall.get("next_owner"))
         or _non_empty_text(interaction_arbitration.get("next_owner"))
-        or _non_empty_text((opl_handoff_action or {}).get("owner"))
         or _non_empty_text(ai_repair_lifecycle.get("next_owner"))
     )
 
@@ -620,8 +618,6 @@ def _user_facing_current_work_unit_owner(current_work_unit: Mapping[str, Any]) -
         return _non_empty_text(current_work_unit.get("owner"))
     if _non_empty_text(state.get("source")) == "stage_artifact_index.next_owner_action":
         return None
-    if status == "executable_owner_action":
-        return _non_empty_text(current_work_unit.get("owner"))
     return None
 
 
@@ -637,6 +633,11 @@ def _user_facing_execution_owner(
         and current_owner_handoff_action(payload) is None
         and not current_owner_redrive_domain_transition(payload)
     ):
+        return None
+    if _non_empty_text(execution.get("state_kind")) not in {
+        "typed_blocker",
+        "running_provider_attempt",
+    }:
         return None
     return _non_empty_text(execution.get("owner"))
 

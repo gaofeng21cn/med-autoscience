@@ -638,7 +638,7 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
     assert result["legacy_next_action_authority_retired"]["authority"] == "NextActionEnvelope"
 
 
-def test_gate_followthrough_owner_action_supersedes_explicit_resume_operator_residue() -> None:
+def test_legacy_owner_action_does_not_supersede_explicit_resume_operator_residue() -> None:
     reconcile = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
     )
@@ -666,6 +666,77 @@ def test_gate_followthrough_owner_action_supersedes_explicit_resume_operator_res
                 "schema_version": 1,
                 "status": "ready",
                 "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "intervention_lane": {
+                "lane_id": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "operator_verdict": {
+                "decision_mode": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "operator_status_card": {
+                "handling_state": "explicit_resume_pending",
+                "handling_state_label": "等待显式恢复",
+                "current_focus": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "recovery_contract": {
+                "action_mode": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+            "autonomy_contract": {
+                "autonomy_state": "auto_runtime_parked",
+                "summary": "等待显式 resume、rerun 或 relaunch。",
+            },
+        }
+    )
+
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert "superseded_by_current_owner_action" not in result["auto_runtime_parked"]
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["auto_runtime_parked"]["awaiting_explicit_wakeup"] is True
+    assert result["intervention_lane"]["lane_id"] == "auto_runtime_parked"
+    assert result["operator_verdict"]["decision_mode"] == "auto_runtime_parked"
+    assert result["operator_status_card"]["handling_state"] == "explicit_resume_pending"
+    assert result["recovery_contract"]["action_mode"] == "auto_runtime_parked"
+    assert result["autonomy_contract"]["autonomy_state"] == "auto_runtime_parked"
+    assert result["study_macro_state"]["writer_state"] == "parked"
+
+
+def test_canonical_owner_action_supersedes_explicit_resume_operator_residue() -> None:
+    reconcile = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    result = reconcile.reconcile_current_owner_action_projection(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "auto_runtime_parked",
+            "auto_runtime_parked": {
+                "surface_kind": "auto_runtime_parked",
+                "schema_version": 1,
+                "parked": True,
+                "parked_state": "explicit_resume_pending",
+                "parked_state_label": "等待显式恢复",
+                "parked_owner": "user",
+                "resource_release_expected": True,
+                "awaiting_explicit_wakeup": True,
+                "auto_execution_complete": False,
+                "source_reason": "blocked_turn_closeout_waiting_for_owner",
+                "source_decision": "blocked",
+                "source_quest_status": "waiting_for_user",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "paper_mission.next_action.owner_successor",
+                "authority": "study_progress.canonical_owner_action_projection",
                 "next_owner": "write",
                 "action_type": "run_quality_repair_batch",
                 "allowed_actions": ["run_quality_repair_batch"],

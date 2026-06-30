@@ -29,8 +29,8 @@ def test_stage_route_contract_declares_ordinary_progress_handoff_policy() -> Non
     kernel_handoff = _kernel_handoff()
 
     assert policy["source_ref"] == "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff"
-    assert policy["default_progress_root"] == "current_owner_delta"
-    assert policy["stage_goal_source"] == "stage_run_current_owner_delta"
+    assert policy["default_progress_root"] == "NextActionEnvelope"
+    assert policy["stage_goal_source"] == "stage_run_next_action_envelope"
     assert policy["executor_output_requirement"] == "concrete_delta"
     assert policy["accepted_closeout_shapes"] == [
         "ProgressDeltaReceipt",

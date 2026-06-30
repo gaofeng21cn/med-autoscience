@@ -383,7 +383,7 @@ def test_hybrid_policy_is_owner_native_jit_affordance_not_budgeted_sidecar() -> 
 
     assert policy["surface_kind"] == "mas_light_coscientist_progress_first_hybrid_policy"
     assert policy["role"] == "current_owner_native_jit_affordance"
-    assert policy["ordinary_path_root"] == "current_owner_delta"
+    assert policy["ordinary_path_root"] == "NextActionEnvelope"
     assert (
         policy["default_posture"]
         == "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need"
@@ -510,7 +510,7 @@ def test_safety_envelope_matches_existing_stage_and_learning_sidecar_boundaries(
     evo = _evo_contract()
 
     handoff = profile["ordinary_progress_handoff"]
-    assert handoff["default_progress_root"] == "current_owner_delta"
+    assert handoff["default_progress_root"] == "NextActionEnvelope"
     assert handoff["audit_sidecar_policy"]["can_generate_default_next_action"] is False
     assert handoff["audit_sidecar_policy"]["can_close_stage"] is False
     assert handoff["audit_sidecar_policy"]["can_claim_domain_ready"] is False

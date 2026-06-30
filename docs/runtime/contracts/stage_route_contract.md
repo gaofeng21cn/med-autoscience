@@ -17,13 +17,13 @@ Legacy diagnostic execution chain, superseded for default next-action authority 
 
 ```mermaid
 flowchart LR
-  A["current_owner_delta"] --> B["current_work_unit"]
+  A["NextActionEnvelope-derived owner delta"] --> B["current_work_unit diagnostic"]
   B --> C["current_execution_envelope"]
   C --> D["provider_admission_current_control"]
   D --> E["OPL StageRun"]
   E --> F["terminal_closeout"]
   F --> G["MAS closeout consume or reject"]
-  G --> H["next_current_owner_delta"]
+  G --> H["next StageOutcome / NextActionEnvelope"]
 ```
 
 - diagnostic_chain_only: StageOutcome -> NextActionEnvelope -> OPLTransitionReceipt_or_StageRunReadback -> MAS_owner_consumption -> MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back -> next_StageOutcome
@@ -240,8 +240,8 @@ flowchart LR
 
 ## Ordinary Progress Handoff Policy
 - source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-- default_progress_root: current_owner_delta
-- stage_goal_source: stage_run_current_owner_delta
+- default_progress_root: NextActionEnvelope
+- stage_goal_source: stage_run_next_action_envelope
 - executor_output_requirement: concrete_delta
 - accepted_closeout_shapes: ProgressDeltaReceipt | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
 - progress_delta_receipt_kind: ProgressDeltaReceipt
@@ -254,7 +254,7 @@ flowchart LR
 - ordinary_delta_requires_full_stage_artifact_manifest: False
 - delivery_or_publication_claim_requires_tier: T2_delivery_artifact | T3_production_evidence
 - readiness_default_mode: just_in_time_for_current_delta
-- readiness_check_scope_source: stage_run_current_owner_delta.next_required_delta
+- readiness_check_scope_source: stage_run_next_action_envelope.next_required_delta
 - readiness_full_inventory_role: audit_or_terminal_gate_only
 - readiness_ordinary_blocking_policy: block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk
 - readiness_cannot_require_all_surfaces_before_writing_analysis_or_review_delta: True

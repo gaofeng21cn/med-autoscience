@@ -229,9 +229,9 @@ OPL 侧应把这次 MAS 经验提升为 Foundry Agent 的通用基座能力：
 - `Outbox` 必须与 transition event 同事务提交：provider start、MAS owner callable、tool invocation 和 human gate side effect 都从 outbox 发出，outbox emitted 不等于 MAS owner answer。
 - `StageRunKernel` 必须持有 attempt identity、lease、retry/dead-letter、resume、heartbeat 和 terminal closeout；provider completion 只能作为 MAS owner-consumption input。
 - `StateIndex` 必须只做 refs-only rebuild/read/checkpoint，显式区分 observed generation、accepted transition ref、projection lag 和 authority=false。
-- `Tool Arsenal` 必须从 `current_owner_delta` 生成 tool card、invocation plan 和 `ToolResultEnvelope`；capability 输出默认是 refs-only candidate，只有 MAS owner/reviewer/route-back 消费后才进入 progress。
+- `Tool Arsenal` 必须从 `NextActionEnvelope` 派生的 current-owner delta 生成 tool card、invocation plan 和 `ToolResultEnvelope`；capability 输出默认是 refs-only candidate，只有 MAS owner/reviewer/route-back 消费后才进入 progress。
 - `Workbench` 必须默认显示 current owner、stable outcome 和 next gate；raw queue、trace、lineage、provider detail 只进入 drilldown。
-- 标准 Agent 默认 ordinary route 必须从 `current_owner_delta` 进入 transition runtime，而不是从 raw worklist、queue history、sidecar refs 或 UI action 反推。
+- 标准 Agent 默认 ordinary route 必须从 `NextActionEnvelope` 进入 transition runtime；`current_owner_delta` 只作为 envelope-derived drilldown，而不是从 raw worklist、queue history、sidecar refs 或 UI action 反推。
 - `StageRun currentness identity` 必须包含 route identity、attempt idempotency、selected stage packet / dispatch refs、source generation 和 terminal closeout ordering。
 - `domain-handler export` intake 必须优先识别 domain progress transition request；普通 owner-callable pending task 不得旁路 transition runtime。
 - `StateIndexKernel` 必须显式区分 observed_generation 与 accepted_transition_ref，避免高 generation observation 抹掉低 generation accepted transition。

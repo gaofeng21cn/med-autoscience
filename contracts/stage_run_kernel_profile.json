@@ -138,7 +138,7 @@
     "advisory_refs_can_block_launch": false
   },
   "default_read_surface": {
-    "root": "stage_run_current_owner_delta",
+    "root": "stage_run_next_action_envelope",
     "raw_worklist_default": false,
     "readiness_default": false,
     "replay_packet_default": false
@@ -146,8 +146,8 @@
   "ordinary_progress_handoff": {
     "surface_kind": "mas_ordinary_progress_handoff_policy",
     "version": "ordinary-progress-handoff.v1",
-    "default_progress_root": "current_owner_delta",
-    "stage_goal_source": "stage_run_current_owner_delta",
+    "default_progress_root": "NextActionEnvelope",
+    "stage_goal_source": "stage_run_next_action_envelope",
     "executor_output_requirement": "concrete_delta",
     "accepted_closeout_shapes": [
       "ProgressDeltaReceipt",
@@ -203,7 +203,7 @@
     },
     "readiness_jit_policy": {
       "default_mode": "just_in_time_for_current_delta",
-      "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+      "check_scope_source": "stage_run_next_action_envelope.next_required_delta",
       "full_readiness_inventory_role": "audit_or_terminal_gate_only",
       "ordinary_progress_blocking_policy": "block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk",
       "cannot_require_all_surfaces_before_writing_analysis_or_review_delta": true

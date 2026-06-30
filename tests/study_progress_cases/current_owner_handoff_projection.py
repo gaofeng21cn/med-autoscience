@@ -12,6 +12,7 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 from .current_owner_handoff_terminal_log_cases import *  # noqa: F403,F401,E402
+from .current_owner_handoff_projection_cases.test_next_action_authority import *  # noqa: F403,F401,E402
 
 
 def test_progress_first_monitoring_projects_terminal_closeout_semantic_completeness() -> None:

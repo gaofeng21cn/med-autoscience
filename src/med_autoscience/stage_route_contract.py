@@ -465,8 +465,8 @@ def _validate_anti_loop_policy(value: object) -> None:
         if string_field not in value:
             raise ValueError(f"{field} missing required field: {string_field}")
         _non_empty_string_value(value, string_field, field)
-    if value["ordinary_path_root"] != "current_owner_delta":
-        raise ValueError(f"{field}.ordinary_path_root must be current_owner_delta")
+    if value["ordinary_path_root"] != "NextActionEnvelope":
+        raise ValueError(f"{field}.ordinary_path_root must be NextActionEnvelope")
     same_tick_max_passes = value.get("same_tick_max_passes")
     if not isinstance(same_tick_max_passes, int) or same_tick_max_passes < 1:
         raise ValueError(f"{field}.same_tick_max_passes must be a positive integer")

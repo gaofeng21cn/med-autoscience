@@ -24,6 +24,7 @@ ORDINARY_PROGRESS_HANDOFF_POLICY_REF = (
 ORDINARY_PROGRESS_HANDOFF_ROUTE_POLICY_REF = (
     "agent/stages/stage_route_contract.yaml#/ordinary_progress_handoff_policy"
 )
+READINESS_JIT_CHECK_SCOPE_SOURCE = "stage_run_next_action_envelope.next_required_delta"
 FORBIDDEN_SURFACES = (
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
@@ -283,7 +284,7 @@ def _readiness_jit_scope(
     ]
     return {
         "default_mode": "just_in_time_for_current_delta",
-        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "check_scope_source": READINESS_JIT_CHECK_SCOPE_SOURCE,
         "full_readiness_inventory_role": "audit_or_terminal_gate_only",
         "current_delta_ref_fields": ref_fields,
     }

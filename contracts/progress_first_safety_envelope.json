@@ -492,7 +492,7 @@
     "surface_kind": "mas_light_coscientist_progress_first_hybrid_policy",
     "role": "current_owner_native_jit_affordance",
     "default_posture": "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need",
-    "ordinary_path_root": "current_owner_delta",
+    "ordinary_path_root": "NextActionEnvelope",
     "default_design": "ordinary_progress_has_no_extra_advisory_stage",
     "standing_sidecar_enabled": false,
     "standing_advisory_scan_each_attempt": false,

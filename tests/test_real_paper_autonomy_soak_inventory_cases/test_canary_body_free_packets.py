@@ -165,7 +165,7 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     }
     assert result["readiness_jit_scope"] == {
         "default_mode": "just_in_time_for_current_delta",
-        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "check_scope_source": "stage_run_next_action_envelope.next_required_delta",
         "full_readiness_inventory_role": "audit_or_terminal_gate_only",
         "current_delta_ref_fields": [
             "owner_receipt_refs",
@@ -462,7 +462,7 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     }
     assert per_line_result["readiness_jit_scope"] == {
         "default_mode": "just_in_time_for_current_delta",
-        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "check_scope_source": "stage_run_next_action_envelope.next_required_delta",
         "full_readiness_inventory_role": "audit_or_terminal_gate_only",
         "current_delta_ref_fields": [
             "owner_receipt_refs",
@@ -606,7 +606,7 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     }
     assert per_line_result["readiness_jit_scope"] == {
         "default_mode": "just_in_time_for_current_delta",
-        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "check_scope_source": "stage_run_next_action_envelope.next_required_delta",
         "full_readiness_inventory_role": "audit_or_terminal_gate_only",
         "current_delta_ref_fields": ["stable_typed_blocker_refs"],
     }

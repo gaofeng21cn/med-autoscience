@@ -314,22 +314,28 @@ def current_owner_handoff_next_action(
     user_visible: Mapping[str, Any],
 ) -> str | None:
     executable_owner_action = _user_facing_executable_owner_action(payload)
+    redrive_transition = current_owner_redrive_domain_transition(payload)
     if not (
-        current_owner_redrive_domain_transition(payload)
+        redrive_transition
         and _stage_artifact_index_owner_action(executable_owner_action)
     ):
         if current_step := owner_action_next_step(executable_owner_action):
             return current_step
-    handoff_action = current_owner_handoff_action(payload)
-    if handoff_action is not None:
-        if summary := current_owner_handoff_summary(handoff_action):
-            return summary
-    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    if not redrive_transition:
+        return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
     transition = _mapping_copy(payload.get("domain_transition"))
     next_work_unit = _mapping_copy(transition.get("next_work_unit"))
     work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    route_target = _non_empty_text(transition.get("route_target")) or _non_empty_text(intervention_lane.get("route_target"))
+    route_target = _non_empty_text(transition.get("route_target"))
     owner = _non_empty_text(transition.get("owner")) or route_target
+    if work_unit_id is not None:
+        owner_text = f"{owner} owner" if owner is not None else "当前 owner"
+        current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+        output_contract = _mapping_copy(current_work_unit.get("required_output_contract"))
+        if output_contract.get("owner_receipt_required") is True:
+            return f"等待 {owner_text} 处理 work unit {work_unit_id}，产出 owner receipt、typed blocker 或下一 owner handoff。"
+        return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
     auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
     stale_parked_lane = (
         auto_parked.get("superseded_by_current_owner_action") is True
@@ -341,13 +347,6 @@ def current_owner_handoff_next_action(
             or _non_empty_text(intervention_lane.get("summary"))
         ):
             return route_summary
-    if work_unit_id is not None:
-        owner_text = f"{owner} owner" if owner is not None else "当前 owner"
-        current_work_unit = _mapping_copy(payload.get("current_work_unit"))
-        output_contract = _mapping_copy(current_work_unit.get("required_output_contract"))
-        if output_contract.get("owner_receipt_required") is True:
-            return f"等待 {owner_text} 处理 work unit {work_unit_id}，产出 owner receipt、typed blocker 或下一 owner handoff。"
-        return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
     return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
 
 
@@ -368,6 +367,8 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
     handoff_action = current_owner_handoff_action(payload)
     redrive_transition = current_owner_redrive_domain_transition(payload)
     if not redrive_transition and handoff_action is None:
+        return dict(payload)
+    if owner_action_next_step(executable_owner_action) is None and not redrive_transition:
         return dict(payload)
     if (
         handoff_action is None
@@ -390,8 +391,6 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
         user_visible["next_step"] = next_step
         if (owner := _non_empty_text(executable_owner_action.get("next_owner"))) is not None:
             user_visible["next_owner"] = owner
-        elif handoff_action is not None and (owner := _non_empty_text(handoff_action.get("owner"))) is not None:
-            user_visible["next_owner"] = owner
         if route_back_checklist is not None:
             user_visible["route_back_checklist"] = route_back_checklist
         updated["user_visible_projection"] = user_visible
@@ -404,32 +403,6 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
         if not _operator_status_has_specific_focus(operator_status):
             operator_status["current_focus"] = next_step
         updated["operator_status_card"] = operator_status
-    if lane := apply_current_owner_handoff_intervention_lane(
-        updated,
-        next_step=next_step,
-        handoff_action=handoff_action,
-    ):
-        updated["intervention_lane"] = lane
-        for key in ("operator_verdict", "recovery_contract"):
-            surface = _mapping_copy(updated.get(key))
-            if surface:
-                surface["summary"] = next_step
-                if "reason_summary" in surface:
-                    surface["reason_summary"] = next_step
-                for lane_key in (
-                    "route_target",
-                    "route_target_label",
-                    "route_key_question",
-                    "recommended_action_id",
-                    "handoff_source",
-                ):
-                    if lane.get(lane_key) not in (None, "", [], {}):
-                        surface[lane_key] = lane[lane_key]
-                updated[key] = surface
-        autonomy_contract = _mapping_copy(updated.get("autonomy_contract"))
-        if autonomy_contract:
-            autonomy_contract["next_signal"] = next_step
-            updated["autonomy_contract"] = autonomy_contract
     return updated
 
 

@@ -12,7 +12,7 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
-def test_redrive_projection_prefers_current_opl_owner_handoff_over_stale_transition() -> None:
+def test_redrive_projection_keeps_mas_domain_transition_over_opl_handoff_queue() -> None:
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
     )
@@ -91,18 +91,21 @@ def test_redrive_projection_prefers_current_opl_owner_handoff_over_stale_transit
 
     result = handoff_projection.apply_current_owner_handoff_user_visible_status(payload)
 
-    assert "write owner" in result["next_system_action"]
-    assert "run_quality_repair_batch" in result["next_system_action"]
-    assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" not in result["next_system_action"]
-    assert result["user_visible_projection"]["next_owner"] == "write"
+    assert "ai_reviewer owner" in result["next_system_action"]
+    assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
+    assert "write owner" not in result["next_system_action"]
+    assert "run_quality_repair_batch" not in result["next_system_action"]
+    assert result["user_visible_projection"]["next_owner"] == "ai_reviewer"
     assert result["user_visible_projection"]["next_step"] == result["next_system_action"]
-    assert result["intervention_lane"]["route_target"] == "write"
-    assert result["intervention_lane"]["route_key_question"] == "manuscript_story_surface_delta_missing"
-    assert result["operator_verdict"]["summary"] == result["next_system_action"]
-    assert result["operator_verdict"]["route_target"] == "write"
-    assert result["recovery_contract"]["summary"] == result["next_system_action"]
-    assert result["recovery_contract"]["route_target"] == "write"
-    assert result["autonomy_contract"]["next_signal"] == result["next_system_action"]
+    assert result["intervention_lane"]["route_target"] == "review"
+    assert result["intervention_lane"]["route_key_question"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert result["operator_verdict"]["summary"] != result["next_system_action"]
+    assert result["operator_verdict"]["route_target"] == "review"
+    assert result["recovery_contract"]["summary"] != result["next_system_action"]
+    assert result["recovery_contract"]["route_target"] == "review"
+    assert result["autonomy_contract"]["next_signal"] != result["next_system_action"]
 
 
 def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> None:
@@ -178,11 +181,12 @@ def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> 
     result = handoff_projection.apply_current_owner_handoff_user_visible_status(payload)
 
     assert "write owner" in result["next_system_action"]
-    assert "run_quality_repair_batch" in result["next_system_action"]
-    assert "manuscript_story_surface_delta_missing" in result["next_system_action"]
+    assert "medical_prose_currentness_recheck" in result["next_system_action"]
+    assert "run_quality_repair_batch" not in result["next_system_action"]
+    assert "manuscript_story_surface_delta_missing" not in result["next_system_action"]
     assert result["user_visible_projection"]["next_owner"] == "write"
-    assert result["intervention_lane"]["route_target"] == "write"
-    assert result["intervention_lane"]["route_key_question"] == "manuscript_story_surface_delta_missing"
+    assert result["intervention_lane"]["route_target"] == "review"
+    assert result["intervention_lane"]["route_key_question"] == "stale_review_route"
     checklist = result["route_back_checklist"]
     assert checklist["blockers"] == ["manuscript_story_surface_delta_missing"]
     assert checklist["route_target"] == "write"
@@ -206,7 +210,7 @@ def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> 
     assert checklist["changed_paper_surfaces"] == []
     assert checklist["changed_stage_surfaces"] == ["runtime/typed_closeout.json"]
     assert result["user_visible_projection"]["route_back_checklist"] == checklist
-    assert result["intervention_lane"]["route_back_checklist"] == checklist
+    assert "route_back_checklist" not in result["intervention_lane"]
 
 
 def test_user_visible_projection_uses_current_domain_transition_owner_when_handoff_shell_is_stale() -> None:
@@ -461,7 +465,7 @@ def test_progress_first_monitoring_keeps_consumed_ai_reviewer_closeout_blocker_b
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
-def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_log() -> None:
+def test_redrive_projection_keeps_mas_transition_over_explicit_opl_handoff_owner() -> None:
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
     )
@@ -539,16 +543,19 @@ def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_l
 
     result = handoff_projection.apply_current_owner_handoff_user_visible_status(payload)
 
-    assert "external_supervisor owner" in result["next_system_action"]
-    assert "request_opl_handoff_hydration" in result["next_system_action"]
-    assert "opl_stage_attempt_admission_required" in result["next_system_action"]
+    assert "ai_reviewer owner" in result["next_system_action"]
+    assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
+    assert "external_supervisor owner" not in result["next_system_action"]
+    assert "request_opl_handoff_hydration" not in result["next_system_action"]
     assert "return_to_ai_reviewer_workflow" not in result["next_system_action"]
-    assert result["user_visible_projection"]["next_owner"] == "external_supervisor"
-    assert result["intervention_lane"]["route_target"] == "external_supervisor"
-    assert result["intervention_lane"]["route_key_question"] == "opl_stage_attempt_admission_required"
-    assert result["operator_verdict"]["route_target"] == "external_supervisor"
-    assert result["recovery_contract"]["route_target"] == "external_supervisor"
-    assert result["autonomy_contract"]["next_signal"] == result["next_system_action"]
+    assert result["user_visible_projection"].get("next_owner") != "external_supervisor"
+    assert result["intervention_lane"]["route_target"] == "review"
+    assert result["intervention_lane"]["route_key_question"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert result["operator_verdict"]["route_target"] == "review"
+    assert result["recovery_contract"]["route_target"] == "review"
+    assert result["autonomy_contract"]["next_signal"] != result["next_system_action"]
 
 
 def test_redrive_projection_ignores_handoff_older_than_current_controller_truth() -> None:

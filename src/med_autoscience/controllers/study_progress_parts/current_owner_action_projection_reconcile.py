@@ -10,7 +10,10 @@ from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successo
     paper_recovery_successor_action_ready,
 )
 
-from .canonical_owner_action_projection import owner_action_next_step
+from .canonical_owner_action_projection import (
+    is_canonical_owner_action_projection,
+    owner_action_next_step,
+)
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .shared import _mapping_copy, _non_empty_text
 from ..stage_route_currentness_identity import currentness_identities_match
@@ -72,7 +75,7 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
             "awaiting_explicit_wakeup": False,
             "auto_execution_complete": False,
             "superseded_by_current_owner_action": True,
-            "summary": "Stage Native current owner action is available; stale user-park projection is not the current execution owner.",
+            "summary": "Canonical NextActionEnvelope owner action is available; stale user-park projection is not the current execution owner.",
             "next_action_summary": next_step,
         }
     )
@@ -207,7 +210,7 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
             {
                 "type": "CurrentOwnerActionSupersedesStaleUserPark",
                 "status": "true",
-                "reason": "Stage Native current owner action exists and no current human-gate authority ref is present.",
+                "reason": "Canonical NextActionEnvelope owner action exists and no current human-gate authority ref is present.",
             }
         ],
     }
@@ -305,9 +308,7 @@ def current_owner_action_supersedes_stale_user_park(
     payload: Mapping[str, Any],
     action: Mapping[str, Any],
 ) -> bool:
-    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
-        return False
-    if _non_empty_text(action.get("source")) not in CURRENT_OWNER_ACTION_SOURCES:
+    if not is_canonical_owner_action_projection(action):
         return False
     auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
     if auto_parked.get("parked") is not True:

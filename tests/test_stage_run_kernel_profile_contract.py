@@ -133,8 +133,8 @@ def test_ordinary_progress_handoff_accepts_t0_progress_delta_without_ready_claim
 
     assert handoff["surface_kind"] == "mas_ordinary_progress_handoff_policy"
     assert handoff["version"] == "ordinary-progress-handoff.v1"
-    assert handoff["default_progress_root"] == "current_owner_delta"
-    assert handoff["stage_goal_source"] == "stage_run_current_owner_delta"
+    assert handoff["default_progress_root"] == "NextActionEnvelope"
+    assert handoff["stage_goal_source"] == "stage_run_next_action_envelope"
     assert handoff["executor_output_requirement"] == "concrete_delta"
     assert handoff["accepted_closeout_shapes"] == [
         "ProgressDeltaReceipt",
@@ -185,7 +185,7 @@ def test_ordinary_progress_handoff_accepts_t0_progress_delta_without_ready_claim
 
     readiness = handoff["readiness_jit_policy"]
     assert readiness["default_mode"] == "just_in_time_for_current_delta"
-    assert readiness["check_scope_source"] == "stage_run_current_owner_delta.next_required_delta"
+    assert readiness["check_scope_source"] == "stage_run_next_action_envelope.next_required_delta"
     assert readiness["full_readiness_inventory_role"] == "audit_or_terminal_gate_only"
     assert readiness["cannot_require_all_surfaces_before_writing_analysis_or_review_delta"] is True
 

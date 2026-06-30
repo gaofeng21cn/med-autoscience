@@ -47,8 +47,8 @@ progress_first_jit_affordance_policy:
     - repeated affordance disagreement must route to the declared next owner, typed blocker, human gate, or stop-loss instead of starting another advisory loop
 ordinary_progress_handoff_policy:
   source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-  default_progress_root: current_owner_delta
-  stage_goal_source: stage_run_current_owner_delta
+  default_progress_root: NextActionEnvelope
+  stage_goal_source: stage_run_next_action_envelope
   executor_output_requirement: concrete_delta
   accepted_closeout_shapes:
     - ProgressDeltaReceipt
@@ -105,7 +105,7 @@ ordinary_progress_handoff_policy:
       - T3_production_evidence
   readiness_jit_policy:
     default_mode: just_in_time_for_current_delta
-    check_scope_source: stage_run_current_owner_delta.next_required_delta
+    check_scope_source: stage_run_next_action_envelope.next_required_delta
     full_readiness_inventory_role: audit_or_terminal_gate_only
     ordinary_progress_blocking_policy: block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk
     cannot_require_all_surfaces_before_writing_analysis_or_review_delta: true
@@ -137,7 +137,7 @@ ordinary_progress_handoff_policy:
     success_path_requires_owner_receipt_or_stable_typed_blocker: true
 anti_loop_policy:
   source_ref: agent/stages/stage_route_contract.yaml#/anti_loop_policy
-  ordinary_path_root: current_owner_delta
+  ordinary_path_root: NextActionEnvelope
   same_tick_max_passes: 3
   same_tick_continue_reasons:
     - continue_same_tick_after_sync_owner_delta
