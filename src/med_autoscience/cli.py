@@ -116,6 +116,9 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_paper_readiness_owner_blocker = _LazyModuleProxy(lambda: _load_controller("medical_paper_readiness_owner_blocker"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
+descriptive_registry_evidence_materializer = _LazyModuleProxy(
+    lambda: _load_controller("descriptive_registry_evidence_materializer")
+)
 workspace_authority_migration_audit = _LazyModuleProxy(lambda: _load_controller("workspace_authority_migration_audit"))
 delivery_authority_backfill_apply = _LazyModuleProxy(lambda: _load_controller("delivery_authority_backfill_apply"))
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
@@ -720,6 +723,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "materialize-display-surface":
         result = display_surface_materialization.materialize_display_surface(
             paper_root=Path(args.paper_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "descriptive-registry-evidence-materialize":
+        result = descriptive_registry_evidence_materializer.materialize_descriptive_registry_evidence(
+            study_root=Path(args.study_root),
+            paper_root=Path(args.paper_root),
+            apply=bool(args.apply),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
