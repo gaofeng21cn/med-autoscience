@@ -8,6 +8,7 @@ from .markdown_surface import *
 from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
+from .source_hydration import hydrate_submission_package_sources_from_current_body
 from collections.abc import Mapping
 import inspect
 from med_autoscience.controllers import paper_authority_delivery_guard
@@ -201,6 +202,10 @@ def create_submission_minimal_package(
     )
 
     bundle_manifest = load_json(paper_root / "paper_bundle_manifest.json")
+    source_hydration_result = hydrate_submission_package_sources_from_current_body(
+        paper_root=paper_root,
+        bundle_manifest=bundle_manifest,
+    )
     compile_report_path = resolve_compile_report_path(
         workspace_root=workspace_root,
         paper_root=paper_root,
@@ -541,6 +546,7 @@ def create_submission_minimal_package(
             ),
             "source_signature": source_contract["source_signature"],
             "source_contract": source_contract,
+            "source_hydration": source_hydration_result,
         }
         if input_compiled_pdf_path.exists():
             manifest["input_compiled_pdf_path"] = relpath_from_workspace(input_compiled_pdf_path, workspace_root)

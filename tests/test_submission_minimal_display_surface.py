@@ -259,6 +259,104 @@ def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_pat
     assert refs["ai_illustration_receipt"]["status"] == "missing"
 
 
+def test_create_submission_minimal_package_hydrates_compile_report_from_current_draft(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    (paper_root / "build" / "compile_report.json").unlink()
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Current Draft Manuscript"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Current draft citation [@ref1].
+
+# Main Figures
+
+## Figure 1. Main figure
+
+Caption.
+
+![](figures/F1_main.png)
+""",
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/draft.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    compile_report = json.loads((paper_root / "build" / "compile_report.json").read_text(encoding="utf-8"))
+    assert compile_report["status"] == "current_draft_compile_source_hydrated"
+    assert compile_report["source_markdown_path"] == "paper/draft.md"
+    assert manifest["source_hydration"]["source_compile_report_status"] == "generated_from_current_draft"
+    assert "paper/build/compile_report.json" in manifest["source_hydration"]["hydrated_files"]
+    assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
+
+
+def test_create_submission_minimal_package_hydrates_delivery_required_ledgers_from_current_body(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    study_root = tmp_path / "workspace"
+    paper_root = study_root / "paper"
+    current_body_paper_root = (
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper"
+    )
+    make_workspace(tmp_path)
+    (paper_root / "evidence_ledger.json").unlink(missing_ok=True)
+    (paper_root / "review" / "review_ledger.json").unlink(missing_ok=True)
+    dump_json(
+        current_body_paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "ledger_id": "current-body-evidence-ledger",
+            "claims": [],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "review" / "review_ledger.json",
+        {
+            "schema_version": 1,
+            "ledger_id": "current-body-review-ledger",
+            "review_items": [],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    assert (paper_root / "evidence_ledger.json").exists()
+    assert (paper_root / "review" / "review_ledger.json").exists()
+    assert "paper/evidence_ledger.json" in manifest["source_hydration"]["hydrated_files"]
+    assert "paper/review/review_ledger.json" in manifest["source_hydration"]["hydrated_files"]
+    assert (paper_root / "submission_minimal" / "audit" / "evidence_ledger.json").exists()
+
+
 def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)

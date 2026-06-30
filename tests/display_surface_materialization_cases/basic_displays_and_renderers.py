@@ -193,6 +193,147 @@ def test_materialize_display_surface_generates_dpcc_compact_table_shells(tmp_pat
         "table_shell_id"
     ] == full_id("table3_transition_site_support_summary")
 
+def test_materialize_display_surface_hydrates_current_body_display_sources(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    current_body_paper_root = (
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper"
+    )
+    write_default_publication_display_contracts(paper_root)
+    _write_prepared_dependency_environment(paper_root)
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                    "shell_path": "paper/figures/cohort_flow.shell.json",
+                },
+                {
+                    "display_id": "phenotype_gap_summary",
+                    "display_kind": "table",
+                    "requirement_key": "table2_phenotype_gap_summary",
+                    "catalog_id": "T2",
+                    "shell_path": "paper/tables/phenotype_gap_summary.shell.json",
+                },
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "cohort_flow",
+            "catalog_id": "F1",
+            "title": "Study population and data flow",
+            "steps": [
+                {"step_id": "source", "label": "Source records", "n": 120, "detail": "Routine primary care"},
+                {"step_id": "analysis", "label": "Analysis cohort", "n": 100, "detail": "Eligible adults"},
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "figures" / "cohort_flow.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+    )
+    dump_json(
+        current_body_paper_root / "phenotype_gap_summary_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table2_phenotype_gap_summary",
+            "display_id": "phenotype_gap_summary",
+            "catalog_id": "T2",
+            "group_columns": ["Phenotype"],
+            "variables": ["Index patients", "Mean HbA1c"],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "tables" / "phenotype_gap_summary.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "phenotype_gap_summary",
+            "display_kind": "table",
+            "requirement_key": "table2_phenotype_gap_summary",
+            "catalog_id": "T2",
+        },
+    )
+    (current_body_paper_root / "tables").mkdir(parents=True, exist_ok=True)
+    (current_body_paper_root / "tables" / "T2_phenotype_gap_summary.csv").write_text(
+        "Phenotype,Index patients,Mean HbA1c\n"
+        "Glycemic-dominant diabetes,104029,8.04\n",
+        encoding="utf-8",
+    )
+    dump_json(
+        current_body_paper_root / "build" / "dependency_environment_receipt.json",
+        {
+            "schema_version": 1,
+            "status": "prepared",
+            "failure_class": "",
+            "lock_ref": "paper/build/dependency_environment_lock.json",
+            "run_context_ref": "paper/build/dependency_run_context.json",
+        },
+    )
+
+    def fake_subprocess_renderer(
+        *,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(full_template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return {"status": "rendered", "figure_id": figure_id}
+
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["source_hydration"]["status"] == "hydrated"
+    assert result["source_hydration"]["missing_required_source_files"] == []
+    assert "paper/cohort_flow.json" in result["source_hydration"]["hydrated_files"]
+    assert "paper/build/dependency_environment_receipt.json" in result["source_hydration"]["hydrated_files"]
+    assert "paper/phenotype_gap_summary_schema.json" in result["source_hydration"]["hydrated_files"]
+    assert "paper/tables/T2_phenotype_gap_summary.csv" in result["source_hydration"]["hydrated_files"]
+    assert (paper_root / "cohort_flow.json").exists()
+    assert (paper_root / "figures" / "cohort_flow.shell.json").exists()
+    assert (paper_root / "phenotype_gap_summary_schema.json").exists()
+    assert (paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv").exists()
+    assert result["figures_materialized"] == ["F1"]
+    assert result["tables_materialized"] == ["T2"]
+
 def test_materialize_display_surface_replaces_legacy_catalog_entries_with_matching_catalog_id(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)

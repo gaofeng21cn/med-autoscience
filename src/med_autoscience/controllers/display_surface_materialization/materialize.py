@@ -15,6 +15,7 @@ from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, 
 from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
 from .payload_loader import _load_evidence_display_payload
 from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
+from .source_hydration import hydrate_display_surface_sources_from_current_body
 from .submission_graphical_abstract import _materialize_submission_graphical_abstract
 from .validation_tables import _validate_cohort_flow_payload
 
@@ -526,6 +527,10 @@ def _iter_display_surface_entries(
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     display_registry_payload = load_json(resolved_paper_root / "display_registry.json")
+    source_hydration_result = hydrate_display_surface_sources_from_current_body(
+        paper_root=resolved_paper_root,
+        display_registry_payload=display_registry_payload,
+    )
     figure_catalog = load_json(resolved_paper_root / "figures" / "figure_catalog.json")
     table_catalog = load_json(resolved_paper_root / "tables" / "table_catalog.json")
     claim_evidence_map_path = resolved_paper_root / "claim_evidence_map.json"
@@ -1102,6 +1107,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         "paper_root": str(resolved_paper_root),
         "figures_materialized": figures_materialized,
         "tables_materialized": tables_materialized,
+        "source_hydration": source_hydration_result,
         "display_pack_surface_sync": display_pack_sync_result,
         "pruned_generated_paths": pruned_generated_paths,
         "written_files": written_files,
