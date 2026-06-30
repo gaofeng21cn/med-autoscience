@@ -29,19 +29,13 @@ from med_autoscience.paper_mission_stage_closure_ledger import (
     latest_paper_mission_stage_closure_decision_readback,
     write_paper_mission_stage_closure_decision,
 )
-from med_autoscience.paper_mission_opl_carrier import (
-    paper_mission_opl_runtime_carrier,
-)
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
     attach_paper_mission_next_action,
 )
-from med_autoscience.controllers.next_action_envelope import compile_next_action_envelope
 from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
     PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
-    PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH,
-    PAPER_MISSION_STAGE_CLOSURE_RELPATH,
     YANG_WORKSPACE_ROOT,
     _assert_safe_candidate_output_root,
     _assert_safe_candidate_package_output_root,
@@ -50,10 +44,7 @@ from med_autoscience.cli_parts.paper_mission_output_roots import (
     _assert_safe_receipt_owner_consumption_output_root,
     _assert_safe_stage_closure_output_root,
     _is_yang_ops_candidate_package_root,
-    _is_yang_ops_candidate_root,
     _is_yang_ops_consumption_ledger_root,
-    _is_yang_ops_non_authority_candidate_root,
-    _is_yang_ops_root,
     _is_under_yang_workspace,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.receipt_owner_consumption import (
@@ -68,6 +59,18 @@ from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_con
 from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_outputs import (
     write_materialized_candidate_package_outputs as _candidate_write_materialized_candidate_package_outputs,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.command_metadata import (
+    FORBIDDEN_AUTHORITY_WRITES,
+    PAPER_MISSION_CONTRACT_REF,
+    PAPER_MISSION_CONTRACT_VERSION,
+    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    action_intent as _action_intent,
+    mission_id as _mission_id,
+    mutation_policy as _mutation_policy,
+    no_write_output_manifest as _no_write_output_manifest,
+    objective_for_command as _objective_for_command,
+    validate_with_contract_if_available as _validate_with_contract_if_available,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.domain_handler_dispatch import (
     paper_mission_domain_handler_dispatch_receipt as _paper_mission_domain_handler_dispatch_receipt,
 )
@@ -78,18 +81,23 @@ from med_autoscience.cli_parts.paper_mission_command_parts.followthrough_materia
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback_context import (
     consume_candidate_status as _consume_candidate_status,
     dispatch_execution_policy as _dispatch_execution_policy,
-    materialized_mission_path_matches as _materialized_mission_path_matches,
     materialized_opl_route_command as _materialized_opl_route_command,
     materialized_stage_terminal_decision as _materialized_stage_terminal_decision,
     materialized_study_id as _materialized_study_id,
     materialized_study_root as _materialized_study_root,
     normalize_materialized_mission_for_cli_readback as _normalize_materialized_mission_for_cli_readback,
-    paper_audit_pack_for_cli_readback as _paper_audit_pack_for_cli_readback,
     paper_facing_action_fields as _paper_facing_action_fields,
     recommended_domain_command as _recommended_domain_command,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.parser_registration import (
     register_paper_mission_parsers,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.projection_fields import (
+    latest_materialized_mission_path as _latest_materialized_mission_path,
+    paper_mission_delivery_projection_fields as _paper_mission_delivery_projection_fields,
+    paper_mission_inspect_projection_fields as _paper_mission_inspect_projection_fields,
+    paper_mission_materialized_projection_fields as _paper_mission_materialized_projection_fields,
+    resolve_consume_candidate_ref as _resolve_consume_candidate_ref,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.one_shot_migration import (
     ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES,
@@ -103,30 +111,25 @@ from med_autoscience.cli_parts.paper_mission_command_parts.opl_runtime_submissio
     stage_closure_missing_runtime_submission as _stage_closure_missing_runtime_submission,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
-    _canonicalize_followthrough_transaction_identity,
     _empty_paper_mission_route_back_budget_ledger,
-    _paper_mission_canonical_followthrough_identity,
     _paper_mission_mas_owned_executor_stage_packet,
     _paper_mission_route_back_budget_exhausted,
     _paper_mission_route_back_budget_ledger_path,
     _record_paper_mission_route_back_budget_ledger,
     _load_paper_mission_route_back_budget_ledger,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
+    merge_stage_closure_typed_blocker_gate_fields as _merge_stage_closure_typed_blocker_gate_fields,
+    next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _compact_mapping,
     _compact_non_null_mapping,
-    _dedupe_optional_texts,
-    _first_mapping,
     _first_text,
-    _first_text_item,
-    _is_relative_to,
     _load_json_object,
     _load_optional_json_object,
     _mapping,
-    _mapping_list,
     _optional_text,
-    _paper_mission_sorted_mapping,
-    _slug,
     _stable_sha256,
     _text_list,
 )
@@ -134,13 +137,8 @@ from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_termina
     FORBIDDEN_AUTHORITY_CLAIMS as STAGE_CLOSURE_FORBIDDEN_AUTHORITY_CLAIMS,
     STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
     attach_stage_closure_ledger_to_drive_readback as _attach_stage_closure_ledger_to_drive_readback,
-    current_package_is_submission_ready_clear as _current_package_is_submission_ready_clear,
     materialize_stage_closure_for_drive_readback as _materialize_stage_closure_for_drive_readback,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
-    stage_closure_delivery_readback as _stage_closure_delivery_readback,
-    stage_closure_opl_closeout as _stage_closure_opl_closeout,
-    stage_closure_readback_blockers as _stage_closure_readback_blockers,
-    stage_closure_semantic_delta as _stage_closure_semantic_delta,
     stage_closure_source_readback_summary as _stage_closure_source_readback_summary,
     stage_closure_terminalizer_output_root as _stage_closure_terminalizer_output_root,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
@@ -162,47 +160,16 @@ from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback 
     _paper_mission_transaction_readback as _paper_mission_transaction_readback_impl,
     _transaction_readback_output_fields,
 )
-from med_autoscience.paper_mission_owner_answer import (
-    terminal_owner_gate_authority_consume_readback,
-    terminal_owner_gate_owner_answer_next_decision,
-    terminal_owner_gate_owner_answer_readback,
-)
-from med_autoscience.paper_mission_terminal_owner_gate import (
-    stage_terminal_next_owner_or_human_decision,
-    terminal_owner_gate_authority_readback,
-    terminal_owner_gate_from_carrier_readback,
-    terminal_owner_gate_from_stage_terminal_decision,
-    terminal_owner_gate_next_decision,
-)
-from med_autoscience.paper_mission_transaction import (
-    stage_terminal_decision_for_consume_result,
-)
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
-    stage_closure_signature,
-    terminalize_stage_closure,
 )
 from med_autoscience.controllers.study_interventions import read_intervention_events
 from med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection import (
     submission_authority_owner_gate_readback,
 )
-PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
-PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
-PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
-PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
 DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT = 2
 
-FORBIDDEN_AUTHORITY_WRITES = (
-    "publication_eval/latest.json",
-    "controller_decisions/latest.json",
-    "owner receipt",
-    "typed blocker",
-    "human gate",
-    "current_package",
-    "runtime queue/provider attempts",
-    "/Users/gaofeng/workspace/Yang/**",
-)
 CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
@@ -2176,438 +2143,6 @@ def _build_materialized_mission_readback_if_available(
     }
 
 
-def _paper_mission_inspect_projection_fields(
-    *,
-    stage_closure_decision: Mapping[str, Any],
-    projection_fields: Mapping[str, Any],
-) -> dict[str, Any]:
-    decision = _mapping(stage_closure_decision)
-    outcome = _mapping(decision.get("outcome"))
-    return _compact_mapping(
-        {
-            "repair_budget": _first_mapping(
-                _mapping(decision.get("repair_budget")),
-                _mapping(projection_fields.get("repair_budget")),
-                _mapping(projection_fields.get("route_back_budget")),
-            )
-            or None,
-            "stage_closure": _compact_mapping(
-                {
-                    "projection_status": decision.get("projection_status"),
-                    "decision_ref": decision.get("decision_ref"),
-                    "outcome": outcome or None,
-                    "outcome_kind": _first_text(
-                        decision.get("outcome_kind"),
-                        outcome.get("kind"),
-                    ),
-                    "next_transition": _first_text(
-                        _mapping(outcome.get("next_transition")).get("transition_kind"),
-                        outcome.get("transition_kind"),
-                        outcome.get("next_action"),
-                    ),
-                    "package_kind": _first_text(
-                        decision.get("package_kind"),
-                        outcome.get("package_kind"),
-                    ),
-                    "known_blockers": _text_list(decision.get("known_blockers")),
-                    "repair_budget": _first_mapping(
-                        _mapping(decision.get("repair_budget")),
-                        _mapping(projection_fields.get("repair_budget")),
-                        _mapping(projection_fields.get("route_back_budget")),
-                    )
-                    or None,
-                }
-            )
-            or None,
-            "current_package": _paper_mission_current_package_projection(projection_fields),
-        }
-    )
-
-
-def _merge_stage_closure_typed_blocker_gate_fields(
-    *,
-    transaction_output_fields: Mapping[str, Any],
-    stage_closure_decision: Mapping[str, Any],
-    next_action: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    gate = _terminal_owner_gate_from_stage_closure_decision(
-        stage_closure_decision=stage_closure_decision,
-        next_action=next_action,
-    )
-    if not gate:
-        return dict(transaction_output_fields)
-    merged = dict(transaction_output_fields)
-    merged["terminal_owner_gate"] = gate
-    authority_readback = terminal_owner_gate_authority_readback(gate)
-    merged["terminal_owner_gate_authority_readback"] = authority_readback or None
-    merged["next_owner_or_human_decision"] = terminal_owner_gate_next_decision(gate)
-    readback = _mapping(merged.get("paper_mission_transaction_readback"))
-    if readback:
-        merged["paper_mission_transaction_readback"] = {
-            **readback,
-            "terminal_owner_gate": gate,
-            "terminal_owner_gate_authority_readback": authority_readback or None,
-            "next_owner_or_human_decision": merged["next_owner_or_human_decision"],
-        }
-    return merged
-
-
-def _terminal_owner_gate_from_stage_closure_decision(
-    *,
-    stage_closure_decision: Mapping[str, Any],
-    next_action: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    decision = _mapping(stage_closure_decision)
-    outcome = _mapping(decision.get("outcome"))
-    if outcome.get("kind") != "typed_blocker":
-        return {}
-    action = _mapping(next_action)
-    typed_blocker_ref = _first_text(
-        outcome.get("typed_blocker_ref"),
-        outcome.get("typed_blocker_evidence_ref"),
-        decision.get("decision_ref"),
-        action.get("outcome_ref"),
-    )
-    return _compact_mapping(
-        {
-            "surface_kind": "paper_mission_terminal_owner_gate",
-            "owner": "mas_authority_kernel",
-            "gate_kind": "typed_blocker",
-            "blocked_reason": _first_text(
-                outcome.get("blocker_id"),
-                outcome.get("reason"),
-                "typed_blocker",
-            ),
-            "typed_blocker_ref": typed_blocker_ref,
-            "closeout_ref": _first_text(decision.get("decision_ref"), action.get("outcome_ref")),
-            "stage_attempt_id": _first_text(
-                outcome.get("stage_attempt_id"),
-                decision.get("stage_attempt_id"),
-            ),
-            "work_unit_id": _first_text(
-                outcome.get("work_unit_id"),
-                decision.get("work_unit_id"),
-                action.get("work_unit_id"),
-            ),
-            "can_claim_paper_progress": False,
-            "can_claim_runtime_ready": False,
-            "authority_materialized": False,
-            "legal_next_action": "route_to_owner_or_human_gate",
-        }
-    )
-
-
-def _next_action_for_stage_closure_decision(
-    *,
-    stage_closure_decision: Mapping[str, Any],
-    transaction_readback: Mapping[str, Any],
-    typed_blocker_resolution_readback: Mapping[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    decision = _mapping(stage_closure_decision)
-    outcome = _mapping(decision.get("outcome"))
-    resolution = _mapping(typed_blocker_resolution_readback)
-    if resolution:
-        action = _mapping(resolution.get("next_owner_action"))
-        if action:
-            source_ref = _first_text(resolution.get("source_ref"), resolution.get("decision_ref"))
-            action_type = _first_text(
-                action.get("action_type"),
-                action.get("next_action"),
-                _first_text_item(action.get("allowed_actions")),
-            )
-            return compile_next_action_envelope(
-                stage_outcome={
-                    "kind": "next_stage_transition",
-                    "study_id": _first_text(decision.get("study_id"), action.get("study_id")),
-                    "stage_id": _first_text(
-                        decision.get("stage_id"),
-                        "submission_milestone_candidate",
-                    ),
-                    "work_unit_id": action.get("work_unit_id"),
-                    "work_unit_fingerprint": action.get("work_unit_fingerprint"),
-                    "action_family": "paper.package.submission_minimal",
-                    "next_action": action_type,
-                    "decision_signature": action.get("work_unit_fingerprint"),
-                    "required_input_refs": action.get("acceptance_refs"),
-                },
-                study_id=_first_text(decision.get("study_id"), action.get("study_id")),
-                stage_id=_first_text(
-                    decision.get("stage_id"),
-                    "submission_milestone_candidate",
-                ),
-                outcome_ref=source_ref,
-                owner_route={
-                    "next_owner": action.get("next_owner") or "mas_authority_kernel",
-                    "allowed_actions": action.get("allowed_actions"),
-                    "action_type": action_type,
-                    "idempotency_key": action.get("work_unit_fingerprint"),
-                    "action_family": "paper.package.submission_minimal",
-                    "paper_facing_delta": action.get("paper_facing_delta"),
-                    "accepted_answer_shape": action.get("accepted_answer_shape"),
-                    "route_back": action.get("route_back"),
-                    "verification": action.get("verification"),
-                    "executable_owner_route": action.get("executable_owner_route"),
-                },
-                authority_boundary={
-                    "projection_only": True,
-                    "can_claim_stage_complete": False,
-                    "can_claim_submission_ready": False,
-                    "can_claim_publication_ready": False,
-                },
-                diagnostic_refs=[
-                    {"role": "typed_blocker_resolution", "ref": source_ref}
-                ]
-                if source_ref is not None
-                else [],
-            )
-    if outcome.get("kind") == "typed_blocker":
-        transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
-        return compile_next_action_envelope(
-            stage_outcome={
-                **outcome,
-                "study_id": _first_text(decision.get("study_id"), transaction.get("study_id")),
-                "stage_id": _first_text(decision.get("stage_id"), transaction.get("stage_id")),
-                "work_unit_id": "paper_mission_typed_blocker_resolution",
-                "work_unit_fingerprint": _first_text(
-                    outcome.get("typed_blocker_evidence_ref"),
-                    decision.get("decision_signature"),
-                ),
-                "stage_closure_decision_ref": decision.get("decision_ref"),
-                "action_family": "blocked.typed",
-            },
-            study_id=_first_text(decision.get("study_id"), transaction.get("study_id")),
-            stage_id=_first_text(decision.get("stage_id"), transaction.get("stage_id")),
-            outcome_ref=decision.get("decision_ref"),
-            owner_route={
-                "next_owner": "mas_authority_kernel",
-                "allowed_actions": ["materialize_typed_blocker_or_route_redesign"],
-                "action_family": "blocked.typed",
-            },
-            authority_boundary={
-                "projection_only": True,
-                "can_claim_stage_complete": False,
-                "can_claim_submission_ready": False,
-                "can_claim_publication_ready": False,
-            },
-            diagnostic_refs=_stage_closure_next_action_diagnostic_refs(
-                stage_closure_decision=decision,
-                transaction_readback=transaction_readback,
-            ),
-        )
-    if outcome.get("kind") != "owner_receipt":
-        return None
-    if outcome.get("package_kind") != "submission_ready_package":
-        return None
-    if outcome.get("can_submit") is not True:
-        return None
-    if _text_list(outcome.get("known_blockers")) or _text_list(
-        decision.get("known_blockers")
-    ):
-        return None
-    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
-    return compile_next_action_envelope(
-        stage_outcome={
-            **outcome,
-            "study_id": decision.get("study_id"),
-            "stage_id": decision.get("stage_id"),
-            "work_unit_id": decision.get("work_unit_id"),
-            "work_unit_fingerprint": decision.get("work_unit_fingerprint"),
-            "stage_closure_decision_ref": decision.get("decision_ref"),
-            "decision_signature": decision.get("decision_signature"),
-            "required_input_refs": [
-                ref
-                for ref in _text_list(
-                    _mapping(decision.get("semantic_delta")).get("delivery_delta_refs")
-                )
-            ],
-        },
-        study_id=_first_text(decision.get("study_id"), transaction.get("study_id")),
-        stage_id=_first_text(decision.get("stage_id"), transaction.get("stage_id")),
-        outcome_ref=decision.get("decision_ref"),
-        authority_boundary={
-            "projection_only": True,
-            "can_claim_stage_complete": False,
-            "can_claim_submission_ready": False,
-            "can_claim_publication_ready": False,
-        },
-        diagnostic_refs=_stage_closure_next_action_diagnostic_refs(
-            stage_closure_decision=decision,
-            transaction_readback=transaction_readback,
-        ),
-    )
-
-
-def _stage_closure_next_action_diagnostic_refs(
-    *,
-    stage_closure_decision: Mapping[str, Any],
-    transaction_readback: Mapping[str, Any],
-) -> list[dict[str, str]]:
-    refs: list[dict[str, str]] = []
-    for role, ref in (
-        ("stage_closure_decision", stage_closure_decision.get("decision_ref")),
-        (
-            "paper_mission_transaction",
-            _mapping(transaction_readback.get("paper_mission_transaction")).get(
-                "transaction_id"
-            ),
-        ),
-    ):
-        text = _optional_text(ref)
-        if text is not None:
-            refs.append({"role": role, "ref": text})
-    for ref in _text_list(
-        _mapping(stage_closure_decision.get("semantic_delta")).get("delivery_delta_refs")
-    ):
-        refs.append({"role": "delivery_delta_ref", "ref": ref})
-    return refs
-
-
-def _paper_mission_current_package_projection(
-    projection_fields: Mapping[str, Any],
-) -> dict[str, Any]:
-    current = _mapping(projection_fields.get("current_package"))
-    if current:
-        return current
-    return {
-        "status": "missing",
-        "package_kind": "current_package",
-        "can_submit": False,
-        "known_blockers": ["current_package_missing"],
-    }
-
-
-def _paper_mission_delivery_projection_fields(
-    *,
-    profile: Any,
-    profile_ref: str | Path,
-    study_root: Path,
-) -> dict[str, Any]:
-    from med_autoscience.controllers.study_progress_parts.delivery_inspection import (
-        read_delivery_inspection_projection,
-    )
-
-    delivery = read_delivery_inspection_projection(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_root=study_root,
-    )
-    current_package = _mapping(_mapping(delivery).get("current_package"))
-    return {"current_package": current_package} if current_package else {}
-
-
-def _paper_mission_materialized_projection_fields(
-    *,
-    transaction_readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
-    decision = _mapping(transaction_readback.get("stage_terminal_decision"))
-    owner_answer = _mapping(
-        transaction_readback.get("terminal_owner_gate_owner_answer_readback")
-    )
-    next_decision = _mapping(transaction_readback.get("next_owner_or_human_decision"))
-    artifact_delta_refs = _mapping_list(transaction.get("artifact_delta_refs"))
-    return _compact_non_null_mapping(
-        {
-            "artifact_delta_refs": artifact_delta_refs or None,
-            "owner_answer_shape": _first_text(
-                owner_answer.get("owner_answer_shape"),
-                decision.get("owner_answer_shape"),
-                decision.get("decision_kind"),
-            ),
-            "paper_facing_delta_ref": _first_text(
-                owner_answer.get("paper_facing_delta_ref"),
-                decision.get("paper_facing_delta_ref"),
-            ),
-            "semantic_progress_signature": owner_answer.get(
-                "semantic_progress_signature"
-            ),
-            "route_back_budget": owner_answer.get("route_back_budget"),
-            "mission_executor_fallback_action": owner_answer.get(
-                "mission_executor_fallback_action"
-            ),
-            "carry_forward_risk_receipt_ref": owner_answer.get(
-                "carry_forward_risk_receipt_ref"
-            ),
-            "next_owner": _first_text(
-                next_decision.get("next_owner"),
-                decision.get("next_owner"),
-            ),
-        }
-    )
-
-
-def _latest_materialized_mission_path(
-    *,
-    workspace_root: Path,
-    study_id: str,
-) -> Path | None:
-    root = (
-        workspace_root.expanduser().resolve()
-        / PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH
-    )
-    if not root.exists():
-        return None
-    candidates = sorted(
-        (
-            path
-            for path in root.glob("*/*/paper_mission_run.json")
-            if path.is_file()
-            and _materialized_mission_path_matches(
-                path,
-                requested_study_id=study_id,
-                load_json_object=_load_json_object,
-            )
-        ),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
-
-
-def _latest_candidate_package_manifest_path(
-    *,
-    workspace_root: Path,
-    study_id: str,
-) -> Path | None:
-    root = (
-        workspace_root.expanduser().resolve()
-        / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH
-    )
-    if not root.exists():
-        return None
-    candidates = sorted(
-        (
-            path
-            for path in root.glob("*/**/package_manifest.json")
-            if path.is_file()
-            and _materialized_mission_path_matches(
-                path,
-                requested_study_id=study_id,
-                load_json_object=_load_json_object,
-            )
-        ),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
-
-
-def _resolve_consume_candidate_ref(
-    *,
-    profile: Any,
-    study_id: str,
-    candidate: str | Path | None,
-) -> str | None:
-    explicit = _optional_text(candidate)
-    if explicit is not None:
-        return explicit
-    candidate_package = _latest_candidate_package_manifest_path(
-        workspace_root=Path(profile.workspace_root),
-        study_id=study_id,
-    )
-    return str(candidate_package) if candidate_package is not None else None
-
-
 def _build_materialized_candidate_package_readback(
     *,
     profile: Any,
@@ -2911,61 +2446,6 @@ def _foreground_owner_decision_summary(
     )
 
 
-def _no_write_output_manifest() -> dict[str, Any]:
-    return {
-        "mode": "readback_only",
-        "written_files": [],
-        "writes_authority": False,
-        "writes_runtime": False,
-        "writes_yang_authority": False,
-        "writes_yang_ops_candidate_package": False,
-        "writes_yang_ops_consumption_ledger": False,
-    }
-
-
-def _action_intent(paper_mission_command: str) -> str:
-    if paper_mission_command in {"start", "resume"}:
-        return PAPER_MISSION_START_OR_RESUME_TASK_KIND
-    if paper_mission_command == "consume-candidate":
-        return "paper_mission/consume_candidate"
-    if paper_mission_command == "package-candidate":
-        return "paper_mission/package_candidate"
-    if paper_mission_command == "drive":
-        return "paper_mission/drive"
-    if paper_mission_command == "terminalize-stage":
-        return "paper_mission/terminalize_stage"
-    if paper_mission_command == "typed-blocker-resolution":
-        return "paper_mission/typed_blocker_resolution"
-    return "paper_mission/inspect"
-
-
-def _objective_for_command(*, paper_mission_command: str, objective: str | None) -> str:
-    explicit = _optional_text(objective)
-    if explicit:
-        return explicit
-    defaults = {
-        "inspect": "inspect current paper mission entry",
-        "start": "start or resume next paper-facing mission objective",
-        "resume": "resume current paper-facing mission objective",
-        "consume-candidate": "consume candidate paper mission output",
-        "drive": "drive current paper mission to terminal decision and OPL route handoff",
-    }
-    return defaults.get(paper_mission_command, "paper mission no-write plan")
-
-
-def _mission_id(
-    *,
-    mission_id: str | None,
-    study_id: str,
-    objective: str,
-    paper_mission_command: str,
-) -> str:
-    explicit = _optional_text(mission_id)
-    if explicit:
-        return explicit
-    return f"paper-mission::{study_id}::{_slug(objective)}::{paper_mission_command}-dry-run"
-
-
 def _paper_mission_transaction_readback(**kwargs) -> dict[str, Any]:
     return _paper_mission_transaction_readback_impl(
         **kwargs,
@@ -2989,41 +2469,6 @@ def _submission_authority_owner_gate_readback(
         },
         next_action=next_action,
     )
-
-
-def _mutation_policy(*, paper_mission_command: str) -> dict[str, Any]:
-    return {
-        "writes_authority": False,
-        "writes_runtime": False,
-        "writes_yang": False,
-        "writes_paper_body": False,
-        "writes_candidate_workspace": False,
-        "dry_run_only": paper_mission_command != "inspect",
-        "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
-    }
-
-
-def _validate_with_contract_if_available(payload: dict[str, Any]) -> dict[str, Any]:
-    try:
-        from med_autoscience.paper_mission_run import PaperMissionRun
-    except ModuleNotFoundError:
-        return {
-            "status": "pending_contract_module_not_available",
-            "required_commit": PAPER_MISSION_CONTRACT_COMMIT,
-            "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
-        }
-    try:
-        PaperMissionRun.from_payload(payload)
-    except Exception as exc:  # pragma: no cover - exact error type lives in contract lane.
-        return {
-            "status": "failed",
-            "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
-            "error": str(exc),
-        }
-    return {
-        "status": "validated",
-        "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
-    }
 
 
 __all__ = [
