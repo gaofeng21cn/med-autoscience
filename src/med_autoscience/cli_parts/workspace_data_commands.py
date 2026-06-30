@@ -49,6 +49,21 @@ def handle_workspace_data_command(
         _print_json(result)
         return 0
 
+    if args.command == "data-lifecycle":
+        from med_autoscience.controllers import data_lifecycle
+
+        if args.data_lifecycle_command == "inspect":
+            result = data_lifecycle.inspect_data_lifecycle(workspace_root=Path(args.workspace_root))
+        elif args.data_lifecycle_command == "closeout":
+            result = data_lifecycle.closeout_data_lifecycle(
+                workspace_root=Path(args.workspace_root),
+                dry_run=bool(args.dry_run),
+            )
+        else:
+            return None
+        _print_json(result)
+        return 0
+
     if args.command == "data-asset-manifest-refs-rebuild":
         result = data_assets.rebuild_manifest_refs(workspace_root=Path(args.workspace_root))
         _print_json(result)

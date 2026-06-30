@@ -335,3 +335,91 @@ def test_validate_public_registry_command_dispatches_controller(monkeypatch, tmp
     assert exit_code == 0
     assert called["workspace_root"] == tmp_path / "workspace"
     assert '"dataset_count": 2' in captured.out
+
+
+def test_data_lifecycle_inspect_reports_read_only_categories_and_skips_dataset_body(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.csv"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("id,value\n1,2\n", encoding="utf-8")
+    (workspace_root / "runtime" / "quests" / "q1").mkdir(parents=True)
+    (workspace_root / "runtime" / "quests" / "q1" / "stdout.jsonl").write_text("{}\n", encoding="utf-8")
+    (workspace_root / "runtime" / "archives" / "q0").mkdir(parents=True)
+    (workspace_root / "runtime" / "archives" / "q0" / "payload.tar.gz").write_text("archive", encoding="utf-8")
+    (workspace_root / "studies" / "s1" / "artifacts").mkdir(parents=True)
+    (workspace_root / "studies" / "s1" / "artifacts" / "table.csv").write_text("x\n", encoding="utf-8")
+    (workspace_root / "memory" / "portfolio" / "data_assets" / "lineage").mkdir(parents=True)
+    (workspace_root / ".pytest_cache" / "v" / "cache").mkdir(parents=True)
+    (workspace_root / ".pytest_cache" / "v" / "cache" / "nodeids").write_text("[]\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "inspect",
+            "--workspace-root",
+            str(workspace_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "mas_data_lifecycle_inspection"
+    assert payload["mutation_policy"]["read_only"] is True
+    assert payload["mutation_policy"]["physical_cleanup_performed"] is False
+    assert payload["management_mode"]["data_datasets"]["generic_cleanup_allowed"] is False
+    assert payload["management_mode"]["data_datasets"]["reason"] == "current_clinical_data_asset_authority"
+    assert "data/datasets" in payload["skipped_generic_cleanup_roots"]
+    candidate_refs = {item["workspace_relative_path"] for item in payload["cleanup_candidates"]}
+    assert "data/datasets/master/v1/clinical.csv" not in candidate_refs
+    assert "runtime/quests/q1" in candidate_refs
+    assert "runtime/archives/q0" in candidate_refs
+    assert "studies/s1/artifacts" in candidate_refs
+    assert ".pytest_cache" in candidate_refs
+    categories = {item["category"] for item in payload["cleanup_candidates"]}
+    assert {"runtime", "archive", "artifact", "cache"} <= categories
+    for item in payload["cleanup_candidates"]:
+        assert item["candidate_unit"] in {"directory", "file"}
+        assert item["file_count"] >= 1
+        assert item["bytes"] > 0
+
+
+def test_data_lifecycle_closeout_dry_run_projects_plan_without_workspace_mutation(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    cache_file = workspace_root / ".pytest_cache" / "v" / "cache" / "nodeids"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_text("[]\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "closeout",
+            "--workspace-root",
+            str(workspace_root),
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert cache_file.exists()
+    assert payload["surface_kind"] == "mas_data_lifecycle_closeout_plan"
+    assert payload["dry_run"] is True
+    assert payload["mutation_policy"]["writes_workspace"] is False
+    assert payload["mutation_policy"]["physical_cleanup_performed"] is False
+    assert payload["closeout_plan"]["cleanup_candidate_count"] == 1
+    assert payload["closeout_plan"]["operations"][0]["category"] == "cache"
+    assert payload["closeout_plan"]["operations"][0]["candidate_unit"] == "directory"
+    assert payload["closeout_plan"]["operations"][0]["workspace_relative_path"] == ".pytest_cache"
+    assert payload["closeout_plan"]["operations"][0]["physical_delete_performed"] is False

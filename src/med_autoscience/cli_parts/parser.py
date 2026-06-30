@@ -380,6 +380,20 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     data_assets_status_parser = subparsers.add_parser("data-assets-status")
     data_assets_status_parser.add_argument("--workspace-root", required=True)
+
+    data_lifecycle_parser = subparsers.add_parser("data-lifecycle")
+    data_lifecycle_subparsers = data_lifecycle_parser.add_subparsers(
+        dest="data_lifecycle_command",
+        required=True,
+    )
+    data_lifecycle_inspect_parser = data_lifecycle_subparsers.add_parser("inspect")
+    data_lifecycle_inspect_parser.add_argument("--workspace-root", required=True)
+    data_lifecycle_inspect_parser.add_argument("--format", choices=("json",), default="json")
+    data_lifecycle_closeout_parser = data_lifecycle_subparsers.add_parser("closeout")
+    data_lifecycle_closeout_parser.add_argument("--workspace-root", required=True)
+    data_lifecycle_closeout_parser.add_argument("--dry-run", action="store_true", required=True)
+    data_lifecycle_closeout_parser.add_argument("--format", choices=("json",), default="json")
+
     manifest_refs_rebuild_parser = subparsers.add_parser("data-asset-manifest-refs-rebuild")
     manifest_refs_rebuild_parser.add_argument("--workspace-root", required=True)
     asset_retention_plan_parser = subparsers.add_parser("data-asset-retention-plan")
