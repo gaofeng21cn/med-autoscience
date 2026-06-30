@@ -199,6 +199,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_parser.add_argument("--route-back-evidence-ref")
     study_owner_gate_decision_parser.add_argument("--supersedes-owner-gate-decision-ref")
     study_owner_gate_decision_parser.add_argument("--replacement-typed-blocker-ref")
+    study_owner_gate_decision_parser.add_argument("--format", choices=("json",), default="json")
     study_owner_gate_decision_apply = study_owner_gate_decision_parser.add_mutually_exclusive_group(required=True)
     study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")

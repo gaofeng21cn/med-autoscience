@@ -47,6 +47,8 @@ def test_study_owner_gate_decision_command_dispatches_controller(monkeypatch, tm
             "current selected stage packet is missing",
             "--recorded-at",
             "2026-06-14T00:00:00+00:00",
+            "--format",
+            "json",
             "--dry-run",
         ]
     )
