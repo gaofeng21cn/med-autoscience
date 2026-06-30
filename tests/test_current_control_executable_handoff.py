@@ -102,7 +102,7 @@ def test_transition_request_candidate_projects_current_executable_action() -> No
     assert currentness["current_work_unit"]["state"]["transition_request_pending"] is True
 
 
-def test_consumed_provider_terminal_closeout_projects_next_ai_reviewer_handoff() -> None:
+def test_consumed_provider_terminal_closeout_does_not_project_next_forced_delta_handoff() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
     )
@@ -220,26 +220,12 @@ def test_consumed_provider_terminal_closeout_projects_next_ai_reviewer_handoff()
 
     assert result["provider_admission_pending_count"] == 0
     assert result["transition_request_pending_count"] == 0
-    assert result["current_executable_owner_action"]["source"] == (
-        "study_progress.next_forced_delta.owner_action"
-    )
-    assert result["current_executable_owner_action"]["next_owner"] == "ai_reviewer"
-    assert result["current_executable_owner_action"]["action_type"] == (
-        "return_to_ai_reviewer_workflow"
-    )
-    assert result["current_executable_owner_action"]["work_unit_id"] == next_work_unit_id
-    assert result["current_executable_owner_action"]["terminal_stage_next_forced_delta"] is True
-    assert result["current_work_unit"]["status"] == "executable_owner_action"
-    assert result["current_work_unit"]["owner"] == "ai_reviewer"
-    assert result["current_work_unit"]["action_type"] == "return_to_ai_reviewer_workflow"
-    assert result["current_work_unit"]["work_unit_id"] == next_work_unit_id
-    assert result["current_work_unit"]["state"]["source"] == (
-        "study_progress.next_forced_delta.owner_action"
-    )
-    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"] == {}
+    assert result["current_execution_envelope"].get("state_kind") != "executable_owner_action"
 
 
-def test_current_work_unit_uses_current_control_transition_request_over_stale_budget_blocker() -> None:
+def test_retired_current_work_unit_does_not_promote_current_control_transition_request() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_work_unit")
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -311,15 +297,10 @@ def test_current_work_unit_uses_current_control_transition_request_over_stale_bu
         next_owner="one-person-lab",
     )
 
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "ai_reviewer"
-    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
-    assert work_unit["work_unit_id"] == work_unit_id
-    assert work_unit["state"]["provider_admission_pending"] is False
-    assert work_unit["state"]["transition_request_pending"] is True
+    assert work_unit == {}
 
 
-def test_transition_request_candidate_is_not_consumed_by_prior_publication_eval_receipt() -> None:
+def test_retired_current_work_unit_does_not_promote_transition_request_candidate() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_work_unit")
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -405,14 +386,10 @@ def test_transition_request_candidate_is_not_consumed_by_prior_publication_eval_
         next_owner="one-person-lab",
     )
 
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "ai_reviewer"
-    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
-    assert work_unit["work_unit_id"] == work_unit_id
-    assert work_unit["state"]["transition_request_pending"] is True
+    assert work_unit == {}
 
 
-def test_paper_recovery_successor_work_unit_preserves_transition_request_flags() -> None:
+def test_retired_current_work_unit_does_not_preserve_paper_recovery_successor_flags() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_work_unit")
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -481,15 +458,7 @@ def test_paper_recovery_successor_work_unit_preserves_transition_request_flags()
         next_owner="write",
     )
 
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "request_opl_stage_attempt"
-    assert work_unit["work_unit_id"] == work_unit_id
-    assert work_unit["state"]["provider_admission_pending"] is False
-    assert work_unit["state"]["transition_request_pending"] is True
-    assert work_unit["state"]["provider_attempt_or_lease_required"] is False
-    assert work_unit["state"]["provider_admission_requires_opl_runtime_result"] is True
-    assert work_unit["state"]["opl_transition_runtime_required"] is True
+    assert work_unit == {}
 
 
 def test_terminal_probe_does_not_consume_different_identity_transition_request(
@@ -855,15 +824,12 @@ def test_terminal_closeout_typed_blocker_outranks_stale_provider_admission_proje
     )
 
     assert result["current_executable_owner_action"] is None
-    work_unit = result["current_work_unit"]
-    assert work_unit["status"] == "typed_blocker"
-    assert work_unit["owner"] == "med-autoscience"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == terminal_work_unit_id
-    assert work_unit["work_unit_fingerprint"] == terminal_fingerprint
-    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
-    assert work_unit["state"]["blocker_type"] == "owner_receipt_missing_for_gate_clearing_batch"
-    assert work_unit["state"]["typed_blocker"]["stage_attempt_id"] == "sat_006cf0ce68e11a4661912a37"
-    assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
-    assert work_unit["required_output_contract"]["provider_completion_is_domain_completion"] is False
-    assert result["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    assert result["current_work_unit"] == {}
+    assert result["current_execution_envelope"] == {}
+    evidence_handoff = result["current_execution_evidence"]["opl_current_control_state_handoff"]
+    typed_blocker = evidence_handoff["provider_admission_terminal_closeout_consumed"]["typed_blocker"]
+    assert typed_blocker["owner"] == "med-autoscience"
+    assert typed_blocker["action_type"] == "run_gate_clearing_batch"
+    assert typed_blocker["work_unit_id"] == terminal_work_unit_id
+    assert typed_blocker["work_unit_fingerprint"] == terminal_fingerprint
+    assert typed_blocker["blocked_reason"] == "owner_receipt_missing_for_gate_clearing_batch"

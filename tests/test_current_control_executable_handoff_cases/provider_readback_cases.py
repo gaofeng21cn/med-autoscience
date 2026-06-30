@@ -99,25 +99,12 @@ def test_complete_provider_readback_supersedes_same_identity_request_only_curren
     )
 
     action = result["current_executable_owner_action"]
-    work_unit = result["current_work_unit"]
-    envelope = result["current_execution_envelope"]
     assert action["source"] == "opl_current_control_state.provider_admission_candidates"
     assert action["provider_admission_pending"] is True
     assert action.get("transition_request_pending") is not True
     assert action["opl_transition_readback_source"] == "opl_domain_progress_transition_runtime_live_readback"
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["work_unit_id"] == work_unit_id
-    assert work_unit["work_unit_fingerprint"] == fingerprint
-    assert work_unit["state"]["source"] == "opl_current_control_state.provider_admission_candidates"
-    assert work_unit["state"]["provider_admission_pending"] is True
-    assert work_unit["state"].get("transition_request_pending") is not True
-    assert work_unit["state"]["provider_attempt_or_lease_required"] is True
-    assert work_unit["state"]["provider_admission_requires_opl_runtime_result"] is False
-    assert work_unit["state"]["opl_transition_runtime_required"] is False
-    assert envelope["state_kind"] == "executable_owner_action"
-    assert envelope["owner"] == "write"
-    assert envelope["next_work_unit"] == work_unit_id
+    assert result["current_work_unit"] == {}
+    assert result["current_execution_envelope"] == {}
 
 
 def test_provider_readback_does_not_supersede_different_identity_request_only_surface() -> None:
@@ -212,14 +199,9 @@ def test_provider_readback_does_not_supersede_different_identity_request_only_su
         runtime_health_snapshot={},
     )
 
-    action = result["current_executable_owner_action"]
-    work_unit = result["current_work_unit"]
-    assert action["source"] == "paper_recovery_state.next_safe_action.successor_owner_action"
-    assert action["work_unit_fingerprint"] == fingerprint
-    assert action["transition_request_pending"] is True
-    assert action["provider_admission_pending"] is False
-    assert work_unit["state"]["transition_request_pending"] is True
-    assert work_unit["state"]["provider_admission_pending"] is False
+    assert result["current_executable_owner_action"] is None
+    assert result["current_work_unit"] == {}
+    assert result["current_execution_envelope"] == {}
 
 
 def _request_opl_stage_attempt_action(

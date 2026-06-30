@@ -183,6 +183,29 @@ def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> 
     )
 
 
+def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root
+        / "src"
+        / "med_autoscience"
+        / "controllers"
+        / "study_progress_parts"
+        / "projection_payload_assembly_parts"
+        / "current_execution_surfaces.py"
+    ).read_text()
+
+    retired_resurrection_terms = [
+        "owner_action_from_terminal_next_forced_delta",
+        "_current_work_unit_paper_recovery_successor_action",
+        "paper_recovery_successor_action_ready",
+        "_with_paper_recovery_successor_execution_surfaces",
+        "_paper_recovery_successor_action_for_owner_receipt_handoff",
+    ]
+
+    assert [term for term in retired_resurrection_terms if term in source] == []
+
+
 def test_materializer_retires_legacy_current_action_even_with_complete_next_action_identity() -> None:
     legacy = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts."
