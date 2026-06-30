@@ -14,11 +14,10 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     fresh_progress_current_action,
     fresh_progress_arbitration,
     paper_recovery_owner_callable,
-    publication_owner_materialization,
     repair_progress_currentness,
     stage_native_next_action,
+    current_action_selection_predicates,
 )
-from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.controllers.domain_action_request_materializer_parts import legacy_next_action_authority
 
@@ -31,6 +30,27 @@ _attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_miss
 _ignored_action = current_action_queue.ignored_action
 _top_level_study_actions = current_action_queue.top_level_study_actions
 _unique_actions = current_action_queue.unique_actions
+_fresh_progress_is_repair_progress_followup = (
+    current_action_selection_predicates.fresh_progress_is_repair_progress_followup
+)
+_fresh_progress_is_accepted_owner_gate_decision = (
+    current_action_selection_predicates.fresh_progress_is_accepted_owner_gate_decision
+)
+_fresh_progress_is_current_owner_action = (
+    current_action_selection_predicates.fresh_progress_is_current_owner_action
+)
+_fresh_progress_is_current_execution_envelope_barrier = (
+    current_action_selection_predicates.fresh_progress_is_current_execution_envelope_barrier
+)
+_fresh_progress_is_hard_current_execution_envelope_barrier = (
+    current_action_selection_predicates.fresh_progress_is_hard_current_execution_envelope_barrier
+)
+_fresh_progress_is_terminal_current_execution_envelope_barrier = (
+    current_action_selection_predicates.fresh_progress_is_terminal_current_execution_envelope_barrier
+)
+_fresh_progress_materializes_publication_routeback = (
+    current_action_selection_predicates.fresh_progress_materializes_publication_routeback
+)
 
 
 def current_actions_for_studies(
@@ -722,85 +742,6 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
         return _attach_owner_route_if_missing(payload, owner_route)
     return None
-
-
-def _fresh_progress_is_repair_progress_followup(action: Mapping[str, Any] | None) -> bool:
-    return action is not None and repair_progress_currentness.generated_action_is_repair_progress_followup(action)
-
-
-def _fresh_progress_is_accepted_owner_gate_decision(action: Mapping[str, Any] | None) -> bool:
-    if action is None:
-        return False
-    return (
-        _text(action.get("authority")) == "paper_recovery_state.accepted_owner_gate_decision"
-        or _text(action.get("source_surface")) == "paper_recovery_state.accepted_owner_gate_decision"
-        or _text(action.get("current_action_source")) == "paper_recovery_state.accepted_owner_gate_decision"
-    )
-
-
-def _fresh_progress_is_current_owner_action(action: Mapping[str, Any] | None) -> bool:
-    if action is None:
-        return False
-    if _text(action.get("authority")) == "study_progress.current_owner_ticket_weak_identity":
-        return False
-    if _text(action.get("authority")) != "study_progress.current_executable_owner_action":
-        return False
-    if _text(action.get("action_type")) not in fresh_progress_arbitration.SUPPORTED_ACTION_TYPES:
-        return False
-    return _text(action.get("work_unit_id")) is not None and (
-        _text(action.get("work_unit_fingerprint")) is not None
-        or _text(action.get("action_fingerprint")) is not None
-    )
-
-
-def _fresh_progress_is_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
-    return action is not None and (_text(action.get("action_type")) or "").startswith(
-        "current_execution_envelope_"
-    )
-
-
-def _fresh_progress_is_hard_current_execution_envelope_barrier(action: Mapping[str, Any] | None) -> bool:
-    return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
-        action.get("reason")
-    ) == OPL_EXECUTION_AUTHORIZATION_BLOCKER
-
-
-def _fresh_progress_is_terminal_current_execution_envelope_barrier(
-    action: Mapping[str, Any] | None,
-) -> bool:
-    return _fresh_progress_is_current_execution_envelope_barrier(action) and _text(
-        action.get("reason")
-    ) == "current_owner_receipt_recorded"
-
-
-def _fresh_progress_materializes_publication_routeback(
-    *,
-    profile: WorkspaceProfile | None,
-    fresh_action: Mapping[str, Any] | None,
-) -> bool:
-    if profile is None or fresh_action is None:
-        return False
-    if not _fresh_progress_is_current_execution_envelope_barrier(fresh_action):
-        return False
-    materialized = publication_owner_materialization.materialization_action(
-        profile=profile,
-        action=fresh_action,
-    )
-    if materialized is None:
-        return False
-    return (
-        _text(materialized.get("action_type")) == "run_quality_repair_batch"
-        and _text(materialized.get("owner")) == "write"
-        and _text(materialized.get("next_work_unit")) == "medical_prose_write_repair"
-    )
-
-
-def _requires_manuscript_story_surface_delta(value: object) -> bool:
-    text = str(value or "").strip().lower()
-    return (
-        "canonical manuscript story-surface delta" in text
-        and "typed blocker:manuscript_story_surface_delta_missing" in text
-    )
 
 
 def _current_study_actions(
