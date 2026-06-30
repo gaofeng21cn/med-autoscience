@@ -42,7 +42,6 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：domain authority refs、owner receipt、typed blocker、restore/archive provenance refs 和 SQLite/file boundary guard。
 - [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md)：固定 `data/datasets/**` 数据资产 body 与 runtime residue、cold-store、SQLite compact 的分账边界；OPL 只消费 locator/ref/projection，不持有 MAS 医学数据 authority。
 - [Study progress projection](./projections/study_progress_projection.md)
-- [Study progress projection](./projections/study_progress_projection.md)
 
 `designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 CLI/read-model 为准。
 
