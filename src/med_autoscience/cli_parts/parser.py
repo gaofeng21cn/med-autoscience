@@ -207,6 +207,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")
     study_owner_gate_decision_apply.add_argument("--sync-truth-from-existing", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply-submission-authority-closeout", action="store_true")
+    study_owner_gate_decision_apply.add_argument("--dry-run-submission-authority-closeout", action="store_true")
 
     stage_artifact_materialize_parser = subparsers.add_parser("stage-artifact-materialize")
     stage_artifact_materialize_parser.add_argument("--profile", required=True)

@@ -257,7 +257,12 @@ def test_study_owner_gate_decision_command_syncs_existing_event_without_reapply(
     assert first["surface"] == "study_intervention_truth_sync_result"
     assert first["appended_event_count"] == 1
     assert second["appended_event_count"] == 0
+    assert first["operation_kind"] == "truth_sync_from_existing_intervention_events"
+    assert first["authority_materialization_scope"] == "truth_sync_only"
+    assert first["sync_only"] is True
     assert first["authority_materialized"] is False
+    assert first["authority_materialized_by_this_command"] is False
+    assert first["terminal_gate_materialized_by_this_command"] is False
     assert first["writes_human_gate_authority"] is False
     assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
     assert snapshot["blocking_reasons"] == [
@@ -330,12 +335,101 @@ def test_study_owner_gate_decision_command_applies_submission_authority_closeout
     assert apply_exit_code == 0
     assert closeout_exit_code == 0
     assert closeout["record_status"] == "applied"
+    assert closeout["operation_kind"] == "submission_authority_closeout"
+    assert closeout["authority_materialization_scope"] == "submission_authority_terminal_gate"
     assert closeout["authority_materialized"] is True
+    assert closeout["authority_materialized_by_this_command"] is True
+    assert closeout["terminal_gate_materialized_by_this_command"] is True
+    assert closeout["planned_authority_materialization"] is False
     assert closeout["writes_publication_eval"] is False
     assert closeout["submission_authority_closeout"]["status"] == (
         "submission_ready_authority_closeout_recorded"
     )
     assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
+
+
+def test_study_owner_gate_decision_command_dry_runs_submission_authority_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    apply_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--action-type",
+            "materialize_submission_ready_owner_verdict_or_human_gate",
+            "--work-unit-id",
+            "submission_ready_authority_closeout",
+            "--work-unit-fingerprint",
+            "ebf3e5131f6ae95c6ea25409",
+            "--blocker-type",
+            "submission_ready_authority_closeout_required",
+            "--decision",
+            "accept_submission_ready_authority_closeout",
+            "--reason",
+            "current submission-ready package is quality-clear; record owner gate for final authority closeout",
+            "--recorded-at",
+            "2026-06-30T00:00:00+00:00",
+            "--apply",
+        ]
+    )
+    gate = json.loads(capsys.readouterr().out)
+    closeout_exit_code = cli.main(
+        [
+            "study-owner-gate-decision",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--owner-gate-decision-ref",
+            gate["owner_gate_decision_ref"],
+            "--decision",
+            "accept_submission_ready_authority_closeout",
+            "--reason",
+            "current submission-ready package is quality-clear; close MAS authority gate",
+            "--recorded-at",
+            "2026-06-30T00:02:00+00:00",
+            "--dry-run-submission-authority-closeout",
+            "--format",
+            "json",
+        ]
+    )
+    closeout = json.loads(capsys.readouterr().out)
+    events = [
+        json.loads(line)
+        for line in (study_root / "artifacts" / "interventions" / "events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert apply_exit_code == 0
+    assert closeout_exit_code == 0
+    assert len(events) == 1
+    assert closeout["record_status"] == "dry_run"
+    assert closeout["authority_materialized"] is False
+    assert closeout["authority_materialized_by_this_command"] is False
+    assert closeout["terminal_gate_materialized_by_this_command"] is False
+    assert closeout["planned_authority_materialization"] is True
+    assert closeout["submission_authority_closeout"]["authority_materialized"] is False
+    assert closeout["submission_authority_closeout"]["terminal_gate_materialized"] is False
+    assert closeout["submission_authority_closeout"]["planned_authority_materialization"] is True
+    assert closeout["event"]["payload"]["paper_ready_claim_authorized"] is False
+    assert closeout["event"]["payload"]["publication_ready_claim_authorized"] is False
+    assert closeout["event"]["payload"]["planned_paper_ready_claim_authorization"] is True
+    assert closeout["event"]["payload"]["planned_publication_ready_claim_authorization"] is True
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
 
 
 def test_study_owner_gate_decision_command_routes_b003_governed_blocker_disposition(

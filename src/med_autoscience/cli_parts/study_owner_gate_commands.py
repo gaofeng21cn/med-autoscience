@@ -22,12 +22,16 @@ def handle_study_owner_gate_command(
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-    if getattr(args, "apply_submission_authority_closeout", False):
+    if getattr(args, "apply_submission_authority_closeout", False) or getattr(
+        args,
+        "dry_run_submission_authority_closeout",
+        False,
+    ):
         for field in ("decision", "reason"):
             if not str(getattr(args, field, "") or "").strip():
                 raise SystemExit(
                     "study-owner-gate-decision requires "
-                    f"--{field.replace('_', '-')} for --apply-submission-authority-closeout"
+                    f"--{field.replace('_', '-')} for submission authority closeout"
                 )
         result = study_interventions.submission_authority_closeout_record(
             study_root=profile.studies_root / args.study_id,
@@ -37,7 +41,7 @@ def handle_study_owner_gate_command(
             decision=args.decision,
             reason=args.reason,
             recorded_at=args.recorded_at or _utc_now(),
-            apply=True,
+            apply=bool(args.apply_submission_authority_closeout),
             actor=args.actor,
             source=args.source,
             receipt_owner_consumption_ref=args.receipt_owner_consumption_ref,

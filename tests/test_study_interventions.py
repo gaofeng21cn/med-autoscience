@@ -400,7 +400,15 @@ def test_existing_owner_gate_decision_can_be_synced_to_truth_without_reapplying(
     assert len(module.read_intervention_events(study_root=study_root)) == 1
     assert result["appended_event_count"] == 1
     assert second["appended_event_count"] == 0
+    assert result["operation_kind"] == "truth_sync_from_existing_intervention_events"
+    assert result["authority_materialization_scope"] == "truth_sync_only"
+    assert result["sync_only"] is True
     assert result["authority_materialized"] is False
+    assert result["authority_materialized_by_this_command"] is False
+    assert result["terminal_gate_materialized_by_this_command"] is False
+    assert result["synced_intervention_intents"] == ["owner_gate_decision"]
+    assert result["synced_truth_event_types"] == ["human_gate"]
+    assert result["synced_submission_authority_closeout_event_count"] == 0
     assert result["writes_human_gate_authority"] is False
     assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
 
@@ -452,7 +460,16 @@ def test_submission_ready_authority_closeout_consumes_recorded_owner_gate(
     assert result["record_status"] == "applied"
     assert second["record_status"] == "already_applied"
     assert len(events) == 2
+    assert result["operation_kind"] == "submission_authority_closeout"
+    assert result["authority_materialization_scope"] == "submission_authority_terminal_gate"
     assert result["authority_materialized"] is True
+    assert result["authority_materialized_by_this_command"] is True
+    assert result["terminal_gate_materialized"] is True
+    assert result["terminal_gate_materialized_by_this_command"] is True
+    assert result["planned_authority_materialization"] is False
+    assert second["authority_materialized"] is True
+    assert second["authority_materialized_by_this_command"] is False
+    assert second["terminal_gate_materialized_by_this_command"] is False
     assert result["writes_owner_receipt"] is False
     assert result["writes_human_gate_authority"] is False
     assert result["writes_current_package"] is False
@@ -462,6 +479,58 @@ def test_submission_ready_authority_closeout_consumes_recorded_owner_gate(
     assert result["submission_authority_closeout"]["submission_ready_claim_authorized"] is True
     assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
     assert "submission_authority_or_human_gate_closeout_required" not in snapshot["blocking_reasons"]
+
+
+def test_submission_authority_closeout_dry_run_reports_planned_authority_without_writing(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    gate = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        action_type="materialize_submission_ready_owner_verdict_or_human_gate",
+        work_unit_id="submission_ready_authority_closeout",
+        work_unit_fingerprint="ebf3e5131f6ae95c6ea25409",
+        blocker_type="submission_ready_authority_closeout_required",
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; record owner gate for final authority closeout",
+        recorded_at="2026-06-30T00:00:00+00:00",
+        apply=True,
+    )
+
+    result = module.submission_authority_closeout_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner_gate_decision_ref=gate["owner_gate_decision_ref"],
+        human_gate_ref=None,
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; close MAS authority gate",
+        recorded_at="2026-06-30T00:02:00+00:00",
+        apply=False,
+    )
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+    events = module.read_intervention_events(study_root=study_root)
+
+    assert result["record_status"] == "dry_run"
+    assert result["dry_run"] is True
+    assert len(events) == 1
+    assert result["authority_materialized"] is False
+    assert result["authority_materialized_by_this_command"] is False
+    assert result["terminal_gate_materialized"] is False
+    assert result["terminal_gate_materialized_by_this_command"] is False
+    assert result["planned_authority_materialization"] is True
+    assert result["submission_authority_closeout"]["authority_materialized"] is False
+    assert result["submission_authority_closeout"]["terminal_gate_materialized"] is False
+    assert result["submission_authority_closeout"]["planned_authority_materialization"] is True
+    assert result["event"]["payload"]["paper_ready_claim_authorized"] is False
+    assert result["event"]["payload"]["publication_ready_claim_authorized"] is False
+    assert result["event"]["payload"]["planned_paper_ready_claim_authorization"] is True
+    assert result["event"]["payload"]["planned_publication_ready_claim_authorization"] is True
+    assert result["truth_event"] is None
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
 
 
 def test_submission_blocker_human_gate_closeout_consumes_recorded_owner_gate(

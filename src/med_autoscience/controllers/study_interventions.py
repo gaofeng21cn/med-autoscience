@@ -220,6 +220,8 @@ def materialize_truth_from_intervention_events(
         if _text(event.get("source_signature")) is not None
     }
     appended: list[dict[str, Any]] = []
+    synced_intervention_intents: list[str] = []
+    synced_truth_event_types: list[str] = []
     for event in read_intervention_events(study_root=study_root):
         if _text(event.get("study_id")) != study_id:
             continue
@@ -242,6 +244,10 @@ def materialize_truth_from_intervention_events(
         )
         appended.append(appended_event)
         seen_signatures.add(source_signature)
+        if intent := _text(event.get("intent")):
+            synced_intervention_intents.append(intent)
+        if event_type := _text(truth_event_input.get("event_type")):
+            synced_truth_event_types.append(event_type)
     snapshot_path = study_truth_kernel.materialize_truth_snapshot(
         study_root=study_root,
         study_id=study_id,
@@ -249,11 +255,21 @@ def materialize_truth_from_intervention_events(
     return {
         "surface": "study_intervention_truth_sync_result",
         "schema_version": SCHEMA_VERSION,
+        "operation_kind": "truth_sync_from_existing_intervention_events",
+        "authority_materialization_scope": "truth_sync_only",
+        "sync_only": True,
         "study_id": study_id,
         "appended_event_count": len(appended),
         "appended_event_ids": [event["event_id"] for event in appended],
+        "synced_intervention_intents": synced_intervention_intents,
+        "synced_truth_event_types": synced_truth_event_types,
+        "synced_submission_authority_closeout_event_count": sum(
+            1 for event_type in synced_truth_event_types if event_type == "submission_authority_closeout"
+        ),
         "snapshot_path": str(snapshot_path),
         "authority_materialized": False,
+        "authority_materialized_by_this_command": False,
+        "terminal_gate_materialized_by_this_command": False,
         "writes_owner_receipt": False,
         "writes_human_gate_authority": False,
         "writes_current_package": False,
@@ -304,6 +320,8 @@ def submission_authority_closeout_record(
         return {
             "surface": "study_submission_authority_closeout_record",
             "schema_version": SCHEMA_VERSION,
+            "operation_kind": "submission_authority_closeout",
+            "authority_materialization_scope": "submission_authority_terminal_gate",
             "study_id": study_id,
             "record_status": "already_applied",
             "dry_run": not apply,
@@ -325,6 +343,10 @@ def submission_authority_closeout_record(
                 }
             ),
             "authority_materialized": True,
+            "authority_materialized_by_this_command": False,
+            "terminal_gate_materialized": True,
+            "terminal_gate_materialized_by_this_command": False,
+            "planned_authority_materialization": False,
             "writes_owner_receipt": False,
             "writes_human_gate_authority": False,
             "writes_current_package": False,
@@ -339,6 +361,20 @@ def submission_authority_closeout_record(
         recorded_at=recorded_at,
         receipt_owner_consumption_ref=receipt_owner_consumption_ref,
     )
+    if not apply:
+        closeout = dict(_mapping(payload.get("submission_authority_closeout")))
+        closeout["authority_materialized"] = False
+        closeout["terminal_gate_materialized"] = False
+        closeout["planned_authority_materialization"] = True
+        payload["submission_authority_closeout"] = closeout
+        payload["paper_ready_claim_authorized"] = False
+        payload["publication_ready_claim_authorized"] = False
+        payload["planned_paper_ready_claim_authorization"] = (
+            decision_text == "accept_submission_ready_authority_closeout"
+        )
+        payload["planned_publication_ready_claim_authorization"] = (
+            decision_text == "accept_submission_ready_authority_closeout"
+        )
     path = intervention_events_path(study_root=study_root)
     sequence = len(read_intervention_events(study_root=study_root)) + 1
     event = {
@@ -377,6 +413,8 @@ def submission_authority_closeout_record(
     return {
         "surface": "study_submission_authority_closeout_record",
         "schema_version": SCHEMA_VERSION,
+        "operation_kind": "submission_authority_closeout",
+        "authority_materialization_scope": "submission_authority_terminal_gate",
         "study_id": study_id,
         "record_status": "applied" if apply else "dry_run",
         "dry_run": not apply,
@@ -392,7 +430,11 @@ def submission_authority_closeout_record(
                 "truth_snapshot_path": str(truth_snapshot_path) if truth_snapshot_path else None,
             }
         ),
-        "authority_materialized": True,
+        "authority_materialized": bool(apply),
+        "authority_materialized_by_this_command": bool(apply),
+        "terminal_gate_materialized": bool(apply),
+        "terminal_gate_materialized_by_this_command": bool(apply),
+        "planned_authority_materialization": not apply,
         "writes_owner_receipt": False,
         "writes_human_gate_authority": False,
         "writes_current_package": False,
