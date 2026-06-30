@@ -75,6 +75,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_con
 from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_outputs import (
     write_materialized_candidate_package_outputs as _candidate_write_materialized_candidate_package_outputs,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.domain_handler_dispatch import (
+    paper_mission_domain_handler_dispatch_receipt as _paper_mission_domain_handler_dispatch_receipt,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback_context import (
     consume_candidate_status as _consume_candidate_status,
     dispatch_execution_policy as _dispatch_execution_policy,
@@ -3144,119 +3147,16 @@ def paper_mission_domain_handler_dispatch_receipt(
     task_path: Path,
     load_profile: Callable[[str | Path], Any],
 ) -> dict[str, Any]:
-    payload = task.get("payload") if isinstance(task.get("payload"), dict) else {}
-    profile_ref = payload.get("profile") or payload.get("profile_path") or payload.get("profile_ref")
-    if not profile_ref:
-        return _paper_mission_dispatch_error(
-            task=task,
-            task_path=task_path,
-            reason="missing_profile_ref",
-        )
-    study_id = str(payload.get("study_id") or "").strip()
-    if not study_id:
-        return _paper_mission_dispatch_error(
-            task=task,
-            task_path=task_path,
-            reason="missing_study_id",
-        )
-    profile = load_profile(Path(str(profile_ref)))
-    requested_command = _optional_text(payload.get("paper_mission_command"))
-    dry_run = payload.get("dry_run") is True
-    dispatch_command = _domain_handler_paper_mission_command(
+    return _paper_mission_domain_handler_dispatch_receipt(
         task=task,
-        requested_command=requested_command,
-        dry_run=dry_run,
+        task_path=task_path,
+        load_profile=load_profile,
+        build_readback=build_paper_mission_readback,
+        start_or_resume_task_kind=PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        forbidden_authority_writes=FORBIDDEN_AUTHORITY_WRITES,
+        dispatch_execution_policy=_dispatch_execution_policy,
+        recommended_domain_command=_recommended_domain_command,
     )
-    readback = build_paper_mission_readback(
-        profile=profile,
-        profile_ref=Path(str(profile_ref)),
-        study_id=study_id,
-        paper_mission_command=dispatch_command,
-        objective=_optional_text(payload.get("objective")),
-        mission_id=_optional_text(payload.get("mission_id")),
-        candidate=_optional_text(payload.get("candidate")),
-        run_id=(
-            _optional_text(payload.get("run_id"))
-            or _default_domain_handler_drive_run_id(
-                task=task,
-                study_id=study_id,
-            )
-        ),
-        submit_opl_runtime=(
-            bool(payload.get("submit_opl_runtime"))
-            if "submit_opl_runtime" in payload
-            else None
-        ),
-        opl_bin=_optional_text(payload.get("opl_bin")),
-        one_shot_migration=bool(payload.get("one_shot_migration", False)),
-        study_progress_payload=_optional_text(payload.get("study_progress_payload")),
-        runtime_readback_payload=_optional_text(
-            payload.get("runtime_readback_payload")
-        ),
-        output_root=_optional_text(payload.get("output_root")),
-        dry_run=dry_run,
-        source="domain-handler-dispatch",
-    )
-    return {
-        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
-        "version": "mas-family-domain-handler.v1",
-        "accepted": True,
-        "task_id": str(task.get("task_id") or "unknown_task"),
-        "task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-        "source_task_ref": str(task_path),
-        "forbidden_domain_truth_write": False,
-        "dispatch": {
-            "action_type": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "study_id": study_id,
-            "execution_policy": _dispatch_execution_policy(readback),
-            "recommended_domain_command": (
-                _recommended_domain_command(
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                    readback=readback,
-                )
-            ),
-            "result": readback,
-        },
-        "authority_boundary": {
-            "domain_truth_owner": "MedAutoScience",
-            "runtime_owner": "one-person-lab",
-            "writes_authority": False,
-            "writes_runtime": False,
-            "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
-        },
-        "forbidden_write_guard_proof": {
-            "result": "accepted_no_forbidden_writes",
-            "task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "requested_writes": [],
-        },
-    }
-
-
-def _domain_handler_paper_mission_command(
-    *,
-    task: Mapping[str, Any],
-    requested_command: str | None,
-    dry_run: bool,
-) -> str:
-    if dry_run:
-        return requested_command or "start"
-    if _optional_text(task.get("task_kind")) == PAPER_MISSION_START_OR_RESUME_TASK_KIND:
-        if requested_command in {None, "start", "resume"}:
-            return "drive"
-    return requested_command or "inspect"
-
-
-def _default_domain_handler_drive_run_id(
-    *,
-    task: Mapping[str, Any],
-    study_id: str,
-) -> str | None:
-    if _optional_text(task.get("task_kind")) != PAPER_MISSION_START_OR_RESUME_TASK_KIND:
-        return None
-    task_id = _optional_text(task.get("task_id")) or "paper-mission-start-or-resume"
-    return f"domain-handler-dispatch-{_slug(study_id)}-{_slug(task_id)}"
 
 
 def _build_materialized_mission_readback_if_available(
@@ -4420,24 +4320,6 @@ def _followthrough_source_refs(readback: Mapping[str, Any]) -> list[dict[str, st
         if value is not None:
             refs.append({"ref_id": key, "ref_kind": key, "uri": value})
     return refs
-
-
-def _paper_mission_dispatch_error(
-    *,
-    task: dict[str, Any],
-    task_path: Path,
-    reason: str,
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
-        "version": "mas-family-domain-handler.v1",
-        "accepted": False,
-        "task_id": str(task.get("task_id") or "unknown_task"),
-        "task_kind": str(task.get("task_kind") or PAPER_MISSION_START_OR_RESUME_TASK_KIND),
-        "source_task_ref": str(task_path),
-        "reason": reason,
-        "forbidden_domain_truth_write": False,
-    }
 
 
 def _build_one_shot_migration_cli_readback(
