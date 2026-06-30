@@ -7,6 +7,8 @@ Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `
 
 2026-06-30 supersession note：本文描述的是 `StageOutcome -> NextActionEnvelope` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
 
+Reader rule：本文不是 active implementation plan。下文的接口、迁移顺序和验证命令只保留为 historical target/provenance，说明旧 split-control-plane 如何被理解；当前新工作不得从本文恢复 PaperRecovery default selector、provider-admission path、exact-id authority 或 legacy progress fallback。
+
 ## 结论
 
 DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多个 projection / selector / export 面各自重新解释 currentness。当前目标态已经收敛为：
@@ -15,7 +17,7 @@ DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多
 
 PaperRecovery 只保留为诊断/恢复解释层：可以解释 owner receipt、typed blocker、human gate、route-back evidence、transport receipt 和历史 projection 为什么不能推进，但不能替代 `NextActionEnvelope` 生成默认下一步。
 
-## 目标调用图
+## Historical diagnostic call graph
 
 ```mermaid
 flowchart TD
@@ -33,7 +35,7 @@ flowchart TD
 
 `paper_recovery_state` 不再是默认 next-action decision root。OPL 的 StageRun / queue / attempt ledger / worker lifecycle 是 execution transport evidence；MAS 的 StageOutcome / owner receipt / typed blocker / quality gate / human gate / route-back evidence 是 domain authority。
 
-## 接口
+## Superseded diagnostic interface
 
 输入族：
 
@@ -43,16 +45,16 @@ flowchart TD
 - `manual_or_human_gate_refs`：manual foreground adoption refs、human/operator decision refs。
 - `read_model_projection_status`：projection consistency、stale/lag evidence、diagnostic refs。
 
-输出固定为 `paper_recovery_state`，phase 只能是合同允许的互斥枚举：`owner_action_ready`、`admission_pending`、`admission_blocked`、`attempt_running`、`terminal_closeout_ready`、`owner_answer_consumed`、`domain_blocked`、`human_gate`、`projection_inconsistent`、`manual_foreground_unadopted`。
+Historical diagnostic 输出曾固定为 `paper_recovery_state`，phase 只能是合同允许的互斥枚举：`owner_action_ready`、`admission_pending`、`admission_blocked`、`attempt_running`、`terminal_closeout_ready`、`owner_answer_consumed`、`domain_blocked`、`human_gate`、`projection_inconsistent`、`manual_foreground_unadopted`。当前这些枚举不能越过 canonical `NextActionEnvelope` 或 MAS owner-consumption 结果。
 
-## 派生面规则
+## Superseded derived-surface rules
 
-派生面必须满足 `consume_only_no_redecide_currentness`：
+Legacy 派生面若仍为 replay/provenance 消费该 shape，必须满足 `consume_only_no_redecide_currentness`：
 
 - 读取 `recovery_obligation_id`、`phase`、`conditions`、`next_safe_action`、`current_work_unit_identity`、`provider_admission_identity`、`terminal_closeout_refs` 和 `consumed_or_rejected_refs`。
 - 缺任一关键输入时进入 `projection_inconsistent` 或 `admission_blocked`，不得补造 provider admission。
 - `domain_handler_export.pending_family_tasks` 只能来自 kernel 输出的合法 provider admission identity，不能从旧 persisted dispatch 或 queue residue 反推。
-- `current_work_unit` / `current_execution_envelope` 只负责展示当前义务，不重新选择 recovery obligation。
+- `current_work_unit` / `current_execution_envelope` 只负责 historical diagnostic 展示，不重新选择 recovery obligation 或 default next action。
 
 ## OPL 基座边界
 
@@ -73,25 +75,23 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 - Azure CQRS：read model 可滞后，但要显式投影 evidence status；read-model refresh 不能作为 domain progress。
 - Google SRE retry budget：同一 identity 无进展 redrive 必须有预算，耗尽后转 successor obligation / human gate / stable typed blocker。
 
-## 迁移顺序
+## Historical migration notes
 
-1. 引入纯 decision object / fixture：用 DM002 `stage_packet_not_current_selected_dispatch` 和 DM003 pending admission / projection inconsistent 作为 golden negative fixtures，不触碰 live recovery。
-2. 让 `current_work_unit` 与 domain diagnostic provider admission 消费同一个 kernel 输出；删除重复 currentness precedence。
-3. 让 `domain-handler export` 只消费 kernel admission output，旧 dispatch / queue residue 只能进入 diagnostic。
-4. 让 operator card / workbench projection 只显示 PaperRecovery phase 和 next safe action，清除 old parked / explicit wakeup residue。
-5. 退役重复 selector / projection 分支；保留 OPL substrate readout 为 current/status drilldown。
+旧迁移方向曾包括 decision fixture、current-work-unit/domain-diagnostic 共用 kernel、domain-handler export consume-only、operator/workbench phase projection 和 selector 退役。2026-06-29 之后，这些不再作为 active backlog 逐项执行；当前 cleanup 只保留 no-resurrection guard，并把仍有价值的行为迁到 `StageOutcome -> NextActionEnvelope`、OPL TransitionReceipt readback 或 MAS owner-consumption surface。
 
-## 验证
+## Historical verification
 
-最小验证：
+下列命令是历史验证线索，不是当前完成门：
 
 - `python3 -m pytest tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
 - `scripts/run-pytest-clean.sh tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
 - `make test-meta`
 
-行为验证：
+历史行为验证口径：
 
 - `current_work_unit`、domain diagnostic provider admission、domain-handler export 对同一 fixture 给出同一 phase / next safe action。
 - 缺 `route_identity_key`、`attempt_idempotency_key`、stage packet refs 或 owner-route currentness basis 时，provider admission 被 suppress。
 - terminal closeout 未被 MAS consume/reject 时，只进入 `terminal_closeout_ready`，不产生 paper progress。
 - stop-loss 同一 obligation 无 successor / human gate 时保持 fail closed。
+
+当前验证应改查 [Next Action Control Plane](../control/next_action_control_plane.md)、legacy active path tombstones、fresh `study_progress` / `paper-mission inspect`、OPL TransitionReceipt readback、MAS owner receipt、typed blocker、human gate、route-back evidence 或 artifact delta。

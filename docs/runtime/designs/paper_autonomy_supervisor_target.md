@@ -10,11 +10,13 @@ Date: `2026-06-14`
 
 2026-06-29 之后，Paper Autonomy Supervisor / `DomainProgressTransitionRuntime` 只按历史 transition-runtime 输入、transport supervisor 和 recovery design provenance 读取。当前默认 next action authority 是 [Next Action Control Plane](../control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope`；`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。supervisor、queue、attempt、current-control 或 `current_owner_delta` 读面不能替代 MAS owner receipt、typed blocker、human gate、route-back evidence 或下一 StageOutcome。
 
+Reader rule：本文保留旧目标设计的来龙去脉，不再是 active plan、provider admission contract、owner-route source of truth 或 live acceptance checklist。下文的 obligation、decision taxonomy、migration lanes 和验收标准只能作为 provenance / no-resurrection guard；当前实现或文档不得据此恢复 legacy supervisor default route、action queue authority、provider-admission fallback 或 `current_owner_delta` default selector。
+
 ## 目标判断
 
 DM002 / DM003 暴露的顶层问题不是某个 reducer、domain diagnostic 白名单或 owner gate 缺口，而是 MAS / OPL 之间缺少一个一等的 paper progress transition 协议。`Paper Autonomy Supervisor` 在 MAS 侧只能作为 paper policy / projection adapter 入口；通用 durable runtime、obligation store、fixed-point reconcile、outbox、replay 和 human-gate resume token 都归 OPL `DomainProgressTransitionRuntime`。
 
-理想态中，MAS 不负责长期在线调度，OPL 不负责医学判断。两者之间必须有一个可审计、可恢复、可超时、可分账的监督协议，把任何“自动论文推进没有继续”的状态稳定落到五类动作之一：
+旧理想态中，MAS 不负责长期在线调度，OPL 不负责医学判断。两者之间曾被设计为一个可审计、可恢复、可超时、可分账的监督协议，把任何“自动论文推进没有继续”的状态稳定落到五类动作之一：
 
 1. `execute_owner_projection`（historical `execute_current_owner_delta`）：同一 canonical next-action identity 已满足 provider admission / StageRun 启动条件，交给 OPL 执行。
 2. `consume_terminal_closeout`：同一 StageRun / work-unit 已 terminal，交给 MAS authority surface 消费 closeout。
@@ -71,7 +73,9 @@ flowchart TD
 - old Yang artifacts 可以被修，但只能进入 `materialize_recovery_action`，并产出 `migration_receipt` / `compatibility_repair_receipt`。这类 receipt 只说明平台恢复，不计为论文语义进展。
 - paper progress 单独记账。只有 MAS owner receipt、quality gate receipt、AI reviewer / gate delta、canonical paper / evidence / review / package semantic delta、human gate resume、route-back evidence 或 stable typed blocker 才算论文推进。
 
-## 新核心合同
+## Superseded core contract sketch
+
+以下合同 sketch 只保留为历史设计样例。当前 next-action / owner route 不从这些 shape 选择；若需要同类能力，必须从 canonical `StageOutcome -> NextActionEnvelope`、OPL TransitionReceipt readback 和 MAS owner-consumption surface 派生。
 
 ### `PaperAutonomyObligation`
 
@@ -218,7 +222,9 @@ MAS 侧应收敛为四个 authority / adapter 面：
 
 任何一步都不得把 query/read-model 输出当 command，不得把 transport success 当 paper progress。
 
-## 迁移路线
+## Historical migration route
+
+以下 lane 记录旧迁移方案，不是当前 active backlog。
 
 ### Lane 0：合同和文档入口
 
@@ -226,7 +232,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 在 `docs/runtime/designs/stage_route_reconcile_target.md` 中把 stage-route arbiter 下沉为 supervisor 的一个 decision source。
 - 在 `docs/active/mas-ideal-state-gap-plan.md` 增加 Paper Autonomy Supervisor lane。
 
-完成门：meta test 能证明 five-decision taxonomy、identity fields、paper/platform 分账、read-model forbidden authority 都存在；该门只关闭合同入口，不关闭 runtime tail。
+历史完成门：meta test 能证明 five-decision taxonomy、identity fields、paper/platform 分账、read-model forbidden authority 都存在；该门只关闭合同入口，不关闭 runtime tail。
 
 ### Lane 1：OPL 基座
 
@@ -234,7 +240,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - StageRun identity packet 原样嵌入 MAS provider admission identity。
 - HumanGateTransport 支持 durable resume token、timeout、default safe branch；该 token 由 OPL 持久化，MAS 只消费同一 current identity 的 token readback。
 
-完成门：OPL readback 能对同一 obligation 给出 execute / wait / stop / owner-receipt stop / recovery / consume 六类 decision fixture。
+历史完成门：OPL readback 能对同一 obligation 给出 execute / wait / stop / owner-receipt stop / recovery / consume 六类 decision fixture。
 
 ### Lane 2：MAS policy / projection adapter
 
@@ -242,7 +248,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - owner gate route-back event 被 materialize 成具体 recovery action 或 typed blocker，不停留在人读 human_gate。
 - OPL execution authorization 缺口统一转为 OPL-owned `wait_for_owner_with_resume_token` 或 `stop_with_stable_typed_blocker`。
 
-完成门：DM002 / DM003 类 fixture 不再出现 `operator_decision_required` 长停；`paper_recovery_state` 必须内嵌同一 identity 的 `supervisor_decision`，且 domain diagnostic / study_progress / domain-handler / operator projection 只能消费该 decision，不能从 queue、provider count、stage index 或 docs text 重算 currentness。DM002 / DM003 live-shape canary 必须证明 `provider_admission_pending_count=0` 与 `action_queue=[]` 只进入 `forbidden_interpretations`，并且每篇 exactly one supervisor decision 映射到 recovery action、human token、stable blocker、admission/running 或 owner delta。
+历史完成门：DM002 / DM003 类 fixture 不再出现 `operator_decision_required` 长停；`paper_recovery_state` 必须内嵌同一 identity 的 `supervisor_decision`，且 domain diagnostic / study_progress / domain-handler / operator projection 只能消费该 decision，不能从 queue、provider count、stage index 或 docs text 重算 currentness。当前 live-shape 验收必须改读 canonical envelope、OPL TransitionReceipt 和 MAS owner outcome，不能用该旧门声明 live acceptance。
 
 ### Lane 3：Yang workspace migration lane
 
@@ -250,7 +256,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 只修旧 schema、旧 currentness residue、旧 artifact layout、缺失 stage packet binding 的历史兼容面。
 - migration 输出 append-only receipt 和 before/after fresh readback。
 
-完成门：migration receipt 不计 paper progress，但能解除由旧 artifact 导致的新 MAS 阻塞。
+历史完成门：migration receipt 不计 paper progress，但能解除由旧 artifact 导致的新 MAS 阻塞。
 
 ### Lane 4：operator / workbench
 
@@ -263,7 +269,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
   - `human_gate_token`
   - `stable_blocker`
 
-完成门：operator 不需要读 domain diagnostic、queue 和 stage index 才能知道下一步归谁。
+历史完成门：operator 不需要读 domain diagnostic、queue 和 stage index 才能知道下一步归谁。
 
 ### Lane 5：真实 paper-line soak
 
@@ -271,7 +277,7 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 每轮 supervisor tick 必须产生六类 decision 之一。
 - 连续 heartbeat 无论文 delta 时，必须自动升级到 recovery action、human token 或 stable blocker。
 
-完成门：至少一次真实论文链路从 current owner delta 进入 running / terminal / consume closeout / next owner delta，并保留 paper/platform 分账；同时必须有 fresh `supervisor_decision` readout、derived surfaces consume-only 证明、OPL substrate 对同 obligation 的 readback，以及 DM002/DM003 live-shape canary 持续通过。
+历史完成门：至少一次真实论文链路从 current owner delta 进入 running / terminal / consume closeout / next owner delta，并保留 paper/platform 分账。当前 live acceptance 不再由 `supervisor_decision` 关闭；必须由 fresh `paper-mission inspect` / `study_progress`、canonical `NextActionEnvelope`、OPL TransitionReceipt readback、MAS owner receipt、typed blocker、human gate、route-back evidence、quality gate receipt 或 canonical artifact delta 证明。
 
 ## 不做的事
 
@@ -282,9 +288,9 @@ MAS 侧应收敛为四个 authority / adapter 面：
 - 不把外部 agent framework、LangGraph、Temporal、Step Functions 或 Azure pattern 作为新 runtime 依赖引入 MAS。
 - 不让 sidecar advisory、ranking、tool selector、memory hint 阻断 ordinary current owner action。
 
-## 验收标准
+## Historical acceptance notes
 
-理想态验收不是“测试绿”或“状态看起来合理”，而是以下行为稳定成立：
+以下验收项只保留为旧设计口径。它们不能覆盖当前 [Next Action Control Plane](../control/next_action_control_plane.md) 的完成门：
 
 1. 每个 current owner delta 都有一个 obligation id。
 2. 每次监督 tick 都输出六类 decision 之一。

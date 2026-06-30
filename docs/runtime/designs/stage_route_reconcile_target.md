@@ -10,6 +10,8 @@ Date: `2026-06-11`
 
 2026-06-29 之后，默认 next action authority 已收敛到 [Next Action Control Plane](../control/next_action_control_plane.md)：`StageOutcome -> NextActionEnvelope`。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。本文保留为 identity/currentness、OPL StageRun transport 和历史 reconcile 设计 provenance；`current_work_unit`、provider admission、domain diagnostic、OPL transport 队列 / StageAttempt 和 `current_execution_envelope` 不得再作为 default next-action selector 或 paper progress / publication-ready / submission-ready evidence。
 
+Reader rule：本文不是 active operator chain、provider admission runbook 或 current owner source of truth。下文的调用图、arbiter、state machine、运行态监督链和 OPL 基座优化段落只解释旧 split-currentness 问题如何被诊断；当前执行判断必须先读 canonical `StageOutcome -> NextActionEnvelope`，再读同 identity 的 OPL TransitionReceipt / StageRun readback 是否被 MAS owner surface 消费。
+
 ## 历史目标结论（superseded）
 
 MAS / OPL stage-route 的理想态是一条幂等 reconcile 链，而不是多套状态面互相解释：
@@ -20,7 +22,7 @@ OPL 承接 durable execution、transport backlog、retry、dead-letter、provide
 
 2026-06-13 目标架构收敛：真正的深模块接口是 `RecoveryObligationKernel` / `paper_recovery_state`，详见 [PaperRecovery Obligation 目标架构](./paper_recovery_obligation_target_architecture.md)。`current_work_unit`、`current_execution_envelope`、`study_progress`、domain diagnostic provider admission、domain-handler export、operator card 和 OPL admission 都只能消费该 kernel 输出；它们不再各自从 queue、旧 dispatch、transport status、operator card 或 read-model refresh 重新裁决 currentness。
 
-## 当前调用图
+## Historical diagnostic call graph
 
 ```mermaid
 flowchart TD
@@ -49,9 +51,9 @@ flowchart TD
 - OPL accepted typed closeout 已经覆盖同一 identity，但 provider admission pending 继续回显，导致重复 tick。
 - 同一 work unit 多次 terminal / no-op / owner-output-current，没有产生 owner receipt、stable typed blocker、route-back 或 paper/gate/package semantic delta，导致原地打转。
 
-## Stage Route Arbiter
+## Superseded Stage Route Arbiter
 
-`stage_route_arbiter` 是 domain diagnostic current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 canonical `NextActionEnvelope`；历史 `current_owner_delta` 只作 owner projection / drilldown。该 arbiter 只解释每个 provider admission identity 为什么被保留或被抑制：
+`stage_route_arbiter` 曾是 domain diagnostic current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 canonical `NextActionEnvelope`；历史 `current_owner_delta` 只作 owner projection / drilldown。该 arbiter 只解释旧 provider admission identity 为什么被保留或被抑制：
 
 - `weak_provider_admission_identity`：provider admission carrier 缺 `study_id` / `action_type` / work-unit id / fingerprint / dispatch ref / strong currentness basis 时，pending fail-closed，不进入 OPL tick。
 - `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
@@ -59,7 +61,7 @@ flowchart TD
 - `accepted_closeout_consumed_pending`：同一 identity 已有 accepted typed closeout 或 executed typed blocker，pending 被压制。
 - `pending_provider_admission`：没有匹配 live attempt，也没有匹配 accepted closeout，pending 保留，下一步可由 OPL scoped tick / hydrate 接手。
 
-这个 surface 的价值是把原先散落在 live attempt、accepted closeout、pending candidate 过滤里的判断变成单一审计读面。监督线程、operator 和后续 OPL 基座可以直接读 `stage_route_arbiter_decisions[]`，不用再从 action_queue 是否为空倒推原因。它的 boundary 固定为 currentness projection only：不能写 study truth、publication verdict、owner receipt、typed blocker、paper body、current package 或 OPL runtime artifact。
+这个 surface 的历史价值是把原先散落在 live attempt、accepted closeout、pending candidate 过滤里的判断变成单一审计读面。当前监督线程、operator 和 OPL 基座不能把 `stage_route_arbiter_decisions[]` 当成默认下一步；它只能解释旧 action_queue / provider-admission residue。它的 boundary 固定为 currentness projection only：不能写 study truth、publication verdict、owner receipt、typed blocker、paper body、current package 或 OPL runtime artifact。
 
 arbiter decision 必须同时输出 identity 与 no-progress 读面。所有 decision 至少带 `decision`、`effect`、study / action / work-unit identity、`route_identity_key`、`attempt_idempotency_key`、`evidence_status` 和 boundary。若同一 identity 被 terminal / repeat-suppressed / owner-output-current closeout 压住，decision 还要输出 `no_progress_signal` 与 `anti_loop_classification`，例如 `same_work_unit_repeat_suppressed_terminal_stage` / `provider_admission_echo`。operator 不能再从 `provider_admission_pending_count=0` 或 `action_queue=[]` 猜原因。
 
@@ -75,7 +77,7 @@ Record-only owner refs 是 closeout evidence，不是 currentness identity。`ow
 
 外部成熟工程经验映射到本设计时，采用 identity-first 而不是 status-first。Temporal 的 [Event History](https://docs.temporal.io/encyclopedia/event-history/) 是 durable workflow replay evidence，Temporal [Activity idempotency](https://docs.temporal.io/activity-definition) 要求 retry 具备稳定 identity；AWS Builder's Library 的 [Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) 用 caller intent / client request identifier 支撑安全重试；Azure Architecture Center 的 [CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) 把 write model 与 read model 分账，并要求读面接受 eventual consistency；Google SRE 的 [Handling Overload](https://sre.google/sre-book/handling-overload/) 把 retry 纳入 overload / budget 治理。对应到 MAS/OPL：`route_identity_key` / `attempt_idempotency_key` / `owner_route_currentness_basis` 是 caller intent + receiver dedupe identity，OPL StageRun / Temporal status 是 durable execution evidence，MAS closeout consumption 才是 domain currentness transition；任何缺 identity 的 record-only ref、transport completion、queue empty 或 worker heartbeat 都只能进 audit。
 
-## 目标状态机
+## Historical state machine
 
 ```mermaid
 stateDiagram-v2
@@ -214,7 +216,9 @@ MAS 侧对应收薄：
 
 2026-06-11 的补充经验映射：Temporal / Conductor 一类 durable workflow 强调 history、retry、timeout 和 idempotent execution；Step Functions 的 redrive / StartExecution 也要求 execution identity 与 idempotency 边界；Dagster 的 declarative automation 把触发条件收成可审计条件，而不是让长 heartbeat 自行完成业务修复。MAS / OPL 对应规则是：`current_owner_delta` 是 desired state，stage-route arbiter 是统一 reconcile decision，自动化只触发短 tick / observe / supervisor handoff，不能替代 closeout consumption 或 domain owner receipt。
 
-## 运行态监督链
+## Historical runtime supervision chain
+
+旧监督链曾按以下顺序复盘 currentness 问题；当前只能作为 diagnostic checklist，不能据此直接 hydrate、tick、redrive 或声明 progress：
 
 1. `study progress --format json`
 2. `runtime domain-diagnostic-report --request-opl-stage-attempts --dry-run`
@@ -225,4 +229,4 @@ MAS 侧对应收薄：
 
 不能用旧 `active_run_id`、transport succeeded、queue completed、zero worklist、provider-slo healthy、worker heartbeat 或 automation heartbeat 文案判断论文进展。provider-slo 的成功只说明 provider/worker 健康；hydrate 的成功也只说明 StageRun admitted / running watch，仍不等于 paper progress。paper progress 只来自 MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate 或 route-back evidence。
 
-2026-06-12 只读监督口径：若 fresh `study progress` 和 domain diagnostic dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，则 operator 必须判为没有 active provider work。DM002 / DM003 的具体 blocker、owner、action、work unit 和 fingerprint 不能从本文或合同样本读取，必须按 live readback 判定。`anti_loop_budget_exhausted` 类 outcome 是 terminal stop-loss / typed owner outcome；`medical_paper_readiness_missing`、`medical_publication_surface_blocked`、`stage_packet_not_current_selected_dispatch` 类 outcome 是当前 typed-blocker 恢复入口。后续只能由对应 owner 产出 owner receipt、typed blocker 解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。
+2026-06-12 只读监督口径现在只保留为历史样例：若 fresh `study progress` 和 domain diagnostic dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，只能判为没有 active provider work observation，不能推出 idle/done/recovery complete。DM002 / DM003 的具体 blocker、owner、action、work unit 和 fingerprint 不能从本文或合同样本读取，必须按 live readback 判定。`anti_loop_budget_exhausted` 类 outcome 是 terminal stop-loss / typed owner outcome；`medical_paper_readiness_missing`、`medical_publication_surface_blocked`、`stage_packet_not_current_selected_dispatch` 类 outcome 只有在 current owner surface 同 identity 投影时才是 typed-blocker 恢复入口。后续只能由对应 owner 产出 owner receipt、typed blocker 解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。

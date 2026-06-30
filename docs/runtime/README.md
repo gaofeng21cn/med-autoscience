@@ -47,6 +47,17 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 
 `designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 CLI/read-model 为准。
 
+## Superseded Control-Plane Designs
+
+下列文档仍留在 `docs/runtime/` 是为了提供事故 replay、identity/currentness 诊断和 no-resurrection guard；它们不是 active backlog、默认 next-action 入口、provider admission 入口或 live acceptance checklist：
+
+- [PaperRecovery 事故 replay 与 authority 边界](./control/paper_recovery_replay.md)
+- [PaperRecovery Obligation 目标架构](./designs/paper_recovery_obligation_target_architecture.md)
+- [Paper Autonomy Supervisor 目标设计](./designs/paper_autonomy_supervisor_target.md)
+- [Stage-route reconcile 目标设计](./designs/stage_route_reconcile_target.md)
+
+这些文档中的 `current_work_unit`、`current_executable_owner_action`、PaperRecovery、provider admission、action queue、StageAttempt、current-control transition 或 exact-id 语言只能作为 superseded diagnostic / history provenance / no-resurrection context。当前 operator 判断必须回到 [Next Action Control Plane](./control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope`，再看同 identity 的 OPL TransitionReceipt 是否被 MAS owner surface 消费。
+
 ## 历史
 
 已完成 runtime implementation plans、旧 outer-loop 设计说明、runtime supervision loop tombstone 和 private implementation migration inventories 归档到 [history/runtime](../history/runtime/)。这些材料只作 provenance，不是 active backlog，也不能用来重开旧 MDS daemon、WebUI、retired default-provider path、workspace-local service path 或 MAS-owned generic runtime/platform work。
