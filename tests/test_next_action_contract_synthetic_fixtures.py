@@ -10,6 +10,9 @@ from med_autoscience.controllers.next_action_envelope import (
     resolve_action_family,
 )
 from med_autoscience.controllers import opl_domain_progress_transition_contract
+from med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection import (
+    domain_progress_transition_request_projection,
+)
 from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
 
 
@@ -295,6 +298,97 @@ def test_canonical_envelope_identity_blocks_legacy_owner_action_resurrection() -
             envelope
         ).values()
         assert legacy_value not in envelope.values()
+
+
+def test_opl_request_projection_consumes_envelope_identity_not_legacy_owner_action() -> None:
+    canonical_next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_id": "canonical-opl-action",
+        "idempotency_key": "next-action::dm004::canonical-runtime-route",
+        "action_family": FAMILY_RUNTIME_OPL_ROUTE,
+        "owner": "one-person-lab",
+        "work_unit_id": "canonical_runtime_route_target",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+    }
+    legacy_current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "executable_owner_action",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "legacy_current_work_unit_target",
+        "work_unit_fingerprint": "legacy-current-work-unit::fingerprint",
+    }
+
+    [projection] = domain_progress_transition_request_projection(
+        [
+            {
+                "study_id": "004-new-study-family-route",
+                "quest_id": "004-new-study-family-route",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "legacy_top_level_exact_id",
+                "work_unit_fingerprint": "legacy-top-level::fingerprint",
+                "next_executable_owner": "write",
+                "next_action": canonical_next_action,
+                "current_work_unit": legacy_current_work_unit,
+                "source_action": {
+                    "surface": "current_executable_owner_action",
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "legacy_source_action_target",
+                    "work_unit_fingerprint": "legacy-source-action::fingerprint",
+                },
+                "opl_domain_progress_transition_request": {
+                    "surface_kind": "mas_domain_progress_transition_request",
+                    "study_id": "004-new-study-family-route",
+                    "quest_id": "004-new-study-family-route",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "legacy_request_exact_id",
+                    "work_unit_fingerprint": "legacy-request::fingerprint",
+                    "attempt_idempotency_key": "attempt::legacy-current-work-unit",
+                    "request_idempotency_key": "request::legacy-current-work-unit",
+                },
+                "opl_runtime_carrier": {
+                    "work_unit_id": "legacy_carrier_exact_id",
+                    "request_idempotency_key": "request::legacy-carrier",
+                    "aggregate_identity": {
+                        "work_unit_id": "legacy_aggregate_exact_id",
+                        "work_unit_fingerprint": "legacy-aggregate::fingerprint",
+                    },
+                },
+            }
+        ]
+    )
+
+    expected_identity = opl_domain_progress_transition_contract.next_action_identity(
+        canonical_next_action
+    )
+    handoff = projection["opl_transition_handoff_contract"]
+
+    assert projection["next_action"] == expected_identity
+    assert handoff["next_action"] == expected_identity
+    assert handoff["next_action_identity_complete"] is True
+    assert handoff["identity_source"] == "NextActionEnvelope"
+    assert handoff["legacy_work_unit_identity_role"] == "provenance_currentness_only"
+    assert handoff["exact_work_unit_id_authority"] is False
+    assert projection["next_executable_owner"] == "write"
+    assert projection["source_action_ref"]["diagnostic_ref_only"] is True
+    assert projection["source_action_ref"]["owner"] == "write"
+    assert handoff["next_action"]["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
+
+    for legacy_value in (
+        "write",
+        "run_quality_repair_batch",
+        "legacy_current_work_unit_target",
+        "legacy_source_action_target",
+        "legacy_request_exact_id",
+        "legacy_carrier_exact_id",
+        "legacy_aggregate_exact_id",
+        "request::legacy-current-work-unit",
+        "request::legacy-carrier",
+        "attempt::legacy-current-work-unit",
+    ):
+        assert legacy_value not in projection["next_action"].values()
+        assert legacy_value not in handoff["next_action"].values()
 
 
 def test_legacy_only_completion_surfaces_do_not_create_next_action_envelope() -> None:
