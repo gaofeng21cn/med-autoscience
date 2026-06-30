@@ -330,6 +330,7 @@ def _display_registry_payload() -> dict[str, Any]:
                 "requirement_key": "cohort_flow_figure",
                 "catalog_id": "F1",
                 "paper_role": "main_text",
+                "shell_path": "paper/figures/cohort_flow.shell.json",
                 "source_path": "paper/cohort_flow.json",
                 "claim_ids": ["cohort-denominator-accounting", "descriptive-cross-sectional-boundary"],
             },
@@ -361,6 +362,21 @@ def _display_registry_payload() -> dict[str, Any]:
                 "claim_ids": ["center-psychobehavioral-support-supported"],
             },
         ],
+    }
+
+
+def _figure_shell_payload(display_id: str, requirement_key: str, catalog_id: str, title: str) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "display_id": display_id,
+        "display_kind": "figure",
+        "requirement_key": requirement_key,
+        "shell_id": requirement_key,
+        "catalog_id": catalog_id,
+        "paper_role": "main_text",
+        "story_role": display_story_role_for_requirement_key(requirement_key),
+        "title": title,
     }
 
 
@@ -716,6 +732,12 @@ def _build_materialization_payload(*, study_root: Path, paper_root: Path) -> dic
             "caption": "Descriptive center completeness and Xiangya2 psychobehavioral availability support.",
             "group_columns": [{"key": "domain", "label": "Domain"}],
         },
+        Path("figures/cohort_flow.shell.json"): _figure_shell_payload(
+            "cohort_flow",
+            "cohort_flow_figure",
+            "F1",
+            "Cohort and source-layer accounting for the Hunan Obesity Alliance registry",
+        ),
         Path("tables/baseline_characteristics.shell.json"): _table_shell_payload(
             "baseline_characteristics",
             "table1_baseline_characteristics",

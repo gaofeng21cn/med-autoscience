@@ -187,11 +187,16 @@ def test_apply_writes_tables_registry_and_closes_charter_expectations(tmp_path: 
         "transition_site_support_summary_schema.json",
         "tables/T2_phenotype_gap_summary.csv",
         "tables/T3_transition_site_support_summary.csv",
+        "figures/cohort_flow.shell.json",
         "tables/baseline_characteristics.shell.json",
         "tables/phenotype_gap_summary.shell.json",
         "tables/transition_site_support_summary.shell.json",
     ):
         assert (paper_root / relpath).is_file()
+    figure_shell = json.loads((paper_root / "figures" / "cohort_flow.shell.json").read_text(encoding="utf-8"))
+    assert figure_shell["display_id"] == "cohort_flow"
+    assert figure_shell["catalog_id"] == "F1"
+    assert figure_shell["requirement_key"] == "cohort_flow_figure"
     ledger = json.loads((paper_root / "evidence_ledger.json").read_text(encoding="utf-8"))
     closed = {
         item["expectation_text"]: item["status"]
@@ -224,6 +229,34 @@ def test_materialized_tables_are_consumed_by_display_surface_renderer(tmp_path: 
         encoding="utf-8"
     ).splitlines()[0]
     assert t3_header == "Domain,Measure,Value"
+
+
+def test_materialized_reporting_audit_accepts_cohort_flow_shell(tmp_path: Path) -> None:
+    materializer = importlib.import_module("med_autoscience.controllers.descriptive_registry_evidence_materializer")
+    reporting_audit = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    study_root, paper_root = _write_study_fixture(tmp_path)
+    quest_root = tmp_path / "runtime" / "quests" / "obesity_multicenter_phenotype_atlas"
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\n",
+        encoding="utf-8",
+    )
+    (study_root / "runtime_binding.yaml").write_text(
+        "quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\n",
+        encoding="utf-8",
+    )
+    _write_json(paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    (paper_root / "draft.md").write_text("# Draft\n\nDescriptive registry atlas.\n", encoding="utf-8")
+    _write_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1})
+    _write_json(paper_root / "medical_prose_review.json", {"schema_version": 1})
+    _write_json(paper_root / "results_narrative_map.json", {"schema_version": 1})
+    _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1})
+
+    materializer.materialize_descriptive_registry_evidence(study_root=study_root, paper_root=paper_root, apply=True)
+    result = reporting_audit.run_controller(quest_root=quest_root, apply=False)
+
+    assert "missing_cohort_flow_shell" not in result["blockers"]
+    assert "missing_cohort_flow" not in result["blockers"]
 
 
 def test_cli_parser_recognizes_descriptive_registry_evidence_command() -> None:
