@@ -483,7 +483,7 @@ def _workspace_opl_current_control_state_handoff_dashboard(
         if not projected_studies
         else (
             f"{counts['projection_count']} 个 study 有 OPL current_control_state handoff projection；"
-            f"{counts['queued_action_count']} 个 OPL action ref；"
+            f"{counts['queued_action_count']} 个 OPL transport diagnostic ref；"
             f"{counts['external_supervisor_required']} 个需要 external supervisor。"
         )
     )

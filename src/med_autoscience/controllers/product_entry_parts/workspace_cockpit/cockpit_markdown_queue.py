@@ -30,7 +30,7 @@ def append_opl_current_control_state_handoff_dashboard(lines: list[str], project
             (
                 "- 当前计数: "
                 f"study {counts.get('projection_count', 0)}；"
-                f"OPL action refs {counts.get('queued_action_count', 0)}；"
+                f"OPL transport diagnostic refs {counts.get('queued_action_count', 0)}；"
                 f"blocked {counts.get('blocked', 0)}；"
                 f"external supervisor {counts.get('external_supervisor_required', 0)}"
             ),
@@ -82,12 +82,12 @@ def _append_opl_current_control_action_refs(lines: list[str], study: Mapping[str
         if not isinstance(action, Mapping):
             continue
         lines.append(
-            f"  OPL action ref: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"  OPL transport diagnostic ref: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
             f"{action.get('summary') or ''}".rstrip()
         )
         owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), Mapping) else {}
         if owner_pickup:
-            lines.append(f"  owner_pickup `{owner_pickup.get('state') or 'unknown'}`")
+            lines.append(f"  observed owner pickup `{owner_pickup.get('state') or 'unknown'}`")
         consumption = action.get("consumption") if isinstance(action.get("consumption"), Mapping) else {}
         if consumption:
             lines.append(
@@ -123,8 +123,8 @@ def _append_opl_current_control_why_not_applied(lines: list[str], study: Mapping
 def _append_opl_current_control_next_owner(lines: list[str], study: Mapping[str, Any]) -> None:
     if study.get("next_owner") or study.get("external_supervisor_required") is not None:
         lines.append(
-            f"  next_owner: `{study.get('next_owner') or 'unknown'}`；"
-            f"external_supervisor_required: `{study.get('external_supervisor_required')}`"
+            f"  observed transport owner hint: `{study.get('next_owner') or 'unknown'}`；"
+            f"external supervisor observed: `{study.get('external_supervisor_required')}`"
         )
 
 
@@ -170,8 +170,8 @@ def _append_attention_readiness(lines: list[str], item: Mapping[str, Any]) -> No
     lines.append(
         "  Medical Paper Readiness: "
         f"{readiness.get('overall_status') or 'unknown'}；"
-        f"{next_action.get('summary') or 'no next action'}；"
-        "projection-only"
+        "诊断建议（projection-only）: "
+        f"{next_action.get('summary') or 'none'}"
     )
 
 

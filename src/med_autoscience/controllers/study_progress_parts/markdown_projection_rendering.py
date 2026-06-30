@@ -354,7 +354,7 @@ def _append_module_surfaces(lines: list[str], module_surfaces: Mapping[str, Any]
             + module_name
             + ": "
             + (module_surface.get("status_summary") or "none")
-            + " 下一动作："
+            + " 诊断建议（projection-only）："
             + (module_surface.get("next_action_summary") or "none")
             + " ref: `"
             + (module_surface.get("summary_ref") or "none")
@@ -526,7 +526,7 @@ def _append_paper_orchestra_operator_projection(lines: list[str], projection: Ma
         lines.append(f"- 阻塞 gate 数: {projection.get('blocking_gate_count')}")
     if next_owner:
         lines.append(f"- 下一责任方: {next_owner.get('owner') or 'unknown'}")
-        lines.append(f"- 下一动作: {next_owner.get('action') or 'unknown'}")
+        lines.append(f"- 诊断建议（projection-only）: {next_owner.get('action') or 'unknown'}")
 
 
 def _append_ai_first_feedback_state(lines: list[str], state: Mapping[str, Any]) -> None:
@@ -624,7 +624,7 @@ def _append_quality_review_loop_header(lines: list[str], quality_review_loop: Ma
         ("current_phase_label", "当前闭环阶段"),
         ("recommended_next_phase_label", "下一跳"),
         ("summary", "闭环摘要"),
-        ("recommended_next_action", "下一动作"),
+        ("recommended_next_action", "诊断建议（projection-only）"),
     ):
         text = _display_text(quality_review_loop.get(key)) or _non_empty_text(quality_review_loop.get(key))
         if text:

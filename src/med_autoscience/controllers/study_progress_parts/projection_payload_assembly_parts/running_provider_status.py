@@ -10,7 +10,7 @@ from med_autoscience.controllers.study_progress_parts.shared import (
 
 RUNNING_PROVIDER_STAGE_SUMMARY = "托管运行时正在自动推进研究，前台当前应以监督为主。"
 RUNNING_PROVIDER_NEXT_ACTION = (
-    "继续监督当前 OPL provider attempt；不要重复启动、hydrate 或 redrive 同一 current work unit。"
+    "监督诊断：当前 OPL provider attempt 正在运行；前台只观察，不重复启动、hydrate 或 redrive 同一 current work unit。"
 )
 RUNNING_PROVIDER_SUPERSEDED_BLOCKERS = frozenset(
     {

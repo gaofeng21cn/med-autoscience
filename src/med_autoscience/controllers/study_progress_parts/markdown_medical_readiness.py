@@ -24,7 +24,7 @@ def _append_medical_paper_readiness(lines: list[str], payload: Mapping[str, Any]
     lines.extend(_medical_paper_readiness_header(readiness))
     summary = _medical_paper_readiness_next_action_summary(readiness)
     if summary:
-        lines.append(f"- 下一动作: {summary}")
+        lines.append(f"- 诊断建议（projection-only）: {summary}")
     for item in _missing_required_medical_paper_surfaces(readiness):
         lines.append(_medical_paper_readiness_surface_action_line(item))
         lines.extend(_medical_paper_readiness_guarded_action_lines(item))
@@ -56,7 +56,7 @@ def _medical_paper_ops_health_lines(ops_health: Mapping[str, Any]) -> list[str]:
         lines.append(f"- 摘要: {summary}")
     next_action = ops_health.get("next_operator_action") if isinstance(ops_health.get("next_operator_action"), Mapping) else {}
     if next_action:
-        lines.append(f"- 下一动作: {next_action.get('summary') or 'none'}")
+        lines.append(f"- 诊断建议（projection-only）: {next_action.get('summary') or 'none'}")
     if ops_health.get("last_green_at"):
         lines.append(f"- last-green: `{ops_health.get('last_green_at')}`")
     health = ops_health.get("health") if isinstance(ops_health.get("health"), Mapping) else {}
@@ -96,7 +96,7 @@ def _medical_paper_v4_operations_lines(operations: Mapping[str, Any]) -> list[st
         lines.append(f"- 摘要: {summary}")
     next_action = operations.get("next_action") if isinstance(operations.get("next_action"), Mapping) else {}
     if next_action:
-        lines.append(f"- 下一动作: {next_action.get('summary') or 'none'}")
+        lines.append(f"- 诊断建议（projection-only）: {next_action.get('summary') or 'none'}")
     health = operations.get("health") if isinstance(operations.get("health"), Mapping) else {}
     for key in (
         "provider_health",
@@ -192,5 +192,4 @@ def _medical_paper_readiness_surface_durable_ref(item: Mapping[str, Any]) -> str
             if text:
                 return text
     return str(item.get("artifact_path") or "").strip()
-
 

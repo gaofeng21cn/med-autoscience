@@ -133,8 +133,8 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
             "current_stage": "publication_supervision",
             "current_stage_summary": "Queue is blocked by runtime recovery.",
             "current_blockers": [],
-            "next_system_action": "Inspect supervisor OPL action ref.",
-                "opl_current_control_state_handoff": {
+            "next_system_action": "Inspect supervisor OPL transport diagnostic ref.",
+            "opl_current_control_state_handoff": {
                 **dict(handoff_payload["studies"][0]),
                 **dict(handoff_payload["developer_supervisor_mode"]),
             },
@@ -247,12 +247,22 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
     assert "OPL Current Control State Handoff" in cockpit_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in cockpit_markdown
     assert "queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state" in cockpit_markdown
+    assert "OPL transport diagnostic refs 1" in cockpit_markdown
+    assert "OPL transport diagnostic ref: `publication_gate_specificity_required`" in cockpit_markdown
     assert "publication_gate_specificity_required" in cockpit_markdown
-    assert "owner_pickup `overdue`" in cockpit_markdown
+    assert "observed owner pickup `overdue`" in cockpit_markdown
+    assert "observed transport owner hint: `external_supervisor`" in cockpit_markdown
     assert "developer_supervisor_attention_required `True`" in cockpit_markdown
     assert "runtime_recovery_not_authorized" in cockpit_markdown
+    assert "OPL action ref:" not in cockpit_markdown
+    assert "next_owner:" not in cockpit_markdown
     assert "OPL Current Control State Handoff" in entry_status_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in entry_status_markdown
     assert "queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state" in entry_status_markdown
-    assert "owner_pickup `overdue`" in entry_status_markdown
+    assert "OPL transport diagnostic refs 1" in entry_status_markdown
+    assert "OPL transport diagnostic ref: `publication_gate_specificity_required`" in entry_status_markdown
+    assert "observed owner pickup `overdue`" in entry_status_markdown
+    assert "observed transport owner hint: `external_supervisor`" in entry_status_markdown
     assert "runtime_recovery_retry_budget_exhausted" in entry_status_markdown
+    assert "OPL action ref:" not in entry_status_markdown
+    assert "next_owner:" not in entry_status_markdown
