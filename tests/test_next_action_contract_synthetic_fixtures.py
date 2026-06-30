@@ -9,6 +9,7 @@ from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
     resolve_action_family,
 )
+from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
 
 
@@ -168,6 +169,132 @@ def test_opl_contract_fixture_ignores_legacy_completion_surfaces_for_semantics()
     assert "action_queue" not in envelope
     assert "stage_attempt" not in envelope
     assert "delivery_mirror" not in envelope
+
+
+def test_canonical_envelope_identity_blocks_legacy_owner_action_resurrection() -> None:
+    canonical_target = "dm004_canonical_opl_route_target"
+    legacy_owner_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "owner": "write",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "legacy_write_repair_target",
+        "work_unit_fingerprint": "legacy-write-repair::fingerprint",
+    }
+    legacy_payload = {
+        "current_executable_owner_action": legacy_owner_action,
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy_current_work_unit_target",
+            "work_unit_fingerprint": "legacy-current-work-unit::fingerprint",
+            "state": {"current_executable_owner_action": legacy_owner_action},
+        },
+        "provider_admission": {
+            "surface_kind": "provider_admission",
+            "status": "ready",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy_provider_admission_target",
+            "request_idempotency_key": "legacy-provider-admission-request",
+        },
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "owner": "write",
+            "controller_action": "run_quality_repair_batch",
+            "next_work_unit": {"unit_id": "legacy_domain_transition_target"},
+        },
+    }
+
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": "paper-mission-transaction::dm004::canonical-envelope",
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "stage_terminal_decision": {
+                "decision_kind": "continue_same_stage",
+                "next_owner": "write",
+                "next_work_unit": "legacy_decision_target",
+                **legacy_payload,
+            },
+            "opl_route_command": {
+                "command_kind": "resume_stage",
+                "target": canonical_target,
+                "runtime_owner": "one-person-lab",
+                "route_target": "opl_runtime_live_readback",
+                "request_idempotency_key": "next-action::dm004::canonical-runtime-route",
+                "attempt_idempotency_key": "attempt::dm004::legacy-provider-attempt",
+                **legacy_payload,
+            },
+            **legacy_payload,
+        },
+        opl_runtime_carrier={
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "work_unit_id": "legacy_carrier_work_unit",
+            "target_runtime_owner": "legacy-runtime-owner",
+            "request_idempotency_key": "legacy-carrier-request",
+            **legacy_payload,
+        },
+        opl_runtime_carrier_readback={
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "carrier_status": "waiting_for_opl_runtime_live_readback",
+            **legacy_payload,
+        },
+        diagnostic_refs=[
+            "legacy://current_work_unit/ready",
+            "legacy://current_executable_owner_action/write",
+            "legacy://provider_admission/write",
+            "legacy://domain_transition/write",
+        ],
+    )
+
+    assert envelope is not None
+    assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
+    assert envelope["action_kind"] == "submit_to_opl_runtime"
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["work_unit_id"] == canonical_target
+    assert envelope["idempotency_key"] == "next-action::dm004::canonical-runtime-route"
+    assert envelope["expected_output_contract"]["output_kind"] == "opl_transition_receipt"
+    assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
+    assert envelope["legacy_fields_are_diagnostic"] is True
+    assert envelope["legacy_field_diagnostic_roles"]["current_work_unit"] == (
+        "diagnostic_readback_only"
+    )
+    assert envelope["legacy_field_diagnostic_roles"][
+        "current_executable_owner_action"
+    ] == "diagnostic_readback_only"
+    assert opl_domain_progress_transition_contract.next_action_identity(envelope) == {
+        "surface_kind": "opl_next_action_identity",
+        "identity_source": "NextActionEnvelope",
+        "next_action_surface_kind": "mas_next_action_envelope",
+        "action_id": envelope["action_id"],
+        "idempotency_key": "next-action::dm004::canonical-runtime-route",
+        "action_family": FAMILY_RUNTIME_OPL_ROUTE,
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+    }
+    assert (
+        opl_domain_progress_transition_contract.next_action_identity_complete(envelope)
+        is True
+    )
+    for legacy_value in (
+        "write",
+        "run_quality_repair_batch",
+        "legacy_current_work_unit_target",
+        "legacy_provider_admission_target",
+        "legacy_domain_transition_target",
+        "legacy-provider-admission-request",
+        "legacy-carrier-request",
+    ):
+        assert legacy_value not in opl_domain_progress_transition_contract.next_action_identity(
+            envelope
+        ).values()
+        assert legacy_value not in envelope.values()
 
 
 def test_legacy_only_completion_surfaces_do_not_create_next_action_envelope() -> None:
