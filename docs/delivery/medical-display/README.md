@@ -7,6 +7,8 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 这是医学展示能力族的活跃入口。
 
+读法：本文只做 medical-display 能力族导航和 claim boundary。Portfolio lifecycle / roadmap 归 `portfolio/medical_display_portfolio_consolidation.md`；当前唯一 owner round 归 `board/medical_display_active_board.md`；当前落地状态和 E2E 路径归 `contracts/display_pack_v2_landing_status.md`；模板 / Gallery / quality inventory 的动态数量归 generated status、catalogs、manifests、source 和 tests。不要把 README、board、Gallery 或 exemplar history 读成 publication-ready、artifact authority、submission-ready、current-package freshness 或 active backlog 的第二真相。
+
 | 目录 | 角色 |
 | --- | --- |
 | [portfolio](./portfolio/) | Portfolio map 和长期 roadmap。 |

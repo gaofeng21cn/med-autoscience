@@ -7,6 +7,8 @@ Machine boundary: 人读索引。Source truth 继续归 study workspaces、exter
 
 本目录承接 MAS study workspace、source readiness、external research intake、source provenance 和 source truth consumption 支撑。通用 workspace/source shell 候选应记录为 MAS-to-OPL 上收候选。
 
+本文是 source support 索引，不是 source readiness verdict、provider success ledger 或 external-learning backlog。当前 source truth 归 study workspaces、source contracts、provider/source ledgers、canonical data/manifests 和 owner receipts；通用 locator、workspace shell、cold-store、lineage projection 或 workbench projection 只能写成 OPL/shared-family 候选，不迁出 MAS 医学 source authority。
+
 当前入口先看：
 
 - [架构](../architecture.md)

@@ -9,6 +9,8 @@ Machine boundary: 人读索引。交付 authority 继续归 study workspaces、a
 
 Delivery active board 只允许保存当前交付能力族的唯一 owner round、phase、下一步和退出条件。已吸收 round、外部 exemplar intake、旧 owner brief、长增量清单和 closeout proof 归 `docs/history/**` 或 delivery provenance，不在 active board 中累积。
 
+本文是 delivery support 索引，不是 manuscript/package authority、submission-ready verdict、current-package freshness proof 或 active execution ledger。当前 delivery gap 和下一步回到 active owner docs；artifact/package 机器真相回到 study workspace、artifact contracts、generated submission material、runtime evidence、owner receipts 和 typed blockers；历史过程只作为 provenance 读取。
+
 当前入口先看：
 
 - [架构](../architecture.md)

@@ -1,7 +1,7 @@
 # Medical Display Portfolio Consolidation
 
 Status: `active capability governance`
-Date: `2026-05-06`
+Last reviewed: `2026-06-30`
 Owner: `MedAutoScience`
 Purpose: `Maintain medical-display family roadmap and portfolio support material.`
 State: `active_support`
@@ -9,7 +9,7 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 
 ## Role
 
-本文是 `docs/delivery/medical-display/` 的 portfolio map，用来区分当前执行面、合同面、历史 provenance、exemplar intake 和一次性 owner brief。
+本文是 `docs/delivery/medical-display/` 的 portfolio lifecycle SSOT，用来区分当前执行面、合同面、inventory/reference、roadmap/backlog、历史 provenance、exemplar intake 和一次性 owner brief。它不维护模板数量、Gallery 数量、render evidence、publication readiness 或当前 active round 的执行顺序。
 
 本子树入口是 [README.md](../README.md)。
 
@@ -17,28 +17,28 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 
 | lifecycle role | active path | status |
 | --- | --- | --- |
-| active execution surface | `medical_display_active_board.md` | current owner-round board and reroute surface |
-| current inventory / reference | `medical_display_audit_guide.md`, `medical_display_template_catalog.md`, `medical_display_arsenal.md` | strict audited inventory and human inventory reference |
-| roadmap / backlog | `medical_display_family_roadmap.md`, `medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
-| platform / template-pack support | `medical_display_template_pack_architecture.md`, `medical_display_platform_mainline.md` | platform and template-pack execution model |
+| active execution surface | `../board/medical_display_active_board.md` | current owner-round board and reroute surface |
+| current inventory / reference | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, `../examples/display_pack_gallery_status.md` | strict audited inventory, generated gallery status and human inventory reference |
+| roadmap / backlog | `medical_display_family_roadmap.md`, `../catalogs/medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
+| platform / template-pack support | `../plans/medical_display_template_pack_architecture.md`, `../contracts/medical_display_platform_mainline.md`, `../contracts/display_pack_v2_landing_status.md` | platform, template-pack execution model and current landed-boundary readout |
 | implementation provenance | `../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md` | historical Phase 1-2 execution packet; not active work queue |
-| review discipline / route references | `medical_display_visual_audit_protocol.md`, `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md` | review and route references |
-| anchor-paper provenance | `medical_display_anchor_paper_audit.md` | dated 001/003 closure snapshot; not active route board or current execution queue |
+| review discipline / route references | `../contracts/medical_display_visual_audit_protocol.md`, `../catalogs/medical_figure_route_cookbook.md`, `../contracts/domain_handler_figure_routes.md` | review and route references |
+| anchor-paper provenance | `../provenance/medical_display_anchor_paper_audit.md` | dated 001/003 closure snapshot; not active route board or current execution queue |
 | history / provenance | `../../../history/capabilities/medical-display/` | historical records only |
 
 ## Active Tree Set
 
 | role | files |
 | --- | --- |
-| active execution | `medical_display_active_board.md` |
-| platform charter | `medical_display_platform_mainline.md` |
-| current inventory / truth | `medical_display_audit_guide.md`, `medical_display_template_catalog.md`, `medical_display_arsenal.md` |
+| active execution | `../board/medical_display_active_board.md` |
+| platform charter | `../contracts/medical_display_platform_mainline.md`, `../contracts/display_pack_v2_landing_status.md` |
+| current inventory / truth | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, `../examples/display_pack_gallery_status.md` |
 | long-horizon roadmap | `medical_display_family_roadmap.md` |
-| visual review discipline | `medical_display_visual_audit_protocol.md` |
-| candidate backlog | `medical_display_template_backlog.md` |
-| template-pack architecture | `medical_display_template_pack_architecture.md` |
-| route / cookbook references | `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md` |
-| real-paper audit provenance | `medical_display_anchor_paper_audit.md` |
+| visual review discipline | `../contracts/medical_display_visual_audit_protocol.md` |
+| candidate backlog | `../catalogs/medical_display_template_backlog.md` |
+| template-pack architecture | `../plans/medical_display_template_pack_architecture.md` |
+| route / cookbook references | `../catalogs/medical_figure_route_cookbook.md`, `../contracts/domain_handler_figure_routes.md` |
+| real-paper audit provenance | `../provenance/medical_display_anchor_paper_audit.md` |
 
 ## Historical Records
 
