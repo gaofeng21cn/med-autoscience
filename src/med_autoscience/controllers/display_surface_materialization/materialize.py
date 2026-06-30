@@ -94,6 +94,49 @@ def _purpose_first_renderer_fields(layout_sidecar: dict[str, Any]) -> dict[str, 
     return fields
 
 
+def _existing_figure_catalog_entry(
+    *,
+    figure_catalog: dict[str, Any],
+    figure_id: str,
+) -> dict[str, Any] | None:
+    for entry in figure_catalog.get("figures", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        observed_figure_id = str(entry.get("figure_id") or entry.get("catalog_id") or "").strip()
+        if observed_figure_id == figure_id:
+            return entry
+    return None
+
+
+def _active_generated_illustration_paths_from_catalog(
+    *,
+    paper_root: Path,
+    figure_catalog: dict[str, Any],
+    figure_id: str,
+    template_id: str,
+    pdf_required: bool,
+) -> tuple[Path, Path | None, Path] | None:
+    entry = _existing_figure_catalog_entry(figure_catalog=figure_catalog, figure_id=figure_id)
+    if not entry or str(entry.get("template_id") or "").strip() != template_id:
+        return None
+    export_paths = _as_string_list(entry.get("export_paths"))
+    png_ref = next((ref for ref in export_paths if ref == f"paper/figures/generated/{figure_id}.png"), "")
+    pdf_ref = next((ref for ref in export_paths if ref == f"paper/figures/generated/{figure_id}.pdf"), "")
+    qc_result = entry.get("qc_result")
+    layout_ref = ""
+    if isinstance(qc_result, dict):
+        layout_ref = str(qc_result.get("layout_sidecar_path") or "").strip()
+    if layout_ref != f"paper/figures/generated/{figure_id}.layout.json":
+        layout_ref = ""
+    if not png_ref or not layout_ref or (pdf_required and not pdf_ref):
+        return None
+    return (
+        _resolve_workspace_path(png_ref, paper_root=paper_root),
+        _resolve_workspace_path(pdf_ref, paper_root=paper_root) if pdf_ref else None,
+        _resolve_workspace_path(layout_ref, paper_root=paper_root),
+    )
+
+
 def _load_display_shell_payload(*, paper_root: Path, item: dict[str, Any]) -> dict[str, Any] | None:
     shell_path = str(item.get("shell_path") or "").strip()
     if not shell_path:
@@ -644,14 +687,26 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     f"allowed: {allowed_roles}"
                 )
             figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
-            output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.svg"
-            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.png"
-            output_pdf_path = (
-                resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.pdf"
-                if "pdf" in spec.required_exports
-                else None
+            active_paths = _active_generated_illustration_paths_from_catalog(
+                paper_root=resolved_paper_root,
+                figure_catalog=figure_catalog,
+                figure_id=figure_id,
+                template_id=spec.shell_id,
+                pdf_required="pdf" in spec.required_exports,
             )
-            output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.layout.json"
+            if active_paths is None:
+                output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.png"
+                output_pdf_path = (
+                    resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.pdf"
+                    if "pdf" in spec.required_exports
+                    else None
+                )
+                output_layout_path = (
+                    resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.layout.json"
+                )
+            else:
+                output_png_path, output_pdf_path, output_layout_path = active_paths
+            output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.svg"
             dependency_environment = dependency_environment_status(
                 repo_root=_REPO_ROOT,
                 paper_root=resolved_paper_root,
