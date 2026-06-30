@@ -83,7 +83,7 @@ def domain_progress_transition_command_event_log_path(*, study_root: Path) -> Pa
 def domain_progress_transition_log_readbacks_by_idempotency_key(
     path: Path,
 ) -> dict[str, dict[str, Any]]:
-    from med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff import (
+    from med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff_parts.transition_readbacks import (
         _domain_progress_transition_log_readbacks_by_idempotency_key as _readbacks,
     )
 

@@ -142,6 +142,18 @@ def test_study_progress_opl_current_control_state_handoff_consumes_live_transiti
     assert projection["blocked_reason"] is None
 
 
+def test_provider_admission_transition_log_readback_uses_current_transition_reader(tmp_path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_transition_log_readback"
+    )
+
+    result = module.domain_progress_transition_log_readbacks_by_idempotency_key(
+        tmp_path / "missing-command-event-log.jsonl"
+    )
+
+    assert result == {}
+
+
 def test_study_progress_opl_current_control_state_handoff_consumes_provider_admission_with_matching_terminal_closeout(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)

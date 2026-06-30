@@ -592,7 +592,6 @@ def test_ai_reviewer_current_inputs_route_still_requires_paper_write_authority_u
 @pytest.mark.parametrize(
     ("action", "work_unit_id"),
     [
-        ("submission_materialize", "submission_minimal_refresh"),
         ("delivery_sync", "publication_gate_replay"),
     ],
 )
@@ -626,6 +625,36 @@ def test_stale_opl_handoff_reasons_do_not_bypass_managed_publication_routes(
     assert "dispatch_gate_blocked" in gate["blocking_reasons"]
     assert "opl_current_control_state.handoff_required" in gate["blocking_reasons"]
     assert gate["controller_route_gate"]["authorized"] is True
+
+
+def test_submission_materialize_can_refresh_source_package_under_stale_opl_handoff() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    gate = module.authorize_authority_route(
+        "submission_materialize",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
+                paper_write_allowed=True,
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "submission_minimal_refresh",
+                "action_family": "paper.package.submission_minimal",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": "publication-blockers::submission_minimal_refresh",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["blocking_reasons"] == []
 
 
 def test_stale_opl_handoff_reasons_do_not_bypass_unsupported_ai_reviewer_work_unit() -> None:

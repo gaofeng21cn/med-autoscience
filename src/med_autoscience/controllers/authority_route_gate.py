@@ -69,6 +69,14 @@ _PAPER_WRITE_DISPATCH_BYPASS_REASONS = frozenset(
         "runtime_recovery_retry_budget_exhausted",
     }
 )
+_SUBMISSION_MATERIALIZE_DISPATCH_BYPASS_REASONS = frozenset(
+    {
+        *_MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS,
+        *_PAPER_WRITE_DISPATCH_BYPASS_REASONS,
+        "opl_current_control_state.handoff_required",
+        "quest_marked_running_but_no_live_session",
+    }
+)
 
 _CONTROLLER_ROUTE_ACTION_TYPES = {
     "return_to_ai_reviewer_workflow",
@@ -322,7 +330,12 @@ def _controller_route_can_bypass_dispatch_reasons(
         return False
     if not bool(controller_route_gate.get("authorized")):
         if action in {"paper_write", "submission_materialize"}:
-            return set(dispatch_gate_reasons) <= _PAPER_WRITE_DISPATCH_BYPASS_REASONS
+            allowed_reasons = (
+                _SUBMISSION_MATERIALIZE_DISPATCH_BYPASS_REASONS
+                if action == "submission_materialize"
+                else _PAPER_WRITE_DISPATCH_BYPASS_REASONS
+            )
+            return set(dispatch_gate_reasons) <= allowed_reasons
         return False
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS
@@ -330,9 +343,7 @@ def _controller_route_can_bypass_dispatch_reasons(
         if _controller_route_basis_is_gate_clear(controller_route_gate):
             return set(dispatch_gate_reasons) <= _GATE_CLEAR_PACKAGE_BYPASS_REASONS
         if action == "submission_materialize":
-            return set(dispatch_gate_reasons) <= (
-                _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS | _PAPER_WRITE_DISPATCH_BYPASS_REASONS
-            )
+            return set(dispatch_gate_reasons) <= _SUBMISSION_MATERIALIZE_DISPATCH_BYPASS_REASONS
         return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
     return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}
 
