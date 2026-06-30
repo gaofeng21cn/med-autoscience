@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.authority_flags import (
+    FORBIDDEN_TRUE_AUTHORITY_FLAGS as _FORBIDDEN_TRUE_AUTHORITY_FLAGS,
+    truthy_authority_flags as _truthy_authority_flags,
+)
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_runtime_residue_validators import (
     audit_workbench_projection_fields as _audit_workbench_projection_fields,
     validate_domain_diagnostic_obligation_actuator as _validate_domain_diagnostic_obligation_actuator,
@@ -15,6 +19,16 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.private_r
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.completion_evidence_layers import (
     completion_evidence_layers as _completion_evidence_layers,
 )
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.surface_helpers import (
+    SCHEMA_VERSION,
+    SURFACE_KIND,
+    allowed_effect as _allowed_effect,
+    authority_status as _authority_status,
+    physical_delete_gate_open as _physical_delete_gate_open,
+    repo_source_retired as _repo_source_retired,
+    requires_readback as _requires_readback,
+    surfaces as _surfaces,
+)
 from med_autoscience.runtime_protocol.runtime_surface_retirement_validators import (
     GENERIC_RUNTIME_OWNER,
     _text,
@@ -25,70 +39,7 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_validators impo
 )
 
 
-SURFACE_KIND = "mas_runtime_surface_retirement_no_authority_audit"
-SCHEMA_VERSION = 1
-
-FORBIDDEN_TRUE_AUTHORITY_FLAGS = frozenset(
-    {
-        "can_create_opl_command",
-        "can_create_opl_event",
-        "can_create_opl_outbox",
-        "can_create_opl_stage_run",
-        "can_generate_next_action_authority",
-        "can_authorize_provider_admission",
-        "can_authorize_quality_verdict",
-        "can_authorize_publication_ready",
-        "can_authorize_generic_cleanup_policy",
-        "can_authorize_artifact_mutation",
-        "can_claim_runtime_currentness",
-        "can_claim_paper_progress",
-        "can_write_domain_truth",
-        "can_write_publication_eval",
-        "can_write_controller_decision",
-        "started_worker",
-        "outbox_record",
-        "stores_body",
-        "stores_domain_truth",
-        "mas_can_authorize_provider_admission",
-        "mas_can_create_opl_outbox_event_or_stage_run",
-        "mas_can_create_opl_command_event_or_outbox",
-        "mas_can_choose_supervisor_decision",
-        "mas_can_mutate_recovery_obligation_store",
-        "mas_can_run_supervisor_decision_engine",
-        "paper_recovery_state_can_build_decision",
-        "read_model_can_run_supervisor_decision_engine",
-        "study_progress_supervisor_projection_can_build_decision",
-        "actuator_can_write_private_blocker_surface",
-        "active_caller_retains_authority",
-        "active_caller_retains_runtime_authority",
-        "can_write_fail_closed_typed_control_blocker",
-        "closeout_binding_authorizes_execution",
-        "actuator_private_write_authority",
-        "stage_closeout_packets_can_authorize_provider_admission",
-        "stage_closeout_packets_can_authorize_execution",
-        "stage_closeout_packets_can_create_provider_attempt",
-        "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run",
-        "stage_closeout_packets_can_claim_running_or_progress",
-        "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result",
-        "dispatch_ref_stage_packet_identity_recovery_is_authority",
-        "latest_wire_surface_is_stage_run_abi",
-        "mas_selector_authority",
-        "mas_tool_invocation_runtime_authority",
-        "polluted_source_payload_can_authorize_provider_admission",
-        "polluted_source_payload_can_create_opl_event_outbox_or_stage_run",
-        "polluted_source_payload_can_satisfy_opl_readback",
-        "wildcard_action_triggers_auto_select",
-        "wildcard_action_triggers_can_select_without_explicit_capability_request",
-        "missing_explicit_capability_request_can_auto_select_wildcard_sidecar",
-        "wildcard_sidecar_can_block_current_owner_action",
-        "body_authority",
-        "owner_callable_adapter_counts_authority",
-        "transition_request_projection_body_authority",
-        "mas_can_create_stage_run",
-        "provider_admission_pending",
-        "request_only_carrier_can_authorize_provider_admission",
-    }
-)
+FORBIDDEN_TRUE_AUTHORITY_FLAGS = _FORBIDDEN_TRUE_AUTHORITY_FLAGS
 
 
 def audit_runtime_surface_retirement_inventory(
@@ -173,26 +124,6 @@ def audit_runtime_surface_retirement_inventory(
             "live_runtime_tail_open_as_repo_source_delete_blocker",
         ],
     }
-
-
-def _repo_source_retired(surface: Mapping[str, Any]) -> bool:
-    disposition = _text(surface.get("current_disposition")) or ""
-    if disposition == "physically_retired":
-        return True
-    return disposition in _REPO_SOURCE_ACCEPTED_ADAPTER_DISPOSITIONS
-
-
-_REPO_SOURCE_ACCEPTED_ADAPTER_DISPOSITIONS = frozenset(
-    {
-        "opl_authorized_owner_callable_adapter",
-        "obligation_readback_projection_consumer",
-        "read_only_diagnostic_publisher",
-        "read_only_workbench_projection",
-        "opl_capability_runtime_projection",
-        "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open",
-        "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open",
-    }
-)
 
 
 def validate_runtime_surface_retirement_inventory(
@@ -1278,114 +1209,6 @@ def _audit_surface(surface: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "retirement_gate": dict(retirement_gate) if isinstance(retirement_gate, Mapping) else None,
     }
-
-
-def _authority_status(surface: Mapping[str, Any]) -> str:
-    surface_id = surface.get("surface_id")
-    disposition = _text(surface.get("current_disposition")) or ""
-    if surface_id == "stage_outcome_authority":
-        return "opl_authorized_owner_callable_adapter_live_tail_open"
-    if surface_id in {"runtime_lifecycle_payload_retention", "runtime_storage_maintenance"}:
-        return "opl_authorized_maintenance_callable_adapter_live_tail_open"
-    if surface_id == "domain_diagnostic_obligation_actuator":
-        return "consume_only_readback_projection_live_tail_open"
-    if surface_id == "domain_authority_refs_index":
-        return "active_callers_migrated_opl_state_index_source_adapter_live_tail_open"
-    if surface_id == "agent_tool_arsenal_scientific_capability_registry":
-        return "opl_capability_runtime_projection_live_owner_soak_tail_open"
-    if surface_id == "progress_portal_study_workbench_overview_action_projection":
-        return "read_only_workbench_projection_opl_shell_tail_open"
-    if surface_id == "owner_callable_adapter_receipt_latest_wire_projection":
-        return "legacy_latest_history_only_stage_run_abi_provenance_tail_open"
-    if surface_id == "owner_callable_dispatch_request":
-        return "legacy_owner_callable_adapter_carrier_opl_stage_run_abi_provenance_only"
-    if disposition.startswith("read_only"):
-        return "read_only_projection_no_authority"
-    if "projection" in disposition or "refs_only" in disposition:
-        return "refs_only_projection_no_authority"
-    if "handoff_contract" in disposition:
-        return "transition_request_carrier_no_authority"
-    return "open_surface_no_authority_guarded"
-
-
-def _allowed_effect(surface: Mapping[str, Any]) -> str:
-    boundary = surface.get("active_caller_boundary")
-    if isinstance(boundary, Mapping) and _text(boundary.get("active_caller_effect")):
-        return str(boundary["active_caller_effect"])
-    if surface.get("surface_id") == "stage_outcome_authority":
-        return "execute_only_with_trusted_opl_authorization_or_bound_readback"
-    if surface.get("surface_id") == "owner_callable_adapter_receipt_latest_wire_projection":
-        return "canonical_owner_receipt_or_legacy_stage_run_closeout_provenance_only"
-    if isinstance(surface.get("apply_gate"), Mapping):
-        return "mutate_only_when_bound_opl_maintenance_authorization_is_present"
-    if surface.get("surface_id") == "runtime_health_kernel":
-        return "read_only_diagnostic_projection"
-    if surface.get("surface_id") == "progress_portal_study_workbench_overview_action_projection":
-        return "read_only_owner_delta_summary"
-    if surface.get("surface_id") == "agent_tool_arsenal_scientific_capability_registry":
-        return "current_owner_delta_bound_capability_projection_explicit_request_only"
-    return "refs_only_or_diagnostic_projection"
-
-
-def _requires_readback(surface: Mapping[str, Any]) -> bool:
-    gate = surface.get("retirement_gate")
-    if isinstance(gate, Mapping):
-        return gate.get("completion_claim_requires_live_owner_or_opl_readback") is True
-    boundary = surface.get("active_caller_boundary")
-    if isinstance(boundary, Mapping):
-        return boundary.get("completion_claim_requires_live_owner_or_opl_readback") is True
-    return True
-
-
-def _physical_delete_gate_open(surface: Mapping[str, Any]) -> bool:
-    if surface.get("current_disposition") == "physically_retired":
-        return False
-    legacy_stage_run_boundary = surface.get("legacy_stage_run_abi_boundary")
-    if (
-        isinstance(legacy_stage_run_boundary, Mapping)
-        and legacy_stage_run_boundary.get("physical_delete_requires_no_active_stage_run_abi_caller_scan")
-        is True
-    ):
-        scan = legacy_stage_run_boundary.get("active_stage_run_abi_caller_scan")
-        return not (
-            isinstance(scan, Mapping)
-            and scan.get("no_active_stage_run_abi_caller_proven") is True
-            and scan.get("physical_delete_allowed") is True
-        )
-    gate = surface.get("retirement_gate")
-    if not isinstance(gate, Mapping):
-        return False
-    return bool(
-        gate.get("no_active_caller_required_before_physical_delete")
-        or gate.get("live_opl_cleanup_policy_takeover_required")
-        or gate.get("live_opl_storage_policy_takeover_required")
-        or gate.get("owner_retirement_decision_required")
-        or gate.get("opl_owner_callable_adapter_carrier_tail_readback_required")
-        or gate.get("opl_materializer_projection_tail_readback_required")
-        or gate.get("opl_workbench_shell_readback_required")
-    )
-
-
-def _truthy_authority_flags(value: Any, path: tuple[str, ...] = ()) -> list[str]:
-    matches: list[str] = []
-    if isinstance(value, Mapping):
-        for key, nested_value in value.items():
-            key_text = str(key)
-            nested_path = (*path, key_text)
-            if key_text in FORBIDDEN_TRUE_AUTHORITY_FLAGS and nested_value is True:
-                matches.append(".".join(nested_path))
-            matches.extend(_truthy_authority_flags(nested_value, nested_path))
-    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        for index, nested_value in enumerate(value):
-            matches.extend(_truthy_authority_flags(nested_value, (*path, str(index))))
-    return matches
-
-
-def _surfaces(inventory: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    surfaces = inventory.get("surfaces")
-    if not isinstance(surfaces, list):
-        raise ValueError("runtime surface retirement inventory must contain a surfaces list")
-    return [surface for surface in surfaces if isinstance(surface, Mapping)]
 
 
 __all__ = [
