@@ -13,6 +13,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：delivery mirror、queue / attempt、StageAttempt、provider running 或 provider admission 语言在旧决策或 product/read surface 中只能表示 transport / mirror / observability-only diagnostic observation，不能作为默认完成判断。delivery/submission completion、paper progress、publication-ready、submission-ready、runtime-ready、`current_package` authority 或 provider success 必须由同 identity 的 MAS owner receipt、typed blocker、human gate、route-back evidence、artifact delta、successor handoff 或 fresh live readiness proof 单独证明。
 - 决策：机器侧 no-resurrection guard 归 `contracts/runtime/legacy-active-path-tombstones.json`；本文旧段落只保留来龙去脉，不再作为控制面入口清单。
 - 决策：`docs/history/**` 或旧决策长尾中继续出现上述旧词时，不要求全文删除；维护者应先判断该段是否是 provenance / tombstone / no-resurrection guard。只有 current docs、README、status、architecture 或 active runtime control docs 把旧词写成 default route / current owner / admission decision owner / ready proof 时，才是需要 cleanup 的语义噪声。
+- 决策：2026-06-29 之前段落里的“必须导出 provider admission candidates”“`current_executable_owner_action` 是下一步锚点”“`action_queue` 提供当前 owner action”“StageAttempt / provider admission 接力”等命令式措辞，默认只描述当时的修复约束；维护者不得把这些句子摘出来覆盖 2026-06-29 后的 `StageOutcome -> NextActionEnvelope` 读法。
+- 决策：若旧段落没有逐段 tombstone 注记，也不表示其仍然 active。顶部 supersession 规则是整篇文件的默认读法；逐段注记只服务高风险检索命中和读者定位，不创建第二套真相源。
 
 ## 2026-06-29：StageOutcome 之后的 next action 必须收敛为单一 NextActionEnvelope
 
@@ -53,6 +55,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：MAS 当前设计已经收敛到唯一 stage completion 判断面；继续在 active docs 中保留 diagnostic apply skeleton 或 canonical durable surface 表述，会把历史迁移工具重新读成第二判断面。
 
 ## 2026-06-28：旧 domain diagnostic / owner-route / owner-callable / workbench 面统一降为 retired diagnostic
+
+2026-07-01 tombstone reader note：本节以及后续 2026-06-28 至 2026-06-01 的旧 current-work-unit / provider-admission / action-queue / StageAttempt 修复段，默认按 historical repair provenance / diagnostic-only 读取。若段内仍写“可执行”“必须导出”“唯一 currentness authority”等语言，其 authority 已被 2026-06-29 `StageOutcome -> NextActionEnvelope` 读法收紧；这些旧句子不能恢复 default next-action selector、provider admission authority、paper progress、submission-ready、publication-ready、runtime-ready 或 `current_package` authority。
 
 - 决策：当前默认论文入口只允许写成 `paper-mission` / `PaperMissionRun` / `PaperMissionTransaction` / `StageTerminalDecision` / Stage Closure Terminalizer，以及 OPL hosted substrate 承担的 StageRun、queue、attempt、retry/dead-letter、resume、current-control 和 workbench shell。旧 `domain-diagnostic-report`、`stage-outcome-authority`、`paper-mission-owner-surface`、`stage_outcome/opl-handoff`、`owner_callable_adapter_receipt`、Progress Portal / MAS workbench / control-plane 只能作为 history、provenance、migration diagnostic、readback diagnostic 或 OPL-hosted projection detail 读取。
 - 决策：`docs/status.md`、`README.md`、`docs/README.md` 和 machine contracts 不得把上述旧面写成 product default mainline、domain-handler default route、current paper mission route、active public projection alias、provider admission authority、owner receipt producer、typed blocker authority、runtime-ready 证据或 paper progress 证据。需要追溯旧词时必须附带 replacement route、retired/tombstone 语义和 forbidden claim boundary。
@@ -971,6 +975,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-06-08：current-control handoff 必须导出 OPL 可消费的 provider admission candidates
 
+2026-07-01 tombstone reader note：本节标题和正文中的 provider admission / `action_queue` 导出要求是 2026-06-08 的 current-control 修复 provenance。当前默认 next action 不再从 current-control handoff、root queue、per-study current fields 或 provider admission candidates 派生；缺 canonical `NextActionEnvelope` 时必须 fail closed，显式 queue 只作受控 diagnostic / transport readback。
+
 - 决策：`paper-mission-owner-surface` 正常写 `opl_current_control_state_handoff` 时，必须从同一 payload 的 current `action_queue` 派生 root `provider_admission_candidates[]` / `provider_admission_pending_count`，并同步挂到对应 `studies[]`。派生必须复用 MAS `current_control_provider_admission_candidates` authority gate：current-control action / owner-route currentness 必须匹配 MAS current work-unit identity，ready dispatch 只提供 callable carrier、action/owner 和 dispatch authority 校验；不能让 OPL intake 只看到旧 sidecar task 或旧 gate replay。
 - 决策：AI reviewer recheck request 的 lifecycle 兼容旧 schema：`request_kind=return_to_ai_reviewer_workflow`、owner 为空或 `ai_reviewer`、`blocked_reason` 为空，且 lifecycle 带 `assessment_ref`、`source_ref`、`stale_record_ref` 或 `required_currentness_refs` 时，即使缺 `state` 也视为 current pending request。若显式 `state` 不是 `requested` / `assigned`，仍 fail closed。
 - 理由：DM002 / DM003 closeout 消费后，MAS 已能重新选出 `return_to_ai_reviewer_workflow`，但 current-control 仍只暴露旧 gate action queue，OPL hydrate 不能稳定进入 fresh provider admission。另一个漂移点是旧 AI reviewer request 缺 lifecycle state，导致 currentness 判断误拒绝 reviewer recheck request 并回退到 gate clearing。
@@ -1201,6 +1207,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 影响：这是 MAS read-model/currentness 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、memory body、artifact body 或 package。它只让 study progress 区分 closed provider-attempt transport residue 与当前 owner-chain待执行 work unit。
 
 ## 2026-06-02：Progress-first / AI-first admission 以可执行 owner action 为推进锚点
+
+2026-07-01 tombstone reader note：本节保留的是 Progress-first admission 历史修复背景。`current_executable_owner_action` / `current_work_unit` / `action_queue` 在本节中的“锚点”语言已降格为 superseded diagnostic/provenance；当前锚点必须从 `StageOutcome -> canonical NextActionEnvelope` 读取，并由 MAS owner consumption 或 fresh live readiness proof 支撑完成判断。
 
 - 决策：Progress-first 的非终局 stage 完成口径不是状态解释完成，而是尽快形成可消费的 `owner receipt`、paper-artifact delta、reviewer-gate delta、stable typed blocker 或 next owner handoff。telemetry completion、currentness reconcile、read-model hygiene、diagnostic explanation、ledger record/verify 和 `next_system_action` wording 只能作为观测或平台修复证据；它们不能单独关闭 MAS paper-line stage。
 - 决策：非终局 stage 的 operator outcome 枚举固定为 `running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success`、`terminal_stop_loss`。`receipt_consumed` 只是观测/交接状态，必须继续投影下一 owner、typed blocker、human gate、running proof 或 stop-loss；不得把它写成 ready action、等待 pickup、paper ready 或终局完成。
