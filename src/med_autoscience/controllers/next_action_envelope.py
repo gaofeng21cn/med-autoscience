@@ -42,7 +42,7 @@ FAMILY_OWNER = {
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL: "mission_executor",
     FAMILY_PAPER_DELIVERY_SYNC: "delivery",
     FAMILY_HUMAN_APPROVAL: "human",
-    FAMILY_BLOCKED_TYPED: "typed_blocker_owner",
+    FAMILY_BLOCKED_TYPED: "mas_authority_kernel",
     FAMILY_RUNTIME_WAIT_RECEIPT: "one-person-lab",
     FAMILY_RUNTIME_OPL_ROUTE: "one-person-lab",
     FAMILY_MISSION_COMPLETE: "MedAutoScience",
@@ -150,6 +150,8 @@ def compile_next_action_envelope(
     action_kind = FAMILY_KIND[family]
     if family in {FAMILY_RUNTIME_OPL_ROUTE, FAMILY_RUNTIME_WAIT_RECEIPT}:
         owner_name = _text(route.get("runtime_owner")) or FAMILY_OWNER[family]
+    elif family == FAMILY_BLOCKED_TYPED:
+        owner_name = FAMILY_OWNER[family]
     else:
         owner_name = (
             _text(owner.get("next_owner"))
@@ -292,7 +294,7 @@ def resolve_action_family(
         return FAMILY_PAPER_REVIEW_AI_REVIEWER
     if _contains_any(tokens, RUNTIME_HINTS):
         return FAMILY_RUNTIME_WAIT_RECEIPT
-    return FAMILY_PAPER_WRITE_PROSE_REPAIR
+    return FAMILY_BLOCKED_TYPED
 
 
 def _owner_receipt_is_submission_ready_terminal(outcome: Mapping[str, Any]) -> bool:

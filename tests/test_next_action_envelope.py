@@ -135,6 +135,31 @@ def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -
     assert envelope["semantic_progress_signature"] == "sig-dm004-family-route"
 
 
+def test_unknown_action_family_fails_closed_to_typed_blocker() -> None:
+    work_unit_id = "dm004_unknown_followup_without_family"
+    envelope = compile_next_action_envelope(
+        stage_outcome={
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "work_unit_id": work_unit_id,
+            "outcome": {"kind": "next_stage_transition"},
+        },
+        owner_route={
+            "next_owner": "write",
+            "action_type": "unrecognized_followup",
+        },
+    )
+
+    assert resolve_action_family(work_unit_id=work_unit_id) == FAMILY_BLOCKED_TYPED
+    assert envelope["action_family"] == FAMILY_BLOCKED_TYPED
+    assert envelope["action_kind"] == "stop_with_typed_blocker"
+    assert envelope["owner"] == "mas_authority_kernel"
+    assert envelope["executor_target"] == "mas_authority_kernel"
+    assert envelope["work_unit_id"] == work_unit_id
+    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
+    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
+
+
 def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority() -> None:
     envelope = compile_next_action_envelope(
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
