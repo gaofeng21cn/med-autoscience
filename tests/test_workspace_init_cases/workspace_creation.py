@@ -283,8 +283,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in study_progress_text
     assert '--study-id "${study_id}"' in study_progress_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
-    assert '--profile "${PROFILE_PATH}"' in paper_mission_text
-    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert 'run_medautosci paper-mission "${paper_mission_command}" --profile "${PROFILE_PATH}"' in paper_mission_text
+    assert 'run_medautosci paper-mission ${args[@]+"${args[@]}"}' in paper_mission_text
     assert "domain-diagnostic-report" not in paper_mission_text
     assert "--loop" not in paper_mission_text
     assert "legacy-control-surface-clean-migration" not in "\n".join(
@@ -419,7 +419,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     paper_mission_text = paper_mission.read_text(encoding="utf-8")
     assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in paper_mission_text
-    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert 'run_medautosci paper-mission "${paper_mission_command}" --profile "${PROFILE_PATH}"' in paper_mission_text
     assert "ops/med-deepscientist" not in paper_mission_text
 
 
@@ -462,6 +462,94 @@ def test_generated_study_progress_accepts_study_id_without_extra_args(tmp_path: 
         str(profile_path),
         "--study-id",
         "002-dm-china-us-mortality-attribution",
+    ]
+
+
+def test_generated_paper_mission_inserts_profile_after_subcommand(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "paper-mission-wrapper-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="paper-mission-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "paper-mission-wrapper.local.toml"
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'PROFILE_PATH="{profile_path}"\n'
+        "run_medautosci() {\n"
+        "  printf '%s\\n' \"$@\"\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["/bin/bash", str(paper_mission), "inspect", "--study-id", "obesity_multicenter_phenotype_atlas"],
+        check=True,
+        cwd=workspace_root,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.stderr == ""
+    assert result.stdout.splitlines() == [
+        "paper-mission",
+        "inspect",
+        "--profile",
+        str(profile_path),
+        "--study-id",
+        "obesity_multicenter_phenotype_atlas",
+    ]
+
+
+def test_generated_paper_mission_preserves_top_level_options(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "paper-mission-top-level-wrapper-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="paper-mission-top-level-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    paper_mission = workspace_root / "ops" / "medautoscience" / "bin" / "paper-mission"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    profile_path = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "profiles"
+        / "paper-mission-top-level-wrapper.local.toml"
+    )
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'PROFILE_PATH="{profile_path}"\n'
+        "run_medautosci() {\n"
+        "  printf '%s\\n' \"$@\"\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["/bin/bash", str(paper_mission), "--help"],
+        check=True,
+        cwd=workspace_root,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.stderr == ""
+    assert result.stdout.splitlines() == [
+        "paper-mission",
+        "--help",
     ]
 
 

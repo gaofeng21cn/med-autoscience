@@ -100,8 +100,8 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
-    assert 'run_medautosci paper-mission \\' in paper_mission_text
-    assert '--profile "${PROFILE_PATH}"' in paper_mission_text
+    assert 'run_medautosci paper-mission "${paper_mission_command}" --profile "${PROFILE_PATH}"' in paper_mission_text
+    assert 'run_medautosci paper-mission ${args[@]+"${args[@]}"}' in paper_mission_text
     assert 'domain-diagnostic-report' not in paper_mission_text
     assert '--loop' not in paper_mission_text
 
@@ -296,7 +296,7 @@ def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags
     assert paper_mission.is_file()
     assert not domain_diagnostic_report.exists()
     paper_mission_text = paper_mission.read_text(encoding="utf-8")
-    assert 'run_medautosci paper-mission \\' in paper_mission_text
+    assert 'run_medautosci paper-mission "${paper_mission_command}" --profile "${PROFILE_PATH}"' in paper_mission_text
     assert '--loop' not in paper_mission_text
 
 

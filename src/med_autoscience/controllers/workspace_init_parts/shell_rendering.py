@@ -156,7 +156,23 @@ def _render_paper_mission_script() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci paper-mission \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        '  "$@"\n'
+        'args=("$@")\n'
+        'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
+        '  paper_mission_command="${args[0]}"\n'
+        '  args=("${args[@]:1}")\n'
+        "  has_profile=0\n"
+        '  for arg in ${args[@]+"${args[@]}"}; do\n'
+        '    if [[ "${arg}" == "--profile" ]]; then\n'
+        "      has_profile=1\n"
+        "      break\n"
+        "    fi\n"
+        "  done\n\n"
+        '  if [[ "${has_profile}" -eq 1 ]]; then\n'
+        '    run_medautosci paper-mission "${paper_mission_command}" ${args[@]+"${args[@]}"}\n'
+        "  else\n"
+        '    run_medautosci paper-mission "${paper_mission_command}" --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}\n'
+        "  fi\n"
+        "else\n"
+        '  run_medautosci paper-mission ${args[@]+"${args[@]}"}\n'
+        "fi\n"
     )
