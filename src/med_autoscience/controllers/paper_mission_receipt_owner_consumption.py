@@ -236,8 +236,19 @@ def _owner_consumption_verdict(
     return {
         "verdict_kind": verdict_kind,
         "required_authority_surface": required_authority_surface,
-        "required_authority_surface_exists": False,
-        "implemented_surface_role": "diagnostic_owner_consumption_evidence_only",
+        "required_authority_surface_exists": required_authority_surface in {
+            "paper-mission receipt-owner-consumption --apply-typed-blocker",
+            "paper-mission receipt-owner-consumption --apply-route-checkpoint",
+        },
+        "implemented_surface_role": (
+            "mas_owner_consumption_authority_apply_surface"
+            if required_authority_surface
+            in {
+                "paper-mission receipt-owner-consumption --apply-typed-blocker",
+                "paper-mission receipt-owner-consumption --apply-route-checkpoint",
+            }
+            else "diagnostic_owner_consumption_evidence_only"
+        ),
         "next_legal_action": _text(consumption.get("next_legal_action")) or "record_typed_blocker",
         "forbidden_next_action": _text(consumption.get("forbidden_next_action"))
         or "synonymous_route_back_redrive",
@@ -581,7 +592,13 @@ def _receipt_summary(receipt: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
-    return _mapping(readback.get("opl_runtime_carrier_readback"))
+    carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
+    for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption"):
+        if not _mapping(carrier.get(key)):
+            value = _mapping(readback.get(key))
+            if value:
+                carrier[key] = value
+    return carrier
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
