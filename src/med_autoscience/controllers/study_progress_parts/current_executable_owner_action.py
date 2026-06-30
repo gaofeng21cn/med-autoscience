@@ -80,6 +80,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if target_surface["ref_kind"] == "mas_study_owner_gate_decision"
         else "typed_blocker_resolution_owner_action"
     )
+    paper_facing_delta = _mapping(next_action.get("paper_facing_delta"))
+    accepted_answer_shape = _mapping(next_action.get("accepted_answer_shape"))
+    route_back = _mapping(next_action.get("route_back"))
+    verification = _mapping(next_action.get("verification"))
+    executable_owner_route = _mapping(next_action.get("executable_owner_route"))
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
@@ -114,6 +119,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
                 )
                 if ref is not None
             ],
+            "paper_facing_delta": paper_facing_delta,
+            "accepted_answer_shape": accepted_answer_shape,
+            "route_back": route_back,
+            "verification": verification,
+            "executable_owner_route": executable_owner_route,
             "owner_receipt_required": True,
             "authority": "study_progress.current_executable_owner_action",
             "authority_boundary": {
@@ -129,6 +139,13 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
 
 
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
+    route = _mapping(action.get("executable_owner_route"))
+    answer_shape = _mapping(action.get("accepted_answer_shape")) or _mapping(
+        route.get("accepted_answer_shape")
+    )
+    paper_delta = _mapping(action.get("paper_facing_delta")) or _mapping(
+        route.get("paper_facing_delta")
+    )
     owner = _non_empty_text(action.get("next_owner"))
     actions = _text_items(action.get("allowed_actions"))
     work_unit_id = _non_empty_text(action.get("work_unit_id"))
@@ -137,7 +154,15 @@ def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
     owner_text = f"{owner} owner" if owner is not None else "当前 owner"
     action_text = f"执行 {actions[0]}" if actions else "处理当前 owner action"
     work_unit_text = f"，处理 work unit {work_unit_id}" if work_unit_id is not None else ""
-    return f"等待 {owner_text} {action_text}{work_unit_text}，产出 owner receipt、typed blocker 或下一 owner handoff。"
+    delta_kind = _non_empty_text(paper_delta.get("delta_kind"))
+    shape_kind = _non_empty_text(answer_shape.get("shape_kind"))
+    detail_parts = []
+    if delta_kind is not None:
+        detail_parts.append(f"paper-facing delta={delta_kind}")
+    if shape_kind is not None:
+        detail_parts.append(f"accepted answer={shape_kind}")
+    detail = f"，{'; '.join(detail_parts)}" if detail_parts else ""
+    return f"等待 {owner_text} {action_text}{work_unit_text}{detail}，route-back 到 paper-mission inspect 验证。"
 
 
 def _non_empty_text(value: object) -> str | None:

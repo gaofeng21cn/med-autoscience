@@ -205,6 +205,20 @@ def test_typed_blocker_resolution_route_redesign_writes_non_authority_packet(
     assert owner_decision["authority_boundary"]["writes_owner_receipt"] is False
     assert owner_decision["authority_boundary"]["writes_human_gate"] is False
     assert successor["work_unit_id"] == "submission_authority_owner_verdict"
+    assert successor["authority_boundary"]["writes_authority"] is False
+    assert packet["executable_owner_route"]["next_owner"] == "mas_authority_kernel"
+    assert packet["executable_owner_route"]["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert packet["executable_owner_route"]["accepted_answer_shape"]["shape_kind"] == (
+        "owner_receipt_or_human_gate"
+    )
+    assert packet["executable_owner_route"]["route_back"]["route_back_to"] == (
+        "paper-mission inspect"
+    )
+    assert packet["executable_owner_route"]["verification"]["owner_readback_command"].endswith(
+        f"--study-id {study_id} --format json"
+    )
     assert packet["status"] == "owner_route_redesign_applied"
     assert packet["authority_materialized"] is False
 
@@ -261,8 +275,20 @@ def test_typed_blocker_resolution_owner_decision_writes_non_authority_packet(
     assert payload["successor_work_unit"]["work_unit_id"] == (
         "submission_ready_authority_closeout"
     )
+    assert payload["executable_owner_route"]["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert payload["executable_owner_route"]["accepted_answer_shape"]["shape_kind"] == (
+        "submission_authority_owner_gate_decision"
+    )
     assert payload["next_owner_action"]["action_type"] == (
         "materialize_submission_ready_owner_verdict_or_human_gate"
+    )
+    assert payload["next_owner_action"]["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert payload["next_owner_action"]["accepted_answer_shape"]["shape_kind"] == (
+        "submission_authority_owner_gate_decision"
     )
 
 
@@ -317,6 +343,12 @@ def test_typed_blocker_resolution_human_gate_writes_non_authority_packet(
     ] is False
     assert payload["successor_work_unit"]["work_unit_id"] == (
         "submission_blocker_human_gate"
+    )
+    assert payload["executable_owner_route"]["paper_facing_delta"]["delta_kind"] == (
+        "human_gate_decision"
+    )
+    assert payload["executable_owner_route"]["accepted_answer_shape"]["shape_kind"] == (
+        "human_gate_or_degraded_handoff"
     )
     assert payload["next_owner_action"]["action_type"] == (
         "await_human_or_mas_authority_decision_for_submission_blocker"
@@ -405,6 +437,13 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
         "consume_submission_ready_package_authority_or_human_gate"
     ]
     assert next_action["work_unit_id"] == "submission_authority_owner_verdict"
+    assert next_action["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert next_action["accepted_answer_shape"]["shape_kind"] == (
+        "owner_receipt_or_human_gate"
+    )
+    assert next_action["route_back"]["route_back_to"] == "paper-mission inspect"
     assert next_action["authority_boundary"]["can_claim_submission_ready"] is False
     assert next_action["diagnostic_refs"] == [
         {

@@ -248,6 +248,14 @@ def _apply_typed_blocker_resolution(
         "current_package": dict(package),
         "authority_boundary": _authority_boundary(),
     }
+    executable_route = _executable_owner_route(
+        study_id=study_id,
+        typed_ref=typed_ref,
+        blocker=blocker,
+        successor=successor,
+        package=package,
+        apply_mode=apply_mode,
+    )
     return {
         "surface_kind": "paper_mission_typed_blocker_resolution",
         "schema_version": 1,
@@ -274,11 +282,13 @@ def _apply_typed_blocker_resolution(
         "current_package": dict(package),
         "owner_decision_packet": owner_decision_packet,
         "successor_work_unit": successor_work_unit,
+        "executable_owner_route": executable_route,
         "next_owner_action": _next_owner_action(
             study_id=study_id,
             typed_ref=typed_ref,
             blocker=blocker,
             successor=successor,
+            executable_route=executable_route,
         ),
         "can_claim_submission_ready": False,
         "durable_stop_allowed": False,
@@ -397,6 +407,7 @@ def _next_owner_action(
     typed_ref: str | None,
     blocker: str | None,
     successor: Mapping[str, Any],
+    executable_route: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     work_unit_id = _text(successor.get("work_unit_id")) or "paper_mission_typed_blocker_resolution"
     fingerprint = hashlib.sha256(
@@ -431,6 +442,21 @@ def _next_owner_action(
             for ref in (typed_ref, "typed_blocker_resolution_packet_ref")
             if ref
         ],
+        **(
+            {
+                "paper_facing_delta": _mapping(
+                    executable_route.get("paper_facing_delta")
+                ),
+                "accepted_answer_shape": _mapping(
+                    executable_route.get("accepted_answer_shape")
+                ),
+                "route_back": _mapping(executable_route.get("route_back")),
+                "verification": _mapping(executable_route.get("verification")),
+                "executable_owner_route": dict(executable_route),
+            }
+            if executable_route
+            else {}
+        ),
         "owner_receipt_required": True,
         "authority": "study_progress.current_executable_owner_action",
         "authority_boundary": {
@@ -441,6 +467,130 @@ def _next_owner_action(
             "can_write_current_package": False,
             "can_start_provider_attempt": False,
         },
+    }
+
+
+def _executable_owner_route(
+    *,
+    study_id: str,
+    typed_ref: str | None,
+    blocker: str | None,
+    successor: Mapping[str, Any],
+    package: Mapping[str, Any],
+    apply_mode: str,
+) -> dict[str, Any]:
+    action_type = _text(successor.get("next_action")) or "resolve_typed_blocker"
+    next_owner = _text(successor.get("owner")) or "mas_authority_kernel"
+    work_unit_id = _text(successor.get("work_unit_id")) or "paper_mission_typed_blocker_resolution"
+    answer_shape = _accepted_answer_shape(action_type)
+    return {
+        "surface_kind": "paper_mission_executable_owner_route",
+        "schema_version": 1,
+        "status": "ready_for_owner",
+        "study_id": study_id,
+        "next_owner": next_owner,
+        "work_unit_id": work_unit_id,
+        "action_type": action_type,
+        "allowed_actions": [action_type],
+        "source_apply_mode": apply_mode,
+        "typed_blocker_evidence_ref": typed_ref,
+        "blocker_type": blocker,
+        "paper_facing_delta": _paper_facing_delta(
+            package=package,
+            successor=successor,
+        ),
+        "accepted_answer_shape": answer_shape,
+        "route_back": {
+            "required": True,
+            "route_back_to": "paper-mission inspect",
+            "route_back_evidence_ref": typed_ref,
+            "expected_readback_fields": [
+                "next_action",
+                "current_executable_owner_action",
+                "typed_blocker_resolution_readback",
+                "stage_closure_decision",
+            ],
+        },
+        "verification": {
+            "repo_focused_tests": [
+                "tests/test_cli_cases/paper_mission_command_cases/typed_blocker_resolution.py",
+                "tests/study_progress_cases/current_executable_owner_action_cases/typed_blocker_resolution_projection.py",
+            ],
+            "owner_readback_command": (
+                "paper-mission inspect --request-opl-runtime-readback "
+                f"--study-id {study_id} --format json"
+            ),
+            "success_condition": (
+                "readback projects this work unit as current_executable_owner_action "
+                f"and later owner answer matches {answer_shape['shape_kind']}"
+            ),
+        },
+    }
+
+
+def _paper_facing_delta(
+    *,
+    package: Mapping[str, Any],
+    successor: Mapping[str, Any],
+) -> dict[str, Any]:
+    can_submit = package.get("can_submit") is True
+    action = _text(successor.get("next_action")) or ""
+    if can_submit:
+        delta_kind = "submission_authority_owner_verdict"
+    elif "human" in action:
+        delta_kind = "human_gate_decision"
+    else:
+        delta_kind = "degraded_or_quality_repair_handoff"
+    return {
+        "delta_kind": delta_kind,
+        "paper_surface": "manuscript/current_package",
+        "package_kind": _text(package.get("package_kind")),
+        "can_submit": can_submit,
+        "expected_delta": _text(successor.get("successor_reason"))
+        or "typed blocker resolution owner delta",
+        "known_blockers": _text_list(package.get("known_blockers")),
+    }
+
+
+def _accepted_answer_shape(action_type: str) -> dict[str, Any]:
+    if action_type == "consume_submission_ready_package_authority_or_human_gate":
+        return {
+            "shape_kind": "owner_receipt_or_human_gate",
+            "accepted_statuses": ["owner_receipt", "human_gate", "route_back"],
+            "required_refs": [
+                "study_owner_gate_decision_ref",
+                "current_package_ref",
+                "typed_blocker_resolution_packet_ref",
+            ],
+        }
+    if action_type == "materialize_submission_ready_owner_verdict_or_human_gate":
+        return {
+            "shape_kind": "submission_authority_owner_gate_decision",
+            "accepted_statuses": ["owner_receipt", "human_gate", "route_back"],
+            "required_refs": [
+                "study_owner_gate_decision_ref",
+                "current_package_ref",
+                "typed_blocker_resolution_packet_ref",
+            ],
+        }
+    if action_type == "await_human_or_mas_authority_decision_for_submission_blocker":
+        return {
+            "shape_kind": "human_gate_or_degraded_handoff",
+            "accepted_statuses": ["human_gate", "route_back", "typed_blocker"],
+            "required_refs": [
+                "human_gate_question_ref",
+                "known_blockers",
+                "resume_condition",
+            ],
+        }
+    return {
+        "shape_kind": "quality_repair_or_degraded_handoff",
+        "accepted_statuses": ["route_back", "typed_blocker", "owner_receipt"],
+        "required_refs": [
+            "known_blockers",
+            "repair_plan_ref",
+            "typed_blocker_resolution_packet_ref",
+        ],
     }
 
 

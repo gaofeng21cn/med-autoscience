@@ -227,6 +227,16 @@ def compile_next_action_envelope(
         "completion_authority": "stage_outcome_only",
         "runtime_receipt_authority": "opl_transition_receipt_only",
     }
+    for field in (
+        "paper_facing_delta",
+        "accepted_answer_shape",
+        "route_back",
+        "verification",
+        "executable_owner_route",
+    ):
+        value = owner.get(field)
+        if value not in (None, {}, []):
+            envelope[field] = value
     return _compact(envelope)
 
 

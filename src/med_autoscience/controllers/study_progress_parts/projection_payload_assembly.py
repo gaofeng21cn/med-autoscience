@@ -513,6 +513,11 @@ def _typed_blocker_resolution_successor_envelope(
             "next_action": action_type,
             "decision_signature": action.get("work_unit_fingerprint"),
             "required_input_refs": action.get("acceptance_refs"),
+            "paper_facing_delta": action.get("paper_facing_delta"),
+            "accepted_answer_shape": action.get("accepted_answer_shape"),
+            "route_back": action.get("route_back"),
+            "verification": action.get("verification"),
+            "executable_owner_route": action.get("executable_owner_route"),
         },
         study_id=_non_empty_text(action.get("study_id")) or study_id,
         stage_id=_non_empty_text(stage_closure.get("stage_id"))
@@ -524,6 +529,11 @@ def _typed_blocker_resolution_successor_envelope(
             "action_type": action_type,
             "action_family": "paper.package.submission_minimal",
             "idempotency_key": action.get("work_unit_fingerprint"),
+            "paper_facing_delta": action.get("paper_facing_delta"),
+            "accepted_answer_shape": action.get("accepted_answer_shape"),
+            "route_back": action.get("route_back"),
+            "verification": action.get("verification"),
+            "executable_owner_route": action.get("executable_owner_route"),
         },
         authority_boundary={
             "projection_only": True,

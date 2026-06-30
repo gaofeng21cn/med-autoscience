@@ -37,6 +37,28 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
                 ),
                 "work_unit_id": "submission_authority_owner_verdict",
                 "work_unit_fingerprint": "sha256:resolution",
+                "paper_facing_delta": {
+                    "delta_kind": "submission_authority_owner_verdict",
+                    "paper_surface": "manuscript/current_package",
+                },
+                "accepted_answer_shape": {
+                    "shape_kind": "owner_receipt_or_human_gate",
+                    "accepted_statuses": ["owner_receipt", "human_gate", "route_back"],
+                },
+                "route_back": {
+                    "route_back_to": "paper-mission inspect",
+                    "expected_readback_fields": [
+                        "next_action",
+                        "current_executable_owner_action",
+                    ],
+                },
+                "verification": {
+                    "owner_readback_command": (
+                        "paper-mission inspect --request-opl-runtime-readback "
+                        "--study-id 003-dpcc-primary-care-phenotype-treatment-gap "
+                        "--format json"
+                    ),
+                },
                 "diagnostic_refs": [
                     {
                         "role": "typed_blocker_resolution",
@@ -56,6 +78,14 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
         "consume_submission_ready_package_authority_or_human_gate"
     ]
     assert action["work_unit_id"] == "submission_authority_owner_verdict"
+    assert action["paper_facing_delta"]["delta_kind"] == (
+        "submission_authority_owner_verdict"
+    )
+    assert action["accepted_answer_shape"]["shape_kind"] == (
+        "owner_receipt_or_human_gate"
+    )
+    assert action["route_back"]["route_back_to"] == "paper-mission inspect"
+    assert action["verification"]["owner_readback_command"].endswith("--format json")
     assert action["authority_boundary"]["can_write_owner_receipt"] is False
     assert action["authority_boundary"]["can_write_typed_blocker"] is False
     assert action["authority_boundary"]["can_write_human_gate"] is False
