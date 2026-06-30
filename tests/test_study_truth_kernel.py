@@ -95,6 +95,46 @@ def test_task_intake_reactivation_dominates_stopped_finalize_projection(tmp_path
     assert any(item["invalidated_surface"] == "runtime_native_event" for item in snapshot["projection_invalidations"])
 
 
+def test_submission_authority_closeout_dominates_older_explicit_resume(
+    tmp_path: Path,
+) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    module.append_truth_event(
+        study_root=study_root,
+        study_id="003-dpcc",
+        event_type="explicit_resume",
+        payload={
+            "current_required_action": "resume_same_study_line",
+            "summary": "older user resume request",
+        },
+        recorded_at="2026-06-13T00:48:43+00:00",
+    )
+    closeout = module.append_truth_event(
+        study_root=study_root,
+        study_id="003-dpcc",
+        event_type="submission_authority_closeout",
+        payload={
+            "intervention_intent": "submission_authority_closeout",
+            "owner_gate_kind": "submission_authority_gate_closeout",
+            "decision": "accept_submission_ready_authority_closeout",
+            "submission_authority_closeout": {
+                "status": "submission_ready_authority_closeout_recorded",
+                "authority_materialized": True,
+                "terminal_gate_materialized": True,
+                "submission_ready_claim_authorized": True,
+            },
+        },
+        recorded_at="2026-06-30T04:24:06+00:00",
+    )
+
+    snapshot = module.rebuild_truth_snapshot(study_root=study_root, study_id="003-dpcc")
+
+    assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
+    assert snapshot["dominant_authority_refs"][0]["event_id"] == closeout["event_id"]
+    assert snapshot["dominant_authority_refs"][0]["event_type"] == "submission_authority_closeout"
+
+
 def test_supervisor_only_and_downstream_bundle_block_define_allowed_actions(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dpcc"
