@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import control_identity
-from med_autoscience.controllers import current_work_unit as current_work_unit_reducer
 from med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor import (
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
 )
@@ -20,6 +19,9 @@ from .successor_owner_resolution_helpers import (
     _strip_ref_fragment,
     _text,
     _text_items,
+)
+from .typed_blocker_supersession import (
+    current_action_supersedes_typed_blocker as _current_action_supersedes_typed_blocker,
 )
 
 
@@ -44,7 +46,7 @@ def successor_owner_action_from_terminal_blocker(
         if successor is not None:
             return successor
     action = current_executable_owner_action(progress)
-    if action and current_work_unit_reducer.action_supersedes_typed_blocker(
+    if action and _current_action_supersedes_typed_blocker(
         action=action,
         blocker=typed_blocker,
         progress=progress,
