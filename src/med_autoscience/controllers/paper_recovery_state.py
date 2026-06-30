@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from typing import Any
 
@@ -26,7 +25,6 @@ from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_
 from med_autoscience.controllers.opl_transition_readback import (
     has_opl_transition_readback as _has_opl_transition_readback,
     opl_transition_readback_source_claimability as _opl_transition_readback_source_claimability,
-    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.owner_gate_decision import (
     accepted_owner_gate_decision as _accepted_owner_gate_decision,
@@ -38,6 +36,20 @@ from med_autoscience.controllers.paper_recovery_state_parts.provider_admission_s
     admission_blocked_condition as _admission_blocked_condition,
     provider_admission_pending as _provider_admission_pending,
     transition_request_pending as _transition_request_pending,
+)
+from med_autoscience.controllers.paper_recovery_state_parts.state_diagnostics import (
+    clean_conditions as _clean_conditions,
+    current_work_unit_status as _current_work_unit_status,
+    first_text as _first_text,
+    has_running_provider_attempt as _has_running_provider_attempt,
+    mapping as _mapping,
+    obligation_identity as _obligation_identity,
+    provider_admission_readback as _provider_admission_readback,
+    runtime_recovery_blocking_reason as _runtime_recovery_blocking_reason,
+    single_text_item as _single_text_item,
+    study_id as _study_id,
+    text as _text,
+    text_items as _text_items,
 )
 from med_autoscience.controllers.paper_recovery_state_parts.owner_callable_readiness import (
     current_mas_owner_callable as _current_mas_owner_callable,
@@ -1021,13 +1033,6 @@ def _obligation_work_unit_id(
     )
 
 
-def _single_text_item(value: Any) -> str | None:
-    items = _text_items(value)
-    if len(items) == 1:
-        return items[0]
-    return None
-
-
 def _obligation_fingerprint(
     progress: Mapping[str, Any],
     *,
@@ -1050,27 +1055,6 @@ def _obligation_fingerprint(
         action_basis.get("work_unit_fingerprint"),
         action_basis.get("source_fingerprint"),
         repair_precedence.get("source_fingerprint"),
-    )
-
-
-def _obligation_identity(
-    *,
-    blocker_reason: str | None,
-    fingerprint: str | None,
-    current_work_unit: Mapping[str, Any],
-    action_type: str | None,
-    work_unit_id: str | None,
-) -> str:
-    if blocker_reason is not None:
-        return blocker_reason
-    if fingerprint is not None:
-        return fingerprint
-    return _short_hash(
-        {
-            "phase": _current_work_unit_status(current_work_unit),
-            "action_type": action_type,
-            "work_unit_id": work_unit_id,
-        }
     )
 
 
@@ -1983,94 +1967,3 @@ def _next_action(
         "successor_owner_gate": dict(successor_owner_gate or {}),
     }
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
-
-
-def _clean_conditions(conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        {key: value for key, value in condition.items() if value not in (None, "", [], {})}
-        for condition in conditions
-    ]
-
-
-def _provider_admission_readback(progress: Mapping[str, Any]) -> dict[str, Any]:
-    for candidate in progress.get("provider_admission_candidates") or []:
-        if not isinstance(candidate, Mapping):
-            continue
-        readback = _provider_admission_opl_transition_readback(candidate)
-        if readback:
-            return readback
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    return _provider_admission_opl_transition_readback(current_work_unit)
-
-
-def _current_work_unit_status(current_work_unit: Mapping[str, Any]) -> str | None:
-    return _text(current_work_unit.get("status"))
-
-
-def _runtime_recovery_blocking_reason(progress: Mapping[str, Any]) -> str | None:
-    runtime_health = _mapping(progress.get("runtime_health_snapshot"))
-    blocking_reasons = _text_items(runtime_health.get("blocking_reasons"))
-    if "runtime_recovery_retry_budget_exhausted" in blocking_reasons:
-        return "runtime_recovery_retry_budget_exhausted"
-    if _text(runtime_health.get("canonical_runtime_action")) != "external_supervisor_required":
-        return None
-    retry_budget = _int_or_none(runtime_health.get("retry_budget_remaining"))
-    if retry_budget is not None and retry_budget <= 0:
-        return "runtime_recovery_retry_budget_exhausted"
-    return None
-
-
-def _int_or_none(value: object) -> int | None:
-    try:
-        return int(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
-
-
-def _has_running_provider_attempt(
-    progress: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any],
-) -> bool:
-    if _current_work_unit_status(current_work_unit) == "running_provider_attempt":
-        return True
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    return _text(envelope.get("state_kind")) == "running_provider_attempt"
-
-
-def _study_id(progress: Mapping[str, Any]) -> str | None:
-    return _text(progress.get("study_id")) or _text(_mapping(progress.get("current_work_unit")).get("study_id"))
-
-
-def _short_hash(payload: Mapping[str, Any]) -> str:
-    digest = hashlib.sha256(repr(sorted(payload.items())).encode("utf-8")).hexdigest()
-    return f"sha256:{digest[:16]}"
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _text(value: object) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        value = str(value)
-    text = value.strip()
-    return text or None
-
-
-def _first_text(*values: object) -> str | None:
-    for value in values:
-        if text := _text(value):
-            return text
-    return None
-
-
-def _text_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    return [text for item in value if (text := _text(item)) is not None]
