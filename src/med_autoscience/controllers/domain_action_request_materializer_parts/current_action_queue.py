@@ -41,9 +41,9 @@ def current_study_actions(
                 ignored_action(action, "superseded_by_current_study_empty_action_queue")
                 for action in study_actions
             ]
-        if current_execution_is_authoritative(study):
+        if current_execution_blocks_legacy_queue_only(study):
             return [], [
-                ignored_action(action, "superseded_by_current_execution_envelope")
+                ignored_action(action, "legacy_queue_blocked_by_current_execution_envelope")
                 for action in study_actions
             ]
         stale_route_actions = [
@@ -114,7 +114,7 @@ def study_queue_actions(
                 )
             )
         return actions, "per_study" if actions else "per_study_empty"
-    if current_execution_is_authoritative(study):
+    if current_execution_blocks_legacy_queue_only(study):
         return [], "current_execution_envelope"
     for action in top_level_study_actions:
         payload = dict(action)
@@ -213,7 +213,7 @@ def queue_action_disallowed_by_current_study_route(
     )
 
 
-def current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
+def current_execution_blocks_legacy_queue_only(study: Mapping[str, Any]) -> bool:
     envelope = _mapping(study.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     return state_kind in {
@@ -309,7 +309,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "attach_owner_route_if_missing",
-    "current_execution_is_authoritative",
+    "current_execution_blocks_legacy_queue_only",
     "current_owner_route_queue_actions",
     "current_study_actions",
     "ignored_action",

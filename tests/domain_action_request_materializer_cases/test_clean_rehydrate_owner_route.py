@@ -629,7 +629,7 @@ def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_e
     assert result["domain_progress_transition_request_count"] == 0
     assert _legacy_request_task_refs(result) == []
     assert ignored[0]["action_type"] == "methodology_reframe_route_decision"
-    assert ignored[0]["reason"] == "superseded_by_current_execution_envelope"
+    assert ignored[0]["reason"] == "legacy_queue_blocked_by_current_execution_envelope"
     assert not (
         study_root
         / "artifacts"

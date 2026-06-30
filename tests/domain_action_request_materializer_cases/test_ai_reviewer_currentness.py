@@ -603,7 +603,7 @@ def test_materialize_domain_action_requests_retires_current_work_unit_over_stale
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
     } == {
-        "run_quality_repair_batch": "superseded_by_current_execution_envelope"
+        "run_quality_repair_batch": "legacy_queue_blocked_by_current_execution_envelope"
     }
 
 

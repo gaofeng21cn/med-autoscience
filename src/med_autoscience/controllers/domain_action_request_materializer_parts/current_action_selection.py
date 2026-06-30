@@ -759,7 +759,7 @@ def _scan_currentness_preempts_fresh_progress(
     transition = _mapping(study.get("domain_transition"))
     if _text(transition.get("decision_type")) is not None:
         return True
-    return current_action_queue.current_execution_is_authoritative(study)
+    return current_action_queue.current_execution_blocks_legacy_queue_only(study)
 
 
 def _fresh_repair_progress_action_matches_action_currentness(

@@ -1142,7 +1142,7 @@ def _explicit_transition_request_blocker_dispatches(
         if key in seen:
             continue
         seen.add(key)
-        dispatches.append(payload)
+        dispatches.append(_as_transition_request_blocker_projection(payload))
     return dispatches
 
 
@@ -1164,6 +1164,29 @@ def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[
     payload.setdefault("mas_creates_opl_stage_run", False)
     payload.setdefault("mas_dispatch_authority", False)
     payload.setdefault("dispatch_ready_for_execution_authority", False)
+    return payload
+
+
+def _as_transition_request_blocker_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(dispatch)
+    payload["dispatch_role"] = "transition_request_blocker_projection"
+    payload["blocker_dispatch_only"] = True
+    payload["default_next_action_authority"] = False
+    payload["mas_dispatch_authority"] = False
+    payload["dispatch_ready_for_execution_authority"] = False
+    payload["dispatch_ready_for_execution"] = False
+    payload["can_select_next_action"] = False
+    payload["can_start_provider_attempt"] = False
+    payload["authority_boundary"] = {
+        **_mapping(payload.get("authority_boundary")),
+        "dispatch_role": "transition_request_blocker_projection",
+        "blocker_dispatch_only": True,
+        "default_next_action_authority": False,
+        "mas_dispatch_authority": False,
+        "dispatch_ready_for_execution_authority": False,
+        "can_select_next_action": False,
+        "can_start_provider_attempt": False,
+    }
     return payload
 
 

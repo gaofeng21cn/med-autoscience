@@ -304,6 +304,64 @@ def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authori
     ) == []
 
 
+def test_transition_request_pending_projection_is_blocker_only_dispatch(tmp_path) -> None:
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, STUDY_ID, quest_id=f"quest-{STUDY_ID}")
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapters"
+        / f"{ACTION_TYPE}.json"
+    )
+    consumer_payload = {
+        "domain_progress_transition_requests": [
+            {
+                "surface": "mas_domain_progress_transition_request_projection",
+                "projection_only": True,
+                "owner_callable_carrier_projection_only": True,
+                "study_id": STUDY_ID,
+                "action_type": ACTION_TYPE,
+                "dispatch_status": "transition_request_pending",
+                "refs": {"dispatch_path": str(dispatch_path)},
+            }
+        ]
+    }
+
+    selected = persisted_dispatches.selected_dispatches(
+        profile=profile,
+        study_id=STUDY_ID,
+        action_types=(ACTION_TYPE,),
+        consumer_payload=consumer_payload,
+        consumer_latest_path=profile.workspace_root / "missing-consumer-latest.json",
+        scan_payload={"studies": []},
+        supported_action_types=frozenset({ACTION_TYPE}),
+        dispatch_relative_root=dispatch_path.parent.relative_to(study_root),
+        fresh_progress={},
+    )
+
+    assert len(selected) == 1
+    projection = selected[0]
+    assert projection["dispatch_role"] == "transition_request_blocker_projection"
+    assert projection["blocker_dispatch_only"] is True
+    assert projection["default_next_action_authority"] is False
+    assert projection["mas_dispatch_authority"] is False
+    assert projection["dispatch_ready_for_execution_authority"] is False
+    assert projection["dispatch_ready_for_execution"] is False
+    assert projection["can_select_next_action"] is False
+    assert projection["can_start_provider_attempt"] is False
+    assert projection["authority_boundary"] == {
+        "dispatch_role": "transition_request_blocker_projection",
+        "blocker_dispatch_only": True,
+        "default_next_action_authority": False,
+        "mas_dispatch_authority": False,
+        "dispatch_ready_for_execution_authority": False,
+        "can_select_next_action": False,
+        "can_start_provider_attempt": False,
+    }
+
+
 def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority() -> None:
     route = _owner_route()
     dispatch = _stage_native_dispatch(
