@@ -9,6 +9,7 @@ import pytest
 from .shared import write_profile
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.consume_submission_package import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_cases.consume_candidate_package_binding import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.output_guards import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.one_shot_migration import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_command_cases.package_candidate import *  # noqa: F401,F403

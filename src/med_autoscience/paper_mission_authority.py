@@ -540,6 +540,8 @@ def _continuation_transaction_for_submission_package(
         "missing_opl_runtime_readback",
         "domain_gate",
         "route_back_without_blocker",
+        "typed_blocker",
+        "typed_blocker_owner_resolution",
     }:
         return {}
     study_id = _first_text(candidate_payload.get("study_id"), package.get("study_id"))
@@ -593,6 +595,23 @@ def _continuation_transaction_for_submission_package(
                 "continue paper-facing route-back repair work",
             )
             or "continue paper-facing route-back repair work"
+        )
+    if blocker_kind in {"typed_blocker", "typed_blocker_owner_resolution"}:
+        reason = (
+            "MAS mission executor consumed typed-blocker owner-resolution context "
+            "as a fresh paper-facing candidate; typed blocker authority remains "
+            "unwritten until the owner answer is materialized."
+        )
+        next_work_unit = (
+            _first_text(
+                current_decision.get("target_stage_id"),
+                current_decision.get("route_target"),
+                current_decision.get("next_work_unit"),
+                current_decision.get("work_unit_id"),
+                current_decision.get("repair_scope"),
+                "continue paper-facing typed-blocker owner-resolution work",
+            )
+            or "continue paper-facing typed-blocker owner-resolution work"
         )
     terminal_decision = {
         "decision_kind": "continue_same_stage",
