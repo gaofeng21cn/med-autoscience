@@ -15,6 +15,23 @@ def handle_study_owner_gate_command(
     if args.command != "study-owner-gate-decision":
         return None
     profile = load_profile(args.profile)
+    if getattr(args, "sync_truth_from_existing", False):
+        result = study_interventions.materialize_truth_from_intervention_events(
+            study_root=profile.studies_root / args.study_id,
+            study_id=args.study_id,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    for field in (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "blocker_type",
+        "decision",
+        "reason",
+    ):
+        if not str(getattr(args, field, "") or "").strip():
+            raise SystemExit(f"study-owner-gate-decision requires --{field.replace('_', '-')} unless --sync-truth-from-existing is used")
     result = study_interventions.owner_gate_decision_record(
         study_root=profile.studies_root / args.study_id,
         study_id=args.study_id,

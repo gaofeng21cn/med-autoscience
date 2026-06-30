@@ -169,10 +169,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_parser = subparsers.add_parser("study-owner-gate-decision")
     study_owner_gate_decision_parser.add_argument("--profile", required=True)
     study_owner_gate_decision_parser.add_argument("--study-id", required=True)
-    study_owner_gate_decision_parser.add_argument("--action-type", required=True)
-    study_owner_gate_decision_parser.add_argument("--work-unit-id", required=True)
-    study_owner_gate_decision_parser.add_argument("--work-unit-fingerprint", required=True)
-    study_owner_gate_decision_parser.add_argument("--blocker-type", required=True)
+    study_owner_gate_decision_parser.add_argument("--action-type")
+    study_owner_gate_decision_parser.add_argument("--work-unit-id")
+    study_owner_gate_decision_parser.add_argument("--work-unit-fingerprint")
+    study_owner_gate_decision_parser.add_argument("--blocker-type")
     study_owner_gate_decision_parser.add_argument(
         "--decision",
         choices=(
@@ -186,9 +186,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
             "accept_submission_ready_authority_closeout",
             "request_submission_blocker_human_gate",
         ),
-        required=True,
     )
-    study_owner_gate_decision_parser.add_argument("--reason", required=True)
+    study_owner_gate_decision_parser.add_argument("--reason")
     study_owner_gate_decision_parser.add_argument("--recorded-at")
     study_owner_gate_decision_parser.add_argument("--actor", default="operator")
     study_owner_gate_decision_parser.add_argument("--source", default="codex")
@@ -203,6 +202,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_owner_gate_decision_apply = study_owner_gate_decision_parser.add_mutually_exclusive_group(required=True)
     study_owner_gate_decision_apply.add_argument("--dry-run", action="store_true")
     study_owner_gate_decision_apply.add_argument("--apply", action="store_true")
+    study_owner_gate_decision_apply.add_argument("--sync-truth-from-existing", action="store_true")
 
     stage_artifact_materialize_parser = subparsers.add_parser("stage-artifact-materialize")
     stage_artifact_materialize_parser.add_argument("--profile", required=True)

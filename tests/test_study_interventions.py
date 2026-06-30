@@ -309,6 +309,16 @@ def test_submission_ready_authority_closeout_decision_records_non_authority_gate
     assert payload["submission_authority_closeout"]["writes_current_package"] is False
     assert payload["provider_redrive_allowed"] is False
     assert result["accepted_answer_shape"] == {"human_gate_ref": result["human_gate_ref"]}
+    assert result["truth_event"]["event_type"] == "human_gate"
+    assert result["truth_event"]["payload"]["owner_gate_kind"] == "submission_authority_gate"
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert snapshot["blocking_reasons"] == [
+        "submission_authority_or_human_gate_closeout_required"
+    ]
+    assert snapshot["dominant_authority_refs"][0]["event_id"] == result["truth_event"]["event_id"]
 
 
 def test_submission_blocker_human_gate_decision_records_current_owner_identity(
@@ -345,3 +355,78 @@ def test_submission_blocker_human_gate_decision_records_current_owner_identity(
     assert payload["submission_authority_closeout"]["writes_human_gate_authority"] is False
     assert payload["provider_admission_allowed"] is False
     assert payload["do_not_redrive_same_work_unit"] is True
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert snapshot["blocking_reasons"] == [
+        "submission_authority_or_human_gate_closeout_required"
+    ]
+
+
+def test_existing_owner_gate_decision_can_be_synced_to_truth_without_reapplying(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="await_human_or_mas_authority_decision_for_submission_blocker",
+        work_unit_id="submission_blocker_human_gate",
+        work_unit_fingerprint="533358e43f6bb6d7378e114d",
+        blocker_type="submission_blocker_human_gate_required",
+        decision="request_submission_blocker_human_gate",
+        reason="current package is not submittable and needs explicit owner or human gate",
+        recorded_at="2026-06-30T00:01:00+00:00",
+        apply=True,
+    )
+    truth_log = study_root / "artifacts" / "truth" / "events.jsonl"
+    truth_log.unlink()
+
+    result = module.materialize_truth_from_intervention_events(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+    second = module.materialize_truth_from_intervention_events(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert len(module.read_intervention_events(study_root=study_root)) == 1
+    assert result["appended_event_count"] == 1
+    assert second["appended_event_count"] == 0
+    assert result["authority_materialized"] is False
+    assert result["writes_human_gate_authority"] is False
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+
+
+def test_owner_gate_truth_sync_ignores_other_intervention_intents(tmp_path: Path) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+
+    module.append_intervention_event(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        intent="new_plan",
+        payload={
+            "summary": "operator supplied an unrelated plan",
+            "current_required_action": "resume_same_study_line",
+        },
+        recorded_at="2026-06-30T00:00:00+00:00",
+    )
+
+    result = module.materialize_truth_from_intervention_events(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert result["appended_event_count"] == 0
+    assert snapshot["canonical_next_action"] == "observe"
