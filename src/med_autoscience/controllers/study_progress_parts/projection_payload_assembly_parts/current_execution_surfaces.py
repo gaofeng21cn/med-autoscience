@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.controllers import current_execution_envelope
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
@@ -17,6 +17,10 @@ from .current_execution_alignment import (
     current_action_aligned_with_execution_envelope,
     text_list,
     typed_blocker_reason,
+)
+from .current_execution_surfaces_active_projection import (
+    build_active_current_execution_envelope,
+    build_active_current_work_unit,
 )
 
 from ..current_owner_action_projection_reconcile import (
@@ -54,10 +58,9 @@ def refresh_current_execution_surfaces(
         handoff=handoff,
     ):
         updated["current_executable_owner_action"] = None
-        updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+        updated["current_work_unit"] = build_active_current_work_unit(
             status=status,
             progress=updated,
-            actions=[],
             current_executable_owner_action=None,
             provider_admission=handoff,
             live_provider_attempt=handoff,
@@ -65,17 +68,17 @@ def refresh_current_execution_surfaces(
             blocked_reason=None,
             next_owner=_non_empty_text(handoff.get("next_owner")),
             runtime_health=runtime_health_snapshot,
+            running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
         )
-        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-            status=status,
+        updated["current_execution_envelope"] = build_active_current_execution_envelope(
             progress=updated,
             actions=[],
             blocked_reason=None,
             next_owner=_non_empty_text(handoff.get("next_owner")),
             typed_blocker={},
             runtime_health=runtime_health_snapshot,
-            live_provider_attempt=handoff,
             current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+            running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
         )
         updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
             action_queue=[],
@@ -85,18 +88,6 @@ def refresh_current_execution_surfaces(
             },
         )
         return updated
-    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
-        handoff,
-        payload=updated,
-    )
-    if terminal_typed_blocker:
-        return _with_terminal_typed_blocker_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-            typed_blocker=terminal_typed_blocker,
-        )
     handoff_executable_action = current_control_executable_owner_action(handoff)
     provider_admission_action = (
         current_control_provider_admission_action(handoff) if active_provider_control(handoff) else None
@@ -133,6 +124,32 @@ def refresh_current_execution_surfaces(
         )
     ):
         handoff_executable_action = payload_executable_action
+    terminal_typed_blocker = _consumed_terminal_typed_blocker_for_execution_refresh(
+        handoff,
+        payload=updated,
+    )
+    if (
+        terminal_typed_blocker
+        and payload_executable_action
+        and current_control_typed_blocker_successor_action(
+            payload_executable_action,
+            typed_blocker=terminal_typed_blocker,
+            progress=updated,
+        )
+    ):
+        handoff_executable_action = payload_executable_action
+    if terminal_typed_blocker and not current_control_typed_blocker_successor_action(
+        handoff_executable_action,
+        typed_blocker=terminal_typed_blocker,
+        progress=payload,
+    ):
+        return _with_terminal_typed_blocker_execution_surfaces(
+            payload=updated,
+            status=status,
+            handoff=handoff,
+            runtime_health_snapshot=runtime_health_snapshot,
+            typed_blocker=terminal_typed_blocker,
+        )
     if handoff_executable_action:
         updated["current_executable_owner_action"] = handoff_executable_action
         handoff = current_control_executable_currentness_handoff(
@@ -144,10 +161,9 @@ def refresh_current_execution_surfaces(
             current_action=handoff_executable_action,
         )
         if handoff_executable_action.get("transition_request_pending") is True:
-            current_work = current_work_unit.build_current_work_unit(
+            current_work = build_active_current_work_unit(
                 status=status,
                 progress=updated,
-                actions=[handoff_executable_action],
                 current_executable_owner_action=handoff_executable_action,
                 provider_admission=handoff,
                 live_provider_attempt=handoff,
@@ -155,19 +171,19 @@ def refresh_current_execution_surfaces(
                 blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
                 next_owner=_non_empty_text(handoff.get("next_owner")),
                 runtime_health=runtime_health_snapshot,
+                running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
             )
             if _non_empty_text(current_work.get("status")) == "executable_owner_action":
                 updated["current_work_unit"] = current_work
-                updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-                    status=status,
+                updated["current_execution_envelope"] = build_active_current_execution_envelope(
                     progress=updated,
                     actions=[handoff_executable_action],
                     blocked_reason=None,
                     next_owner=_non_empty_text(handoff_executable_action.get("next_owner")),
                     typed_blocker={},
                     runtime_health=runtime_health_snapshot,
-                    live_provider_attempt=handoff,
                     current_work_unit_payload=current_work,
+                    running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
                 )
                 updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
                     action_queue=_execution_evidence_actions_for_payload(payload=updated, handoff=handoff),
@@ -203,7 +219,6 @@ def refresh_current_execution_surfaces(
         return updated
     handoff_work_unit = _canonical_current_control_typed_blocker_work_unit(handoff)
     if handoff_work_unit:
-        updated["current_work_unit"] = {}
         updated["current_execution_envelope"] = {}
         successor_action = build_current_executable_owner_action(updated)
         if current_control_typed_blocker_successor_action(
@@ -215,10 +230,9 @@ def refresh_current_execution_surfaces(
             actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
             evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
             next_owner = _non_empty_text(_mapping_copy(successor_action).get("next_owner"))
-            updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+            updated["current_work_unit"] = build_active_current_work_unit(
                 status=status,
                 progress=updated,
-                actions=actions,
                 current_executable_owner_action=successor_action,
                 provider_admission=handoff,
                 live_provider_attempt=handoff,
@@ -226,17 +240,17 @@ def refresh_current_execution_surfaces(
                 blocked_reason=None,
                 next_owner=next_owner,
                 runtime_health=runtime_health_snapshot,
+                running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
             )
-            updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-                status=status,
+            updated["current_execution_envelope"] = build_active_current_execution_envelope(
                 progress=updated,
                 actions=actions,
                 blocked_reason=None,
                 next_owner=next_owner,
                 typed_blocker={},
                 runtime_health=runtime_health_snapshot,
-                live_provider_attempt=handoff,
                 current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+                running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
             )
             updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
                 action_queue=evidence_actions,
@@ -250,20 +264,20 @@ def refresh_current_execution_surfaces(
             updated["current_executable_owner_action"] = None
     if handoff_work_unit:
         updated["current_executable_owner_action"] = None
+        updated["current_work_unit"] = handoff_work_unit
         handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
         if handoff_envelope:
             updated["current_execution_envelope"] = handoff_envelope
         else:
-            updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-                status=status,
+            updated["current_execution_envelope"] = build_active_current_execution_envelope(
                 progress=updated,
                 actions=[],
                 blocked_reason=_non_empty_text(handoff_work_unit.get("blocker_type")),
                 next_owner=_non_empty_text(handoff_work_unit.get("owner")),
                 typed_blocker=_canonical_typed_blocker_for_execution_refresh(handoff),
                 runtime_health=runtime_health_snapshot,
-                live_provider_attempt=handoff,
                 current_work_unit_payload=handoff_work_unit,
+                running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
             )
         updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
             action_queue=[],
@@ -276,16 +290,15 @@ def refresh_current_execution_surfaces(
     retained_terminal_blocker = _retained_current_terminal_typed_blocker(updated)
     if retained_terminal_blocker:
         updated["current_executable_owner_action"] = None
-        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-            status=status,
+        updated["current_execution_envelope"] = build_active_current_execution_envelope(
             progress=updated,
             actions=[],
             blocked_reason=typed_blocker_reason(retained_terminal_blocker),
             next_owner=_non_empty_text(retained_terminal_blocker.get("owner")),
             typed_blocker=retained_terminal_blocker,
             runtime_health=runtime_health_snapshot,
-            live_provider_attempt=handoff,
             current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+            running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
         )
         updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
             action_queue=[],
@@ -299,10 +312,13 @@ def refresh_current_execution_surfaces(
     evidence_actions = _execution_evidence_actions_for_payload(payload=updated, handoff=handoff)
     current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
     typed_blocker = _canonical_typed_blocker_for_execution_refresh(handoff)
-    if current_action and current_work_unit.action_supersedes_typed_blocker(
-        action=current_action,
-        blocker=typed_blocker,
-        progress=updated,
+    if current_action and (
+        not typed_blocker
+        or _current_action_aligned_or_successor(
+            action=current_action,
+            typed_blocker=typed_blocker,
+            progress=updated,
+        )
     ):
         typed_blocker = {}
         blocked_reason = None
@@ -311,10 +327,9 @@ def refresh_current_execution_surfaces(
             handoff.get("blocked_reason")
         )
     next_owner = _non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner"))
-    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+    updated["current_work_unit"] = build_active_current_work_unit(
         status=status,
         progress=updated,
-        actions=actions,
         current_executable_owner_action=current_action,
         provider_admission=handoff,
         live_provider_attempt=handoff,
@@ -322,17 +337,17 @@ def refresh_current_execution_surfaces(
         blocked_reason=blocked_reason,
         next_owner=next_owner,
         runtime_health=runtime_health_snapshot,
+        running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
     )
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
+    updated["current_execution_envelope"] = build_active_current_execution_envelope(
         progress=updated,
         actions=actions,
         blocked_reason=blocked_reason,
         next_owner=next_owner,
         typed_blocker=typed_blocker,
         runtime_health=runtime_health_snapshot,
-        live_provider_attempt=handoff,
         current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+        running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
     )
     aligned_action = current_action_aligned_with_execution_envelope(
         action=current_action,
@@ -342,10 +357,9 @@ def refresh_current_execution_surfaces(
         updated["current_executable_owner_action"] = aligned_action
         actions = _canonical_actions_for_execution_refresh(payload=updated, handoff=handoff)
         current_action = _current_action_for_execution_refresh(payload=updated, handoff=handoff)
-        updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+        updated["current_work_unit"] = build_active_current_work_unit(
             status=status,
             progress=updated,
-            actions=actions,
             current_executable_owner_action=current_action,
             provider_admission=handoff,
             live_provider_attempt=handoff,
@@ -353,17 +367,17 @@ def refresh_current_execution_surfaces(
             blocked_reason=blocked_reason,
             next_owner=next_owner,
             runtime_health=runtime_health_snapshot,
+            running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
         )
-        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-            status=status,
+        updated["current_execution_envelope"] = build_active_current_execution_envelope(
             progress=updated,
             actions=actions,
             blocked_reason=blocked_reason,
             next_owner=next_owner,
             typed_blocker=typed_blocker,
             runtime_health=runtime_health_snapshot,
-            live_provider_attempt=handoff,
             current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+            running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
         )
     updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
         action_queue=evidence_actions,
@@ -399,10 +413,9 @@ def _with_terminal_typed_blocker_execution_surfaces(
     updated = dict(payload)
     updated["current_executable_owner_action"] = None
     progress_for_blocker = _without_owner_receipt_recovery_projection(updated)
-    current_work = current_work_unit.build_current_work_unit(
+    current_work = build_active_current_work_unit(
         status=status,
         progress=progress_for_blocker,
-        actions=[],
         current_executable_owner_action=None,
         provider_admission=handoff,
         live_provider_attempt=handoff,
@@ -410,22 +423,22 @@ def _with_terminal_typed_blocker_execution_surfaces(
         blocked_reason=typed_blocker_reason(typed_blocker),
         next_owner=_non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner")),
         runtime_health=runtime_health_snapshot,
+        running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
     )
     current_work = _with_current_work_unit_state_source(
         current_work,
         source="terminal_closeout_typed_blocker",
     )
     updated["current_work_unit"] = current_work
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
+    updated["current_execution_envelope"] = build_active_current_execution_envelope(
         progress={**progress_for_blocker, "current_work_unit": current_work},
         actions=[],
         blocked_reason=typed_blocker_reason(typed_blocker),
         next_owner=_non_empty_text(typed_blocker.get("owner")) or _non_empty_text(handoff.get("next_owner")),
         typed_blocker=typed_blocker,
         runtime_health=runtime_health_snapshot,
-        live_provider_attempt=handoff,
         current_work_unit_payload=current_work,
+        running_provider_attempt_bound=_handoff_has_bound_running_provider_attempt(handoff),
     )
     updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
         action_queue=[],
@@ -741,16 +754,35 @@ def _current_action_for_execution_refresh(
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_execution_handoff_consumes_current_action(handoff):
         return current_action
-    if current_action_aligned_with_execution_envelope(
+    if _current_action_aligned_or_successor(
         action=current_action,
-        envelope={
-            "state_kind": "typed_blocker",
-            "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
-            "progress_payload": payload,
-        },
+        typed_blocker=_canonical_typed_blocker_for_execution_refresh(handoff),
+        progress=payload,
     ):
         return current_action
     return {}
+
+
+def _current_action_aligned_or_successor(
+    *,
+    action: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "typed_blocker": typed_blocker,
+            "progress_payload": progress,
+        },
+    ):
+        return True
+    return current_control_typed_blocker_successor_action(
+        action,
+        typed_blocker=typed_blocker,
+        progress=progress,
+    )
 
 
 def _handoff_has_bound_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
@@ -920,13 +952,10 @@ def _handoff_consumes_current_action_for_refresh(
     current_action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not current_action:
         return True
-    return not current_action_aligned_with_execution_envelope(
+    return not _current_action_aligned_or_successor(
         action=current_action,
-        envelope={
-            "state_kind": "typed_blocker",
-            "typed_blocker": _canonical_typed_blocker_for_execution_refresh(handoff),
-            "progress_payload": payload,
-        },
+        typed_blocker=_canonical_typed_blocker_for_execution_refresh(handoff),
+        progress=payload,
     )
 
 
