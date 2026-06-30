@@ -18,10 +18,11 @@ command -v uv >/dev/null 2>&1
 export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
 export MAS_CLEAN_RUNNER_TMP_ROOT="${healthcheck_tmp_root}/python"
 clean_python=("${repo_root}/scripts/run-python-clean.sh")
+plugin_mcp_launcher=("${repo_root}/plugins/mas/bin/medautosci-mcp")
 
 "${clean_python[@]}" -m med_autoscience.cli --help >/dev/null
 "${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null
-mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${clean_python[@]}" -m med_autoscience.mcp_server)"
+mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${plugin_mcp_launcher[@]}")"
 authority_operation_mcp_modes_json="$("${clean_python[@]}" - <<'PY'
 import json
 from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_MCP_MODES
@@ -40,19 +41,23 @@ from pathlib import Path
 repo_root = Path.cwd()
 required_paths = [
     repo_root / "plugins" / "mas" / ".codex-plugin" / "plugin.json",
-    repo_root / "plugins" / "mas" / ".mcp.json",
+    repo_root / "plugins" / "mas" / "bin" / "medautosci-mcp",
     repo_root / "plugins" / "mas" / "skills" / "mas" / "SKILL.md",
     repo_root / "plugins" / "mas" / "skills" / "mas" / "agents" / "openai.yaml",
 ]
 missing = [str(path) for path in required_paths if not path.is_file()]
 if missing:
     raise SystemExit(f"Missing MedAutoScience OPL plugin files: {missing}")
+if not os.access(required_paths[1], os.X_OK):
+    raise SystemExit("MedAutoScience plugin-local MCP launcher must be executable.")
 
 manifest = json.loads(required_paths[0].read_text(encoding="utf-8"))
 if manifest.get("name") != "mas":
     raise SystemExit("MedAutoScience plugin manifest name must be `mas`.")
 if manifest.get("skills") != "./skills/":
     raise SystemExit("MedAutoScience plugin manifest must point to ./skills/.")
+if "mcpServers" in manifest:
+    raise SystemExit("Standard MAS domain-agent plugin manifest must not expose standalone mcpServers.")
 
 mcp_tools = {
     item["name"]: item
@@ -83,6 +88,8 @@ print(json.dumps({
         "entry_modes": "ready",
         "mcp_control_plane_modes": "ready",
         "plugin": "ready",
+        "plugin_mcp_launcher": "ready",
+        "standalone_mcp_servers": "retired",
         "skill": "ready",
     },
 }, ensure_ascii=False))
