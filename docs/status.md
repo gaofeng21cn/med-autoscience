@@ -7,16 +7,16 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 
 文档更新时间：`2026-06-30`
 
-当前状态 anchors：
+当前状态 anchors（人读入口 / read rule，不是第二机器真相）：
 
-| Theme | Current owner / provenance |
+| Theme | Current entry / read rule |
 | --- | --- |
 | Active gap / completion plan | [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) |
 | Default paper mission route | `paper-mission` / `PaperMissionRun` / `PaperMissionTransaction` / `StageTerminalDecision` / Stage Closure Terminalizer |
 | Live study truth | Fresh `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts |
 | Stage outcome / next action / quality / evidence policy | [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md)、[Next Action Control Plane](./runtime/control/next_action_control_plane.md)、[Progress-First Quality Loop](./runtime/control/progress_first_quality_loop.md)、[Progress-First Evidence Gap Policy 目标设计](./runtime/designs/progress_first_evidence_gap_policy.md)、`contracts/mas-stage-closure-terminalizer.json`、`contracts/evidence-gap-decision-policy.json`、`contracts/evidence-gap-consumption-abi.json` |
 | 当前 next-action 边界 | `StageOutcome -> NextActionEnvelope` 是唯一默认 next-action authority。旧 `current_work_unit` / `current_execution_envelope` / `current_executable_owner_action` / PaperRecovery / provider admission / OPL transport 队列 / StageAttempt 语言默认为 `superseded_diagnostic_only`，除非 fresh owner surface 通过 envelope 链路消费它。 |
-| Legacy diagnostic / migration provenance | [PaperRecovery 事故 replay 与 authority 边界](./runtime/control/paper_recovery_replay.md)、[Stage-route reconcile 目标设计](./runtime/designs/stage_route_reconcile_target.md)、[Paper Autonomy Supervisor 目标设计](./runtime/designs/paper_autonomy_supervisor_target.md)、`contracts/paper_autonomy_supervisor_contract.json`、`contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`；这些不是默认论文入口。 |
+| Superseded diagnostic / migration provenance | [PaperRecovery 事故 replay 与 authority 边界](./runtime/control/paper_recovery_replay.md)、[Stage-route reconcile 目标设计](./runtime/designs/stage_route_reconcile_target.md)、[Paper Autonomy Supervisor 目标设计](./runtime/designs/paper_autonomy_supervisor_target.md)、`contracts/paper_autonomy_supervisor_contract.json`、`contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`；这些是 tombstone / replay / no-resurrection guard，不是默认论文入口、current owner 入口或 provider admission 入口。 |
 | Executor-first rearchitecture | [MAS executor-first 重构目标与迁移计划](./active/mas_executor_first_rearchitecture_program.md) |
 | MDS parity / paper rigor capability audit | [MDS Behavior Equivalence Gap Matrix](./references/mds-parity/mds_behavior_equivalence_gap_matrix.md) |
 | Stage folder / storage / authority refs provenance | [Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md) |
@@ -32,6 +32,8 @@ Live Evidence 后置 / 功能结构优先是 MAS 日常开发读法。repo-sourc
 Status dated evidence read rule：本文保留的 2026-06-23 到 2026-06-30 live readback、queue id、stage attempt id、worklist 数字、closeout id、branch / commit ref 和 followthrough 命令，均按 historical closeout / platform repair provenance 读取。它们不能覆盖 2026-06-29 之后的 NextAction authority，也不能作为当前 DM002/DM003 owner/action、provider running、paper progress、publication-ready、submission-ready 或 `current_package` authority。需要当前 study truth 时必须 fresh 读取 `paper-mission inspect` / `study progress` / delivery inspect / OPL current-control，并从 `StageOutcome -> NextActionEnvelope` 的 authority 链路，以及可选 `OPL TransitionReceipt -> MAS owner consumption` 的 transport receipt-consumption 链路分账解释。
 
 Docs / history 旧词边界：`docs/history/**`、旧 dated closeout、旧 decisions 段落和 legacy diagnostic docs 中保留的 `current_work_unit`、`current_execution_envelope`、`current_executable_owner_action`、PaperRecovery、provider admission、OPL transport 队列、StageAttempt、domain transition 或旧入口词，默认只作 provenance / tombstone / no-resurrection guard。当前 docs 若引用这些词，必须同时标注 replacement route、diagnostic-only 语境和 forbidden claim boundary；不能把旧词清零当作 cleanup，也不能把旧词存在当作当前 next-action authority。
+
+Current-owner / next-action 读法：本文后续 dated closeout 中继续出现的 `study_progress.current_executable_owner_action`、provider admission、PaperRecovery successor、`legacy_next_action_authority` 或 current-control/current-work-unit 说法，默认只说明当时的迁移证据、诊断消费链或防复污染边界。当前 operator / executor 判断必须回到 `StageOutcome -> NextActionEnvelope`，再按 `OPL TransitionReceipt -> MAS owner consumption` 分账读取；旧 producer 不能单独成为 current owner、默认 dispatch、provider admission、paper progress、submission-ready 或 publication-ready 入口。
 
 2026-06-30 OPL family conformance golden path structural fix：MAS `stage_control_plane` 现在在唯一 ordinary default stage `direction_and_route_selection` 的 `selected_executor` 上声明 `default_executor=true`，与 `contracts/golden_path_profile.json#/ordinary_path/stage_refs` 对齐。该修复关闭的是 OPL structural conformance 的 `golden_path_single_default_violation:default_route_count=0` 与 `golden_path_profile_ordinary_path_mismatch` 阻塞；它只声明标准 agent 的唯一 ordinary default route / owner path。Temporal、StageRun、queue、attempt、runtime lifecycle 仍归 OPL；MAS 不写 Yang authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、runtime queue/provider attempt、paper body 或 `current_package` authority，也不声明 live paper progress、domain-ready、publication-ready、submission-ready 或 runtime-ready。
 
