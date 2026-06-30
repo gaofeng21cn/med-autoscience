@@ -241,31 +241,19 @@ def _profile_layer(profile: WorkspaceProfile | None) -> _TargetLayer:
                 default_citation_style=profile.default_citation_style,
             ),
         )
+    target = _normalize_target(
+        {
+            "exporter_profile": profile.default_publication_profile,
+            "primary": True,
+            "package_required": True,
+            "story_surface": "general_medical_journal",
+        },
+        source="workspace_profile_fallback",
+        default_citation_style=profile.default_citation_style,
+    )
     return _TargetLayer(
         mode="append",
-        targets=(
-            SubmissionTarget(
-                publication_profile=normalize_publication_profile(profile.default_publication_profile),
-                exporter_profile=normalize_publication_profile(profile.default_publication_profile),
-                exporter_family=exporter_family_for_publication_profile(profile.default_publication_profile),
-                journal_name=None,
-                journal_family=None,
-                citation_style=profile.default_citation_style,
-                official_guidelines_url=None,
-                template_url=None,
-                story_surface="general_medical_journal",
-                narrative_emphasis=tuple(),
-                package_required=True,
-                primary=True,
-                source="workspace_profile_fallback",
-                resolution_status="resolved_profile",
-                exporter_status="ready",
-                generic_export_allowed=True,
-                decision_kind=None,
-                decision_source=None,
-                target_key=f"profile:{normalize_publication_profile(profile.default_publication_profile)}",
-            ),
-        ),
+        targets=(target,),
     )
 
 

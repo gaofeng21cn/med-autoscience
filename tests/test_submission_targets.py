@@ -85,6 +85,41 @@ def test_resolve_submission_targets_uses_profile_default_target_when_study_and_q
     assert contract.export_publication_profiles == ("general_medical_journal",)
 
 
+def test_resolve_submission_targets_fallback_uses_exporter_default_citation_style(
+    tmp_path: Path,
+) -> None:
+    profiles = importlib.import_module("med_autoscience.profiles")
+    module = importlib.import_module("med_autoscience.submission_targets")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    profile_text = profile_path.read_text(encoding="utf-8")
+    profile_path.write_text(
+        "\n".join(
+            line
+            for line in profile_text.replace(
+                'default_citation_style = "AMA"',
+                'default_citation_style = "vancouver"',
+            ).splitlines()
+            if not line.startswith("[[default_submission_targets]]")
+            and not line.startswith("exporter_profile =")
+            and not line.startswith("primary =")
+            and not line.startswith("package_required =")
+            and not line.startswith("story_surface =")
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    contract = module.resolve_submission_target_contract(
+        profile=profiles.load_profile(profile_path),
+    )
+
+    assert contract.primary_target.publication_profile == "general_medical_journal"
+    assert contract.primary_target.citation_style == "AMA"
+    assert contract.primary_target.exporter_status == "ready"
+    assert contract.export_publication_profiles == ("general_medical_journal",)
+
+
 def test_resolve_submission_targets_rejects_retired_publication_profile_input_alias(tmp_path: Path) -> None:
     profiles = importlib.import_module("med_autoscience.profiles")
     module = importlib.import_module("med_autoscience.submission_targets")
