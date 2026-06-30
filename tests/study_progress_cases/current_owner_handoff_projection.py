@@ -868,3 +868,100 @@ def test_dm004_unmapped_next_action_projection_keeps_family_authority(tmp_path: 
     assert result["next_action"]["action_family"] == "runtime.opl_route"
     assert result["next_action"]["work_unit_id"] == "dm004-unmapped-exact-work-unit"
     assert result["next_action"]["authority_boundary"]["exact_work_unit_id_authority"] is False
+    visible_texts = (
+        result.get("next_system_action"),
+        result.get("next_step"),
+        result.get("user_visible_projection", {}).get("next_system_action"),
+        result.get("user_visible_projection", {}).get("next_step"),
+    )
+    for text in visible_texts:
+        assert "legacy_complete_owner_action" not in str(text)
+        assert "legacy_provider_admission" not in str(text)
+
+
+def test_handoff_user_visible_status_does_not_promote_legacy_provider_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+    )
+    stale_next_step = "等待 MAS 已登记的 owner/action 处理。"
+
+    result = module.apply_current_owner_handoff_user_visible_status(
+        {
+            "study_id": "003-dpcc",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "opl_current_control_state.provider_admission_candidates",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "provider_admission_pending": True,
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                },
+            },
+            "user_visible_projection": {
+                "surface_kind": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "next_step": stale_next_step,
+                "next_system_action": stale_next_step,
+                "next_owner": "review",
+            },
+        }
+    )
+
+    assert "run_quality_repair_batch" not in result["next_system_action"]
+    assert "medical_prose_write_repair" not in result["next_system_action"]
+    assert "run_quality_repair_batch" not in result["user_visible_projection"]["next_system_action"]
+    assert "medical_prose_write_repair" not in result["user_visible_projection"]["next_system_action"]
+    assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
+
+
+def test_handoff_user_visible_status_keeps_canonical_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+    )
+
+    result = module.apply_current_owner_handoff_user_visible_status(
+        {
+            "study_id": "003-dpcc",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "authority": "study_progress.canonical_owner_action_projection",
+                "source": "paper_mission.next_action.blocked_typed",
+                "next_owner": "mas_authority_kernel",
+                "action_type": "materialize_typed_blocker_or_route_redesign",
+                "allowed_actions": ["materialize_typed_blocker_or_route_redesign"],
+                "work_unit_id": "paper_mission_typed_blocker_resolution",
+            },
+            "opl_current_control_state_handoff": {
+                "surface_kind": "opl_current_control_state_study_handoff",
+                "action_queue": [
+                    {
+                        "status": "queued",
+                        "owner": "one-person-lab",
+                        "action_type": "request_opl_stage_attempt",
+                    }
+                ],
+            },
+            "user_visible_projection": {
+                "surface_kind": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "next_step": "等待 OPL handoff。",
+                "next_system_action": "等待 OPL handoff。",
+            },
+        }
+    )
+
+    assert "materialize_typed_blocker_or_route_redesign" in result["next_system_action"]
+    assert "paper_mission_typed_blocker_resolution" in result["next_system_action"]
+    assert "request_opl_stage_attempt" not in result["next_system_action"]
+    assert result["next_owner"] == "mas_authority_kernel"
+    assert result["user_visible_projection"]["next_owner"] == "mas_authority_kernel"

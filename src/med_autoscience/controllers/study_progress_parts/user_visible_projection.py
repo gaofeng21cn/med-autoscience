@@ -6,7 +6,7 @@ from typing import Any
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
 from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
-from .canonical_owner_action_projection import owner_action_next_step
+from .canonical_owner_action_projection import is_canonical_owner_action_projection, owner_action_next_step
 from .current_owner_handoff_projection import current_owner_handoff_action, current_owner_redrive_domain_transition
 from .shared import _mapping_copy, _non_empty_text
 from .user_visible_projection_text import (
@@ -600,6 +600,8 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
 
 def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:
     action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not is_canonical_owner_action_projection(action):
+        return {}
     if _non_empty_text(action.get("source")) != "stage_artifact_index.next_owner_action":
         return action
     if current_owner_handoff_action(payload) is not None or current_owner_redrive_domain_transition(payload):

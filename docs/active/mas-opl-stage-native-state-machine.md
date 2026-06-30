@@ -110,11 +110,12 @@ artifacts/stage_outputs/07-independent_review_and_revision/
 MAS paper-line 的普通主干固定为：
 
 ```text
-current_owner_delta
+StageOutcome -> canonical NextActionEnvelope
+  -> owner projection/current_owner_delta drilldown
   -> current medical stage goal
   -> executor produces concrete paper/evidence/reviewer/gate delta
   -> MAS records ProgressDeltaReceipt / OwnerReceipt / TypedBlocker
-  -> OPL projects next current_owner_delta
+  -> OPL projects next StageOutcome / NextActionEnvelope
 ```
 
 Stage artifact 分四层：
@@ -205,7 +206,7 @@ OPL 应提供 StageRun Kernel 所需的通用 runtime substrate：
 4. retry budget 绑定 `{stage_run_id, generation, input_fingerprint, failure_signature}`，不是只按 work unit 名称累计。
 5. hold/release 必须 scope exact，并投影到 operator read model；不允许旧 study-wide hold 静默挡住当前 Stage。
 6. terminal closeout ingest 后触发 read-model rebuild，不要求 MAS wrapper 人工逐个 reconcile。
-7. 默认 operator API 是 `current_owner_delta`，而不是长 runtime reason 串。
+7. 默认 operator API 读取 `NextActionEnvelope` 派生 owner summary；`current_owner_delta` 只是 stage/workbench projection 和 audit drilldown，而不是长 runtime reason 串或 planning root。
 
 OPL 不做：
 

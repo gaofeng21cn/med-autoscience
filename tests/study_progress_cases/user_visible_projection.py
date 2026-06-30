@@ -143,6 +143,40 @@ def test_user_visible_projection_uses_macro_state_as_single_user_status() -> Non
     assert projection["evidence_refs"]["publication_eval_path"] == "/tmp/publication_eval/latest.json"
 
 
+def test_user_visible_projection_does_not_promote_legacy_action_as_next_step() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "003-dpcc",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "003-dpcc",
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {},
+                "conditions": [],
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "opl_current_control_state.provider_admission_candidates",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": "medical_prose_write_repair",
+                "provider_admission_pending": True,
+            },
+        }
+    )
+
+    assert projection["current_executable_owner_action"] is None
+    assert projection["next_system_action"] == "等待 MAS 已登记的 owner/action 处理。"
+    assert "run_quality_repair_batch" not in projection["next_system_action"]
+
+
 def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
