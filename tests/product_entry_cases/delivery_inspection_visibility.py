@@ -31,6 +31,14 @@ def _delivery_inspection(study_id: str = "001-risk") -> dict[str, object]:
     }
 
 
+def _ready_delivery_inspection(study_id: str = "001-risk") -> dict[str, object]:
+    inspection = _delivery_inspection(study_id)
+    inspection["status"] = "current"
+    inspection["summary"] = "Delivery package is visible."
+    inspection["layout_migration_pending_sync"] = False
+    return inspection
+
+
 def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     monkeypatch,
     tmp_path: Path,
@@ -134,6 +142,54 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
     for markdown in (cockpit_markdown, entry_status_markdown):
         assert markdown.strip()
+
+
+def test_product_entry_labels_visible_delivery_projection_as_observability_only(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_domain_route_contract={},
+        ),
+    )
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "current_blockers": [],
+            "delivery_inspection": _ready_delivery_inspection("001-risk"),
+            "recommended_commands": [],
+        },
+    )
+
+    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+
+    cockpit_state = cockpit["delivery_inspection_state"]
+    assert cockpit_state["status"] == "projection_current"
+    assert cockpit_state["summary"] == (
+        "1 个 study 已接入 Delivery Inspection；observability projection 当前可见。"
+    )
+    assert "delivery mirror 当前可见" not in cockpit_state["summary"]
+    assert entry_status["workspace_delivery_inspection"]["status"] == "projection_current"
 
 
 def test_product_entry_exposes_publication_inspection_package_operator_surface(tmp_path: Path) -> None:

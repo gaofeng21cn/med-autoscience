@@ -418,8 +418,8 @@ def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> di
             f"{counts['layout_migration_pending_sync']} 个 layout migration 等待下一次 authorized sync 升级。"
         )
     else:
-        status = "ready"
-        summary = f"{counts['projected_count']} 个 study 已接入 Delivery Inspection；delivery mirror 当前可见。"
+        status = "projection_current"
+        summary = f"{counts['projected_count']} 个 study 已接入 Delivery Inspection；observability projection 当前可见。"
     return {
         "surface_kind": "workspace_delivery_inspection_state",
         "read_model": "delivery_inspection_read_model",
