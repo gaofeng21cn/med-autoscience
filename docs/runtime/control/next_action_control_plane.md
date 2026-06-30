@@ -124,6 +124,8 @@ Retirement 不要求先物理删除所有历史文件。删除或收薄旧面前
 
 History cleanup rule：`docs/history/**`、旧 dated closeout、fixture 说明和迁移审计中保留旧词本身不是问题；这些词保留的是 provenance。cleanup 的目标是 current docs / README / status / decisions / active runtime control docs 不再把旧词写成默认入口、current owner、provider admission authority、ready evidence 或 paper progress proof。若旧词仍需出现在当前入口，必须同段标出 replacement route、retired / superseded / diagnostic-only 语境和 forbidden claim boundary。
 
+Active wording rule：当前 / active 文档和 product/read surface 中若出现 `current_executable_owner_action`、provider admission、delivery mirror、queue / attempt 或 StageAttempt 语言，只能表示 diagnostic drilldown、transport observation、history provenance 或 no-resurrection guard。默认完成判断只能来自 `StageOutcome -> NextActionEnvelope` 后同 identity 的 MAS owner consumption：owner receipt、typed blocker、human gate、route-back evidence、artifact delta、successor handoff，或明确 fresh live readiness proof。上述旧词本身不得写成 default owner/action、provider admission authority、delivery/submission completion、paper progress、publication-ready、submission-ready、runtime-ready 或 queue attempt success proof。
+
 ## 2026-06-29 源码侧退役切片
 
 - `autonomy_state_surface` 已物理切断 `domain_next_action_projection` 默认返回字段；该 surface 只保留 `authority_snapshot.canonical_next_action`，不再携带旧 projection 作为可读 next-action 候选。
