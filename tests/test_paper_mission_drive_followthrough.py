@@ -242,9 +242,23 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     ]
     assert user_stage_log["authority_boundary"]["can_claim_paper_progress"] is False
     assert user_stage_log["authority_boundary"]["can_claim_submission_ready"] is False
+    assert payload["idempotency_key"] == "paper-mission-transaction::dm003"
     assert payload["route_impact"]["domain_ready_verdict"] == "domain_gate_pending"
     assert payload["route_impact"]["progress_delta_classification"] == (
         "deliverable_progress"
+    )
+
+
+def test_opl_stage_route_request_requires_request_idempotency_key() -> None:
+    handoff = _route_back_handoff()
+    handoff["attempt_idempotency_key"] = "attempt::legacy"
+    handoff["route_identity_key"] = "route::legacy"
+    handoff["candidate_ref"] = "/tmp/legacy-candidate.json"
+    handoff.pop("request_idempotency_key")
+
+    assert (
+        opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(handoff)
+        is None
     )
 
 
