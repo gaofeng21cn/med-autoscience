@@ -10,11 +10,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.owne
 )
 
 from ..domain_action_request_materializer_parts import current_writer_handoff
-from ..owner_callable_action_policy import (
-    SUPPORTED_ACTION_TYPES,
-    request_output_surface_for_action_type,
-    request_owner_for_action_type,
-)
+from ..owner_callable_action_policy import SUPPORTED_ACTION_TYPES
 from .export_study_projection_common import (
     stage_outcome_opl_handoff_task_boundary,
     mapping,
@@ -104,10 +100,6 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
-    stage_native_owner_action = stage_native_next_action_owner_action_record(
-        study_root=study_root,
-        profile=profile,
-    )
     repair_progress_followup_owner_action = repair_progress_followup_owner_action_record(
         study_root=study_root,
     )
@@ -128,7 +120,6 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         current_writer_owner_action
         or provider_admission_owner_action
         or repair_progress_followup_owner_action
-        or stage_native_owner_action
         or paper_mission_owner_surface_repair_action
         or current_control_owner_action
         or current_readiness_owner_action
@@ -353,67 +344,6 @@ def current_writer_handoff_owner_action_record(
         "source_ref_role": "quality_repair_batch_writer_handoff",
         "source_relative_path": "studies/"
         f"{study_root.name}/artifacts/controller/quality_repair_batch/latest.json",
-        "authority_boundary": {
-            "mas_writes_generic_runtime_queue": False,
-            "mas_submits_runtime_chat": False,
-            "mas_resumes_provider_worker": False,
-            "opl_writes_mas_truth": False,
-            "mas_owner_receipt_required": True,
-        },
-    }
-
-
-def stage_native_next_action_owner_action_record(
-    *,
-    study_root: Path,
-    profile: WorkspaceProfile,
-) -> dict[str, Any] | None:
-    next_action = read_json_object(study_root / "control" / "next_action.json")
-    if next_action is None:
-        return None
-    if text(next_action.get("status")) != "ready_for_owner_action":
-        return None
-    action_type = text(next_action.get("action_id")) or text(next_action.get("action_type"))
-    if action_type not in SUPPORTED_ACTION_TYPES:
-        return None
-    owner = text(next_action.get("owner")) or request_owner_for_action_type(action_type)
-    quest_id = _read_quest_id(study_root=study_root, fallback=study_root.name)
-    owner_route = _stage_native_owner_route(
-        study_id=study_root.name,
-        quest_id=quest_id,
-        action_type=action_type,
-        owner=owner,
-        next_action=next_action,
-    )
-    currentness_basis = _owner_route_currentness_basis(owner_route)
-    if currentness_basis is None:
-        return None
-    return {
-        "surface_kind": "mas_current_owner_action_record",
-        "schema_version": 1,
-        "source": "stage_native_workspace_next_action",
-        "study_id": study_root.name,
-        "quest_id": quest_id,
-        "recorded_at": text(next_action.get("generated_at")) or text(next_action.get("recorded_at")),
-        "action_type": action_type,
-        "work_unit_id": currentness_basis["work_unit_id"],
-        **stage_outcome_opl_handoff_task_boundary(),
-        "next_owner": owner,
-        "allowed_actions": [action_type],
-        "required_output_surface": text(next_action.get("required_output_surface"))
-        or text(next_action.get("target_surface"))
-        or request_output_surface_for_action_type(action_type),
-        "source_ref_role": "stage_native_workspace_next_action",
-        "source_relative_path": workspace_relative(
-            study_root / "control" / "next_action.json",
-            workspace_root=profile.workspace_root,
-        ),
-        "source_surface": text(next_action.get("source_surface")),
-        "stage_index_ref": text(next_action.get("stage_index_ref")),
-        "current_stage_id": text(next_action.get("current_stage_id")),
-        "owner_route_currentness_basis": currentness_basis,
-        "owner_route": dict(owner_route),
-        "currentness_status": "stage_native_next_action_active",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
             "mas_submits_runtime_chat": False,
@@ -804,53 +734,6 @@ def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, 
     if basis["runtime_health_epoch"] is None and basis["source_eval_id"] is None:
         return None
     return {key: value for key, value in basis.items() if value is not None}
-
-
-def _stage_native_owner_route(
-    *,
-    study_id: str,
-    quest_id: str,
-    action_type: str,
-    owner: str,
-    next_action: Mapping[str, Any],
-) -> dict[str, Any]:
-    current_stage_id = text(next_action.get("current_stage_id")) or "unknown_stage"
-    source_surface = text(next_action.get("source_surface")) or "control/next_action.json"
-    fingerprint = f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
-    epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
-    return {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": epoch,
-        "runtime_health_epoch": epoch,
-        "work_unit_fingerprint": fingerprint,
-        "failure_signature": action_type,
-        "trace_id": f"owner-route-trace::{study_id}::{action_type}",
-        "route_epoch": epoch,
-        "source_fingerprint": fingerprint,
-        "current_owner": "mas_controller",
-        "next_owner": owner,
-        "owner_reason": action_type,
-        "active_run_id": None,
-        "allowed_actions": [action_type],
-        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
-        "source_refs": {
-            "work_unit_id": action_type,
-            "work_unit_fingerprint": fingerprint,
-            "source_surface": source_surface,
-            "stage_index_ref": text(next_action.get("stage_index_ref")),
-            "current_stage_id": current_stage_id,
-            "owner_route_currentness_basis": {
-                "truth_epoch": epoch,
-                "runtime_health_epoch": epoch,
-                "work_unit_id": action_type,
-                "work_unit_fingerprint": fingerprint,
-            },
-        },
-        "idempotency_key": f"owner-route::{study_id}::{epoch}::{owner}::{action_type}",
-    }
 
 
 def _read_quest_id(*, study_root: Path, fallback: str) -> str:

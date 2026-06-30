@@ -4,6 +4,9 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.paper_mission_owner_surface import (
+    SUPERVISION_LATEST_RELATIVE_PATH,
+)
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
 
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -419,7 +422,7 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
         "idempotency_key": "owner-route::dm003::medical-paper-readiness-followup",
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -550,7 +553,7 @@ def test_materialize_does_not_synthesize_readiness_followup_from_legacy_current_
         "idempotency_key": "owner-route::dm003::medical-paper-readiness-followup",
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -655,7 +658,7 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
         "idempotency_key": "owner-route::dm003::medical-paper-readiness-answer",
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -733,11 +736,9 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
     assert dispatch["owner_route_ref"]["source_refs"]["work_unit_id"] == "complete_medical_paper_readiness_surface"
     assert dispatch["owner_route_ref"]["work_unit_fingerprint"] == readiness_fingerprint
     assert any(
-        item["reason"]
-        == "stage_native_workspace_next_action_retired_use_next_action_envelope"
-        and item["action_type"] == "run_quality_repair_batch"
+        item["action_type"] == "run_quality_repair_batch"
         for item in result["ignored_actions"]
-    )
+    ) is False
 
 
 def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness_queue(
@@ -818,7 +819,7 @@ def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness
         "owner_route": owner_route,
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,

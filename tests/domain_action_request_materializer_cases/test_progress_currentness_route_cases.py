@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 from tests.domain_action_request_materializer_cases.shared import owner_route as _owner_route
 from tests.domain_action_request_materializer_cases.shared import (
     stage_native_admission_fields as _stage_native_admission_fields,
@@ -386,6 +387,11 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
             "owner_route": stale_route,
             "paper_progress_delta": {"count": 0},
             "deliverable_progress_delta": {"count": 0},
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="run_gate_clearing_batch",
+                work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            ),
         }
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
@@ -414,7 +420,6 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
             "complete_medical_paper_readiness_surface": (
                 "superseded_by_fresh_study_progress_current_owner_ticket"
             ),
-            "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
         }
 
 
@@ -499,9 +504,8 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
         and item["reason"] == "unsupported_action_type"
         for item in result["ignored_actions"]
     )
-    assert any(
+    assert not any(
         item["action_type"] == "run_quality_repair_batch"
-        and item["reason"] == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 
@@ -602,6 +606,11 @@ def test_materialize_domain_action_requests_routes_consumed_write_closeout_to_ai
                 },
             },
             "owner_route": stale_route,
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="return_to_ai_reviewer_workflow",
+                work_unit_id="ai_reviewer_medical_prose_quality_review",
+            ),
         }
 
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
@@ -734,10 +743,8 @@ def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_wh
         and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
         for item in result["ignored_actions"]
     )
-    assert any(
+    assert not any(
         item["action_type"] == "run_quality_repair_batch"
-        and item["reason"]
-        == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 

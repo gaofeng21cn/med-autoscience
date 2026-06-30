@@ -14,9 +14,7 @@ def _stage_native_repair_action() -> dict[str, object]:
         "action_type": "run_quality_repair_batch",
         "authority": "stage_native_workspace_next_action_diagnostic_only",
         "default_dispatch_allowed": False,
-        "stage_native_next_action_admission": {
-            "default_dispatch_allowed": False,
-        },
+        "default_dispatch_blocked_reason": "stage_native_workspace_next_action_retired_use_next_action_envelope",
     }
 
 

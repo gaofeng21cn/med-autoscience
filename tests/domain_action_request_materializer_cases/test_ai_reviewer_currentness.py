@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
+from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
 
 from tests.domain_action_request_materializer_cases.ai_reviewer_currentness_helpers import (
     disable_progress_projection as _disable_progress_projection,
@@ -180,12 +181,17 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
                             "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
                         },
                     },
-                    "runtime_health_snapshot": {
-                        "runtime_health_epoch": "runtime-health-current-write-route",
-                    },
-                    "study_truth_snapshot": {
-                        "truth_epoch": "truth-epoch-current-write-route",
-                        "source_signature": "truth-source-current-write-route",
+                        "runtime_health_snapshot": {
+                            "runtime_health_epoch": "runtime-health-current-write-route",
+                        },
+                        "next_action": _next_action_envelope(
+                            study_id=study_id,
+                            action_type="run_gate_clearing_batch",
+                            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                        ),
+                        "study_truth_snapshot": {
+                            "truth_epoch": "truth-epoch-current-write-route",
+                            "source_signature": "truth-source-current-write-route",
                     },
                 }
             ],
@@ -330,6 +336,11 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_t
                 "source_fingerprint": "repair-progress-current-ai-reviewer",
                 "work_unit_fingerprint": "repair-progress-current-ai-reviewer-work-unit",
             },
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="return_to_ai_reviewer_workflow",
+                work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            ),
         }
 
     monkeypatch.setattr(study_progress_module, "read_study_progress", fake_read_study_progress)
@@ -445,13 +456,11 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
     assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
     assert dispatch["next_executable_owner"] == "ai_reviewer"
     assert dispatch["source_action_ref"]["authority"] == "observability_only"
-    assert {
-        item["action_type"]: item["reason"]
+    assert not any(
+        item["action_type"] == "run_quality_repair_batch"
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
-    } == {
-        "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
-    }
+    )
 
 
 def test_materialize_domain_action_requests_retires_current_work_unit_over_stale_stage_native_write(
@@ -579,7 +588,7 @@ def test_materialize_domain_action_requests_retires_current_work_unit_over_stale
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
     } == {
-        "run_quality_repair_batch": "stage_native_workspace_next_action_retired_use_next_action_envelope",
+        "run_quality_repair_batch": "superseded_by_current_execution_envelope"
     }
 
 

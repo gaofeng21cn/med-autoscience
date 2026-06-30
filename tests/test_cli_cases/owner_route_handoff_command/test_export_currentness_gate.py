@@ -5,6 +5,38 @@ import json
 from pathlib import Path
 
 from .shared import *  # noqa: F403,F401
+from tests.study_runtime_test_helpers import make_profile
+
+
+def test_build_study_projection_does_not_promote_stage_native_workspace_next_action(
+    tmp_path: Path,
+) -> None:
+    export_projection = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_type": "run_quality_repair_batch",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "control/next_action.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_index_ref": "control/stage_index.json",
+            "required_output_surface": "paper/draft.md",
+        },
+    )
+    projection = export_projection.build_study_projection(
+        study_root=study_root,
+        profile=profile,
+    )
+
+    assert "current_owner_action" not in projection
 
 
 def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work_unit_is_typed_blocker(

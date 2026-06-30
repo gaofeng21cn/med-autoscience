@@ -9,7 +9,6 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
     domain_transition_current_actions,
-    stage_native_next_action,
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -201,8 +200,14 @@ def current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
 
 
 def ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
-    if stage_native_next_action.is_diagnostic_action(action):
-        reason = stage_native_next_action.diagnostic_blocked_reason(action)
+    if (
+        _text(action.get("authority"))
+        == current_action_authority.STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY
+    ):
+        reason = (
+            _text(action.get("default_dispatch_blocked_reason"))
+            or current_action_authority.STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON
+        )
     return {
         "study_id": _text(action.get("study_id")),
         "action_type": _text(action.get("action_type")),

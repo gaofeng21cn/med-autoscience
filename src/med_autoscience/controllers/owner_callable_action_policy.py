@@ -111,7 +111,6 @@ SOURCE_ACTION_REF_FIELDS = (
     "required_output_surface",
     "stage_index_ref",
     "current_stage_id",
-    "stage_native_next_action_admission",
     "next_work_unit",
     "controller_work_unit_id",
     "executable_work_unit",
@@ -144,7 +143,6 @@ SOURCE_ACTION_REF_FIELDS = (
     "provider_admission_allowed",
     "provider_admission_requires_opl_runtime_result",
     "paper_progress_stall",
-    "stage_native_next_action_admission",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )
@@ -160,7 +158,6 @@ SOURCE_HANDOFF_REF_FIELDS = (
     "required_output_surface",
     "stage_index_ref",
     "current_stage_id",
-    "stage_native_next_action_admission",
     "next_work_unit",
     "work_unit_fingerprint",
     "route_target",
@@ -173,7 +170,6 @@ SOURCE_HANDOFF_REF_FIELDS = (
     "supervisor_authority_boundary",
     "supervisor_policy_projection",
     "supervisor_policy_projection_boundary",
-    "stage_native_next_action_admission",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )

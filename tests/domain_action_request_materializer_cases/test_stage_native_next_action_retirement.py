@@ -206,9 +206,8 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
         and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
         for item in result["ignored_actions"]
     )
-    assert any(
+    assert not any(
         item["action_type"] == "run_quality_repair_batch"
-        and item["reason"] == "stage_native_workspace_next_action_retired_use_next_action_envelope"
         for item in result["ignored_actions"]
     )
 
@@ -252,13 +251,7 @@ def test_materialize_domain_action_requests_keeps_stage_native_write_diagnostic_
         for item in result["ignored_actions"]
         if item["action_type"] == "run_quality_repair_batch"
     ]
-    assert len(stage_native_ignored) == 1
-    assert stage_native_ignored[0]["reason"] == (
-        "stage_native_workspace_next_action_retired_use_next_action_envelope"
-    )
-    assert stage_native_ignored[0]["action_id"] == (
-        f"stage-native-next-action::{study_id}::run_quality_repair_batch"
-    )
+    assert stage_native_ignored == []
 
 
 def test_materialize_domain_action_requests_does_not_route_stage_native_write_with_legacy_binding(
@@ -350,13 +343,7 @@ def test_materialize_domain_action_requests_does_not_route_stage_native_write_wi
         for item in result["ignored_actions"]
         if item["action_type"] == "run_quality_repair_batch"
     ]
-    assert len(stage_native_ignored) == 1
-    assert stage_native_ignored[0]["reason"] == (
-        "stage_native_workspace_next_action_retired_use_next_action_envelope"
-    )
-    assert stage_native_ignored[0]["action_id"] == (
-        f"stage-native-next-action::{study_id}::run_quality_repair_batch"
-    )
+    assert stage_native_ignored == []
 
 
 def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_authority_boundary(

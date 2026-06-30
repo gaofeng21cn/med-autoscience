@@ -15,7 +15,6 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     fresh_progress_arbitration,
     paper_recovery_owner_callable,
     repair_progress_currentness,
-    stage_native_next_action,
     current_action_selection_predicates,
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -67,20 +66,8 @@ def current_actions_for_studies(
         return None, ignored
     per_study_actions: list[dict[str, Any]] = []
     requested = set(study_ids)
-    stage_native_actions = stage_native_next_action.stage_native_next_actions(profile=profile, study_ids=study_ids)
-    stage_native_by_study = {
-        study_id: action for action in stage_native_actions if (study_id := _text(action.get("study_id"))) is not None
-    }
-    dispatchable_stage_native_by_study = {
-        study_id: action
-        for study_id, action in stage_native_by_study.items()
-        if stage_native_next_action.default_dispatch_allowed(action)
-    }
-    diagnostic_stage_native_by_study = {
-        study_id: action
-        for study_id, action in stage_native_by_study.items()
-        if study_id not in dispatchable_stage_native_by_study
-    }
+    dispatchable_stage_native_by_study: dict[str, dict[str, Any]] = {}
+    diagnostic_stage_native_by_study: dict[str, dict[str, Any]] = {}
     current_writer_handoff_by_study = _current_writer_handoff_actions(profile=profile, study_ids=study_ids)
     fresh_progress_actions = fresh_progress_current_action.current_actions(
         profile=profile,
@@ -649,13 +636,6 @@ def current_actions_for_studies(
         )
         per_study_actions.extend(study_actions)
         ignored.extend(study_ignored)
-        if diagnostic_stage_native_action is not None:
-            ignored.append(
-                _ignored_action(
-                    diagnostic_stage_native_action,
-                    stage_native_next_action.diagnostic_blocked_reason(diagnostic_stage_native_action),
-                )
-            )
     for study_id, action in fresh_paper_recovery_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
             continue
@@ -677,9 +657,7 @@ def current_actions_for_studies(
             ignored.append(
                 _ignored_action(
                     action,
-                    stage_native_next_action.diagnostic_blocked_reason(
-                        current_action_authority.stage_native_currentness_diagnostic(action)
-                    ),
+                    current_action_authority.STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON,
                 )
             )
             continue
@@ -690,7 +668,7 @@ def current_actions_for_studies(
             ignored.append(
                 _ignored_action(
                     action,
-                    stage_native_next_action.diagnostic_blocked_reason(action),
+                    current_action_authority.STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON,
                 )
             )
     if per_study_actions or matched_requested_study:

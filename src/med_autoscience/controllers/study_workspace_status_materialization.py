@@ -31,7 +31,6 @@ def materialize_study_workspace_status(*, study: Mapping[str, Any], recorded_at:
     stage_index = dict(study["stage_index"])
     current_stage = dict(stage_index.get("current_stage") or {})
     package_status = dict(study["current_truth_map"]["package_status"])
-    next_action = dict(study["next_action"])
     blockers_payload = _blockers_payload(study=study, recorded_at=recorded_at)
     descriptor = {
         **dict(study),
@@ -46,7 +45,6 @@ def materialize_study_workspace_status(*, study: Mapping[str, Any], recorded_at:
         yaml.safe_dump(_paper_yaml_payload(study=study), allow_unicode=True, sort_keys=False),
     )
     _write_json(study_root / USER_ENTRY_REFS["current_stage"], current_stage)
-    _write_json(study_root / USER_ENTRY_REFS["next_action"], next_action)
     _write_json(study_root / USER_ENTRY_REFS["stage_index"], stage_index)
     _write_json(study_root / USER_ENTRY_REFS["blockers"], blockers_payload)
     _write_json(study_root / USER_ENTRY_REFS["current_package_status"], package_status)
@@ -255,7 +253,6 @@ def _workspace_migration_stage_manifest(*, study: Mapping[str, Any], recorded_at
         "product_refs": [
             "STUDY_STATUS.md",
             "control/stage_index.json",
-            "control/next_action.json",
             "publication/current_package/STATUS.json",
         ],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -413,7 +410,6 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
         "current_stage_root": current_stage.get("stage_root"),
         "current_stage_status": current_stage.get("status"),
         "stage_index_ref": "control/stage_index.json",
-        "next_action_ref": "control/next_action.json",
         "study_status_ref": "STUDY_STATUS.md",
         "paper_entry_ref": "paper/draft.md",
         "publication_package_status_ref": "publication/current_package/STATUS.json",

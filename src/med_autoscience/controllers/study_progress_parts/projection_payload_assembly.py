@@ -53,7 +53,6 @@ from .projection_payload_assembly_helpers import (
 from .projection_payload_assembly_refs import build_projection_refs
 from .projection_payload_assembly_status import (
     apply_runtime_medical_publication_surface_user_visible_status as _apply_runtime_medical_publication_surface_user_visible_status,
-    stage_native_current_owner_action as _stage_native_current_owner_action,
 )
 from .projection_payload_assembly_parts.ai_first_snapshot_fields import (
     progress_ai_first_and_snapshot_fields as _progress_ai_first_and_snapshot_fields,
@@ -330,9 +329,6 @@ def assemble_study_progress_payload(
         status,
         study_id=study_id,
     )
-    payload["stage_native_current_owner_action"] = _stage_native_current_owner_action(
-        study_root=study_root,
-    )
     payload["current_executable_owner_action"] = None
     payload = reconcile_current_owner_action_projection(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
@@ -461,11 +457,6 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
                 _non_empty_text(
                     _mapping_copy(updated.get("stage_closure_decision")).get(
                         "decision_ref"
-                    )
-                ),
-                _non_empty_text(
-                    _mapping_copy(updated.get("stage_native_current_owner_action")).get(
-                        "source_ref"
                     )
                 ),
             )

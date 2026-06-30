@@ -4,7 +4,9 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers import stage_native_next_action_admission
+from med_autoscience.controllers.paper_mission_owner_surface import (
+    SUPERVISION_LATEST_RELATIVE_PATH,
+)
 from tests.stage_outcome_authority_helpers import owner_route as _owner_route
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
@@ -21,9 +23,12 @@ def _stage_native_admission_fields(
     source_surface: str,
 ) -> dict[str, object]:
     return {
-        "stage_transition_authority_boundary": (
-            stage_native_next_action_admission.stage_transition_authority_boundary()
-        ),
+        "legacy_stage_transition_authority_boundary": {
+            "stage_transition_authority": "one-person-lab",
+            "intent_can_write_stage_current_pointer": False,
+            "intent_can_write_stage_run_terminal_state": False,
+            "intent_can_publish_current_owner_delta": False,
+        },
     }
 
 
@@ -175,11 +180,10 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
         "route_to_write_review_or_finalize_owner",
         "promote_only_after_publication_gate_passes",
     ]
-    next_action = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
-    assert next_action["action_type"] == "run_medical_publication_surface_from_clean_room"
-    assert next_action["action_id"] == "stage-native-next-action::run_medical_publication_surface_from_clean_room"
-    assert next_action["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
-    assert "current_work_unit_binding" not in next_action
+    assert not (study_root / "control" / "next_action.json").exists()
+    assert not (
+        study_root / "control" / "diagnostics" / "stage_native_next_action.json"
+    ).exists()
 
 
 def test_paper_clean_room_rebuild_prefers_stage_authority_current_body(tmp_path: Path) -> None:
@@ -428,43 +432,12 @@ def test_domain_action_request_materializer_retires_stage_native_clean_room_next
         study_id=study_id,
         apply=True,
     )
-    stage_native_next_action = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.stage_native_next_action"
-    )
-    canonical_stage_action = stage_native_next_action.stage_native_next_actions(
-        profile=profile,
-        study_ids=(study_id,),
-    )[0]
-    stale_route = _owner_route(
-        study_id=study_id,
-        action_type="run_gate_clearing_batch",
-        owner="gate_clearing_batch",
-    )
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "owner_route": canonical_stage_action["owner_route"],
-                    "action_queue": [
-                        {
-                            "study_id": study_id,
-                            "quest_id": study_id,
-                            "action_type": "run_gate_clearing_batch",
-                            "owner": "gate_clearing_batch",
-                            "request_owner": "gate_clearing_batch",
-                            "recommended_owner": "gate_clearing_batch",
-                            "reason": "stale_gate_replay",
-                            "owner_route": stale_route,
-                            "handoff_packet": {"owner_route": stale_route},
-                        }
-                    ],
-                }
-            ],
+            "studies": [{"study_id": study_id, "quest_id": study_id}],
         },
     )
 
@@ -476,15 +449,8 @@ def test_domain_action_request_materializer_retires_stage_native_clean_room_next
     )
 
     assert result["domain_progress_transition_requests"] == []
-    ignored = {
-        item["action_type"]: item["reason"]
-        for item in result["ignored_actions"]
-        if item.get("action_type")
-    }
-    assert ignored["run_medical_publication_surface_from_clean_room"] == (
-        "stage_native_workspace_next_action_retired_use_next_action_envelope"
-    )
-    assert ignored["run_gate_clearing_batch"] == "superseded_by_current_owner_route_action_queue"
+    ignored_action_types = {item.get("action_type") for item in result["ignored_actions"]}
+    assert "run_medical_publication_surface_from_clean_room" not in ignored_action_types
     assert result["written_files"] == []
 
 
@@ -507,45 +473,14 @@ def test_materializer_does_not_execute_retired_stage_native_clean_room_transitio
         study_id=study_id,
         apply=True,
     )
-    stage_native_next_action = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.stage_native_next_action"
-    )
-    canonical_stage_action = stage_native_next_action.stage_native_next_actions(
-        profile=profile,
-        study_ids=(study_id,),
-    )[0]
     clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
     write_text(clean_paper_root / "draft.md", "clean-room verified draft\n")
-    stale_route = _owner_route(
-        study_id=study_id,
-        action_type="run_gate_clearing_batch",
-        owner="gate_clearing_batch",
-    )
     _write_json(
-        profile.workspace_root / request_module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "owner_route": canonical_stage_action["owner_route"],
-                    "action_queue": [
-                        {
-                            "study_id": study_id,
-                            "quest_id": study_id,
-                            "action_type": "run_gate_clearing_batch",
-                            "owner": "gate_clearing_batch",
-                            "request_owner": "gate_clearing_batch",
-                            "recommended_owner": "gate_clearing_batch",
-                            "reason": "stale_gate_replay",
-                            "owner_route": stale_route,
-                            "handoff_packet": {"owner_route": stale_route},
-                        }
-                    ],
-                }
-            ],
+            "studies": [{"study_id": study_id, "quest_id": study_id}],
         },
     )
     consumer_payload = request_module.materialize_domain_action_requests(
@@ -560,15 +495,8 @@ def test_materializer_does_not_execute_retired_stage_native_clean_room_transitio
     assert consumer_payload["mas_creates_opl_stage_run"] is False
     assert consumer_payload["domain_progress_transition_request_count"] == 0
     assert consumer_payload["domain_progress_transition_requests"] == []
-    ignored = {
-        item["action_type"]: item["reason"]
-        for item in consumer_payload["ignored_actions"]
-        if item.get("action_type")
-    }
-    assert ignored["run_medical_publication_surface_from_clean_room"] == (
-        "stage_native_workspace_next_action_retired_use_next_action_envelope"
-    )
-    assert ignored["run_gate_clearing_batch"] == "superseded_by_current_owner_route_action_queue"
+    ignored_action_types = {item.get("action_type") for item in consumer_payload["ignored_actions"]}
+    assert "run_medical_publication_surface_from_clean_room" not in ignored_action_types
     assert clean_paper_root.is_dir()
 
 
@@ -584,7 +512,7 @@ def test_stage_native_publication_surface_report_owner_route_is_diagnostic_only(
     write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
     _write_stage(study_root)
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -621,7 +549,7 @@ def test_stage_native_publication_surface_report_owner_route_is_diagnostic_only(
         },
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -642,6 +570,4 @@ def test_stage_native_publication_surface_report_owner_route_is_diagnostic_only(
         for item in result["ignored_actions"]
         if item.get("action_type")
     }
-    assert ignored["run_quality_repair_batch"] == (
-        "stage_native_workspace_next_action_retired_use_next_action_envelope"
-    )
+    assert "run_quality_repair_batch" not in ignored

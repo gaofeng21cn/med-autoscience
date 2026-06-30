@@ -44,7 +44,7 @@ def fresh_progress_is_current_owner_action(
         return False
     if _text(action.get("authority")) == "study_progress.current_owner_ticket_weak_identity":
         return False
-    if _text(action.get("authority")) != "study_progress.current_executable_owner_action":
+    if not _is_current_owner_action_projection(action):
         return False
     if _text(action.get("action_type")) not in fresh_progress_arbitration.SUPPORTED_ACTION_TYPES:
         return False
@@ -52,6 +52,14 @@ def fresh_progress_is_current_owner_action(
         _text(action.get("work_unit_fingerprint")) is not None
         or _text(action.get("action_fingerprint")) is not None
     )
+
+
+def _is_current_owner_action_projection(action: Mapping[str, Any]) -> bool:
+    return "study_progress.current_executable_owner_action" in {
+        _text(action.get("authority")),
+        _text(action.get("source_surface")),
+        _text(action.get("projection_source_surface")),
+    }
 
 
 def fresh_progress_is_current_execution_envelope_barrier(

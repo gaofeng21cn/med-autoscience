@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import opl_domain_progress_transition_contract
-from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -58,7 +57,8 @@ def without_unauthorized_dispatches(
 
 
 def dispatch_uses_stage_native_next_action(dispatch: Mapping[str, Any]) -> bool:
-    return stage_native_next_action_admission.dispatch_uses_stage_native_next_action(dispatch)
+    source_action = _mapping(dispatch.get("source_action"))
+    return _text(source_action.get("authority")) == "stage_native_workspace_next_action"
 
 
 def dispatch_has_canonical_next_action_envelope(dispatch: Mapping[str, Any]) -> bool:

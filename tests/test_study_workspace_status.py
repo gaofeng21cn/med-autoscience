@@ -112,7 +112,7 @@ def test_study_workspace_status_apply_materializes_stage_index_and_manifest(tmp_
     assert (stage_root / "role_artifacts").is_dir()
     assert (study_root / "STUDY_STATUS.md").is_file()
     assert (study_root / "paper.yaml").is_file()
-    assert (study_root / "control" / "next_action.json").is_file()
+    assert not (study_root / "control" / "next_action.json").exists()
     assert (study_root / "publication" / "current_package" / "STATUS.json").is_file()
     assert (study_root / "_archive" / "migration_manifest" / "current_truth_map.json").is_file()
     assert (study_root / "_archive" / "migration_manifest" / "legacy_provenance_map.json").is_file()
@@ -151,13 +151,14 @@ def test_study_workspace_status_routes_blocked_clean_room_surface_to_quality_rep
     )
 
     next_action = result["studies"][0]["next_action"]
-    persisted = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
-    assert next_action["action_id"] == "stage-native-next-action::run_quality_repair_batch"
-    assert next_action["action_type"] == "run_quality_repair_batch"
-    assert next_action["owner"] == "write"
+    assert next_action["action_id"] == "medical_publication_surface_blocked"
+    assert next_action["owner"] == "MedAutoScience"
+    assert next_action["status"] == "blocked"
     assert next_action["source_surface"] == "artifacts/reports/medical_publication_surface/latest.json"
-    assert next_action["next_work_unit"] == "medical_publication_surface_blocked_write_repair"
-    assert persisted == next_action
+    assert not (study_root / "control" / "next_action.json").exists()
+    assert not (
+        study_root / "control" / "diagnostics" / "stage_native_next_action.json"
+    ).exists()
 
 
 def test_study_workspace_status_fails_closed_for_runtime_root_as_study_root(tmp_path: Path) -> None:

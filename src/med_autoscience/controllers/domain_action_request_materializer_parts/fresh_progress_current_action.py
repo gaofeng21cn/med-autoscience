@@ -166,6 +166,8 @@ def _fresh_progress_current_action(
             current_action=current_action,
             ticket=ticket,
         )
+    next_action = _canonical_next_action(progress)
+    authority = "mas_next_action_envelope" if next_action is not None else source_surface
     action = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -175,9 +177,10 @@ def _fresh_progress_current_action(
         "owner": owner,
         "request_owner": owner,
         "recommended_owner": owner,
-        "authority": source_surface,
+        "authority": authority,
         "required_output_surface": request_output_surface_for_action_type(action_type),
-        "source_surface": source_surface,
+        "source_surface": authority,
+        "projection_source_surface": source_surface,
         "current_action_source": _text(current_action.get("source"))
         or _text(current_action.get("source_surface")),
         "source_ref": _text(current_action.get("source_ref")),
@@ -189,6 +192,7 @@ def _fresh_progress_current_action(
         "terminal_stage_next_forced_delta": (
             True if current_action.get("terminal_stage_next_forced_delta") is True else None
         ),
+        "next_action": next_action,
         "repair_progress_precedence": _mapping(current_action.get("repair_progress_precedence")) or None,
         "owner_route": owner_route,
         "handoff_packet": {
@@ -196,7 +200,8 @@ def _fresh_progress_current_action(
             "request_owner": owner,
             "recommended_owner": owner,
             "next_executable_owner": owner,
-            "source_surface": source_surface,
+            "source_surface": authority,
+            "projection_source_surface": source_surface,
             "current_action_source": _text(current_action.get("source"))
             or _text(current_action.get("source_surface")),
             "source_ref": _text(current_action.get("source_ref")),
@@ -206,6 +211,13 @@ def _fresh_progress_current_action(
         },
     }
     return {key: value for key, value in action.items() if value is not None}
+
+
+def _canonical_next_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    next_action = _mapping(progress.get("next_action"))
+    if _text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return None
+    return next_action
 
 
 def _fresh_progress_currentness_barrier(

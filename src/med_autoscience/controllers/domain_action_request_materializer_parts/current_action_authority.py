@@ -6,9 +6,6 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_action_policy import (
     request_owner_for_action_type,
 )
-from med_autoscience.controllers.domain_action_request_materializer_parts import (
-    stage_native_next_action,
-)
 from med_autoscience.controllers.stage_route_currentness_identity import (
     currentness_identities_match,
 )
@@ -21,6 +18,9 @@ READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES = frozenset(
 )
 STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON = (
     "stage_native_workspace_next_action_retired_use_next_action_envelope"
+)
+STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY = (
+    "stage_native_workspace_next_action_diagnostic_only"
 )
 
 
@@ -111,7 +111,7 @@ def stage_native_action_derives_from_readiness_barrier(
 def stage_native_currentness_diagnostic(action: Mapping[str, Any]) -> dict[str, Any]:
     return {
         **dict(action),
-        "authority": stage_native_next_action.WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY,
+        "authority": STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY,
         "default_dispatch_allowed": False,
         "default_dispatch_blocked_reason": STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON,
     }

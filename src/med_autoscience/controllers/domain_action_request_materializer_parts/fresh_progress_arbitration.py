@@ -145,7 +145,7 @@ def _publication_eval_recommended_repair_supersedes_previous_repair_queue(
         "publication_eval.recommended_actions.readiness_blocker_repair"
     ):
         return False
-    if _text(fresh_action.get("authority")) != "study_progress.current_executable_owner_action":
+    if not _is_current_owner_action_projection(fresh_action):
         return False
     if _text(fresh_action.get("action_type")) not in {"run_quality_repair_batch", "run_gate_clearing_batch"}:
         return False
@@ -196,7 +196,7 @@ def gate_followthrough_owner_action_has_strong_identity(action: Mapping[str, Any
         "gate_clearing_batch_followthrough.actionable_current_work_unit"
     ):
         return False
-    if _text(action.get("authority")) != "study_progress.current_executable_owner_action":
+    if not _is_current_owner_action_projection(action):
         return False
     action_type = _text(action.get("action_type"))
     if action_type not in SUPPORTED_ACTION_TYPES:
@@ -351,6 +351,14 @@ def _scan_action_is_readiness_or_stage_native_write(action: Mapping[str, Any]) -
         "stage_native_workspace_next_action",
         "control/next_action.json",
         "stage_artifact_index.next_owner_action",
+    }
+
+
+def _is_current_owner_action_projection(action: Mapping[str, Any]) -> bool:
+    return "study_progress.current_executable_owner_action" in {
+        _text(action.get("authority")),
+        _text(action.get("source_surface")),
+        _text(action.get("projection_source_surface")),
     }
 
 

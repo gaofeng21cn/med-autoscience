@@ -4,9 +4,6 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers import stage_native_next_action_admission
-
-
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -44,9 +41,37 @@ def stage_native_admission_fields(
     source_surface: str = "artifacts/reports/medical_publication_surface/latest.json",
 ) -> dict[str, object]:
     return {
-        "stage_transition_authority_boundary": (
-            stage_native_next_action_admission.stage_transition_authority_boundary()
-        ),
+        "legacy_stage_transition_authority_boundary": {
+            "stage_transition_authority": "one-person-lab",
+            "intent_can_write_stage_current_pointer": False,
+            "intent_can_write_stage_run_terminal_state": False,
+            "intent_can_publish_current_owner_delta": False,
+        },
+    }
+
+
+def next_action_envelope(
+    *,
+    study_id: str,
+    action_family: str = "runtime.opl_route",
+    action_type: str = "request_opl_stage_attempt",
+    work_unit_id: str = "canonical-opl-route",
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "study_id": study_id,
+        "stage_id": "08-publication_package_handoff",
+        "action_id": f"next-action::{study_id}::{work_unit_id}",
+        "idempotency_key": f"next-action::{study_id}::{work_unit_id}",
+        "action_family": action_family,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "authority_boundary": {
+            "action_family_authority": True,
+            "exact_work_unit_id_authority": False,
+        },
     }
 
 

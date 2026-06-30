@@ -111,11 +111,6 @@ def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_ide
         "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
     )
     monkeypatch.setattr(
-        selection.stage_native_next_action,
-        "stage_native_next_actions",
-        lambda **_: [],
-    )
-    monkeypatch.setattr(
         selection.fresh_progress_current_action,
         "current_actions",
         lambda **_: [],
@@ -192,11 +187,6 @@ def test_current_action_selection_does_not_let_stale_fresh_paper_recovery_callab
         "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    monkeypatch.setattr(
-        selection.stage_native_next_action,
-        "stage_native_next_actions",
-        lambda **_: [],
-    )
     monkeypatch.setattr(
         selection.fresh_progress_current_action,
         "current_actions",

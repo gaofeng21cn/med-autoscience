@@ -29,7 +29,6 @@ USER_ENTRY_REFS = {
     "study_config": Path("study.yaml"),
     "paper_metadata": Path("paper.yaml"),
     "current_stage": Path("control/current_stage.json"),
-    "next_action": Path("control/next_action.json"),
     "stage_index": Path("control/stage_index.json"),
     "blockers": Path("control/blockers.json"),
     "current_package_status": Path("publication/current_package/STATUS.json"),
