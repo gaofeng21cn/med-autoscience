@@ -444,6 +444,32 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                     box_refs=(box.box_id, participant_panel.box_id),
                 )
             )
+        if step_boxes and not summary_boxes and not exclusion_boxes:
+            content_x0 = min(box.x0 for box in step_boxes)
+            content_x1 = max(box.x1 for box in step_boxes)
+            panel_width = max(0.0, participant_panel.x1 - participant_panel.x0)
+            content_width = max(0.0, content_x1 - content_x0)
+            coverage = content_width / panel_width if panel_width > 0 else 0.0
+            content_center = (content_x0 + content_x1) / 2.0
+            panel_center = (participant_panel.x0 + participant_panel.x1) / 2.0
+            center_offset = abs(content_center - panel_center) / panel_width if panel_width > 0 else 1.0
+            if coverage < 0.60 or center_offset > 0.12:
+                issues.append(
+                    _issue(
+                        rule_id="participant_flow_content_horizontally_compressed",
+                        message=(
+                            "participant flow without side panels must use and center the main flow panel "
+                            "rather than leaving a large blank canvas"
+                        ),
+                        target="main_step",
+                        observed={
+                            "content_width_fraction": round(coverage, 3),
+                            "center_offset_fraction": round(center_offset, 3),
+                        },
+                        expected={"minimum_content_width_fraction": 0.60, "maximum_center_offset_fraction": 0.12},
+                        box_refs=tuple(box.box_id for box in step_boxes),
+                    )
+                )
 
     flow_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_connector")}
     flow_branch_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_branch_connector")}

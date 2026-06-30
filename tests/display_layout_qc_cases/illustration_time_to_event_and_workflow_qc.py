@@ -287,6 +287,127 @@ def test_run_display_layout_qc_passes_for_participant_reporting_flow_without_ab_
     assert result["issues"] == []
 
 
+def test_run_display_layout_qc_fails_for_left_compressed_participant_flow() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("participant_step_registry_records", "main_step", x0=0.10, y0=0.6855, x1=0.40, y1=0.835),
+                make_box(
+                    "participant_step_alliance_platform_records",
+                    "main_step",
+                    x0=0.10,
+                    y0=0.4837,
+                    x1=0.40,
+                    y1=0.6332,
+                ),
+                make_box(
+                    "participant_step_xiangya2_management_records",
+                    "main_step",
+                    x0=0.10,
+                    y0=0.2818,
+                    x1=0.40,
+                    y1=0.4313,
+                ),
+                make_box(
+                    "participant_step_xiangya2_precision_records",
+                    "main_step",
+                    x0=0.10,
+                    y0=0.08,
+                    x1=0.40,
+                    y1=0.2295,
+                ),
+            ],
+            "panel_boxes": [
+                make_box("participant_flow_main", "subfigure_panel", x0=0.06, y0=0.06, x1=0.98, y1=0.855),
+            ],
+            "guide_boxes": [
+                make_box(
+                    "flow_spine_registry_records_to_alliance_platform_records",
+                    "flow_connector",
+                    x0=0.40,
+                    y0=0.6332,
+                    x1=0.42,
+                    y1=0.6855,
+                ),
+                make_box(
+                    "flow_spine_alliance_platform_records_to_xiangya2_management_records",
+                    "flow_connector",
+                    x0=0.40,
+                    y0=0.4313,
+                    x1=0.42,
+                    y1=0.4837,
+                ),
+                make_box(
+                    "flow_spine_xiangya2_management_records_to_xiangya2_precision_records",
+                    "flow_connector",
+                    x0=0.40,
+                    y0=0.2295,
+                    x1=0.42,
+                    y1=0.2818,
+                ),
+            ],
+            "metrics": {
+                "layout_mode": "participant_flow",
+                "steps": [
+                    {"step_id": "registry_records"},
+                    {"step_id": "alliance_platform_records"},
+                    {"step_id": "xiangya2_management_records"},
+                    {"step_id": "xiangya2_precision_records"},
+                ],
+                "exclusions": [],
+                "endpoint_inventory": [],
+                "design_panels": [],
+                "flow_nodes": [
+                    {
+                        "box_id": "participant_step_registry_records",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74.0,
+                        "rendered_width_pt": 260.0,
+                        "padding_pt": 10.0,
+                    },
+                    {
+                        "box_id": "participant_step_alliance_platform_records",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74.0,
+                        "rendered_width_pt": 260.0,
+                        "padding_pt": 10.0,
+                    },
+                    {
+                        "box_id": "participant_step_xiangya2_management_records",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74.0,
+                        "rendered_width_pt": 260.0,
+                        "padding_pt": 10.0,
+                    },
+                    {
+                        "box_id": "participant_step_xiangya2_precision_records",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74.0,
+                        "rendered_width_pt": 260.0,
+                        "padding_pt": 10.0,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "participant_flow_content_horizontally_compressed" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_participant_reporting_flow_when_connector_missing() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

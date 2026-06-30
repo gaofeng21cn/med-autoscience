@@ -89,6 +89,27 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
         r_library_root=r_library_root,
     )
     _write_cohort_flow_paper_inputs(paper_root)
+    _write_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F_cohort",
+                    "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                    "paper_role": "main_text",
+                    "export_paths": [
+                        "paper/figures/generated/F_cohort_legacy.png",
+                        "paper/figures/generated/F_cohort_legacy.pdf",
+                    ],
+                    "qc_result": {
+                        "status": "pass",
+                        "layout_sidecar_path": "paper/figures/generated/F_cohort_legacy.layout.json",
+                    },
+                }
+            ],
+        },
+    )
 
     result = materialize_display_pack_publication_manifest(
         repo_root=repo_root,
@@ -102,6 +123,8 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
     render_result = figure["render_result"]
     assert result["dependency_environment"] == dependency_environment
     assert result["figure_render_receipt"]["dependency_environment"] == dependency_environment
+    assert result["figure_catalog_sync"]["status"] == "synced"
+    assert result["figure_catalog_sync"]["updated_figure_ids"] == ["F_cohort"]
     assert figure["template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
     assert figure["short_template_id"] == "cohort_flow_figure"
     assert figure["figure_kind"] == "illustration_shell"
@@ -156,6 +179,20 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
     render_receipt = json.loads((paper_root / "figure_render_receipt.json").read_text(encoding="utf-8"))
     assert render_receipt["dependency_environment"] == dependency_environment
     assert render_receipt["figures"][0]["dependency_environment"] == dependency_environment
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    catalog_entry = figure_catalog["figures"][0]
+    assert catalog_entry["export_paths"] == [
+        "paper/figures/generated/F_cohort.png",
+        "paper/figures/generated/F_cohort.pdf",
+    ]
+    assert catalog_entry["qc_result"]["layout_sidecar_path"] == "paper/figures/generated/F_cohort.layout.json"
+    assert catalog_entry["rendered_artifact_refs"] == [
+        "paper/figures/generated/F_cohort.png",
+        "paper/figures/generated/F_cohort.pdf",
+        "paper/figures/generated/F_cohort.layout.json",
+    ]
+    assert catalog_entry["visual_audit"]["status"] == "clear"
+    assert catalog_entry["display_artifact_manifest_ref"] == "paper/build/display_artifact_manifest.F_cohort.json"
     lock_payload = json.loads((paper_root / "build" / "display_pack_lock.json").read_text(encoding="utf-8"))
     locked_template = next(
         item

@@ -772,6 +772,101 @@ def _write_display_artifact_manifest(
     }
 
 
+def _sync_figure_catalog_from_render(
+    *,
+    paper_root: Path,
+    figure_entries: list[dict[str, Any]],
+    visual_audit_receipt: Mapping[str, Any],
+    display_pack_lock_sha256: str,
+) -> dict[str, Any]:
+    catalog_path = paper_root / "figures" / "figure_catalog.json"
+    if not catalog_path.exists():
+        return {
+            "status": "skipped",
+            "reason": "figure_catalog_missing",
+            "ref": _workspace_ref(catalog_path, paper_root=paper_root),
+            "updated_figure_ids": [],
+        }
+    catalog = _read_json_object(catalog_path)
+    figures = catalog.get("figures")
+    if not isinstance(figures, list):
+        return {
+            "status": "skipped",
+            "reason": "figure_catalog_figures_missing",
+            "ref": _workspace_ref(catalog_path, paper_root=paper_root),
+            "updated_figure_ids": [],
+        }
+    audit_artifacts = {
+        str(item.get("figure_id")): dict(item)
+        for item in visual_audit_receipt.get("inspected_artifacts", [])
+        if isinstance(item, Mapping)
+    }
+    changed = False
+    updated_figure_ids: list[str] = []
+    for entry in figure_entries:
+        figure_id = str(entry["figure_id"])
+        rendered = dict(entry.get("rendered_artifacts") or {})
+        qc = dict(entry.get("deterministic_qc") or {})
+        matches = [item for item in figures if isinstance(item, dict) and str(item.get("figure_id") or "") == figure_id]
+        if not matches:
+            continue
+        item = matches[0]
+        item["template_id"] = str(entry["template_id"])
+        item["renderer_family"] = str(entry["renderer_family"])
+        item["execution_mode"] = str(entry["execution_mode"])
+        item["qc_profile"] = str(entry["qc_profile"])
+        item["qc_result"] = qc
+        item["qc_result"]["layout_sidecar_path"] = str(rendered["layout_sidecar_ref"])
+        item["export_paths"] = [str(rendered["png_ref"]), str(rendered["pdf_ref"])]
+        item["source_paths"] = [str(entry["data_ref"])]
+        item["source_data_digests"] = {str(entry["data_ref"]): str(entry["data_digest"])}
+        item["statistics_refs"] = list(entry.get("statistical_value_refs") or [])
+        item["rendered_artifact_refs"] = [
+            str(rendered["png_ref"]),
+            str(rendered["pdf_ref"]),
+            str(rendered["layout_sidecar_ref"]),
+        ]
+        item["rendered_artifact_digests"] = {
+            str(rendered["png_ref"]): str(rendered["png_sha256"]),
+            str(rendered["pdf_ref"]): str(rendered["pdf_sha256"]),
+            str(rendered["layout_sidecar_ref"]): str(rendered["layout_sidecar_sha256"]),
+        }
+        item["render_receipt_ref"] = FIGURE_RENDER_RECEIPT_REF
+        item["visual_audit_receipt_ref"] = FIGURE_VISUAL_AUDIT_RECEIPT_REF
+        item["polish_lifecycle_ref"] = FIGURE_POLISH_LIFECYCLE_REF
+        item["workflow_packet_ref"] = FIGURE_WORKFLOW_PACKET_REF
+        item["publication_manifest_ref"] = f"paper/build/{PUBLICATION_MANIFEST_BASENAME}"
+        item["display_artifact_manifest_ref"] = f"paper/build/display_artifact_manifest.{figure_id}.json"
+        item["display_pack_lock_ref"] = DISPLAY_PACK_LOCK_REF
+        item["display_pack_lock_sha256"] = display_pack_lock_sha256
+        item["visual_audit"] = {
+            "status": str(visual_audit_receipt.get("final_status") or ""),
+            "receipt_id": str(visual_audit_receipt.get("receipt_id") or ""),
+            "artifact_path": str(audit_artifacts.get(figure_id, {}).get("artifact_path") or rendered["png_ref"]),
+            "artifact_sha256": str(audit_artifacts.get(figure_id, {}).get("artifact_sha256") or rendered["png_sha256"]),
+            "finding_count": len(visual_audit_receipt.get("findings") or []),
+        }
+        item["backend_exclusivity_proof"] = {
+            "selected_backend": str(entry["renderer_family"]),
+            "observed_renderer_family": str(entry["renderer_family"]),
+            "cross_backend_visual_fallback_used": False,
+            "non_selected_backend_rendered_artifacts": [],
+            "render_result_ref": f"{FIGURE_RENDER_RECEIPT_REF}#/figures/{figure_id}/render_result",
+        }
+        item["render_context"] = dict(entry.get("publication_style_profile") or {})
+        changed = True
+        updated_figure_ids.append(figure_id)
+    if changed:
+        _write_json(catalog_path, catalog)
+    return {
+        "status": "synced" if changed else "no_matching_catalog_entries",
+        "ref": _workspace_ref(catalog_path, paper_root=paper_root),
+        "path": str(catalog_path),
+        "sha256": _sha256_file(catalog_path),
+        "updated_figure_ids": updated_figure_ids,
+    }
+
+
 def materialize_display_pack_publication_manifest(
     *,
     repo_root: Path,
@@ -843,6 +938,12 @@ def materialize_display_pack_publication_manifest(
     display_pack_lock = _read_json_object(lock_path)
     publication_style_profile_lock = dict(display_pack_lock.get("publication_style_profile") or {})
     quality_refs = collect_publication_figure_quality_refs(paper_root=normalized_paper_root)
+    catalog_sync = _sync_figure_catalog_from_render(
+        paper_root=normalized_paper_root,
+        figure_entries=figure_entries,
+        visual_audit_receipt=audit_receipt,
+        display_pack_lock_sha256=_sha256_file(lock_path),
+    )
     manifest_path = normalized_paper_root / "build" / PUBLICATION_MANIFEST_BASENAME
     manifest = {
         "schema_version": 1,
@@ -890,6 +991,7 @@ def materialize_display_pack_publication_manifest(
             "figure_count": len(render_receipt["figures"]),
             "dependency_environment": dict(render_receipt.get("dependency_environment") or {}),
         },
+        "figure_catalog_sync": catalog_sync,
         "display_artifact_manifests": [
             {key: value for key, value in item.items() if key != "payload"}
             for item in artifact_manifest_refs

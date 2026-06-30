@@ -145,7 +145,11 @@ wrap_node_label <- function(label, width) {
 }
 
 wrap_plain_label <- function(label, width) {
-  lines <- strwrap(trimws(as.character(label %||% "")), width = width, simplify = FALSE)[[1]]
+  text <- trimws(as.character(label %||% ""))
+  if (length(text) < 1 || !nzchar(text[[1]])) {
+    return("")
+  }
+  lines <- strwrap(text[[1]], width = width, simplify = FALSE)[[1]]
   paste(lines, collapse = "\n")
 }
 
@@ -281,7 +285,7 @@ cohort_step_frame <- function(steps, step_ids) {
   data.frame(
     step_id = step_ids,
     label = vapply(seq_along(steps), function(index) cohort_step_plot_label(steps[[index]], index), character(1)),
-    x = rep(4, length(steps)),
+    x = rep(0, length(steps)),
     y = y_top - (seq_along(steps) - 1) * y_gap,
     stringsAsFactors = FALSE
   )
@@ -324,10 +328,14 @@ build_ggconsort_plot <- function(payload) {
   if (length(unique(step_ids)) != length(step_ids)) {
     stop("cohort_flow_figure step ids must be unique after ggconsort normalization")
   }
+  has_side_content <- length(exclusions) > 0 || length(endpoint_inventory) > 0 || length(design_panels) > 0
 
   step_df <- cohort_step_frame(steps, step_ids)
+  if (has_side_content) {
+    step_df$x <- 4
+  }
   exclusion_df <- cohort_exclusion_frame(exclusions, step_df, step_ids)
-  node_width <- 32
+  node_width <- if (has_side_content) 32 else 60
   node_height <- 10
   exclusion_width <- 26
   exclusion_height <- 8
@@ -342,9 +350,10 @@ build_ggconsort_plot <- function(payload) {
   exclusion_edge <- style_color(payload, "flow_exclusion_edge", "#B57F7F")
   text_colour <- style_color(payload, "flow_body_text", "#111827")
 
+  plot_xlim <- if (has_side_content) c(-18, 78) else c(-38, 38)
   plot <- ggplot2::ggplot() +
     ggplot2::theme_void() +
-    ggplot2::coord_cartesian(xlim = c(-18, 78), ylim = c(plot_y_min, 101), clip = "off")
+    ggplot2::coord_cartesian(xlim = plot_xlim, ylim = c(plot_y_min, 101), clip = "off")
   if (nrow(step_df) > 1) {
     for (index in seq_len(nrow(step_df) - 1)) {
       plot <- plot +
@@ -479,6 +488,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   exclusions <- payload$exclusions %||% list()
   endpoint_inventory <- payload$endpoint_inventory %||% list()
   design_panels <- payload$design_panels %||% list()
+  has_side_content <- length(exclusions) > 0 || length(endpoint_inventory) > 0 || length(design_panels) > 0
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
   stack_top <- 0.835
   stack_bottom <- 0.08
@@ -497,15 +507,20 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   }
   guide_boxes <- list()
   flow_nodes <- list()
+  step_x0 <- if (has_side_content) 0.10 else 0.18
+  step_x1 <- if (has_side_content) 0.40 else 0.82
+  connector_x0 <- if (has_side_content) 0.40 else 0.50
+  connector_x1 <- if (has_side_content) 0.42 else 0.50
+  rendered_width_pt <- if (has_side_content) 260.0 else 420.0
   for (index in seq_along(steps)) {
     y_center <- y_top - (index - 1) * y_gap
     box_id <- paste0("participant_step_", step_ids[[index]])
     layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
       box_id,
         "main_step",
-      0.10,
+      step_x0,
       y_center - node_height / 2,
-      0.40,
+      step_x1,
       y_center + node_height / 2
     )
     flow_nodes[[length(flow_nodes) + 1]] <- list(
@@ -514,16 +529,16 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       line_count = 2L,
       max_line_chars = 44L,
       rendered_height_pt = 74.0,
-      rendered_width_pt = 260.0,
+      rendered_width_pt = rendered_width_pt,
       padding_pt = 10.0
     )
     if (index > 1) {
       guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
         paste0("flow_spine_", step_ids[[index - 1]], "_to_", step_ids[[index]]),
         "flow_connector",
-        0.40,
+        connector_x0,
         y_center + node_height / 2,
-        0.42,
+        connector_x1,
         y_center + y_gap - node_height / 2
       )
     }
