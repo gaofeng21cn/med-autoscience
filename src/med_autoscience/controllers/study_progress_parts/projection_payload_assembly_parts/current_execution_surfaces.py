@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
-from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
-    CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
-)
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
     OPL_RUNTIME_TERMINAL_BLOCKERS,
 )
@@ -15,6 +12,11 @@ from med_autoscience.controllers.opl_transition_readback import (
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
     owner_reason_contract,
+)
+from .current_execution_alignment import (
+    current_action_aligned_with_execution_envelope,
+    text_list,
+    typed_blocker_reason,
 )
 
 from ..current_owner_action_projection_reconcile import (
@@ -694,78 +696,6 @@ def _handoff_current_work_unit_is_owner_receipt(handoff: Mapping[str, Any]) -> b
     return True
 
 
-def current_action_aligned_with_execution_envelope(
-    *,
-    action: Mapping[str, Any],
-    envelope: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if not action:
-        return None
-    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
-        return None
-    state_kind = _non_empty_text(envelope.get("state_kind"))
-    if state_kind == "typed_blocker":
-        typed_blocker = _mapping_copy(envelope.get("typed_blocker"))
-        blocker_reason = typed_blocker_reason(typed_blocker) or _envelope_typed_blocker_reason(envelope)
-        if (
-            blocker_reason not in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS
-            and not current_work_unit.action_supersedes_typed_blocker(
-                action=action,
-                blocker=typed_blocker,
-                progress=envelope.get("progress_payload"),
-            )
-        ):
-            return None
-        return dict(action)
-    action_source = _non_empty_text(action.get("source_surface")) or _non_empty_text(action.get("source"))
-    if (
-        state_kind == "typed_blocker"
-        and action_source == "study_progress.next_forced_delta.owner_action"
-        and _envelope_typed_blocker_reason(envelope) == "gate_clearing_batch_source_eval_currentness_mismatch"
-    ):
-        return dict(action)
-    if (
-        state_kind == "typed_blocker"
-        and action_source == "study_progress.next_forced_delta.owner_action"
-        and action.get("terminal_stage_next_forced_delta") is True
-    ):
-        return dict(action)
-    if state_kind != "executable_owner_action":
-        return None
-    envelope_work_unit = _work_unit_identity(envelope.get("next_work_unit"))
-    envelope_action = _non_empty_text(envelope.get("action_type"))
-    action_type = _non_empty_text(action.get("action_type"))
-    action_work_units = {
-        item
-        for item in (
-            _non_empty_text(action.get("work_unit_id")),
-            _non_empty_text(action.get("action_type")),
-            *_text_list(action.get("allowed_actions")),
-        )
-        if item is not None
-    }
-    if envelope_work_unit is not None and action_work_units and envelope_work_unit not in action_work_units:
-        return None
-    if envelope_action is not None and action_type is not None and envelope_action != action_type:
-        return None
-    envelope_fingerprint = _fingerprint_identity(envelope)
-    action_fingerprint = _fingerprint_identity(action)
-    if envelope_fingerprint is not None and action_fingerprint is not None:
-        if envelope_fingerprint != action_fingerprint:
-            return None
-    return dict(action)
-
-
-def typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
-    for key in ("blocked_reason", "blocker_type", "blocker_kind", "reason", "blocker_id"):
-        if text := _non_empty_text(typed_blocker.get(key)):
-            return text
-    anti_loop_budget = _mapping_copy(typed_blocker.get("anti_loop_budget"))
-    if _non_empty_text(anti_loop_budget.get("status")) == "exhausted":
-        return "anti_loop_budget_exhausted"
-    return None
-
-
 def _execution_actions_for_payload(
     *,
     payload: Mapping[str, Any],
@@ -1029,12 +959,12 @@ def _provider_admission_terminal_closeout_consumed_domain_delta(
         return True
     if _non_empty_text(terminal.get("owner_receipt_ref")) is not None:
         return True
-    if _text_list(terminal.get("owner_receipt_refs")):
+    if text_list(terminal.get("owner_receipt_refs")):
         return True
     if _non_empty_text(terminal.get("route_outcome")) == "owner_receipt":
         return True
     paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
-    if _text_list(paper_stage_log.get("changed_paper_surfaces")):
+    if text_list(paper_stage_log.get("changed_paper_surfaces")):
         return True
     if _non_empty_text(paper_stage_log.get("progress_delta_classification")) in {
         "deliverable_progress",
@@ -1061,45 +991,6 @@ def _provider_admission_terminal_closeout_consumed_current_work_unit(
     consumed_identity = _identity_values(consumed)
     current_identity = _identity_values(current)
     return not _identities_conflict(consumed_identity, current_identity)
-
-
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    return [text for item in value if (text := _non_empty_text(item)) is not None]
-
-
-def _first_text(items: list[str]) -> str | None:
-    return items[0] if items else None
-
-
-def _envelope_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
-    blocker = _mapping_copy(envelope.get("typed_blocker"))
-    for key in ("blocker_type", "blocker_id", "blocked_reason", "reason"):
-        if text := _non_empty_text(blocker.get(key)):
-            return text
-    return None
-
-
-def _work_unit_identity(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
-    return _non_empty_text(value)
-
-
-def _fingerprint_identity(value: Mapping[str, Any]) -> str | None:
-    basis = _mapping_copy(value.get("owner_route_currentness_basis")) or _mapping_copy(value.get("currentness_basis"))
-    return (
-        _non_empty_text(value.get("work_unit_fingerprint"))
-        or _non_empty_text(value.get("action_fingerprint"))
-        or _non_empty_text(value.get("fingerprint"))
-        or _non_empty_text(value.get("source_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("source_fingerprint"))
-    )
 
 
 __all__ = [
