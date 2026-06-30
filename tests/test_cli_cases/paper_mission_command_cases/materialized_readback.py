@@ -7,7 +7,6 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import write_synced_submission_delivery
 
 from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
-from med_autoscience.cli_parts import paper_mission_commands as commands
 from med_autoscience.paper_mission_stage_closure_ledger import (
     write_paper_mission_stage_closure_decision,
 )
@@ -20,6 +19,7 @@ def test_paper_mission_inspect_materialized_readback_defaults_to_no_live_opl_pro
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    readback_module = importlib.import_module("med_autoscience.paper_mission_opl_readback")
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
     workspace_root = tmp_path / "workspace"
@@ -66,19 +66,13 @@ def test_paper_mission_inspect_materialized_readback_defaults_to_no_live_opl_pro
         ),
         encoding="utf-8",
     )
-    live_probe_flags: list[bool] = []
-    original = commands.attach_opl_runtime_carrier_readback
-
-    def spy_attach_opl_runtime_carrier_readback(**kwargs):
-        live_probe_flags.append(bool(kwargs.get("enable_opl_live_probe")))
-        if kwargs.get("enable_opl_live_probe"):
-            raise AssertionError("materialized inspect should not request OPL live probe by default")
-        return original(**kwargs)
+    def fail_live_probe(**_kwargs):
+        raise AssertionError("materialized inspect should not request OPL live probe by default")
 
     monkeypatch.setattr(
-        commands,
-        "attach_opl_runtime_carrier_readback",
-        spy_attach_opl_runtime_carrier_readback,
+        readback_module,
+        "_matching_opl_runtime_live_probe",
+        fail_live_probe,
     )
 
     exit_code = cli.main(
@@ -97,8 +91,8 @@ def test_paper_mission_inspect_materialized_readback_defaults_to_no_live_opl_pro
 
     assert exit_code == 0
     assert payload["mission_state"] == "consumed"
-    assert live_probe_flags
-    assert live_probe_flags == [False]
+    assert payload["opl_runtime_readback_status"] == "waiting_for_opl_runtime_live_readback"
+    assert payload["opl_runtime_carrier_readback"]["runtime_readback_status"] == "missing"
 
 
 def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
