@@ -27,7 +27,9 @@ def _check_publication_center_transportability_governance_summary_panel(
         "panel_label",
         "subplot_x_axis_title",
         "metric_marker",
-        "governance_decision_cell",
+        "calibration_governance_metric",
+        "calibration_reference_line",
+        "calibration_acceptance_band",
         "legend",
     ]
     if _layout_override_flag(sidecar, "show_figure_title", False):
@@ -79,14 +81,17 @@ def _check_publication_center_transportability_governance_summary_panel(
                 observed=metrics.get("rendered_title_policy"),
             )
         )
-    if metrics.get("governance_text_policy") != "compact_matrix_labels_no_long_action_sentences":
+    if (
+        metrics.get("governance_visual_encoding_policy")
+        != "numeric_calibration_markers_with_reference_and_acceptance_band"
+    ):
         issues.append(
             _issue(
-                rule_id="governance_text_policy_missing",
-                message="center transportability governance panel must render compact matrix labels instead of long action sentences",
-                target="metrics.governance_text_policy",
-                expected="compact_matrix_labels_no_long_action_sentences",
-                observed=metrics.get("governance_text_policy"),
+                rule_id="governance_visual_encoding_policy_missing",
+                message="center transportability governance panel must encode calibration as numeric marks with reference and acceptance band",
+                target="metrics.governance_visual_encoding_policy",
+                expected="numeric_calibration_markers_with_reference_and_acceptance_band",
+                observed=metrics.get("governance_visual_encoding_policy"),
             )
         )
     centers = metrics.get("centers")
@@ -157,16 +162,30 @@ def _check_publication_center_transportability_governance_summary_panel(
             )
         )
 
-    governance_markers = _boxes_of_type(sidecar.layout_boxes, "governance_decision_cell")
-    expected_governance_markers = len(centers) * 3
+    retired_cells = _boxes_of_type(sidecar.layout_boxes, "governance_decision_cell") + _boxes_of_type(
+        sidecar.layout_boxes,
+        "governance_card",
+    )
+    if retired_cells:
+        issues.append(
+            _issue(
+                rule_id="retired_governance_text_cells_present",
+                message="center transportability governance panel must not use text cells or cards as its calibration evidence panel",
+                target="layout_boxes.governance_decision_cell",
+                observed=[box.box_id for box in retired_cells],
+            )
+        )
+
+    governance_markers = _boxes_of_type(sidecar.layout_boxes, "calibration_governance_metric")
+    expected_governance_markers = len(centers) * 2
     if len(governance_markers) < expected_governance_markers:
         issues.append(
             _issue(
-                rule_id="governance_decision_cell_count_incomplete",
-                message="center transportability governance qc requires cohort, calibration, and owner-action cells for each center",
-                target="layout_boxes.governance_decision_cell",
+                rule_id="calibration_governance_metric_count_incomplete",
+                message="center transportability governance qc requires slope and O/E metric marks for each center",
+                target="layout_boxes.calibration_governance_metric",
                 observed={
-                    "governance_decision_cell_count": len(governance_markers),
+                    "calibration_governance_metric_count": len(governance_markers),
                     "expected_count": expected_governance_markers,
                 },
             )
@@ -176,12 +195,26 @@ def _check_publication_center_transportability_governance_summary_panel(
             continue
         issues.append(
             _issue(
-                rule_id="governance_decision_cell_outside_panel",
-                message="governance decision cells must stay within the governance panel",
+                rule_id="calibration_governance_metric_outside_panel",
+                message="calibration governance metric marks must stay within the governance panel",
                 target=f"layout_boxes.{marker_box.box_id}",
                 box_refs=(marker_box.box_id, governance_panel.box_id),
             )
         )
+
+    for box_type in ("calibration_reference_line", "calibration_acceptance_band"):
+        boxes = _boxes_of_type(sidecar.layout_boxes, box_type)
+        for box in boxes:
+            if _box_within_box(box, governance_panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id=f"{box_type}_outside_panel",
+                    message=f"{box_type} must stay within the governance panel",
+                    target=f"layout_boxes.{box.box_id}",
+                    box_refs=(box.box_id, governance_panel.box_id),
+                )
+            )
 
     for index, center in enumerate(centers):
         if not isinstance(center, dict):

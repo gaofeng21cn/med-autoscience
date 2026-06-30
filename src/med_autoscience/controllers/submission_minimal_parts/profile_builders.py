@@ -201,7 +201,14 @@ def build_general_medical_submission_markdown(
         main_figures=main_figures,
         figure_semantics_map=figure_semantics_map,
     )
-    table_blocks = build_table_blocks(main_tables=main_tables)
+    catalog_table_blocks = build_catalog_backed_table_blocks(
+        paper_root=paper_root,
+        source_tables=main_tables,
+    )
+    table_blocks = build_table_blocks(
+        main_tables=main_tables,
+        catalog_table_blocks=catalog_table_blocks,
+    )
     section_blocks = [
         ("# Abstract", abstract),
         ("# Introduction", introduction),

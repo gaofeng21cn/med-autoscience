@@ -679,60 +679,67 @@ candidate_plot_center_transportability_governance <- function(payload) {
     row <- center_df[index, , drop = FALSE]
     slope_ok <- row$slope >= slope_lower && row$slope <= slope_upper
     oe_ok <- row$oe_ratio >= oe_lower && row$oe_ratio <= oe_upper
-    calibration_label <- sprintf(
-      "Slope %.2f; O/E %.2f",
-      row$slope,
-      row$oe_ratio
-    )
     data.frame(
       center_label = as.character(row$center_label),
       verdict = as.character(row$verdict),
       slope = row$slope,
       oe_ratio = row$oe_ratio,
-      calibration = calibration_label,
-      calibration_status = if (slope_ok && oe_ok) "Within acceptance" else "Recalibration required",
+      slope_status = if (slope_ok) "Within acceptance" else "Recalibration required",
+      oe_ratio_status = if (oe_ok) "Within acceptance" else "Recalibration required",
       action = as.character(row$action),
       stringsAsFactors = FALSE
     )
   }))
   governance_df$center_label <- factor(governance_df$center_label, levels = rev(levels(center_df$center_label)))
-  governance_df$calibration <- paste(
-    sprintf("Slope %.2f", governance_df$slope),
-    sprintf("O/E %.2f", governance_df$oe_ratio),
-    governance_df$calibration_status,
-    sep = "\n"
+  governance_metric_df <- rbind(
+    data.frame(
+      center_label = governance_df$center_label,
+      metric = "Slope",
+      value = governance_df$slope,
+      acceptance_lower = slope_lower,
+      acceptance_upper = slope_upper,
+      status = governance_df$slope_status,
+      verdict = governance_df$verdict,
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      center_label = governance_df$center_label,
+      metric = "O/E",
+      value = governance_df$oe_ratio,
+      acceptance_lower = oe_lower,
+      acceptance_upper = oe_upper,
+      status = governance_df$oe_ratio_status,
+      verdict = governance_df$verdict,
+      stringsAsFactors = FALSE
+    )
   )
-  governance_df$action <- vapply(governance_df$action, transportability_owner_action_label, character(1))
-  governance_long <- rbind(
-    data.frame(center_label = governance_df$center_label, column = "Cohort", text = as.character(governance_df$center_label), verdict = governance_df$verdict, stringsAsFactors = FALSE),
-    data.frame(center_label = governance_df$center_label, column = "Calibration check", text = governance_df$calibration, verdict = governance_df$verdict, stringsAsFactors = FALSE),
-    data.frame(center_label = governance_df$center_label, column = "Owner action", text = governance_df$action, verdict = governance_df$verdict, stringsAsFactors = FALSE)
+  governance_metric_df$metric <- factor(governance_metric_df$metric, levels = c("Slope", "O/E"))
+  governance_metric_df$center_label <- factor(governance_metric_df$center_label, levels = rev(levels(center_df$center_label)))
+  acceptance_df <- unique(
+    governance_metric_df[, c("metric", "acceptance_lower", "acceptance_upper")]
   )
-  governance_long$column <- factor(governance_long$column, levels = c("Cohort", "Calibration check", "Owner action"))
-  governance_long$text <- vapply(governance_long$text, transportability_wrap_label, character(1), width = 16)
-  governance_plot <- ggplot(governance_long, aes(x = column, y = center_label, fill = verdict)) +
-    geom_tile(colour = "white", linewidth = 0.6, alpha = 0.38) +
-    geom_text(
-      aes(label = text),
-      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.17,
-      lineheight = 0.82,
-      colour = palette$text
+  governance_plot <- ggplot(governance_metric_df, aes(x = value, y = center_label, colour = verdict)) +
+    geom_rect(
+      data = acceptance_df,
+      aes(xmin = acceptance_lower, xmax = acceptance_upper, ymin = -Inf, ymax = Inf),
+      inherit.aes = FALSE,
+      fill = palette$light,
+      alpha = 0.22
     ) +
-    scale_fill_manual(values = style_series_palette(payload, unique(center_df$verdict)), guide = "none") +
-    scale_x_discrete(position = "top") +
+    geom_vline(xintercept = 1.0, colour = palette$reference, linewidth = 0.35, linetype = "dashed") +
+    geom_point(size = style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.62) +
+    facet_wrap(~metric, nrow = 1, scales = "free_x") +
+    scale_color_manual(values = style_series_palette(payload, unique(center_df$verdict)), guide = publication_legend_guides(payload, center_df$verdict)) +
     labs(
       title = NULL,
-      x = "",
+      x = "Calibration value",
       y = ""
     ) +
     candidate_theme(payload) +
     theme(
-      axis.text.x = element_text(face = "bold", margin = margin(t = 4), size = rel(0.76)),
-      axis.text.y = element_blank(),
-      axis.title = element_blank(),
-      axis.ticks = element_blank(),
-      axis.line = element_blank(),
-      panel.grid = element_blank()
+      legend.position = "bottom",
+      panel.grid.major.y = element_line(colour = palette$grid, linewidth = 0.18),
+      strip.text = element_text(face = "bold", size = rel(0.76))
     )
 
   patchwork::wrap_plots(

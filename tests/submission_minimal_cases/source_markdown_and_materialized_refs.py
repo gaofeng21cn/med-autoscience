@@ -465,6 +465,73 @@ def test_create_submission_minimal_package_renders_extra_wide_tables_as_sideways
     assert "Cardiometabolic-risk dominant diabetes & 138797 & 20.04\\%" in submission_markdown
 
 
+def test_create_submission_minimal_package_uses_catalog_markdown_for_long_measure_value_tables(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Main Tables
+
+## Table 2. Baseline characteristics and recorded treatment-review gaps by phenotype
+
+| Phenotype | Index patients | Share of index cohort | Mean age, y | Mean BMI | Mean HbA1c | Severe glycemia low-intensity gap | Uncontrolled glycemia with no diabetes drug | Hypertension with no antihypertensive | Dyslipidemia with no lipid-lowering |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Glycemic-dominant diabetes | 104029 | 15.02% | 64.44 | 23.05 | 8.04 | 86.11% | 50.05% | 71.52% | 85.55% |
+""",
+    )
+    write_text(
+        paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
+        """# Phenotype-level clinical characteristics and treatment-gap rates
+
+| Phenotype | Measure | Value |
+| --- | --- | --- |
+| Glycemic-dominant diabetes | Index patients | 104029 |
+| Glycemic-dominant diabetes | Severe glycemia low-intensity gap | 86.11% |
+""",
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "paper_role": "main_text",
+                    "title": "Baseline characteristics and recorded treatment-review gaps by phenotype",
+                    "asset_paths": [
+                        "paper/tables/generated/T2_phenotype_gap_summary.csv",
+                        "paper/tables/generated/T2_phenotype_gap_summary.md",
+                    ],
+                    "render_result": {
+                        "table_layout_policy": "long_measure_value_table_to_avoid_pdf_header_overlap",
+                    },
+                }
+            ],
+        },
+    )
+    write_text(
+        paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv",
+        "Phenotype,Measure,Value\nGlycemic-dominant diabetes,Index patients,104029\n",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=_open_submission_route_context(),
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "| Phenotype | Measure | Value |" in submission_markdown
+    assert "Severe glycemia low-intensity gap | Uncontrolled glycemia" not in submission_markdown
+    assert "## Table 2. Baseline characteristics and recorded treatment-review gaps by phenotype" in submission_markdown
+
+
 def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
     tmp_path: Path,
     real_submission_exports,

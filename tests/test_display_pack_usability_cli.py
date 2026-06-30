@@ -147,6 +147,121 @@ def test_cli_display_pack_scaffold_render_materializes_minimal_paper(tmp_path: P
     assert (paper_root / "publication_style_profile.json").is_file()
 
 
+def test_cli_display_pack_scaffold_render_uses_schema_bundle_display_payload_for_transportability_governance(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    paper_root = tmp_path / "paper"
+    data_path = tmp_path / "payload.json"
+    data_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1",
+                "displays": [
+                    {
+                        "display_id": "transportability_governance",
+                        "template_id": "fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel",
+                        "title": "China-US transportability governance summary",
+                        "caption": "Calibration governance should be drawn as numeric evidence marks.",
+                        "metric_family": "discrimination",
+                        "metric_panel_title": "Cohort discrimination",
+                        "metric_x_label": "C-index",
+                        "metric_reference_value": 0.76,
+                        "batch_shift_threshold": 0.05,
+                        "slope_acceptance_lower": 0.90,
+                        "slope_acceptance_upper": 1.10,
+                        "oe_ratio_acceptance_lower": 0.90,
+                        "oe_ratio_acceptance_upper": 1.10,
+                        "summary_panel_title": "Calibration governance",
+                        "centers": [
+                            {
+                                "center_id": "china",
+                                "center_label": "China",
+                                "cohort_role": "Reference cohort",
+                                "support_count": 15000,
+                                "event_count": 300,
+                                "metric_estimate": 0.76,
+                                "metric_lower": 0.75,
+                                "metric_upper": 0.77,
+                                "max_shift": 0.0,
+                                "slope": 1.0,
+                                "oe_ratio": 1.0,
+                                "verdict": "stable",
+                                "action": "Accept reference",
+                            },
+                            {
+                                "center_id": "nhanes",
+                                "center_label": "NHANES",
+                                "cohort_role": "External comparative population",
+                                "support_count": 5600,
+                                "event_count": 700,
+                                "metric_estimate": 0.73,
+                                "metric_lower": 0.72,
+                                "metric_upper": 0.74,
+                                "max_shift": 0.10,
+                                "slope": 0.01,
+                                "oe_ratio": 5.33,
+                                "verdict": "recalibration_required",
+                                "action": "Require recalibration before use",
+                            },
+                        ],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "display-pack-scaffold-render",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--paper-root",
+            str(paper_root),
+            "--template-id",
+            "center_transportability_governance_summary_panel",
+            "--data-payload-file",
+            str(data_path),
+            "--figure-id",
+            "F5",
+            "--claim-ref",
+            "claim:transportability-governance",
+            "--cohort-ref",
+            "cohort:china-nhanes",
+            "--endpoint-ref",
+            "endpoint:5y-mortality",
+            "--risk-horizon",
+            "5y",
+        ]
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert result["status"] == "publication_manifested"
+    figure = result["figures"][0]
+    assert figure["renderer_family"] == "r_ggplot2"
+    assert figure["render_result"]["status"] == "rendered"
+
+    layout = _read_json(paper_root / "figures" / "generated" / "F5.layout.json")
+    qc = _read_json(paper_root / "qc" / "F5.layout_qc.json")
+    assert qc["status"] == "pass"
+    assert layout["metrics"]["governance_visual_encoding_policy"] == (
+        "numeric_calibration_markers_with_reference_and_acceptance_band"
+    )
+    assert len(layout["metrics"]["centers"]) == 2
+    box_types = {box["box_type"] for box in layout["layout_boxes"]}
+    assert "calibration_governance_metric" in box_types
+    assert "calibration_reference_line" in box_types
+    assert "calibration_acceptance_band" in box_types
+    assert "governance_decision_cell" not in box_types
+
+
 def test_cli_display_pack_golden_refresh_and_check_roundtrip(tmp_path: Path, capsys) -> None:
     paper_root = tmp_path / "paper"
     golden_root = tmp_path / "goldens"

@@ -95,6 +95,25 @@ payload_from_request <- function(request) {
     for (field_name in names(data_payload)) {
       merged_payload[[field_name]] <- data_payload[[field_name]]
     }
+    displays <- merged_payload$displays
+    if (is.list(displays) && length(displays) > 0) {
+      short_template_id <- trimws(as.character(request$short_template_id %||% request$template_id %||% ""))
+      selected_display <- displays[[1]]
+      for (display in displays) {
+        display_template_id <- trimws(as.character(display$template_id %||% ""))
+        display_template_short <- sub("^.*::", "", display_template_id)
+        if (
+          nzchar(short_template_id)
+          && (identical(display_template_id, short_template_id) || identical(display_template_short, short_template_id))
+        ) {
+          selected_display <- display
+          break
+        }
+      }
+      for (field_name in names(selected_display)) {
+        merged_payload[[field_name]] <- selected_display[[field_name]]
+      }
+    }
     return(merged_payload)
   }
   display_payload

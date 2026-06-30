@@ -708,12 +708,12 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "metric_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.20, "y0": 0.86, "x1": 0.42, "y1": 0.90},
                 {"box_id": "center_china_marker", "box_type": "metric_marker", "x0": 0.30, "y0": 0.32, "x1": 0.33, "y1": 0.36},
                 {"box_id": "center_us_marker", "box_type": "metric_marker", "x0": 0.27, "y0": 0.52, "x1": 0.30, "y1": 0.56},
-                {"box_id": "china_cohort_cell", "box_type": "governance_decision_cell", "x0": 0.58, "y0": 0.32, "x1": 0.66, "y1": 0.40},
-                {"box_id": "china_calibration_cell", "box_type": "governance_decision_cell", "x0": 0.68, "y0": 0.32, "x1": 0.82, "y1": 0.40},
-                {"box_id": "china_action_cell", "box_type": "governance_decision_cell", "x0": 0.84, "y0": 0.32, "x1": 0.92, "y1": 0.40},
-                {"box_id": "us_cohort_cell", "box_type": "governance_decision_cell", "x0": 0.58, "y0": 0.56, "x1": 0.66, "y1": 0.64},
-                {"box_id": "us_calibration_cell", "box_type": "governance_decision_cell", "x0": 0.68, "y0": 0.56, "x1": 0.82, "y1": 0.64},
-                {"box_id": "us_action_cell", "box_type": "governance_decision_cell", "x0": 0.84, "y0": 0.56, "x1": 0.92, "y1": 0.64},
+                {"box_id": "china_slope_marker", "box_type": "calibration_governance_metric", "x0": 0.65, "y0": 0.32, "x1": 0.68, "y1": 0.36},
+                {"box_id": "china_oe_marker", "box_type": "calibration_governance_metric", "x0": 0.80, "y0": 0.32, "x1": 0.83, "y1": 0.36},
+                {"box_id": "us_slope_marker", "box_type": "calibration_governance_metric", "x0": 0.62, "y0": 0.56, "x1": 0.65, "y1": 0.60},
+                {"box_id": "us_oe_marker", "box_type": "calibration_governance_metric", "x0": 0.90, "y0": 0.56, "x1": 0.93, "y1": 0.60},
+                {"box_id": "calibration_reference_line", "box_type": "calibration_reference_line", "x0": 0.74, "y0": 0.23, "x1": 0.745, "y1": 0.77},
+                {"box_id": "calibration_acceptance_band", "box_type": "calibration_acceptance_band", "x0": 0.66, "y0": 0.23, "x1": 0.82, "y1": 0.77},
             ],
             "panel_boxes": [
                 {"box_id": "panel_left", "box_type": "metric_panel", "x0": 0.08, "y0": 0.18, "x1": 0.48, "y1": 0.82},
@@ -726,7 +726,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "source_renderer": "MAS/Transportability::center_transportability_governance_summary_panel",
                 "figure_purpose": "transportability_discrimination_plus_recalibration_governance_decision_matrix",
                 "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
-                "governance_text_policy": "compact_matrix_labels_no_long_action_sentences",
+                "governance_visual_encoding_policy": "numeric_calibration_markers_with_reference_and_acceptance_band",
                 "centers": [
                     {
                         "center_id": "china",
