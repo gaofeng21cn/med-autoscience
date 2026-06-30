@@ -34,8 +34,6 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_cur
     _merge_owner_route_currentness,
     _provider_admission_action_key,
     _status_with_current_control_study_currentness,
-    _study_current_action_for_provider_admission,
-    _study_current_actions_for_provider_admission,
 )
 from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
@@ -46,6 +44,7 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_hel
 from med_autoscience.controllers.provider_admission_parts.provider_admission_identity import (
     current_identity_is_opl_authorization_typed_blocker as _current_identity_is_opl_authorization_typed_blocker,
     matches_current_action as _matches_current_action,
+    matches_current_action_without_fingerprint as _matches_current_action_without_fingerprint,
     owner_route_currentness_basis_complete as _owner_route_currentness_basis_complete,
     status_requires_current_identity as _status_requires_current_identity,
     work_unit_ids_equivalent_for_action as _work_unit_ids_equivalent_for_action,
@@ -154,7 +153,6 @@ def current_control_provider_admission_candidates(
     queued_actions = [
         item for item in payload.get("action_queue") or [] if isinstance(item, Mapping)
     ]
-    queued_actions.extend(_study_current_actions_for_provider_admission(payload))
     for action in queued_actions:
         if not isinstance(action, Mapping):
             continue

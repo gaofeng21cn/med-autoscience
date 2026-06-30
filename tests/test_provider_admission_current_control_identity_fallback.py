@@ -313,10 +313,40 @@ def test_current_control_provider_admission_filters_synthetic_current_owner_tick
         },
     )
 
+    queued_action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "source_surface": "opl_current_control_state.action_queue",
+        "status": "transition_request_pending",
+        "owner": "write",
+        "next_executable_owner": "write",
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": work_unit_id,
+        "next_work_unit": work_unit_id,
+        "work_unit_fingerprint": ticket,
+        "action_fingerprint": ticket,
+        "refs": {"dispatch_path": str(dispatch_path)},
+        "owner_route": {
+            "next_owner": "write",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": strong_fingerprint,
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": strong_fingerprint,
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                },
+            },
+        },
+    }
     result = provider_admission.current_control_provider_admission_candidates(
         {
             "surface": "opl_current_control_state_handoff",
-            "action_queue": [],
+            "action_queue": [queued_action],
             "studies": [
                 {
                     "study_id": study_id,

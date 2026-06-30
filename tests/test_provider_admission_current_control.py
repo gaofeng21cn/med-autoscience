@@ -509,14 +509,7 @@ def test_current_control_provider_admission_uses_study_current_action_when_top_l
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_gate_clearing_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    assert candidate["next_executable_owner"] == "gate_clearing_batch"
+    assert result == []
 
 
 def test_current_control_provider_admission_reads_transition_request_path_without_legacy_dispatch_ref(
@@ -786,14 +779,7 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_gate_clearing_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["next_executable_owner"] == "write"
-    assert candidate["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert result == []
 
 
 def test_current_control_provider_admission_rejects_write_owner_gate_clearing_without_strong_identity(
@@ -970,14 +956,7 @@ def test_current_control_provider_admission_allows_write_quality_repair_from_stu
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["next_executable_owner"] == "write"
-    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert result == []
 
 
 def test_provider_admission_candidate_never_promotes_provider_completion_to_domain_completion(

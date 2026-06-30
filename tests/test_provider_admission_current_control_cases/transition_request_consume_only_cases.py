@@ -14,6 +14,72 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission imp
 from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases_cases.test_request_only_dry_run_closeout import *  # noqa: F403,F401
 
 
+def _explicit_queue_action_from_current(study: dict) -> dict:
+    action = dict(study["current_executable_owner_action"])
+    action["study_id"] = study["study_id"]
+    action["quest_id"] = study.get("quest_id") or study["study_id"]
+    action.setdefault("status", "transition_request_pending")
+    action.setdefault("owner", action.get("next_owner"))
+    action.setdefault("next_executable_owner", action.get("next_owner") or action.get("owner"))
+    return action
+
+
+def _accepted_owner_gate_queue_action(
+    *,
+    study_id: str,
+    work_unit_id: str,
+    action_fingerprint: str,
+    stage_packet_ref: str,
+) -> dict:
+    currentness_basis = {
+        "source": "paper_recovery_state.accepted_owner_gate_decision",
+        "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+        "truth_epoch": "truth-event-000035",
+        "runtime_health_epoch": "runtime-health-event-006980",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+    }
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "status": "transition_request_pending",
+        "source": "paper_recovery_state.accepted_owner_gate_decision",
+        "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+        "mas_owner_action_source": "paper_recovery_state.accepted_owner_gate_decision",
+        "authority": "paper_recovery_state.accepted_owner_gate_decision",
+        "owner": "write",
+        "next_owner": "write",
+        "next_executable_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": work_unit_id,
+        "next_work_unit": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "owner_route_currentness_basis": currentness_basis,
+        "currentness_basis": currentness_basis,
+        "owner_route": {
+            "next_owner": "write",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "work_unit_fingerprint": action_fingerprint,
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+                "stage_packet_ref": stage_packet_ref,
+                "stage_packet_refs": [stage_packet_ref],
+                "owner_route_currentness_basis": currentness_basis,
+            },
+        },
+    }
+
+
 def test_provider_admission_current_control_treats_mas_request_without_opl_readback_as_non_advancing(
     tmp_path: Path,
 ) -> None:
@@ -395,7 +461,17 @@ def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_re
         },
     }
     candidates = current_control_provider_admission_candidates(
-        {"studies": [scanned_study], "action_queue": []},
+        {
+            "studies": [scanned_study],
+            "action_queue": [
+                _accepted_owner_gate_queue_action(
+                    study_id=study_id,
+                    work_unit_id=work_unit_id,
+                    action_fingerprint=action_fingerprint,
+                    stage_packet_ref=stage_packet_ref,
+                )
+            ],
+        },
         study_root=study_root,
         status_payload=scanned_study,
     )
@@ -632,7 +708,10 @@ def test_paper_recovery_successor_request_opl_stage_attempt_without_dispatch_bec
         },
     }
     candidates = current_control_provider_admission_candidates(
-        {"studies": [scanned_study], "action_queue": []},
+        {
+            "studies": [scanned_study],
+            "action_queue": [_explicit_queue_action_from_current(scanned_study)],
+        },
         study_root=profile.studies_root / study_id,
         status_payload=scanned_study,
     )

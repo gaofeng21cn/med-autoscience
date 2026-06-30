@@ -189,12 +189,5 @@ def test_provider_admission_report_does_not_admit_owner_gate_route_back_without_
     assert result is not None
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
-    assert result["stage_route_arbiter"]["decision_counts"] == {
-        "opl_transition_readback_required": 1,
-    }
-    decision = result["stage_route_arbiter_decisions"][0]
-    assert decision["decision"] == "opl_transition_readback_required"
-    assert decision["effect"] == "suppress_provider_admission_pending"
-    assert decision["evidence_status"] == "NonAdvancingApply"
-    assert decision["no_progress_signal"] == "transition_request_waits_for_opl_runtime"
-    assert decision["evidence"]["paper_recovery_state"]["status"] == "owner_action_ready"
+    assert result["stage_route_arbiter"]["decision_counts"] == {}
+    assert result["stage_route_arbiter_decisions"] == []

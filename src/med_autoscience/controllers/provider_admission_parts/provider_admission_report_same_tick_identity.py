@@ -7,9 +7,6 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_hel
     mapping as _mapping,
     non_empty_text as _non_empty_text,
 )
-from med_autoscience.controllers.provider_admission_parts.provider_admission import (
-    _study_current_action_for_provider_admission,
-)
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -147,46 +144,6 @@ def same_tick_progress_current_actions(
                 current_work_unit_basis.get("source_fingerprint"),
             ]
         )
-        projected_action = _study_current_action_for_provider_admission(
-            {
-                "study_id": normalized_study_id,
-                "quest_id": _non_empty_text(progress_payload.get("quest_id")) or normalized_study_id,
-                **({"current_executable_owner_action": dict(current)} if current else {}),
-                **(
-                    {"current_work_unit": dict(current_work_unit)}
-                    if current_work_unit
-                    else {}
-                ),
-                **(
-                    {"domain_transition": dict(_mapping(progress_payload.get("domain_transition")))}
-                    if _mapping(progress_payload.get("domain_transition"))
-                    else {}
-                ),
-                **(
-                    {
-                        "progress_first_monitoring_summary": dict(
-                            _mapping(progress_payload.get("progress_first_monitoring_summary"))
-                        )
-                    }
-                    if _mapping(progress_payload.get("progress_first_monitoring_summary"))
-                    else {}
-                ),
-                **(
-                    {"intervention_lane": dict(_mapping(progress_payload.get("intervention_lane")))}
-                    if _mapping(progress_payload.get("intervention_lane"))
-                    else {}
-                ),
-            }
-        )
-        if projected_action is not None:
-            explicit_fingerprints.extend(
-                same_tick_text_items(
-                    [
-                        projected_action.get("work_unit_fingerprint"),
-                        projected_action.get("action_fingerprint"),
-                    ]
-                )
-            )
         action_type = (
             _non_empty_text(current.get("action_type"))
             or _non_empty_text(current_work_unit.get("action_type"))

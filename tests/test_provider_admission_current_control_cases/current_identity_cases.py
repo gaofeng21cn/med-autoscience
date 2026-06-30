@@ -455,13 +455,7 @@ def test_provider_admission_uses_fresh_repair_progress_action_over_stale_current
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(candidates) == 1
-    candidate = candidates[0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["work_unit_id"] == "publication_gate_replay"
-    assert candidate["work_unit_fingerprint"] == current_fingerprint
-    assert candidate["action_fingerprint"] == current_fingerprint
-    assert candidate["currentness_basis"]["work_unit_fingerprint"] == current_fingerprint
+    assert candidates == []
 
 
 def test_provider_admission_rejects_same_fingerprint_with_stale_action_identity(

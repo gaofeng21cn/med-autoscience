@@ -2,23 +2,28 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
+
+from med_autoscience.cli_parts.paper_mission_command_parts import opl_runtime_submission
+from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
+    NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS,
+)
 
 
 def test_opl_tick_followthrough_timeout_is_bounded(monkeypatch) -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     observed: dict[str, object] = {}
 
     def fake_run(command, **kwargs):
         observed["command"] = command
         observed["timeout"] = kwargs["timeout"]
-        raise commands.subprocess.TimeoutExpired(
+        raise subprocess.TimeoutExpired(
             cmd=command,
             timeout=kwargs["timeout"],
         )
 
-    monkeypatch.setattr(commands.subprocess, "run", fake_run)
+    monkeypatch.setattr(opl_runtime_submission.subprocess, "run", fake_run)
 
-    result = commands._opl_runtime_tick_readback(
+    result = opl_runtime_submission._opl_runtime_tick_readback(
         opl_bin="/tmp/opl",
         runtime_request={
             "payload": {
@@ -28,7 +33,10 @@ def test_opl_tick_followthrough_timeout_is_bounded(monkeypatch) -> None:
         },
     )
 
-    assert observed["timeout"] == commands.OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS
+    assert (
+        observed["timeout"]
+        == opl_runtime_submission.OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS
+    )
     assert observed["timeout"] <= 15
     assert "--hydrate" in observed["command"]
     assert result["status"] == "timeout"
@@ -66,7 +74,7 @@ def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> 
     assert executor_stage["owner"] == "MedAutoScience"
     assert executor_stage["executor"] == "Codex CLI"
     assert executor_stage["required_outputs"] == list(
-        commands.NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS
+        NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS
     )
     assert executor_stage["forbidden_next_action"] == "synonymous_route_back_redrive"
     assert executor_stage["authority_boundary"]["writes_authority"] is False
@@ -188,13 +196,13 @@ def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
 
-    runtime_request = commands._opl_stage_route_runtime_request_from_handoff(
+    runtime_request = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
         _route_back_handoff()
     )
 
     assert runtime_request["dedupe_key"] == (
         "paper-mission-route:"
-        f"{commands.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION}:"
+        f"{opl_runtime_submission.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION}:"
         "003-dpcc-primary-care-phenotype-treatment-gap:"
         "paper-mission-transaction::dm003:"
         "route_back"

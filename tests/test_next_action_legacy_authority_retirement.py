@@ -77,12 +77,11 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
 
 
 def test_canonical_next_action_blocks_provider_admission_current_control_candidate() -> None:
-    payload = _canonical_payload()
     provider_actions = importlib.import_module(
         "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
     )
 
-    assert provider_actions._study_current_action_for_provider_admission(payload) is None
+    assert not hasattr(provider_actions, "_study_current_action_for_provider_admission")
 
 
 def test_missing_canonical_next_action_does_not_resurrect_legacy_default_owner_action() -> None:
@@ -95,6 +94,66 @@ def test_missing_canonical_next_action_does_not_resurrect_legacy_default_owner_a
     )
 
     assert current_action.build_canonical_owner_action_projection(payload) is None
+
+
+def test_missing_canonical_next_action_closes_all_legacy_owner_inputs() -> None:
+    legacy_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "legacy_current_executable_owner_action",
+        "next_owner": "write",
+        "owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "work_unit_id": "legacy-write-repair",
+        "work_unit_fingerprint": "legacy-write-repair::fingerprint",
+        "action_fingerprint": "legacy-write-repair::fingerprint",
+    }
+    payload = {
+        "study_id": "legacy-only-study",
+        "current_executable_owner_action": legacy_action,
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "executable_owner_action",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy-current-work-unit",
+            "work_unit_fingerprint": "legacy-current-work-unit::fingerprint",
+            "state": {"current_executable_owner_action": legacy_action},
+        },
+        "provider_admission": {
+            "surface_kind": "provider_admission",
+            "status": "ready",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy-provider-admission",
+            "request_idempotency_key": "legacy-provider-admission-request",
+        },
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "owner": "write",
+            "controller_action": "run_quality_repair_batch",
+            "next_work_unit": {"unit_id": "legacy-domain-transition"},
+        },
+        "paper_recovery_state": {
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "successor_owner_action": legacy_action,
+            },
+        },
+    }
+
+    current_action = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+    )
+    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
+    provider_actions = importlib.import_module(
+        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
+    )
+
+    assert current_action.build_canonical_owner_action_projection(payload) is None
+    assert current_work_unit.build_current_work_unit(progress=payload) == {}
+    assert not hasattr(provider_actions, "_study_current_action_for_provider_admission")
 
 
 def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() -> None:

@@ -20,6 +20,16 @@ def _write_jsonl(path: Path, payloads: list[object]) -> None:
     )
 
 
+def _explicit_queue_action_from_current(study: dict) -> dict:
+    action = dict(study["current_executable_owner_action"])
+    action["study_id"] = study["study_id"]
+    action["quest_id"] = study.get("quest_id") or study["study_id"]
+    action.setdefault("status", "transition_request_pending")
+    action.setdefault("owner", action.get("next_owner"))
+    action.setdefault("next_executable_owner", action.get("next_owner") or action.get("owner"))
+    return action
+
+
 def test_provider_admission_current_control_consumes_opl_transition_log_readback(
     tmp_path: Path,
 ) -> None:
@@ -190,7 +200,10 @@ def test_provider_admission_current_control_consumes_opl_transition_log_readback
         },
     }
     candidates = current_control_provider_admission_candidates(
-        {"studies": [scanned_study], "action_queue": []},
+        {
+            "studies": [scanned_study],
+            "action_queue": [_explicit_queue_action_from_current(scanned_study)],
+        },
         study_root=profile.studies_root / study_id,
         status_payload=scanned_study,
     )

@@ -371,6 +371,8 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
         "surface_kind": "current_executable_owner_action",
         "status": "ready",
         "next_owner": "analysis-campaign",
+        "next_executable_owner": "analysis-campaign",
+        "owner": "analysis-campaign",
         "action_type": action_type,
         "allowed_actions": [action_type],
         "work_unit_id": work_unit_id,
@@ -449,7 +451,13 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
     [candidate] = module.current_control_provider_admission_candidates(
         {
             "studies": [status_payload],
-            "action_queue": [],
+            "action_queue": [
+                {
+                    **current_action,
+                    "study_id": study_id,
+                    "source_surface": "opl_current_control_state.action_queue",
+                }
+            ],
         },
         study_root=profile.studies_root / study_id,
         status_payload=status_payload,
@@ -459,7 +467,7 @@ def test_provider_admission_candidate_allows_current_action_identity_over_prior_
     assert candidate["action_type"] == action_type
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["work_unit_fingerprint"] == fingerprint
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["source"] == "opl_current_control_state.action_queue"
 
 
 def test_opl_authorization_blocked_execution_requires_fingerprint_bound_identity() -> None:

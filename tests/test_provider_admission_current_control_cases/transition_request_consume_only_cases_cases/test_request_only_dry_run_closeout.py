@@ -15,6 +15,16 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission imp
 pytestmark = pytest.mark.contract
 
 
+def _explicit_queue_action_from_current(study: dict) -> dict:
+    action = dict(study["current_executable_owner_action"])
+    action["study_id"] = study["study_id"]
+    action["quest_id"] = study.get("quest_id") or study["study_id"]
+    action.setdefault("status", "transition_request_pending")
+    action.setdefault("owner", action.get("next_owner"))
+    action.setdefault("next_executable_owner", action.get("next_owner") or action.get("owner"))
+    return action
+
+
 def test_dry_run_materialized_transition_request_waits_for_opl_readback(
     tmp_path: Path,
 ) -> None:
@@ -256,7 +266,7 @@ def test_request_only_successor_transition_candidate_carries_current_work_unit_s
         "provider_admission_candidates": [],
         "transition_request_pending_count": 0,
         "transition_request_candidates": [],
-        "action_queue": [],
+        "action_queue": [_explicit_queue_action_from_current(scanned_study)],
         "studies": [scanned_study],
     }
     candidates = current_control_provider_admission_candidates(
