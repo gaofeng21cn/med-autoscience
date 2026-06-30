@@ -6,11 +6,44 @@ from typing import Any
 
 from med_autoscience.cli_parts.paper_mission_output_roots import (
     PAPER_MISSION_STAGE_CLOSURE_RELPATH,
+    _assert_safe_stage_closure_output_root,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_signature,
     terminalize_stage_closure,
+)
+from med_autoscience.paper_mission_stage_closure_ledger import (
+    latest_paper_mission_stage_closure_decision_readback,
+    write_paper_mission_stage_closure_decision,
+)
+
+STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES = (
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "owner receipt",
+    "typed blocker",
+    "human gate",
+    "current_package",
+    "runtime queue/provider attempts",
+    "Yang study truth surfaces",
+    "Yang runtime authority surfaces",
+    "Yang output outside ops/medautoscience/paper_mission_stage_closure",
+)
+FORBIDDEN_AUTHORITY_CLAIMS = (
+    "publication_ready",
+    "submission_ready",
+    "current_package",
+    "owner_receipt_written",
+    "typed_blocker_written",
+    "human_gate_written",
+    "controller_decision_written",
+    "publication_eval_written",
+    "quality_verdict",
+    "artifact_authority",
+    "runtime_queue_written",
+    "provider_attempt_written",
+    "yang_workspace_written",
 )
 
 
@@ -155,6 +188,69 @@ def terminalize_stage_closure_from_readback(
         repair_budget=repair_budget,
         previous_signature=previous_signature,
     )
+
+
+def materialize_stage_closure_for_drive_readback(
+    *,
+    profile: Any,
+    study_id: str,
+    consume_readback: Mapping[str, Any],
+    source: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    decision = terminalize_stage_closure_from_readback(consume_readback)
+    root = stage_closure_terminalizer_output_root(
+        profile=profile,
+        output_root=None,
+    )
+    _assert_safe_stage_closure_output_root(root)
+    output_manifest = write_paper_mission_stage_closure_decision(
+        output_root=root,
+        study_id=study_id,
+        decision=decision,
+        source_readback=consume_readback,
+        source=source,
+        forbidden_authority_writes=STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
+        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+    refreshed = attach_stage_closure_ledger_to_drive_readback(
+        profile=profile,
+        consume_readback=consume_readback,
+    )
+    return refreshed, output_manifest
+
+
+def attach_stage_closure_ledger_to_drive_readback(
+    *,
+    profile: Any,
+    consume_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _mapping(consume_readback.get("paper_mission_transaction"))
+    transaction_ref = _optional_text(transaction.get("transaction_id"))
+    study_id = str(consume_readback.get("study_id") or transaction.get("study_id") or "")
+    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+        transaction_ref=transaction_ref,
+    )
+    if stage_closure_ledger_readback is None and transaction_ref is not None:
+        stage_closure_ledger_readback = (
+            latest_paper_mission_stage_closure_decision_readback(
+                workspace_root=Path(profile.workspace_root),
+                study_id=study_id,
+                transaction_ref=None,
+            )
+        )
+    if stage_closure_ledger_readback is None:
+        return dict(consume_readback)
+    return {
+        **dict(consume_readback),
+        "stage_closure_decision": stage_closure_ledger_readback,
+        "stage_closure_decision_ref": stage_closure_ledger_readback.get("decision_ref"),
+        "stage_closure_outcome": _mapping(
+            stage_closure_ledger_readback.get("outcome")
+        ).get("kind"),
+        "paper_mission_stage_closure_ledger_readback": stage_closure_ledger_readback,
+    }
 
 
 def stage_closure_source_readback_summary(
