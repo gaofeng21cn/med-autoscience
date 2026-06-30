@@ -132,3 +132,58 @@ def test_opl_contract_fixture_ignores_legacy_completion_surfaces_for_semantics()
     assert "action_queue" not in envelope
     assert "stage_attempt" not in envelope
     assert "delivery_mirror" not in envelope
+
+
+def test_legacy_only_completion_surfaces_do_not_create_next_action_envelope() -> None:
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": "paper-mission-transaction::dm004::legacy-only",
+            "study_id": "004-new-study-family-route",
+            "stage_id": "publication_supervision",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "owner": "write",
+                "action_type": "legacy_complete_owner_action",
+                "action_family": FAMILY_MISSION_COMPLETE,
+            },
+            "action_queue": [
+                {
+                    "surface_kind": "runtime_queue_row",
+                    "status": "ready",
+                    "target": "dm004_legacy_queue_target",
+                    "action_family": FAMILY_MISSION_COMPLETE,
+                }
+            ],
+            "stage_attempt": {
+                "surface_kind": "stage_attempt",
+                "attempt_status": "succeeded",
+                "provider_result": "complete",
+            },
+            "delivery_mirror": {
+                "surface_kind": "study_delivery_mirror",
+                "freshness": "current",
+                "can_submit": True,
+            },
+        },
+        opl_runtime_carrier_readback={
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "carrier_status": "complete",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "owner": "write",
+            },
+            "action_queue": [{"status": "ready"}],
+            "stage_attempt": {"attempt_status": "succeeded"},
+            "delivery_mirror": {"freshness": "current", "can_submit": True},
+        },
+        diagnostic_refs=[
+            "legacy://current_executable_owner_action/ready",
+            "legacy://runtime_queue/ready",
+            "legacy://stage_attempt/succeeded",
+            "legacy://delivery_mirror/current",
+        ],
+    )
+
+    assert envelope is None
