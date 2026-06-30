@@ -8,6 +8,9 @@ from tests.study_runtime_test_helpers import write_synced_submission_delivery
 
 from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 from med_autoscience.cli_parts import paper_mission_commands as commands
+from med_autoscience.paper_mission_stage_closure_ledger import (
+    write_paper_mission_stage_closure_decision,
+)
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
 
@@ -548,6 +551,174 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
         "terminal_owner_gate_owner_answer_readback"
     ] == owner_answer
     assert inspect_payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_inspect_projects_ledger_typed_blocker_owner_gate(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260630Tledger-typed-blocker"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::submission-milestone::typed-blocker"
+    one_shot_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="typed_blocker",
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": mission_id,
+                "study_id": study_id,
+                "objective": "Consumed milestone with typed blocker stage closure.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {
+                    "status": "accepted",
+                    "outcome": "accepted_submission_milestone_candidate",
+                },
+                "claim_permissions": {
+                    "can_claim_artifact_delta": False,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": one_shot_transaction,
+                "one_shot_migration_readback": {
+                    "required_output": {
+                        "next_owner": "one-person-lab",
+                        "work_unit_id": "submission_milestone_candidate",
+                    },
+                    "consume_candidate_status": "typed_blocker",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=one_shot_transaction,
+    )
+    consume_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "sat-current"
+    )
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(consume_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    consume_payload = json.loads(capsys.readouterr().out)
+    current_transaction = consume_payload["paper_mission_transaction_readback"][
+        "paper_mission_transaction"
+    ]
+    stage_closure_ref = "typed-blocker:dm002:submission-authority-human-gate"
+    write_paper_mission_stage_closure_decision(
+        output_root=(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_closure"
+            / "sat-current"
+        ),
+        study_id=study_id,
+        decision={
+            "decision_ref": stage_closure_ref,
+            "study_id": study_id,
+            "stage_id": "submission_milestone_candidate",
+            "work_unit_id": "submission_blocker_human_gate",
+            "outcome": {
+                "kind": "typed_blocker",
+                "blocker_id": "submission_authority_human_gate_required",
+                "typed_blocker_evidence_ref": stage_closure_ref,
+                "authority_materialized": False,
+            },
+        },
+        source_readback={
+            **consume_payload,
+            "paper_mission_transaction": current_transaction,
+        },
+        source="test",
+        forbidden_authority_writes=FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+        forbidden_authority_claims=("publication_ready", "owner_receipt_written"),
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["stage_closure_outcome"] == "typed_blocker"
+    gate = payload["terminal_owner_gate"]
+    assert gate["owner"] == "mas_authority_kernel"
+    assert gate["gate_kind"] == "typed_blocker"
+    assert gate["typed_blocker_ref"] == stage_closure_ref
+    assert gate["legal_next_action"] == "route_to_owner_or_human_gate"
+    assert gate["can_claim_paper_progress"] is False
+    assert gate["can_claim_runtime_ready"] is False
+    assert payload["next_owner_or_human_decision"] == {
+        "kind": "owner_or_route",
+        "next_owner": "mas_authority_kernel",
+        "human_decision_required": False,
+        "summary": "submission_authority_human_gate_required",
+        "typed_blocker_ref": stage_closure_ref,
+        "can_execute": False,
+        "can_authorize_provider_admission": False,
+    }
+    authority_readback = payload["terminal_owner_gate_authority_readback"]
+    assert authority_readback["status"] == "owner_answer_required"
+    assert authority_readback["next_owner"] == "mas_authority_kernel"
+    assert authority_readback["authority_boundary"]["can_write_typed_blocker"] is False
+    assert payload["paper_mission_transaction_readback"]["terminal_owner_gate"] == gate
+    assert payload["next_action"]["owner"] == "mas_authority_kernel"
+    assert payload["next_action"]["authority_boundary"][
+        "can_claim_publication_ready"
+    ] is False
+    assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

@@ -584,6 +584,11 @@ def build_paper_mission_readback(
             **transaction_readback,
             "next_action": next_action_override,
         }
+    transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
+        transaction_output_fields=transaction_output_fields,
+        stage_closure_decision=stage_closure_decision,
+        next_action=next_action_override,
+    )
     submission_gate_readback = _submission_authority_owner_gate_readback(
         study_root=Path(profile.studies_root) / study_id,
         study_id=study_id,
@@ -2774,6 +2779,11 @@ def _build_materialized_mission_readback_if_available(
             **transaction_readback,
             "next_action": next_action_override,
         }
+    transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
+        transaction_output_fields=transaction_output_fields,
+        stage_closure_decision=stage_closure_decision,
+        next_action=next_action_override,
+    )
     submission_gate_readback = _submission_authority_owner_gate_readback(
         study_root=Path(profile.studies_root) / resolved_study_id,
         study_id=resolved_study_id,
@@ -2979,6 +2989,79 @@ def _paper_mission_inspect_projection_fields(
             )
             or None,
             "current_package": _paper_mission_current_package_projection(projection_fields),
+        }
+    )
+
+
+def _merge_stage_closure_typed_blocker_gate_fields(
+    *,
+    transaction_output_fields: Mapping[str, Any],
+    stage_closure_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    gate = _terminal_owner_gate_from_stage_closure_decision(
+        stage_closure_decision=stage_closure_decision,
+        next_action=next_action,
+    )
+    if not gate:
+        return dict(transaction_output_fields)
+    merged = dict(transaction_output_fields)
+    merged["terminal_owner_gate"] = gate
+    authority_readback = terminal_owner_gate_authority_readback(gate)
+    merged["terminal_owner_gate_authority_readback"] = authority_readback or None
+    merged["next_owner_or_human_decision"] = terminal_owner_gate_next_decision(gate)
+    readback = _mapping(merged.get("paper_mission_transaction_readback"))
+    if readback:
+        merged["paper_mission_transaction_readback"] = {
+            **readback,
+            "terminal_owner_gate": gate,
+            "terminal_owner_gate_authority_readback": authority_readback or None,
+            "next_owner_or_human_decision": merged["next_owner_or_human_decision"],
+        }
+    return merged
+
+
+def _terminal_owner_gate_from_stage_closure_decision(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    decision = _mapping(stage_closure_decision)
+    outcome = _mapping(decision.get("outcome"))
+    if outcome.get("kind") != "typed_blocker":
+        return {}
+    action = _mapping(next_action)
+    typed_blocker_ref = _first_text(
+        outcome.get("typed_blocker_ref"),
+        outcome.get("typed_blocker_evidence_ref"),
+        decision.get("decision_ref"),
+        action.get("outcome_ref"),
+    )
+    return _compact_mapping(
+        {
+            "surface_kind": "paper_mission_terminal_owner_gate",
+            "owner": "mas_authority_kernel",
+            "gate_kind": "typed_blocker",
+            "blocked_reason": _first_text(
+                outcome.get("blocker_id"),
+                outcome.get("reason"),
+                "typed_blocker",
+            ),
+            "typed_blocker_ref": typed_blocker_ref,
+            "closeout_ref": _first_text(decision.get("decision_ref"), action.get("outcome_ref")),
+            "stage_attempt_id": _first_text(
+                outcome.get("stage_attempt_id"),
+                decision.get("stage_attempt_id"),
+            ),
+            "work_unit_id": _first_text(
+                outcome.get("work_unit_id"),
+                decision.get("work_unit_id"),
+                action.get("work_unit_id"),
+            ),
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+            "authority_materialized": False,
+            "legal_next_action": "route_to_owner_or_human_gate",
         }
     )
 
