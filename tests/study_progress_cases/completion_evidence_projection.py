@@ -45,6 +45,29 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
             "quest_root": str(quest_root),
             "quest_exists": True,
             "quest_status": "completed",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "complete",
+                "owner": "write",
+                "action_type": "legacy_complete_owner_action",
+            },
+            "action_queue": [
+                {
+                    "surface_kind": "runtime_queue_row",
+                    "status": "complete",
+                    "action_family": "mission.complete",
+                }
+            ],
+            "stage_attempt": {
+                "surface_kind": "stage_attempt",
+                "attempt_status": "succeeded",
+                "provider_result": "complete",
+            },
+            "delivery_mirror": {
+                "surface_kind": "study_delivery_mirror",
+                "freshness": "current",
+                "can_submit": True,
+            },
             "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
             "runtime_binding_exists": True,
             "study_completion_contract": {

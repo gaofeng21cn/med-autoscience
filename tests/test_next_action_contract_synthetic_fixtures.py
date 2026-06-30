@@ -49,6 +49,42 @@ def test_synthetic_new_study_route_uses_family_identity_not_exact_id_mapping() -
     assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == "diagnostic_currentness_id"
 
 
+def test_synthetic_new_study_runtime_route_uses_family_identity_not_exact_id_mapping() -> None:
+    synthetic_work_unit_id = "dm004_unmapped_runtime_owner_route"
+
+    exact_id_only_family = resolve_action_family(work_unit_id=synthetic_work_unit_id)
+    envelope = compile_next_action_envelope(
+        stage_outcome={
+            "study_id": "004-new-study-runtime-route",
+            "stage_id": "publication_supervision",
+            "work_unit_id": synthetic_work_unit_id,
+            "work_unit_fingerprint": "dm004::runtime::001",
+            "action_family": FAMILY_RUNTIME_OPL_ROUTE,
+            "decision_signature": "dm004::runtime-route::semantic",
+            "outcome": {"kind": "next_stage_transition"},
+        },
+        outcome_ref="synthetic://dm004/runtime-stage-outcome",
+        route_command={
+            "command_kind": "resume_stage",
+            "runtime_owner": "one-person-lab",
+            "request_idempotency_key": "next-action::dm004::runtime-route",
+            "attempt_idempotency_key": "attempt::dm004::legacy-only",
+            "route_target": "opl_runtime_live_readback",
+        },
+    )
+
+    assert exact_id_only_family != FAMILY_RUNTIME_OPL_ROUTE
+    assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["work_unit_id"] == synthetic_work_unit_id
+    assert envelope["idempotency_key"] == "next-action::dm004::runtime-route"
+    assert envelope["semantic_progress_signature"] == "dm004::runtime-route::semantic"
+    assert envelope["authority_boundary"]["action_family_authority"] is True
+    assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
+    assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == "diagnostic_currentness_id"
+
+
 def test_opl_contract_fixture_ignores_legacy_completion_surfaces_for_semantics() -> None:
     synthetic_target = "dm004_never_mapped_opl_transition_target"
     envelope = paper_mission_next_action_envelope(

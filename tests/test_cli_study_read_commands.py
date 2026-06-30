@@ -3,7 +3,7 @@ from __future__ import annotations
 from med_autoscience.cli_parts.study_read_commands import _progress_first_status_payload
 
 
-def test_progress_first_payload_preserves_canonical_owner_successor_action() -> None:
+def test_progress_first_payload_removes_canonical_owner_successor_action_from_default_view() -> None:
     action = {
         "surface_kind": "current_executable_owner_action",
         "source": "paper_mission.next_action.owner_successor",
@@ -24,7 +24,8 @@ def test_progress_first_payload_preserves_canonical_owner_successor_action() -> 
 
     filtered = _progress_first_status_payload(payload)
 
-    assert filtered["current_executable_owner_action"] == action
+    assert "current_executable_owner_action" not in filtered
+    assert filtered["next_action"] == payload["next_action"]
     assert "current_work_unit" not in filtered
 
 
