@@ -87,6 +87,9 @@ from .projection_payload_assembly_parts.current_execution_surfaces import (
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
 )
+from .projection_payload_assembly_parts.supervision_sync import (
+    sync_supervision_from_user_visible_projection as _sync_supervision_from_user_visible_projection,
+)
 from .projection_payload_assembly_parts.terminal_consumption_identity import (
     provider_admission_candidate_payload as _provider_admission_candidate_payload,
     terminal_consumption_candidates_from_payload as _terminal_consumption_candidates_from_payload,
@@ -598,33 +601,6 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     updated = _sync_supervision_from_user_visible_projection(updated)
     return _apply_terminal_delivery_user_visible_status(updated)
-
-
-def _sync_supervision_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    user_supervision = _mapping_copy(user_visible.get("supervision"))
-    supervision = _mapping_copy(payload.get("supervision"))
-    active_run_id = _non_empty_text(supervision.get("active_run_id")) or _non_empty_text(
-        user_supervision.get("active_run_id")
-    ) or _non_empty_text(supervision.get("stale_active_run_id"))
-    if active_run_id is None:
-        return payload
-    if _non_empty_text(payload.get("active_run_id")) is None and _non_empty_text(supervision.get("active_run_id")) == active_run_id:
-        updated = dict(payload)
-        updated["active_run_id"] = active_run_id
-        return updated
-    if _non_empty_text(supervision.get("active_run_id")) is not None:
-        return payload
-    stale_active_run_id = _non_empty_text(supervision.get("stale_active_run_id"))
-    if stale_active_run_id != active_run_id:
-        return payload
-    updated = dict(payload)
-    supervision["active_run_id"] = active_run_id
-    supervision.pop("stale_active_run_id", None)
-    supervision.pop("liveness_suppressed_by", None)
-    updated["active_run_id"] = active_run_id
-    updated["supervision"] = supervision
-    return updated
 
 
 def _apply_provider_admission_fields_with_terminal_probe(
