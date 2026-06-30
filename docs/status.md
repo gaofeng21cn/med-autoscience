@@ -35,6 +35,8 @@ Live Evidence 后置 / 功能结构优先是 MAS 日常开发读法。repo-sourc
 
 旧 `current_work_unit`、`current_execution_envelope`、`current_executable_owner_action`、PaperRecovery、provider admission、OPL transport 队列、StageAttempt、domain transition、delivery mirror、legacy owner-successor producer 或 exact-id route 词汇，只能在 superseded / diagnostic / tombstone / provenance 语境读取。当前 operator / executor 判断必须 fresh 读取 `paper-mission inspect` / `study progress` / delivery inspect / OPL current-control，并从 `StageOutcome -> NextActionEnvelope` 的 authority 链路，以及可选 `OPL TransitionReceipt -> MAS owner consumption` 的 transport receipt-consumption 链路分账解释。
 
+NextAction/control-plane 当前完成度读法：默认 NextAction authority、缺 envelope fail-closed、synthetic route / false-claim guard 和 contract/docs wording 已按 `source/control-plane` 完成；historical producer physical deletion、大文件/source morphology 边界、UI/workbench live 标签和 DM002/DM003 live paper acceptance 仍是 open tail。这些 tail 不把旧 selector、queue、attempt、provider completion 或 UI 可见性恢复成默认完成证据；同时 docs、focused tests、`scripts/verify.sh`、candidate package、refs-only ledger 或 projection clean 也不能声明 publication-ready、submission-ready、current-package fresh、runtime-ready 或 DM002/DM003 governed acceptance。
+
 历史 closeout 和完整 dated 过程不再追加到本文。需要追溯时读 [history/program](./history/program/README.md)、[Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md)、相关 machine contracts、runtime/controller source、focused tests、workspace receipt 或 git history。
 
 ## 读法
@@ -170,6 +172,7 @@ Owner-callable legacy body reader follow-through：`owner_callable_adapter_proje
 - 不能把 EvidenceGapDecision、assumption ledger、soft gap ledger、observability backlog、evidence tail ledger、合同落地、projection clean 或 focused tests 写成 paper progress、owner receipt、publication-ready、submission-ready、live-runtime-ready、provider-running、current-package fresh 或 production-ready。
 - 不能把 Display Pack v2 descriptor、display pack lock、submission refs preservation、visual-audit clear、figure polish lifecycle、AI illustration receipt 或 link-only exemplar 写成 publication-ready、submission-ready、paper closure、artifact mutation authorization、scientific claim authority、domain-ready、production-ready 或 OPL generic Pack OS landed。
 - 不能把 dated specs、dated closeout、follow-through 记录、receipt id、OPL worklist 数字或历史 full record 当成 current truth。
+- 不能把 NextAction/control-plane docs、synthetic route fixture、fail-closed guard、`scripts/verify.sh`、git diff clean 或 contract wording 写成 DM002/DM003 live paper acceptance、submission-ready、publication-ready、current-package ready、runtime-ready 或 UI/workbench live acceptance；这些只能证明对应 source/control-plane 或 docs 约束。
 - 不能把未被 MAS/OPL 消费的 foreground/manual edit、docs-only claim、旧 provider admission / action queue、同 work-unit redrive、provider completion、active_run_id 或 stage artifact 文件存在写成 DM002 / DM003 governed recovery 完成；系统恢复只能由 MAS owner receipt、quality gate receipt、canonical changed surface、stable typed blocker、human gate、route-back evidence 或同一 current identity 的 strict provider running proof 证明。
 
 ## 下一跳

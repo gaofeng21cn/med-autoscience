@@ -3109,6 +3109,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 / DM003 近期故障的共同根因是 controller/read-model/currentness/StageRun identity 在多个局部门重复推导，导致表层 blocker、request-only transition 或 queue 空状态被误读为终局或进展。正确修复口径必须沿一条 canonical transition boundary 流动：consume terminal closeout -> retire stale handoff / blocker -> project exactly one next owner / typed blocker / human gate / successor -> fresh readback 验收。
 - 影响：完成度审计要分账报告 platform repair 与 paper progress。repo/source/control-plane 修复、dispatch selector 修复、request materialization、provider admission boundary、domain diagnostic output 或 docs/contracts 更新只能标为 platform/control-plane progress；不得声明 DM002 / DM003 live paper progress、publication readiness 或 delivery readiness，除非主会话提供 fresh `study progress`、domain diagnostic readback、owner receipt / gate / changed-surface / typed-blocker / running-proof 证据并且同一 currentness identity 对齐。
 
+## 2026-06-30：NextAction/control-plane 完成度审计必须分清 source completion 与 live acceptance tail
+
+- 决策：默认 NextAction authority、缺 envelope fail-closed 行为、synthetic route / false-claim guard 和 contract/docs wording 可以在 `source/control-plane` 账标为完成；historical producer physical deletion、大文件/source morphology 边界、UI/workbench live 标签和 DM002/DM003 live paper acceptance 必须保留为 tail，直到对应 source-governance 或 live owner surface 给出 fresh evidence。
+- 决策：completion audit、status 和 active plan 不得把 docs、focused tests、`scripts/verify.sh`、candidate package、refs-only ledger、queue empty、projection clean、provider completion 或 UI 可见性写成 submission-ready、publication-ready、current-package ready、runtime-ready、paper progress 或 DM002/DM003 governed acceptance。
+- 理由：NextAction 控制面已经完成默认 authority 收口和 fail-closed 防复活，但这些证据只约束 repo/source/control-plane。若把它们升级为 live acceptance，就会重新制造第二真相源，并掩盖仍需要 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back、canonical artifact delta 或 same-identity OPL StageRun readback 的真实验收门。
+- 影响：后续文档当前口径优先更新 `docs/runtime/control/next_action_control_plane.md`、`docs/active/mas-ideal-state-gap-plan.md` 和 `docs/status.md`；不得新增并行 truth doc。物理删除 tail 只能通过迁移或删除 active diagnostic consumer 关闭；Workbench tail 只能通过同一 envelope / transition receipt / owner consumption 的 live label readback 关闭；DM002/DM003 paper acceptance 只能通过 fresh owner/live evidence 关闭。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
