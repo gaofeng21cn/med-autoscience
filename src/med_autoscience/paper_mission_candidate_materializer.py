@@ -561,9 +561,29 @@ def _summarize_json_record(record: Any) -> dict[str, Any]:
         "verdict",
         "section",
         "source_ref",
+        "template_id",
+        "pack_id",
+        "renderer_family",
+        "paper_role",
+        "qc_profile",
+        "render_receipt_ref",
+        "visual_audit_receipt_ref",
+        "publication_manifest_ref",
+        "display_artifact_manifest_ref",
+        "workflow_packet_ref",
+        "polish_lifecycle_ref",
     ):
         value = record.get(key)
         if isinstance(value, (str, int, float, bool)):
+            summary[key] = value
+    for key in (
+        "export_paths",
+        "rendered_artifact_refs",
+        "rendered_artifact_digests",
+        "visual_audit",
+    ):
+        value = _compact_json_summary_value(record.get(key))
+        if value is not None:
             summary[key] = value
     if not summary:
         for key, value in record.items():
@@ -572,6 +592,28 @@ def _summarize_json_record(record: Any) -> dict[str, Any]:
             if len(summary) >= 4:
                 break
     return summary
+
+
+def _compact_json_summary_value(value: Any) -> Any:
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, list):
+        compact_list = [
+            item
+            for item in (_compact_json_summary_value(item) for item in value[:12])
+            if item is not None
+        ]
+        return compact_list if compact_list else None
+    if isinstance(value, Mapping):
+        compact: dict[str, Any] = {}
+        for key, item in value.items():
+            compact_value = _compact_json_summary_value(item)
+            if compact_value is not None:
+                compact[str(key)] = compact_value
+            if len(compact) >= 24:
+                break
+        return compact if compact else None
+    return None
 
 
 def _candidate_patch_operations(
@@ -672,11 +714,47 @@ def _display_candidate_rows(
                 "source_ref": source.get("source_ref"),
                 "relative_path": source.get("relative_path"),
                 "candidate_ref": dict(record),
+                **_display_artifact_evidence(record),
                 "candidate_delta": "bind_display_caption_to_claim_evidence_refs",
                 "authority_materialized": False,
             }
         )
     return rows
+
+
+def _display_artifact_evidence(record: Mapping[str, Any]) -> dict[str, Any]:
+    evidence: dict[str, Any] = {}
+    artifact_refs = record.get("rendered_artifact_refs")
+    if not isinstance(artifact_refs, list):
+        artifact_refs = record.get("export_paths")
+    if isinstance(artifact_refs, list):
+        refs = [item for item in artifact_refs if isinstance(item, str)]
+        if refs:
+            evidence["display_artifact_refs"] = refs
+    artifact_digests = record.get("rendered_artifact_digests")
+    if isinstance(artifact_digests, Mapping):
+        digests = {
+            str(key): value
+            for key, value in artifact_digests.items()
+            if isinstance(value, (str, int, float, bool))
+        }
+        if digests:
+            evidence["display_artifact_digests"] = digests
+    for key in (
+        "render_receipt_ref",
+        "visual_audit_receipt_ref",
+        "publication_manifest_ref",
+        "display_artifact_manifest_ref",
+        "workflow_packet_ref",
+        "polish_lifecycle_ref",
+    ):
+        value = record.get(key)
+        if isinstance(value, str) and value:
+            evidence[key] = value
+    visual_audit = record.get("visual_audit")
+    if isinstance(visual_audit, Mapping):
+        evidence["visual_audit"] = dict(visual_audit)
+    return evidence
 
 
 def _reviewer_response_items(

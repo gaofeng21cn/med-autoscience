@@ -424,6 +424,153 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_package_candidate_preserves_display_pack_figure_digests(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    _write_paper_source_fixture(tmp_path, study_id=study_id)
+    paper_root = tmp_path / "workspace" / "studies" / study_id / "paper"
+    (paper_root / "figures" / "figure_catalog.json").write_text(
+        json.dumps(
+            {
+                "figures": [
+                    {
+                        "figure_id": "F1",
+                        "title": "Cohort and source-layer accounting",
+                        "status": "candidate",
+                        "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                        "renderer_family": "r_ggplot2",
+                        "render_receipt_ref": "paper/figure_render_receipt.json",
+                        "visual_audit_receipt_ref": "paper/figure_visual_audit_receipt.json",
+                        "publication_manifest_ref": "paper/build/display_pack_publication_manifest.json",
+                        "display_artifact_manifest_ref": "paper/build/display_artifact_manifest.F1.json",
+                        "rendered_artifact_refs": [
+                            "paper/figures/generated/F1.png",
+                            "paper/figures/generated/F1.pdf",
+                            "paper/figures/generated/F1.layout.json",
+                        ],
+                        "rendered_artifact_digests": {
+                            "paper/figures/generated/F1.png": "png-sha",
+                            "paper/figures/generated/F1.pdf": "pdf-sha",
+                            "paper/figures/generated/F1.layout.json": "layout-sha",
+                        },
+                        "visual_audit": {
+                            "status": "clear",
+                            "artifact_path": "paper/figures/generated/F1.png",
+                            "artifact_sha256": "png-sha",
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260701T0000Z"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    mission_id = f"paper-mission::{study_id}::submission-milestone"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+    )
+    mission_payload = {
+        "schema_version": "paper-mission-run.v1",
+        "mission_id": mission_id,
+        "study_id": study_id,
+        "objective": "Refresh paper-facing candidate package.",
+        "mission_state": "route_back",
+        "artifact_delta_ledger": [
+            {
+                "delta_id": "delta::obesity::figure-refresh",
+                "artifact_ref": "mission://obesity/figure-refresh",
+                "delta_kind": "formal_paper_mission_owner_decision_packet",
+                "status": "candidate",
+            }
+        ],
+        "source_refs": [],
+        "consume_result": {"status": "route_back"},
+        "one_shot_migration_readback": {
+            "current_mission": {
+                "objective_kind": "gate_clearing_claim_evidence_repair",
+                "legacy_blocker_is_default_execution_state": False,
+            },
+            "required_output": {
+                "next_owner": "mission_executor",
+                "kind": "owner_decision_packet_or_consumable_artifact_delta",
+            },
+            "stage_terminal_decision": transaction["stage_terminal_decision"],
+            "opl_route_command": transaction["opl_route_command"],
+            "consume_candidate_status": "route_back",
+        },
+        "paper_mission_transaction": transaction,
+    }
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(mission_payload),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "20260701T0001Z"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "package-candidate",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(output_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    figure_table_delta = json.loads(
+        Path(
+            payload["output_manifest"]["paper_facing_artifact_refs"][
+                "figure_table_caption_delta"
+            ]
+        ).read_text(encoding="utf-8")
+    )
+
+    assert exit_code == 0
+    figure_candidate = figure_table_delta["candidate_content"]["figure_candidates"][0]
+    assert figure_candidate["candidate_ref"]["figure_id"] == "F1"
+    assert figure_candidate["display_artifact_refs"] == [
+        "paper/figures/generated/F1.png",
+        "paper/figures/generated/F1.pdf",
+        "paper/figures/generated/F1.layout.json",
+    ]
+    assert figure_candidate["display_artifact_digests"] == {
+        "paper/figures/generated/F1.png": "png-sha",
+        "paper/figures/generated/F1.pdf": "pdf-sha",
+        "paper/figures/generated/F1.layout.json": "layout-sha",
+    }
+    assert figure_candidate["render_receipt_ref"] == "paper/figure_render_receipt.json"
+    assert figure_candidate["visual_audit_receipt_ref"] == (
+        "paper/figure_visual_audit_receipt.json"
+    )
+    assert figure_candidate["visual_audit"]["status"] == "clear"
+    assert figure_candidate["authority_materialized"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_package_candidate_materializes_typed_blocker_owner_packet(
     tmp_path: Path,
     capsys,
