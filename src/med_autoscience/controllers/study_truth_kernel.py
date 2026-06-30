@@ -460,6 +460,11 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
             handoff_candidates.append(event)
     if handoff := _latest_authority_candidate(handoff_candidates):
         return handoff
+    closeout_candidates = [
+        event for event in events if event.get("event_type") == "submission_authority_closeout"
+    ]
+    if closeout := _latest_authority_candidate(closeout_candidates):
+        return closeout
     eval_candidates: list[dict[str, Any]] = []
     for event in events:
         if event.get("event_type") in {"publication_gate_eval", "quality_review_eval", "package_authority_eval"}:

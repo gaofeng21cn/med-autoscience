@@ -405,6 +405,108 @@ def test_existing_owner_gate_decision_can_be_synced_to_truth_without_reapplying(
     assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
 
 
+def test_submission_ready_authority_closeout_consumes_recorded_owner_gate(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "003-dpcc"
+    gate = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        action_type="materialize_submission_ready_owner_verdict_or_human_gate",
+        work_unit_id="submission_ready_authority_closeout",
+        work_unit_fingerprint="ebf3e5131f6ae95c6ea25409",
+        blocker_type="submission_ready_authority_closeout_required",
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; record owner gate for final authority closeout",
+        recorded_at="2026-06-30T00:00:00+00:00",
+        apply=True,
+    )
+
+    result = module.submission_authority_closeout_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner_gate_decision_ref=gate["owner_gate_decision_ref"],
+        human_gate_ref=None,
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; close MAS authority gate",
+        recorded_at="2026-06-30T00:02:00+00:00",
+        apply=True,
+        receipt_owner_consumption_ref="/ops/receipt_owner_consumption.json",
+    )
+    second = module.submission_authority_closeout_record(
+        study_root=study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner_gate_decision_ref=gate["owner_gate_decision_ref"],
+        human_gate_ref=None,
+        decision="accept_submission_ready_authority_closeout",
+        reason="current submission-ready package is quality-clear; close MAS authority gate",
+        recorded_at="2026-06-30T00:03:00+00:00",
+        apply=True,
+    )
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+    events = module.read_intervention_events(study_root=study_root)
+
+    assert result["record_status"] == "applied"
+    assert second["record_status"] == "already_applied"
+    assert len(events) == 2
+    assert result["authority_materialized"] is True
+    assert result["writes_owner_receipt"] is False
+    assert result["writes_human_gate_authority"] is False
+    assert result["writes_current_package"] is False
+    assert result["submission_authority_closeout"]["status"] == (
+        "submission_ready_authority_closeout_recorded"
+    )
+    assert result["submission_authority_closeout"]["submission_ready_claim_authorized"] is True
+    assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
+    assert "submission_authority_or_human_gate_closeout_required" not in snapshot["blocking_reasons"]
+
+
+def test_submission_blocker_human_gate_closeout_consumes_recorded_owner_gate(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    study_root = tmp_path / "studies" / "002-dm"
+    gate = module.owner_gate_decision_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="await_human_or_mas_authority_decision_for_submission_blocker",
+        work_unit_id="submission_blocker_human_gate",
+        work_unit_fingerprint="533358e43f6bb6d7378e114d",
+        blocker_type="submission_blocker_human_gate_required",
+        decision="request_submission_blocker_human_gate",
+        reason="current package is not submittable and needs explicit owner or human gate",
+        recorded_at="2026-06-30T00:01:00+00:00",
+        apply=True,
+    )
+
+    result = module.submission_authority_closeout_record(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        owner_gate_decision_ref=None,
+        human_gate_ref=gate["human_gate_ref"],
+        decision="request_submission_blocker_human_gate",
+        reason="current package is not submittable; record terminal human gate handoff",
+        recorded_at="2026-06-30T00:02:00+00:00",
+        apply=True,
+    )
+    snapshot = json.loads(
+        (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert result["record_status"] == "applied"
+    assert result["submission_authority_closeout"]["status"] == (
+        "submission_blocker_human_gate_recorded"
+    )
+    assert result["submission_authority_closeout"]["submission_ready_claim_authorized"] is False
+    assert result["submission_authority_closeout"]["human_gate_required"] is True
+    assert result["writes_controller_decision"] is False
+    assert snapshot["canonical_next_action"] == "submission_blocker_human_gate_recorded"
+    assert "submission_authority_or_human_gate_closeout_required" not in snapshot["blocking_reasons"]
+
+
 def test_owner_gate_truth_sync_ignores_other_intervention_intents(tmp_path: Path) -> None:
     module = _module()
     study_root = tmp_path / "studies" / "002-dm"

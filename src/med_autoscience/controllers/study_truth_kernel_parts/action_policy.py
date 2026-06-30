@@ -51,6 +51,14 @@ def canonical_next_action(dominant_event: Mapping[str, Any] | None) -> str:
         and _text(payload.get("owner_gate_kind")) == "submission_authority_gate"
     ):
         return "await_submission_authority_or_human_gate_closeout"
+    if event_type == "submission_authority_closeout":
+        closeout = _mapping(payload.get("submission_authority_closeout"))
+        status = _text(closeout.get("status"))
+        if status == "submission_ready_authority_closeout_recorded":
+            return "submission_ready_authority_gate_recorded"
+        if status == "submission_blocker_human_gate_recorded":
+            return "submission_blocker_human_gate_recorded"
+        return _text(payload.get("current_required_action")) or "submission_authority_or_human_gate_closed"
     if event_type == "opl_runtime_owner_handoff":
         guard = _mapping(payload.get("execution_owner_guard"))
         if guard.get("supervisor_only") is True:
@@ -82,6 +90,12 @@ def blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
     if _latest_event(events, "stop_loss") is not None:
         reasons.append("publishability_stop_loss_recommended")
     human_gate = _last_payload(events, "human_gate")
+    closeout = _last_payload(events, "submission_authority_closeout")
+    if _text(_mapping(closeout.get("submission_authority_closeout")).get("status")) in {
+        "submission_ready_authority_closeout_recorded",
+        "submission_blocker_human_gate_recorded",
+    }:
+        return reasons
     if (
         _text(human_gate.get("intervention_intent")) == "owner_gate_decision"
         and _text(human_gate.get("owner_gate_kind")) == "submission_authority_gate"
