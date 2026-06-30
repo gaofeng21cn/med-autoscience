@@ -12,6 +12,8 @@ Date: `2026-06-11`
 
 Reader rule：本文不是 active operator chain、provider admission runbook 或 current owner source of truth。下文的调用图、arbiter、state machine、运行态监督链和 OPL 基座优化段落只解释旧 split-currentness 问题如何被诊断；当前执行判断必须先读 canonical `StageOutcome -> NextActionEnvelope`，再读同 identity 的 OPL TransitionReceipt / StageRun readback 是否被 MAS owner surface 消费。
 
+Tombstone boundary：本文出现的 `current_executable_owner_action`、provider admission、PaperRecovery、queue / attempt / StageAttempt、delivery mirror、`current_owner_delta` 或 `action_queue` 语言，默认都是 historical diagnostic / no-resurrection guard。它们不能单独恢复为默认完成判断、next-action authority、provider admission authority、paper progress、submission-ready、publication-ready、runtime-ready 或 `current_package` authority。
+
 ## 历史目标结论（superseded）
 
 MAS / OPL stage-route 的理想态是一条幂等 reconcile 链，而不是多套状态面互相解释：
@@ -164,7 +166,7 @@ Temporal / queue / workflow state 中只放小 payload：
 
 完整正文只保存在 MAS/OPL 文件和 ledger 中，由 refs 连接。这样做的目的不是“压缩日志”，而是防止 provider 已写 closeout 但 Temporal completion 因 payload 过大失败，从而再次制造假 running / pending / terminal 分裂。
 
-## OPL 基座优化
+## Historical OPL substrate notes（superseded）
 
 Stage-route reconcile 是 Paper Autonomy Supervisor 的 historical decision-source provenance，不再作为平行的顶层控制面存在。当前长期读法是：MAS 先生成 `StageOutcome -> NextActionEnvelope`，历史 `current_owner_delta` 只作为 owner projection / drilldown；stage-route arbiter 只负责把 provider admission identity、StageRun current/currentness、terminal closeout、typed blocker、owner gate 和 read-model lag 转译成 supervisor 可消费证据；最终可执行结论必须落到 canonical next-action identity 的 transport receipt、owner receipt、typed blocker、human gate、route-back 或下一 StageOutcome。机器入口见 `contracts/paper_autonomy_supervisor_contract.json`；本文件和 `contracts/stage_route_reconcile_contract.json` 继续持有 stage-route identity / currentness / closeout 细则，但不得单独声明论文推进、human gate resume、quality verdict 或 owner receipt closure。
 
@@ -193,7 +195,7 @@ OPL 只读基座核查显示，StageRun launch / closeout admission、attempt le
 
 2026-06-12 追加 MAS 消费规则，2026-06-30 superseded：`contracts/stage_route_reconcile_contract.json` 已把 OPL covered 项拆到 `opl_covered_and_mas_consumes`，剩余 MAS 消费缺口为空；trace/span refs 与 `desired/current/status` reconcile 另有机器策略和 meta test。旧 desired 曾来自 MAS `current_owner_delta` / `current_work_unit`，但默认 desired / next-action authority 现在只能来自 MAS `StageOutcome` 编译出的 `NextActionEnvelope`；旧 `current_owner_delta` / `current_work_unit` 只能投影或诊断。current 只来自同 identity 的 OPL TransitionReceipt / StageRun lease、attempt ledger、Temporal/workflow liveness 和 terminal closeout，status 只记录 conditions、no-progress budget、trace refs 和 next safe transport action。worker heartbeat、quest running、transport backlog completed、transport succeeded、archive materialized 和旧 active run 都不能直接驱动 desired state。无 active attempt 且 source stale 时可以由 supervisor restart worker；有 active attempt、attempt ledger 不可读或 Temporal 不可达时只能 fail-closed 为 supervisor diagnostic。
 
-2026-06-12 追加 Progress-first admission 投影规则：`owner_action_admission` 是 admission / readiness 读面，只要 reducer 仍有 `current_executable_owner_action` 就必须生成；它不能被“是否作为顶层 executable owner action 显示”的 visibility 规则挡掉。旧 active run / handoff ref 可以被清成 non-running，但同一 fresh current action 的 admission pending、hard-gate blocked 或 provider-running-proof 字段仍要可见，避免 operator 因 `owner_action_admission=null` 误判为没有下一步。
+2026-06-12 追加 Progress-first admission 投影规则，2026-07-01 tombstone read：`owner_action_admission` 曾是 admission / readiness 读面，只要 reducer 仍有 `current_executable_owner_action` 就必须生成；它不能被“是否作为顶层 executable owner action 显示”的 visibility 规则挡掉。该规则现在只保留为旧 consumer / projection provenance，不能恢复 `current_executable_owner_action`、admission pending、provider-running-proof 或 hard-gate blocked 字段作为默认 next action、completion authority 或 ready evidence。
 
 2026-06-12 追加 Runtime supervision operator policy：OPL 侧已有 source-stale restart fence、StageRun identity、terminal precedence 和 no-progress budget，MAS 侧必须把这些基座能力投影成集中 operator 决策表。`runtime_supervision_operator_policy` 把 current-control 四态固定为 desired / running / terminal / read_model：desired 只来自 MAS current owner；running 只来自同 identity 的 StageRun lease + provider/Temporal liveness；terminal 只来自同 identity terminal closeout refs；read_model 只是可重建投影。`domain-diagnostic-report --dry-run` 是 observe-runtime-truth，可以刷新诊断 evidence，但不启动 provider、也不能声称 no-write；`domain-diagnostic-report --apply` 只能在 dry-run 已证明 terminal closeout 或 matching current-control identity 后消费 closeout / materialize current-control；`provider-slo tick` 只做 provider health / worker repair，不消费 MAS handoff；`family-runtime tick --hydrate` 只有在 materialized provider admission pending、worker ready/source-current、无 matching live attempt、无 matching terminal closeout 时才可启动 StageRun。worker source stale restart 只能在 Temporal reachable、attempt ledger readable、无 active attempt 时执行；否则 fail closed 为 supervisor diagnostic。
 
