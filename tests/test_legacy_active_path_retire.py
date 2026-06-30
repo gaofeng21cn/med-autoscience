@@ -351,6 +351,70 @@ def test_allowed_legacy_reference_classes_are_claim_limited() -> None:
     }
 
 
+def test_current_surface_legacy_wording_policy_blocks_authority_resurrection() -> None:
+    contract = json.loads(
+        (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    policy = contract["current_surface_wording_policy"]
+
+    assert policy["status"] == "active_claim_boundary"
+    assert "docs/history/**" in policy["excluded_scope"]
+    assert {
+        "docs/status.md",
+        "docs/active/**",
+        "docs/runtime/**",
+        "product/read surface labels",
+    } <= set(policy["scope"])
+    assert {
+        "current_work_unit",
+        "current_executable_owner_action",
+        "current_execution_envelope",
+        "PaperRecovery",
+        "provider admission",
+        "queue / attempt",
+        "StageAttempt",
+        "control/next_action.json",
+        "stage_native_workspace_next_action",
+    } <= set(policy["legacy_terms"])
+    assert {
+        "diagnostic_only",
+        "history_provenance_only",
+        "retired_tombstone",
+        "transport_observation",
+        "no_resurrection_guard",
+        "superseded_by_next_action_envelope",
+    } == set(policy["required_context_markers"])
+    assert policy["replacement_route"] == (
+        "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt / MAS owner consumption"
+    )
+    assert {
+        "default owner/action",
+        "default next action selector",
+        "provider admission authority",
+        "delivery/submission completion",
+        "paper progress",
+        "publication-ready",
+        "submission-ready",
+        "runtime-ready",
+        "current-package ready",
+        "queue attempt success proof",
+        "compatibility route",
+    } == set(policy["forbidden_claims"])
+    assert {
+        "fresh paper-mission inspect or study_progress readback",
+        "same-identity OPL StageRun or TransitionReceipt readback",
+        "MAS owner receipt, stable typed blocker, human gate, route-back, artifact delta, or successor handoff",
+    } == set(policy["evidence_required_for_live_acceptance"])
+    assert policy["docs_or_tests_can_close_live_acceptance"] is False
+    assert policy["can_select_default_next_action"] is False
+    assert policy["can_claim_paper_progress"] is False
+    assert policy["can_claim_runtime_ready"] is False
+    assert policy["can_claim_submission_ready"] is False
+    assert policy["can_claim_current_package_ready"] is False
+
+
 def test_legacy_control_receipt_markers_are_filter_only_not_active_aliases() -> None:
     contract = json.loads(
         (REPO_ROOT / "contracts/runtime/legacy-active-path-tombstones.json").read_text(
