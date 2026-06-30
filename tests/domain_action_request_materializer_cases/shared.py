@@ -134,6 +134,11 @@ def unsupported_domain_action(study_id: str, quest_id: str) -> dict[str, object]
         "authority": "observability_only",
         "reason": action_type,
         "action_id": f"supervisor-action::{study_id}::{action_type}",
+        "next_action": next_action_envelope(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=action_type,
+        ),
         "owner_route": route,
         "handoff_packet": {
             "packet_type": "external_supervisor_handoff",

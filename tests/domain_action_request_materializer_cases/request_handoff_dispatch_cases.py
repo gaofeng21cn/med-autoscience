@@ -14,6 +14,9 @@ from tests.domain_action_request_materializer_cases.shared import (
 from tests.domain_action_request_materializer_cases.shared import (
     unsupported_domain_action as _unsupported_domain_action,
 )
+from tests.domain_action_request_materializer_cases.shared import (
+    next_action_envelope as _next_action_envelope,
+)
 from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -67,6 +70,11 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
                     "owner": "publication_gate",
                     "recommended_owner": "publication_gate",
                     "reason": "publication_gate_specificity_required",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="publication_gate_specificity_required",
+                        work_unit_id="publication_gate_specificity_required",
+                    ),
                     "owner_route": gate_route,
                     "handoff_packet": {
                         "request_kind": "publication_gate_specificity_required",
@@ -86,6 +94,11 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
                     "recommended_owner": "ai_reviewer",
                     "reason": "ai_reviewer_assessment_required",
                     "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="return_to_ai_reviewer_workflow",
+                    ),
                     "owner_route": ai_route,
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",
@@ -105,6 +118,11 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
                     "recommended_owner": "artifact_os",
                     "reason": "current_package_freshness_required",
                     "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="current_package_freshness_required",
+                        work_unit_id="current_package_freshness_required",
+                    ),
                     "owner_route": artifact_route,
                     "handoff_packet": {
                         "request_kind": "current_package_freshness_required",
@@ -124,6 +142,11 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
                     "recommended_owner": "artifact_os",
                     "reason": "display_surface_materialization_failed",
                     "required_output_surface": "paper/display_registry.json",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="artifact_display_surface_materialization_required",
+                        work_unit_id="artifact_display_surface_materialization_required",
+                    ),
                     "owner_route": artifact_route,
                     "handoff_packet": {
                         "request_kind": "artifact_display_surface_materialization_required",
@@ -304,6 +327,11 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
                     "owner": "publication_gate",
                     "recommended_owner": "publication_gate",
                     "reason": "publication_gate_specificity_required",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="publication_gate_specificity_required",
+                        work_unit_id="publication_gate_specificity_required",
+                    ),
                     "owner_route": route,
                     "handoff_packet": {
                         "request_kind": "publication_gate_specificity_required",
@@ -378,6 +406,11 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
                     "authority": "observability_only",
                     "owner": "publication_gate",
                     "reason": "publication_gate_specificity_required",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="publication_gate_specificity_required",
+                        work_unit_id="publication_gate_specificity_required",
+                    ),
                     "handoff_packet": {
                         "request_kind": "publication_gate_specificity_required",
                         "authority": "observability_only",
@@ -391,6 +424,11 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
                     "authority": "observability_only",
                     "owner": "ai_reviewer",
                     "reason": "ai_reviewer_assessment_required",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="return_to_ai_reviewer_workflow",
+                    ),
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",
                         "authority": "observability_only",
@@ -495,6 +533,11 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         "owner": "ai_reviewer",
         "reason": "ai_reviewer_assessment_required",
         "required_output_surface": "artifacts/publication_eval/latest.json",
+        "next_action": _next_action_envelope(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="return_to_ai_reviewer_workflow",
+        ),
         "owner_route": route,
         "handoff_packet": {
             "request_kind": "return_to_ai_reviewer_workflow",

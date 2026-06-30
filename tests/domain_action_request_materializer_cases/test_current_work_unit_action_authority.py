@@ -95,6 +95,77 @@ def test_current_action_selection_keeps_complete_next_action_envelope() -> None:
     assert ignored == []
 
 
+def test_current_action_selection_ignores_bare_queue_action_before_it_can_preempt_canonical_candidate() -> None:
+    selection = _selection_module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-epoch::canonical-route",
+        "route_epoch": "truth-epoch::canonical-route",
+        "runtime_health_epoch": "runtime-health::canonical-route",
+        "work_unit_fingerprint": "publication-gate-replay::current",
+        "source_fingerprint": "publication-gate-replay::current",
+        "current_owner": "mas_controller",
+        "next_owner": "gate_clearing_batch",
+        "owner_reason": "publication_gate_replay",
+        "active_run_id": None,
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "blocked_actions": [],
+        "idempotency_key": "owner-route::canonical-route",
+    }
+    canonical_action = {
+        "study_id": study_id,
+        "action_id": "canonical-runtime-route",
+        "action_type": "run_gate_clearing_batch",
+        "authority": "stage_native_workspace_next_action",
+        "next_action": _next_action_envelope(
+            study_id=study_id,
+            action_type="run_gate_clearing_batch",
+        ),
+    }
+    bare_queue_action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_id": "legacy-current-owner-route-queue",
+        "action_type": "run_gate_clearing_batch",
+        "authority": "observability_only",
+        "owner": "gate_clearing_batch",
+        "reason": "publication_gate_replay",
+        "work_unit_id": "publication_gate_replay",
+        "work_unit_fingerprint": "publication-gate-replay::current",
+        "owner_route": owner_route,
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(study_id,),
+        scan_payload={
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": owner_route,
+                    "action_queue": [bare_queue_action],
+                }
+            ],
+            "action_queue": [canonical_action],
+        },
+    )
+
+    assert actions == [canonical_action]
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "action_id": "legacy-current-owner-route-queue",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
 def test_current_action_selection_retires_bare_top_level_action_queue_without_study_envelope() -> None:
     selection = _selection_module()
     action = {
@@ -208,87 +279,9 @@ def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_ide
     assert actions[0]["owner"] == "one-person-lab"
 
 
-def test_current_action_selection_does_not_let_stale_fresh_paper_recovery_callable_preempt_current_work_unit(
-    monkeypatch,
-) -> None:
+def test_current_action_selection_has_no_paper_recovery_callable_selector() -> None:
     selection = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
     )
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    monkeypatch.setattr(
-        selection.fresh_progress_current_action,
-        "current_actions",
-        lambda **_: [],
-    )
-    monkeypatch.setattr(
-        selection.paper_recovery_owner_callable,
-        "current_actions",
-        lambda **_: {
-            study_id: {
-                "study_id": study_id,
-                "quest_id": study_id,
-                "action_type": "run_gate_clearing_batch",
-                "action_id": f"paper-recovery-owner-callable::{study_id}::run_gate_clearing_batch",
-                "reason": "publication_gate_replay",
-                "owner": "gate_clearing_batch",
-                "request_owner": "gate_clearing_batch",
-                "recommended_owner": "gate_clearing_batch",
-                "authority": "paper_recovery_state",
-                "source_surface": "paper_recovery_state",
-                "work_unit_id": "publication_gate_replay",
-                "work_unit_fingerprint": "sha256:stale-gate",
-                "action_fingerprint": "sha256:stale-gate",
-            }
-        },
-    )
 
-    actions, ignored = selection.current_actions_for_studies(
-        profile=None,
-        study_ids=(study_id,),
-        scan_payload={
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "current_work_unit": {
-                        "surface_kind": "current_work_unit",
-                        "status": "executable_owner_action",
-                        "owner": "write",
-                        "action_type": "run_quality_repair_batch",
-                        "work_unit_id": "medical_prose_write_repair",
-                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-                        "action_fingerprint": "publication-blockers::0915410f804b3697",
-                        "state": {
-                            "state_kind": "executable_owner_action",
-                            "source": "paper_recovery_state.next_safe_action.successor_owner_action",
-                        },
-                    },
-                    "current_executable_owner_action": {
-                        "surface_kind": "current_executable_owner_action",
-                        "status": "ready",
-                        "source": "canonical_current_work_unit",
-                        "next_owner": "write",
-                        "action_type": "run_quality_repair_batch",
-                        "allowed_actions": ["run_quality_repair_batch"],
-                        "work_unit_id": "medical_prose_write_repair",
-                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-                        "target_surface": {
-                            "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json"
-                        },
-                    },
-                    "action_queue": [],
-                }
-            ],
-            "action_queue": [],
-        },
-    )
-
-    assert actions == []
-    assert ignored == [
-        {
-            "study_id": study_id,
-            "action_type": "run_gate_clearing_batch",
-            "action_id": f"paper-recovery-owner-callable::{study_id}::run_gate_clearing_batch",
-            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
-        }
-    ]
+    assert not hasattr(selection, "paper_recovery_owner_callable")

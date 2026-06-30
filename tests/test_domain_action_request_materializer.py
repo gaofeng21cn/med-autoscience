@@ -13,6 +13,9 @@ from tests.domain_action_request_materializer_cases.shared import (
 from tests.domain_action_request_materializer_cases.shared import (
     unsupported_domain_action as _unsupported_domain_action,
 )
+from tests.domain_action_request_materializer_cases.shared import (
+    next_action_envelope as _next_action_envelope,
+)
 from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
 from tests.domain_action_request_materializer_cases.test_progress_currentness_route_cases import *  # noqa: F403,F401
 from tests.domain_action_request_materializer_cases.request_handoff_dispatch_cases import *  # noqa: F403,F401
@@ -120,6 +123,11 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
                     },
                 },
             },
+            "next_action": _next_action_envelope(
+                study_id=study_id,
+                action_type="run_quality_repair_batch",
+                work_unit_id="medical_prose_write_repair",
+            ),
             "current_owner_ticket": None,
             "owner_route": None,
         }
@@ -253,6 +261,11 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
                     "owner": "artifact_os",
                     "reason": "current_package_freshness_required",
                     "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="current_package_freshness_required",
+                        work_unit_id="current_package_freshness_required",
+                    ),
                     "owner_route": route,
                     "handoff_packet": {
                         "request_kind": "current_package_freshness_required",
@@ -269,6 +282,11 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
                     "owner": "ai_reviewer",
                     "reason": "ai_reviewer_assessment_required",
                     "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "next_action": _next_action_envelope(
+                        study_id=study_id,
+                        action_type="return_to_ai_reviewer_workflow",
+                        work_unit_id="return_to_ai_reviewer_workflow",
+                    ),
                     "owner_route": route,
                     "handoff_packet": {
                         "request_kind": "return_to_ai_reviewer_workflow",

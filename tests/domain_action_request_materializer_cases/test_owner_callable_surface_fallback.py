@@ -99,3 +99,39 @@ def test_materializer_does_not_keep_registry_known_legacy_successor_action_as_ma
         item["action_type"] == "return_to_ai_reviewer_workflow"
         for item in result["ignored_actions"]
     )
+
+
+def test_mas_foreground_owner_callable_adapter_has_no_dispatch_or_success_authority() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    projection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+    )
+    action = {
+        "action_type": "run_quality_repair_batch",
+        "target_surface": {
+            "ref_kind": "mas_owner_callable",
+            "owner_callable_surface": "quality_repair_batch.run",
+        },
+    }
+
+    assert module._mas_foreground_owner_callable_action(action) is True
+    request = projection.domain_progress_transition_request_projection(
+        [
+            {
+                "owner_callable_execution_mode": "mas_foreground",
+                "adapter_kind": "mas_foreground_owner_callable_adapter",
+                "study_id": "study-a",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "work-a",
+                "work_unit_fingerprint": "fingerprint-a",
+                "dispatch_ready_for_execution_authority": True,
+                "mas_dispatch_authority": True,
+            }
+        ]
+    )[0]
+
+    assert request["mas_dispatch_authority"] is False
+    assert request["dispatch_ready_for_execution_authority"] is False
+    assert request["owner_callable_adapter_readiness_authority"] is False
+    assert request["owner_callable_adapter_can_create_success_outcome"] is False
+    assert request["authority_boundary"]["can_create_success_outcome"] is False

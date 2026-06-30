@@ -8,12 +8,10 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
     current_action_queue,
-    currentness_identity,
     domain_transition_current_actions,
     current_typed_blocker_transition_barrier,
     fresh_progress_current_action,
     fresh_progress_arbitration,
-    paper_recovery_owner_callable,
     repair_progress_currentness,
     current_action_selection_predicates,
 )
@@ -36,9 +34,6 @@ _fresh_progress_is_repair_progress_followup = (
 )
 _fresh_progress_is_accepted_owner_gate_decision = (
     current_action_selection_predicates.fresh_progress_is_accepted_owner_gate_decision
-)
-_fresh_progress_is_current_owner_action = (
-    current_action_selection_predicates.fresh_progress_is_current_owner_action
 )
 _fresh_progress_is_current_execution_envelope_barrier = (
     current_action_selection_predicates.fresh_progress_is_current_execution_envelope_barrier
@@ -80,10 +75,6 @@ def current_actions_for_studies(
         for action in fresh_progress_actions
         if (study_id := _text(action.get("study_id"))) is not None
     }
-    fresh_paper_recovery_by_study = paper_recovery_owner_callable.current_actions(
-        profile=profile,
-        study_ids=study_ids,
-    )
     top_level_actions = [
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
@@ -95,6 +86,9 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        raw_per_study_action_queue_present = "action_queue" in study_payload and any(
+            isinstance(item, Mapping) for item in study_payload.get("action_queue") or []
+        )
         has_next_action_envelope = canonical_next_action_gate.has_canonical_next_action(study_payload)
         readiness_followup = _current_readiness_followup_action(study_payload)
         fresh_progress_action = fresh_progress_by_study.get(study_id)
@@ -106,11 +100,8 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
-        fresh_paper_recovery_action = fresh_paper_recovery_by_study.get(study_id)
-        scan_paper_recovery_action = paper_recovery_owner_callable.action_for_study(study_payload)
-        paper_recovery_owner_callable_action = _with_scan_transition_source_eval_id(
-            fresh_paper_recovery_action or scan_paper_recovery_action,
-            study=study_payload,
+        selectable_current_route_queue_actions, retired_current_route_queue_actions = (
+            _selectable_candidate_actions(current_route_queue_actions)
         )
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
             study=study_payload,
@@ -168,41 +159,6 @@ def current_actions_for_studies(
                 if action != fresh_progress_action
             )
             continue
-        if (
-            scan_paper_recovery_action is not None
-            and fresh_paper_recovery_action is None
-            and _fresh_progress_is_current_owner_action(fresh_progress_action)
-        ):
-            per_study_actions.append(fresh_progress_action)
-            ignored.extend(
-                _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
-                for action in [
-                    scan_paper_recovery_action,
-                    *stale_candidate_actions,
-                ]
-                if action != fresh_progress_action
-            )
-            continue
-        if (
-            paper_recovery_owner_callable_action is not None
-            and readiness_followup is None
-            and has_next_action_envelope
-        ):
-            per_study_actions.append(paper_recovery_owner_callable_action)
-            ignored.extend(
-                _ignored_action(action, "superseded_by_paper_recovery_owner_callable")
-                for action in [
-                    *(
-                        [scan_paper_recovery_action]
-                        if scan_paper_recovery_action is not None
-                        else []
-                    ),
-                    *stale_candidate_actions,
-                    *([fresh_progress_action] if fresh_progress_action is not None else []),
-                ]
-                if action != paper_recovery_owner_callable_action
-            )
-            continue
         if _fresh_progress_is_hard_current_execution_envelope_barrier(fresh_progress_action):
             per_study_actions.append(fresh_progress_action)
             ignored.extend(
@@ -243,14 +199,15 @@ def current_actions_for_studies(
             )
             continue
         if not canonical_next_action_available:
-            ignored.extend(
-                _ignored_action(action, LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON)
-                for action in [
+            selectable_actions, retired_actions = _selectable_candidate_actions(
+                [
                     *([readiness_followup] if readiness_followup is not None else []),
-                    *([paper_recovery_owner_callable_action] if paper_recovery_owner_callable_action is not None else []),
                     *stale_candidate_actions,
                 ]
             )
+            ignored.extend(retired_actions)
+            if selectable_actions:
+                per_study_actions.extend(selectable_actions)
             continue
         if (
             readiness_followup is not None
@@ -478,19 +435,26 @@ def current_actions_for_studies(
             )
             continue
         if current_route_queue_actions:
-            per_study_actions.extend(current_route_queue_actions)
+            if not selectable_current_route_queue_actions:
+                if raw_per_study_action_queue_present and top_level_study_actions:
+                    ignored.extend(retired_current_route_queue_actions)
+                    per_study_actions.extend(top_level_study_actions)
+                    continue
+                ignored.extend(retired_current_route_queue_actions)
+                continue
+            per_study_actions.extend(selectable_current_route_queue_actions)
             selected_fingerprints = {
                 _text(action.get("action_fingerprint"))
                 or _text(action.get("work_unit_fingerprint"))
                 or _text(action.get("action_id"))
-                for action in current_route_queue_actions
+                for action in selectable_current_route_queue_actions
             }
             ignored.extend(
                 _ignored_action(
                     action,
                     _ignored_reason_for_superseded_action(
                         action,
-                        selected_actions=current_route_queue_actions,
+                        selected_actions=selectable_current_route_queue_actions,
                         default="superseded_by_current_owner_route_action_queue",
                     ),
                 )
@@ -512,22 +476,17 @@ def current_actions_for_studies(
                 not in selected_fingerprints
             )
             continue
+        if raw_per_study_action_queue_present and not per_study_queue_actions and top_level_study_actions:
+            per_study_actions.extend(top_level_study_actions)
+            continue
         study_actions, study_ignored = _current_study_actions(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
+        study_actions, retired_actions = _selectable_candidate_actions(study_actions)
         per_study_actions.extend(study_actions)
         ignored.extend(study_ignored)
-    for study_id, action in fresh_paper_recovery_by_study.items():
-        if study_id in suppressed_fresh_progress_studies:
-            continue
-        if not _action_has_canonical_next_action(action):
-            ignored.append(
-                _ignored_action(action, LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON)
-            )
-            continue
-        if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
-            per_study_actions.append(action)
+        ignored.extend(retired_actions)
     for study_id, action in fresh_progress_by_study.items():
         if study_id in suppressed_fresh_progress_studies:
             continue
@@ -633,6 +592,7 @@ def _current_writer_handoff_owner_action(
     top_level_actions: Iterable[Mapping[str, Any]],
 ) -> dict[str, Any] | None:
     actions, _ = _current_study_actions(study=study, top_level_actions=top_level_actions)
+    actions, _ = _selectable_candidate_actions(actions)
     for action in actions:
         if _writer_handoff_owner_action_preempts_fresh_progress(action=action, study=study):
             return action
@@ -670,6 +630,7 @@ def _currentness_owner_action(
     top_level_actions: Iterable[Mapping[str, Any]],
 ) -> dict[str, Any] | None:
     actions, _ = _current_study_actions(study=study, top_level_actions=top_level_actions)
+    actions, _ = _selectable_candidate_actions(actions)
     for action in actions:
         if _ai_reviewer_currentness_action_preempts_fresh_progress(action=action, study=study):
             return action
@@ -796,22 +757,6 @@ def _fresh_repair_progress_action_matches_action_currentness(
     )
 
 
-def _with_scan_transition_source_eval_id(
-    action: Mapping[str, Any] | None,
-    *,
-    study: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if action is None:
-        return None
-    source_eval_id = currentness_identity.source_eval_id_from_study(study)
-    if source_eval_id is None:
-        return dict(action)
-    return currentness_identity.with_action_handoff_basis(
-        action,
-        basis={"source_eval_id": source_eval_id},
-    )
-
-
 def _unique_ignored_actions(actions: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     unique: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
@@ -835,6 +780,12 @@ def _retire_legacy_next_action_authority(
     ignored: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return legacy_next_action_authority.retire_incomplete_authority_actions(actions, ignored)
+
+
+def _selectable_candidate_actions(
+    actions: Iterable[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    return _retire_legacy_next_action_authority(actions, [])
 
 
 def _action_has_canonical_next_action(action: Mapping[str, Any] | None) -> bool:

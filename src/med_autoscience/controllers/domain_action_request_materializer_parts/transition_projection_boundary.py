@@ -50,8 +50,6 @@ def apply_boundary(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def with_transition_request_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    if materializer_core.text(dispatch.get("owner_callable_execution_mode")) == "mas_foreground":
-        return dict(dispatch)
     payload = dict(dispatch)
     transition_request = materializer_core.mapping(payload.get("opl_domain_progress_transition_request"))
     if not transition_request:

@@ -130,27 +130,15 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
             "stage_transition_authority_boundary",
         ],
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": (
-            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
-        ),
+        "provider_admission_requires_opl_runtime_result": True,
         "provider_completion_is_domain_completion": False,
-        "projection_only": False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True,
-        "owner_callable_adapter_diagnostic_only": (
-            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
-        ),
-        "owner_callable_adapter_readiness_authority": (
-            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
-        ),
-        "owner_callable_adapter_can_create_success_outcome": (
-            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
-        ),
-        "owner_callable_carrier_projection_only": (
-            False if _is_mas_foreground_owner_callable_dispatch(dispatch) else True
-        ),
+        "projection_only": True,
+        "owner_callable_adapter_diagnostic_only": True,
+        "owner_callable_adapter_readiness_authority": False,
+        "owner_callable_adapter_can_create_success_outcome": False,
+        "owner_callable_carrier_projection_only": True,
         "mas_private_attempt_loop_forbidden": True,
-        "mas_dispatch_authority": (
-            True if _is_mas_foreground_owner_callable_dispatch(dispatch) else False
-        ),
+        "mas_dispatch_authority": False,
         "mas_creates_owner_callable_carrier": False,
         "mas_creates_opl_outbox": False,
         "mas_creates_opl_event": False,
@@ -170,6 +158,8 @@ def _domain_progress_transition_request_record(dispatch: Mapping[str, Any]) -> d
         "forbidden_claims": list(dispatch.get("forbidden_claims") or []),
     }
     _apply_transition_projection_boundary(record)
+    if _is_mas_foreground_owner_callable_dispatch(dispatch):
+        _apply_mas_foreground_projection_boundary(record)
     if not any(
         record.get(key)
         for key in (
@@ -784,32 +774,35 @@ def _apply_transition_projection_boundary(payload: dict[str, Any]) -> dict[str, 
 
 def _apply_mas_foreground_projection_boundary(payload: dict[str, Any]) -> dict[str, Any]:
     payload["provider_admission_pending"] = False
-    payload["provider_admission_requires_opl_runtime_result"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
     payload["provider_completion_is_domain_completion"] = False
-    payload["projection_only"] = False
-    payload["owner_callable_adapter_diagnostic_only"] = False
-    payload["owner_callable_adapter_readiness_authority"] = True
-    payload["owner_callable_adapter_can_create_success_outcome"] = True
-    payload["owner_callable_carrier_projection_only"] = False
-    payload["mas_dispatch_authority"] = True
+    payload["projection_only"] = True
+    payload["owner_callable_adapter_diagnostic_only"] = True
+    payload["owner_callable_adapter_readiness_authority"] = False
+    payload["owner_callable_adapter_can_create_success_outcome"] = False
+    payload["owner_callable_carrier_projection_only"] = True
+    payload["dispatch_ready_for_execution_authority"] = False
+    payload["mas_dispatch_authority"] = False
     payload["mas_creates_owner_callable_carrier"] = False
     payload["mas_creates_opl_outbox"] = False
     payload["mas_creates_opl_event"] = False
     payload["mas_creates_opl_stage_run"] = False
     payload["target_runtime_owner"] = "med-autoscience"
-    payload["opl_transition_runtime_required_for_durable_carrier"] = False
+    payload["opl_transition_runtime_required_for_durable_carrier"] = True
     authority_boundary = dict(_mapping(payload.get("authority_boundary")))
     authority_boundary.update(
         {
             "surface": "mas_foreground_owner_callable_authority_boundary",
-            "mas_dispatch_authority": True,
+            "mas_dispatch_authority": False,
             "target_runtime_owner": "med-autoscience",
             "owner_callable_surface_required": True,
             "owner_callable_surface": _text(payload.get("owner_callable_surface")),
+            "can_create_success_outcome": False,
+            "can_select_next_action": False,
             "mas_creates_opl_outbox": False,
             "mas_creates_opl_event": False,
             "mas_creates_opl_stage_run": False,
-            "opl_transition_runtime_required_for_durable_carrier": False,
+            "opl_transition_runtime_required_for_durable_carrier": True,
         }
     )
     payload["authority_boundary"] = authority_boundary

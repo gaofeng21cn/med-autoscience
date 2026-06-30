@@ -156,6 +156,45 @@ def test_missing_canonical_next_action_closes_all_legacy_owner_inputs() -> None:
     assert not hasattr(provider_actions, "_study_current_action_for_provider_admission")
 
 
+def test_canonical_next_action_does_not_let_paper_recovery_materialize_owner_action() -> None:
+    selection = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+    )
+    payload = _canonical_payload()
+    payload["paper_recovery_state"] = {
+        "phase": "owner_action_ready",
+        "current_authority": {
+            "obligation": {
+                "study_id": payload["study_id"],
+                "quest_id": payload["study_id"],
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "paper-recovery-write-repair",
+                "work_unit_fingerprint": "paper-recovery-write-repair::fingerprint",
+            }
+        },
+        "supervisor_decision": {"decision": "materialize_recovery_action"},
+        "next_safe_action": {
+            "kind": "materialize_successor_owner_action",
+            "successor_owner_action": {
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "paper-recovery-write-repair",
+                "work_unit_fingerprint": "paper-recovery-write-repair::fingerprint",
+            },
+        },
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(str(payload["study_id"]),),
+        scan_payload={"studies": [payload], "action_queue": []},
+    )
+
+    assert actions == []
+    assert ignored == []
+
+
 def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() -> None:
     payload = _canonical_payload()
     payload.pop("next_action")
