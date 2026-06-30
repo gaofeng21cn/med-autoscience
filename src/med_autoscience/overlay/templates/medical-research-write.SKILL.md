@@ -1217,7 +1217,8 @@ When generating visuals:
 - prefer artifact-derived data over hand-copied numbers
 - record the data source and generation script path when possible
 - ensure captions and surrounding text match the actual figure contents exactly
-- make captions self-contained enough that the reader can understand the main message without hunting through the body text
+- make captions self-contained enough that the reader can understand the display, but keep Figure Legends concise: one short title plus one compact paragraph is the default; add only essential panel identifiers, abbreviations, sample-size/statistical-test notes, or image-processing/source acknowledgments required for interpretation
+- do not move the full `figure_semantics_manifest.json` discussion into Figure Legends; clinical implications, interpretation boundaries, threshold caveats, governance notes, and reviewer-facing rationale belong in the manuscript text, evidence ledger, review ledger, or internal semantics manifest unless a journal explicitly requires them in the legend
 - enforce terminology redlines in figure titles and captions: no internal engineering terms and no internal model names
 - do not append tooling disclosures, service links, or editing recommendations to manuscript figure captions; if a figure still needs more polish, keep that note in internal working records rather than on the manuscript-facing surface
 - if any synthetic or illustrative data is used for explanation, disclose that fact clearly and avoid mixing it with claimed empirical evidence

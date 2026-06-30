@@ -7,7 +7,10 @@ from typing import Any
 
 import pytest
 
-from tests.submission_minimal_cases.package_core_and_authority import make_paper_workspace
+from tests.submission_minimal_cases.package_core_and_authority import (
+    make_paper_workspace,
+    remove_authority_snapshots,
+)
 from tests.test_study_delivery_sync_cases.shared import make_delivery_workspace
 from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions import (
     _submission_source_relative_paths,
@@ -80,6 +83,7 @@ def _snapshot(
 def test_submission_minimal_without_snapshot_is_blocked_before_writing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
+    remove_authority_snapshots(paper_root.parent)
     submission_root = paper_root / "submission_minimal"
     if submission_root.exists():
         for path in sorted(submission_root.rglob("*"), reverse=True):

@@ -77,7 +77,7 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
 
     assert result["status"] == "authority_route_blocked"
     assert result["authority_route_gate"]["allowed"] is False
-    assert "dispatch_gate_blocked" in result["authority_route_gate"]["blocking_reasons"]
+    assert "paper_write_allowed_false" in result["authority_route_gate"]["blocking_reasons"]
     assert not (paper_root / "submission_minimal").exists()
 
 
@@ -569,11 +569,17 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
     submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
     assert "# Figure Legends" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
+    legend_block = submission_markdown.split("## Figure 1. Main figure", 1)[1].split("# Main Tables", 1)[0]
+    assert "\n\nAbbreviations:" not in legend_block
     assert "Caption." in submission_markdown
     assert "The primary display item supports the manuscript-facing clinical message." in submission_markdown
     assert submission_markdown.count("The primary display item supports the manuscript-facing clinical message.") == 1
     assert "Panel A summarizes the main paper-facing interpretation." in submission_markdown
     assert submission_markdown.count("Panel A summarizes the main paper-facing interpretation.") == 1
+    assert "The figure can be read as a reviewer-facing legend" not in submission_markdown
+    assert "The figure legend does not establish a treatment recommendation" not in submission_markdown
+    assert "Thresholds are illustrative operating points" not in submission_markdown
+    assert "Clinical decisions should not rely on this figure alone" not in submission_markdown
     assert (
         "Abbreviations: treat all, Assumes every patient is managed as high risk at the chosen threshold."
         in submission_markdown

@@ -758,17 +758,10 @@ def build_catalog_backed_figure_blocks(*, paper_root: Path, submission_root: Pat
 
 
 def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: dict[str, Any] | None) -> str:
-    legend_parts = [base_legend.strip()] if base_legend.strip() else []
-    if not figure_semantics:
-        return "\n\n".join(legend_parts).strip()
-
-    overall_sentences: list[str] = []
-    panel_sentences: list[str] = []
-    glossary_sentence = ""
-    boundary_sentences: list[str] = []
+    legend_sentences: list[str] = []
 
     def normalize_sentence(value: str) -> str:
-        text = str(value or "").strip()
+        text = re.sub(r"\s+", " ", str(value or "").strip())
         if not text:
             return ""
         if contains_internal_instruction_text(text):
@@ -777,27 +770,35 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
             return f"{text}."
         return text
 
-    def append_sentence(target: list[str], value: str) -> None:
+    def append_sentence(value: str) -> None:
         sentence = normalize_sentence(value)
-        if sentence:
-            target.append(sentence)
+        if sentence and sentence not in " ".join(legend_sentences):
+            legend_sentences.append(sentence)
 
-    append_sentence(overall_sentences, str(figure_semantics.get("direct_message") or ""))
-    append_sentence(overall_sentences, str(figure_semantics.get("clinical_implication") or ""))
-    append_sentence(overall_sentences, str(figure_semantics.get("interpretation_boundary") or ""))
+    append_sentence(base_legend)
+    if not figure_semantics:
+        return " ".join(legend_sentences).strip()
+
+    panel_clauses: list[str] = []
+    glossary_sentence = ""
+
+    append_sentence(str(figure_semantics.get("direct_message") or ""))
 
     panel_messages = figure_semantics.get("panel_messages") or figure_semantics.get("panel_level_messages")
     if isinstance(panel_messages, list) and panel_messages:
         for panel in panel_messages:
             if not isinstance(panel, dict):
                 continue
-            panel_id = str(panel.get("panel_id") or "").strip()
+            panel_id = str(panel.get("panel_id") or panel.get("panel") or "").strip()
             message = str(panel.get("message") or "").strip()
             if panel_id and message:
-                if re.match(rf"(?i)^panel\s+{re.escape(panel_id)}\b", message):
-                    panel_sentences.append(normalize_sentence(message))
+                normalized_message = normalize_sentence(message).rstrip(".")
+                if not normalized_message:
+                    continue
+                if re.match(rf"(?i)^panel\s+{re.escape(panel_id)}\b", normalized_message):
+                    panel_clauses.append(normalized_message)
                 else:
-                    panel_sentences.append(normalize_sentence(f"Panel {panel_id}: {message}"))
+                    panel_clauses.append(f"Panel {panel_id}: {normalized_message}")
 
     legend_glossary = figure_semantics.get("legend_glossary")
     if isinstance(legend_glossary, dict):
@@ -822,28 +823,10 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
         if glossary_parts:
             glossary_sentence = normalize_sentence(f"Abbreviations: {'; '.join(glossary_parts)}")
 
-    append_sentence(boundary_sentences, str(figure_semantics.get("threshold_semantics") or ""))
-    append_sentence(boundary_sentences, str(figure_semantics.get("stratification_basis") or ""))
-    append_sentence(boundary_sentences, str(figure_semantics.get("recommendation_boundary") or ""))
-    caveats = figure_semantics.get("threshold_or_stratification_caveats")
-    if isinstance(caveats, list):
-        for caveat in caveats:
-            append_sentence(boundary_sentences, str(caveat or ""))
-
-    existing_legend = " ".join(legend_parts)
-    prose_blocks = [
-        " ".join(sentence for sentence in overall_sentences if sentence),
-        " ".join(sentence for sentence in panel_sentences if sentence),
-        " ".join(
-            sentence
-            for sentence in [glossary_sentence, *boundary_sentences]
-            if sentence
-        ),
-    ]
-    deduped_semantic_lines = [block for block in prose_blocks if block and block not in existing_legend]
-    if deduped_semantic_lines:
-        legend_parts.extend(deduped_semantic_lines)
-    return "\n\n".join(part for part in legend_parts if part).strip()
+    if panel_clauses:
+        append_sentence(" ".join(f"{clause}." for clause in panel_clauses))
+    append_sentence(glossary_sentence)
+    return " ".join(legend_sentences).strip()
 
 
 def build_figure_legend_blocks(

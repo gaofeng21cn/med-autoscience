@@ -303,8 +303,11 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
     assert "Calibration and clinical utility improved" in frontiers_markdown
     assert "treat all" in frontiers_markdown
     assert "Assumes every patient is managed as high risk" in frontiers_markdown
-    assert "illustrative operating points rather than recommended cut-offs" in frontiers_markdown
-    assert "No formal threshold recommendation is made from this figure alone" in frontiers_markdown
+    assert "Supports preoperative counseling" not in frontiers_markdown
+    assert "This figure does not establish a recommended intervention threshold" not in frontiers_markdown
+    assert "Risk groups are display-oriented rather than prespecified clinical bins" not in frontiers_markdown
+    assert "No formal threshold recommendation" not in frontiers_markdown
+    assert "illustrative operating points rather than recommended cut-offs" not in frontiers_markdown
 
 
 def test_create_submission_minimal_package_frontiers_family_syncs_into_study_family_package(
@@ -546,7 +549,7 @@ def test_create_submission_minimal_package_uses_dict_figure_semantics_for_all_ca
     assert "The second figure has a dict-backed semantic legend." in submission_markdown
     assert "Panel A: The secondary panel message is also submission-facing." in submission_markdown
     assert "Abbreviations: DPCC, Diabetes primary-care cohort." in submission_markdown
-    assert "The figure is descriptive rather than causal." in submission_markdown
+    assert "The figure is descriptive rather than causal." not in submission_markdown
     assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
     assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 2
     assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_legends"] == 2

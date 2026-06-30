@@ -223,7 +223,7 @@ Frontmatter discussion paragraph.
         assert submission_markdown.count(paragraph) == 1
 
 
-def test_create_submission_minimal_package_filters_internal_instruction_semantics_from_figure_legends(
+def test_create_submission_minimal_package_keeps_submission_figure_legends_concise(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -235,7 +235,7 @@ def test_create_submission_minimal_package_filters_internal_instruction_semantic
             "figures": [
                 {
                     "figure_id": "F1",
-                    "direct_message": "The paper should open with this burden-architecture figure.",
+                    "direct_message": "The cohort architecture is summarized for reader orientation.",
                     "clinical_implication": "The figure summarizes the observed cohort architecture.",
                     "interpretation_boundary": "Do not recast this figure as causal proof.",
                     "panel_messages": [
@@ -256,8 +256,9 @@ def test_create_submission_minimal_package_filters_internal_instruction_semantic
     submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
         encoding="utf-8"
     )
-    assert "The figure summarizes the observed cohort architecture." in submission_markdown
-    assert "Thresholds are descriptive operating points." in submission_markdown
+    assert "The cohort architecture is summarized for reader orientation." in submission_markdown
+    assert "The figure summarizes the observed cohort architecture." not in submission_markdown
+    assert "Thresholds are descriptive operating points." not in submission_markdown
     assert "paper should" not in submission_markdown.lower()
     assert "do not recast" not in submission_markdown.lower()
     assert "must not" not in submission_markdown.lower()

@@ -32,6 +32,47 @@ def write_png(path: Path) -> None:
     path.write_bytes(_png_bytes())
 
 
+def write_open_authority_snapshots(study_root: Path) -> None:
+    dump_json(
+        study_root / "artifacts" / "truth" / "latest.json",
+        {
+            "surface": "study_truth_snapshot",
+            "study_id": study_root.name,
+            "truth_epoch": "truth-1",
+            "canonical_next_action": "continue_bundle_stage",
+            "allowed_controller_actions": [
+                "direct_study_execution",
+                "direct_paper_line_write",
+                "direct_bundle_build",
+                "direct_compiled_bundle_proofing",
+            ],
+            "blocking_reasons": [],
+        },
+    )
+    dump_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "surface": "runtime_health_snapshot",
+            "study_id": study_root.name,
+            "quest_id": study_root.name,
+            "runtime_health_epoch": "runtime-1",
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "attempt_state": "idle",
+            "retry_budget_remaining": 1,
+            "blocking_reasons": [],
+        },
+    )
+
+
+def remove_authority_snapshots(study_root: Path) -> None:
+    for path in (
+        study_root / "artifacts" / "truth" / "latest.json",
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+    ):
+        path.unlink(missing_ok=True)
+
+
 def _png_bytes() -> bytes:
     raw_scanline = b"\x00\xff\xff\xff"
     compressed = zlib.compress(raw_scanline)
@@ -285,6 +326,7 @@ Caption.
         },
     )
 
+    write_open_authority_snapshots(workspace_root)
     return paper_root
 
 
@@ -403,6 +445,7 @@ Conclusion paragraph.
             ],
         },
     )
+    write_open_authority_snapshots(workspace_root)
     return paper_root
 
 
@@ -513,6 +556,7 @@ Discussion paragraph.
             ],
         },
     )
+    write_open_authority_snapshots(workspace_root)
     return paper_root
 
 
@@ -571,6 +615,7 @@ def make_authoritative_worktree_source_workspace(tmp_path: Path) -> Path:
     seed_paper_root = make_paper_workspace(tmp_path / "seed")
     paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-123" / "paper"
     shutil.copytree(seed_paper_root, paper_root, dirs_exist_ok=True)
+    write_open_authority_snapshots(paper_root.parent)
 
     write_png(paper_root / "figures" / "generated" / "F1.png")
     write_text(paper_root / "figures" / "generated" / "F1.pdf", "%PDF-1.4\n%authoritative figure\n")

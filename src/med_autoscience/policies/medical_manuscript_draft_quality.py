@@ -642,6 +642,7 @@ def build_first_draft_manuscript_quality_contract(
                 "separate manuscript body from submission metadata, author confirmations, and operations notes",
                 "write the main scientific story from the cleaned valid evidence rather than from corrected data-processing errors or debug history",
                 "write figure legends as reader interpretation aids rather than reviewer instructions",
+                "keep Figure Legends to a concise title plus compact explanation by default; do not dump figure_semantics_manifest discussion, clinical implications, interpretation boundaries, or threshold caveats into the legend",
                 "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
                 "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
             ],
