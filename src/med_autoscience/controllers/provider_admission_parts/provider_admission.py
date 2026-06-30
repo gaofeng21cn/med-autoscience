@@ -23,8 +23,6 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_han
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions import (
-    OWNER_CALLABLE_ADAPTERS,
-    PAPER_PROGRESS_TRANSITION_REQUESTS,
     accepted_owner_gate_admission_matches_selected_dispatch_blocker,
     _current_action_identity,
     _current_action_action_type,
@@ -48,7 +46,6 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_hel
 from med_autoscience.controllers.provider_admission_parts.provider_admission_identity import (
     current_identity_is_opl_authorization_typed_blocker as _current_identity_is_opl_authorization_typed_blocker,
     matches_current_action as _matches_current_action,
-    matches_current_action_without_fingerprint as _matches_current_action_without_fingerprint,
     owner_route_currentness_basis_complete as _owner_route_currentness_basis_complete,
     status_requires_current_identity as _status_requires_current_identity,
     work_unit_ids_equivalent_for_action as _work_unit_ids_equivalent_for_action,
@@ -58,6 +55,13 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_pro
     provider_probe_has_matching_attempt,
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
+)
+from med_autoscience.controllers.provider_admission_parts.provider_admission_request_only import (
+    current_identity_fingerprint_for_action as _current_identity_fingerprint_for_action,
+    first_present_text as _first_present_text,
+    request_only_transition_dispatch_path as _request_only_transition_dispatch_path,
+    request_only_transition_stage_packet_ref as _request_only_transition_stage_packet_ref,
+    request_only_transition_stage_packet_refs as _request_only_transition_stage_packet_refs,
 )
 from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
@@ -168,20 +172,9 @@ def current_control_provider_admission_candidates(
         )
         if candidate is not None:
             candidate = candidate_with_authority_boundaries(candidate)
-            candidate = _candidate_with_transition_log_readback(
-                candidate,
-                study_root=study_root,
-            )
+            candidate = _candidate_with_log_readback(candidate, study_root=study_root)
             candidates.append(candidate_with_authority_boundaries(candidate))
     return candidates
-
-
-def _candidate_with_transition_log_readback(
-    candidate: Mapping[str, Any],
-    *,
-    study_root: Path,
-) -> dict[str, Any]:
-    return _candidate_with_log_readback(candidate, study_root=study_root)
 
 
 def provider_admission_candidate_from_current_control_action(
@@ -623,103 +616,6 @@ def _request_only_transition_action_candidate(
         "attempt_idempotency_key": attempt_idempotency_key,
     }
     return candidate_with_authority_boundaries(candidate)
-
-
-def _request_only_transition_stage_packet_ref(
-    *,
-    action: Mapping[str, Any],
-    current_action_identity: Mapping[str, Any],
-    study_id: str,
-    work_unit_id: str,
-) -> str:
-    return (
-        _non_empty_text(action.get("stage_packet_ref"))
-        or _non_empty_text(current_action_identity.get("stage_packet_ref"))
-        or f"mas://current-work-unit/{study_id}/{work_unit_id}/stage-packet"
-    )
-
-
-def _request_only_transition_dispatch_path(
-    action: Mapping[str, Any],
-    *,
-    study_root: Path,
-    action_type: str,
-) -> Path | None:
-    refs = _mapping(action.get("refs"))
-    for ref in (
-        _non_empty_text(action.get("dispatch_path")),
-        _non_empty_text(action.get("transition_request_ref")),
-        _non_empty_text(refs.get("transition_request_ref")),
-        _non_empty_text(refs.get("dispatch_path")),
-        _non_empty_text(refs.get("immutable_dispatch_path")),
-    ):
-        if ref is None:
-            continue
-        path = _resolve_dispatch_ref(ref, study_root=study_root)
-        if path.exists():
-            return path
-    root = Path(study_root).expanduser().resolve()
-    for relative_root in (
-        OWNER_CALLABLE_ADAPTERS,
-        PAPER_PROGRESS_TRANSITION_REQUESTS,
-    ):
-        candidate = root / relative_root / f"{action_type}.json"
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def _resolve_dispatch_ref(ref: str, *, study_root: Path) -> Path:
-    path = Path(ref).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    root = Path(study_root).expanduser().resolve()
-    study_id = root.name
-    if len(path.parts) >= 2 and path.parts[:2] == ("studies", study_id):
-        return (root.parent.parent / path).resolve()
-    return (root / path).resolve()
-
-
-def _request_only_transition_stage_packet_refs(
-    *,
-    action: Mapping[str, Any],
-    current_action_identity: Mapping[str, Any],
-    stage_packet_ref: str,
-) -> list[str]:
-    refs: list[str] = []
-    for ref in (
-        stage_packet_ref,
-        *_text_items(action.get("stage_packet_refs")),
-        *_text_items(current_action_identity.get("stage_packet_refs")),
-    ):
-        if ref is not None and ref not in refs:
-            refs.append(ref)
-    return refs
-
-
-def _first_present_text(*values: object) -> str | None:
-    for value in values:
-        text = _non_empty_text(value)
-        if text is not None:
-            return text
-        for item in _text_items(value):
-            return item
-    return None
-
-
-def _current_identity_fingerprint_for_action(
-    *,
-    action_type: str,
-    work_unit_id: str,
-    current_action_identity: Mapping[str, Any],
-) -> str | None:
-    if not _matches_current_action_without_fingerprint(
-        action_type=action_type,
-        work_unit_id=work_unit_id,
-        current_action_identity=current_action_identity,
-    ):
-        return None
-    return _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
 
 
 def provider_admission_candidates_from_execution_payload(
