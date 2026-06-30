@@ -21,10 +21,9 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     current_action_selection,
     current_owner_callable_adapters as current_owner_callable_adapters_part,
     current_writer_handoff,
-    owner_callable_prompt,
     evidence_gap_decision as evidence_gap_decision_part,
-    execution_gate,
     materializer_core,
+    owner_callable_dispatch_payload,
     publication_owner_materialization,
     readiness_dispatch_enrichment,
     request_refresh,
@@ -58,21 +57,6 @@ CONSUMER_HISTORY_RELATIVE_PATH = materializer_core.CONSUMER_HISTORY_RELATIVE_PAT
 OWNER_CALLABLE_ADAPTER_KIND = materializer_core.OWNER_CALLABLE_ADAPTER_KIND
 TARGET_RUNTIME_OWNER = transition_projection_boundary.TARGET_RUNTIME_OWNER
 SUPPORTED_MODE = "developer_apply_safe"
-RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
-    {
-        "provider_completion",
-        "running_worker",
-        "queue_status",
-        "retry_budget_remaining",
-        "domain_completion",
-        "stage_state",
-        "provider_completion_is_domain_completion",
-        "provider_completion_is_stage_state",
-        "queue_succeeded_is_domain_completion",
-        "retry_budget_is_domain_completion",
-        "running_worker_is_stage_state",
-    }
-)
 READINESS_ACTION_TYPE = readiness_dispatch_enrichment.READINESS_ACTION_TYPE
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
@@ -356,7 +340,7 @@ def _owner_callable_dispatch(
     )
     execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
     if is_mas_foreground_owner_callable:
-        return _mas_foreground_owner_callable_dispatch_payload(
+        return owner_callable_dispatch_payload.mas_foreground_owner_callable_dispatch_payload(
             profile=profile,
             action=action,
             action_type=action_type,
@@ -376,6 +360,12 @@ def _owner_callable_dispatch(
             evidence_gap_projection=evidence_gap_projection,
             progress_first_closeout_admission=closeout_admission,
             generated_at=generated_at,
+            schema_version=SCHEMA_VERSION,
+            owner_callable_adapter_kind=OWNER_CALLABLE_ADAPTER_KIND,
+            target_runtime_owner=TARGET_RUNTIME_OWNER,
+            source_action_ref=_source_action_ref,
+            owner_callable_surface=_owner_callable_surface,
+            scan_latest_path=_scan_latest_path,
         )
     dispatch_status = (
         "ready"
@@ -420,7 +410,7 @@ def _owner_callable_dispatch(
     if dispatch_status == "ready" and closeout_admission.get("admission_status") == "blocked":
         dispatch_status = "blocked"
         blocked_reason = _text(closeout_admission.get("blocked_reason"))
-    return _owner_callable_dispatch_payload(
+    return owner_callable_dispatch_payload.owner_callable_dispatch_payload(
         profile=profile,
         action=action,
         action_type=action_type,
@@ -443,6 +433,11 @@ def _owner_callable_dispatch(
         evidence_gap_projection=evidence_gap_projection,
         progress_first_closeout_admission=closeout_admission,
         generated_at=generated_at,
+        schema_version=SCHEMA_VERSION,
+        owner_callable_adapter_kind=OWNER_CALLABLE_ADAPTER_KIND,
+        target_runtime_owner=TARGET_RUNTIME_OWNER,
+        source_action_ref=_source_action_ref,
+        scan_latest_path=_scan_latest_path,
     )
 
 
@@ -521,311 +516,6 @@ def _owner_callable_surface_from_next_safe_action(payload: Mapping[str, Any]) ->
     source_action = _mapping(next_safe_action.get("source_next_safe_action"))
     owner_callable = _mapping(source_action.get("owner_callable"))
     return _text(owner_callable.get("callable_surface"))
-
-
-def _mas_foreground_owner_callable_dispatch_payload(
-    *,
-    profile: WorkspaceProfile,
-    action: Mapping[str, Any],
-    action_type: str,
-    study_id: str,
-    dispatch_path: Path,
-    executor_policy: Mapping[str, Any],
-    next_executable_owner: str,
-    required_output_surface: str,
-    owner_route: Mapping[str, Any],
-    idempotency_key: str | None,
-    repeat_key: str | None,
-    typed_closeout_contract: Mapping[str, Any],
-    owner_route_attempt_envelope: Mapping[str, Any],
-    prompt_contract: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
-    readiness_dispatch: Mapping[str, Any],
-    evidence_gap_projection: Mapping[str, Any],
-    progress_first_closeout_admission: Mapping[str, Any],
-    generated_at: str,
-) -> dict[str, Any]:
-    payload = _owner_callable_dispatch_payload(
-        profile=profile,
-        action=action,
-        action_type=action_type,
-        study_id=study_id,
-        dispatch_path=dispatch_path,
-        executor_policy=executor_policy,
-        next_executable_owner=next_executable_owner,
-        required_output_surface=required_output_surface,
-        owner_route=owner_route,
-        idempotency_key=idempotency_key,
-        repeat_key=repeat_key,
-        dispatch_status=(
-            "ready"
-            if (
-                developer_mode_payload.get("dry_run_executor_dispatch") is True
-                or developer_mode_payload.get("safe_actions_enabled") is True
-            )
-            and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
-            else "dry_run"
-        ),
-        blocked_reason=None,
-        repeat_guard={"repeat_suppressed": False, "why_not_applied": None},
-        typed_closeout_contract=typed_closeout_contract,
-        owner_route_attempt_envelope=owner_route_attempt_envelope,
-        prompt_contract=prompt_contract,
-        developer_mode_payload=developer_mode_payload,
-        readiness_dispatch=readiness_dispatch,
-        evidence_gap_projection=evidence_gap_projection,
-        progress_first_closeout_admission=progress_first_closeout_admission,
-        generated_at=generated_at,
-    )
-    prompt = dict(_mapping(payload.get("prompt_contract")))
-    prompt["owner_callable_execution_mode"] = "mas_foreground"
-    prompt["provider_admission_requires_opl_runtime_result"] = False
-    prompt["provider_attempt_or_lease_required"] = False
-    prompt["opl_transition_runtime_required"] = False
-    prompt["target_runtime_owner"] = "med-autoscience"
-    payload.update(
-        {
-            "owner_callable_execution_mode": "mas_foreground",
-            "adapter_kind": "mas_foreground_owner_callable_adapter",
-            "target_runtime_owner": "med-autoscience",
-            "target_runtime_owner_authority_required": True,
-            "mas_dispatch_authority": False,
-            "dispatch_ready_for_execution_authority": False,
-            "provider_admission_pending": False,
-            "provider_admission_requires_opl_runtime_result": False,
-            "provider_attempt_or_lease_required": False,
-            "opl_transition_runtime_required": False,
-            "opl_transition_runtime_required_for_durable_carrier": False,
-            "owner_callable_surface": _owner_callable_surface(action),
-            "dispatch_authority": "mas_foreground_owner_callable_projection",
-            "consumer_mutation_scope": "mas_foreground_owner_callable_projection_only",
-            "prompt_contract": prompt,
-        }
-    )
-    return payload
-
-
-def _owner_callable_dispatch_payload(
-    *,
-    profile: WorkspaceProfile,
-    action: Mapping[str, Any],
-    action_type: str,
-    study_id: str,
-    dispatch_path: Path,
-    executor_policy: Mapping[str, Any],
-    next_executable_owner: str,
-    required_output_surface: str,
-    owner_route: Mapping[str, Any],
-    idempotency_key: str | None,
-    repeat_key: str | None,
-    dispatch_status: str,
-    blocked_reason: str | None,
-    repeat_guard: Mapping[str, Any],
-    typed_closeout_contract: Mapping[str, Any],
-    owner_route_attempt_envelope: Mapping[str, Any],
-    prompt_contract: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
-    readiness_dispatch: Mapping[str, Any],
-    evidence_gap_projection: Mapping[str, Any],
-    progress_first_closeout_admission: Mapping[str, Any],
-    generated_at: str,
-) -> dict[str, Any]:
-    adapter_contract = _owner_callable_adapter_contract(
-        action_type=action_type,
-        next_executable_owner=next_executable_owner,
-        required_output_surface=required_output_surface,
-    )
-    return {
-        "surface": "mas_domain_progress_transition_request_projection",
-        "schema_version": SCHEMA_VERSION,
-        "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
-        "adapter_status": "intent_materialized",
-        "domain_intent_kind": "mas_owner_callable_transition_request",
-        "target_runtime_owner": TARGET_RUNTIME_OWNER,
-        "target_runtime_owner_authority_required": True,
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "mas_dispatch_authority": False,
-        "dispatch_ready_for_execution_authority": False,
-        "owner_callable_adapter_contract": adapter_contract,
-        "authority_boundary": {
-            **transition_projection_boundary.authority_boundary(),
-        },
-        **dict(executor_policy),
-        "study_id": study_id,
-        "quest_id": prompt_contract["quest_id"],
-        "generated_at": generated_at,
-        "action_type": action_type,
-        "action_id": _text(action.get("action_id")),
-        "dispatch_authority": _dispatch_authority_for_action(action, prompt_contract=prompt_contract),
-        "next_executable_owner": next_executable_owner,
-        "required_output_surface": required_output_surface,
-        "work_unit_id": _text(action.get("work_unit_id")) or _text(action.get("next_work_unit")),
-        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("action_fingerprint")),
-        **dict(readiness_dispatch),
-        **(
-            {"required_output_target_surface": dict(prompt_contract["required_output_target_surface"])}
-            if "required_output_target_surface" in prompt_contract
-            else {}
-        ),
-        "owner_route": owner_route or None,
-        "idempotency_key": idempotency_key,
-        "repeat_suppression_key": repeat_key,
-        "action_fingerprint": _text(action.get("action_fingerprint")),
-        "paper_progress_stall": _mapping(action.get("paper_progress_stall")) or None,
-        "dispatch_status": dispatch_status,
-        "blocked_reason": blocked_reason,
-        "execution_gate": execution_gate.projection(
-            dispatch_status=dispatch_status,
-            blocked_reason=blocked_reason,
-            developer_mode_payload=developer_mode_payload,
-            supported_mode=SUPPORTED_MODE,
-            evidence_gap_projection=evidence_gap_projection,
-        ),
-        "evidence_gap_decisions": list(evidence_gap_projection.get("evidence_gap_decisions") or []),
-        "evidence_gap_decision_summary": dict(_mapping(evidence_gap_projection.get("evidence_gap_decision_summary"))),
-        "current_action_can_continue": (
-            _mapping(evidence_gap_projection.get("evidence_gap_decision_summary")).get(
-                "current_action_can_continue"
-            )
-            is True
-        ),
-        "forbidden_claims": list(
-            _mapping(evidence_gap_projection.get("evidence_gap_decision_summary")).get("forbidden_claims")
-            or []
-        ),
-        "assumption_ledger": list(evidence_gap_projection.get("assumption_ledger") or []),
-        "soft_gap_ledger": list(evidence_gap_projection.get("soft_gap_ledger") or []),
-        "observability_backlog": list(evidence_gap_projection.get("observability_backlog") or []),
-        "evidence_tail_ledger": list(evidence_gap_projection.get("evidence_tail_ledger") or []),
-        "evidence_gap_typed_blockers": list(evidence_gap_projection.get("evidence_gap_typed_blockers") or []),
-        "evidence_gap_typed_blocker_count": int(
-            evidence_gap_projection.get("evidence_gap_typed_blocker_count") or 0
-        ),
-        "provider_admission_effect": execution_gate.provider_admission_effect(
-            dispatch_status=dispatch_status,
-            blocked_reason=blocked_reason,
-        ),
-        "opl_transition_runtime_postcondition": transition_projection_boundary.runtime_postcondition(),
-        "repeat_suppressed": bool(repeat_guard["repeat_suppressed"]),
-        "why_not_applied": repeat_guard["why_not_applied"],
-        "repeat_suppression": dict(repeat_guard),
-        "consumer_mutation_scope": "domain_progress_transition_request_projection_only",
-        "required_closeout_packet": dict(typed_closeout_contract),
-        "owner_route_attempt_envelope": dict(owner_route_attempt_envelope),
-        "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "owner_callable_policy": dict(executor_policy),
-        "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
-        "prompt_contract": dict(prompt_contract),
-        "domain_intent": _domain_intent(
-            action=action,
-            action_type=action_type,
-            study_id=study_id,
-            next_executable_owner=next_executable_owner,
-            required_output_surface=required_output_surface,
-            owner_route=owner_route,
-            adapter_contract=adapter_contract,
-        ),
-        "progress_first_closeout_admission": dict(progress_first_closeout_admission),
-        "executor_prompt": owner_callable_prompt.executor_prompt(
-            action_type=action_type,
-            study_id=study_id,
-            next_executable_owner=next_executable_owner,
-            required_output_surface=required_output_surface,
-            typed_closeout_contract=owner_callable_typed_closeout_contract,
-        ),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-        "source_action": _source_action_ref(action),
-        "source_action_runtime_completion_fields_omitted": sorted(
-            key for key in action if key in RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS
-        ),
-        "refs": {
-            "scan_latest": str(_scan_latest_path(profile)),
-            "dispatch_path": str(dispatch_path),
-        },
-}
-
-
-def _dispatch_authority_for_action(
-    action: Mapping[str, Any],
-    *,
-    prompt_contract: Mapping[str, Any],
-) -> str | None:
-    handoff = _mapping(action.get("handoff_packet"))
-    return (
-        _text(action.get("dispatch_authority"))
-        or _text(handoff.get("dispatch_authority"))
-        or _text(prompt_contract.get("dispatch_authority"))
-    )
-
-
-def _owner_callable_adapter_contract(
-    *,
-    action_type: str,
-    next_executable_owner: str,
-    required_output_surface: str,
-) -> dict[str, Any]:
-    return {
-        "surface": "mas_owner_callable_adapter_contract",
-        "schema_version": SCHEMA_VERSION,
-        "adapter_kind": OWNER_CALLABLE_ADAPTER_KIND,
-        "action_type": action_type,
-        "next_executable_owner": next_executable_owner,
-        "required_output_surface": required_output_surface,
-        "target_runtime_owner": TARGET_RUNTIME_OWNER,
-        "execution_authority_owner": TARGET_RUNTIME_OWNER,
-        "required_opl_proof": [
-            "opl_execution_authorization",
-            "opl_provider_attempt",
-            "attempt_lease",
-            "closeout_binding",
-            "accepted_owner_gate_authority",
-        ],
-        "mas_private_outbox_forbidden": True,
-        "mas_private_dispatch_authority_forbidden": True,
-        "mas_stage_run_creation_forbidden": True,
-        "provider_completion_is_domain_completion": False,
-    }
-
-
-def _domain_intent(
-    *,
-    action: Mapping[str, Any],
-    action_type: str,
-    study_id: str,
-    next_executable_owner: str,
-    required_output_surface: str,
-    owner_route: Mapping[str, Any],
-    adapter_contract: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface": "mas_domain_intent",
-        "schema_version": SCHEMA_VERSION,
-        "intent_kind": "owner_callable_transition_request",
-        "study_id": study_id,
-        "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
-        "action_type": action_type,
-        "next_executable_owner": next_executable_owner,
-        "required_output_surface": required_output_surface,
-        "work_unit_id": _text(action.get("work_unit_id")) or _text(action.get("next_work_unit")),
-        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("action_fingerprint")),
-        "target_runtime_owner": TARGET_RUNTIME_OWNER,
-        "target_runtime_transition": "OPL Command/Event/Outbox/StageRun",
-        "expected_domain_answer": "MAS OwnerAnswer",
-        "expected_projection": "Derived Projection",
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "opl_transition_runtime_postcondition": transition_projection_boundary.runtime_postcondition(),
-        "owner_route": dict(owner_route) if owner_route else None,
-        "adapter_contract": dict(adapter_contract),
-    }
 
 
 def _owner_callable_dispatch_blocked_reason(
