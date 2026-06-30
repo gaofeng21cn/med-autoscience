@@ -5,8 +5,14 @@ import json
 import subprocess
 
 from med_autoscience.cli_parts.paper_mission_command_parts import opl_runtime_submission
+from med_autoscience.cli_parts.paper_mission_command_parts.followthrough_materialized_readback import (
+    followthrough_transaction_for_readback,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
     NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+    PAPER_AUDIT_PACK_FAMILIES,
 )
 
 
@@ -138,7 +144,6 @@ def test_semantic_progress_guard_ignores_followthrough_identity_wrappers() -> No
 
 
 def test_followthrough_transaction_uses_canonical_mission_identity() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
     readback = _route_back_consume_readback(
         mission_id="paper-mission::dm003::followthrough::followthrough",
         transaction_ref="paper-mission-transaction::dm003::followthrough::followthrough",
@@ -158,10 +163,10 @@ def test_followthrough_transaction_uses_canonical_mission_identity() -> None:
                 "uri": f"audit-pack::{family}",
             }
         ]
-        for family in commands.PAPER_AUDIT_PACK_FAMILIES
+        for family in PAPER_AUDIT_PACK_FAMILIES
     }
 
-    transaction = commands._followthrough_transaction_for_readback(readback)
+    transaction = followthrough_transaction_for_readback(readback)
 
     assert transaction["mission_id"] == "paper-mission::dm003"
     assert "::followthrough::followthrough" not in transaction["transaction_id"]
