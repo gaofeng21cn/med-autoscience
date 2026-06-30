@@ -17,6 +17,11 @@ LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
     "stage_native_workspace_next_action",
     "study_progress.current_executable_owner_action",
 }
+STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
+    "current_executable_owner_action",
+    "legacy_next_action_authority",
+    "study_progress.current_executable_owner_action",
+}
 
 
 def retire_incomplete_authority_actions(
@@ -40,18 +45,21 @@ def retire_incomplete_authority_actions(
 
 
 def requires_next_action_envelope(action: Mapping[str, Any]) -> bool:
-    next_action = _next_action_payload(action)
-    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
-        return False
-    if _text(next_action.get("surface_kind")) == "mas_next_action_envelope":
-        return True
     authority = _text(action.get("authority")) or _text(_mapping(action.get("handoff_packet")).get("authority"))
     source = (
         _text(action.get("source"))
         or _text(action.get("source_surface"))
         or _text(action.get("current_action_source"))
     )
-    return authority in LEGACY_NEXT_ACTION_AUTHORITY_VALUES or source in LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+    if (
+        authority in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+        or source in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
+    ):
+        return True
+    next_action = _next_action_payload(action)
+    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+        return False
+    return _text(next_action.get("surface_kind")) == "mas_next_action_envelope"
 
 
 def _next_action_payload(action: Mapping[str, Any]) -> dict[str, Any]:
@@ -96,6 +104,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON",
     "LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
+    "STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
     "requires_next_action_envelope",
     "retire_incomplete_authority_actions",
 ]

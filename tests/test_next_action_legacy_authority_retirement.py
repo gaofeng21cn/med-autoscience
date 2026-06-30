@@ -173,6 +173,36 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
     assert missing == []
 
 
+def test_materializer_retires_legacy_current_action_even_with_complete_next_action_identity() -> None:
+    legacy = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "legacy_next_action_authority"
+    )
+
+    selected, ignored = legacy.retire_incomplete_authority_actions(
+        [
+            {
+                "study_id": "synthetic-study",
+                "action_type": "request_opl_stage_attempt",
+                "action_id": "legacy-current-action",
+                "authority": "study_progress.current_executable_owner_action",
+                "source_surface": "study_progress.current_executable_owner_action",
+                "next_action": {
+                    "surface_kind": "mas_next_action_envelope",
+                    "action_id": "canonical-action",
+                    "idempotency_key": "canonical-idempotency",
+                    "action_family": "runtime.opl_route",
+                    "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+                },
+            }
+        ],
+        [],
+    )
+
+    assert selected == []
+    assert ignored[0]["reason"] == legacy.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
+
+
 def test_missing_canonical_next_action_does_not_promote_bare_action_queue() -> None:
     current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
 
