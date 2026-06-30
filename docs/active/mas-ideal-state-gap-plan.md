@@ -331,7 +331,7 @@ Stage Closure Terminalizer 的 `contract / reducer / delivery split` 已按 repo
   publication-ready、domain-ready、artifact mutation authorization、memory writeback success
   或 `current_package` 更新；不恢复旧 private runtime、retired alias、facade、wrapper 或
   fallback 文案。
-- Functional truth inputs: 读取 MAS `agent/` pack、contracts、owner-route/domain-handler
+- Live truth inputs: 读取 MAS `agent/` pack、contracts、owner-route/domain-handler
   exports、runtime/controller/read-model surfaces、product-entry manifest、focused tests、
   source callers、OPL transition ABI / policy adapter contracts 和 docs/history/tombstone refs；
   dated closeout、receipt id 和旧 worklist 数字只作 provenance。
