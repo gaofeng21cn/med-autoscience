@@ -194,6 +194,63 @@ def test_current_action_selection_retires_bare_top_level_action_queue_without_st
     ]
 
 
+def test_current_action_selection_fails_closed_for_routed_queue_without_canonical_envelope() -> None:
+    selection = _selection_module()
+    study_id = "004-synthetic-new-study"
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-epoch::legacy-route",
+        "route_epoch": "truth-epoch::legacy-route",
+        "runtime_health_epoch": "runtime-health::legacy-route",
+        "work_unit_fingerprint": "legacy-route::fingerprint",
+        "source_fingerprint": "legacy-route::fingerprint",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "legacy_queue_route",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": "owner-route::legacy-route",
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_id": "legacy-routed-queue-action",
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "work_unit_id": "legacy-work-unit",
+        "work_unit_fingerprint": "legacy-route::fingerprint",
+        "owner_route": owner_route,
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(study_id,),
+        scan_payload={
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": owner_route,
+                    "action_queue": [action],
+                }
+            ],
+            "action_queue": [],
+        },
+    )
+
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "action_id": "legacy-routed-queue-action",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
 def test_current_work_unit_action_producer_is_physically_retired() -> None:
     assert (
         importlib.util.find_spec(
