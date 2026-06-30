@@ -448,6 +448,33 @@ def test_missing_canonical_next_action_does_not_resurrect_current_execution_enve
     assert work_unit == {}
 
 
+def test_residual_current_work_unit_projection_does_not_default_owner_without_envelope() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit_parts.projection"
+    )
+
+    work_unit = projection.current_work_unit(
+        status="diagnostic_residual",
+        owner=None,
+        action_type=None,
+        work_unit_id=None,
+        work_unit_fingerprint=None,
+        action_fingerprint=None,
+        input_refs=[],
+        required_output_contract={},
+        acceptance_refs=[],
+        currentness_basis={},
+        state={"source": "legacy_current_work_unit_residual"},
+        status_payload={"study_id": "legacy-residual-study"},
+        progress_payload={"study_id": "legacy-residual-study"},
+        action=None,
+    )
+
+    assert work_unit["owner"] is None
+    assert work_unit["action_type"] is None
+    assert work_unit["state"] == {"source": "legacy_current_work_unit_residual"}
+
+
 def test_missing_canonical_next_action_retires_per_study_top_level_fallback() -> None:
     selection = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"

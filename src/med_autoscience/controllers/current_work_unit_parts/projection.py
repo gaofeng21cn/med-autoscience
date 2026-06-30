@@ -408,7 +408,7 @@ def current_work_unit(
         "study_id": _text(progress_payload.get("study_id")) or _text(status_payload.get("study_id")),
         "quest_id": _text(progress_payload.get("quest_id")) or _text(status_payload.get("quest_id")),
         "stage_id": _stage_id(action=action, progress=progress_payload, status=status_payload),
-        "owner": owner or "med-autoscience",
+        "owner": owner,
         "action_type": action_type,
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
