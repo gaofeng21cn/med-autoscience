@@ -606,9 +606,14 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
     )
 
     assert_default_next_action_legacy_surfaces_retired(result)
-    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
-    assert result["next_action"]["action_family"] == "human.approval"
-    assert result["next_action"]["work_unit_id"] == "paper_mission_readback_missing"
+    assert "next_action" not in result
+    assert result["artifact_first_mission_summary"]["next_action_projection"] == (
+        "suppressed_noncanonical_legacy_progress_fallback"
+    )
+    assert result["artifact_first_mission_summary"]["read_model_source"] == {
+        "source_kind": "legacy_progress_projection_fallback",
+        "legacy_projection_accepted": False,
+    }
     assert result["publication_eval"]["eval_id"] == latest_eval_id
     assert result["user_visible_projection"]["next_owner"] == "MedAutoScience"
 
@@ -715,7 +720,10 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
     assert_default_next_action_legacy_surfaces_retired(result)
     assert result["opl_current_control_state_handoff"] is None
     assert result["ai_repair_lifecycle"] is None
-    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert "next_action" not in result
+    assert result["artifact_first_mission_summary"]["next_action_projection"] == (
+        "suppressed_noncanonical_legacy_progress_fallback"
+    )
     assert result["user_visible_projection"]["next_owner"] == "review"
     assert result["user_visible_projection"]["paper_progress_state"]["next_owner"] == "review"
     assert result["intervention_lane"]["route_target"] == "review"
@@ -809,7 +817,10 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
 
     assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in result["next_system_action"]
     assert_default_next_action_legacy_surfaces_retired(result)
-    assert result["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert "next_action" not in result
+    assert result["artifact_first_mission_summary"]["next_action_projection"] == (
+        "suppressed_noncanonical_legacy_progress_fallback"
+    )
     assert result["intervention_lane"]["route_target"] == "review"
     assert result["intervention_lane"].get("handoff_source") is None
     assert result["user_visible_projection"]["next_owner"] == "review"

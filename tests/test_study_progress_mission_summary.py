@@ -492,31 +492,18 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
     assert payload["stage_terminal_decision"]["decision_kind"] == "human_gate"
     assert payload["stage_terminal_decision"]["status"] == "human_gate"
     assert payload["opl_route_command"]["command_kind"] == "wait_for_human"
-    assert payload["next_action"]["surface_kind"] == "mas_next_action_envelope"
-    assert payload["next_action"]["action_family"] == "human.approval"
-    assert payload["next_action"]["action_kind"] == "wait_for_human"
-    assert payload["next_action"]["owner"] == "human"
-    assert payload["next_action"]["completion_authority"] == "stage_outcome_only"
-    assert payload["next_action"]["runtime_receipt_authority"] == "opl_transition_receipt_only"
-    assert payload["next_action"]["authority_boundary"][
-        "can_write_provider_attempt"
-    ] is False
-    assert payload["canonical_next_action_source"] == (
-        "artifact_first_mission_summary.next_action"
-    )
-    assert _count_surface_kind(payload, SURFACE_KIND) == 1
-    assert payload["next_action"]["authority_source"] == "mas_next_action_compiler"
-    assert payload["next_action"]["legacy_field_diagnostic_roles"][
-        "current_work_unit"
-    ] == "diagnostic_readback_only"
+    assert "next_action" not in payload
+    assert "canonical_next_action_source" not in payload
+    assert _count_surface_kind(payload, SURFACE_KIND) == 0
     assert "next_action" not in payload["artifact_first_mission_summary"]
-    assert payload["artifact_first_mission_summary"]["next_action_ref"] == (
-        payload["next_action"]["action_id"]
+    assert "next_action_ref" not in payload["artifact_first_mission_summary"]
+    assert payload["artifact_first_mission_summary"]["next_action_projection"] == (
+        "suppressed_noncanonical_legacy_progress_fallback"
     )
-    assert not any(
-        ref["role"] == "current_work_unit"
-        for ref in payload["next_action"]["diagnostic_refs"]
-    )
+    assert payload["artifact_first_mission_summary"]["read_model_source"] == {
+        "source_kind": "legacy_progress_projection_fallback",
+        "legacy_projection_accepted": False,
+    }
     assert payload["next_owner_or_human_decision"].get("next_owner") is None
     assert payload["stage_closure_decision"] == {}
     assert payload["stage_closure_outcome"] is None

@@ -448,6 +448,8 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
                 "paper_mission_transaction"
             )
         )
+    if _has_legacy_progress_fallback_summary(summary):
+        return _sync_user_visible_next_action_owner(updated)
     envelope = paper_mission_next_action_envelope(
         transaction=transaction,
         stage_terminal_decision=_mapping_copy(updated.get("stage_terminal_decision")),
@@ -470,6 +472,14 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
         updated["next_action"] = envelope
         updated["canonical_next_action_source"] = "paper_mission_next_action_envelope"
     return _sync_user_visible_next_action_owner(updated)
+
+
+def _has_legacy_progress_fallback_summary(summary: Mapping[str, Any]) -> bool:
+    read_model_source = _mapping_copy(summary.get("read_model_source"))
+    return (
+        _non_empty_text(read_model_source.get("source_kind"))
+        == "legacy_progress_projection_fallback"
+    )
 
 
 def _sync_user_visible_next_action_owner(payload: Mapping[str, Any]) -> dict[str, Any]:

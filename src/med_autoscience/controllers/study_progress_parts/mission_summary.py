@@ -293,13 +293,25 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
         payload.get("canonical_next_action_source")
     )
     summary = build_artifact_first_mission_summary(updated)
-    next_action = existing_next_action or _mapping(summary.get("next_action"))
+    summary_next_action = _mapping(summary.get("next_action"))
+    summary_next_action_promotable = _summary_next_action_is_promotable(summary)
+    next_action = (
+        existing_next_action
+        or (summary_next_action if summary_next_action_promotable else {})
+    )
     if next_action:
         summary = {
             key: value for key, value in summary.items() if key != "next_action"
         }
         summary["next_action_ref"] = next_action["action_id"]
         summary["next_action_projection"] = "top_level_canonical_next_action"
+    elif summary_next_action:
+        summary = {
+            key: value for key, value in summary.items() if key != "next_action"
+        }
+        summary["next_action_projection"] = (
+            "suppressed_noncanonical_legacy_progress_fallback"
+        )
     updated["artifact_first_mission_summary"] = summary
     updated["mission_state"] = summary["mission_state"]
     if "consume_candidate_status" in summary:
@@ -329,6 +341,10 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
                 else "artifact_first_mission_summary.next_action"
             )
         )
+        updated = without_legacy_next_action_authority(updated)
+    elif summary_next_action:
+        updated.pop("next_action", None)
+        updated.pop("canonical_next_action_source", None)
         updated = without_legacy_next_action_authority(updated)
     updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
     updated["receipt_evidence"] = summary["receipt_evidence"]
@@ -364,6 +380,14 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         updated.pop(key, None)
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
+
+
+def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
+    read_model_source = _mapping(summary.get("read_model_source"))
+    return (
+        _non_empty_text(read_model_source.get("source_kind"))
+        != "legacy_progress_projection_fallback"
+    )
 
 
 def _mission_state(
