@@ -30,6 +30,11 @@ PAPER_AUDIT_PACK_FAMILIES = (
     "reproducibility_refs",
 )
 
+REVIEWER_REVISION_REQUESTED_ACTION_PREFIX = (
+    "consume_external_sci_registry_review"
+)
+REVIEWER_REVISION_REQUESTED_ACTION_SUFFIX = "_as_reviewer_revision"
+
 
 def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, Any]:
     if candidate is None:
@@ -109,7 +114,7 @@ def _reviewer_revision_candidate_transaction(
         base_path=candidate_path.parent,
     )
     requested_action = _optional_text(owner_request.get("requested_action"))
-    if requested_action != "consume_external_sci_registry_review_as_reviewer_revision":
+    if not _is_reviewer_revision_requested_action(requested_action):
         return {}
     stage_id = "external_sci_registry_reviewer_revision"
     next_work_unit = "ai_reviewer_medical_prose_quality_review"
@@ -153,6 +158,18 @@ def _reviewer_revision_candidate_transaction(
         idempotency_basis=(
             f"reviewer-revision-candidate-consumed::{candidate_path}"
         ),
+    )
+
+
+def _is_reviewer_revision_requested_action(requested_action: str | None) -> bool:
+    if requested_action is None:
+        return False
+    return (
+        requested_action == "consume_external_sci_registry_review_as_reviewer_revision"
+        or (
+            requested_action.startswith(REVIEWER_REVISION_REQUESTED_ACTION_PREFIX)
+            and requested_action.endswith(REVIEWER_REVISION_REQUESTED_ACTION_SUFFIX)
+        )
     )
 
 

@@ -295,6 +295,138 @@ def test_paper_mission_drive_packages_consumes_and_returns_opl_route_handoff(
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_drive_reuses_existing_reviewer_revision_handoff_without_one_shot_migration(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::paper_mission_import::one-shot"
+    package_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "external-sci-review-v3"
+        / study_id
+    )
+    package_root.mkdir(parents=True)
+    action_matrix = (
+        package_root
+        / "paper_facing_candidate_artifacts"
+        / "reviewer_action_matrix.json"
+    )
+    action_matrix.parent.mkdir(parents=True)
+    action_matrix.write_text(
+        json.dumps({"concerns": [{"id": "SCI3-001", "severity": "blocker"}]}),
+        encoding="utf-8",
+    )
+    owner_request = package_root / "owner_consumption_request.json"
+    owner_request.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_owner_consumption_request",
+                "requested_action": (
+                    "consume_external_sci_registry_review_v3_as_reviewer_revision"
+                ),
+                "recommended_next_route": (
+                    "ai_reviewer_recheck_then_analysis-campaign_write_and_human_gate"
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_path = package_root / "package_manifest.json"
+    package_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+                "schema_version": 1,
+                "mode": "non_authority_candidate_package",
+                "milestone_kind": "reviewer_revision_candidate",
+                "candidate_content_kind": "external_high_quality_sci_review_intake",
+                "candidate_revision_round": (
+                    "external_sci_registry_review_v3_submission_readiness"
+                ),
+                "study_id": study_id,
+                "mission_id": mission_id,
+                "candidate_is_authority": False,
+                "artifact_refs": {
+                    "reviewer_action_matrix": str(action_matrix),
+                    "owner_consumption_request": str(owner_request),
+                },
+                "recommended_next_route": (
+                    "ai_reviewer_recheck_then_analysis-campaign_write_and_human_gate"
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+    consume_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "external-sci-review-v3-fixed-route"
+    )
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(consume_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    capsys.readouterr()
+
+    drive_exit_code = cli.main(
+        [
+            "paper-mission",
+            "drive",
+            "--run-id",
+            "no-one-shot-materialized",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--no-submit-opl-runtime",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert drive_exit_code == 0
+    assert payload["drive_mode"] == "existing_consumption_handoff"
+    assert payload["candidate_package_readback"]["status"] == (
+        "skipped_existing_consumption_handoff"
+    )
+    assert payload["transaction_state"] == "reviewer_revision_candidate_ready"
+    assert payload["consume_readback"]["consume_output_manifest"][
+        "route_handoff_status"
+    ] == "ready_for_opl_route_command"
+    assert payload["opl_route_handoff"]["next_owner"] == "ai_reviewer"
+    assert payload["stage_terminal_decision"]["next_work_unit"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["opl_runtime_submission"]["status"] == "not_requested"
+    assert payload["output_manifest"]["writes_authority"] is False
+    assert payload["output_manifest"]["writes_runtime"] is False
+    assert payload["output_manifest"]["writes_yang_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     tmp_path: Path,
     capsys,

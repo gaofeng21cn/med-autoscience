@@ -234,3 +234,110 @@ def test_paper_mission_consume_candidate_materializes_reviewer_revision_route(
     }
     assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_consume_candidate_accepts_versioned_reviewer_revision_action(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::paper_mission_import::one-shot"
+    package_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "external-sci-review-v3"
+        / study_id
+    )
+    package_root.mkdir(parents=True)
+    action_matrix = (
+        package_root
+        / "paper_facing_candidate_artifacts"
+        / "reviewer_action_matrix.json"
+    )
+    action_matrix.parent.mkdir(parents=True)
+    action_matrix.write_text(
+        json.dumps({"concerns": [{"id": "SCI3-001", "severity": "blocker"}]}),
+        encoding="utf-8",
+    )
+    owner_request = package_root / "owner_consumption_request.json"
+    owner_request.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_owner_consumption_request",
+                "requested_action": (
+                    "consume_external_sci_registry_review_v3_as_reviewer_revision"
+                ),
+                "recommended_next_route": (
+                    "ai_reviewer_recheck_then_analysis-campaign_write_and_human_gate"
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+    package_path = package_root / "package_manifest.json"
+    package_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_foreground_candidate_package_manifest",
+                "schema_version": 1,
+                "mode": "non_authority_candidate_package",
+                "milestone_kind": "reviewer_revision_candidate",
+                "candidate_content_kind": "external_high_quality_sci_review_intake",
+                "candidate_revision_round": (
+                    "external_sci_registry_review_v3_submission_readiness"
+                ),
+                "study_id": study_id,
+                "mission_id": mission_id,
+                "candidate_is_authority": False,
+                "artifact_refs": {
+                    "reviewer_action_matrix": str(action_matrix),
+                    "owner_consumption_request": str(owner_request),
+                },
+                "recommended_next_route": (
+                    "ai_reviewer_recheck_then_analysis-campaign_write_and_human_gate"
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--dry-run",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["transaction_state"] == "reviewer_revision_candidate_ready"
+    assert payload["next_action"]["action_kind"] == "submit_to_opl_runtime"
+    assert (
+        payload["next_action"]["authority_boundary"]["can_submit_to_opl_runtime"]
+        is True
+    )
+    assert payload["next_action"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["stage_terminal_decision"]["recommended_next_route"] == (
+        "ai_reviewer_recheck_then_analysis-campaign_write_and_human_gate"
+    )
+    assert payload["stage_terminal_decision"]["reviewer_revision_candidate_ref"] == (
+        str(package_path)
+    )
+    assert payload["mutation_policy"]["writes_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
