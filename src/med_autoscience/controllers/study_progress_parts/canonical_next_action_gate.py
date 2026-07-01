@@ -11,6 +11,18 @@ def has_canonical_next_action(payload: Mapping[str, Any]) -> bool:
     return _text(next_action.get("surface_kind")) == NEXT_ACTION_SURFACE_KIND
 
 
+def canonical_next_action_identity_complete(next_action: Mapping[str, Any]) -> bool:
+    payload = _mapping(next_action)
+    expected = _mapping(payload.get("expected_output_contract"))
+    return (
+        _text(payload.get("surface_kind")) == NEXT_ACTION_SURFACE_KIND
+        and _text(payload.get("action_id")) is not None
+        and _text(payload.get("idempotency_key")) is not None
+        and _text(payload.get("action_family")) is not None
+        and _text(expected.get("output_kind")) is not None
+    )
+
+
 def legacy_next_action_authority_retirement() -> dict[str, Any]:
     return {
         "status": "retired",

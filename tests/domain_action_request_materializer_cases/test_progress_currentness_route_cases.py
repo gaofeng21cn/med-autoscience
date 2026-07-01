@@ -363,8 +363,9 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
                 "source": "domain_transition",
                 "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
                 "next_owner": "finalize",
+                "action_type": "run_gate_clearing_batch",
                 "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                "allowed_actions": ["request_opl_stage_attempt"],
+                "allowed_actions": ["run_gate_clearing_batch"],
                 "target_surface": {
                     "surface_key": "publication_gate_replay",
                 },
@@ -401,6 +402,10 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
     ]
     dispatch = result["domain_progress_transition_requests"][0]
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
+    assert dispatch["source_action_ref"]["authority"] == "mas_next_action_envelope"
+    assert dispatch["source_action_ref"]["source_surface"] == "mas_next_action_envelope"
+    assert dispatch["source_action_ref"]["projection_source_surface"] == "domain_transition"
+    assert dispatch["source_action_ref"]["current_action_source"] == "domain_transition"
     assert dispatch["source_action_ref"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )

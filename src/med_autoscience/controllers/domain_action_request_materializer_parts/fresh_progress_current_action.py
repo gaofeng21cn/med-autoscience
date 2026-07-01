@@ -11,6 +11,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 from med_autoscience.controllers import carry_forward_risk
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     fresh_progress_arbitration,
+    fresh_progress_domain_transition_projection,
     fresh_progress_identity,
     repair_progress_currentness,
 )
@@ -95,9 +96,15 @@ def _fresh_progress_current_action(
         return barrier
     if next_action is None:
         return None
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    if not current_action and _canonical_next_action_directly_materializable(next_action):
+        return _fresh_progress_next_action_envelope_action(
+            study_id=study_id,
+            progress=progress,
+            next_action=next_action,
+        )
     if not _progress_has_executable_owner_action(progress):
         return None
-    current_action = _mapping(progress.get("current_executable_owner_action"))
     repair_progress_followup = repair_progress_currentness.current_action_is_repair_progress_followup(
         current_action
     )
@@ -227,6 +234,72 @@ def _canonical_next_action(progress: Mapping[str, Any]) -> dict[str, Any] | None
     if _text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
     return next_action
+
+
+def _canonical_next_action_directly_materializable(next_action: Mapping[str, Any]) -> bool:
+    return _text(next_action.get("action_type")) in SUPPORTED_ACTION_TYPES
+
+
+def _fresh_progress_next_action_envelope_action(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_type = _text(next_action.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return None
+    quest_id = _text(progress.get("quest_id"))
+    work_unit_id = (
+        _text(next_action.get("work_unit_id"))
+        or _work_unit_id(next_action.get("next_work_unit"))
+        or action_type
+    )
+    owner = _text(next_action.get("owner")) or request_owner_for_action_type(action_type)
+    owner_route = _fresh_progress_owner_route(
+        progress=progress,
+        study_id=study_id,
+        quest_id=quest_id,
+        action_type=action_type,
+        owner=owner,
+        work_unit_id=work_unit_id,
+    )
+    if not owner_route:
+        return None
+    target_surface = _mapping(next_action.get("target_surface"))
+    surface_key = _text(target_surface.get("surface_key")) or _text(next_action.get("surface_key"))
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"next-action-envelope::{study_id}::{action_type}",
+        "reason": work_unit_id,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "mas_next_action_envelope",
+        "required_output_surface": request_output_surface_for_action_type(action_type),
+        "source_surface": "mas_next_action_envelope",
+        "source_ref": _text(next_action.get("outcome_ref")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint")),
+        "surface_key": surface_key,
+        "target_surface": target_surface or None,
+        "next_action": dict(next_action),
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "action_type": action_type,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+            "source_surface": "mas_next_action_envelope",
+            "source_ref": _text(next_action.get("outcome_ref")),
+            "surface_key": surface_key,
+            "owner_route": owner_route,
+            "idempotency_key": _text(owner_route.get("idempotency_key")),
+        },
+    }
+    return {key: value for key, value in action.items() if value is not None}
 
 
 def _fresh_progress_currentness_barrier(
@@ -467,7 +540,13 @@ def _fresh_progress_domain_transition_action(
         current_action=current_action,
     )
     actions = domain_transition_actions(study_payload)
-    return actions[0] if actions else None
+    if not actions:
+        return None
+    return fresh_progress_domain_transition_projection.canonical_projection(
+        action=actions[0],
+        progress=progress,
+        current_action=current_action,
+    )
 
 
 def _typed_blocker_allows_gate_followthrough_owner_action(

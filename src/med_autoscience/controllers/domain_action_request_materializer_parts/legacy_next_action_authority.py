@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.controllers.domain_action_request_materializer_parts import current_action_queue
 from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 
@@ -17,6 +16,10 @@ LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
     "legacy_next_action_authority",
     "stage_native_workspace_next_action",
     "study_progress.current_executable_owner_action",
+}
+CANONICAL_NEXT_ACTION_AUTHORITY_VALUES = {
+    "mas_next_action_envelope",
+    "NextActionEnvelope",
 }
 STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
     "current_executable_owner_action",
@@ -73,19 +76,21 @@ def requires_next_action_envelope(action: Mapping[str, Any]) -> bool:
         authority in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
         or source in STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES
     )
-    if strict_legacy_authority:
-        return True
     next_action = _next_action_payload(action)
-    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
-        return False
-    if legacy_authority:
+    canonical_envelope_action = _text(action.get("surface_kind")) == "mas_next_action_envelope" or (
+        authority in CANONICAL_NEXT_ACTION_AUTHORITY_VALUES
+        and source in {None, *CANONICAL_NEXT_ACTION_AUTHORITY_VALUES}
+    )
+    if strict_legacy_authority or legacy_authority:
         return True
+    if canonical_envelope_action and canonical_next_action_gate.canonical_next_action_identity_complete(next_action):
+        return False
     return _text(action.get("action_type")) in DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES
 
 
 def next_action_identity_mismatches(action: Mapping[str, Any]) -> bool:
     next_action = _next_action_payload(action)
-    if not opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+    if not canonical_next_action_gate.canonical_next_action_identity_complete(next_action):
         return False
     next_action_type = _text(next_action.get("action_type"))
     action_type = _text(action.get("action_type"))
@@ -144,6 +149,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON",
+    "CANONICAL_NEXT_ACTION_AUTHORITY_VALUES",
     "LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
     "DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES",
     "NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON",

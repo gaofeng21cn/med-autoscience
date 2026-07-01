@@ -10,13 +10,25 @@ def _selection_module():
     )
 
 
-def _next_action_envelope(*, study_id: str, action_type: str) -> dict[str, object]:
+def _next_action_envelope(
+    *,
+    study_id: str,
+    action_type: str,
+    action_family: str = "runtime.opl_route",
+    output_kind: str = "opl_transition_receipt",
+    owner: str = "one-person-lab",
+    work_unit_id: str | None = None,
+) -> dict[str, object]:
+    resolved_work_unit_id = work_unit_id or action_type
     return {
         "surface_kind": "mas_next_action_envelope",
-        "action_id": f"next-action::{study_id}::{action_type}",
-        "idempotency_key": f"next-action::{study_id}::{action_type}",
-        "action_family": "runtime.opl_route",
-        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "action_id": f"next-action::{study_id}::{resolved_work_unit_id}",
+        "idempotency_key": f"next-action::{study_id}::{resolved_work_unit_id}",
+        "action_family": action_family,
+        "action_type": action_type,
+        "owner": owner,
+        "work_unit_id": resolved_work_unit_id,
+        "expected_output_contract": {"output_kind": output_kind},
     }
 
 
@@ -74,12 +86,12 @@ def test_current_action_selection_retires_legacy_next_action_without_canonical_e
     ]
 
 
-def test_current_action_selection_keeps_complete_next_action_envelope() -> None:
+def test_current_action_selection_retires_legacy_carrier_even_with_complete_next_action_envelope() -> None:
     selection = _selection_module()
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action = {
         "study_id": study_id,
-        "action_id": "canonical-runtime-route",
+        "action_id": "legacy-stage-native-runtime-route",
         "action_type": "run_gate_clearing_batch",
         "authority": "stage_native_workspace_next_action",
         "next_action": _next_action_envelope(study_id=study_id, action_type="run_gate_clearing_batch"),
@@ -91,8 +103,125 @@ def test_current_action_selection_keeps_complete_next_action_envelope() -> None:
         scan_payload={"action_queue": [action]},
     )
 
-    assert actions == [action]
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "action_id": "legacy-stage-native-runtime-route",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
+def test_legacy_guard_keeps_non_legacy_canonical_owner_action_envelope() -> None:
+    legacy = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "legacy_next_action_authority"
+    )
+    study_id = "004-synthetic-new-study"
+    action = {
+        "study_id": study_id,
+        "action_id": "canonical-paper-write",
+        "action_type": "run_quality_repair_batch",
+        "authority": "mas_next_action_envelope",
+        "next_action": _next_action_envelope(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            action_family="paper.write.prose_repair",
+            output_kind="paper_facing_delta_or_owner_receipt",
+            owner="write",
+            work_unit_id="story_surface_repair",
+        ),
+    }
+
+    selected, ignored = legacy.retire_incomplete_authority_actions([action], [])
+
+    assert selected == [action]
     assert ignored == []
+
+
+def test_queue_attaches_non_opl_canonical_envelope_from_study_payload() -> None:
+    queue = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_queue"
+    )
+    study_id = "004-synthetic-new-study"
+    next_action = _next_action_envelope(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        action_family="paper.write.prose_repair",
+        output_kind="paper_facing_delta_or_owner_receipt",
+        owner="write",
+        work_unit_id="story_surface_repair",
+    )
+
+    action = queue.attach_canonical_next_action_if_missing(
+        {"study_id": study_id, "action_type": "run_quality_repair_batch"},
+        {"study_id": study_id, "next_action": next_action},
+    )
+
+    assert action["next_action"] == next_action
+
+
+def test_fresh_progress_uses_canonical_envelope_without_legacy_current_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+    )
+    study_id = "004-synthetic-new-study"
+    next_action = _next_action_envelope(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        action_family="paper.write.prose_repair",
+        output_kind="paper_facing_delta_or_owner_receipt",
+        owner="write",
+        work_unit_id="story_surface_repair",
+    )
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-epoch::canonical-envelope",
+        "route_epoch": "truth-epoch::canonical-envelope",
+        "runtime_health_epoch": "runtime-health::canonical-envelope",
+        "work_unit_fingerprint": "story-surface-repair::fingerprint",
+        "source_fingerprint": "story-surface-repair::source",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "story_surface_repair",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "work_unit_id": "story_surface_repair",
+            "work_unit_fingerprint": "story-surface-repair::fingerprint",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-epoch::canonical-envelope",
+                "runtime_health_epoch": "runtime-health::canonical-envelope",
+                "work_unit_id": "story_surface_repair",
+                "work_unit_fingerprint": "story-surface-repair::fingerprint",
+            },
+        },
+        "idempotency_key": "owner-route::canonical-envelope",
+    }
+
+    action = module._fresh_progress_current_action(
+        study_id=study_id,
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "next_action": next_action,
+            "owner_route": owner_route,
+        },
+        domain_transition_actions=lambda _study: [],
+        explicit_readiness_action=lambda _progress: {},
+    )
+
+    assert action is not None
+    assert action["authority"] == "mas_next_action_envelope"
+    assert action["source_surface"] == "mas_next_action_envelope"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["next_action"] == next_action
+    assert action["owner_route"]["idempotency_key"] == "owner-route::canonical-envelope"
+    assert "current_action_source" not in action
 
 
 def test_current_action_selection_ignores_bare_queue_action_before_it_can_preempt_canonical_candidate() -> None:
@@ -120,7 +249,7 @@ def test_current_action_selection_ignores_bare_queue_action_before_it_can_preemp
         "study_id": study_id,
         "action_id": "canonical-runtime-route",
         "action_type": "run_gate_clearing_batch",
-        "authority": "stage_native_workspace_next_action",
+        "authority": "mas_next_action_envelope",
         "next_action": _next_action_envelope(
             study_id=study_id,
             action_type="run_gate_clearing_batch",

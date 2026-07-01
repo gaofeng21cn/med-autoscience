@@ -120,6 +120,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "route_rationale",
     "source_ref",
     "source_surface",
+    "projection_source_surface",
     "supervisor_decision",
     "supervisor_decision_ref",
     "supervisor_authority",
@@ -144,6 +145,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "provider_admission_requires_opl_runtime_result",
     "paper_progress_stall",
     "next_action",
+    "domain_transition_projection",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )

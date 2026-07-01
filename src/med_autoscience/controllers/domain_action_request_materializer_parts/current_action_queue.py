@@ -6,11 +6,11 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES,
 )
-from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_authority,
     domain_transition_current_actions,
 )
+from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -147,12 +147,12 @@ def attach_canonical_next_action_if_missing(
     study: Mapping[str, Any],
 ) -> dict[str, Any]:
     payload = dict(action)
-    if opl_domain_progress_transition_contract.next_action_identity_complete(
+    if canonical_next_action_gate.canonical_next_action_identity_complete(
         _mapping(payload.get("next_action"))
     ):
         return payload
     next_action = _mapping(study.get("next_action"))
-    if opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+    if canonical_next_action_gate.canonical_next_action_identity_complete(next_action):
         payload["next_action"] = next_action
     return payload
 
