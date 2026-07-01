@@ -11,6 +11,18 @@ def assert_single_planning_root(contract: dict[str, Any]) -> None:
     supersession = contract["next_action_supersession"]
     assert supersession["superseded_by"] == "NextActionEnvelope"
     assert supersession["legacy_projection_semantics"] == "diagnostic_provenance_only"
+    retired_current_work_unit = supersession["retired_projection_modules"][
+        "src/med_autoscience/controllers/current_work_unit.py"
+    ]
+    assert retired_current_work_unit["status"] == "retired_fail_closed_stub"
+    assert retired_current_work_unit["active_authority"] is False
+    assert retired_current_work_unit["default_selector_policy"] == "fail_closed"
+    assert retired_current_work_unit["forbidden_interpretations"] == [
+        "canonical_reducer",
+        "default_next_action_selector",
+        "provider_admission_authority",
+        "dispatch_authority",
+    ]
     assert "reopen_opl_queue_or_attempt_from_legacy_projection" in supersession[
         "forbidden_interpretations"
     ]

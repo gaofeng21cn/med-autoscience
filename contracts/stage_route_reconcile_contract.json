@@ -24,6 +24,28 @@
       "attempt ledger"
     ],
     "legacy_projection_semantics": "diagnostic_provenance_only",
+    "retired_projection_modules": {
+      "src/med_autoscience/controllers/current_work_unit.py": {
+        "status": "retired_fail_closed_stub",
+        "active_authority": false,
+        "default_selector_policy": "fail_closed",
+        "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+        "allowed_role": "diagnostic_identity_drilldown_and_negative_guard_only",
+        "forbidden_interpretations": [
+          "canonical_reducer",
+          "default_next_action_selector",
+          "provider_admission_authority",
+          "dispatch_authority"
+        ]
+      },
+      "src/med_autoscience/controllers/current_execution_envelope.py": {
+        "status": "retired_fail_closed_stub",
+        "active_authority": false,
+        "default_selector_policy": "fail_closed",
+        "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+        "allowed_role": "diagnostic_identity_drilldown_and_negative_guard_only"
+      }
+    },
     "forbidden_interpretations": [
       "restore_owner_from_legacy_current_work_unit",
       "synthesize_default_next_action_from_current_executable_owner_action",
@@ -470,14 +492,17 @@
   "stage_route_call_graph": {
     "surface_kind": "mas_opl_stage_route_call_graph",
     "purpose": "Machine-readable graph for the canonical MAS/OPL next-action authority path, runtime receipt consumption, legacy diagnostic boundaries, and same-identity loop guards.",
-    "source_code_refs": [
+    "canonical_authority_source_code_refs": [
       "src/med_autoscience/controllers/stage_outcome_authority.py",
       "src/med_autoscience/paper_mission_opl_readback_parts/next_action_envelope.py",
-      "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
+      "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py"
+    ],
+    "legacy_diagnostic_source_code_refs": [
       "src/med_autoscience/controllers/current_work_unit.py",
       "src/med_autoscience/controllers/current_execution_envelope.py",
       "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py"
     ],
+    "legacy_diagnostic_source_semantics": "retired_or_diagnostic_only_not_canonical_reducer",
     "nodes": [
       {
         "id": "stage_outcome",
@@ -1108,7 +1133,7 @@
     "forbidden_readiness_dispatch_effect": "blocker_only_executes_complete_medical_paper_readiness_surface",
     "stage_native_next_action_policy": {
       "dispatch_requires_any": [
-        "canonical_current_work_unit_binding",
+        "canonical_next_action_envelope_binding",
         "owner_route_match_with_allowed_action",
         "shared_currentness_identity_with_fingerprint"
       ],

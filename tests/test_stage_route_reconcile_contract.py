@@ -258,20 +258,30 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
 
     graph = contract["stage_route_call_graph"]
     assert graph["surface_kind"] == "mas_opl_stage_route_call_graph"
-    assert graph["source_code_refs"] == [
+    assert graph["canonical_authority_source_code_refs"] == [
         "src/med_autoscience/controllers/stage_outcome_authority.py",
         "src/med_autoscience/paper_mission_opl_readback_parts/next_action_envelope.py",
         "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
+    ]
+    assert graph["legacy_diagnostic_source_code_refs"] == [
         "src/med_autoscience/controllers/current_work_unit.py",
         "src/med_autoscience/controllers/current_execution_envelope.py",
         "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
     ]
+    assert graph["legacy_diagnostic_source_semantics"] == (
+        "retired_or_diagnostic_only_not_canonical_reducer"
+    )
+    assert (
+        "src/med_autoscience/controllers/current_work_unit.py"
+        not in graph["canonical_authority_source_code_refs"]
+    )
 
     nodes = {item["id"]: item for item in graph["nodes"]}
     assert nodes["stage_outcome"]["state_role"] == "terminal_domain_outcome"
     assert nodes["next_action_envelope"]["state_role"] == "canonical_next_action"
     assert nodes["opl_transition_receipt"]["state_role"] == "runtime_receipt"
     assert nodes["legacy_diagnostics"]["state_role"] == "diagnostic_drilldown"
+    assert nodes["legacy_diagnostics"]["authority"] == "diagnostic only"
     assert nodes["stage_route_arbiter_decisions"]["state_role"] == "status"
     assert nodes["trace_span_refs"]["state_role"] == "observability"
     assert nodes["mas_owner_receipt_or_typed_blocker"]["state_role"] == "domain_authority"
@@ -535,7 +545,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     )
     stage_native = dispatch_policy["stage_native_next_action_policy"]
     assert stage_native["dispatch_requires_any"] == [
-        "canonical_current_work_unit_binding",
+        "canonical_next_action_envelope_binding",
         "owner_route_match_with_allowed_action",
         "shared_currentness_identity_with_fingerprint",
     ]
