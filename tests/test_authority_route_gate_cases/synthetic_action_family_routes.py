@@ -140,7 +140,10 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
     policy = _synthetic_route_policy()
     canonical_next_action = policy["canonical_next_action_fixture"]
-    legacy_fallback = policy["legacy_fallback_rejection_fixture"]
+    legacy_fallback = policy["legacy_fallback_negative_fixture"]
+    assert legacy_fallback["fixture_role"] == "negative_no_resurrection_guard"
+    assert legacy_fallback["must_not_select_default_next_action"] is True
+    assert legacy_fallback["must_not_authorize_provider_admission"] is True
     synthetic_work_unit_id = canonical_next_action["work_unit_id"]
     base_context = {
         "authority_snapshot": _snapshot(

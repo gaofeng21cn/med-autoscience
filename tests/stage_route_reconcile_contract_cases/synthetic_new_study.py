@@ -40,7 +40,10 @@ def assert_synthetic_new_study_route_policy(contract: dict[str, Any]) -> None:
             "can_write_runtime_queue_or_provider_attempt": False,
         },
     }
-    assert policy["legacy_fallback_rejection_fixture"] == {
+    assert policy["legacy_fallback_negative_fixture"] == {
+        "fixture_role": "negative_no_resurrection_guard",
+        "must_not_select_default_next_action": True,
+        "must_not_authorize_provider_admission": True,
         "work_unit_id": "dm004_never_mapped_next_action_story_repair",
         "controller_action_type": "run_quality_repair_batch",
         "control_surface": "quality_repair_batch",

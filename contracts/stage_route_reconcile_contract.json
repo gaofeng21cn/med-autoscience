@@ -82,7 +82,10 @@
           "can_write_runtime_queue_or_provider_attempt": false
         }
       },
-      "legacy_fallback_rejection_fixture": {
+      "legacy_fallback_negative_fixture": {
+        "fixture_role": "negative_no_resurrection_guard",
+        "must_not_select_default_next_action": true,
+        "must_not_authorize_provider_admission": true,
         "work_unit_id": "dm004_never_mapped_next_action_story_repair",
         "controller_action_type": "run_quality_repair_batch",
         "control_surface": "quality_repair_batch",
@@ -1078,7 +1081,7 @@
     ],
     "carrier_self_identity_policy": {
       "current_control_action_can_self_authorize": false,
-      "fallback_allowed_only_when_canonical_status_has_no_current_identity_requirement": true,
+      "diagnostic_identity_fill_allowed_only_when_canonical_status_has_no_current_identity_requirement": true,
       "canonical_identity_sources": [
         "current_owner_delta",
         "current_work_unit",
