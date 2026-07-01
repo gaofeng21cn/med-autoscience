@@ -171,6 +171,13 @@ def _resolve_python_package_root(package_name: str) -> Path:
     raise ValueError(f"python package `{package_name}` does not expose a filesystem location")
 
 
+def _resolve_git_repo_source_root(anchor_root: Path, raw_path: str) -> Path:
+    resolved = (anchor_root / raw_path).expanduser().resolve()
+    if (resolved / ".git").exists() or anchor_root.parent.name != ".worktrees":
+        return resolved
+    return (anchor_root.parent.parent / raw_path).expanduser().resolve()
+
+
 def _parse_source_configs(
     payload: dict[str, object],
     *,
@@ -204,7 +211,7 @@ def _parse_source_configs(
             resolved_root = resolved_source_root
         elif kind == "git_repo":
             raw_path = _expect_str(raw_source, "path")
-            resolved_source_root = (anchor_root / raw_path).expanduser().resolve()
+            resolved_source_root = _resolve_git_repo_source_root(anchor_root, raw_path)
             resolved_root = (resolved_source_root / pack_subdir).resolve()
         else:
             package_name = _expect_str(raw_source, "package")

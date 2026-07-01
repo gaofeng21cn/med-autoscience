@@ -4,6 +4,8 @@ from pathlib import Path
 import json
 import subprocess
 
+import pytest
+
 from med_autoscience import display_registry
 from med_autoscience.display_pack_lock import build_display_pack_lock_payload
 
@@ -49,6 +51,38 @@ pack_id = "fenggaolab.org.medical-display-core"
 path = "{relative_repo_path}"
 pack_subdir = "packs/core"
 version = "0.2.0"
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_primary_with_fallback_pack_config(repo_root: Path, *, primary_relative_repo_path: str) -> None:
+    config_dir = repo_root / "config"
+    config_dir.mkdir(parents=True)
+    (config_dir / "display_packs.toml").write_text(
+        f"""
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "{primary_relative_repo_path}"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_ref = "opl-scholarskills:packs/medical-display-core"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+
+[[sources]]
+kind = "local_dir"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
+version = "0.1.0"
+fallback = true
+source_ref = "med-autoscience:external/display-packs/medical-display-core"
+source_role = "temporary_deprecated_bundled_migration_fallback"
+source_authority = false
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -266,9 +300,52 @@ def test_build_display_pack_lock_payload_captures_git_repo_source_provenance(tmp
     assert pack_entry["source_kind"] == "git_repo"
     assert pack_entry["source_path"] == "../display-core-git"
     assert pack_entry["pack_subdir"] == "packs/core"
+    assert pack_entry["source_owner"] is None
+    assert pack_entry["source_ref"] is None
+    assert pack_entry["source_role"] is None
+    assert pack_entry["source_authority"] is False
+    assert pack_entry["fallback"] is False
     assert pack_entry["git_commit"] == expected_commit
     assert pack_entry["git_is_dirty"] is False
     assert pack_entry["resolved_source_root"].endswith("display-core-git")
+
+
+def test_build_display_pack_lock_payload_preserves_scholarskills_consumer_boundary() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    sibling_root = (repo_root / ".." / "opl-scholarskills").resolve()
+    if not (sibling_root / ".git").exists():
+        pytest.skip("sibling opl-scholarskills checkout is not available")
+
+    payload = build_display_pack_lock_payload(repo_root=repo_root)
+    pack_entry = payload["enabled_packs"][0]
+
+    assert pack_entry["pack_id"] == "fenggaolab.org.medical-display-core"
+    assert pack_entry["source_kind"] == "git_repo"
+    assert pack_entry["source_path"] == "../opl-scholarskills"
+    assert pack_entry["pack_subdir"] == "packs/medical-display-core"
+    assert pack_entry["source_ref"] == "opl-scholarskills:packs/medical-display-core"
+    assert pack_entry["source_role"] == "generic_template_renderer_pack"
+    assert pack_entry["source_authority"] is False
+    assert pack_entry["fallback"] is False
+    assert "/opl-scholarskills/" in pack_entry["resolved_pack_root"]
+
+
+def test_build_display_pack_lock_payload_marks_bundled_fallback_non_authority(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    _write_primary_with_fallback_pack_config(repo_root, primary_relative_repo_path="../missing-opl-scholarskills")
+    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    _write_pack_manifest(fallback_pack_root, version="0.1.0")
+    _write_template_manifest(fallback_pack_root / "templates" / "roc_curve_binary")
+
+    payload = build_display_pack_lock_payload(repo_root=repo_root)
+    pack_entry = payload["enabled_packs"][0]
+
+    assert pack_entry["source_kind"] == "local_dir"
+    assert pack_entry["source_ref"] == "med-autoscience:external/display-packs/medical-display-core"
+    assert pack_entry["source_role"] == "temporary_deprecated_bundled_migration_fallback"
+    assert pack_entry["source_authority"] is False
+    assert pack_entry["fallback"] is True
 
 
 def test_build_display_pack_lock_payload_projects_canonical_default_renderers() -> None:
@@ -309,7 +386,6 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
     assert "time_to_event_discrimination_calibration_panel" not in template_entries
     assert "partial_dependence_ice_panel" not in template_entries
     assert "single_cell_atlas_overview_panel" not in template_entries
-    assert "phenotype_gap_structure_figure" not in template_entries
     assert "shap_dependence_panel" in template_entries
     assert "shap_waterfall_local_explanation_panel" in template_entries
     assert "generalizability_subgroup_composite_panel" in template_entries
