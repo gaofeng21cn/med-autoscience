@@ -732,9 +732,14 @@ def _validate_readback(
     if _text(paper_mission_readback.get("study_id")) != study_id:
         mismatched.append("study_id")
     next_action = _mapping(paper_mission_readback.get("next_action"))
-    if _text(next_action.get("action_family")) != "blocked.typed":
+    action_family = _text(next_action.get("action_family"))
+    action_kind = _text(next_action.get("action_kind"))
+    allowed_next_actions = {
+        ("blocked.typed", "stop_with_typed_blocker"),
+        ("paper.package.submission_minimal", "package_materialization"),
+    }
+    if (action_family, action_kind) not in allowed_next_actions:
         mismatched.append("next_action.action_family")
-    if _text(next_action.get("action_kind")) != "stop_with_typed_blocker":
         mismatched.append("next_action.action_kind")
     if _text(next_action.get("owner")) != "mas_authority_kernel":
         mismatched.append("next_action.owner")

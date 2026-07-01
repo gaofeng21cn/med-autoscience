@@ -48,6 +48,56 @@ def _readback(*, study_id: str, package_kind: str, can_submit: bool) -> dict[str
     }
 
 
+def test_typed_blocker_resolution_accepts_successor_owner_action_envelope(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback = _readback(
+        study_id=study_id,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback["next_action"] = {
+        "action_family": "paper.package.submission_minimal",
+        "action_kind": "package_materialization",
+        "owner": "mas_authority_kernel",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+    }
+    readback_file = tmp_path / "successor-owner-action-readback.json"
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_route_redesign_applied"
+    assert payload["readback_validation"]["valid"] is True
+    assert payload["next_owner_action"]["work_unit_id"] == (
+        "submission_blocker_degraded_handoff_or_quality_repair"
+    )
+    assert payload["executable_owner_route"]["accepted_answer_shape"][
+        "shape_kind"
+    ] == "quality_repair_or_degraded_handoff"
+
+
 def test_typed_blocker_resolution_reports_missing_owner_apply_surface(
     tmp_path: Path,
     capsys,
