@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _first_mapping,
     _first_text,
+    _first_text_item,
     _mapping,
     _mapping_list,
     _optional_text,
@@ -163,6 +164,11 @@ def paper_mission_followthrough_source_readback(
 def followthrough_transaction_for_readback(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
+    typed_blocker_followthrough = _typed_blocker_resolution_followthrough_transaction(
+        readback
+    )
+    if typed_blocker_followthrough:
+        return typed_blocker_followthrough
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     transaction = _first_mapping(
         _canonicalize_followthrough_transaction_identity(
@@ -244,6 +250,95 @@ def followthrough_transaction_for_readback(
             idempotency_basis=followthrough_basis,
         ),
         instance_basis=followthrough_basis,
+    )
+
+
+def _typed_blocker_resolution_followthrough_transaction(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    resolution = _mapping(readback.get("typed_blocker_resolution_readback"))
+    action = _mapping(resolution.get("next_owner_action")) or _mapping(
+        _mapping(readback.get("next_action")).get("executable_owner_route")
+    )
+    next_action = _mapping(readback.get("next_action"))
+    if not resolution or not action:
+        return {}
+    if _optional_text(next_action.get("action_family")) != "paper.package.submission_minimal":
+        return {}
+    transaction = _canonicalize_followthrough_transaction_identity(
+        _mapping(readback.get("paper_mission_transaction"))
+    )
+    study_id = _first_text(
+        resolution.get("study_id"),
+        action.get("study_id"),
+        transaction.get("study_id"),
+        readback.get("study_id"),
+    )
+    if study_id is None:
+        return {}
+    mission_id = (
+        _paper_mission_canonical_followthrough_identity(
+            _optional_text(transaction.get("mission_id"))
+        )
+        or f"paper-mission::{study_id}::typed-blocker-resolution-followthrough"
+    )
+    work_unit_id = (
+        _first_text(
+            action.get("work_unit_id"),
+            next_action.get("work_unit_id"),
+            "submission_blocker_degraded_handoff_or_quality_repair",
+        )
+        or "submission_blocker_degraded_handoff_or_quality_repair"
+    )
+    action_type = (
+        _first_text(
+            action.get("action_type"),
+            next_action.get("action_type"),
+            _first_text_item(action.get("allowed_actions")),
+            "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        )
+        or "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+    )
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "typed_blocker_resolution_candidate_ready",
+        "reason": (
+            "MAS typed-blocker resolution produced a quality-repair handoff "
+            "candidate for continued paper-facing package materialization."
+        ),
+        "next_owner": _first_text(action.get("next_owner"), "mas_authority_kernel"),
+        "next_work_unit": work_unit_id,
+        "typed_blocker_resolution_ref": _first_text(
+            resolution.get("source_ref"),
+            resolution.get("decision_ref"),
+            _first_text_item(
+                [
+                    ref.get("ref")
+                    for ref in _mapping_list(next_action.get("diagnostic_refs"))
+                    if ref.get("role") == "typed_blocker_resolution"
+                ]
+            ),
+        ),
+        "recommended_next_action": action_type,
+    }
+    stage_run_ref = f"paper-mission-followthrough://{study_id}/{_slug(work_unit_id)}"
+    basis = (
+        "typed-blocker-resolution-followthrough::"
+        f"{study_id}::{_slug(work_unit_id)}::"
+        f"{_first_text(action.get('work_unit_fingerprint'), next_action.get('work_unit_fingerprint'), action_type)}"
+    )
+    return _paper_mission_followthrough_transaction_instance(
+        build_paper_mission_transaction(
+            mission_id=mission_id,
+            study_id=study_id,
+            stage_id="submission_milestone_candidate",
+            stage_run_ref=stage_run_ref,
+            terminal_decision=terminal_decision,
+            artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+            paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+            idempotency_basis=basis,
+        ),
+        instance_basis=basis,
     )
 
 

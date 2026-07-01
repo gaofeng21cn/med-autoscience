@@ -243,12 +243,35 @@ def build_paper_mission_readback(
             source=source,
         )
     if paper_mission_command == "package-candidate":
+        materialized_readback = _build_materialized_mission_readback_if_available(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command="package-candidate",
+            dry_run=False,
+            source=source,
+            enable_opl_live_probe=enable_opl_live_probe,
+            opl_bin=opl_bin,
+        )
+        source_readback_override = None
+        if materialized_readback is None:
+            source_readback_override = build_paper_mission_readback(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+                paper_mission_command="inspect",
+                dry_run=False,
+                source=f"{source}:package-candidate-source-inspect",
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
         return _build_materialized_candidate_package_readback(
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
             output_root=output_root,
             paper_facing_delta_ref=paper_facing_delta_ref,
+            source_readback_override=source_readback_override,
             source=source,
         )
     if paper_mission_command == "drive":
