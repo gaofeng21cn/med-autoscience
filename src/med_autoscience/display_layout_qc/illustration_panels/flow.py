@@ -498,6 +498,11 @@ def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str
 
 def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
+    is_v2_layout = (
+        str(sidecar.metrics.get("layout_generation") or "").strip() == "scholarskills_cohort_flow_v2"
+        and str(sidecar.metrics.get("flow_visual_policy") or "").strip()
+        == "purpose_first_reporting_flow_no_legacy_card_shell"
+    )
     flow_nodes = sidecar.metrics.get("flow_nodes")
     if not isinstance(flow_nodes, list) or not flow_nodes:
         issues.append(
@@ -532,8 +537,10 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                 item.get("padding_pt"),
                 label=f"layout_sidecar.metrics.flow_nodes[{index}].padding_pt",
             )
+            is_context_note = box_type in {"context_note", "design_context_note"}
             minimum_height_pt = 70.0 if box_type == "main_step" else 52.0
             minimum_padding_pt = 8.0 if box_type == "main_step" else 6.0
+            minimum_width_pt = 380.0 if is_v2_layout and box_type == "main_step" else 160.0
             if rendered_height_pt < minimum_height_pt:
                 issues.append(
                     _issue(
@@ -544,14 +551,14 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                         expected={"minimum_height_pt": minimum_height_pt},
                     )
                 )
-            if rendered_width_pt < 160.0:
+            if rendered_width_pt < minimum_width_pt:
                 issues.append(
                     _issue(
                         rule_id="flow_node_width_too_small",
                         message="participant flow node width is too small for manuscript-facing readability",
                         target=f"metrics.flow_nodes[{index}]",
                         observed={"rendered_width_pt": rendered_width_pt, "box_type": box_type},
-                        expected={"minimum_width_pt": 160.0},
+                        expected={"minimum_width_pt": minimum_width_pt},
                     )
                 )
             if padding_pt < minimum_padding_pt:
@@ -564,23 +571,41 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                         expected={"minimum_padding_pt": minimum_padding_pt},
                     )
                 )
-            if line_count > 0 and max_line_chars > 48:
+            maximum_max_line_chars = 82.0 if is_v2_layout and is_context_note else 48.0
+            if line_count > 0 and max_line_chars > maximum_max_line_chars:
                 issues.append(
                     _issue(
                         rule_id="flow_node_text_density_high",
                         message="participant flow node line length is too dense",
                         target=f"metrics.flow_nodes[{index}]",
                         observed={"line_count": line_count, "max_line_chars": max_line_chars},
-                        expected={"maximum_max_line_chars": 48},
+                        expected={"maximum_max_line_chars": maximum_max_line_chars},
                     )
                 )
 
     step_boxes = _boxes_of_type(sidecar.layout_boxes, "main_step")
     exclusion_boxes = _boxes_of_type(sidecar.layout_boxes, "exclusion_box")
     summary_boxes = _boxes_of_type(sidecar.layout_boxes, "summary_panel")
+    context_note_boxes = _boxes_of_type(sidecar.layout_boxes, "context_note") + _boxes_of_type(
+        sidecar.layout_boxes, "design_context_note"
+    )
     issues.extend(_check_pairwise_non_overlap(step_boxes, rule_id="main_step_overlap", target="main_step"))
     issues.extend(_check_pairwise_non_overlap(exclusion_boxes, rule_id="exclusion_box_overlap", target="exclusion_box"))
     issues.extend(_check_pairwise_non_overlap(summary_boxes, rule_id="summary_panel_overlap", target="summary_panel"))
+    if is_v2_layout and summary_boxes:
+        issues.append(
+            _issue(
+                rule_id="participant_flow_legacy_summary_panel_shell",
+                message=(
+                    "ScholarSkills cohort-flow v2 participant layouts must not use legacy right-side "
+                    "summary_panel cards; use a full-width flow with a lightweight context note instead"
+                ),
+                target="layout_boxes",
+                observed={"summary_panel_box_ids": [box.box_id for box in summary_boxes]},
+                expected={"allowed_context_box_types": ["context_note", "design_context_note"]},
+                box_refs=tuple(box.box_id for box in summary_boxes),
+            )
+        )
     for exclusion_box in exclusion_boxes:
         for step_box in step_boxes:
             if not _boxes_overlap(exclusion_box, step_box):
@@ -631,7 +656,7 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                     box_refs=(box.box_id, participant_panel.box_id),
                 )
             )
-        if step_boxes and not summary_boxes and not exclusion_boxes:
+        if step_boxes and (is_v2_layout or (not summary_boxes and not exclusion_boxes)):
             content_x0 = min(box.x0 for box in step_boxes)
             content_x1 = max(box.x1 for box in step_boxes)
             panel_width = max(0.0, participant_panel.x1 - participant_panel.x0)
@@ -640,23 +665,41 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
             content_center = (content_x0 + content_x1) / 2.0
             panel_center = (participant_panel.x0 + participant_panel.x1) / 2.0
             center_offset = abs(content_center - panel_center) / panel_width if panel_width > 0 else 1.0
-            if coverage < 0.60 or center_offset > 0.12:
+            minimum_coverage = 0.66 if is_v2_layout else 0.60
+            maximum_center_offset = 0.10 if is_v2_layout else 0.12
+            if coverage < minimum_coverage or center_offset > maximum_center_offset:
                 issues.append(
                     _issue(
                         rule_id="participant_flow_content_horizontally_compressed",
                         message=(
-                            "participant flow without side panels must use and center the main flow panel "
-                            "rather than leaving a large blank canvas"
+                            "participant flow must use and center the main flow panel rather than compressing "
+                            "the cohort accounting into a narrow side lane"
                         ),
                         target="main_step",
                         observed={
                             "content_width_fraction": round(coverage, 3),
                             "center_offset_fraction": round(center_offset, 3),
                         },
-                        expected={"minimum_content_width_fraction": 0.60, "maximum_center_offset_fraction": 0.12},
+                        expected={
+                            "minimum_content_width_fraction": minimum_coverage,
+                            "maximum_center_offset_fraction": maximum_center_offset,
+                        },
                         box_refs=tuple(box.box_id for box in step_boxes),
                     )
                 )
+        if is_v2_layout and context_note_boxes:
+            for note_box in context_note_boxes:
+                if note_box.x1 - note_box.x0 < 0.70:
+                    issues.append(
+                        _issue(
+                            rule_id="participant_flow_context_note_too_narrow",
+                            message="participant-flow context notes must be lightweight full-width metadata bands",
+                            target=note_box.box_type,
+                            observed={"width_fraction": round(note_box.x1 - note_box.x0, 3)},
+                            expected={"minimum_width_fraction": 0.70},
+                            box_refs=(note_box.box_id,),
+                        )
+                    )
 
     flow_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_connector")}
     flow_branch_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_branch_connector")}
