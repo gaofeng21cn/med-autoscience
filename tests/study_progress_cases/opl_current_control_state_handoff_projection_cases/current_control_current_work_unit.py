@@ -128,6 +128,24 @@ def test_study_handoff_preserves_current_control_current_work_unit(
     assert handoff["current_execution_envelope"]["state_kind"] == "typed_blocker"
     assert handoff["provider_admission_pending_count"] == 0
     assert handoff["provider_admission_candidates"] == []
+    assert handoff["legacy_current_projection_boundary"] == {
+        "surface_kind": "legacy_current_control_currentness_projection_boundary",
+        "status": "diagnostic_only",
+        "authority": False,
+        "diagnostic_only": True,
+        "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+        "default_selector_policy": "fail_closed",
+        "can_select_next_action": False,
+        "can_authorize_dispatch": False,
+        "can_authorize_provider_admission": False,
+        "can_start_provider_attempt": False,
+        "can_claim_paper_progress": False,
+        "projected_surfaces": [
+            "current_work_unit",
+            "current_execution_envelope",
+            "typed_blocker",
+        ],
+    }
     assert handoff["current_work_unit"]["state"]["typed_blocker"]["blocker_type"] == (
         "provider_completion_is_not_domain_ready"
     )

@@ -70,6 +70,26 @@ OWNER_ROUTE_PROJECTION_KEYS = (
     "owner_action",
     "idempotency_key",
 )
+LEGACY_CURRENT_PROJECTION_SURFACES = (
+    "current_work_unit",
+    "current_execution_envelope",
+    "current_executable_owner_action",
+    "typed_blocker",
+)
+LEGACY_CURRENT_PROJECTION_BOUNDARY = {
+    "surface_kind": "legacy_current_control_currentness_projection_boundary",
+    "status": "diagnostic_only",
+    "authority": False,
+    "diagnostic_only": True,
+    "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+    "default_selector_policy": "fail_closed",
+    "can_select_next_action": False,
+    "can_authorize_dispatch": False,
+    "can_authorize_provider_admission": False,
+    "can_start_provider_attempt": False,
+    "can_claim_paper_progress": False,
+    "projected_surfaces": list(LEGACY_CURRENT_PROJECTION_SURFACES),
+}
 
 
 def _copy_mapping_keys(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
@@ -114,15 +134,17 @@ def _observability_mapping(value: object) -> dict[str, Any]:
 
 def _current_control_currentness_fields(matching: Mapping[str, Any]) -> dict[str, Any]:
     projection: dict[str, Any] = {}
-    for key in (
-        "current_work_unit",
-        "current_execution_envelope",
-        "current_executable_owner_action",
-        "typed_blocker",
-    ):
+    copied_legacy_surfaces: list[str] = []
+    for key in LEGACY_CURRENT_PROJECTION_SURFACES:
         value = _observability_mapping(matching.get(key))
         if value:
             projection[key] = value
+            copied_legacy_surfaces.append(key)
+    if copied_legacy_surfaces:
+        projection["legacy_current_projection_boundary"] = {
+            **LEGACY_CURRENT_PROJECTION_BOUNDARY,
+            "projected_surfaces": copied_legacy_surfaces,
+        }
     if "provider_admission_pending_count" in matching:
         projection["provider_admission_pending_count"] = int(
             matching.get("provider_admission_pending_count") or 0
