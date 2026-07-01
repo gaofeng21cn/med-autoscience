@@ -99,6 +99,12 @@ def build_medical_manuscript_quality_agent_lab_suite(
         blocker_refs=blocker_refs,
         feedback_ref=feedback_ref,
     )
+    self_evolution_trigger = _feedback_self_evolution_trigger(
+        root=root,
+        study_id=study_id,
+        feedback_ref=feedback_ref,
+        suite_path=stable_medical_manuscript_quality_suite_path(study_root=root),
+    )
     developer_work_order = _attach_first_draft_quality_route_back_checklist(
         _developer_patch_work_order(
             study_id=study_id,
@@ -183,6 +189,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "owner_route_ref": owner_route_refs[0],
             "owner_route_refs": owner_route_refs,
             "developer_patch_work_order": developer_work_order,
+            "feedback_self_evolution_trigger": self_evolution_trigger,
             "target_agent_capability_gap": {
                 "status": "candidate_only",
                 "target_owner": "med-autoscience",
@@ -232,8 +239,63 @@ def build_medical_manuscript_quality_agent_lab_suite(
         "suite_id": f"mas-agent-lab-suite:{study_id}:high-quality-medical-manuscript",
         "suite_kind": "agent_lab_external_suite",
         "suite_role": "domain_quality_suite_with_meta_evolution_projection",
+        "feedback_self_evolution_trigger": self_evolution_trigger,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "tasks": [task],
+    }
+
+
+def _feedback_self_evolution_trigger(
+    *,
+    root: Path,
+    study_id: str,
+    feedback_ref: str | None,
+    suite_path: Path,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_agent_lab_feedback_self_evolution_trigger",
+        "schema_version": 1,
+        "status": "runnable_after_suite_materialized",
+        "study_id": study_id,
+        "feedback_ref": feedback_ref,
+        "external_suite_path": str(suite_path),
+        "external_suite_ref": f"agent-lab-suite:mas/{study_id}/high-quality-medical-manuscript",
+        "source_feedback_refs": _existing_refs(
+            root / "artifacts" / "controller" / "task_intake" / "latest.json",
+            root / "paper" / "review" / "review_ledger.json",
+            root / "artifacts" / "publication_eval" / "latest.json",
+        ),
+        "target_route": {
+            "domain_owner": "med-autoscience",
+            "agent_lab_owner": "one-person-lab",
+            "meta_agent_owner": "opl-meta-agent",
+            "target_repo": "med-autoscience",
+        },
+        "target_action_contracts": {
+            "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
+            "oma_improve": "opl-meta-agent.improve-from-external-agent-lab-suite",
+            "oma_execute": "opl-meta-agent.execute-external-work-order",
+            "mas_readback": "medautosci paper-mission inspect --study-id <study_id> --format json",
+        },
+        "required_status_refs": [
+            "agent_lab_suite_result_ref",
+            "structured_ai_reviewer_evaluation_ref",
+            "developer_patch_work_order_ref",
+            "opl_work_order_status_ref",
+            "target_owner_receipt_or_typed_blocker_ref",
+        ],
+        "opl_app_status_projection": {
+            "should_register_stage_run": True,
+            "status_surface_kind": "opl_agent_lab_domain_feedback_self_evolution_status",
+            "queued_status": "queued_for_agent_lab_external_suite",
+            "running_status": "running_oma_or_opl_work_order",
+            "terminal_statuses": [
+                "completed_with_owner_receipt",
+                "completed_with_typed_blocker",
+                "blocked_requires_human_or_owner_gate",
+            ],
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
 
@@ -273,7 +335,7 @@ def _blocker_refs(*, prose_status: str, feedback_ref: str | None, study_id: str)
     refs: list[str] = []
     if prose_status != "ready":
         refs.append(f"rubric-gap:mas/{study_id}/medical_journal_prose_quality:{prose_status}")
-    if feedback_ref is not None:
+    if prose_status != "ready" or feedback_ref is not None:
         profile = study_quality_target_profile(study_id=study_id)
         refs.extend(f"rubric-gap:mas/{study_id}/{slug}" for slug in profile["blocker_ref_slugs"])
     return refs

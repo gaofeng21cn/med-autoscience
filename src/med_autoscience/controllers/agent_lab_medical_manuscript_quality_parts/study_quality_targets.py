@@ -8,6 +8,8 @@ def study_quality_target_profile(*, study_id: str) -> dict[str, Any]:
         return _prediction_model_external_validation_profile()
     if study_id == "003-dpcc-primary-care-phenotype-treatment-gap":
         return _observational_phenotype_treatment_gap_profile()
+    if "obesity" in study_id:
+        return _obesity_registry_descriptive_profile()
     return _general_high_quality_medical_manuscript_profile()
 
 
@@ -27,11 +29,121 @@ def study_quality_contract_profile(*, study_id: str) -> dict[str, str]:
             "regression_suite_ref": "regression-suite:mas/phenotype-treatment-gap-first-draft-quality",
             "required_patch_scope": "phenotype_treatment_gap_first_draft_quality_contract",
         }
+    if family == "obesity_registry_descriptive_phenotype_atlas":
+        return {
+            "quality_contract_ref": "quality_contract_ref:obesity_registry_descriptive_first_draft_quality",
+            "scorer_ref": "scorer:mas/obesity-registry-descriptive-first-draft-quality",
+            "regression_suite_ref": "regression-suite:mas/obesity-registry-descriptive-first-draft-quality",
+            "required_patch_scope": "obesity_registry_descriptive_first_draft_quality_contract",
+        }
     return {
         "quality_contract_ref": "quality_contract_ref:general_medical_manuscript_first_draft_quality",
         "scorer_ref": "scorer:mas/general-medical-manuscript-first-draft-quality",
         "regression_suite_ref": "regression-suite:mas/general-medical-manuscript-first-draft-quality",
         "required_patch_scope": "general_medical_manuscript_first_draft_quality_contract",
+    }
+
+
+def _obesity_registry_descriptive_profile() -> dict[str, Any]:
+    return {
+        "family": "obesity_registry_descriptive_phenotype_atlas",
+        "blocker_ref_slugs": [
+            "obesity-registry-descriptive-question-boundary",
+            "reference-integrity-25-to-40-citations",
+            "main-text-3500-word-floor",
+            "clinical-value-result-figure-gap",
+            "figure-polish-skill-consistency",
+            "tables-and-figures-volume-floor",
+            "internal-report-style-language-purge",
+            "methods-registry-cohort-completeness",
+            "results-phenotype-clinical-interpretability",
+            "discussion-claim-guardrails",
+        ],
+        "targets": [
+            {
+                "target_id": "obesity_registry_descriptive_question_boundary",
+                "requirement": (
+                    "frame the paper as a descriptive obesity registry phenotype atlas, not a mechanism, "
+                    "prediction, causal, or treatment-effect study"
+                ),
+                "route_target": "review",
+            },
+            {
+                "target_id": "reference_integrity_25_to_40_citations",
+                "requirement": (
+                    "main manuscript contains a journal-rendered reference list with 25-40 relevant "
+                    "medical citations and no uncited reference placeholders"
+                ),
+                "route_target": "publication-gate",
+            },
+            {
+                "target_id": "main_text_3500_word_floor",
+                "requirement": (
+                    "main text reaches at least 3500 words of manuscript-facing scientific prose "
+                    "without padding or internal process narration"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "clinical_value_result_figure_gap",
+                "requirement": (
+                    "Results include one or two additional clinically interpretable displays that connect "
+                    "obesity phenotypes to comorbidity burden, severity gradient, treatment opportunity, "
+                    "or care-delivery value within the evidence boundary"
+                ),
+                "route_target": "figure-polish",
+            },
+            {
+                "target_id": "figure_polish_skill_consistency",
+                "requirement": (
+                    "all paper-facing figures are regenerated through the current figure-polish skill or "
+                    "equivalent ScholarSkills display pack, with consistent style, legends, units, and refs"
+                ),
+                "route_target": "figure-polish",
+            },
+            {
+                "target_id": "tables_and_figures_volume_floor",
+                "requirement": (
+                    "submission draft has a credible descriptive registry volume: at least two main tables, "
+                    "three to five main figures or equivalent figure panels, and concise supplementary displays "
+                    "when needed"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "internal_report_style_language_purge",
+                "requirement": (
+                    "remove internal-report language, process justification, MAS/AI reviewer/package wording, "
+                    "and defensive stage narration from the manuscript body"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "methods_registry_cohort_completeness",
+                "requirement": (
+                    "Methods define registry source, study period, sites or centers, inclusion/exclusion, "
+                    "obesity phenotype definitions, covariates, missingness, statistical summaries, and software"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "results_phenotype_clinical_interpretability",
+                "requirement": (
+                    "Results report denominators, obesity phenotype distributions, clinically meaningful "
+                    "comparisons, comorbidity or care-pattern signals, and uncertainty or dispersion where supported"
+                ),
+                "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "discussion_claim_guardrails",
+                "requirement": (
+                    "Discussion emphasizes descriptive registry insights, clinical context, and limitations "
+                    "without inferring mechanisms, prediction utility, treatment efficacy, or causality"
+                ),
+                "route_target": "review",
+            },
+            *_shared_manuscript_quality_targets(),
+        ],
     }
 
 

@@ -66,6 +66,17 @@ REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
     ("discussion_claim_guardrails", "discussion/claim guardrails", "讨论、结论和 claim 边界没有越过当前证据包。"),
     ("handoff_evidence_surface", "handoff/evidence surface", "durable handoff 写明数据源、脚本入口、输出表图、改动范围、claim guardrails 与 canonical source 回灌状态。"),
 )
+REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY = {
+    "mas": "study_truth_publication_quality_and_artifact_authority",
+    "opl": "agent_lab_runtime_and_work_order_status_projection",
+    "oma": "refs_only_developer_work_order_materialization",
+    "can_write_study_truth": False,
+    "can_write_owner_receipt": False,
+    "can_write_typed_blocker": False,
+    "can_write_human_gate": False,
+    "can_mutate_current_package": False,
+    "can_authorize_publication_ready": False,
+}
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -181,11 +192,66 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
                 "next owner: MAS controller or MDS paper surface",
             ],
         },
+        "self_evolution_trigger": build_reviewer_revision_self_evolution_trigger(payload),
     }
     fast_lane = _build_manuscript_fast_lane_contract(payload)
     if fast_lane is not None:
         revision_payload["manuscript_fast_lane"] = fast_lane
     return revision_payload
+
+
+def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | None) -> dict[str, Any]:
+    study_id = _study_id(payload)
+    return {
+        "surface_kind": "mas_reviewer_revision_self_evolution_trigger",
+        "schema_version": 1,
+        "status": "queued_for_agent_lab_external_suite",
+        "trigger_kind": "reviewer_revision_quality_gap",
+        "study_id": study_id,
+        "default_route": "mas_to_opl_agent_lab_to_oma_work_order",
+        "fast_lane_policy": {
+            "text_only_fast_lane_may_bypass_agent_lab": True,
+            "structural_manuscript_or_evidence_change_requires_agent_lab": True,
+            "requires_mas_format_record_even_when_fast_lane": True,
+        },
+        "target_actions": {
+            "mas_suite_builder": (
+                "medautosci agent-lab-medical-manuscript-quality-suite "
+                "--study-root <study_root> --reviewer-feedback-ref <feedback_ref> --apply"
+            ),
+            "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
+            "oma_materialization": "opl-meta-agent.improve-from-external-agent-lab-suite",
+            "opl_work_order_execution": "opl-meta-agent.execute-external-work-order",
+            "mas_acceptance_readback": "medautosci study progress --study-id <study_id> --format json",
+        },
+        "required_packet_refs": [
+            "agent_lab_suite_result_ref",
+            "structured_ai_reviewer_evaluation_ref",
+            "developer_patch_work_order_ref",
+            "opl_work_order_status_ref",
+            "target_owner_receipt_or_typed_blocker_ref",
+        ],
+        "status_projection": {
+            "opl_app_should_show": True,
+            "queued_status": "queued_for_agent_lab_external_suite",
+            "running_status": "running_in_opl_agent_lab_or_work_order",
+            "terminal_statuses": [
+                "completed_with_owner_receipt",
+                "completed_with_typed_blocker",
+                "blocked_requires_human_or_owner_gate",
+            ],
+        },
+        "authority_boundary": dict(REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY),
+    }
+
+
+def _study_id(payload: dict[str, Any] | None) -> str:
+    if isinstance(payload, dict):
+        for key in ("study_id", "target_study_id", "paper_study_id"):
+            text = _non_empty_text(payload.get(key))
+            if text is not None:
+                return text
+    return "<study_id>"
 
 
 def _build_manuscript_fast_lane_contract(payload: dict[str, Any] | None) -> dict[str, Any] | None:

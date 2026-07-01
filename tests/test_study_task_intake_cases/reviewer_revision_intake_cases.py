@@ -46,6 +46,18 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
     summary = module.summarize_task_intake(payload)
     assert summary["revision_intake"]["kind"] == "reviewer_revision"
     assert summary["revision_intake"]["reactivation_required"] is True
+    trigger = summary["revision_intake"]["self_evolution_trigger"]
+    assert trigger["surface_kind"] == "mas_reviewer_revision_self_evolution_trigger"
+    assert trigger["status"] == "queued_for_agent_lab_external_suite"
+    assert trigger["target_actions"]["oma_materialization"] == (
+        "opl-meta-agent.improve-from-external-agent-lab-suite"
+    )
+    assert trigger["target_actions"]["opl_work_order_execution"] == (
+        "opl-meta-agent.execute-external-work-order"
+    )
+    assert trigger["status_projection"]["opl_app_should_show"] is True
+    assert trigger["authority_boundary"]["can_write_owner_receipt"] is False
+    assert trigger["authority_boundary"]["can_mutate_current_package"] is False
 
 
 def test_methodology_correction_routes_reviewer_revision_back_to_analysis() -> None:

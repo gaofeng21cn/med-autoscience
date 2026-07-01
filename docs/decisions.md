@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-02：Reviewer revision 质量反馈默认触发 OPL Agent Lab / OMA 自进化
+
+- 决策：`reviewer_revision` intake 不再只登记同线稿件返修；当反馈超过 text-only fast lane，涉及科学性、引用、正文体量、表图、结果临床价值、figure skill 一致性、claim-evidence 或文风质量时，MAS 必须输出 `mas_reviewer_revision_self_evolution_trigger`，并通过 `agent-lab-medical-manuscript-quality-suite` 生成 refs-only external suite，交给 OPL Agent Lab 与 OMA developer work-order 路由。MAS 仍持有 study truth、publication quality、artifact authority、owner receipt 和 gate readback。
+- 理由：近期肥胖论文反馈暴露出 reviewer stage 没有把明显医学 SCI 初稿质量缺口自动上收到机制改进；Codex 前台可止血，但不能成为长期自进化触发器。触发器必须进入 OPL/OMA 可见的 work-order/status route，同时保持 `current_package`、owner receipt、typed blocker 和 human gate 不可伪造。
+- 影响：肥胖 registry/descriptive 论文获得专用 first-draft quality profile，覆盖 25-40 references、3500+ words、临床价值结果图、figure-polish 一致性、表图体量、内部报告式语言清理、registry 方法完整性和描述性 claim guardrails。后续类似论文反馈应通过 MAS suite -> OPL Agent Lab -> OMA work-order -> MAS readback 闭环处理，而不是直接前台大改后补记录。
+
 ## 全局读法：2026-06-29 之前的 next-action 旧词已被 NextActionEnvelope 取代
 
 - 决策：凡 2026-06-29 之前的决策段落提到 `current_work_unit`、`current_executable_owner_action`、`current_execution_envelope`、PaperRecovery、provider admission、domain transition、OPL transport 队列 / StageAttempt、Stage Native `control/next_action.json` 或类似“当前 owner/action/work unit/provider admission”语言，默认只按 history、provenance、migration diagnostic 或 retired observability-only diagnostic 读取；除非同段落被 2026-06-29 之后的决策明确重新确认，否则不得作为默认 next-action authority。
