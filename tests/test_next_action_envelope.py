@@ -339,7 +339,7 @@ def test_terminal_owner_outcomes_compile_to_stop_or_human_families() -> None:
     assert human["expected_output_contract"]["accepted_refs"] == ["human_gate_ref"]
 
 
-def test_submission_ready_owner_receipt_compiles_to_mission_complete() -> None:
+def test_submission_ready_owner_receipt_requires_authority_to_compile_to_mission_complete() -> None:
     envelope = compile_next_action_envelope(
         study_id="003",
         stage_id="submission_milestone_candidate",
@@ -356,6 +356,31 @@ def test_submission_ready_owner_receipt_compiles_to_mission_complete() -> None:
             "work_unit_id": "submission_ready_package",
             "decision_signature": "sig-submission-ready",
         },
+    )
+
+    assert envelope["action_family"] != FAMILY_MISSION_COMPLETE
+    assert envelope["authority_boundary"]["can_claim_stage_complete"] is False
+
+
+def test_authorized_submission_ready_owner_receipt_compiles_to_mission_complete() -> None:
+    envelope = compile_next_action_envelope(
+        study_id="003",
+        stage_id="submission_milestone_candidate",
+        stage_outcome={
+            "kind": "owner_receipt",
+            "package_kind": "submission_ready_package",
+            "freshness": "current",
+            "can_submit": True,
+            "quality_gate_status": "clear",
+            "generated_from_current_source": True,
+            "root": "/tmp/study/manuscript/current_package",
+            "zip_exists": True,
+            "known_blockers": [],
+            "work_unit_id": "submission_ready_package",
+            "decision_signature": "sig-submission-ready",
+            "authority_materialized": True,
+        },
+        authority_boundary={"can_claim_stage_complete": True},
     )
 
     assert envelope["action_family"] == FAMILY_MISSION_COMPLETE

@@ -145,6 +145,7 @@ def compile_next_action_envelope(
         stage_outcome=outcome,
         route_command=route,
         owner_route=owner,
+        authority_boundary=authority_boundary,
         work_unit_id=work_unit_id,
     )
     action_kind = FAMILY_KIND[family]
@@ -247,6 +248,7 @@ def resolve_action_family(
     stage_outcome: Mapping[str, Any] | None = None,
     route_command: Mapping[str, Any] | None = None,
     owner_route: Mapping[str, Any] | None = None,
+    authority_boundary: Mapping[str, Any] | None = None,
     work_unit_id: str | None = None,
 ) -> str:
     outcome = _mapping(stage_outcome)
@@ -265,7 +267,10 @@ def resolve_action_family(
         return FAMILY_HUMAN_APPROVAL
     if outcome_kind == "typed_blocker" or command_kind == "stop_with_typed_blocker":
         return FAMILY_BLOCKED_TYPED
-    if outcome_kind == "owner_receipt" and _owner_receipt_is_submission_ready_terminal(outcome):
+    if outcome_kind == "owner_receipt" and _owner_receipt_is_authorized_terminal(
+        outcome=outcome,
+        authority_boundary=authority_boundary,
+    ):
         return FAMILY_MISSION_COMPLETE
     if outcome_kind == "mission_complete" or command_kind == "complete_mission":
         return FAMILY_MISSION_COMPLETE
@@ -297,7 +302,17 @@ def resolve_action_family(
     return FAMILY_BLOCKED_TYPED
 
 
-def _owner_receipt_is_submission_ready_terminal(outcome: Mapping[str, Any]) -> bool:
+def _owner_receipt_is_authorized_terminal(
+    *,
+    outcome: Mapping[str, Any],
+    authority_boundary: Mapping[str, Any] | None,
+) -> bool:
+    boundary = _mapping(authority_boundary)
+    if (
+        outcome.get("authority_materialized") is not True
+        and boundary.get("can_claim_stage_complete") is not True
+    ):
+        return False
     quality_gate_status = _text(outcome.get("quality_gate_status"))
     package_status = _first_text(
         (outcome,),
