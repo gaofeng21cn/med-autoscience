@@ -128,7 +128,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
         "progress_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
-            "fallback_field_path": "next_system_action",
+            "display_fallback_field_path": "next_system_action",
         },
         "artifact_inventory_surface": {
             "surface_kind": "study_progress",

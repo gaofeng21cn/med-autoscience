@@ -277,7 +277,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
         "progress_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
-            "fallback_field_path": "next_system_action",
+            "display_fallback_field_path": "next_system_action",
             "current_focus": _non_empty_text(operator_status_card.get("current_focus")),
         },
         "artifact_inventory_surface": {
