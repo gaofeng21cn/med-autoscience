@@ -128,6 +128,7 @@ def test_publication_gate_apply_true_passes_same_route_context_to_downstream_wri
     report_path = quest_root / "publication_gate_report.json"
     markdown_path = quest_root / "publication_gate_report.md"
     seen: dict[str, Any] = {}
+    freshness_calls: list[dict[str, Any]] = []
 
     class State:
         pass
@@ -273,6 +274,7 @@ def test_publication_gate_apply_derives_delivery_sync_controller_route_when_snap
     report_path = quest_root / "publication_gate_report.json"
     markdown_path = quest_root / "publication_gate_report.md"
     seen: dict[str, Any] = {}
+    freshness_calls: list[dict[str, Any]] = []
 
     class State:
         pass
@@ -312,12 +314,25 @@ def test_publication_gate_apply_derives_delivery_sync_controller_route_when_snap
 
     def sync_study_delivery(**kwargs: Any) -> dict[str, str]:
         seen["delivery_context"] = kwargs["authority_route_context"]
-        return {"status": "synced"}
+        return {
+            "status": "synced",
+            "source_signature": "source::abc",
+            "authority_source_signature": "source::abc",
+            "current_package_root": str(study_root / "manuscript" / "current_package"),
+            "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+            "submission_manifest_path": str(paper_root / "submission_minimal" / "submission_manifest.json"),
+            "delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
+        }
 
     monkeypatch.setattr(
         module.study_delivery_sync,
         "sync_study_delivery",
         sync_study_delivery,
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch_package_freshness,
+        "write_current_package_freshness_proof",
+        lambda **kwargs: freshness_calls.append(kwargs) or {"status": "fresh"},
     )
     monkeypatch.setattr(module, "_materialize_publication_eval_latest", lambda **kwargs: None)
 
@@ -333,6 +348,15 @@ def test_publication_gate_apply_derives_delivery_sync_controller_route_when_snap
     assert delivery_context["controller_route_context"]["controller_action_type"] == "run_gate_clearing_batch"
     assert delivery_context["controller_route_context"]["control_surface"] == "gate_clearing_batch"
     assert delivery_context["controller_route_context"]["source_eval_id"] is None
+    assert len(freshness_calls) == 1
+    assert freshness_calls[0]["study_root"] == study_root
+    assert freshness_calls[0]["unit_results"] == [
+        {
+            "unit_id": "sync_submission_minimal_delivery",
+            "status": "synced",
+            "result": result["study_delivery_stale_sync"],
+        }
+    ]
 
 
 def test_quality_repair_batch_derives_route_context_from_runtime_status(

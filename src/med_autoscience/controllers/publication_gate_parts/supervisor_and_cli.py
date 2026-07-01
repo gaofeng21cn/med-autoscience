@@ -10,7 +10,12 @@ from pathlib import Path
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers import (
+    gate_clearing_batch_package_freshness,
+    journal_package as journal_package_controller,
+    study_delivery_sync,
+    submission_minimal,
+)
 from med_autoscience.controllers.authority_route_context_call import call_with_authority_route_context
 from med_autoscience.controllers.authority_route_gate import authorize_authority_route
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
@@ -109,6 +114,8 @@ from .state_and_reports import (
     build_gate_report,
     _bundle_stage_is_on_critical_path,
 )
+
+SCHEMA_VERSION = 1
 
 
 
@@ -650,6 +657,23 @@ def run_controller(
                     publication_profile=_stale_submission_delivery_sync_profile(state=state, report=report),
                     authority_route_context=delivery_route_context,
                 )
+                sync_status = str(study_delivery_stale_sync.get("status") or "").strip() or "synced"
+                study_root = getattr(state, "study_root", None)
+                if study_root is not None:
+                    gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
+                        study_root=Path(study_root),
+                        source_eval_id=str(report.get("source_eval_id") or ""),
+                        gate_report=report,
+                        unit_results=[
+                            {
+                                "unit_id": "sync_submission_minimal_delivery",
+                                "status": sync_status,
+                                "result": study_delivery_stale_sync,
+                            }
+                        ],
+                        clock=lambda: (0, utc_now()),
+                        schema_version=SCHEMA_VERSION,
+                    )
         else:
             study_delivery_stale_sync = call_with_authority_route_context(
                 study_delivery_sync.materialize_submission_delivery_stale_notice,

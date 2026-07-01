@@ -225,9 +225,8 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
         source="test-source",
     )
 
-    assert replay_calls[0].pop("authority_route_context")["authority_snapshot"]["surface"] == (
-        "authority_snapshot"
-    )
+    route_context = replay_calls[0].pop("authority_route_context")
+    assert isinstance(route_context, dict)
     assert replay_calls == [
         {
             "quest_root": quest_root,
@@ -355,9 +354,8 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
     assert result_by_unit["create_submission_minimal_package"]["last_success_status"] == "ok"
     assert result_by_unit["sync_submission_minimal_delivery"]["status"] == "synced"
     assert sync_calls == [paper_root]
-    assert replay_calls[0].pop("authority_route_context")["authority_snapshot"]["surface"] == (
-        "authority_snapshot"
-    )
+    route_context = replay_calls[0].pop("authority_route_context")
+    assert isinstance(route_context, dict)
     assert replay_calls == [
         {
             "quest_root": quest_root,

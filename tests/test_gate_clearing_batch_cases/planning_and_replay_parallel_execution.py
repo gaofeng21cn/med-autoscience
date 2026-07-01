@@ -69,6 +69,21 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
         lambda **_: {"status": "materialized", "tables_materialized": ["T1"]},
     )
     monkeypatch.setattr(
+        module,
+        "_time_to_event_direct_migration_display_inputs_need_refresh",
+        lambda **_: False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_stale_time_to_event_grouped_payloads_need_rematerialization",
+        lambda **_: False,
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch_transportability,
+        "transportability_governance_display_inputs_need_refresh",
+        lambda **_: False,
+    )
+    monkeypatch.setattr(
         module.submission_minimal,
         "create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
@@ -178,6 +193,21 @@ def test_run_gate_clearing_batch_waits_for_live_path_repair_before_display_refre
     monkeypatch.setattr(module, "_freeze_scientific_anchor_fields", fake_freeze)
     monkeypatch.setattr(module, "_repair_paper_live_paths", fake_repair)
     monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
+    monkeypatch.setattr(
+        module,
+        "_time_to_event_direct_migration_display_inputs_need_refresh",
+        lambda **_: False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_stale_time_to_event_grouped_payloads_need_rematerialization",
+        lambda **_: False,
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch_transportability,
+        "transportability_governance_display_inputs_need_refresh",
+        lambda **_: False,
+    )
     monkeypatch.setattr(
         module.publication_gate,
         "run_controller",

@@ -299,10 +299,7 @@ def sync_current_package_projection(
         target_root=current_package_root,
         category="current_package",
         copied_files=copied_files,
-        ignore_filenames=(
-            "submission_manifest.json",
-            "evidence_ledger.json",
-        ),
+        ignore_filenames=("submission_manifest.json",),
     )
     linkage_payload, source_manifest_path = _copy_current_package_audit_surfaces(
         paper_root=paper_root,
