@@ -373,6 +373,50 @@ def test_stage_closure_terminalizer_does_not_treat_accepted_status_as_blocker() 
     assert decision["outcome"]["kind"] == "owner_receipt"
 
 
+def test_stage_closure_terminalizer_does_not_treat_paper_facing_delta_acceptance_as_blocker() -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+
+    decision = commands._terminalize_stage_closure_from_readback(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "mission_id": "mission-obesity",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "transaction_state": "accepted_submission_milestone_candidate",
+            "authority_consume_readback": {
+                "consume_result": {
+                    "paper_facing_delta_ref": "/tmp/paper-facing-delta.json",
+                },
+            },
+            "paper_mission_transaction": {
+                "transaction_id": "txn-obesity",
+                "stage_id": "ai_reviewer_medical_prose_quality_review",
+            },
+            "stage_terminal_decision": {
+                "status": "accepted_submission_milestone_candidate",
+                "reason": "accepted_submission_milestone_candidate",
+            },
+            "current_package": {
+                "status": "layout_migration_pending_sync",
+                "freshness_status": "legacy",
+                "delivery_status": "current",
+                "package_kind": "submission_ready_package",
+                "can_submit": True,
+                "quality_gate_status": "clear",
+                "generated_from_current_source": True,
+                "root": "/tmp/current-package",
+                "zip_exists": True,
+                "known_blockers": [],
+            },
+        }
+    )
+
+    assert decision.get("known_blockers", []) == []
+    assert decision.get("blocker_taxonomy", {}).get("route_back_checkpoint", []) == []
+    assert decision["outcome"]["kind"] == "owner_receipt"
+
+
 def test_stage_closure_terminalizer_reterminalizes_legacy_accepted_unknown_blocker() -> None:
     commands = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_commands"

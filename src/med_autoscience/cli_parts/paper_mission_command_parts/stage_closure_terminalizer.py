@@ -437,9 +437,9 @@ def current_package_is_submission_ready_clear(
 ) -> bool:
     gate_status = _current_package_quality_gate_status(current_package)
     package_status = _first_text(
+        current_package.get("delivery_status"),
         current_package.get("status"),
         current_package.get("freshness_status"),
-        current_package.get("delivery_status"),
     )
     return (
         package_status in {"current", "fresh", "synced"}
