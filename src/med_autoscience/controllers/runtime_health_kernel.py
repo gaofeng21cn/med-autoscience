@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_health_kernel_parts import (
+    diagnostic_projection,
     event_log,
+    event_projection,
     explicit_resume,
     provider_readiness,
     run_epoch_budget,
@@ -139,38 +141,7 @@ _READ_ONLY_DIAGNOSTIC_ACTIONS = (
     "read_runtime_status",
     "open_monitoring_entry",
 )
-_VOLATILE_SUPERVISOR_KEYS = frozenset(
-    {
-        "age_seconds",
-        "checked_at",
-        "generated_at",
-        "seconds_since_latest_recorded_at",
-        "seconds_since_latest_progress",
-    }
-)
-_STABLE_RUNTIME_AUDIT_KEYS = (
-    "ok",
-    "status",
-    "source",
-    "active_run_id",
-    "worker_running",
-    "worker_pending",
-    "stop_requested",
-    "runtime_event_contract_error",
-    "runtime_event_ref_contract_error",
-    "liveness_guard_reason",
-)
-_STABLE_RUNTIME_LIVENESS_AUDIT_KEYS = (
-    "ok",
-    "status",
-    "source",
-    "active_run_id",
-    "runner_live",
-    "bash_live",
-    "stale_progress",
-    "liveness_guard_reason",
-    "error",
-)
+_VOLATILE_SUPERVISOR_KEYS = event_projection.VOLATILE_SUPERVISOR_KEYS
 RUNTIME_HEALTH_AUTHORITY_BOUNDARY = {
     "surface_kind": "mas_runtime_health_diagnostic_authority_boundary",
     "surface_role": "mas_diagnostic_publisher_read_only_projection",
@@ -218,160 +189,28 @@ def opl_runtime_health_tail_readback_requirement() -> dict[str, Any]:
     return dict(OPL_RUNTIME_HEALTH_LIVE_READBACK_REQUIREMENT)
 
 
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
-
-
-def _bool(value: object) -> bool | None:
-    return value if isinstance(value, bool) else None
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _read_json(path: Path | None) -> dict[str, Any] | None:
-    if path is None or not path.exists():
-        return None
-    payload = json.loads(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        raise ValueError(f"expected JSON object at {path}")
-    return payload
+_text = event_projection.text
+_bool = event_projection.bool_value
+_mapping = event_projection.mapping
+_read_json = event_projection.read_json
+_event_source_signature = event_projection.event_source_signature
+_stable_event_payload = event_projection.stable_event_payload
+_source_signature_for_event = event_projection.source_signature_for_event
+_snapshot_source_signature = event_projection.snapshot_source_signature
+_authority_ref = event_projection.authority_ref
+_events_for = event_projection.events_for
+_event_payload = event_projection.event_payload
+_first_text = event_projection.first_text
+_active_run_from_payload = event_projection.active_run_from_payload
+_stable_runtime_audit = event_projection.stable_runtime_audit
+_stable_runtime_liveness_audit = event_projection.stable_runtime_liveness_audit
+_last_known_run_id = event_projection.last_known_run_id
+_latest_runtime_observation = event_projection.latest_runtime_observation
+_latest_supervisor_state = event_projection.latest_supervisor_state
 
 
 def read_runtime_health_events(*, study_root: Path) -> list[dict[str, Any]]:
     return event_log.read_jsonl(runtime_health_events_path(study_root=study_root))
-
-
-def _event_source_signature(event_type: str, payload: Mapping[str, Any]) -> str:
-    return event_log.event_source_signature(
-        event_type=event_type,
-        payload=payload,
-        stable_event_payload=_stable_event_payload,
-    )
-
-
-def _stable_event_payload(event_type: str, payload: Mapping[str, Any]) -> dict[str, Any]:
-    if event_type != "runtime_state_observed":
-        return dict(payload)
-    stable = dict(payload)
-    stable.pop("observed_at", None)
-    runtime_audit = _mapping(stable.get("runtime_audit"))
-    if runtime_audit:
-        stable["runtime_audit"] = _stable_runtime_audit(runtime_audit)
-    liveness_audit = _mapping(stable.get("runtime_liveness_audit"))
-    if liveness_audit:
-        stable["runtime_liveness_audit"] = _stable_runtime_liveness_audit(liveness_audit)
-    return stable
-
-
-def _source_signature_for_event(event: Mapping[str, Any]) -> str:
-    return event_log.source_signature_for_event(
-        event,
-        text=_text,
-        mapping=_mapping,
-        stable_event_payload=_stable_event_payload,
-    )
-
-
-def _snapshot_source_signature(events: list[dict[str, Any]]) -> str | None:
-    return event_log.snapshot_source_signature(
-        events,
-        source_signature_for_event=_source_signature_for_event,
-    )
-
-
-def _authority_ref(event: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "event_id": _text(event.get("event_id")),
-        "event_type": _text(event.get("event_type")),
-        "recorded_at": _text(event.get("recorded_at")),
-    }
-
-
-def _latest_event(events: Iterable[dict[str, Any]], event_type: str) -> dict[str, Any] | None:
-    for event in reversed(list(events)):
-        if event.get("event_type") == event_type:
-            return event
-    return None
-
-
-def _events_for(events: Iterable[dict[str, Any]], event_types: frozenset[str]) -> list[dict[str, Any]]:
-    return [event for event in events if str(event.get("event_type") or "") in event_types]
-
-
-def _event_payload(event: Mapping[str, Any] | None) -> dict[str, Any]:
-    return _mapping(event.get("payload")) if event is not None else {}
-
-
-def _first_text(*values: object) -> str | None:
-    for value in values:
-        text = _text(value)
-        if text is not None:
-            return text
-    return None
-
-
-def _active_run_from_payload(payload: Mapping[str, Any]) -> str | None:
-    return _first_text(
-        payload.get("active_run_id"),
-        _mapping(payload.get("runtime_audit")).get("active_run_id"),
-        _mapping(payload.get("runtime_liveness_audit")).get("active_run_id"),
-        _mapping(payload.get("autonomous_runtime_notice")).get("active_run_id"),
-    )
-
-
-def _stable_runtime_audit(payload: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: payload[key] for key in _STABLE_RUNTIME_AUDIT_KEYS if key in payload}
-
-
-def _stable_runtime_liveness_audit(payload: Mapping[str, Any]) -> dict[str, Any]:
-    stable = {key: payload[key] for key in _STABLE_RUNTIME_LIVENESS_AUDIT_KEYS if key in payload}
-    runtime_audit = _mapping(payload.get("runtime_audit"))
-    if runtime_audit:
-        stable["runtime_audit"] = _stable_runtime_audit(runtime_audit)
-    bash_session_audit = _mapping(payload.get("bash_session_audit"))
-    if bash_session_audit:
-        stable["bash_session_audit"] = {
-            key: bash_session_audit[key]
-            for key in ("ok", "status", "session_count", "live_session_count", "live_session_ids")
-            if key in bash_session_audit
-        }
-    return stable
-
-
-def _last_known_run_id(events: list[dict[str, Any]], *, strict_live: bool, active_run_id: str | None) -> str | None:
-    if strict_live:
-        return active_run_id
-    for event in reversed(events):
-        payload = _event_payload(event)
-        candidate = _active_run_from_payload(payload)
-        if candidate is not None:
-            return candidate
-    return None
-
-
-def _latest_runtime_observation(events: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    event = _latest_event(events, "runtime_state_observed")
-    return event, _event_payload(event)
-
-
-def _latest_supervisor_state(events: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    event = _latest_event(events, "supervisor_tick")
-    payload = _event_payload(event)
-    status = _first_text(payload.get("supervisor_tick_status"), payload.get("status"))
-    stable_payload = {
-        key: item
-        for key, item in payload.items()
-        if key not in _VOLATILE_SUPERVISOR_KEYS
-    }
-    return event, {
-        "status": status or "unknown",
-        "required": _bool(payload.get("required")),
-        "latest_recorded_at": _first_text(payload.get("latest_recorded_at"), payload.get("recorded_at")),
-        "source_signature": _event_source_signature("supervisor_tick", stable_payload),
-    }
 
 
 def _events_for_budget(
@@ -607,134 +446,6 @@ def _projection_invalidations(
     return invalidations
 
 
-def _allowed_controller_actions(*, canonical_runtime_action: str) -> list[str]:
-    if canonical_runtime_action in {"recover_runtime", "relaunch_runtime", "probe_runtime_liveness"}:
-        return [
-            "read_runtime_status",
-            "refresh_runtime_liveness",
-            "recover_runtime",
-            "relaunch_runtime",
-            "open_monitoring_entry",
-        ]
-    if canonical_runtime_action in {"escalate_runtime", "external_supervisor_required"}:
-        return ["read_runtime_status", "open_monitoring_entry", "manual_runtime_review"]
-    return list(_BASE_ALLOWED_ACTIONS)
-
-
-def _diagnostic_hint_contract(
-    *,
-    canonical_runtime_action: str,
-    attempt_state: str,
-    retry_budget_remaining: int,
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "mas_runtime_health_diagnostic_hint_contract",
-        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
-        "hint_only": True,
-        "canonical_runtime_action_hint": canonical_runtime_action,
-        "attempt_state_hint": attempt_state,
-        "retry_budget_remaining_hint": retry_budget_remaining,
-        "attempt_count_hint_is_lifecycle_authority": False,
-        "failed_attempt_count_hint_is_lifecycle_authority": False,
-        "canonical_runtime_action_is_authority": False,
-        "allowed_controller_action_hints_are_authority": False,
-        "runtime_liveness_hint_is_authority": False,
-        "attempt_state_hint_is_lifecycle_authority": False,
-        "retry_budget_hint_is_lifecycle_authority": False,
-        "provider_admission_authority": False,
-        "can_generate_next_action_authority": False,
-        "can_create_worker_attempt": False,
-        "can_retry_or_dead_letter": False,
-        "can_authorize_running_progress": False,
-        "opl_observability_readback_required": True,
-        "opl_current_control_or_stage_run_readback_required": True,
-        "mas_private_attempt_loop_forbidden": True,
-        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
-    }
-
-
-def _diagnostic_hints(
-    *,
-    canonical_runtime_action: str,
-    attempt_state: str,
-    retry_budget_remaining: int,
-    allowed_controller_action_hints: Iterable[str],
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "runtime_health_diagnostic_hints",
-        "diagnostic_only": True,
-        "authority": False,
-        "readiness_authority": False,
-        "runtime_currentness_authority": False,
-        "lifecycle_authority": False,
-        "runtime_action_hint": canonical_runtime_action,
-        "attempt_state_hint": attempt_state,
-        "retry_budget_remaining_hint": retry_budget_remaining,
-        "allowed_controller_action_hints": list(allowed_controller_action_hints),
-        "field_authority": {
-            "runtime_action_hint": False,
-            "attempt_state_hint": False,
-            "retry_budget_remaining_hint": False,
-            "allowed_controller_action_hints": False,
-            "worker_liveness_state": False,
-        },
-        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
-        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
-    }
-
-
-def _legacy_runtime_health_field_contract(
-    *,
-    canonical_runtime_action: str,
-    attempt_state: str,
-    retry_budget_remaining: int,
-    worker_liveness_state: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "runtime_health_legacy_field_compatibility_contract",
-        "compatibility_only": True,
-        "diagnostic_only": True,
-        "authority": False,
-        "runtime_currentness_authority": False,
-        "lifecycle_authority": False,
-        "readiness_authority": False,
-        "provider_admission_authority": False,
-        "runtime_action_hint": canonical_runtime_action,
-        "attempt_state_hint": attempt_state,
-        "retry_budget_remaining_hint": retry_budget_remaining,
-        "worker_liveness_state_hint": dict(worker_liveness_state),
-        "field_authority": {
-            "canonical_runtime_action": False,
-            "attempt_state": False,
-            "retry_budget_remaining": False,
-            "worker_liveness_state": False,
-            "allowed_controller_actions": False,
-        },
-        "replacement_namespace": "diagnostic_hints",
-        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
-        "attempt_ledger_authority_boundary": dict(ATTEMPT_LEDGER_AUTHORITY_BOUNDARY),
-    }
-
-
-def _projection_metadata(
-    *,
-    dominant_event: Mapping[str, Any] | None,
-    source_signature: str | None,
-) -> dict[str, Any]:
-    derived_from_event_id = _text(dominant_event.get("event_id")) if dominant_event is not None else None
-    return {
-        "surface_kind": "runtime_health_diagnostic_projection_metadata",
-        "opl_observability_readback_boundary": dict(OPL_OBSERVABILITY_READBACK_BOUNDARY),
-        "authority": False,
-        "fixed_point_runtime_owner": "one-person-lab",
-        "derived_from_event_id": derived_from_event_id,
-        "observed_generation": source_signature,
-        "lag_status": "current" if derived_from_event_id is not None and source_signature is not None else "empty",
-        "runtime_health_epoch_is_currentness_authority": False,
-        "diagnostic_publisher_only": True,
-    }
-
-
 def _snapshot_from_events(
     *,
     study_root: Path,
@@ -820,13 +531,15 @@ def _snapshot_from_events(
     last_known_run_id = _last_known_run_id(events, strict_live=strict_live, active_run_id=observed_active_run_id)
     failure_reason = _latest_failure_reason(events, runtime_payload, active_run_id=active_budget_run_id)
     blocking_reasons = list(dict.fromkeys(reason for reason in blocking_reasons if reason))
-    allowed_controller_action_hints = _allowed_controller_actions(
-        canonical_runtime_action=canonical_runtime_action
+    allowed_controller_action_hints = diagnostic_projection.allowed_controller_actions(
+        canonical_runtime_action=canonical_runtime_action,
+        base_allowed_actions=_BASE_ALLOWED_ACTIONS,
     )
     source_signature = _snapshot_source_signature(events)
-    projection_metadata = _projection_metadata(
+    projection_metadata = diagnostic_projection.projection_metadata(
         dominant_event=dominant,
         source_signature=source_signature,
+        opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -881,22 +594,28 @@ def _snapshot_from_events(
         "failure_reason": failure_reason,
         "backoff_until": _text(runtime_payload.get("backoff_until")),
         "retry_budget_remaining": retry_budget_remaining,
-        "diagnostic_hint_contract": _diagnostic_hint_contract(
+        "diagnostic_hint_contract": diagnostic_projection.diagnostic_hint_contract(
             canonical_runtime_action=canonical_runtime_action,
             attempt_state=attempt_state,
             retry_budget_remaining=retry_budget_remaining,
+            opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
+            attempt_ledger_authority_boundary=ATTEMPT_LEDGER_AUTHORITY_BOUNDARY,
         ),
-        "diagnostic_hints": _diagnostic_hints(
+        "diagnostic_hints": diagnostic_projection.diagnostic_hints(
             canonical_runtime_action=canonical_runtime_action,
             attempt_state=attempt_state,
             retry_budget_remaining=retry_budget_remaining,
             allowed_controller_action_hints=allowed_controller_action_hints,
+            opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
+            attempt_ledger_authority_boundary=ATTEMPT_LEDGER_AUTHORITY_BOUNDARY,
         ),
-        "legacy_runtime_health_field_contract": _legacy_runtime_health_field_contract(
+        "legacy_runtime_health_field_contract": diagnostic_projection.legacy_runtime_health_field_contract(
             canonical_runtime_action=canonical_runtime_action,
             attempt_state=attempt_state,
             retry_budget_remaining=retry_budget_remaining,
             worker_liveness_state=worker_state,
+            opl_observability_readback_boundary=OPL_OBSERVABILITY_READBACK_BOUNDARY,
+            attempt_ledger_authority_boundary=ATTEMPT_LEDGER_AUTHORITY_BOUNDARY,
         ),
         "runtime_action_hint": canonical_runtime_action,
         "runtime_action_hint_is_authority": False,
