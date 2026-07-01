@@ -145,10 +145,19 @@ or display lock entry and check that:
   `flow_visual_policy=purpose_first_reporting_flow_no_legacy_card_shell`; `renderer_family=r_ggplot2`
   or `uses_ggconsort=true` alone is not enough to accept Figure 1 because the old card/bar shell can
   still be technically R-backed while failing the participant-accounting purpose;
+- the `cohort_flow_figure` layout sidecar has no `summary_panel`, `context_note`, `prose_card`, or
+  fake-axis prose box. If endpoint, design, or interpretation text is present in the payload, the
+  accepted output keeps that text in metadata, caption, legend, or manuscript prose rather than drawing
+  a second explanatory card inside Figure 1;
 - dense cell/grid/multipanel displays declare a readable label policy in the layout sidecar; artifact existence
   and sha256 alone cannot make the visual audit `clear`;
 - the rendered artifact in the human package is byte-identical to the generated submission figure, unless the
   package step intentionally converts format and records that conversion.
+
+Reference rendering is part of the same final-PDF audit. A package with a nonempty bibliography source but no
+visible References section is a citation-chain or submission markdown consumption defect, not a cosmetic PDF
+problem. The audit should check the submission markdown citation policy, Pandoc `--citeproc` path, and PDF text
+extraction before marking a paper package visually or submission-format clear.
 
 Table readability follows the same rule. If a table catalog or display surface declares a long-table,
 sideways-table, or measure-value layout to avoid PDF overlap, the submission manuscript source must consume that
