@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import json
 import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.paper_mission_opl_readback_parts.closeout_discovery import (
+    matching_terminal_closeout as _discover_matching_terminal_closeout,
+)
 from med_autoscience.paper_mission_opl_readback_parts.next_action_envelope import (
     attach_paper_mission_next_action,
     paper_mission_next_action_envelope,
@@ -18,6 +20,32 @@ from med_autoscience.paper_mission_opl_readback_parts.opl_cli_probe import (
     ranked_opl_bin_candidates,
     remaining_seconds,
     run_opl_json,
+)
+from med_autoscience.paper_mission_opl_readback_parts.primitives import (
+    first_text as _first_text,
+    mapping as _mapping,
+    text_list as _text_list,
+    text_value as _text,
+)
+from med_autoscience.paper_mission_opl_readback_parts.receipt_events import (
+    carrier_command_kind as _carrier_command_kind,
+    carrier_route_target as _carrier_route_target,
+    event_closeout_refs as _event_closeout_refs,
+    event_mas_impact_receipt as _event_mas_impact_receipt,
+    event_opl_transition_receipt as _event_opl_transition_receipt,
+    first_mas_impact_receipt as _first_mas_impact_receipt,
+    first_opl_transition_receipt as _first_opl_transition_receipt,
+    matches_mas_impact_receipt as _matches_mas_impact_receipt,
+    matches_opl_transition_receipt as _matches_opl_transition_receipt,
+    matches_receipt_command_kind as _matches_receipt_command_kind,
+)
+from med_autoscience.paper_mission_opl_readback_parts.runtime_readback_payloads import (
+    accounting_mapping as _accounting_mapping,
+    mas_receipt_consumption_readback as _mas_receipt_consumption_readback,
+    opl_transition_receipt_readback as _opl_transition_receipt_readback,
+    receipt_evidence_readback as _receipt_evidence_readback,
+    running_attempt_readback as _running_attempt_readback,
+    terminal_closeout_readback as _terminal_closeout_readback,
 )
 
 
@@ -35,7 +63,6 @@ DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS = 30.0
 DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT = 2
 OPL_STAGE_ROUTE_TASK_KIND = "paper_mission/stage-route"
 OPL_DOMAIN_ID = "medautoscience"
-
 
 def paper_mission_opl_runtime_carrier_readback(
     *,
@@ -155,7 +182,6 @@ def paper_mission_opl_runtime_carrier_readback(
         ),
     }
 
-
 def attach_opl_runtime_carrier_readback(
     *,
     readback: Mapping[str, Any],
@@ -177,66 +203,18 @@ def attach_opl_runtime_carrier_readback(
     result["opl_runtime_readback_status"] = carrier_readback["carrier_status"]
     return result
 
-
 def _matching_terminal_closeout(
     *,
     carrier: Mapping[str, Any],
     study_root: Path,
 ) -> tuple[dict[str, Any], str] | None:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    matches: list[tuple[float, dict[str, Any], str]] = []
-    for root_ref in CLOSEOUT_RELATIVE_ROOTS:
-        closeout_root = resolved_study_root / root_ref
-        if not closeout_root.is_dir():
-            continue
-        for closeout_path in closeout_root.glob("*.json"):
-            closeout = _read_json_object(closeout_path)
-            if closeout is None:
-                continue
-            if not _matches_carrier(closeout=closeout, carrier=carrier):
-                continue
-            matches.append(
-                (
-                    closeout_path.stat().st_mtime,
-                    closeout,
-                    _study_relative_ref(
-                        study_root=resolved_study_root,
-                        path=closeout_path,
-                    ),
-                )
-            )
-    workspace_root = _workspace_root_for_study_root(resolved_study_root)
-    if workspace_root is not None:
-        for root_ref in WORKSPACE_CLOSEOUT_RELATIVE_ROOTS:
-            closeout_root = workspace_root / root_ref
-            if not closeout_root.is_dir():
-                continue
-            pattern = f"**/{_text(carrier.get('study_id'))}/stage_attempt_closeout_packet.json"
-            for closeout_path in closeout_root.glob(pattern):
-                closeout = _read_json_object(closeout_path)
-                if closeout is None:
-                    continue
-                if not _matches_carrier(closeout=closeout, carrier=carrier):
-                    continue
-                matches.append(
-                    (
-                        closeout_path.stat().st_mtime,
-                        closeout,
-                        _workspace_relative_ref(
-                            workspace_root=workspace_root,
-                            path=closeout_path,
-                        ),
-                    )
-                )
-    if not matches:
-        return None
-    _mtime, closeout, closeout_ref = sorted(
-        matches,
-        key=lambda item: item[0],
-        reverse=True,
-    )[0]
-    return closeout, closeout_ref
-
+    return _discover_matching_terminal_closeout(
+        carrier=carrier,
+        study_root=study_root,
+        closeout_relative_roots=CLOSEOUT_RELATIVE_ROOTS,
+        workspace_closeout_relative_roots=WORKSPACE_CLOSEOUT_RELATIVE_ROOTS,
+        matches_carrier=_matches_carrier,
+    )
 
 def _matching_opl_runtime_terminal_closeout(
     *,
@@ -302,7 +280,6 @@ def _matching_opl_runtime_terminal_closeout(
             if matched is not None:
                 return matched
     return None
-
 
 def _matching_opl_runtime_live_probe(
     *,
@@ -383,7 +360,6 @@ def _matching_opl_runtime_live_probe(
             return "running", attempt, attempt_ref
     return None
 
-
 def _matching_opl_runtime_running_attempt(
     *,
     carrier: Mapping[str, Any],
@@ -455,7 +431,6 @@ def _matching_opl_runtime_running_attempt(
                 return matched
     return None
 
-
 def _matching_opl_runtime_payload_closeout(
     *,
     carrier: Mapping[str, Any],
@@ -489,7 +464,6 @@ def _matching_opl_runtime_payload_closeout(
             return closeout, _opl_task_closeout_ref(task)
     return None
 
-
 def _matching_opl_runtime_payload_running_attempt(
     *,
     carrier: Mapping[str, Any],
@@ -521,7 +495,6 @@ def _matching_opl_runtime_payload_running_attempt(
             return attempt, _opl_attempt_ref(attempt)
     return None
 
-
 def _matching_opl_tasks_from_list(
     *,
     carrier: Mapping[str, Any],
@@ -537,14 +510,12 @@ def _matching_opl_tasks_from_list(
         if isinstance(task, Mapping) and _matches_opl_task(carrier=carrier, task=task)
     ]
 
-
 def _ranked_opl_probe_tasks(
     tasks: list[dict[str, Any]],
     *,
     carrier: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     return sorted(tasks, key=lambda task: _opl_probe_task_rank(task, carrier=carrier))
-
 
 def _opl_probe_task_rank(
     task: Mapping[str, Any],
@@ -585,7 +556,6 @@ def _opl_probe_task_rank(
         _text(task.get("task_id")) or "",
     )
 
-
 def _matches_opl_task(
     *,
     carrier: Mapping[str, Any],
@@ -620,7 +590,6 @@ def _matches_opl_task(
     ):
         return False
     return True
-
 
 def _opl_task_terminal_closeout(
     *,
@@ -747,7 +716,6 @@ def _opl_task_terminal_closeout(
         },
     }
 
-
 def _opl_task_running_attempt(
     *,
     carrier: Mapping[str, Any],
@@ -814,7 +782,6 @@ def _opl_task_running_attempt(
         },
     }
 
-
 def _matching_opl_stage_attempt(
     *,
     carrier: Mapping[str, Any],
@@ -839,7 +806,6 @@ def _matching_opl_stage_attempt(
             ):
                 return candidate
     return {}
-
 
 def _matches_opl_stage_attempt(
     *,
@@ -876,7 +842,6 @@ def _matches_opl_stage_attempt(
         return False
     return True
 
-
 def _payload_binds_route_identity(
     *,
     carrier: Mapping[str, Any],
@@ -891,137 +856,13 @@ def _payload_binds_route_identity(
         and _text(payload.get("opl_route_command_ref")) == expected_route_ref
     )
 
-
 def _opl_task_closeout_ref(task: Mapping[str, Any]) -> str:
     task_id = _text(task.get("task_id")) or "unknown"
     return f"opl://family-runtime/tasks/{task_id}/terminal-closeout-readback"
 
-
 def _opl_attempt_ref(attempt: Mapping[str, Any]) -> str:
     stage_attempt_id = _text(attempt.get("stage_attempt_id")) or "unknown"
     return f"opl://stage-attempts/{stage_attempt_id}/running-readback"
-
-
-def _event_closeout_refs(events: object) -> list[str]:
-    if not isinstance(events, list | tuple):
-        return []
-    refs: list[str] = []
-    for event in events:
-        payload = _mapping(_mapping(event).get("payload"))
-        for ref in _text_list(payload.get("closeout_refs")):
-            if ref not in refs:
-                refs.append(ref)
-    return refs
-
-
-def _event_opl_transition_receipt(
-    *,
-    events: object,
-    carrier: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if not isinstance(events, list | tuple):
-        return None
-    for event in reversed(events):
-        payload = _mapping(_mapping(event).get("payload"))
-        receipt = _mapping(payload.get("opl_transition_receipt"))
-        if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
-            return dict(receipt)
-    return None
-
-
-def _event_mas_impact_receipt(
-    *,
-    events: object,
-    carrier: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if not isinstance(events, list | tuple):
-        return None
-    for event in reversed(events):
-        payload = _mapping(_mapping(event).get("payload"))
-        receipt = _mapping(payload.get("mas_impact_receipt"))
-        if _matches_mas_impact_receipt(receipt=receipt, carrier=carrier):
-            return dict(receipt)
-    return None
-
-
-def _first_opl_transition_receipt(
-    carrier: Mapping[str, Any],
-    *sources: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    for source in sources:
-        receipt = _mapping(source.get("opl_transition_receipt"))
-        if _matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
-            return dict(receipt)
-    return None
-
-
-def _first_mas_impact_receipt(
-    carrier: Mapping[str, Any],
-    *sources: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    for source in sources:
-        receipt = _mapping(source.get("mas_impact_receipt"))
-        if _matches_mas_impact_receipt(receipt=receipt, carrier=carrier):
-            return dict(receipt)
-    return None
-
-
-def _matches_opl_transition_receipt(
-    *,
-    receipt: Mapping[str, Any],
-    carrier: Mapping[str, Any],
-) -> bool:
-    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
-        return False
-    for field in (
-        "study_id",
-        "paper_mission_transaction_ref",
-        "opl_route_command_ref",
-    ):
-        carrier_value = _text(carrier.get(field))
-        if carrier_value is not None and _text(receipt.get(field)) != carrier_value:
-            return False
-    command_kind = _carrier_command_kind(carrier)
-    if not _matches_receipt_command_kind(
-        carrier_command_kind=command_kind,
-        observed_command_kind=_text(receipt.get("command_kind")),
-    ):
-        return False
-    route_target = _carrier_route_target(carrier)
-    if route_target is not None and _text(receipt.get("route_target")) != route_target:
-        return False
-    boundary = _mapping(receipt.get("authority_boundary"))
-    return (
-        receipt.get("can_change_stage_terminal_decision") is False
-        and receipt.get("can_select_next_owner") is False
-        and boundary.get("writes_owner_receipt") is False
-        and boundary.get("writes_typed_blocker") is False
-        and boundary.get("writes_human_gate") is False
-        and boundary.get("writes_current_package") is False
-        and boundary.get("can_claim_paper_progress") is False
-    )
-
-
-def _matches_mas_impact_receipt(
-    *,
-    receipt: Mapping[str, Any],
-    carrier: Mapping[str, Any],
-) -> bool:
-    if _text(receipt.get("surface_kind")) != "mas_impact_receipt":
-        return False
-    for field in (
-        "study_id",
-        "paper_mission_transaction_ref",
-        "opl_route_command_ref",
-    ):
-        carrier_value = _text(carrier.get(field))
-        if carrier_value is not None and _text(receipt.get(field)) != carrier_value:
-            return False
-    return (
-        receipt.get("can_claim_paper_progress") is False
-        and receipt.get("can_claim_publication_ready") is False
-    )
-
 
 def _matches_carrier(
     *,
@@ -1062,19 +903,6 @@ def _matches_carrier(
     boundary = _mapping(closeout.get("authority_boundary"))
     return boundary.get("record_only_surface") is True
 
-
-def _matches_receipt_command_kind(
-    *,
-    carrier_command_kind: str | None,
-    observed_command_kind: str | None,
-) -> bool:
-    if carrier_command_kind is None:
-        return True
-    if observed_command_kind == carrier_command_kind:
-        return True
-    return carrier_command_kind == "resume_stage" and observed_command_kind == "route_back"
-
-
 def _closeout_binds_route_identity(
     *,
     closeout: Mapping[str, Any],
@@ -1101,7 +929,6 @@ def _closeout_binds_route_identity(
     }
     return bool(refs.intersection(expected_refs))
 
-
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)
     if reason is None:
@@ -1110,281 +937,17 @@ def _non_current_closeout_reason(value: object) -> bool:
         "operator_retired_stale_runtime_residue:"
     )
 
-
 def _carrier_has_opl_route_identity(carrier: Mapping[str, Any]) -> bool:
     return (
         _text(carrier.get("study_id")) is not None
         and _text(carrier.get("work_unit_id")) is not None
         and _text(carrier.get("work_unit_fingerprint")) is not None
-        and
-        _text(carrier.get("paper_mission_transaction_ref")) is not None
+        and _text(carrier.get("paper_mission_transaction_ref")) is not None
         and _text(carrier.get("opl_route_command_ref")) is not None
     )
 
-
-def _carrier_command_kind(carrier: Mapping[str, Any]) -> str | None:
-    route = _mapping(carrier.get("opl_route_command"))
-    return _text(carrier.get("command_kind")) or _text(route.get("command_kind"))
-
-
-def _carrier_route_target(carrier: Mapping[str, Any]) -> str | None:
-    command_kind = _carrier_command_kind(carrier)
-    route_target = _text(carrier.get("route_target"))
-    route = _mapping(carrier.get("opl_route_command"))
-    route_target = route_target or _text(route.get("target"))
-    if command_kind in {"start_next_stage", "resume_stage", "route_back"}:
-        return route_target
-    return None
-
-
-def _terminal_closeout_readback(
-    *,
-    closeout: Mapping[str, Any],
-    closeout_ref: str,
-) -> dict[str, Any]:
-    opl_transition_receipt = _opl_transition_receipt_readback(
-        closeout=closeout,
-        closeout_ref=closeout_ref,
-    )
-    receipt_evidence = _receipt_evidence_readback(
-        closeout=closeout,
-        closeout_ref=closeout_ref,
-        opl_transition_receipt=opl_transition_receipt,
-    )
-    mas_receipt_consumption = _mas_receipt_consumption_readback(
-        receipt_evidence=receipt_evidence,
-    )
-    paper_stage_log = _mapping(closeout.get("paper_stage_log"))
-    duration = _accounting_mapping(
-        closeout=closeout,
-        paper_stage_log=paper_stage_log,
-        field="duration",
-        missing_reason_field="missing_duration_reason",
-        missing_reason="stage_attempt_closeout_packet_duration_missing",
-    )
-    token_usage = _accounting_mapping(
-        closeout=closeout,
-        paper_stage_log=paper_stage_log,
-        field="token_usage",
-        missing_reason_field="missing_token_usage_reason",
-        missing_reason="stage_attempt_closeout_packet_token_usage_missing",
-        null_fields={"total_tokens": None},
-    )
-    cost = _accounting_mapping(
-        closeout=closeout,
-        paper_stage_log=paper_stage_log,
-        field="cost",
-        missing_reason_field="missing_cost_reason",
-        missing_reason="stage_attempt_closeout_packet_cost_missing",
-        null_fields={"usd": None},
-    )
-    return {
-        "surface_kind": _text(closeout.get("surface_kind")),
-        "closeout_ref": closeout_ref,
-        "status": _text(closeout.get("status")),
-        "study_id": _text(closeout.get("study_id")),
-        "stage_id": _text(closeout.get("stage_id")),
-        "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
-        "work_unit_id": _text(closeout.get("work_unit_id")),
-        "work_unit_fingerprint": _text(closeout.get("work_unit_fingerprint")),
-        "stage_packet_ref": _text(closeout.get("stage_packet_ref")),
-        "provider_attempt_ref": _text(closeout.get("provider_attempt_ref")),
-        "provider_completion_is_domain_completion": False,
-        "provider_completion_is_domain_ready": False,
-        "domain_completion_claimed": False,
-        "domain_ready_claimed": False,
-        "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")),
-        "blocked_reason": _text(closeout.get("blocked_reason")),
-        "closeout_refs": _text_list(closeout.get("closeout_refs")),
-        **(
-            {"opl_transition_receipt": opl_transition_receipt}
-            if opl_transition_receipt
-            else {}
-        ),
-        **({"receipt_evidence": receipt_evidence} if receipt_evidence else {}),
-        **(
-            {"mas_receipt_consumption": mas_receipt_consumption}
-            if mas_receipt_consumption
-            else {}
-        ),
-        "duration": duration,
-        "token_usage": token_usage,
-        "cost": cost,
-        "paper_stage_log": paper_stage_log,
-        "task_id": _text(closeout.get("task_id")),
-        "task_status": _text(closeout.get("task_status")),
-        "closeout_receipt_status": _text(closeout.get("closeout_receipt_status")),
-        "runtime_readback_source": _text(closeout.get("runtime_readback_source")),
-        "authority_boundary": {
-            "record_only_surface": True,
-            "provider_completion_is_domain_completion": False,
-            "artifact_mutation_authorized": False,
-            "publication_eval_latest_write_authorized": False,
-            "controller_decision_write_authorized": False,
-        },
-    }
-
-
-def _opl_transition_receipt_readback(
-    *,
-    closeout: Mapping[str, Any],
-    closeout_ref: str,
-) -> dict[str, Any] | None:
-    receipt = _mapping(closeout.get("opl_transition_receipt"))
-    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
-        return None
-    return {
-        **dict(receipt),
-        "role": "transport_receipt_only",
-        "runtime_closeout_readback_ref": closeout_ref,
-        "can_change_stage_terminal_decision": False,
-        "can_select_next_owner": False,
-        "can_claim_paper_progress": False,
-    }
-
-
-def _receipt_evidence_readback(
-    *,
-    closeout: Mapping[str, Any],
-    closeout_ref: str,
-    opl_transition_receipt: Mapping[str, Any] | None,
-) -> dict[str, Any] | None:
-    receipt = _mapping(opl_transition_receipt)
-    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
-        return None
-    impact = _mapping(closeout.get("mas_impact_receipt"))
-    return {
-        "surface_kind": "mas_receipt_evidence",
-        "schema_version": 1,
-        "receipt_kind": "opl_transition_receipt",
-        "receipt_ref": _first_text(
-            receipt.get("opl_transition_receipt_ref"),
-            receipt.get("stage_attempt_ref"),
-            receipt.get("runtime_closeout_ref"),
-            closeout_ref,
-        ),
-        "runtime_closeout_ref": _first_text(
-            receipt.get("runtime_closeout_ref"),
-            closeout_ref,
-        ),
-        "stage_attempt_ref": _text(receipt.get("stage_attempt_ref")),
-        "typed_runtime_blocker_ref": _text(receipt.get("typed_runtime_blocker_ref")),
-        "impact_receipt_kind": _text(impact.get("surface_kind")),
-        "impact_receipt_ref": _text(impact.get("receipt_ref")),
-        "can_claim_paper_progress": False,
-        "can_claim_publication_ready": False,
-        "durable_stop_allowed": False,
-        "authority_boundary": {
-            "receipt_is_input_ref_only": True,
-            "can_write_owner_receipt": False,
-            "can_write_typed_blocker": False,
-            "can_write_human_gate": False,
-            "can_write_current_package": False,
-            "can_claim_paper_progress": False,
-            "can_claim_publication_ready": False,
-        },
-    }
-
-
-def _mas_receipt_consumption_readback(
-    *,
-    receipt_evidence: Mapping[str, Any] | None,
-) -> dict[str, Any] | None:
-    evidence = _mapping(receipt_evidence)
-    if _text(evidence.get("surface_kind")) != "mas_receipt_evidence":
-        return None
-    return {
-        "surface_kind": "mas_receipt_consumption_projection",
-        "schema_version": 1,
-        "status": "requires_mas_owner_consumption",
-        "next_legal_action": (
-            "record_typed_blocker"
-            if _text(evidence.get("typed_runtime_blocker_ref"))
-            else "consume_opl_transition_receipt"
-        ),
-        "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
-        "typed_runtime_blocker_ref": _text(evidence.get("typed_runtime_blocker_ref")),
-        "forbidden_next_action": "synonymous_route_back_redrive",
-        "durable_stop_allowed": False,
-        "can_claim_paper_progress": False,
-        "can_claim_publication_ready": False,
-        "can_claim_runtime_ready": False,
-    }
-
-
-def _accounting_mapping(
-    *,
-    closeout: Mapping[str, Any],
-    paper_stage_log: Mapping[str, Any],
-    field: str,
-    missing_reason_field: str,
-    missing_reason: str,
-    null_fields: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    observed = _first_mapping(
-        _mapping(closeout.get(field)),
-        _mapping(paper_stage_log.get(field)),
-    )
-    if observed:
-        return observed
-    if field not in closeout and field not in paper_stage_log:
-        return {}
-    return {
-        "status": "missing",
-        **dict(null_fields or {}),
-        missing_reason_field: missing_reason,
-    }
-
-
-def _running_attempt_readback(
-    *,
-    attempt: Mapping[str, Any],
-    attempt_ref: str,
-) -> dict[str, Any]:
-    return {
-        "surface_kind": _text(attempt.get("surface_kind")),
-        "attempt_ref": attempt_ref,
-        "status": _text(attempt.get("status")),
-        "study_id": _text(attempt.get("study_id")),
-        "stage_id": _text(attempt.get("stage_id")),
-        "stage_attempt_id": _text(attempt.get("stage_attempt_id")),
-        "work_unit_id": _text(attempt.get("work_unit_id")),
-        "work_unit_fingerprint": _text(attempt.get("work_unit_fingerprint")),
-        "stage_packet_ref": _text(attempt.get("stage_packet_ref")),
-        "provider_attempt_ref": _text(attempt.get("provider_attempt_ref")),
-        "provider_kind": _text(attempt.get("provider_kind")),
-        "workflow_id": _text(attempt.get("workflow_id")),
-        "provider_status": _text(attempt.get("provider_status")),
-        "last_heartbeat_at": _text(attempt.get("last_heartbeat_at")),
-        "last_runner_event_kind": _text(attempt.get("last_runner_event_kind")),
-        "task_id": _text(attempt.get("task_id")),
-        "task_status": _text(attempt.get("task_status")),
-        "runtime_readback_source": _text(attempt.get("runtime_readback_source")),
-        "provider_completion_is_domain_completion": False,
-        "provider_completion_is_domain_ready": False,
-        "can_claim_paper_progress": False,
-        "authority_boundary": {
-            "record_only_surface": True,
-            "provider_completion_is_domain_completion": False,
-            "provider_completion_is_domain_ready": False,
-            "artifact_mutation_authorized": False,
-            "publication_eval_latest_write_authorized": False,
-            "controller_decision_write_authorized": False,
-        },
-    }
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
-
-
 def _ranked_opl_bin_candidates(opl_bin: str | Path | None = None) -> list[Path]:
     return ranked_opl_bin_candidates(opl_bin=opl_bin)
-
 
 def _ranked_opl_live_probe_bin_candidates(
     *, opl_bin: str | Path | None = None
@@ -1394,7 +957,6 @@ def _ranked_opl_live_probe_bin_candidates(
     except TypeError:
         return _ranked_opl_bin_candidates()
 
-
 def _run_opl_json(
     opl_bin: Path,
     args: tuple[str, ...],
@@ -1402,59 +964,6 @@ def _run_opl_json(
     timeout_seconds: float = DEFAULT_OPL_READBACK_TIMEOUT_SECONDS,
 ) -> dict[str, Any] | None:
     return run_opl_json(opl_bin, args, timeout_seconds=timeout_seconds)
-
-
-def _study_relative_ref(*, study_root: Path, path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(study_root.resolve()))
-    except ValueError:
-        return str(path.resolve())
-
-
-def _workspace_root_for_study_root(study_root: Path) -> Path | None:
-    parent = study_root.parent
-    if parent.name != "studies":
-        return None
-    return parent.parent
-
-
-def _workspace_relative_ref(*, workspace_root: Path, path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(workspace_root.resolve()))
-    except ValueError:
-        return str(path.resolve())
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _first_mapping(*values: Mapping[str, Any]) -> dict[str, Any]:
-    for value in values:
-        if value:
-            return dict(value)
-    return {}
-
-
-def _text_list(value: object) -> list[str]:
-    if not isinstance(value, list | tuple):
-        return []
-    return [text for item in value if (text := _text(item)) is not None]
-
-
-def _first_text(*values: object) -> str | None:
-    for value in values:
-        text = _text(value)
-        if text is not None:
-            return text
-    return None
-
-
-def _text(value: object) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
 
 
 __all__ = [
