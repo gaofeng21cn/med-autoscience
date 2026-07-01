@@ -112,7 +112,7 @@ stateDiagram-v2
 3. 同一 current identity 的 strict live provider attempt 压过 provider admission pending。
 4. 同一 identity 的 accepted typed closeout 消费 provider admission pending。
 5. weak fresh progress current-owner ticket 只投影 diagnostic，不进入 default executor dispatch。
-6. fresh current owner action 投影为 executable owner action。
+6. 2026-07-01 tombstone：旧 fresh current owner action 只保留为 diagnostic projection；没有 `StageOutcome -> NextActionEnvelope` identity 和 MAS owner consumption 时，不得选择默认 next action。
 7. current identity 的 stable typed blocker 投影为 typed blocker。
 8. 旧 route-back、旧 queue、旧 active run、旧 sidecar、旧 lineage 只进 audit。
 
@@ -120,11 +120,11 @@ stateDiagram-v2
 
 2026-06-11 追加实现规则：MAS 内部所有“当前 action 是否能压过 stale blocker / handoff / provider admission residue”的判断统一走 `stage_route_currentness_identity` helper。该 helper 只提取 `action_type`、`work_unit_id`、`work_unit_fingerprint` / `action_fingerprint` 与 `owner_route.source_refs.owner_route_currentness_basis`，不做业务优先级裁决。repair-progress follow-up 这类会打开 OPL authorization blocker 的路径必须共享 fingerprint；只有同 action 或同浅层 label 不足以授权 redrive。
 
-2026-06-12 追加实现规则，2026-06-30 superseded：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 当时先于旧 `domain_transition` 和 stale current-control backlog 裁决。NextAction hard-retire 后，这些旧 surface 只能作为 diagnostic/provenance 输入；默认 owner/action 必须来自 `StageOutcome -> NextActionEnvelope`。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、backlog 和 persisted dispatch，但不能自我升级为 owner action；`complete_medical_paper_readiness_surface` 只能来自显式 `current_executable_owner_action`、带 authority binding 的 stage-native next action，或 `terminal_closeout_owner_answer_required` closeout dispatch。terminal workflow completed、transport completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
+2026-06-12 追加实现规则，2026-06-30 / 2026-07-01 superseded：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 当时先于旧 `domain_transition` 和 stale current-control backlog 裁决。NextAction hard-retire 后，这些旧 surface 只能作为 diagnostic/provenance 输入；默认 owner/action 必须来自 `StageOutcome -> NextActionEnvelope`。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、backlog 和 persisted dispatch，但不能自我升级为 owner action。Superseded: readiness / owner follow-up now requires `StageOutcome -> NextActionEnvelope` or MAS owner-consumed result; legacy `current_executable_owner_action` is diagnostic/provenance only. terminal workflow completed、transport completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
 
-2026-06-12 追加实现规则：`study_progress.current_owner_ticket` 只有在 `owner_route.source_refs.owner_route_currentness_basis`、`current_executable_owner_action`、`current_work_unit` 或 ticket work-unit 中带 strong source / work-unit / action fingerprint 或 `source_eval_id` 时，才能生成 owner route 和 dispatch。`study-progress-current-owner-ticket::*` 这类 synthetic id 只能作为 action id，不能当作 currentness fingerprint。缺 strong identity 时输出 `fresh_progress_current_owner_ticket_requires_strong_currentness_identity` diagnostic，`default_dispatch_allowed=false`，并由 selector 作为 ignored diagnostic 处理。
+2026-06-12 historical pre-NextAction 规则，2026-07-01 tombstone：`study_progress.current_owner_ticket` 曾参与 owner route / dispatch 生成。现在 `current_owner_ticket` 只能作为 diagnostic drilldown；dispatch 必须来自 canonical `NextActionEnvelope` / owner surface。`study-progress-current-owner-ticket::*` 这类 synthetic id 只能作为 action id，不能当作 currentness fingerprint。缺 strong identity 时输出 `fresh_progress_current_owner_ticket_requires_strong_currentness_identity` diagnostic，`default_dispatch_allowed=false`，并由 selector 作为 ignored diagnostic 处理。
 
-2026-06-13 追加实现规则：`gate_clearing_batch_followthrough.actionable_current_work_unit` 产出的 `current_executable_owner_action` 若同时带 `surface_kind=current_executable_owner_action`、`status=ready`、支持的 action type、`work_unit_id` 和 work-unit / action fingerprint，就按强 current owner action 处理，优先于旧 `current_owner_ticket`、旧 typed-blocker ticket 或同 study stale progress ticket。缺身份、unsupported action type 或非 gate followthrough 来源时继续 fail closed；typed blocker 仍不能自授权 provider admission 或 owner action。
+2026-06-13 historical pre-NextAction 规则，2026-07-01 tombstone：`gate_clearing_batch_followthrough.actionable_current_work_unit` 产出的 `current_executable_owner_action` 即使带 `status=ready`，也不能在缺 canonical `NextActionEnvelope` identity 时授权默认 owner action 或 provider admission。缺身份、unsupported action type 或非 gate followthrough 来源时继续 fail closed；typed blocker 仍不能自授权 provider admission 或 owner action。
 
 ## Anti-loop 预算
 
@@ -141,7 +141,7 @@ stateDiagram-v2
 
 预算耗尽后，停止自动 redrive，输出 MAS typed blocker candidate 或 route-back evidence。不能继续靠同一 tick / heartbeat / automation prompt 重复跑。
 
-domain diagnostic scoped scan 只对本次 `--studies` 范围产生 active action queue。未扫描 study 的历史 handoff / provider admission residue 必须保留在 audit payload，例如 `unscanned_action_queue_retained_for_audit`，但不得进入 top-level active `action_queue`、不得增加 `provider_admission_pending_count`、不得触发 OPL tick。这条规则避免局部 dry-run / apply 因旧 study residue 把当前 owner 误判为还有可启动 provider task。
+domain diagnostic scoped scan 只对本次 `--studies` 范围产生 scoped diagnostic `action_queue` / audit payload。未扫描 study 的历史 handoff / provider admission residue 必须保留在 audit payload，例如 `unscanned_action_queue_retained_for_audit`，但不得进入 top-level active `action_queue`、不得增加 `provider_admission_pending_count`、不得触发 OPL tick。这条规则避免局部 dry-run / apply 因旧 study residue 把当前 owner 误判为还有可启动 provider task。
 
 ## Stage Log 最小可用性
 

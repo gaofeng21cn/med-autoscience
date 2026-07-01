@@ -197,7 +197,7 @@ OPL 基座必须把以下能力做成一等 primitive：
 | --- | --- | --- | --- |
 | L0 理想蓝图与入口收敛 | 固定本文、核心入口、OPL/MAS owner split、forbidden interpretations。 | docs diff clean、入口可追踪。 | runtime ready / paper progress。 |
 | L1 OPL runtime contract | 固定 command/event/outbox envelope、aggregate identity、idempotency、projection metadata、NonAdvancingApply。 | OPL contract + conformance tests。 | provider-backed soak。 |
-| L2 MAS adapter 收薄 | MAS 只输出 clean transition request 和 policy / owner answer shape。 | focused tests 证明无 OPL runtime artifact 字段、无 outbox/event/StageRun 自签。 | MAS 可以 authorize provider admission。 |
+| L2 MAS adapter 收薄 | MAS 只输出 clean transition request 和 policy / owner answer shape。 | focused tests 证明无 OPL runtime artifact 字段、无 outbox/event/StageRun 自签。 | MAS cannot authorize provider admission; MAS only emits clean transition request / policy / owner-answer shape。 |
 | L3 historical replay | DM002/DM003 坏轨迹全部 replay 到 exactly-one outcome。 | replay fixtures 通过，forbidden interpretation 被拒绝。 | live paper recovered。 |
 | L4 domain diagnostic / owner-route / export 消费 OPL event | 派生面 consume-only，domain diagnostic apply 走 OPL runtime。 | focused tests + dry-run/readback shape 证明 projection authority=false。 | domain diagnostic dry-run = progress。 |
 | L5 transactional outbox side effect | provider start / owner callable / human gate 都从 OPL outbox 发出。 | outbox append + StageRun/tool/human gate readback 绑定同 identity。 | provider completion = MAS owner answer。 |

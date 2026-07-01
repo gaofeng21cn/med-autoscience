@@ -424,6 +424,11 @@ def _request_only_transition_action_candidate(
         return None
     if action_type is None:
         return None
+    study = _mapping(study_payload)
+    if _paper_recovery_successor_blocks_request_only_provider_admission(
+        action,
+    ):
+        return None
     if (
         action_type != "request_opl_stage_attempt"
         and not _mapping(action.get("opl_domain_progress_transition_request"))
@@ -442,7 +447,6 @@ def _request_only_transition_action_candidate(
     current_identity = _mapping(current_action_identity)
     if not current_identity:
         return None
-    study = _mapping(study_payload)
     work_unit_id = _non_empty_text(action.get("work_unit_id")) or _non_empty_text(
         action.get("next_work_unit")
     )
@@ -604,3 +608,10 @@ def _request_only_transition_action_candidate(
         "attempt_idempotency_key": attempt_idempotency_key,
     }
     return candidate_with_authority_boundaries(candidate)
+
+
+def _paper_recovery_successor_blocks_request_only_provider_admission(
+    action: Mapping[str, Any],
+) -> bool:
+    successor = _mapping(action.get("paper_recovery_successor"))
+    return successor.get("provider_admission_allowed") is False
