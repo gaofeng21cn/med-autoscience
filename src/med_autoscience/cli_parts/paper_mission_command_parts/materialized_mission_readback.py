@@ -59,6 +59,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback 
 from med_autoscience.cli_parts.paper_mission_command_parts.typed_blocker_resolution import (
     latest_typed_blocker_resolution_readback,
 )
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
+)
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
@@ -429,39 +432,3 @@ def build_materialized_mission_readback_if_available(
             "authority_materialized": False,
         },
     }
-
-
-def _receipt_superseded_by_consumption(
-    *,
-    receipt_owner_consumption_readback: dict[str, Any],
-    consumption_ledger_readback: dict[str, Any] | None,
-) -> bool:
-    if consumption_ledger_readback is None:
-        return False
-    receipt_mtime = _path_mtime(
-        _optional_text(receipt_owner_consumption_readback.get("source_ref"))
-    )
-    consume_mtime = _path_mtime(
-        _optional_text(consumption_ledger_readback.get("source_ref"))
-    )
-    if receipt_mtime is None or consume_mtime is None or consume_mtime <= receipt_mtime:
-        return False
-    if (
-        _optional_text(consumption_ledger_readback.get("route_handoff_status"))
-        == "ready_for_opl_route_command"
-    ):
-        return True
-    handoff = _mapping(consumption_ledger_readback.get("opl_route_handoff"))
-    return (
-        _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command"
-        and handoff.get("can_submit_to_opl_runtime") is True
-    )
-
-
-def _path_mtime(path_text: str | None) -> float | None:
-    if path_text is None:
-        return None
-    try:
-        return Path(path_text).expanduser().resolve().stat().st_mtime
-    except OSError:
-        return None

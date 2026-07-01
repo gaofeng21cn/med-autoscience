@@ -14,6 +14,9 @@ from med_autoscience.paper_mission_stage_closure_ledger import (
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
     latest_receipt_owner_consumption_readback,
 )
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_consumption,
+)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -258,6 +261,11 @@ def _materialized_mission_summary(
         progress=progress,
         study_id=study_id,
     )
+    if receipt_owner_consumption_readback and receipt_owner_consumption_superseded_by_consumption(
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        receipt_owner_consumption_readback = None
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             "paper_mission_transaction": effective_transaction,
