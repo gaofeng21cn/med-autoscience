@@ -1109,6 +1109,18 @@ def test_ai_reviewer_build_production_trace_covers_extra_required_currentness_re
                     "current_manuscript_wording_must_be_restrained": True,
                 }
             ],
+            "sci_clinical_registry_review": [
+                {
+                    "concern_id": f"extra-currentness-ref-{domain}",
+                    "domain": domain,
+                    "status": "blocked",
+                    "severity": "must_fix",
+                    "finding": f"{domain} remains part of the reviewer trace.",
+                    "evidence_refs": [str(gate_path.resolve())],
+                    "required_disposition": "revise",
+                }
+                for domain in contract["sci_clinical_registry_review"]["required_domains"]
+            ],
             "reviewer_operating_system": {
                 "input_bundle": {
                     "manuscript": str(manuscript_path.resolve()),
@@ -1129,7 +1141,7 @@ def test_ai_reviewer_build_production_trace_covers_extra_required_currentness_re
         study_id=study_id,
         study_root=None,
         entry_mode=None,
-        record=record_payload,
+        record=record_payload["record_payload"],
         source="test",
         build_production_trace=True,
     )
