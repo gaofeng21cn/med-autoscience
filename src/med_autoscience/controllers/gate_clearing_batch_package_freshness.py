@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers import paper_authority_delivery_guard
+from med_autoscience.publication_figure_quality_contract import load_figure_visual_audit_receipt
 from med_autoscience.stable_json import write_stable_json
 
 
@@ -62,6 +63,10 @@ def _visual_audit_receipt_clear(path: str | None) -> bool:
     receipt_path = Path(path).expanduser()
     if not receipt_path.exists():
         return False
+    try:
+        return load_figure_visual_audit_receipt(receipt_path).get("final_status") == "clear"
+    except (OSError, ValueError):
+        pass
     try:
         import json
 

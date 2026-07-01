@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 from pathlib import Path
 import subprocess
 
 from tests.display_surface_materialization_cases.layout_sidecar_fixtures import _minimal_layout_sidecar_for_template
 from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
+    _write_prepared_dependency_environment,
     build_display_surface_workspace as build_registered_display_surface_workspace,
     restrict_display_registry_to_display_ids,
 )
 
 DISPLAY_SURFACE_COMMAND = ("publication", "materialize-display-surface")
+DISPLAY_VISUAL_AUDIT_COMMAND = ("publication", "materialize-display-visual-audit")
 
 
 def expected_catalog_ids(*, paper_root: Path, display_kind: str) -> list[str]:
@@ -190,6 +193,7 @@ def patch_layout_qc_pass(controller_module, monkeypatch) -> None:
 def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> None:
     module = importlib.import_module("med_autoscience.cli")
     paper_root = build_display_surface_workspace(tmp_path)
+    _write_prepared_dependency_environment(paper_root)
 
     exit_code = module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
@@ -204,6 +208,7 @@ def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> 
 def test_cli_materialize_display_surface_includes_registered_evidence_figures(tmp_path, monkeypatch, capsys) -> None:
     cli_module = importlib.import_module("med_autoscience.cli")
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    quality_contract = importlib.import_module("med_autoscience.publication_figure_quality_contract")
     paper_root = build_registered_display_surface_workspace(tmp_path, include_evidence=True)
     patch_evidence_figure_renderer(controller_module, monkeypatch)
 
@@ -211,9 +216,17 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
+    receipt_path = paper_root / "figure_visual_audit_receipt.json"
+    receipt = quality_contract.load_figure_visual_audit_receipt(receipt_path)
+    first_artifact = receipt["inspected_artifacts"][0]
+    first_artifact_path = paper_root.parent / first_artifact["artifact_path"]
     assert exit_code == 0
     assert payload["figures_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="figure")
     assert payload["tables_materialized"] == expected_catalog_ids(paper_root=paper_root, display_kind="table")
+    assert payload["visual_audit_receipt"]["final_status"] == "clear"
+    assert payload["visual_audit_receipt"]["inspected_artifact_count"] == len(payload["figures_materialized"])
+    assert receipt["final_status"] == "clear"
+    assert first_artifact["artifact_sha256"] == hashlib.sha256(first_artifact_path.read_bytes()).hexdigest()
 
 
 def test_cli_materialize_display_surface_uses_subprocess_renderer_for_subprocess_evidence_template(
@@ -274,6 +287,40 @@ def test_cli_materialize_display_surface_uses_subprocess_renderer_for_subprocess
         f"paper/figures/generated/F14_{expected_template_id}.png",
         f"paper/figures/generated/F14_{expected_template_id}.pdf",
     ]
+
+
+def test_r_evidence_renderer_keeps_figure_titles_as_metadata_only() -> None:
+    source_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.r_source")
+
+    renderer_source = source_module._R_EVIDENCE_RENDERER_SOURCE
+
+    assert "display_payload$title" not in renderer_source
+    assert renderer_source.count("title = NULL") >= 1
+
+
+def test_cli_materialize_display_visual_audit_refreshes_receipt_after_export(tmp_path, monkeypatch, capsys) -> None:
+    cli_module = importlib.import_module("med_autoscience.cli")
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    quality_contract = importlib.import_module("med_autoscience.publication_figure_quality_contract")
+    paper_root = build_registered_display_surface_workspace(tmp_path, include_evidence=True)
+    patch_evidence_figure_renderer(controller_module, monkeypatch)
+
+    assert cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)]) == 0
+    capsys.readouterr()
+    (paper_root / "submission_minimal").mkdir()
+    (paper_root / "submission_minimal" / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+
+    exit_code = cli_module.main([*DISPLAY_VISUAL_AUDIT_COMMAND, "--paper-root", str(paper_root)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    receipt = quality_contract.load_figure_visual_audit_receipt(paper_root / "figure_visual_audit_receipt.json")
+    assert exit_code == 0
+    assert payload["status"] == "visual_audit_receipt_materialized"
+    assert payload["visual_audit_receipt"]["final_status"] == "clear"
+    assert payload["visual_audit_receipt"]["inspected_artifact_count"] == len(receipt["inspected_artifacts"])
+    assert payload["authority_boundary"]["writes_authority"] is False
+    assert not (paper_root.parent / "manuscript" / "current_package").exists()
 
 
 def test_cli_materialize_display_surface_includes_full_registered_template_set(tmp_path, monkeypatch, capsys) -> None:

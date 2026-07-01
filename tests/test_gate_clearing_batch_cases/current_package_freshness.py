@@ -9,6 +9,31 @@ globals().update({
 })
 
 
+def _write_contract_visual_audit_receipt(path: Path) -> None:
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "receipt_id": "visual-audit::contract-backed",
+            "audit_mode": "human_visual_review",
+            "inspected_artifacts": [
+                {
+                    "figure_id": "F1",
+                    "artifact_path": "paper/figures/generated/F1.png",
+                    "artifact_sha256": "a" * 64,
+                }
+            ],
+            "findings": [],
+            "reviewer": {
+                "provider": "mas-display-surface-materializer",
+                "model": "deterministic-render-inspect-revise",
+                "prompt_hash": "b" * 64,
+            },
+            "final_status": "clear",
+        },
+    )
+
+
 def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
     monkeypatch,
     tmp_path: Path,
@@ -512,6 +537,40 @@ def test_current_delivery_gate_report_with_missing_paths_does_not_write_freshnes
 
     assert proof is None
     assert not module.stable_current_package_freshness_path(study_root=study_root).exists()
+
+
+def test_current_delivery_gate_report_accepts_contract_backed_visual_audit_receipt(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+    submission_manifest_path = study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
+    _write_json(submission_manifest_path, {"schema_version": 1})
+    _write_text(current_package_root / "paper.pdf", "%PDF-1.4\n")
+    _write_contract_visual_audit_receipt(current_package_root / "figure_visual_audit_receipt.json")
+    _write_text(current_package_zip, "zip")
+
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::current-delivery",
+        gate_report={
+            "gate_fingerprint": "publication-gate::current-delivery",
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": str(submission_manifest_path),
+            "study_delivery_current_package_root": str(current_package_root),
+            "study_delivery_current_package_zip": str(current_package_zip),
+            "study_delivery_evaluated_source_signature": "delivery::abc",
+            "study_delivery_authority_source_signature": "delivery::abc",
+        },
+        unit_results=[],
+        clock=lambda: (0, "2026-05-10T10:10:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is not None
+    assert proof["status"] == "fresh"
+    assert proof["visual_audit_receipt_path"] == str((current_package_root / "figure_visual_audit_receipt.json").resolve())
+    assert module.freshness_proof_paths_exist(proof, require_proof_path=True)
 
 
 def test_current_delivery_gate_report_with_stale_visual_audit_does_not_write_freshness_proof(

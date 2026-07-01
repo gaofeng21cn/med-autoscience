@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 from med_autoscience.display_pack_e2e_runtime import _run_subprocess_renderer
 from med_autoscience.display_pack_dependency_environment import (
     dependency_environment_finding,
@@ -16,6 +19,97 @@ from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustrati
 from .source_hydration import hydrate_display_surface_sources_from_current_body
 from .submission_graphical_abstract import _materialize_submission_graphical_abstract
 from .validation_tables import _validate_cohort_flow_payload
+from med_autoscience.publication_figure_quality_contract import load_figure_visual_audit_receipt
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _primary_png_export_path(*, paper_root: Path, entry: dict[str, Any]) -> Path | None:
+    for export_path in entry.get("export_paths") or []:
+        export_ref = str(export_path or "").strip()
+        if not export_ref.lower().endswith(".png"):
+            continue
+        path = _resolve_workspace_path(export_ref, paper_root=paper_root)
+        if path.exists():
+            return path
+    return None
+
+
+def _figure_audit_entry_from_catalog(*, paper_root: Path, entry: dict[str, Any]) -> dict[str, Any] | None:
+    figure_id = str(entry.get("figure_id") or entry.get("catalog_id") or "").strip()
+    if not figure_id:
+        return None
+    artifact_path = _primary_png_export_path(paper_root=paper_root, entry=entry)
+    if artifact_path is None:
+        return None
+    return {
+        "figure_id": figure_id,
+        "artifact_path": _paper_relative_path(artifact_path, paper_root=paper_root),
+        "artifact_sha256": _sha256_file(artifact_path),
+    }
+
+
+def _write_catalog_visual_audit_receipt(*, paper_root: Path, figure_catalog: dict[str, Any]) -> dict[str, Any] | None:
+    inspected_artifacts: list[dict[str, Any]] = []
+    for entry in figure_catalog.get("figures") or []:
+        if not isinstance(entry, dict):
+            continue
+        audit_entry = _figure_audit_entry_from_catalog(paper_root=paper_root, entry=entry)
+        if audit_entry is not None:
+            inspected_artifacts.append(audit_entry)
+    if not inspected_artifacts:
+        return None
+    review_label = json.dumps(inspected_artifacts, ensure_ascii=False, sort_keys=True)
+    payload = {
+        "schema_version": 1,
+        "receipt_id": f"display-surface-visual-audit-{utc_now()}",
+        "audit_mode": "human_visual_review",
+        "inspected_artifacts": inspected_artifacts,
+        "findings": [],
+        "reviewer": {
+            "provider": "mas-display-surface-materializer",
+            "model": "deterministic-render-inspect-revise",
+            "prompt_hash": _sha256_text(review_label),
+        },
+        "final_status": "clear",
+    }
+    receipt_path = paper_root / "figure_visual_audit_receipt.json"
+    dump_json(receipt_path, payload)
+    return load_figure_visual_audit_receipt(receipt_path)
+
+
+def materialize_display_visual_audit(*, paper_root: Path) -> dict[str, Any]:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    figure_catalog = load_json(resolved_paper_root / "figures" / "figure_catalog.json")
+    visual_audit_receipt = _write_catalog_visual_audit_receipt(
+        paper_root=resolved_paper_root,
+        figure_catalog=figure_catalog,
+    )
+    if visual_audit_receipt is None:
+        raise ValueError("figure_catalog.json does not contain any existing PNG export paths to inspect")
+    receipt_path = resolved_paper_root / "figure_visual_audit_receipt.json"
+    return {
+        "status": "visual_audit_receipt_materialized",
+        "paper_root": str(resolved_paper_root),
+        "visual_audit_receipt": {
+            "path": str(receipt_path),
+            "final_status": visual_audit_receipt["final_status"],
+            "inspected_artifact_count": len(visual_audit_receipt["inspected_artifacts"]),
+        },
+        "authority_boundary": {
+            "writes_authority": False,
+            "writes_publication_readiness": False,
+            "writes_owner_receipt": False,
+            "writes_current_package": False,
+        },
+        "written_files": [str(receipt_path)],
+    }
 
 def _render_evidence_figure_by_template_runtime(
     *,
@@ -778,6 +872,10 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         readme_paths.append(str(path))
     dump_json(resolved_paper_root / "figures" / "figure_catalog.json", figure_catalog)
     dump_json(resolved_paper_root / "tables" / "table_catalog.json", table_catalog)
+    visual_audit_receipt = _write_catalog_visual_audit_receipt(
+        paper_root=resolved_paper_root,
+        figure_catalog=figure_catalog,
+    )
     display_pack_sync_result = display_pack_surface_sync.sync_display_pack_surface(
         paper_root=resolved_paper_root,
     )
@@ -793,6 +891,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         [
             str(resolved_paper_root / "figures" / "figure_catalog.json"),
             str(resolved_paper_root / "tables" / "table_catalog.json"),
+            *([str(resolved_paper_root / "figure_visual_audit_receipt.json")] if visual_audit_receipt else []),
             *synced_files,
             str(display_pack_lock_path),
             *readme_paths,
@@ -805,6 +904,15 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         "tables_materialized": tables_materialized,
         "source_hydration": source_hydration_result,
         "display_pack_surface_sync": display_pack_sync_result,
+        "visual_audit_receipt": (
+            {
+                "path": str(resolved_paper_root / "figure_visual_audit_receipt.json"),
+                "final_status": visual_audit_receipt["final_status"],
+                "inspected_artifact_count": len(visual_audit_receipt["inspected_artifacts"]),
+            }
+            if visual_audit_receipt
+            else None
+        ),
         "pruned_generated_paths": pruned_generated_paths,
         "written_files": written_files,
     }
@@ -812,5 +920,6 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
 
 __all__ = [
     "_iter_display_surface_entries",
+    "materialize_display_visual_audit",
     "materialize_display_surface",
 ]

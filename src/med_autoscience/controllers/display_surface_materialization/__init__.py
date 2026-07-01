@@ -18,7 +18,7 @@ from .payload_loader import _load_evidence_display_payload
 from .illustrations import _FlowTextLine, _FlowNodeSpec, _GraphvizNodeBox, _GraphvizLayout, _flow_font_path, _flow_font_properties, _measure_flow_text_width_pt, _wrap_flow_text_to_width, _wrap_figure_title_to_width, _flow_html_label_for_node, _run_graphviz_layout, _flow_box_to_normalized, _flow_union_box, _render_cohort_flow_figure, _build_submission_graphical_abstract_arrow_lane_spec, _choose_submission_graphical_abstract_arrow_lane, _choose_shared_submission_graphical_abstract_arrow_lane, _render_submission_graphical_abstract, _write_rectangular_table_outputs, _write_table_outputs
 from .geometry import _bbox_to_layout_box, _data_box_to_layout_box, _data_point_to_figure_xy, _clip_line_segment_to_axes_window, _clip_reference_line_to_axes_window, _normalize_reference_line_to_device_space, _normalize_reference_line_collection_to_device_space, _build_python_shap_layout_sidecar
 from .renderers import _load_layout_sidecar_or_raise, _centered_offsets, _prepare_python_render_output_paths, _prepare_python_illustration_output_paths, _prepare_table_shell_output_paths, _apply_publication_axes_style, _build_single_panel_layout_sidecar
-from .materialize import _iter_display_surface_entries, materialize_display_surface
+from .materialize import _iter_display_surface_entries, materialize_display_surface, materialize_display_visual_audit
 
 __all__ = [
     "_INPUT_FILENAME_BY_SCHEMA_ID",
@@ -151,6 +151,7 @@ __all__ = [
     "_build_single_panel_layout_sidecar",
     "_iter_display_surface_entries",
     "materialize_display_surface",
+    "materialize_display_visual_audit",
     "display_layout_qc",
     "display_pack_lock",
     "display_pack_runtime",

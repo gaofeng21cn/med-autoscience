@@ -730,6 +730,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "materialize-display-visual-audit":
+        result = display_surface_materialization.materialize_display_visual_audit(
+            paper_root=Path(args.paper_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "descriptive-registry-evidence-materialize":
         result = descriptive_registry_evidence_materializer.materialize_descriptive_registry_evidence(
             study_root=Path(args.study_root),

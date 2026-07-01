@@ -19,6 +19,31 @@ def _write_profile_for_workspace(path: Path, *, workspace_root: Path) -> None:
     )
 
 
+def _write_contract_visual_audit_receipt(path: Path) -> None:
+    dump_json(
+        path,
+        {
+            "schema_version": 1,
+            "receipt_id": "visual-audit::contract-backed",
+            "audit_mode": "human_visual_review",
+            "inspected_artifacts": [
+                {
+                    "figure_id": "F1",
+                    "artifact_path": "paper/figures/generated/F1.png",
+                    "artifact_sha256": "a" * 64,
+                }
+            ],
+            "findings": [],
+            "reviewer": {
+                "provider": "mas-display-surface-materializer",
+                "model": "deterministic-render-inspect-revise",
+                "prompt_hash": "b" * 64,
+            },
+            "final_status": "clear",
+        },
+    )
+
+
 def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_path: Path) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
@@ -60,6 +85,32 @@ def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_pa
         names = set(archive.namelist())
     assert "audit/submission_manifest.json" in names
     assert "submission_manifest.json" not in names
+
+
+def test_delivery_inspector_accepts_contract_backed_visual_audit_receipt(tmp_path: Path) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
+    _write_contract_visual_audit_receipt(paper_root / "figure_visual_audit_receipt.json")
+
+    sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["freshness"]["verdict"] == "current"
+    assert result["freshness"]["stale_reason"] is None
+    assert result["freshness"]["gate_freshness_handshake"]["status"] == "current"
 
 
 def test_delivery_inspector_marks_package_stale_without_current_visual_audit_receipt(tmp_path: Path) -> None:

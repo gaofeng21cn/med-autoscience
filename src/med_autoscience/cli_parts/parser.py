@@ -486,6 +486,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_surface_parser = subparsers.add_parser("materialize-display-surface")
     display_surface_parser.add_argument("--paper-root", required=True)
 
+    display_visual_audit_parser = subparsers.add_parser("materialize-display-visual-audit")
+    display_visual_audit_parser.add_argument("--paper-root", required=True)
+
     descriptive_registry_evidence_parser = subparsers.add_parser("descriptive-registry-evidence-materialize")
     descriptive_registry_evidence_parser.add_argument("--study-root", required=True)
     descriptive_registry_evidence_parser.add_argument("--paper-root", required=True)

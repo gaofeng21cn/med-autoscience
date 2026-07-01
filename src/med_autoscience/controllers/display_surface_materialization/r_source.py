@@ -150,7 +150,7 @@ plot_binary_curve <- function(display_payload) {
     coord_cartesian(xlim = c(0, 1), ylim = c(min(curve_df$y, 0), max(curve_df$y, 1))) +
     scale_color_lancet() +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -193,7 +193,7 @@ plot_kaplan_meier <- function(display_payload) {
     coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(0, 1)) +
     scale_color_lancet() +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -224,7 +224,7 @@ plot_embedding_scatter <- function(display_payload) {
     geom_point(size = 2.8, alpha = 0.9) +
     scale_color_lancet() +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -245,7 +245,7 @@ plot_heatmap <- function(display_payload) {
     geom_text(aes(label = sprintf("%.2f", value)), size = 3.1, colour = "#13293d") +
     scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0) +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -278,7 +278,7 @@ plot_performance_heatmap <- function(display_payload) {
       name = metric_name
     ) +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -313,7 +313,7 @@ plot_confusion_matrix_heatmap <- function(display_payload) {
       name = metric_name
     ) +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = trimws(as.character(display_payload$y_label %||% ""))
     ) +
@@ -339,7 +339,7 @@ plot_forest <- function(display_payload) {
     geom_segment(aes(x = lower, xend = upper, y = label, yend = label), linewidth = 0.9, colour = "#1f4e79") +
     geom_point(size = 2.8, colour = "#1f4e79") +
     labs(
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       x = trimws(as.character(display_payload$x_label %||% "")),
       y = ""
     ) +
@@ -505,7 +505,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     time_dependent_roc_horizon = list(
       series = display_payload$series,
       reference_line = display_payload$reference_line,
-      title = trimws(as.character(display_payload$title %||% "")),
+      title = NULL,
       caption = trimws(as.character(display_payload$caption %||% "")),
       time_horizon_months = if (!is.null(display_payload$time_horizon_months)) as.integer(display_payload$time_horizon_months) else NULL
     ),

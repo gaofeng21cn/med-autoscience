@@ -73,6 +73,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "export-submission-minimal"): "export-submission-minimal",
     ("publication", "export-inspection-package"): "export-inspection-package",
     ("publication", "materialize-display-surface"): "materialize-display-surface",
+    ("publication", "materialize-display-visual-audit"): "materialize-display-visual-audit",
     ("publication", "sync-display-pack"): "sync-display-pack-surface",
     ("publication", "display-pack-agent-discover"): "display-pack-agent-discover",
     ("publication", "display-pack-agent-orchestrate"): "display-pack-agent-orchestrate",

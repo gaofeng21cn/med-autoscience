@@ -34,6 +34,72 @@ def _make_generalizability_subgroup_composite_panel_display(display_id: str = "F
     }
 
 
+def _center_transportability_governance_display(display_id: str = "Figure15") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": _full("center_transportability_governance_summary_panel"),
+        "title": "Center transportability governance summary",
+        "caption": "Center-level external transportability action summary.",
+        "metric_family": "c_index",
+        "metric_panel_title": "Cohort discrimination",
+        "metric_x_label": "C-index",
+        "metric_reference_value": 0.74,
+        "batch_shift_threshold": 0.04,
+        "slope_acceptance_lower": 0.85,
+        "slope_acceptance_upper": 1.15,
+        "oe_ratio_acceptance_lower": 0.85,
+        "oe_ratio_acceptance_upper": 1.15,
+        "summary_panel_title": "Transportability action",
+        "centers": [
+            {
+                "center_id": "derivation",
+                "center_label": "Derivation lock",
+                "cohort_role": "derivation_reference",
+                "support_count": 24100,
+                "event_count": 2260,
+                "metric_estimate": 0.75,
+                "metric_lower": 0.73,
+                "metric_upper": 0.77,
+                "max_shift": 0.02,
+                "slope": 1.00,
+                "oe_ratio": 1.00,
+                "verdict": "stable",
+                "action": "Use as reference",
+            },
+            {
+                "center_id": "external_a",
+                "center_label": "External A",
+                "cohort_role": "external_validation",
+                "support_count": 19840,
+                "event_count": 1810,
+                "metric_estimate": 0.74,
+                "metric_lower": 0.72,
+                "metric_upper": 0.76,
+                "max_shift": 0.03,
+                "slope": 0.96,
+                "oe_ratio": 1.04,
+                "verdict": "stable",
+                "action": "Proceed with monitoring",
+            },
+            {
+                "center_id": "transport_b",
+                "center_label": "Transport B",
+                "cohort_role": "transport_target",
+                "support_count": 16320,
+                "event_count": 1490,
+                "metric_estimate": 0.72,
+                "metric_lower": 0.70,
+                "metric_upper": 0.75,
+                "max_shift": 0.05,
+                "slope": 0.90,
+                "oe_ratio": 1.10,
+                "verdict": "monitor",
+                "action": "Monitor calibration drift",
+            },
+        ],
+    }
+
+
 def _binary_prediction_curve_displays() -> list[dict[str, Any]]:
     return [
         {
@@ -345,6 +411,7 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
         "forest_effect_inputs.json": {"schema_version": 1, "input_schema_id": "forest_effect_inputs_v1", "displays": [_forest_display()]},
         "coefficient_path_panel_inputs.json": {"schema_version": 1, "input_schema_id": "coefficient_path_panel_inputs_v1", "displays": [_coefficient_path_display()]},
         "generalizability_subgroup_composite_inputs.json": {"schema_version": 1, "input_schema_id": "generalizability_subgroup_composite_inputs_v1", "displays": [_make_generalizability_subgroup_composite_panel_display()]},
+        "center_transportability_governance_summary_panel_inputs.json": {"schema_version": 1, "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1", "displays": [_center_transportability_governance_display()]},
         "dimensionality_reduction_inputs.json": {"schema_version": 1, "input_schema_id": "dimensionality_reduction_inputs_v1", "displays": _embedding_displays()},
         "heatmap_group_comparison_inputs.json": {"schema_version": 1, "input_schema_id": "heatmap_group_comparison_inputs_v1", "displays": [_heatmap_display()]},
         "confusion_matrix_heatmap_binary_inputs.json": {"schema_version": 1, "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1", "displays": [_confusion_matrix_display()]},
@@ -361,4 +428,8 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
     }
 
 
-__all__ = ["_current_evidence_input_envelopes", "_make_generalizability_subgroup_composite_panel_display"]
+__all__ = [
+    "_center_transportability_governance_display",
+    "_current_evidence_input_envelopes",
+    "_make_generalizability_subgroup_composite_panel_display",
+]

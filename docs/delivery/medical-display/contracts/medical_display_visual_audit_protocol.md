@@ -122,6 +122,16 @@ must use a layout that matches that purpose. It must not force long prose into a
 belongs in the caption or notes; the figure body should use short, readable labels and audited sidecar metadata.
 
 For submission package refresh, currentness is not enough. The package is not visually accepted until the latest
+PDF and the latest visual audit receipt are bound to the same rendered display surface. The normal refresh order is:
+
+1. run `publication materialize-display-surface` so registry/catalog-driven figures and tables are regenerated through the current Display Pack renderer;
+2. run `publication export-submission-minimal` so the PDF consumes those regenerated artifacts;
+3. run `publication materialize-display-visual-audit` so `paper/figure_visual_audit_receipt.json` is refreshed after the final PDF export and records the final `figure_catalog.json` artifact refs and sha256 values;
+4. run `study delivery-sync --stage submission_minimal` so the human-facing current package mirrors the PDF and visual audit receipt;
+5. inspect the rendered PDF pages before claiming the package is latest or visually clear.
+
+`display-pack-e2e` remains the figure-intent/spec driven route. It is not required for older registry/catalog papers
+whose official owner route is `materialize-display-surface`.
 `paper/submission_minimal/paper.pdf` or `manuscript/current_package/paper.pdf` has fresh PDF metadata and rendered
 page inspection confirms figure order, table legibility, and absence of obvious text overlap.
 
