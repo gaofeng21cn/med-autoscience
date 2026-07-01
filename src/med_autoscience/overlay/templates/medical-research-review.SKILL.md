@@ -78,6 +78,7 @@ Each row must include `concern_id`, `domain`, `status`, `severity`, `finding`, `
 For registry initial drafts, treat these as red flags that need a `major` or `blocker` row unless current evidence explicitly closes them:
 
 - missing enrollment window, source-specific data window, or data lock date
+- missing inclusion/exclusion flow, ethics or consent status, funding, competing interests, or data availability statement on submission-facing surfaces
 - missing BMI calculation, adult/child standard, or diagnostic ascertainment definition
 - adult BMI classes promoted while age distribution or under-18 proportion is unresolved
 - selected diagnostic-field positivity described as prevalence or burden
@@ -85,6 +86,8 @@ For registry initial drafts, treat these as red flags that need a `major` or `bl
 - missingness or availability atlas too thin for the manuscript's registry-atlas claim
 - discussion only defends limitations instead of explaining source heterogeneity, clinical meaning, and data-quality roadmap
 - submission-source prose residue such as placeholders, internal workflow notes, or informal "clinical story" language
+- manuscript body describes authoring strategy, source-promotion decisions, pending metadata workflow, or tool/rendering pipeline details instead of study methods and results
+- conclusion contains self-evaluation of manuscript quality rather than an evidence-based clinical conclusion
 
 Restrained wording can reduce claim risk, but it cannot clear these red flags by itself. Route to analysis-campaign, write, decision, or human gate.
 

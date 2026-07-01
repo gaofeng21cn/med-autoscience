@@ -145,10 +145,13 @@ def test_ai_reviewer_contract_exposes_registry_initial_draft_quality_floor() -> 
     assert floor["cannot_be_cleared_by_restrained_wording_alone"] is True
     for expected in (
         "data lock date",
+        "ethics or consent",
         "adult/child standard",
         "prevalence or burden",
         "variables not visible in the figure",
+        "tool/rendering pipeline",
         "clinical story",
+        "self-evaluation",
     ):
         assert expected in red_flags
 
