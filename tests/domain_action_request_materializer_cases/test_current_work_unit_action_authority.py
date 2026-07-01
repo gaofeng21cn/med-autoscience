@@ -117,7 +117,7 @@ def test_current_action_selection_retires_legacy_carrier_even_with_complete_next
 def test_legacy_guard_keeps_non_legacy_canonical_owner_action_envelope() -> None:
     legacy = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts."
-        "legacy_next_action_authority"
+        "legacy_next_action_retirement_guard"
     )
     study_id = "004-synthetic-new-study"
     action = {
@@ -447,7 +447,7 @@ def test_current_action_selection_retires_queue_carrier_that_borrows_study_envel
 def test_next_action_identity_mismatch_includes_action_family_and_output_kind() -> None:
     legacy = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts."
-        "legacy_next_action_authority"
+        "legacy_next_action_retirement_guard"
     )
     study_id = "004-synthetic-new-study"
     action = {

@@ -73,6 +73,12 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     )
     assert (
         _module_absent(
+            "med_autoscience.controllers.domain_action_request_materializer_parts."
+            "legacy_next_action_authority"
+        )
+    )
+    assert (
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.domain_transition"
         )
@@ -382,7 +388,7 @@ def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions()
 def test_materializer_retires_legacy_current_action_even_with_complete_next_action_identity() -> None:
     legacy = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts."
-        "legacy_next_action_authority"
+        "legacy_next_action_retirement_guard"
     )
 
     selected, ignored = legacy.retire_incomplete_authority_actions(

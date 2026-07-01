@@ -17,7 +17,9 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
 )
 from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.controllers.domain_action_request_materializer_parts import legacy_next_action_authority
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    legacy_next_action_retirement_guard,
+)
 from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
 )
@@ -25,10 +27,10 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 
 READINESS_ACTION_TYPE = current_action_authority.READINESS_ACTION_TYPE
 LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
-    legacy_next_action_authority.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
+    legacy_next_action_retirement_guard.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
 )
 NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON = (
-    legacy_next_action_authority.NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON
+    legacy_next_action_retirement_guard.NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON
 )
 _attach_owner_route_if_missing = current_action_queue.attach_owner_route_if_missing
 _attach_canonical_next_action_if_missing = current_action_queue.attach_canonical_next_action_if_missing
@@ -100,7 +102,9 @@ def current_actions_for_studies(
         fresh_progress_action = fresh_progress_by_study.get(study_id)
         fresh_progress_mismatch = (
             fresh_progress_action is not None
-            and legacy_next_action_authority.next_action_identity_mismatches(fresh_progress_action)
+            and legacy_next_action_retirement_guard.next_action_identity_mismatches(
+                fresh_progress_action
+            )
         )
         if fresh_progress_mismatch:
             ignored.append(
@@ -795,7 +799,10 @@ def _retire_legacy_next_action_authority(
     actions: Iterable[Mapping[str, Any]],
     ignored: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    return legacy_next_action_authority.retire_incomplete_authority_actions(actions, ignored)
+    return legacy_next_action_retirement_guard.retire_incomplete_authority_actions(
+        actions,
+        ignored,
+    )
 
 
 def _selectable_candidate_actions(

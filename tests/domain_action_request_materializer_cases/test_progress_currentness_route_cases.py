@@ -404,8 +404,14 @@ def test_materialize_domain_action_requests_prefers_fresh_domain_transition_over
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action_ref"]["authority"] == "mas_next_action_envelope"
     assert dispatch["source_action_ref"]["source_surface"] == "mas_next_action_envelope"
-    assert dispatch["source_action_ref"]["projection_source_surface"] == "domain_transition"
+    assert dispatch["source_action_ref"]["projection_source_surface"] == "mas_next_action_envelope"
     assert dispatch["source_action_ref"]["current_action_source"] == "domain_transition"
+    assert dispatch["source_action_ref"]["domain_transition_projection"] == {
+        "authority": "mas_next_action_envelope",
+        "source_surface": "mas_next_action_envelope",
+        "current_action_source": "domain_transition",
+        "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+    }
     assert dispatch["source_action_ref"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
