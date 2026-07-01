@@ -424,6 +424,116 @@ def test_paper_mission_package_candidate_materializes_route_back_executor_handof
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_package_candidate_repackages_accepted_consumption_ledger_with_external_delta(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    _write_paper_source_fixture(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::paper_mission_import::one-shot"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    source_package = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+    )
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(source_package),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "accepted-sci-review"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    capsys.readouterr()
+    external_delta = tmp_path / "external_sci_registry_review_v4_delta.json"
+    external_delta.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_external_reviewer_revision_delta",
+                "candidate_is_authority": False,
+                "writes_authority": False,
+                "writes_runtime": False,
+                "writes_paper_body": False,
+                "reviewer_revision_checklist": [
+                    {"id": "SCI4-007-internal-report-prose", "severity": "major"}
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "external-sci-review-v4"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "package-candidate",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(output_root),
+            "--paper-facing-delta-ref",
+            str(external_delta),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "paper_mission_candidate_package_write_readback"
+    assert payload["consume_candidate_status"] == "accepted_candidate"
+    assert payload["stage_terminal_decision"]["status"] == (
+        "accepted_submission_milestone_candidate"
+    )
+    output_manifest = payload["output_manifest"]
+    assert output_manifest["writes_authority"] is False
+    assert output_manifest["writes_runtime"] is False
+    assert output_manifest["writes_yang_authority"] is False
+    assert output_manifest["adopted_external_paper_delta_ref"] == str(
+        external_delta.resolve()
+    )
+    package_manifest = json.loads(
+        Path(output_manifest["package_manifest_ref"]).read_text(encoding="utf-8")
+    )
+    assert package_manifest["adopted_external_paper_delta_ref"] == str(
+        external_delta.resolve()
+    )
+    assert package_manifest["candidate_is_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_package_candidate_preserves_display_pack_figure_digests(
     tmp_path: Path,
     capsys,

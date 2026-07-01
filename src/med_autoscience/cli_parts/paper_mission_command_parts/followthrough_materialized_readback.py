@@ -188,8 +188,19 @@ def followthrough_transaction_for_readback(
     ) == "opl_runtime_terminal_readback_observed" or _optional_text(
         _mapping(readback.get("opl_runtime_carrier_readback")).get("carrier_status")
     ) == "opl_runtime_terminal_readback_observed"
+    accepted_submission_candidate = _optional_text(
+        readback.get("consume_candidate_status")
+    ) == "accepted_submission_milestone_candidate"
+    runtime_opl_route_ready = (
+        _optional_text(_mapping(readback.get("next_action")).get("action_family"))
+        == "runtime.opl_route"
+    )
     if decision_kind != "route_back" and not (
         decision_kind == "continue_same_stage" and terminal_closeout_observed
+    ) and not (
+        decision_kind == "continue_same_stage"
+        and accepted_submission_candidate
+        and runtime_opl_route_ready
     ):
         return {}
     study_id = _optional_text(transaction.get("study_id"))
