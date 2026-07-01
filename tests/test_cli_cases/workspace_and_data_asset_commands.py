@@ -568,6 +568,195 @@ def test_data_lifecycle_compact_runtime_apply_writes_sqlite_index_without_deleti
     assert payload_rows == [(small_runtime.stat().st_size, small_runtime.read_bytes())]
 
 
+def test_data_lifecycle_compact_runtime_apply_migrates_existing_manifest_without_plane(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    small_runtime = workspace_root / "runtime" / "quests" / "q1" / "receipt.json"
+    small_runtime.parent.mkdir(parents=True)
+    small_runtime.write_text('{"ok": true}\n', encoding="utf-8")
+    index_path = workspace_root / "runtime" / "index.sqlite"
+    with sqlite3.connect(index_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE runtime_compact_manifest (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                schema_version INTEGER NOT NULL,
+                generated_at TEXT NOT NULL,
+                workspace_root TEXT NOT NULL,
+                small_file_threshold_bytes INTEGER NOT NULL,
+                indexed_file_count INTEGER NOT NULL,
+                indexed_bytes INTEGER NOT NULL,
+                physical_delete_performed INTEGER NOT NULL,
+                source_files_preserved INTEGER NOT NULL,
+                forbidden_boundaries_json TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO runtime_compact_manifest (
+                id,
+                schema_version,
+                generated_at,
+                workspace_root,
+                small_file_threshold_bytes,
+                indexed_file_count,
+                indexed_bytes,
+                physical_delete_performed,
+                source_files_preserved,
+                forbidden_boundaries_json
+            )
+            VALUES (1, 1, 'old', ?, 16384, 0, 0, 0, 1, '[]')
+            """,
+            (str(workspace_root),),
+        )
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "compact-runtime",
+            "--workspace-root",
+            str(workspace_root),
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "applied"
+    with sqlite3.connect(index_path) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(runtime_compact_manifest)")}
+        manifest = connection.execute(
+            "SELECT plane, indexed_file_count, physical_delete_performed FROM runtime_compact_manifest"
+        ).fetchone()
+
+    assert "plane" in columns
+    assert manifest == ("runtime", 1, 0)
+
+
+def test_data_lifecycle_index_assets_apply_writes_refs_only_asset_index(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.csv"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("id,value\n1,2\n", encoding="utf-8")
+    manifest = dataset_file.parent / "dataset_manifest.yaml"
+    manifest.write_text("family_id: test\nversion_id: v1\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "index-assets",
+            "--workspace-root",
+            str(workspace_root),
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    index_path = workspace_root / "memory" / "portfolio" / "data_assets" / "index.sqlite"
+
+    assert exit_code == 0
+    assert payload["status"] == "applied"
+    assert payload["mutation_policy"]["stores_dataset_body"] is False
+    assert payload["apply_receipt"]["release_count"] == 1
+    assert payload["apply_receipt"]["file_record_count"] == 2
+    with sqlite3.connect(index_path) as connection:
+        releases = connection.execute(
+            "SELECT workspace_relative_path, manifest_exists FROM asset_releases"
+        ).fetchall()
+        files = connection.execute("SELECT count(*), sum(bytes) FROM asset_file_inventory").fetchone()
+        manifest_row = connection.execute("SELECT stores_dataset_body FROM asset_index_manifest").fetchone()
+
+    assert releases == [("data/datasets/master/v1", 1)]
+    assert files == (2, dataset_file.stat().st_size + manifest.stat().st_size)
+    assert manifest_row == (0,)
+
+
+def test_data_lifecycle_compact_study_apply_writes_study_index_without_deleting_sources(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    study_note = workspace_root / "studies" / "s1" / "analysis" / "note.json"
+    study_note.parent.mkdir(parents=True)
+    study_note.write_text("{}\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "compact-study",
+            "--workspace-root",
+            str(workspace_root),
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    index_path = workspace_root / "studies" / "index.sqlite"
+
+    assert exit_code == 0
+    assert payload["status"] == "applied"
+    assert payload["apply_receipt"]["indexed_file_count"] == 1
+    assert study_note.exists()
+    with sqlite3.connect(index_path) as connection:
+        records = connection.execute(
+            "SELECT workspace_relative_path, bytes, source_file_preserved FROM study_file_records"
+        ).fetchall()
+    assert records == [("studies/s1/analysis/note.json", study_note.stat().st_size, 1)]
+
+
+def test_data_lifecycle_closeout_completed_project_apply_writes_semantic_capsule_only(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.csv"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("id,value\n1,2\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "closeout-completed-project",
+            "--workspace-root",
+            str(workspace_root),
+            "--project-id",
+            "study_a",
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    capsule_path = workspace_root / payload["capsule_ref"]
+    capsule_json_path = workspace_root / payload["capsule_json_ref"]
+
+    assert exit_code == 0
+    assert payload["status"] == "applied"
+    assert payload["mutation_policy"]["writes_semantic_capsule_only"] is True
+    assert payload["apply_receipt"]["physical_delete_performed"] is False
+    assert dataset_file.exists()
+    assert capsule_path.exists()
+    assert capsule_json_path.exists()
+    assert "Semantic Reproducible Capsule: study_a" in capsule_path.read_text(encoding="utf-8")
+    capsule_json = json.loads(capsule_json_path.read_text(encoding="utf-8"))
+    assert capsule_json["project_id"] == "study_a"
+    assert capsule_json["mutation_policy"]["physical_delete_performed"] is False
+
+
 def test_data_lifecycle_inspect_classifies_current_package_zip_as_exchange(
     tmp_path: Path,
     capsys,

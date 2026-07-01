@@ -15,11 +15,16 @@ SCHEMA_VERSION = 1
 INSPECTION_SURFACE_KIND = "mas_data_lifecycle_inspection"
 CLOSEOUT_SURFACE_KIND = "mas_data_lifecycle_closeout_plan"
 COMPACT_RUNTIME_SURFACE_KIND = "mas_data_lifecycle_runtime_compact_plan"
+ASSET_INDEX_SURFACE_KIND = "mas_data_lifecycle_asset_index"
+COMPACT_STUDY_SURFACE_KIND = "mas_data_lifecycle_study_compact_plan"
+COMPLETED_PROJECT_CLOSEOUT_SURFACE_KIND = "mas_data_lifecycle_completed_project_closeout"
 _CANDIDATE_LIMIT = 200
 _DATASET_BODY_SKIP = DATASETS_RELPATH.as_posix()
 _CACHE_DIR_NAMES = {".pytest_cache", ".mypy_cache", ".ruff_cache", "__pycache__"}
 _SMALL_FILE_BYTES = 16 * 1024
 _SQLITE_TARGET_PATH = "runtime/index.sqlite"
+_ASSET_INDEX_PATH = "memory/portfolio/data_assets/index.sqlite"
+_STUDY_INDEX_PATH = "studies/index.sqlite"
 
 
 def inspect_data_lifecycle(*, workspace_root: Path) -> dict[str, Any]:
@@ -122,6 +127,146 @@ def compact_runtime_lifecycle(*, workspace_root: Path, dry_run: bool, apply: boo
         },
         "candidates": candidates,
     }
+
+
+def index_data_assets(*, workspace_root: Path, dry_run: bool, apply: bool = False) -> dict[str, Any]:
+    if dry_run == apply:
+        raise ValueError("data-lifecycle index-assets requires exactly one of --dry-run or --apply")
+    resolved_workspace = Path(workspace_root).expanduser().resolve()
+    releases = _dataset_release_records(resolved_workspace)
+    file_records = _dataset_file_inventory_records(resolved_workspace)
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": ASSET_INDEX_SURFACE_KIND,
+        "workspace_root": str(resolved_workspace),
+        "dry_run": dry_run,
+        "status": "dry_run" if dry_run else "applied",
+        "target_index": _ASSET_INDEX_PATH,
+        "sqlite_target_path": _ASSET_INDEX_PATH,
+        "mutation_policy": {
+            "writes_workspace": apply,
+            "writes_data_asset_index_only": apply,
+            "stores_dataset_body": False,
+            "physical_delete_performed": False,
+        },
+        "release_count": len(releases),
+        "file_record_count": len(file_records),
+        "index_plan": {
+            "mode": "dry_run" if dry_run else "apply",
+            "release_count": len(releases),
+            "file_record_count": len(file_records),
+        },
+    }
+    if apply:
+        payload["apply_receipt"] = _apply_asset_index(
+            workspace_root=resolved_workspace,
+            releases=releases,
+            file_records=file_records,
+        )
+    return payload
+
+
+def compact_study_lifecycle(*, workspace_root: Path, dry_run: bool, apply: bool = False) -> dict[str, Any]:
+    if dry_run == apply:
+        raise ValueError("data-lifecycle compact-study requires exactly one of --dry-run or --apply")
+    resolved_workspace = Path(workspace_root).expanduser().resolve()
+    candidates = _small_study_candidates(resolved_workspace)
+    candidate_file_count = sum(int(candidate["file_count"]) for candidate in candidates)
+    candidate_bytes = sum(int(candidate["bytes"]) for candidate in candidates)
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": COMPACT_STUDY_SURFACE_KIND,
+        "workspace_root": str(resolved_workspace),
+        "dry_run": dry_run,
+        "status": "dry_run" if dry_run else "applied",
+        "target_index": _STUDY_INDEX_PATH,
+        "sqlite_target_path": _STUDY_INDEX_PATH,
+        "mutation_policy": {
+            "writes_workspace": apply,
+            "writes_study_index_only": apply,
+            "physical_delete_performed": False,
+            "source_files_preserved": True,
+        },
+        "candidate_count": len(candidates),
+        "candidate_file_count": candidate_file_count,
+        "candidate_bytes": candidate_bytes,
+        "compact_plan": {
+            "mode": "dry_run" if dry_run else "apply",
+            "small_file_threshold_bytes": _SMALL_FILE_BYTES,
+            "sqlite_target_path": _STUDY_INDEX_PATH,
+            "candidates": candidates,
+        },
+        "candidates": candidates,
+    }
+    if apply:
+        payload["apply_receipt"] = _apply_small_file_index(
+            workspace_root=resolved_workspace,
+            index_relpath=_STUDY_INDEX_PATH,
+            manifest_table="study_compact_manifest",
+            record_table="study_file_records",
+            payload_table="study_file_payloads",
+            candidates=candidates,
+            plane="study",
+        )
+    return payload
+
+
+def closeout_completed_project(*, workspace_root: Path, project_id: str, dry_run: bool, apply: bool = False) -> dict[str, Any]:
+    if dry_run == apply:
+        raise ValueError("data-lifecycle closeout-completed-project requires exactly one of --dry-run or --apply")
+    resolved_workspace = Path(workspace_root).expanduser().resolve()
+    inspection = inspect_data_lifecycle(workspace_root=resolved_workspace)
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    capsule_relpath = (
+        "memory/portfolio/data_assets/retention/semantic_reproducible_capsules/"
+        f"{project_id}_semantic_capsule_latest.md"
+    )
+    capsule_json_relpath = capsule_relpath.removesuffix(".md") + ".json"
+    capsule_path = resolved_workspace / capsule_relpath
+    capsule_json_path = resolved_workspace / capsule_json_relpath
+    capsule = _completed_project_capsule_markdown(
+        project_id=project_id,
+        timestamp=timestamp,
+        inspection=inspection,
+    )
+    capsule_json = _completed_project_capsule_payload(
+        project_id=project_id,
+        timestamp=timestamp,
+        inspection=inspection,
+        capsule_ref=capsule_relpath,
+    )
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": COMPLETED_PROJECT_CLOSEOUT_SURFACE_KIND,
+        "workspace_root": str(resolved_workspace),
+        "project_id": project_id,
+        "dry_run": dry_run,
+        "status": "dry_run" if dry_run else "applied",
+        "capsule_ref": capsule_relpath,
+        "capsule_json_ref": capsule_json_relpath,
+        "mutation_policy": {
+            "writes_workspace": apply,
+            "writes_semantic_capsule_only": apply,
+            "physical_delete_performed": False,
+            "source_files_preserved": True,
+        },
+        "important_result_reproduction_ref": capsule_relpath,
+        "data_body_boundary_ref": _DATASET_BODY_SKIP,
+        "cleanup_candidate_count": inspection["cleanup_candidate_count"],
+    }
+    if apply:
+        capsule_path.parent.mkdir(parents=True, exist_ok=True)
+        capsule_path.write_text(capsule, encoding="utf-8")
+        capsule_json_path.write_text(json.dumps(capsule_json, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        payload["apply_receipt"] = {
+            "capsule_ref": capsule_relpath,
+            "capsule_json_ref": capsule_json_relpath,
+            "bytes": capsule_path.stat().st_size,
+            "json_bytes": capsule_json_path.stat().st_size,
+            "physical_delete_performed": False,
+            "source_files_preserved": True,
+        }
+    return payload
 
 
 def _runtime_index_mutation_policy(*, apply: bool) -> dict[str, Any]:
@@ -428,8 +573,66 @@ def _small_runtime_candidates(workspace_root: Path) -> list[dict[str, Any]]:
 
 
 def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    return _apply_small_file_index(
+        workspace_root=workspace_root,
+        index_relpath=_SQLITE_TARGET_PATH,
+        manifest_table="runtime_compact_manifest",
+        record_table="runtime_file_records",
+        payload_table="runtime_file_payloads",
+        candidates=candidates,
+        plane="runtime",
+        forbidden_boundaries=_runtime_index_forbidden_boundaries(),
+    )
+
+
+def _small_study_candidates(workspace_root: Path) -> list[dict[str, Any]]:
+    studies_root = workspace_root / "studies"
+    if not studies_root.exists():
+        return []
+    candidates: list[dict[str, Any]] = []
+    for path in sorted(studies_root.rglob("*")):
+        if len(candidates) >= _CANDIDATE_LIMIT:
+            break
+        if not path.is_file() or _is_under_dataset_body(path, workspace_root=workspace_root):
+            continue
+        if _workspace_ref(workspace_root, path) == _STUDY_INDEX_PATH:
+            continue
+        if path.name in {"current_package.zip", "submission_minimal.zip"}:
+            continue
+        try:
+            size = path.stat().st_size
+        except FileNotFoundError:
+            continue
+        if size >= _SMALL_FILE_BYTES:
+            continue
+        candidates.append(
+            {
+                "workspace_relative_path": _workspace_ref(workspace_root, path),
+                "file_count": 1,
+                "bytes": size,
+                "small_file_count": 1,
+                "candidate_action": "index_small_study_record",
+                "target_index": _STUDY_INDEX_PATH,
+                "dry_run": True,
+                "writes_workspace": False,
+            }
+        )
+    return candidates
+
+
+def _apply_small_file_index(
+    *,
+    workspace_root: Path,
+    index_relpath: str,
+    manifest_table: str,
+    record_table: str,
+    payload_table: str,
+    candidates: list[dict[str, Any]],
+    plane: str,
+    forbidden_boundaries: list[str] | None = None,
+) -> dict[str, Any]:
     indexed_at = datetime.now(timezone.utc).isoformat()
-    index_path = workspace_root / _SQLITE_TARGET_PATH
+    index_path = workspace_root / index_relpath
     index_path.parent.mkdir(parents=True, exist_ok=True)
     records = [
         _runtime_index_record(workspace_root=workspace_root, candidate=candidate, indexed_at=indexed_at)
@@ -437,11 +640,12 @@ def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any
     ]
     with sqlite3.connect(index_path) as connection:
         connection.execute("PRAGMA journal_mode=DELETE")
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS runtime_compact_manifest (
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {manifest_table} (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 schema_version INTEGER NOT NULL,
+                plane TEXT NOT NULL,
                 generated_at TEXT NOT NULL,
                 workspace_root TEXT NOT NULL,
                 small_file_threshold_bytes INTEGER NOT NULL,
@@ -450,8 +654,18 @@ def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any
                 physical_delete_performed INTEGER NOT NULL,
                 source_files_preserved INTEGER NOT NULL,
                 forbidden_boundaries_json TEXT NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS runtime_file_records (
+            )
+            """
+        )
+        _ensure_text_column(
+            connection,
+            table_name=manifest_table,
+            column_name="plane",
+            default_value=plane,
+        )
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {record_table} (
                 workspace_relative_path TEXT PRIMARY KEY,
                 sha256 TEXT NOT NULL,
                 bytes INTEGER NOT NULL,
@@ -459,20 +673,25 @@ def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any
                 indexed_at TEXT NOT NULL,
                 payload_sha256 TEXT NOT NULL,
                 source_file_preserved INTEGER NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS runtime_file_payloads (
+            )
+            """
+        )
+        connection.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {payload_table} (
                 sha256 TEXT PRIMARY KEY,
                 bytes INTEGER NOT NULL,
                 payload BLOB NOT NULL
-            );
+            )
             """
         )
-        connection.execute("DELETE FROM runtime_file_records")
+        connection.execute(f"DELETE FROM {record_table}")
         connection.execute(
-            """
-            INSERT OR REPLACE INTO runtime_compact_manifest (
+            f"""
+            INSERT OR REPLACE INTO {manifest_table} (
                 id,
                 schema_version,
+                plane,
                 generated_at,
                 workspace_root,
                 small_file_threshold_bytes,
@@ -482,29 +701,30 @@ def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any
                 source_files_preserved,
                 forbidden_boundaries_json
             )
-            VALUES (1, ?, ?, ?, ?, ?, ?, 0, 1, ?)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?)
             """,
             (
                 SCHEMA_VERSION,
+                plane,
                 indexed_at,
                 str(workspace_root),
                 _SMALL_FILE_BYTES,
                 len(records),
                 sum(int(record["bytes"]) for record in records),
-                json.dumps(_runtime_index_forbidden_boundaries()),
+                json.dumps(forbidden_boundaries or []),
             ),
         )
         for record in records:
             connection.execute(
-                """
-                INSERT OR REPLACE INTO runtime_file_payloads (sha256, bytes, payload)
+                f"""
+                INSERT OR REPLACE INTO {payload_table} (sha256, bytes, payload)
                 VALUES (?, ?, ?)
                 """,
                 (record["sha256"], record["bytes"], record["payload"]),
             )
             connection.execute(
-                """
-                INSERT OR REPLACE INTO runtime_file_records (
+                f"""
+                INSERT OR REPLACE INTO {record_table} (
                     workspace_relative_path,
                     sha256,
                     bytes,
@@ -525,13 +745,254 @@ def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any
                 ),
             )
     return {
-        "sqlite_target_path": _SQLITE_TARGET_PATH,
+        "sqlite_target_path": index_relpath,
         "indexed_file_count": len(records),
         "indexed_bytes": sum(int(record["bytes"]) for record in records),
         "indexed_payload_count": len({str(record["sha256"]) for record in records}),
         "physical_delete_performed": False,
         "source_files_preserved": True,
         "indexed_at": indexed_at,
+    }
+
+
+def _ensure_text_column(
+    connection: sqlite3.Connection,
+    *,
+    table_name: str,
+    column_name: str,
+    default_value: str,
+) -> None:
+    columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table_name})")}
+    if column_name in columns:
+        return
+    escaped_default = default_value.replace("'", "''")
+    connection.execute(
+        f"ALTER TABLE {table_name} ADD COLUMN {column_name} TEXT NOT NULL DEFAULT '{escaped_default}'"
+    )
+
+
+def _dataset_release_records(workspace_root: Path) -> list[dict[str, Any]]:
+    datasets_root = workspace_root / _DATASET_BODY_SKIP
+    releases: list[dict[str, Any]] = []
+    if not datasets_root.exists():
+        return releases
+    for layer_root in sorted(path for path in datasets_root.iterdir() if path.is_dir()):
+        for version_root in sorted(path for path in layer_root.iterdir() if path.is_dir()):
+            stats = _path_stats(version_root, workspace_root=workspace_root, include_dataset_body=True)
+            manifest = version_root / "dataset_manifest.yaml"
+            releases.append(
+                {
+                    "layer": layer_root.name,
+                    "version": version_root.name,
+                    "workspace_relative_path": _workspace_ref(workspace_root, version_root),
+                    "manifest_ref": _workspace_ref(workspace_root, manifest) if manifest.exists() else None,
+                    "bytes": stats["bytes"],
+                    "file_count": stats["file_count"],
+                    "manifest_exists": manifest.exists(),
+                }
+            )
+    return releases
+
+
+def _dataset_file_inventory_records(workspace_root: Path) -> list[dict[str, Any]]:
+    datasets_root = workspace_root / _DATASET_BODY_SKIP
+    records: list[dict[str, Any]] = []
+    if not datasets_root.exists():
+        return records
+    for path in sorted(item for item in datasets_root.rglob("*") if item.is_file()):
+        try:
+            stat_result = path.stat()
+        except FileNotFoundError:
+            continue
+        records.append(
+            {
+                "workspace_relative_path": _workspace_ref(workspace_root, path),
+                "bytes": stat_result.st_size,
+                "mtime_ns": stat_result.st_mtime_ns,
+                "sha256": _sha256_file(path),
+            }
+        )
+    return records
+
+
+def _apply_asset_index(
+    *,
+    workspace_root: Path,
+    releases: list[dict[str, Any]],
+    file_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    generated_at = datetime.now(timezone.utc).isoformat()
+    index_path = workspace_root / _ASSET_INDEX_PATH
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(index_path) as connection:
+        connection.execute("PRAGMA journal_mode=DELETE")
+        connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS asset_index_manifest (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                schema_version INTEGER NOT NULL,
+                generated_at TEXT NOT NULL,
+                workspace_root TEXT NOT NULL,
+                release_count INTEGER NOT NULL,
+                file_record_count INTEGER NOT NULL,
+                stores_dataset_body INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS asset_releases (
+                workspace_relative_path TEXT PRIMARY KEY,
+                layer TEXT NOT NULL,
+                version TEXT NOT NULL,
+                manifest_ref TEXT,
+                bytes INTEGER NOT NULL,
+                file_count INTEGER NOT NULL,
+                manifest_exists INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS asset_file_inventory (
+                workspace_relative_path TEXT PRIMARY KEY,
+                sha256 TEXT NOT NULL,
+                bytes INTEGER NOT NULL,
+                mtime_ns INTEGER NOT NULL
+            );
+            """
+        )
+        connection.execute("DELETE FROM asset_releases")
+        connection.execute("DELETE FROM asset_file_inventory")
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO asset_index_manifest (
+                id, schema_version, generated_at, workspace_root, release_count, file_record_count, stores_dataset_body
+            )
+            VALUES (1, ?, ?, ?, ?, ?, 0)
+            """,
+            (SCHEMA_VERSION, generated_at, str(workspace_root), len(releases), len(file_records)),
+        )
+        for release in releases:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO asset_releases (
+                    workspace_relative_path, layer, version, manifest_ref, bytes, file_count, manifest_exists
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    release["workspace_relative_path"],
+                    release["layer"],
+                    release["version"],
+                    release["manifest_ref"],
+                    release["bytes"],
+                    release["file_count"],
+                    int(bool(release["manifest_exists"])),
+                ),
+            )
+        for record in file_records:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO asset_file_inventory (
+                    workspace_relative_path, sha256, bytes, mtime_ns
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    record["workspace_relative_path"],
+                    record["sha256"],
+                    record["bytes"],
+                    record["mtime_ns"],
+                ),
+            )
+    return {
+        "sqlite_target_path": _ASSET_INDEX_PATH,
+        "release_count": len(releases),
+        "file_record_count": len(file_records),
+        "stores_dataset_body": False,
+        "generated_at": generated_at,
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _completed_project_capsule_markdown(*, project_id: str, timestamp: str, inspection: dict[str, Any]) -> str:
+    planes = inspection.get("plane_summary", {})
+    body = planes.get("body", {})
+    runtime = planes.get("runtime", {})
+    study = planes.get("study", {})
+    return "\n".join(
+        [
+            f"# Semantic Reproducible Capsule: {project_id}",
+            "",
+            f"Generated at: {timestamp}",
+            "",
+            "## Scope",
+            "",
+            "This capsule preserves reproducibility information only. It does not delete files,",
+            "store clinical row-level bodies, sign owner receipts, or create typed blockers.",
+            "",
+            "## Data Body Boundary",
+            "",
+            f"- Body root: `{_DATASET_BODY_SKIP}`",
+            f"- Body bytes: {body.get('bytes', 0)}",
+            f"- Body file count: {body.get('file_count', 0)}",
+            "",
+            "## Process Planes",
+            "",
+            f"- Runtime bytes: {runtime.get('bytes', 0)}",
+            f"- Runtime file count: {runtime.get('file_count', 0)}",
+            f"- Study bytes: {study.get('bytes', 0)}",
+            f"- Study file count: {study.get('file_count', 0)}",
+            "",
+            "## Reproduction Contract",
+            "",
+            "1. Rebuild release and file inventory from `memory/portfolio/data_assets/index.sqlite`.",
+            "2. Rebuild runtime small-record inventory from `runtime/index.sqlite`.",
+            "3. Rebuild study small-record inventory from `studies/index.sqlite` when present.",
+            "4. Keep manuscript exchange packages as exchange artifacts, not authority.",
+            "5. Require owner decision before any non-cache physical deletion.",
+            "",
+        ]
+    )
+
+
+def _completed_project_capsule_payload(
+    *,
+    project_id: str,
+    timestamp: str,
+    inspection: dict[str, Any],
+    capsule_ref: str,
+) -> dict[str, Any]:
+    planes = inspection.get("plane_summary", {})
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "mas_data_lifecycle_semantic_reproducible_capsule",
+        "project_id": project_id,
+        "generated_at": timestamp,
+        "capsule_ref": capsule_ref,
+        "data_body_boundary_ref": _DATASET_BODY_SKIP,
+        "plane_summary": {
+            key: {
+                "workspace_relative_path": value.get("workspace_relative_path"),
+                "bytes": value.get("bytes", 0),
+                "file_count": value.get("file_count", 0),
+                "small_file_count": value.get("small_file_count", 0),
+            }
+            for key, value in planes.items()
+            if isinstance(value, dict)
+        },
+        "reproduction_contract": [
+            "Rebuild release and file inventory from memory/portfolio/data_assets/index.sqlite.",
+            "Rebuild runtime small-record inventory from runtime/index.sqlite.",
+            "Rebuild study small-record inventory from studies/index.sqlite when present.",
+            "Treat manuscript packages as exchange artifacts, not authority.",
+            "Require owner decision before non-cache physical deletion.",
+        ],
+        "mutation_policy": {
+            "stores_dataset_body": False,
+            "physical_delete_performed": False,
+            "source_files_preserved": True,
+        },
     }
 
 
@@ -576,4 +1037,11 @@ def _workspace_ref(workspace_root: Path, path: Path) -> str:
         return path.as_posix()
 
 
-__all__ = ["closeout_data_lifecycle", "compact_runtime_lifecycle", "inspect_data_lifecycle"]
+__all__ = [
+    "closeout_completed_project",
+    "closeout_data_lifecycle",
+    "compact_runtime_lifecycle",
+    "compact_study_lifecycle",
+    "index_data_assets",
+    "inspect_data_lifecycle",
+]
