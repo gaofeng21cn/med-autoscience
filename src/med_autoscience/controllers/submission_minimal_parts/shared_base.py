@@ -9,9 +9,8 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 from urllib import request
@@ -34,7 +33,6 @@ from med_autoscience.runtime_protocol.paper_artifacts import (
     resolve_managed_submission_surface_roots,
 )
 
-
 from .export_renderers import export_docx, export_pdf
 from .profile_config import (
     FRONTIERS_HARVARD_CSL_URL,
@@ -55,8 +53,6 @@ from .profile_config import (
     resolve_override_path,
     resolve_publication_profile_config,
 )
-
-
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()

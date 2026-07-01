@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -133,11 +133,36 @@ def build_materialized_candidate_package_readback(
     study_id: str,
     output_root: str | Path | None,
     source: str,
+    inspect_readback_builder: Callable[..., dict[str, Any]] | None = None,
+    enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
     source_readback_override: Mapping[str, Any] | None = None,
     paper_facing_delta_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     if output_root is None:
         raise ValueError("--output-root is required for package-candidate")
+    if source_readback_override is None and inspect_readback_builder is not None:
+        source_readback_override = build_materialized_mission_readback_if_available(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command="package-candidate",
+            dry_run=False,
+            source=source,
+            enable_opl_live_probe=enable_opl_live_probe,
+            opl_bin=opl_bin,
+        )
+        if source_readback_override is None:
+            source_readback_override = inspect_readback_builder(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+                paper_mission_command="inspect",
+                dry_run=False,
+                source=f"{source}:package-candidate-source-inspect",
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
     readback = (
         _paper_mission_followthrough_source_readback(
             readback=source_readback_override,
@@ -157,6 +182,8 @@ def build_materialized_candidate_package_readback(
             paper_mission_command="package-candidate",
             dry_run=False,
             source=source,
+            enable_opl_live_probe=enable_opl_live_probe,
+            opl_bin=opl_bin,
         )
         if readback is None:
             raise ValueError(
