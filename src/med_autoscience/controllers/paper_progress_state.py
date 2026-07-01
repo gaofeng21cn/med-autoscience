@@ -324,6 +324,8 @@ def _provider_attempt_run_id(payload: Mapping[str, Any]) -> str | None:
 def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -> bool:
     if details.get("package_delivered") is True:
         return True
+    if _audit_current_package_delivered(payload):
+        return True
     delivery = _mapping(payload.get("delivery_inspection"))
     if delivery.get("package_delivered") is True:
         return True
@@ -334,6 +336,20 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
         return True
     package_state = _text(submission_hygiene.get("package_state"))
     return package_state in {"delivered", "current_package_delivered", "terminal_delivered"}
+
+
+def _audit_current_package_delivered(payload: Mapping[str, Any]) -> bool:
+    typed_readback = _mapping(payload.get("typed_blocker_resolution_readback"))
+    package = _mapping(typed_readback.get("current_package")) or _mapping(
+        payload.get("current_package")
+    )
+    if _text(package.get("package_kind")) != "current_package":
+        return False
+    if package.get("zip_exists") is not True:
+        return False
+    if package.get("generated_from_current_source") is not True:
+        return False
+    return _text(package.get("status")) in {"fresh", "current", "delivered"}
 
 
 def _meaningful_artifact_delta(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:

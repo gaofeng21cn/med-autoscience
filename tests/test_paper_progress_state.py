@@ -188,6 +188,34 @@ def test_current_delivery_inspection_counts_as_package_delivered() -> None:
     assert state["why_not_progressing"] == "package_delivered"
 
 
+def test_typed_blocker_audit_current_package_counts_as_delivered_not_submission_ready() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "study_macro_state": {
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "quality_repair",
+                "details": {"package_delivered": False},
+            },
+            "typed_blocker_resolution_readback": {
+                "current_package": {
+                    "status": "fresh",
+                    "package_kind": "current_package",
+                    "can_submit": False,
+                    "zip_exists": True,
+                    "generated_from_current_source": True,
+                    "administrative_todo": ["Authors: pending", "Ethics: pending"],
+                }
+            },
+        }
+    )
+
+    assert state["package_delivered"] is True
+    assert state["state"] == "terminal_delivered"
+    assert state["why_not_progressing"] == "package_delivered"
+
+
 def test_current_delivery_does_not_terminal_deliver_reactivated_same_line_repair() -> None:
     state = _module().build_paper_progress_state(
         {

@@ -731,18 +731,6 @@ def _validate_readback(
     mismatched: list[str] = []
     if _text(paper_mission_readback.get("study_id")) != study_id:
         mismatched.append("study_id")
-    next_action = _mapping(paper_mission_readback.get("next_action"))
-    action_family = _text(next_action.get("action_family"))
-    action_kind = _text(next_action.get("action_kind"))
-    allowed_next_actions = {
-        ("blocked.typed", "stop_with_typed_blocker"),
-        ("paper.package.submission_minimal", "package_materialization"),
-    }
-    if (action_family, action_kind) not in allowed_next_actions:
-        mismatched.append("next_action.action_family")
-        mismatched.append("next_action.action_kind")
-    if _text(next_action.get("owner")) != "mas_authority_kernel":
-        mismatched.append("next_action.owner")
 
     decision = _mapping(paper_mission_readback.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
@@ -760,6 +748,25 @@ def _validate_readback(
         consumption = _mapping(receipt.get("mas_receipt_consumption"))
         if _text(consumption.get("status")) != "owner_consumed_typed_blocker":
             mismatched.append("receipt_owner_consumption_readback.mas_receipt_consumption.status")
+    consumed_typed_blocker = (
+        _text(outcome.get("kind")) == "typed_blocker"
+        and _text(receipt.get("status")) == "owner_consumption_applied"
+        and _text(_mapping(receipt.get("mas_receipt_consumption")).get("status"))
+        == "owner_consumed_typed_blocker"
+    )
+    if not consumed_typed_blocker:
+        next_action = _mapping(paper_mission_readback.get("next_action"))
+        action_family = _text(next_action.get("action_family"))
+        action_kind = _text(next_action.get("action_kind"))
+        allowed_next_actions = {
+            ("blocked.typed", "stop_with_typed_blocker"),
+            ("paper.package.submission_minimal", "package_materialization"),
+        }
+        if (action_family, action_kind) not in allowed_next_actions:
+            mismatched.append("next_action.action_family")
+            mismatched.append("next_action.action_kind")
+        if _text(next_action.get("owner")) != "mas_authority_kernel":
+            mismatched.append("next_action.owner")
     return {
         "valid": not missing and not mismatched,
         "missing_required_fields": missing,
@@ -769,17 +776,100 @@ def _validate_readback(
 
 def _current_package_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     package = _mapping(readback.get("current_package"))
+    fallback = _current_package_summary_from_study_root(readback)
+    if not package and fallback is not None:
+        return fallback
     return {
-        "status": _first_text(package.get("status"), package.get("freshness_status")),
-        "package_kind": _text(package.get("package_kind")),
+        "status": _first_text(
+            package.get("status"),
+            package.get("freshness_status"),
+            _mapping(fallback).get("status"),
+        ),
+        "package_kind": _first_text(
+            package.get("package_kind"),
+            _mapping(fallback).get("package_kind"),
+        ),
         "can_submit": package.get("can_submit") is True,
-        "quality_gate_status": _text(package.get("quality_gate_status")),
-        "known_blockers": _text_list(package.get("known_blockers")),
-        "root": _text(package.get("root")),
-        "zip_path": _text(package.get("zip_path")),
-        "zip_exists": package.get("zip_exists") is True,
-        "generated_from_current_source": package.get("generated_from_current_source") is True,
+        "quality_gate_status": _first_text(
+            package.get("quality_gate_status"),
+            _mapping(fallback).get("quality_gate_status"),
+        ),
+        "known_blockers": _text_list(package.get("known_blockers"))
+        or _text_list(_mapping(fallback).get("known_blockers")),
+        "root": _first_text(package.get("root"), _mapping(fallback).get("root")),
+        "zip_path": _first_text(
+            package.get("zip_path"),
+            _mapping(fallback).get("zip_path"),
+        ),
+        "zip_exists": package.get("zip_exists") is True
+        or _mapping(fallback).get("zip_exists") is True,
+        "generated_from_current_source": package.get("generated_from_current_source") is True
+        or _mapping(fallback).get("generated_from_current_source") is True,
+        **(
+            {"administrative_todo": _mapping(fallback)["administrative_todo"]}
+            if _mapping(fallback).get("administrative_todo")
+            else {}
+        ),
     }
+
+
+def _current_package_summary_from_study_root(
+    readback: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    study_root_text = _text(readback.get("study_root"))
+    if study_root_text is None:
+        return None
+    study_root = Path(study_root_text).expanduser().resolve()
+    package_root = study_root / "manuscript" / "current_package"
+    zip_path = study_root / "manuscript" / "current_package.zip"
+    manifest = _load_optional_json_object(
+        package_root / "audit" / "submission_manifest.json"
+    )
+    freshness = _load_optional_json_object(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    )
+    if not package_root.exists() and not zip_path.exists() and not manifest and not freshness:
+        return None
+    status = _first_text(
+        manifest.get("status"),
+        manifest.get("freshness_status"),
+        freshness.get("status"),
+        "fresh" if package_root.exists() or zip_path.exists() else None,
+    )
+    return {
+        "status": status,
+        "package_kind": _first_text(manifest.get("package_kind"), "current_package"),
+        "can_submit": manifest.get("can_submit") is True,
+        "quality_gate_status": _text(manifest.get("quality_gate_status")),
+        "known_blockers": _text_list(manifest.get("known_blockers")),
+        "root": str(package_root) if package_root.exists() else None,
+        "zip_path": str(zip_path) if zip_path.exists() else None,
+        "zip_exists": zip_path.exists(),
+        "generated_from_current_source": manifest.get("generated_from_current_source") is True
+        or freshness.get("status") == "fresh",
+        "administrative_todo": _submission_todo_items(package_root / "SUBMISSION_TODO.md"),
+    }
+
+
+def _load_optional_json_object(path: Path) -> Mapping[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, Mapping) else {}
+
+
+def _submission_todo_items(path: Path) -> list[str]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    items: list[str] = []
+    for line in lines:
+        text = line.strip()
+        if text.startswith("- "):
+            items.append(text[2:].strip())
+    return items
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

@@ -148,6 +148,84 @@ def test_typed_blocker_resolution_reports_missing_owner_apply_surface(
     assert "current_package" in payload["forbidden_authority_writes"]
 
 
+def test_typed_blocker_resolution_hydrates_existing_audit_current_package(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    current_package = study_root / "manuscript" / "current_package"
+    (current_package / "audit").mkdir(parents=True)
+    (study_root / "manuscript").mkdir(exist_ok=True)
+    (study_root / "manuscript" / "current_package.zip").write_bytes(b"zip")
+    (current_package / "SUBMISSION_TODO.md").write_text(
+        "\n".join(
+            [
+                "# Submission TODO",
+                "",
+                "Pending items:",
+                "- Authors: pending",
+                "- Ethics: pending",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (current_package / "audit" / "submission_manifest.json").write_text(
+        json.dumps(
+            {
+                "package_kind": "current_package",
+                "can_submit": False,
+                "quality_gate_status": "not_blocked",
+                "known_blockers": [],
+                "generated_from_current_source": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    readback = _readback(
+        study_id=study_id,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback["study_root"] = str(study_root)
+    readback.pop("current_package")
+    readback.pop("next_action")
+    readback_file = tmp_path / "readback-without-package-projection.json"
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    package = payload["current_package"]
+    assert package["package_kind"] == "current_package"
+    assert package["can_submit"] is False
+    assert package["zip_exists"] is True
+    assert package["generated_from_current_source"] is True
+    assert package["quality_gate_status"] == "not_blocked"
+    assert package["known_blockers"] == []
+    assert package["administrative_todo"] == ["Authors: pending", "Ethics: pending"]
+    assert payload["executable_owner_route"]["paper_facing_delta"]["package_kind"] == (
+        "current_package"
+    )
+
+
 def test_typed_blocker_resolution_fails_closed_without_consumed_receipt(
     tmp_path: Path,
     capsys,

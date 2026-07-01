@@ -16,6 +16,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：2026-06-29 之前段落里的“必须导出 provider admission candidates”“`current_executable_owner_action` 是下一步锚点”“`action_queue` 提供当前 owner action”“StageAttempt / provider admission 接力”等命令式措辞，默认只描述当时的修复约束；维护者不得把这些句子摘出来覆盖 2026-06-29 后的 `StageOutcome -> NextActionEnvelope` 读法。
 - 决策：若旧段落没有逐段 tombstone 注记，也不表示其仍然 active。顶部 supersession 规则是整篇文件的默认读法；逐段注记只服务高风险检索命中和读者定位，不创建第二套真相源。
 
+## 2026-07-02：current_package 审计交付不得被投稿事实缺件阻断
+
+- 决策：`manuscript/current_package` 同时是 human-facing 审计包和投稿包候选镜像；作者、单位、伦理、基金、COI、通讯作者等行政/投稿事实缺件只允许阻断 `submission_ready`、`publication_ready` 或真实投稿 authority claim，不得把已生成的审计版 `current_package` 投成 missing、stale、`zip_exists=false` 或 `package_delivered=false`。
+- 决策：typed-blocker resolution / study-progress 必须从 `manuscript/current_package/audit/submission_manifest.json`、`SUBMISSION_TODO.md`、`current_package.zip` 和 current-package freshness proof 回填 mirror 状态。合法状态是 `package_kind=current_package`、`can_submit=false`、`generated_from_current_source=true`、`zip_exists=true`，并把缺失投稿事实列为 `administrative_todo`。
+- 决策：submission-authority owner gate 或 human gate projection 不得抹掉 current-package audit delivery truth。它可以继续表达 `can_submit=false` 和 authority closeout pending，但不能阻止用户审计最新版 PDF、DOCX、图表、references 和 TODO。
+- 理由：Obesity paper line 暴露出一类门禁混淆：系统把“不能声称可投稿”误投为“不能刷新/交付 current_package”。这会让用户无法审计最新版包，也会让自动流程停在错误 blocker 上。
+- 影响：后续 paper-mission inspect、typed-blocker resolution、study-progress 和 OPL/MAS handoff 必须区分 `audit package delivered`、`submission authority pending` 和 `human administrative facts pending` 三个状态；测试应覆盖 successor readback 覆盖旧 next_action 后仍能重放 typed-blocker resolution、并正确保留 audit current_package 状态。
+
 ## 2026-06-29：StageOutcome 之后的 next action 必须收敛为单一 NextActionEnvelope
 
 - 2026-07-01 追加决策：PaperRecovery owner-receipt consumption 不再从旧 `domain_transition` 合成 `successor_owner_action`。若没有 canonical consumed owner receipt routeback successor，`paper_recovery_state` 必须停在 `owner_receipt_recorded -> consume_owner_receipt` 或等待 `StageOutcome -> NextActionEnvelope` / MAS owner-consumed result；旧 `domain_transition` 只能作为 provenance / diagnostic，不得生成 `materialize_successor_owner_action`、provider admission、dispatch authority 或默认 next action。

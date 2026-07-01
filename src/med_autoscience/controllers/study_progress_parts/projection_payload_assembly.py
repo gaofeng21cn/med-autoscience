@@ -415,6 +415,9 @@ def assemble_study_progress_payload(
         study_id=study_id,
     )
     payload = _attach_submission_authority_owner_gate_readback(payload)
+    if _mapping_copy(payload.get("typed_blocker_resolution_readback")):
+        payload["user_visible_projection"] = build_user_visible_projection(payload)
+        payload = _sync_study_macro_state_from_user_visible_projection(payload)
     payload = refresh_top_level_stage_closure_projection(payload)
     payload = apply_running_provider_attempt_top_level_status(payload)
     return _without_legacy_next_action_authority(payload)
