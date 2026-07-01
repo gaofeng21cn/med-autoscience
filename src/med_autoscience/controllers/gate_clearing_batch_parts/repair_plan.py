@@ -333,7 +333,7 @@ def build_gate_clearing_repair_units(
             label="Run the workspace-authored display repair script before bundle-stage gate replay",
             run_workspace_display_repair_script=run_workspace_display_repair_script,
         )
-    if direct_submission_delivery_sync_requested:
+    if direct_submission_delivery_sync_requested or selected_work_unit_id == "submission_delivery_sync_closure":
         repair_units.append(
             repair_unit_cls(
                 unit_id="sync_submission_minimal_delivery",

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.stable_json import write_stable_json
+from med_autoscience.controllers import gate_clearing_batch_package_freshness
 from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
@@ -506,6 +507,15 @@ def _stale_gate_replay_marker_closed(batch_payload: dict[str, Any]) -> bool:
     return _non_empty_text(marker.get("status")) == "closed"
 
 
+def _authority_sync_batch_has_freshness_proof(batch_payload: dict[str, Any]) -> bool:
+    if _selected_work_unit_id(batch_payload) not in _AUTHORITY_SYNC_WORK_UNIT_IDS:
+        return True
+    proof = batch_payload.get("current_package_freshness_proof")
+    if not isinstance(proof, dict):
+        return False
+    return gate_clearing_batch_package_freshness.freshness_proof_paths_exist(proof, require_proof_path=True)
+
+
 def batch_closed_for_source_eval(
     batch_payload: dict[str, Any],
     *,
@@ -518,6 +528,8 @@ def batch_closed_for_source_eval(
     if quality_authority_refresh_required(quality_authority_currentness):
         return False
     if _unit_results_have_open_failures(batch_payload):
+        return False
+    if not _authority_sync_batch_has_freshness_proof(batch_payload):
         return False
     if _unit_results_have_transient_open_units(batch_payload):
         return (

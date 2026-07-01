@@ -86,9 +86,19 @@ def build_gate_clearing_batch_context(
     )
     if route_context_work_unit is not None:
         controller_decision_work_unit = route_context_work_unit
+    gate_blockers = gate_blockers_fn(gate_report)
+    stale_delivery_gate = "stale_study_delivery_mirror" in gate_blockers
+    paper_root = gate_state.paper_root
+    authority_settle_redrive_pending = (
+        paper_root is not None
+        and authority_redrive_controller.previous_delivery_sync_awaited_authority_settle(latest_batch)
+        and study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
+    )
     if (
         latest_batch_closed_for_eval(latest_batch, current_eval_id)
         and not currentness_controller.quality_authority_refresh_required(quality_authority_currentness)
+        and not stale_delivery_gate
+        and not authority_settle_redrive_pending
     ):
         return GateClearingBatchContext(
             resolved_route_context=resolved_route_context,
@@ -104,7 +114,7 @@ def build_gate_clearing_batch_context(
             current_workspace_root=None,
             mapping_path=None,
             mapping_payload={},
-            gate_blockers=set(),
+            gate_blockers=gate_blockers,
             bundle_stage_repair=False,
             study_delivery_status="",
             submission_minimal_refresh_requested=False,
@@ -114,7 +124,6 @@ def build_gate_clearing_batch_context(
             quality_authority_currentness=quality_authority_currentness,
         )
 
-    paper_root = gate_state.paper_root
     if paper_root is None:
         return GateClearingBatchContext(
             resolved_route_context=resolved_route_context,
@@ -142,7 +151,6 @@ def build_gate_clearing_batch_context(
 
     current_workspace_root = current_workspace_root_fn(quest_root=quest_root, default=paper_root.parent)
     mapping_path, mapping_payload = eligible_mapping_payload(quest_root=quest_root, study_root=resolved_study_root)
-    gate_blockers = gate_blockers_fn(gate_report)
     bundle_stage_repair = submission_controller.bundle_stage_repair_requested(gate_report=gate_report)
     study_delivery_status = submission_controller.study_delivery_status(gate_report)
     submission_minimal_refresh_requested = submission_controller.submission_minimal_refresh_requested(

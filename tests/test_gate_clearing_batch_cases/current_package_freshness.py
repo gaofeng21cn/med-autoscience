@@ -84,6 +84,7 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
         "_sync_submission_minimal_delivery",
         lambda *, paper_root, profile: (
             sync_calls.append(paper_root),
+            _write_text(current_package_zip, "zip"),
             {
                 "status": "synced",
                 "delivery_manifest_path": str(delivery_manifest_path),
@@ -92,7 +93,7 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
                 "source_signature": "source::abc",
                 "authority_source_signature": "source::abc",
             },
-        )[1],
+        )[2],
     )
     monkeypatch.setattr(
         module.publication_gate,
@@ -233,6 +234,7 @@ def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync
         "_sync_submission_minimal_delivery",
         lambda *, paper_root, profile: (
             sync_calls.append(paper_root),
+            _write_text(current_package_zip, "zip"),
             {
                 "status": "synced",
                 "delivery_manifest_path": str(delivery_manifest_path),
@@ -241,7 +243,7 @@ def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync
                 "source_signature": "source::abc",
                 "authority_source_signature": "source::abc",
             },
-        )[1],
+        )[2],
     )
     monkeypatch.setattr(
         module.publication_gate,
@@ -383,10 +385,10 @@ def test_skipped_matching_delivery_unit_without_result_does_not_write_freshness_
 def test_current_delivery_gate_report_writes_freshness_proof_without_resync(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
     study_root = tmp_path / "study"
-    submission_manifest_path = tmp_path / "study" / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
-    delivery_manifest_path = tmp_path / "study" / "manuscript" / "delivery_manifest.json"
-    current_package_root = tmp_path / "study" / "manuscript" / "current_package"
-    current_package_zip = tmp_path / "study" / "manuscript" / "current_package.zip"
+    submission_manifest_path = study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+    delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
     _write_json(submission_manifest_path, {"schema_version": 1})
     _write_json(delivery_manifest_path, {"schema_version": 1})
     _write_text(current_package_root / "paper.pdf", "%PDF-1.4\n")
@@ -486,6 +488,32 @@ def test_current_delivery_gate_report_without_clear_visual_audit_does_not_write_
     assert not module.stable_current_package_freshness_path(study_root=study_root).exists()
 
 
+def test_current_delivery_gate_report_with_missing_paths_does_not_write_freshness_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::missing-paths",
+        gate_report={
+            "gate_fingerprint": "publication-gate::missing-paths",
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": str(
+                study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+            ),
+            "study_delivery_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+            "study_delivery_evaluated_source_signature": "delivery::abc",
+            "study_delivery_authority_source_signature": "delivery::abc",
+        },
+        unit_results=[],
+        clock=lambda: (0, "2026-05-10T10:10:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is None
+    assert not module.stable_current_package_freshness_path(study_root=study_root).exists()
+
+
 def test_current_delivery_gate_report_with_stale_visual_audit_does_not_write_freshness_proof(
     tmp_path: Path,
 ) -> None:
@@ -551,10 +579,10 @@ def test_closed_gate_clearing_batch_backfills_missing_freshness_proof_from_repla
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     study_root = tmp_path / "study"
     report_path = tmp_path / "publishability_gate" / "latest.json"
-    submission_manifest_path = tmp_path / "study" / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
-    delivery_manifest_path = tmp_path / "study" / "manuscript" / "delivery_manifest.json"
-    current_package_root = tmp_path / "study" / "manuscript" / "current_package"
-    current_package_zip = tmp_path / "study" / "manuscript" / "current_package.zip"
+    submission_manifest_path = study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+    delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
     _write_json(submission_manifest_path, {"schema_version": 1})
     _write_json(delivery_manifest_path, {"schema_version": 1})
     _write_text(current_package_root / "paper.pdf", "%PDF-1.4\n")
@@ -590,3 +618,32 @@ def test_closed_gate_clearing_batch_backfills_missing_freshness_proof_from_repla
     assert (
         study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
     ).is_file()
+
+
+def test_closed_gate_clearing_batch_rejects_embedded_proof_without_stable_proof_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    study_root = tmp_path / "study"
+    submission_manifest_path = study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
+    proof_path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    _write_json(submission_manifest_path, {"schema_version": 1})
+    _write_text(current_package_zip, "zip")
+
+    proof = module._closed_batch_current_freshness_proof(
+        latest_batch={
+            "status": "executed",
+            "current_package_freshness_proof": {
+                "schema_version": 1,
+                "status": "fresh",
+                "source_unit_id": "publication_gate_current_delivery",
+                "submission_manifest_path": str(submission_manifest_path),
+                "current_package_zip": str(current_package_zip),
+                "proof_path": str(proof_path),
+            },
+        },
+        study_root=study_root,
+        source_eval_id="publication-eval::closed",
+    )
+
+    assert proof is None
+    assert not proof_path.exists()

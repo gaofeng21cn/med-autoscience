@@ -50,7 +50,12 @@ def _same_authority_sync_identity(
     if evaluated_source_signature and latest_evaluated != evaluated_source_signature:
         return False
     latest_authority = _non_empty_text(latest_batch.get("authority_source_signature"))
-    if authority_source_signature and latest_authority != authority_source_signature:
+    authority_settled_after_retry = (
+        latest_authority is None
+        and authority_source_signature is not None
+        and evaluated_source_signature == authority_source_signature
+    )
+    if authority_source_signature and latest_authority != authority_source_signature and not authority_settled_after_retry:
         return False
     return True
 

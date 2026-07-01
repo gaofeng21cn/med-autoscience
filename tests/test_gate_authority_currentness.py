@@ -169,6 +169,80 @@ def test_skipped_matching_delivery_unit_without_result_does_not_count_as_closed(
     assert result is None
 
 
+def test_authority_sync_batch_without_stable_freshness_proof_does_not_close_eval() -> None:
+    currentness = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+
+    result = currentness.batch_closed_for_source_eval(
+        {
+            "status": "executed",
+            "source_eval_id": "publication-eval::current",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+            },
+            "unit_results": [
+                {
+                    "unit_id": "create_submission_minimal_package",
+                    "status": "ok",
+                },
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "settled_by_current_gate",
+                },
+            ],
+            "gate_replay": {"status": "clear", "allow_write": True},
+            "current_package_freshness_proof": {
+                "status": "fresh",
+                "submission_manifest_path": "/tmp/missing/submission_manifest.json",
+                "current_package_zip": "/tmp/missing/current_package.zip",
+                "proof_path": "/tmp/missing/current_package_freshness/latest.json",
+            },
+        },
+        source_eval_id="publication-eval::current",
+        gate_report={
+            "status": "clear",
+            "allow_write": True,
+            "submission_minimal_authority_status": "current",
+            "study_delivery_status": "current",
+        },
+    )
+
+    assert result is False
+
+
+def test_authority_settle_redrive_allows_authority_signature_to_appear_after_retry() -> None:
+    redrive = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_authority_redrive")
+
+    result = redrive.authority_settle_delivery_redrive_matches_current(
+        latest_batch={
+            "source_eval_id": "publication-eval::current",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+            },
+            "work_unit_fingerprint": "publication-blockers::current",
+            "evaluated_source_signature": "source::ready",
+            "authority_source_signature": None,
+            "unit_results": [
+                {
+                    "unit_id": "create_submission_minimal_package",
+                    "status": "ok",
+                    "last_success_status": "ok",
+                },
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "skipped_authority_not_settled",
+                },
+            ],
+        },
+        source_eval_id="publication-eval::current",
+        current_work_unit_fingerprint="publication-blockers::current",
+        evaluated_source_signature="source::ready",
+        authority_source_signature="source::ready",
+        can_sync_study_delivery=True,
+    )
+
+    assert result is True
+
+
 def test_missing_submission_authority_signature_routes_to_controller_sync_not_long_repair() -> None:
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
     currentness = importlib.import_module("med_autoscience.controllers.gate_authority_currentness")

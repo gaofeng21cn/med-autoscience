@@ -55,7 +55,12 @@ def closed_batch_current_freshness_proof(
     schema_version: int,
 ) -> dict[str, Any] | None:
     if isinstance(latest_batch.get("current_package_freshness_proof"), dict):
-        return dict(latest_batch["current_package_freshness_proof"])
+        proof = dict(latest_batch["current_package_freshness_proof"])
+        if gate_clearing_batch_package_freshness.freshness_proof_paths_exist(proof, require_proof_path=True):
+            return proof
+        gate_clearing_batch_package_freshness.stable_current_package_freshness_path(
+            study_root=study_root
+        ).unlink(missing_ok=True)
     gate_replay = latest_batch.get("gate_replay")
     if not isinstance(gate_replay, dict):
         return None

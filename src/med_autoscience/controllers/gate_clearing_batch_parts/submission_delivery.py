@@ -48,6 +48,7 @@ def append_delivery_sync_after_submission_refresh(
         or not (
             study_delivery_status.startswith("stale")
             or authority_sync_closure
+            or selected_work_unit_id == "submission_delivery_sync_closure"
             or (selected_work_unit_id == "submission_minimal_refresh" and embedded_delivery_sync is not None)
         )
     ):

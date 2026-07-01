@@ -683,7 +683,43 @@ def run_gate_clearing_batch(
         current_eval_id,
         gate_report,
         quality_authority_currentness=quality_authority_currentness,
-    ):
+    ) and not context.authority_settle_delivery_redrive_requested:
+        current_package_freshness_proof = _closed_batch_current_freshness_proof(
+            latest_batch=latest_batch,
+            study_root=resolved_study_root,
+            source_eval_id=current_eval_id,
+        )
+        duplicate_gate_has_fresh_current_package = current_package_freshness_proof is not None or (
+            "stale_study_delivery_mirror" not in _gate_blockers(gate_report)
+        )
+        if duplicate_gate_has_fresh_current_package:
+            lifecycle_record, lifecycle_normalized = _normalize_closed_batch_lifecycle_surface(
+                latest_batch=latest_batch,
+                study_root=resolved_study_root,
+                study_id=study_id,
+                quest_id=quest_id,
+                source_eval_id=current_eval_id,
+                gate_report=gate_report,
+            )
+            result = {
+                "ok": True,
+                "status": "skipped_duplicate_eval",
+                "source_eval_id": current_eval_id,
+                "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
+                "current_package_freshness_proof": current_package_freshness_proof,
+            }
+            if lifecycle_record is not None:
+                result["publication_work_unit_lifecycle"] = lifecycle_record
+                result["publication_work_unit_lifecycle_normalized"] = lifecycle_normalized
+            _write_normalized_closed_batch_record(
+                study_root=resolved_study_root,
+                latest_batch=latest_batch,
+                lifecycle_record=lifecycle_record,
+                current_package_freshness_proof=current_package_freshness_proof,
+            )
+            return result
+
+    if context.paper_root is None:
         lifecycle_record, lifecycle_normalized = _normalize_closed_batch_lifecycle_surface(
             latest_batch=latest_batch,
             study_root=resolved_study_root,
@@ -790,6 +826,7 @@ def run_gate_clearing_batch(
             "submission_delivery_terminal_blocker",
         }
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
+        and not authority_settle_delivery_redrive_requested
     ):
         skipped_closed_result = gate_clearing_batch_currentness.stale_gate_replay_closed_result(
             source_eval_id=current_eval_id,
