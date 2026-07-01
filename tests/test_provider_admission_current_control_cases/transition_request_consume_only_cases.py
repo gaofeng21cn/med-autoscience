@@ -671,9 +671,9 @@ def test_paper_recovery_successor_without_explicit_dispatch_fails_closed(
         },
         "paper_recovery_state": {
             "surface_kind": "paper_recovery_state",
-            "phase": "owner_action_ready",
+            "phase": "owner_receipt_recorded",
             "current_authority": {
-                "owner": "write",
+                "owner": "one-person-lab",
                 "authority": "med-autoscience",
                 "obligation": {
                     "study_id": study_id,
@@ -686,24 +686,14 @@ def test_paper_recovery_successor_without_explicit_dispatch_fails_closed(
             },
             "conditions": [
                 {
-                    "condition": "consumed_owner_receipt_domain_transition_successor",
-                    "source_condition": "same_work_unit_owner_receipt_recorded",
+                    "condition": "same_work_unit_owner_receipt_recorded",
+                    "action_type": "run_quality_repair_batch",
                 }
             ],
             "next_safe_action": {
-                "kind": "materialize_successor_owner_action",
-                "owner": "write",
+                "kind": "consume_owner_receipt",
+                "owner": "one-person-lab",
                 "provider_admission_allowed": False,
-                "successor_owner_action": {
-                    "action_type": "request_opl_stage_attempt",
-                    "owner": "write",
-                    "work_unit_id": work_unit_id,
-                    "work_unit_fingerprint": action_fingerprint,
-                    "domain_transition_decision_type": "route_back_same_line",
-                    "domain_transition_controller_action": "request_opl_stage_attempt",
-                    "source_surface": "domain_transition",
-                    "source_ref": "artifacts/controller/repair_execution_receipts/latest.json",
-                },
             },
         },
     }

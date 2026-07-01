@@ -52,3 +52,18 @@ def test_current_work_unit_retirement_boundary_is_explicit() -> None:
     assert boundary["can_select_next_action"] is False
     assert boundary["can_authorize_dispatch"] is False
     assert boundary["can_start_provider_attempt"] is False
+
+
+def test_domain_transition_successor_materializer_is_physically_retired() -> None:
+    root = Path(__file__).resolve().parents[1]
+    offenders = []
+    forbidden = (
+        "successor_owner_action_from_domain_transition",
+        "consumed_owner_receipt_domain_transition_successor",
+    )
+    for path in (root / "src").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if any(token in text for token in forbidden):
+            offenders.append(str(path.relative_to(root)))
+
+    assert offenders == []

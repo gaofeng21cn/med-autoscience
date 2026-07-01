@@ -60,7 +60,6 @@ from med_autoscience.controllers.paper_recovery_state_parts.successor_owner_reso
     current_owner_successor_action as _current_owner_successor_action,
     paper_recovery_successor_action_ready as _paper_recovery_successor_action_ready,
     successor_owner_action_from_current_action as _successor_owner_action_from_current_action,
-    successor_owner_action_from_domain_transition as _successor_owner_action_from_domain_transition,
     successor_owner_action_from_terminal_blocker as _successor_owner_action_from_terminal_blocker,
     successor_owner_gate_from_terminal_blocker as _successor_owner_gate_from_terminal_blocker,
 )
@@ -880,7 +879,6 @@ def _mas_policy_projection_can_supersede_stale_supervisor_decision(
             "terminal_typed_blocker_successor_evidence",
             "current_owner_action_supersedes_terminal_typed_blocker",
             "consumed_owner_receipt_routeback_successor",
-            "consumed_owner_receipt_domain_transition_successor",
         }
     )
 
@@ -907,13 +905,6 @@ def _owner_receipt_state(
     )
     source_condition = _text(owner_receipt.get("condition")) or "same_work_unit_owner_receipt_recorded"
     condition = "consumed_owner_receipt_routeback_successor"
-    if successor_action is None:
-        successor_action = _successor_owner_action_from_domain_transition(
-            progress,
-            owner_receipt_ref=_text(owner_receipt.get("owner_receipt_ref")),
-        )
-        if successor_action is not None:
-            condition = "consumed_owner_receipt_domain_transition_successor"
     if successor_action is not None:
         successor_owner = _text(successor_action.get("owner")) or _text(
             successor_action.get("next_owner")
@@ -930,7 +921,7 @@ def _owner_receipt_state(
             ],
             next_safe_action=_next_action(
                 "materialize_successor_owner_action",
-                provider_admission_allowed=condition != "consumed_owner_receipt_domain_transition_successor",
+                provider_admission_allowed=True,
                 owner=successor_owner,
                 successor_owner_action=successor_action,
             ),
