@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import json
 import os
-import signal
 import shutil
-import subprocess
 import time
 from collections.abc import Iterable, Mapping
 from pathlib import Path
@@ -12,6 +9,16 @@ from typing import Any
 
 from med_autoscience.controllers.paper_mission_owner_surface_parts.owner_callable_closeouts import (
     has_terminal_owner_callable_closeout,
+)
+from med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts_runtime import (
+    candidate_attempts as _candidate_attempts,
+    candidate_tasks as _candidate_tasks,
+    candidate_terminal_attempts as _candidate_terminal_attempts,
+    attempt_is_live as _attempt_is_live,
+    attempt_is_terminal as _attempt_is_terminal,
+    provider_readiness_is_current as _provider_readiness_is_current,
+    remaining_seconds as _remaining_seconds,
+    run_opl_json as _run_opl_json,
 )
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
@@ -86,6 +93,18 @@ def live_provider_attempt_for_study(
             queue_payload,
             profile=profile,
             study_id=study_id,
+            task_matches_study=lambda task: _task_matches_study(
+                task,
+                profile=profile,
+                study_id=study_id,
+            ),
+            task_linked_liveness_has_terminal_closeout=lambda task: (
+                _task_linked_liveness_has_terminal_closeout(
+                    task,
+                    profile=profile,
+                    study_id=study_id,
+                )
+            ),
             preferred_actions=preferred_actions,
         )
         for task in candidate_tasks:
@@ -138,8 +157,18 @@ def terminal_provider_attempt_closeout_for_study(
         return None
     candidate_attempts = _candidate_terminal_attempts(
         attempts_payload,
-        profile=profile,
-        study_id=study_id,
+        attempt_matches_study=lambda attempt: _attempt_matches_study(
+            attempt,
+            profile=profile,
+            study_id=study_id,
+        ),
+        attempt_has_terminal_owner_callable_closeout=lambda attempt: (
+            has_terminal_owner_callable_closeout(
+                profile=profile,
+                study_id=study_id,
+                stage_attempt_id=_text(attempt.get("stage_attempt_id")),
+            )
+        ),
         preferred_actions=preferred_actions,
     )
     for attempt in candidate_attempts[: max(0, max_inspect_count)]:
@@ -335,106 +364,6 @@ def _ranked_opl_bin_candidates() -> list[Path]:
     return ranked
 
 
-def _provider_readiness_is_current(readiness: Mapping[str, Any] | None) -> bool:
-    payload = _mapping(readiness)
-    return (
-        payload.get("provider_ready") is True
-        and payload.get("worker_ready") is True
-        and payload.get("managed_worker_source_current") is True
-    )
-
-
-def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, Any] | None:
-    if timeout_seconds <= 0:
-        return None
-    process: subprocess.Popen[str] | None = None
-    try:
-        process = subprocess.Popen(
-            [str(opl_bin), *args],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            start_new_session=True,
-        )
-        stdout, _ = process.communicate(timeout=timeout_seconds)
-    except subprocess.TimeoutExpired:
-        if process is not None:
-            _terminate_process_group(process)
-        return None
-    except OSError:
-        return None
-    if process.returncode != 0:
-        return None
-    try:
-        parsed = json.loads(stdout)
-    except json.JSONDecodeError:
-        return None
-    return dict(parsed) if isinstance(parsed, Mapping) else None
-
-
-def _remaining_seconds(deadline: float) -> float:
-    return max(0.0, deadline - time.monotonic())
-
-
-def _terminate_process_group(process: subprocess.Popen[str]) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        return
-    except OSError:
-        process.kill()
-        return
-    try:
-        process.communicate(timeout=0.2)
-        return
-    except subprocess.TimeoutExpired:
-        pass
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        return
-    except OSError:
-        process.kill()
-        return
-    try:
-        process.communicate(timeout=0.2)
-    except subprocess.TimeoutExpired:
-        pass
-
-
-def _candidate_tasks(
-    queue_payload: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    queue = _mapping(queue_payload.get("family_runtime_queue"))
-    tasks = [
-        dict(item)
-        for item in queue.get("tasks") or queue.get("queue") or []
-        if isinstance(item, Mapping)
-    ]
-    matched = [
-        task
-        for task in tasks
-        if _task_matches_study(task, profile=profile, study_id=study_id)
-        and _text(task.get("task_kind")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
-        and _text(task.get("status")) in LIVE_ATTEMPT_STATES
-        and not _task_linked_liveness_has_terminal_closeout(
-            task,
-            profile=profile,
-            study_id=study_id,
-        )
-    ]
-    preferred = _preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda task: _text(task.get("updated_at")) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda task: _preferred_task_rank(task, preferred))
-    matched.sort(key=_task_status_priority)
-    return matched
-
-
 def _live_projection_from_attempt_ledger(
     *,
     opl_bin: Path,
@@ -456,8 +385,18 @@ def _live_projection_from_attempt_ledger(
         return None
     candidate_attempts = _candidate_attempts(
         attempts_payload,
-        profile=profile,
-        study_id=study_id,
+        attempt_matches_study=lambda attempt: _attempt_matches_study(
+            attempt,
+            profile=profile,
+            study_id=study_id,
+        ),
+        attempt_has_terminal_owner_callable_closeout=lambda attempt: (
+            has_terminal_owner_callable_closeout(
+                profile=profile,
+                study_id=study_id,
+                stage_attempt_id=_text(attempt.get("stage_attempt_id")),
+            )
+        ),
         preferred_actions=preferred_actions,
     )
     for attempt in candidate_attempts[: max(0, max_inspect_count)]:
@@ -486,73 +425,6 @@ def _live_projection_from_attempt_ledger(
         if projection is not None:
             return projection
     return None
-
-
-def _candidate_attempts(
-    attempts_payload: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    attempts_surface = _mapping(attempts_payload.get("family_runtime_stage_attempts"))
-    attempts = [
-        dict(item)
-        for item in attempts_surface.get("attempts") or attempts_surface.get("stage_attempts") or []
-        if isinstance(item, Mapping)
-    ]
-    matched = [
-        attempt
-        for attempt in attempts
-        if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
-        and _text(attempt.get("domain_id")) == "medautoscience"
-        and _text(attempt.get("stage_id")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
-        and _attempt_is_live(attempt)
-        and not has_terminal_owner_callable_closeout(
-            profile=profile,
-            study_id=study_id,
-            stage_attempt_id=_text(attempt.get("stage_attempt_id")),
-        )
-    ]
-    preferred = _preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
-    matched.sort(key=_attempt_status_priority)
-    return matched
-
-
-def _candidate_terminal_attempts(
-    attempts_payload: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    attempts_surface = _mapping(attempts_payload.get("family_runtime_stage_attempts"))
-    attempts = [
-        dict(item)
-        for item in attempts_surface.get("attempts") or attempts_surface.get("stage_attempts") or []
-        if isinstance(item, Mapping)
-    ]
-    matched = [
-        attempt
-        for attempt in attempts
-        if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
-        and _text(attempt.get("domain_id")) == "medautoscience"
-        and _text(attempt.get("stage_id")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
-        and _attempt_is_terminal(attempt)
-        and not has_terminal_owner_callable_closeout(
-            profile=profile,
-            study_id=study_id,
-            stage_attempt_id=_text(attempt.get("stage_attempt_id")),
-        )
-    ]
-    preferred = _preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
-    return matched
 
 
 def _attempt_matches_study(attempt: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
@@ -587,36 +459,6 @@ def _attempt_is_terminal(attempt: Mapping[str, Any]) -> bool:
     )
 
 
-def _attempt_status_priority(attempt: Mapping[str, Any]) -> int:
-    return 0 if _attempt_is_live(attempt) else 1
-
-
-def _attempt_updated_at(attempt: Mapping[str, Any]) -> str | None:
-    provider_run = _mapping(attempt.get("provider_run"))
-    return (
-        _text(provider_run.get("last_heartbeat_at"))
-        or _text(attempt.get("updated_at"))
-        or _text(attempt.get("created_at"))
-    )
-
-
-def _preferred_attempt_rank(
-    attempt: Mapping[str, Any],
-    preferred: set[tuple[str | None, str | None, str | None]],
-) -> int:
-    locator = _mapping(attempt.get("workspace_locator"))
-    payload_like = {
-        "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
-        "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
-        "executable_work_unit": _text(locator.get("executable_work_unit"))
-        or _text(attempt.get("executable_work_unit")),
-        "controller_work_unit_id": _text(locator.get("controller_work_unit_id"))
-        or _text(attempt.get("controller_work_unit_id")),
-        "dispatch_ref": _text(locator.get("dispatch_ref")) or _text(attempt.get("dispatch_ref")),
-    }
-    return _preferred_task_rank({"payload": payload_like}, preferred)
-
-
 def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
     payload = _mapping(task.get("payload"))
     if _text(payload.get("study_id")) != study_id:
@@ -630,11 +472,6 @@ def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str)
     except OSError:
         return False
     return profile.workspace_root.resolve() in resolved_profile.parents
-
-
-def _task_status_priority(task: Mapping[str, Any]) -> int:
-    status = _text(task.get("status"))
-    return 0 if status in LIVE_ATTEMPT_STATES else 1
 
 
 def _task_linked_liveness_has_terminal_closeout(
@@ -652,50 +489,6 @@ def _task_linked_liveness_has_terminal_closeout(
         study_id=study_id,
         stage_attempt_id=stage_attempt_id,
     )
-
-
-def _preferred_action_keys(
-    actions: Iterable[Mapping[str, Any]] | None,
-) -> set[tuple[str | None, str | None, str | None]]:
-    keys: set[tuple[str | None, str | None, str | None]] = set()
-    for action in actions or []:
-        if not isinstance(action, Mapping):
-            continue
-        action_type = _text(action.get("action_type"))
-        work_unit_ids = _action_work_unit_ids(action)
-        dispatch_refs = _action_dispatch_refs(action)
-        if action_type is None and not work_unit_ids and not dispatch_refs:
-            continue
-        for work_unit_id in work_unit_ids or {None}:
-            for dispatch_ref in dispatch_refs or {None}:
-                keys.add((action_type, work_unit_id, dispatch_ref))
-        if action_type is not None:
-            keys.add((action_type, None, None))
-    return keys
-
-
-def _preferred_task_rank(
-    task: Mapping[str, Any],
-    preferred: set[tuple[str | None, str | None, str | None]],
-) -> int:
-    payload = _mapping(task.get("payload"))
-    task_action_type = _text(payload.get("action_type"))
-    task_work_unit_ids = _task_work_unit_ids(payload)
-    task_dispatch_refs = _action_dispatch_refs(payload)
-    best_rank = 99
-    for preferred_action, preferred_work_unit, preferred_dispatch_ref in preferred:
-        if preferred_action is not None and preferred_action != task_action_type:
-            continue
-        if preferred_work_unit is not None and preferred_work_unit not in task_work_unit_ids:
-            continue
-        if preferred_dispatch_ref is not None and preferred_dispatch_ref not in task_dispatch_refs:
-            continue
-        specificity = sum(
-            value is not None
-            for value in (preferred_action, preferred_work_unit, preferred_dispatch_ref)
-        )
-        best_rank = min(best_rank, max(0, 3 - specificity))
-    return best_rank
 
 
 def _action_work_unit_ids(action: Mapping[str, Any]) -> set[str]:
