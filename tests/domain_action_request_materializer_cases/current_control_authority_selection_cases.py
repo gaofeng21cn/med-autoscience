@@ -221,12 +221,16 @@ def test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blo
     assert result["request_task_count"] == 1
     assert result["domain_progress_transition_request_count"] == 1
     assert _legacy_request_task_refs(result)[0]["action_type"] == "run_quality_repair_batch"
-    assert _legacy_request_task_refs(result)[0]["authority"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert _legacy_request_task_refs(result)[0]["authority"] == "mas_next_action_envelope"
     assert _legacy_request_task_refs(result)[0]["request_owner"] == "write"
     assert _legacy_request_task_refs(result)[0]["reason"] == "analysis_claim_evidence_repair"
     assert _legacy_request_task_refs(result)[0]["work_unit_id"] == "analysis_claim_evidence_repair"
     assert _legacy_request_task_refs(result)[0]["work_unit_fingerprint"] == fingerprint
     source_action = result["domain_progress_transition_requests"][0]["source_action_ref"]
+    assert source_action["authority"] == "mas_next_action_envelope"
+    assert source_action["source_surface"] == "mas_next_action_envelope"
+    assert source_action["projection_source_surface"] == "paper_recovery_state.accepted_owner_gate_decision"
+    assert source_action["current_action_source"] == "paper_recovery_state.accepted_owner_gate_decision"
     assert source_action["source_ref"] == route_back_ref
     assert source_action["provider_admission_allowed"] is False
     assert source_action["paper_progress_stall_ref"] == {
@@ -332,7 +336,7 @@ def test_opl_authorization_typed_blocker_fails_closed_before_gate_replay_materia
     assert result["domain_progress_transition_request_count"] == 0
     assert any(
         item["action_type"] == "current_execution_envelope_typed_blocker"
-        and item["reason"] == "unsupported_action_type"
+        and item["reason"] == "legacy_current_execution_envelope_is_diagnostic_only"
         for item in result["ignored_actions"]
     )
     assert not (
@@ -514,7 +518,9 @@ def test_owner_receipt_recorded_preempts_stale_owner_route_observability_action(
         if item["study_id"] == study_id
     } == {
         "run_quality_repair_batch": "superseded_by_current_work_unit_owner_receipt",
-        "current_execution_envelope_owner_receipt_recorded": "unsupported_action_type",
+        "current_execution_envelope_owner_receipt_recorded": (
+            "legacy_current_execution_envelope_is_diagnostic_only"
+        ),
     }
 
 
@@ -630,4 +636,8 @@ def test_fresh_opl_authorization_blocker_preempts_stale_executable_scan(
         item["action_type"]: item["reason"]
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
-    } == {"current_execution_envelope_typed_blocker": "unsupported_action_type"}
+    } == {
+        "current_execution_envelope_typed_blocker": (
+            "legacy_current_execution_envelope_is_diagnostic_only"
+        )
+    }

@@ -380,6 +380,106 @@ def test_current_action_selection_fails_closed_for_routed_queue_without_canonica
     ]
 
 
+def test_current_action_selection_retires_queue_carrier_that_borrows_study_envelope() -> None:
+    selection = _selection_module()
+    study_id = "004-synthetic-new-study"
+    next_action = _next_action_envelope(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id="ai_reviewer_current_inputs",
+    )
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-epoch::canonical-route",
+        "route_epoch": "truth-epoch::canonical-route",
+        "runtime_health_epoch": "runtime-health::canonical-route",
+        "work_unit_fingerprint": "ai-reviewer-current-inputs::fingerprint",
+        "source_fingerprint": "ai-reviewer-current-inputs::fingerprint",
+        "current_owner": "mas_controller",
+        "next_owner": "ai_reviewer",
+        "owner_reason": "ai_reviewer_current_inputs",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "idempotency_key": "owner-route::ai-reviewer-current-inputs",
+    }
+    queue_action = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_id": "legacy-ai-reviewer-queue",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "work_unit_id": "ai_reviewer_current_inputs",
+        "work_unit_fingerprint": "ai-reviewer-current-inputs::fingerprint",
+        "owner_route": owner_route,
+    }
+
+    actions, ignored = selection.current_actions_for_studies(
+        profile=None,
+        study_ids=(study_id,),
+        scan_payload={
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "next_action": next_action,
+                    "owner_route": owner_route,
+                    "action_queue": [queue_action],
+                }
+            ],
+            "action_queue": [],
+        },
+    )
+
+    assert actions == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "action_id": "legacy-ai-reviewer-queue",
+            "reason": selection.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON,
+        }
+    ]
+
+
+def test_next_action_identity_mismatch_includes_action_family_and_output_kind() -> None:
+    legacy = importlib.import_module(
+        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "legacy_next_action_authority"
+    )
+    study_id = "004-synthetic-new-study"
+    action = {
+        "study_id": study_id,
+        "action_id": "legacy-family-carrier",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "action_family": "paper.review.ai_reviewer",
+        "expected_output_contract": {"output_kind": "ai_reviewer_record"},
+        "authority": "observability_only",
+        "work_unit_id": "ai_reviewer_current_inputs",
+        "next_action": _next_action_envelope(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            action_family="runtime.opl_route",
+            output_kind="opl_transition_receipt",
+            work_unit_id="ai_reviewer_current_inputs",
+        ),
+    }
+
+    selected, ignored = legacy.retire_incomplete_authority_actions([action], [])
+
+    assert selected == []
+    assert ignored == [
+        {
+            "study_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "action_id": "legacy-family-carrier",
+            "reason": legacy.NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON,
+        }
+    ]
+
+
 def test_current_work_unit_action_producer_is_physically_retired() -> None:
     assert (
         importlib.util.find_spec(

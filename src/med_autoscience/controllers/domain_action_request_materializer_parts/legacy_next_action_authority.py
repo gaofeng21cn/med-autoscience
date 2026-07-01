@@ -5,6 +5,9 @@ from typing import Any
 
 from med_autoscience.controllers.domain_action_request_materializer_parts import current_action_queue
 from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
+from med_autoscience.controllers.owner_callable_action_policy import (
+    SUPPORTED_ACTION_TYPES as OWNER_CALLABLE_ACTION_TYPES,
+)
 
 
 LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON = (
@@ -85,7 +88,7 @@ def requires_next_action_envelope(action: Mapping[str, Any]) -> bool:
         return True
     if canonical_envelope_action and canonical_next_action_gate.canonical_next_action_identity_complete(next_action):
         return False
-    return _text(action.get("action_type")) in DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES
+    return _text(action.get("action_type")) in OWNER_CALLABLE_ACTION_TYPES
 
 
 def next_action_identity_mismatches(action: Mapping[str, Any]) -> bool:
@@ -99,6 +102,16 @@ def next_action_identity_mismatches(action: Mapping[str, Any]) -> bool:
     next_work_unit = _text(next_action.get("work_unit_id"))
     action_work_unit = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
     if next_work_unit is not None and action_work_unit is not None and next_work_unit != action_work_unit:
+        return True
+    next_action_family = _text(next_action.get("action_family"))
+    action_family = _text(action.get("action_family"))
+    if next_action_family is not None and action_family is not None and next_action_family != action_family:
+        return True
+    next_output_kind = _text(_mapping(next_action.get("expected_output_contract")).get("output_kind"))
+    action_output_kind = _text(
+        _mapping(action.get("expected_output_contract")).get("output_kind")
+    )
+    if next_output_kind is not None and action_output_kind is not None and next_output_kind != action_output_kind:
         return True
     return False
 

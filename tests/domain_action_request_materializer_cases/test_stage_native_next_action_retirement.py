@@ -402,6 +402,26 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
                 {
                     "study_id": study_id,
                     "quest_id": study_id,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "source": "domain_transition",
+                        "source_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                        "next_owner": "ai_reviewer",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "action_fingerprint": work_unit_fingerprint,
+                        "target_surface": {
+                            "surface_ref": "artifacts/publication_eval/latest.json",
+                        },
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "ai_reviewer",
+                        "next_work_unit": work_unit_id,
+                    },
                     "next_action": next_action_envelope(
                         study_id=study_id,
                         action_type="return_to_ai_reviewer_workflow",
@@ -417,7 +437,14 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
                                 "domain_transition_ai_reviewer_re_eval"
                             ),
                             "action_type": "return_to_ai_reviewer_workflow",
-                            "authority": "observability_only",
+                            "authority": "mas_next_action_envelope",
+                            "source_surface": "mas_next_action_envelope",
+                            "projection_source_surface": "domain_transition",
+                            "next_action": next_action_envelope(
+                                study_id=study_id,
+                                action_type="return_to_ai_reviewer_workflow",
+                                work_unit_id=work_unit_id,
+                            ),
                             "owner": "ai_reviewer",
                             "request_owner": "ai_reviewer",
                             "recommended_owner": "ai_reviewer",
@@ -430,7 +457,9 @@ def test_materialize_domain_action_requests_persists_ai_reviewer_handoff_packet_
                             "source_eval_id": "publication-eval::current-record",
                             "owner_route": owner_route,
                             "handoff_packet": {
-                                "authority": "observability_only",
+                                "authority": "mas_next_action_envelope",
+                                "source_surface": "mas_next_action_envelope",
+                                "projection_source_surface": "domain_transition",
                                 "owner": "ai_reviewer",
                                 "request_owner": "ai_reviewer",
                                 "recommended_owner": "ai_reviewer",

@@ -45,7 +45,7 @@ def current_executable_owner_action_identity_from_study(
             current_envelope,
             fallback_action=fallback_action,
         )
-    return current_executable_owner_action_identity(fallback_action)
+    return {}
 
 
 def current_work_unit_owner_action_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:

@@ -641,7 +641,10 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "progress_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
-            "display_fallback_field_path": "next_system_action",
+            "display_fallback_field_path": "user_visible_projection.next_system_action",
+            "display_only": True,
+            "can_select_next_action": False,
+            "must_not_override_next_action_envelope": True,
         },
         "artifact_inventory_surface": {
             "surface_kind": "study_progress",

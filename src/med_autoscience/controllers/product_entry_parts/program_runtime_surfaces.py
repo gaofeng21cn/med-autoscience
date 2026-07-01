@@ -43,7 +43,10 @@ def _build_research_runtime_control_projection(
         "progress_surface": {
             "surface_kind": "study_progress",
             "field_path": "operator_status_card.current_focus",
-            "display_fallback_field_path": "next_system_action",
+            "display_fallback_field_path": "user_visible_projection.next_system_action",
+            "display_only": True,
+            "can_select_next_action": False,
+            "must_not_override_next_action_envelope": True,
         },
         "artifact_inventory_surface": {
             "surface_kind": "study_progress",

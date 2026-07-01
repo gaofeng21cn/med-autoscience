@@ -90,6 +90,80 @@ def test_current_control_provider_admission_rejects_action_self_identity_when_ca
     assert result == []
 
 
+def test_current_control_provider_admission_rejects_action_queue_self_identity_when_current_surfaces_absent(
+    tmp_path: Path,
+) -> None:
+    provider_admission_projection = importlib.import_module(
+        "med_autoscience.controllers.paper_mission_owner_surface_parts.provider_admission_projection"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapters"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    action_fingerprint = "sha256:queue-self-identity-no-current-surface"
+    work_unit_id = "ai_reviewer_current_inputs"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "owner_callable_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "next_executable_owner": "ai_reviewer",
+            "required_output_surface": "artifacts/publication_eval/latest.json",
+            "action_fingerprint": action_fingerprint,
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    candidates = provider_admission_projection.candidates_from_current_control(
+        studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "study_root": str(study_root),
+            }
+        ],
+        action_queue=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "return_to_ai_reviewer_workflow",
+                "status": "queued",
+                "owner": "ai_reviewer",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+                "refs": {"dispatch_path": str(dispatch_path)},
+                "owner_route": {
+                    "next_owner": "ai_reviewer",
+                    "source_refs": {
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "owner_route_currentness_basis": {
+                            "truth_epoch": "truth-event-current",
+                            "runtime_health_epoch": "runtime-health-current",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                        },
+                    },
+                },
+            }
+        ],
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert candidates == []
+
+
 def test_current_control_provider_admission_rejects_action_self_identity_when_typed_blocker_has_current_action(
     tmp_path: Path,
 ) -> None:

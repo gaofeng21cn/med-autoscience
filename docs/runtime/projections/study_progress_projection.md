@@ -27,7 +27,11 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 这些信息必须以医生 / 医学专家能看懂的人话表达；runtime 内部技术术语只作为辅助细节。
 
-当前“人话进度”来自固定来源：
+当前“人话进度”展示可以吸收下列来源，但默认 next action 只能来自
+`StageOutcome -> NextActionEnvelope`，再由 schema v2
+`user_visible_projection` 投影给入口层。下面这些 surface 只能提供摘要、
+证据、阻塞解释或 operator drilldown，不能选择 owner/action，也不能覆盖
+canonical envelope：
 
 - `artifacts/controller/task_intake/latest.json` 的当前任务意图与输出要求
 - `runtime_supervision/latest.json` 的 `clinician_update`、`summary`、`next_action_summary`

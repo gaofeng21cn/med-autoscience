@@ -150,16 +150,18 @@ StageWorkResult
 5. If no semantic delta is present after a configured budget, terminalizer must fail closed to a typed blocker or human gate. It may not output another runnable `continue_same_stage`.
 6. If gate replay remains blocked by quality-repairable blockers after budget exhaustion, terminalizer emits `degraded_handoff_package` plus `next_stage_transition` to human review / pre-package handoff, not another repair loop.
 7. If delivery inspection reports `current_package` stale or missing, terminalizer must request or perform mirror sync independently of `bundle_build_allowed`. A stale/missing mirror is not a submission authority blocker.
-8. If the latest delivery projection is current / fresh / synced and carries
+8. Delivery projection is terminalizer input, not next-action authority. Even
+   when the latest delivery projection is current / fresh / synced and carries
    `submission_ready_package`, `can_submit=true`, `quality_gate_status` clear /
    passed / cleared, `generated_from_current_source=true`, existing package root
-   and zip, and `known_blockers=[]`, the terminalizer readback may supersede an
-   older route-back / missing-decision checkpoint and project an `owner_receipt`
-   next-action family of `mission.complete`. Missing, stale, mirror-only or
-   blocked package evidence must stay fail-closed. This remains projection-only:
-   it does not write owner receipt authority, typed blocker, human gate, package
-   authority, runtime queue, provider attempt, `publication_eval/latest.json`,
-   or `controller_decisions/latest.json`.
+   and zip, and `known_blockers=[]`, it can only support MAS owner consumption
+   of the same identity. `mission.complete` appears only after that owner
+   consumption materializes a `StageOutcome -> NextActionEnvelope`. Missing,
+   stale, mirror-only or blocked package evidence must stay fail-closed as
+   observation. Delivery mirror readback alone must not project owner receipt,
+   choose next action, write owner receipt authority, typed blocker, human gate,
+   package authority, runtime queue, provider attempt,
+   `publication_eval/latest.json`, or `controller_decisions/latest.json`.
 
 ## Blocker Taxonomy
 

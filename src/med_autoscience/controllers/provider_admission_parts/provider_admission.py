@@ -157,7 +157,11 @@ def current_control_provider_admission_candidates(
         if not isinstance(action, Mapping):
             continue
         study = _mapping(studies_by_id.get(_non_empty_text(action.get("study_id")) or status_study_id))
-        current_action_identity = _current_control_action_identity(action)
+        current_action_identity = _current_control_current_identity(
+            action=action,
+            status_payload=status,
+            study_payload=study,
+        )
         candidate = provider_admission_candidate_from_current_control_action(
             action,
             study_root=study_root,
@@ -172,6 +176,23 @@ def current_control_provider_admission_candidates(
             candidate = _candidate_with_log_readback(candidate, study_root=study_root)
             candidates.append(candidate_with_authority_boundaries(candidate))
     return candidates
+
+
+def _current_control_current_identity(
+    *,
+    action: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    study_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    status_identity = _current_action_identity(status_payload)
+    if status_identity:
+        return status_identity
+    study_identity = _current_action_identity(study_payload)
+    if study_identity:
+        return study_identity
+    if accepted_owner_gate_admission_matches_selected_dispatch_blocker(study=study_payload):
+        return _current_control_action_identity(action)
+    return {}
 
 
 def provider_admission_candidate_from_current_control_action(

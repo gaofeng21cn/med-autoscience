@@ -9,6 +9,11 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 `StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `progress_projection`、`study_progress`、`domain_diagnostic_report`、workspace cockpit、product entry status 和 MCP compact projection 消费。
 
+`StudyTruthKernel` 只负责 reducer / snapshot 重建。默认 next action
+authority 继续来自 `StageOutcome -> NextActionEnvelope`；truth reducer 不编译、
+选择或补全默认 owner/action，也不能用 delivery mirror、queue/attempt、
+diagnostic report 或 legacy projection 替代 canonical envelope。
+
 该合同采用三条工程原则：
 
 - Kubernetes controller/reconcile：controller 只围绕同一个期望状态与当前状态收敛。
