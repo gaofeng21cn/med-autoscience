@@ -38,6 +38,75 @@ def _first_non_empty_text(*values: object) -> str | None:
     return None
 
 
+def _path_exists(path: str | None) -> bool:
+    if path is None:
+        return False
+    return Path(path).expanduser().exists()
+
+
+def _default_package_pdf_path(root: str | None) -> str | None:
+    if root is None:
+        return None
+    return str((Path(root).expanduser() / "paper.pdf").resolve())
+
+
+def _default_visual_audit_receipt_path(root: str | None) -> str | None:
+    if root is None:
+        return None
+    return str((Path(root).expanduser() / "figure_visual_audit_receipt.json").resolve())
+
+
+def _visual_audit_receipt_clear(path: str | None) -> bool:
+    if path is None:
+        return False
+    receipt_path = Path(path).expanduser()
+    if not receipt_path.exists():
+        return False
+    try:
+        import json
+
+        payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    status = _non_empty_text(payload.get("status")) or _non_empty_text(payload.get("visual_audit_final_status"))
+    if status in {"clear", "passed", "pass", "audit_clear", "visual_audit_clear"}:
+        return True
+    review = payload.get("review") if isinstance(payload.get("review"), dict) else {}
+    review_status = _non_empty_text(review.get("status")) or _non_empty_text(review.get("visual_audit_final_status"))
+    return review_status in {"clear", "passed", "pass", "audit_clear", "visual_audit_clear"}
+
+
+def _visual_audit_not_older_than_pdf(*, proof: dict[str, Any]) -> bool:
+    paper_pdf = _non_empty_text(proof.get("paper_pdf_path"))
+    visual_audit = _non_empty_text(proof.get("visual_audit_receipt_path"))
+    if paper_pdf is None or visual_audit is None:
+        return False
+    try:
+        return Path(visual_audit).expanduser().stat().st_mtime_ns >= Path(paper_pdf).expanduser().stat().st_mtime_ns
+    except OSError:
+        return False
+
+
+def freshness_proof_paths_exist(proof: dict[str, Any] | None, *, require_proof_path: bool = False) -> bool:
+    if not isinstance(proof, dict):
+        return False
+    if require_proof_path and not _path_exists(_non_empty_text(proof.get("proof_path"))):
+        return False
+    if not _path_exists(_non_empty_text(proof.get("submission_manifest_path"))):
+        return False
+    current_package_root = _non_empty_text(proof.get("current_package_root"))
+    current_package_zip = _non_empty_text(proof.get("current_package_zip"))
+    if not (_path_exists(current_package_root) or _path_exists(current_package_zip)):
+        return False
+    if not _path_exists(_non_empty_text(proof.get("paper_pdf_path"))):
+        return False
+    return _visual_audit_receipt_clear(_non_empty_text(proof.get("visual_audit_receipt_path"))) and (
+        _visual_audit_not_older_than_pdf(proof=proof)
+    )
+
+
 def build_current_package_freshness_proof(
     *,
     study_root: Path,
@@ -58,6 +127,11 @@ def build_current_package_freshness_proof(
         if not result:
             continue
         _started_ns, recorded_at = clock()
+        current_package_root = _first_non_empty_text(
+            result.get("current_package_root"),
+            item.get("current_package_root"),
+            gate_report.get("study_delivery_current_package_root"),
+        )
         return {
             "schema_version": schema_version,
             "status": "fresh",
@@ -73,15 +147,21 @@ def build_current_package_freshness_proof(
                 result.get("delivery_manifest_path"),
                 gate_report.get("study_delivery_manifest_path"),
             ),
-            "current_package_root": _first_non_empty_text(
-                result.get("current_package_root"),
-                item.get("current_package_root"),
-                gate_report.get("study_delivery_current_package_root"),
-            ),
+            "current_package_root": current_package_root,
             "current_package_zip": _first_non_empty_text(
                 result.get("current_package_zip"),
                 item.get("current_package_zip"),
                 gate_report.get("study_delivery_current_package_zip"),
+            ),
+            "paper_pdf_path": _first_non_empty_text(
+                result.get("paper_pdf_path"),
+                gate_report.get("study_delivery_current_package_pdf"),
+                _default_package_pdf_path(current_package_root),
+            ),
+            "visual_audit_receipt_path": _first_non_empty_text(
+                result.get("visual_audit_receipt_path"),
+                gate_report.get("study_delivery_visual_audit_receipt_path"),
+                _default_visual_audit_receipt_path(current_package_root),
             ),
             "source_signature": _first_non_empty_text(
                 result.get("source_signature"),
@@ -145,6 +225,14 @@ def _gate_report_current_package_freshness_proof(
         "delivery_manifest_path": _non_empty_text(gate_report.get("study_delivery_manifest_path")),
         "current_package_root": current_package_root,
         "current_package_zip": current_package_zip,
+        "paper_pdf_path": _first_non_empty_text(
+            gate_report.get("study_delivery_current_package_pdf"),
+            _default_package_pdf_path(current_package_root),
+        ),
+        "visual_audit_receipt_path": _first_non_empty_text(
+            gate_report.get("study_delivery_visual_audit_receipt_path"),
+            _default_visual_audit_receipt_path(current_package_root),
+        ),
         "source_signature": source_signature,
         "authority_source_signature": authority_source_signature,
         "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
@@ -186,6 +274,9 @@ def write_current_package_freshness_proof(
     if proof is None:
         if _delivery_sync_unit_present(unit_results):
             proof_path.unlink(missing_ok=True)
+        return None
+    if not freshness_proof_paths_exist(proof):
+        proof_path.unlink(missing_ok=True)
         return None
     write_stable_json(proof_path, proof)
     return proof

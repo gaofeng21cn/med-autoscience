@@ -249,6 +249,10 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_after_authority_settle_w
         },
     )
     sync_calls: list[Path] = []
+    _write_json(study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json", {"schema_version": 1})
+    _write_text(study_root / "manuscript" / "current_package" / "paper.pdf", "%PDF-1.4\n")
+    _write_json(study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json", {"status": "clear"})
+    _write_text(study_root / "manuscript" / "current_package.zip", "zip")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -269,10 +273,13 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_after_authority_settle_w
         lambda *, paper_root, profile: (
             sync_calls.append(paper_root),
             {
-                "status": "synced",
-                "delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
-                "current_package_root": str(study_root / "manuscript" / "current_package"),
-                "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+                    "status": "synced",
+                    "submission_manifest_path": str(
+                        study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+                    ),
+                    "delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
+                    "current_package_root": str(study_root / "manuscript" / "current_package"),
+                    "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
                 "source_signature": "source::ready",
                 "authority_source_signature": "source::ready",
             },
@@ -387,6 +394,10 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_for_mechanical_eval_id_d
         },
     )
     sync_calls: list[Path] = []
+    _write_json(study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json", {"schema_version": 1})
+    _write_text(study_root / "manuscript" / "current_package" / "paper.pdf", "%PDF-1.4\n")
+    _write_json(study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json", {"status": "clear"})
+    _write_text(study_root / "manuscript" / "current_package.zip", "zip")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -406,11 +417,14 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_for_mechanical_eval_id_d
         "_sync_submission_minimal_delivery",
         lambda *, paper_root, profile: (
             sync_calls.append(paper_root),
-            {
-                "status": "synced",
-                "current_package_root": str(study_root / "manuscript" / "current_package"),
-                "source_signature": "source::ready",
-                "authority_source_signature": "source::ready",
+                {
+                    "status": "synced",
+                    "submission_manifest_path": str(
+                        study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+                    ),
+                    "current_package_root": str(study_root / "manuscript" / "current_package"),
+                    "source_signature": "source::ready",
+                    "authority_source_signature": "source::ready",
             },
         )[1],
     )

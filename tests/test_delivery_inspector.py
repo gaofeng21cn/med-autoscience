@@ -62,6 +62,32 @@ def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_pa
     assert "submission_manifest.json" not in names
 
 
+def test_delivery_inspector_marks_package_stale_without_current_visual_audit_receipt(tmp_path: Path) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
+
+    sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+    (study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json").unlink()
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["freshness"]["verdict"] == "stale"
+    assert result["freshness"]["stale_reason"] == "delivery_pdf_visual_audit_missing_or_stale"
+    assert result["freshness"]["gate_freshness_handshake"]["status"] == "stale_projection_missing"
+
+
 def test_delivery_inspector_projects_submission_ready_from_authorized_delivery_manifest(tmp_path: Path) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
@@ -132,6 +158,7 @@ def test_delivery_inspector_uses_study_owned_source_when_recorded_manifest_sourc
     dump_json(source_root / "audit" / "submission_manifest.json", {"schema_version": 1})
     write_text(human_root / "manuscript.docx", "old docx")
     write_text(human_root / "paper.pdf", "%PDF-1.4\n")
+    dump_json(human_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
     write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
     dump_json(
         study_root / "manuscript" / "delivery_manifest.json",

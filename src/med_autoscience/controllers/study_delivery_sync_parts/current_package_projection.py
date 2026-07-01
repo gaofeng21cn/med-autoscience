@@ -101,6 +101,16 @@ def _copy_current_package_audit_surfaces(
             )
             linkage_payload["study_charter_ref"] = study_charter_ref
 
+    if paper_root is not None:
+        visual_audit_source = resolved_paper_root / "figure_visual_audit_receipt.json"
+        if visual_audit_source.exists():
+            copy_file(
+                source=visual_audit_source,
+                target=current_package_root / "figure_visual_audit_receipt.json",
+                category="current_package_visual_audit",
+                copied_files=copied_files,
+            )
+
     source_manifest_path = resolve_submission_manifest_path(source_root)
     if source_manifest_path.exists() and not audit_path(current_package_root, "submission_manifest").exists():
         copy_file(

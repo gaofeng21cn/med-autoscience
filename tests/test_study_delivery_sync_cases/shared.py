@@ -140,6 +140,7 @@ def make_delivery_workspace(
     write_text(paper_root / "submission_minimal" / "tables" / "Table1.csv", "a,b\n1,2\n")
     write_text(paper_root / "submission_minimal" / "tables" / "Table1.md", "| a | b |\n| --- | --- |\n| 1 | 2 |\n")
     write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent authority draft.\n")
+    dump_json(paper_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
     dump_json(
         paper_root / "review" / "submission_checklist.json",
         {
@@ -345,7 +346,6 @@ def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path
     write_text(paper_root / "manuscript.docx", "docx draft review manuscript")
     write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent draft bundle.\n")
     return paper_root, study_root
-
 
 
 

@@ -799,6 +799,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 投稿 PDF 暴露出“PDF mtime 可刷新，但图面语义和 manifest 不一定一致”的流程缺口；同时 Figure 5 的 B panel 旧设计把 recalibration governance 写成文字卡片，不足以表达 NHANES calibration failure。purpose-first 选图把“这张图要表达什么”提前到模板选择前，并用 renderer/layout/QC/PDF 实物验收闭环阻断同类问题。
 - 影响：这是 Display Pack 出图流程、模板语义和 readback manifest 同步修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority、human gate authority、OPL queue 或 provider attempt。PDF 是否最新必须用 `paper.pdf` mtime/CreationDate、figure 顺序、渲染页视觉检查和 renderer/manifest readback 分账验证；`current_package` freshness、focused tests 或 catalog 字段不能单独代替。
 
+## 2026-07-01：current package freshness 必须绑定最终 PDF 与视觉验收 receipt
+
+- 决策：`current_package_freshness/latest.json`、gate-clearing current-delivery proof 与 `publication delivery-inspect` 的 current 判定必须同时验证 human-facing `current_package/paper.pdf` 存在、`current_package/figure_visual_audit_receipt.json` 存在且 status 为 clear/pass 类，并且视觉验收 receipt 的 mtime 不早于该 PDF。source signature、manifest、root、zip 或 current mirror alone 不能证明投稿 PDF 已刷新并完成视觉验收。
+- 决策：`study delivery-sync --stage submission_minimal` 在构建 `manuscript/current_package` 时必须把 MAS paper root 的 `figure_visual_audit_receipt.json` 投影进 current package。若 receipt 缺失、状态非 clear/pass，或早于 PDF，delivery-inspect 必须 fail closed 为 `stale_projection_missing / delivery_pdf_visual_audit_missing_or_stale`。
+- 理由：DM002/DM003 投稿包曾出现 `delivery-inspect freshness=current`，但真实 `paper.pdf` CreationDate/mtime 仍是旧的凌晨产物，且 current package 缺少视觉验收 receipt。根因是 currentness/readiness gate 只绑定 source/delivery signature handshake，没有绑定最终渲染 PDF 和重绘/排版后的视觉验收。
+- 影响：这是 package currentness/read-model 合同修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker authority、human gate authority、OPL queue、provider attempt 或手工 current_package。后续声称投稿 PDF 最新，必须同时给出 PDF mtime/CreationDate、视觉验收 receipt、渲染页检查和 updated delivery-inspect 读面。
+
 ## 2026-06-10：accepted typed closeout 必须压过同一 current-control handoff action
 
 - 决策：当 MAS 从 `owner_callable_adapter_receipt/*.closeout.json` 读到 accepted / blocked typed closeout，并且 closeout 与 OPL current-control handoff 的 action queue 在同一 stage attempt、work-unit fingerprint，或 `action_type + work_unit_id` 上匹配时，handoff projection 必须生成显式 `typed_blocker`，并把同一 handoff action 标记为 `consumed_by_typed_owner_callable_adapter_closeout` 后移出 current action queue。

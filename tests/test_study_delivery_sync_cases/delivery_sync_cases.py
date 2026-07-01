@@ -41,6 +41,7 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert not (study_root / "manuscript" / "submission_package.zip").exists()
     assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.pdf").exists()
     assert (study_root / "manuscript" / "current_package" / "audit" / "evidence_ledger.json").exists()
+    assert (study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json").exists()
     assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
@@ -256,6 +257,7 @@ def test_describe_submission_delivery_marks_current_package_stale_when_source_au
         publication_profile="general_medical_journal",
         route_context=writable_route_context(),
     )
+    dump_json(paper_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
     module.sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",

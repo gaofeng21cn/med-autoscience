@@ -10,6 +10,9 @@ from med_autoscience.controllers.authority_write_route import (
     blocked_authority_write_payload,
     resolve_authority_write_route_context,
 )
+from med_autoscience.controllers.gate_clearing_batch_package_freshness import (
+    freshness_proof_paths_exist,
+)
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     reproducibility_path,
@@ -286,6 +289,23 @@ def _submission_delivery_status_from_authority(
     return "stale_source_changed", authority_stale_reason or "submission_source_authority_not_current"
 
 
+def _current_package_pdf_visual_audit_current(
+    *,
+    expected_manifest_path: Path,
+    current_package_root: Path,
+    current_package_zip: Path,
+) -> bool:
+    return freshness_proof_paths_exist(
+        {
+            "submission_manifest_path": str(expected_manifest_path),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
+            "paper_pdf_path": str(current_package_root / "paper.pdf"),
+            "visual_audit_receipt_path": str(current_package_root / "figure_visual_audit_receipt.json"),
+        }
+    )
+
+
 def _submission_manifest_is_generated_authority_source(source_root: Path) -> bool:
     manifest = _load_json_file(audit_path(source_root, "submission_manifest"))
     if not isinstance(manifest, dict):
@@ -530,6 +550,13 @@ def describe_submission_delivery(
     elif not current_package_root.exists() or not current_package_zip.exists():
         status = "stale_projection_missing"
         stale_reason = "delivery_projection_missing"
+    elif not _current_package_pdf_visual_audit_current(
+        expected_manifest_path=expected_manifest_path,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+    ):
+        status = "stale_projection_missing"
+        stale_reason = "delivery_pdf_visual_audit_missing_or_stale"
     elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
