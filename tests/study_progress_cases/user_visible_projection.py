@@ -75,6 +75,8 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
     assert user_projection["current_stage"] == macro_state["writer_state"]
     assert user_projection["state_label"]
     assert user_projection["state_summary"]
+    assert user_projection["next_owner"] is None
+    assert user_projection["next_system_action"]
     assert user_projection["evidence"]["refs"]["publication_eval_path"] == str(publication_eval_path)
     assert user_projection["evidence_refs"]["publication_eval_path"] == str(publication_eval_path)
     assert {
@@ -85,7 +87,7 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
         "package_delivered": "false",
         "actual_write_active": "false",
         "meaningful_artifact_delta": "false",
-        "next_owner": "true",
+        "next_owner": "false",
         "why_not_progressing": "true",
         "blocked": "true",
         "next_action_known": "true",

@@ -93,6 +93,24 @@ def test_sync_study_delivery_uses_delivery_layout_v2_for_current_package(tmp_pat
     assert "audit/study_charter.json" in names
 
 
+def test_sync_study_delivery_current_package_pdf_mtime_marks_controller_refresh(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_pdf = paper_root / "submission_minimal" / "paper.pdf"
+    old_timestamp = 946684800
+    os.utime(source_pdf, (old_timestamp, old_timestamp))
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    current_package_pdf = study_root / "manuscript" / "current_package" / "paper.pdf"
+    assert current_package_pdf.exists()
+    assert int(source_pdf.stat().st_mtime) == old_timestamp
+    assert int(current_package_pdf.stat().st_mtime) > old_timestamp
+
+
 def test_describe_submission_delivery_ignores_stale_submission_evidence_snapshot_for_current_package(
     tmp_path: Path,
 ) -> None:

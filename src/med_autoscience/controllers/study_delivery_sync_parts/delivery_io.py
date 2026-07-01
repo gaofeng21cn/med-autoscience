@@ -116,11 +116,15 @@ def copy_file(
     target: Path,
     category: str,
     copied_files: list[dict[str, str]],
+    preserve_metadata: bool = True,
 ) -> None:
     if not source.exists():
         raise FileNotFoundError(f"missing delivery source: {source}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
+    if preserve_metadata:
+        shutil.copy2(source, target)
+    else:
+        shutil.copyfile(source, target)
     copied_files.append(
         {
             "category": category,
@@ -137,6 +141,7 @@ def copy_tree(
     category: str,
     copied_files: list[dict[str, str]],
     ignore_filenames: tuple[str, ...] = (),
+    preserve_metadata: bool = True,
 ) -> None:
     if not source_root.exists():
         raise FileNotFoundError(f"missing delivery source directory: {source_root}")
@@ -151,6 +156,7 @@ def copy_tree(
             target=target_root / relative,
             category=category,
             copied_files=copied_files,
+            preserve_metadata=preserve_metadata,
         )
 
 

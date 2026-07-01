@@ -75,6 +75,7 @@ def _copy_current_package_audit_surfaces(
                 target=audit_path(current_package_root, "evidence_ledger"),
                 category="current_package",
                 copied_files=copied_files,
+                preserve_metadata=False,
             )
     if review_ledger_source is not None and review_ledger_source.exists():
         copy_file(
@@ -82,6 +83,7 @@ def _copy_current_package_audit_surfaces(
             target=audit_path(current_package_root, "review_ledger"),
             category="current_package_review_surface",
             copied_files=copied_files,
+            preserve_metadata=False,
         )
 
     linkage_payload = charter_contract_linkage if charter_contract_linkage is not None else {}
@@ -95,6 +97,7 @@ def _copy_current_package_audit_surfaces(
                 target=audit_path(current_package_root, "study_charter"),
                 category="current_package_charter_surface",
                 copied_files=copied_files,
+                preserve_metadata=False,
             )
             study_charter_ref["mirrored_artifact_path"] = str(
                 audit_path(resolved_projected_current_package_root, "study_charter")
@@ -109,6 +112,7 @@ def _copy_current_package_audit_surfaces(
                 target=current_package_root / "figure_visual_audit_receipt.json",
                 category="current_package_visual_audit",
                 copied_files=copied_files,
+                preserve_metadata=False,
             )
 
     source_manifest_path = resolve_submission_manifest_path(source_root)
@@ -118,6 +122,7 @@ def _copy_current_package_audit_surfaces(
             target=audit_path(current_package_root, "submission_manifest"),
             category="current_package_manifest",
             copied_files=copied_files,
+            preserve_metadata=False,
         )
     return linkage_payload, source_manifest_path
 
@@ -310,6 +315,7 @@ def sync_current_package_projection(
         category="current_package",
         copied_files=copied_files,
         ignore_filenames=("submission_manifest.json",),
+        preserve_metadata=False,
     )
     linkage_payload, source_manifest_path = _copy_current_package_audit_surfaces(
         paper_root=paper_root,
