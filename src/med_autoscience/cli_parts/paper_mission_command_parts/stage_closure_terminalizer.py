@@ -227,19 +227,12 @@ def attach_stage_closure_ledger_to_drive_readback(
     transaction = _mapping(consume_readback.get("paper_mission_transaction"))
     transaction_ref = _optional_text(transaction.get("transaction_id"))
     study_id = str(consume_readback.get("study_id") or transaction.get("study_id") or "")
-    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+    stage_closure_ledger_readback = latest_current_stage_closure_for_consumption(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
         transaction_ref=transaction_ref,
+        consume_readback=consume_readback,
     )
-    if stage_closure_ledger_readback is None and transaction_ref is not None:
-        stage_closure_ledger_readback = (
-            latest_paper_mission_stage_closure_decision_readback(
-                workspace_root=Path(profile.workspace_root),
-                study_id=study_id,
-                transaction_ref=None,
-            )
-        )
     if stage_closure_ledger_readback is None:
         return dict(consume_readback)
     return {
@@ -251,6 +244,58 @@ def attach_stage_closure_ledger_to_drive_readback(
         ).get("kind"),
         "paper_mission_stage_closure_ledger_readback": stage_closure_ledger_readback,
     }
+
+
+def latest_current_stage_closure_for_consumption(
+    *,
+    workspace_root: Path,
+    study_id: str,
+    transaction_ref: str | None,
+    consume_readback: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        transaction_ref=transaction_ref,
+    )
+    exact_transaction_match = stage_closure_ledger_readback is not None
+    if stage_closure_ledger_readback is None and transaction_ref is not None:
+        stage_closure_ledger_readback = (
+            latest_paper_mission_stage_closure_decision_readback(
+                workspace_root=workspace_root,
+                study_id=study_id,
+                transaction_ref=None,
+            )
+        )
+    if stage_closure_ledger_readback is None:
+        return None
+    if (
+        not exact_transaction_match
+        and _stage_closure_superseded_by_current_consumption(
+            consume_readback=consume_readback,
+            stage_closure_decision=stage_closure_ledger_readback,
+        )
+    ):
+        return None
+    return stage_closure_ledger_readback
+
+
+def _stage_closure_superseded_by_current_consumption(
+    *,
+    consume_readback: Mapping[str, Any],
+    stage_closure_decision: Mapping[str, Any],
+) -> bool:
+    consume_mtime = _path_mtime(_optional_text(consume_readback.get("source_ref")))
+    closure_mtime = _path_mtime(_optional_text(stage_closure_decision.get("source_ref")))
+    if consume_mtime is None or closure_mtime is None or consume_mtime <= closure_mtime:
+        return False
+    handoff = _mapping(consume_readback.get("opl_route_handoff"))
+    if _optional_text(consume_readback.get("route_handoff_status")) == "ready_for_opl_route_command":
+        return True
+    return (
+        _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command"
+        and handoff.get("can_submit_to_opl_runtime") is True
+    )
 
 
 def stage_closure_source_readback_summary(
@@ -550,3 +595,12 @@ def _optional_text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _path_mtime(path_text: str | None) -> float | None:
+    if path_text is None:
+        return None
+    try:
+        return Path(path_text).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None

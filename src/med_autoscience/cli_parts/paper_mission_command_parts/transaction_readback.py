@@ -38,6 +38,7 @@ from med_autoscience.paper_mission_terminal_owner_gate import (
 from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback_candidates import (
     _candidate_manifest_transaction,
     _candidate_mission_id_for_readback,
+    _placeholder_paper_mission_transaction,
     PAPER_AUDIT_PACK_FAMILIES,
     _transaction_from_materialized_legacy_mission,
 )

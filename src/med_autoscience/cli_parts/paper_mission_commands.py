@@ -47,6 +47,10 @@ from med_autoscience.cli_parts.paper_mission_command_parts.domain_handler_dispat
 from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import (
     build_paper_mission_drive_readback as _build_paper_mission_drive_readback,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers import (
+    paper_mission_drive_result as _paper_mission_drive_result,
+    paper_mission_mas_owned_executor_delta_checkpoint as _paper_mission_mas_owned_executor_delta_checkpoint,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
 )
@@ -66,6 +70,10 @@ from med_autoscience.cli_parts.paper_mission_command_parts.one_shot_migration im
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.opl_runtime_submission import (
     semantic_progress_guard as _paper_mission_semantic_progress_guard,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
+    _load_paper_mission_route_back_budget_ledger,
+    _record_paper_mission_route_back_budget_ledger,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
     merge_stage_closure_typed_blocker_gate_fields as _merge_stage_closure_typed_blocker_gate_fields,

@@ -41,6 +41,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_ac
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer import (
+    latest_current_stage_closure_for_consumption as _latest_current_stage_closure_for_consumption,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
@@ -64,9 +65,6 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 )
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
-)
-from med_autoscience.paper_mission_stage_closure_ledger import (
-    latest_paper_mission_stage_closure_decision_readback,
 )
 
 
@@ -181,17 +179,23 @@ def build_materialized_mission_readback_if_available(
         or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
         or _consume_candidate_status(mission, default_readback)
     )
-    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+    stage_closure_ledger_readback = _latest_current_stage_closure_for_consumption(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
         transaction_ref=_optional_text(
             transaction_readback["paper_mission_transaction"].get("transaction_id")
         ),
+        consume_readback=consumption_ledger_readback or transaction_readback,
     )
     receipt_owner_consumption_readback = latest_receipt_owner_consumption_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
     )
+    if receipt_owner_consumption_readback is not None and _receipt_superseded_by_consumption(
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        receipt_owner_consumption_readback = None
     typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
@@ -425,3 +429,39 @@ def build_materialized_mission_readback_if_available(
             "authority_materialized": False,
         },
     }
+
+
+def _receipt_superseded_by_consumption(
+    *,
+    receipt_owner_consumption_readback: dict[str, Any],
+    consumption_ledger_readback: dict[str, Any] | None,
+) -> bool:
+    if consumption_ledger_readback is None:
+        return False
+    receipt_mtime = _path_mtime(
+        _optional_text(receipt_owner_consumption_readback.get("source_ref"))
+    )
+    consume_mtime = _path_mtime(
+        _optional_text(consumption_ledger_readback.get("source_ref"))
+    )
+    if receipt_mtime is None or consume_mtime is None or consume_mtime <= receipt_mtime:
+        return False
+    if (
+        _optional_text(consumption_ledger_readback.get("route_handoff_status"))
+        == "ready_for_opl_route_command"
+    ):
+        return True
+    handoff = _mapping(consumption_ledger_readback.get("opl_route_handoff"))
+    return (
+        _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command"
+        and handoff.get("can_submit_to_opl_runtime") is True
+    )
+
+
+def _path_mtime(path_text: str | None) -> float | None:
+    if path_text is None:
+        return None
+    try:
+        return Path(path_text).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None

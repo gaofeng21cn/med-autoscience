@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import write_synced_submission_delivery
@@ -845,6 +846,58 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
         ]
     )
     assert exit_code == 0
+    stale_receipt_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+        / "stale-opl-attempt"
+        / study_id
+        / "receipt_owner_consumption.json"
+    )
+    stale_receipt_ref.parent.mkdir(parents=True)
+    stale_receipt_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_receipt_owner_consumption",
+                "schema_version": 1,
+                "status": "owner_consumption_applied",
+                "study_id": study_id,
+                "apply_mode": "typed_blocker",
+                "authority_materialized": True,
+                "stage_closure_decision": {
+                    "surface_kind": "mas_stage_closure_decision",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "authority_materialized": True,
+                    "counts_as_typed_blocker": True,
+                    "outcome": {
+                        "kind": "typed_blocker",
+                        "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+                        "next_action": "resolve_typed_blocker_or_route_redesign",
+                        "known_blockers": [
+                            "paper_mission_stage_route_domain_gate_pending"
+                        ],
+                        "authority_materialized": True,
+                    },
+                    "authority_boundary": {
+                        "surface_role": "paper_mission_receipt_owner_consumption",
+                        "writes_receipt_owner_consumption": True,
+                        "writes_owner_receipt": False,
+                        "writes_typed_blocker": False,
+                        "writes_human_gate": False,
+                        "writes_current_package": False,
+                        "writes_submission_ready_package": False,
+                        "writes_runtime_queue_or_provider_attempt": False,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    consume_record_ref = consume_root / study_id / "consume_record.json"
+    os.utime(stale_receipt_ref, (2_000_000_000, 2_000_000_000))
+    os.utime(consume_record_ref, (3_000_000_000, 3_000_000_000))
     capsys.readouterr()
 
     exit_code = cli.main(
@@ -882,6 +935,7 @@ def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transa
     assert payload["durable_mission_stop_guard"]["durable_stop_allowed"] is False
     assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
     assert payload["stage_closure"]["next_transition"] != "complete_mission"
+    assert "receipt_owner_consumption_readback" not in payload
     assert payload["next_action"]["action_family"] != "mission.complete"
     assert payload["current_package"]["status"] == "missing"
     assert payload["current_package"]["package_kind"] == "submission_ready_package"

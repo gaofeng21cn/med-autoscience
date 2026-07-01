@@ -369,6 +369,14 @@ def _transaction_from_materialized_legacy_mission(
     )
 
 
+def _next_stage_id_for_materialized(stage_id: str) -> str:
+    if stage_id == "gate_clearing_claim_evidence_repair":
+        return "publication_gate_replay"
+    if stage_id == "medical_prose_write_repair_publication_gate_replay":
+        return "publication_quality_recheck"
+    return f"{stage_id}::next"
+
+
 def _enriched_materialized_consume_result(
     *,
     consume_result: dict[str, Any],
