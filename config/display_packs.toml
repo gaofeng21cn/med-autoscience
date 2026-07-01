@@ -1,7 +1,25 @@
 default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 
 [[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../opl-scholarskills"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_owner = "OPL ScholarSkills Display"
+source_ref = "opl-scholarskills:packs/medical-display-core"
+source_version = "0.1.0"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+
+[[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
 path = "external/display-packs/medical-display-core"
 version = "0.1.0"
+fallback = true
+source_owner = "MedAutoScience"
+source_ref = "med-autoscience:external/display-packs/medical-display-core"
+source_version = "0.1.0"
+source_role = "bundled_migration_fallback"
+source_authority = false

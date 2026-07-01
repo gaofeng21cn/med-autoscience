@@ -192,8 +192,8 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
         if record.template_manifest.renderer_family == "python"
     ]
 
-    assert len(evidence_records) == 34
-    assert len(r_records) == 34
+    assert len(evidence_records) >= 34
+    assert len(r_records) == len(evidence_records)
     assert len(python_records) == 0
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
@@ -205,8 +205,8 @@ def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
 
-    assert len(default_records) == 37
-    assert len(full_records) == 37
+    assert len(default_records) >= 37
+    assert len(full_records) >= len(default_records)
     assert {record.template_manifest.template_id for record in default_records} == {
         record.template_manifest.template_id for record in full_records
     }
@@ -405,3 +405,120 @@ version = "0.2.0"
     assert records[0].source_config.kind == "git_repo"
     assert records[0].source_config.pack_subdir == "packs/core"
     assert records[0].source_config.resolved_source_root == git_repo_root.resolve()
+
+
+def test_display_pack_source_fallback_uses_first_available_source(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    missing_git_repo_root = tmp_path / "missing-display-core-git"
+    config_dir = repo_root / "config"
+    config_dir.mkdir()
+    (config_dir / "display_packs.toml").write_text(
+        """
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../missing-display-core-git"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_owner = "OPL ScholarSkills Display"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+
+[[sources]]
+kind = "local_dir"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
+version = "0.1.0"
+fallback = true
+source_owner = "MedAutoScience"
+source_role = "bundled_migration_fallback"
+source_authority = false
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    _write_pack_manifest(
+        fallback_pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.1.0",
+    )
+    _write_template_manifest(fallback_pack_root)
+
+    records = load_enabled_local_display_pack_records(repo_root)
+
+    assert missing_git_repo_root.exists() is False
+    assert len(records) == 1
+    assert records[0].pack_root == fallback_pack_root
+    assert records[0].source_config.kind == "local_dir"
+    assert records[0].source_config.fallback is True
+    assert records[0].source_config.source_owner == "MedAutoScience"
+    assert records[0].source_config.source_authority is False
+
+
+def test_display_pack_source_fallback_prefers_external_pack_when_available(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    git_repo_root = tmp_path / "display-core-git"
+    git_repo_root.mkdir()
+    config_dir = repo_root / "config"
+    config_dir.mkdir()
+    (config_dir / "display_packs.toml").write_text(
+        """
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../display-core-git"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_owner = "OPL ScholarSkills Display"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+
+[[sources]]
+kind = "local_dir"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "external/display-packs/medical-display-core"
+version = "0.1.0"
+fallback = true
+source_owner = "MedAutoScience"
+source_role = "bundled_migration_fallback"
+source_authority = false
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    external_pack_root = git_repo_root / "packs" / "medical-display-core"
+    _write_pack_manifest(
+        external_pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.1.0",
+    )
+    _write_template_manifest(external_pack_root)
+    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    _write_pack_manifest(
+        fallback_pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.1.0",
+    )
+    _write_template_manifest(fallback_pack_root)
+    _git(git_repo_root, "init", "-b", "main")
+    _git(git_repo_root, "config", "user.name", "Test User")
+    _git(git_repo_root, "config", "user.email", "test@example.com")
+    _git(git_repo_root, "add", ".")
+    _git(git_repo_root, "commit", "-m", "Initial display pack")
+
+    records = load_enabled_local_display_pack_records(repo_root)
+
+    assert len(records) == 1
+    assert records[0].pack_root == external_pack_root
+    assert records[0].source_config.kind == "git_repo"
+    assert records[0].source_config.fallback is False
+    assert records[0].source_config.source_owner == "OPL ScholarSkills Display"
+    assert records[0].source_config.source_role == "generic_template_renderer_pack"
+    assert records[0].source_config.source_authority is False

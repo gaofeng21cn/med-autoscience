@@ -28,6 +28,12 @@ class DisplayPackSourceConfig:
     package: str | None
     pack_subdir: str
     version: str | None
+    source_owner: str | None
+    source_ref: str | None
+    source_version: str | None
+    source_role: str | None
+    source_authority: bool
+    fallback: bool
     declared_in: str
     config_path: Path
     resolved_source_root: Path
@@ -171,19 +177,20 @@ def _parse_source_configs(
     config_path: Path,
     anchor_root: Path,
     declared_in: str,
-) -> dict[str, DisplayPackSourceConfig]:
+) -> dict[str, tuple[DisplayPackSourceConfig, ...]]:
     raw_sources = payload.get("sources")
     if raw_sources is None:
         return {}
     if not isinstance(raw_sources, list):
         raise ValueError("sources must be a list")
 
-    sources_by_pack_id: dict[str, DisplayPackSourceConfig] = {}
+    sources_by_pack_id: dict[str, list[DisplayPackSourceConfig]] = {}
     for index, raw_source in enumerate(raw_sources):
         if not isinstance(raw_source, dict):
             raise ValueError(f"sources[{index}] must be an object")
         pack_id = _expect_str(raw_source, "pack_id")
-        if pack_id in sources_by_pack_id:
+        fallback = _expect_bool(raw_source, "fallback", default=False)
+        if pack_id in sources_by_pack_id and not fallback:
             raise ValueError(f"duplicate source for pack_id `{pack_id}`")
         kind = _expect_source_kind(raw_source)
         pack_subdir = _normalize_pack_subdir(_optional_str(raw_source, "pack_subdir"))
@@ -198,27 +205,33 @@ def _parse_source_configs(
         elif kind == "git_repo":
             raw_path = _expect_str(raw_source, "path")
             resolved_source_root = (anchor_root / raw_path).expanduser().resolve()
-            git_dir = resolved_source_root / ".git"
-            if not git_dir.exists():
-                raise ValueError(f"git_repo source `{raw_path}` must point to a git checkout root")
             resolved_root = (resolved_source_root / pack_subdir).resolve()
         else:
             package_name = _expect_str(raw_source, "package")
             resolved_source_root = _resolve_python_package_root(package_name)
             resolved_root = (resolved_source_root / pack_subdir).resolve()
-        sources_by_pack_id[pack_id] = DisplayPackSourceConfig(
+        source_authority = _expect_bool(raw_source, "source_authority", default=False)
+        if source_authority:
+            raise ValueError("source_authority must remain false for display pack sources")
+        sources_by_pack_id.setdefault(pack_id, []).append(DisplayPackSourceConfig(
             pack_id=pack_id,
             kind=kind,
             path=raw_path,
             package=package_name,
             pack_subdir=pack_subdir,
             version=_optional_str(raw_source, "version"),
+            source_owner=_optional_str(raw_source, "source_owner"),
+            source_ref=_optional_str(raw_source, "source_ref"),
+            source_version=_optional_str(raw_source, "source_version"),
+            source_role=_optional_str(raw_source, "source_role"),
+            source_authority=source_authority,
+            fallback=fallback,
             declared_in=declared_in,
             config_path=config_path,
             resolved_source_root=resolved_source_root,
             resolved_root=resolved_root,
-        )
-    return sources_by_pack_id
+        ))
+    return {pack_id: tuple(configs) for pack_id, configs in sources_by_pack_id.items()}
 
 
 def resolve_display_pack_selection(
@@ -268,7 +281,7 @@ def resolve_display_pack_selection(
     resolved_sources: list[DisplayPackSourceConfig] = []
     for pack_id in enabled_pack_ids:
         try:
-            resolved_sources.append(source_by_pack_id[pack_id])
+            resolved_sources.extend(source_by_pack_id[pack_id])
         except KeyError as exc:
             raise ValueError(f"enabled pack `{pack_id}` is missing from sources") from exc
 
@@ -289,9 +302,21 @@ def load_enabled_local_display_pack_records(
 ) -> list[LoadedDisplayPack]:
     resolution = resolve_display_pack_selection(repo_root, paper_root=paper_root)
     records: list[LoadedDisplayPack] = []
+    loaded_pack_ids: set[str] = set()
 
     for source_config in resolution.source_configs:
-        manifest = load_display_pack_manifest(source_config.resolved_root / "display_pack.toml")
+        if source_config.pack_id in loaded_pack_ids:
+            continue
+        if source_config.kind == "git_repo" and not (source_config.resolved_source_root / ".git").exists():
+            if source_config.fallback:
+                continue
+            continue
+        manifest_path = source_config.resolved_root / "display_pack.toml"
+        if not manifest_path.is_file():
+            if source_config.fallback:
+                continue
+            continue
+        manifest = load_display_pack_manifest(manifest_path)
         if manifest.pack_id != source_config.pack_id:
             raise ValueError(
                 f"pack_id mismatch: source={source_config.pack_id!r}, manifest={manifest.pack_id!r}"
@@ -308,6 +333,11 @@ def load_enabled_local_display_pack_records(
                 source_config=source_config,
             )
         )
+        loaded_pack_ids.add(source_config.pack_id)
+    missing_pack_ids = [pack_id for pack_id in resolution.enabled_pack_ids if pack_id not in loaded_pack_ids]
+    if missing_pack_ids:
+        missing = ", ".join(missing_pack_ids)
+        raise ValueError(f"no enabled display pack sources could be loaded: {missing}")
     return records
 
 

@@ -42,6 +42,12 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 Medical Display 文档和 template pack 可以定义 renderer family、input schema、layout QC、template catalog、route cookbook、display-to-claim 审计输入和生成型 display artifacts。它们不授权 source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness proof、delivery sync、paper closure、domain ready 或 production ready。
 
+## MAS / ScholarSkills 分工
+
+`opl-scholarskills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认优先消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 只保留为 bundled migration fallback，用来保证旧论文和离线验证仍可运行。
+
+必须留在 MAS 内的是 paper-local authority：figure purpose、claim/data/statistics refs、medical figure grammar、visual-audit consumption、publication gate、owner receipt、typed blocker、human gate、submission manifest refs preservation 和 current package 验收。ScholarSkills/OPL Display 可以生产或运输模板/renderer/generic visual-QA refs，但不能写 MAS publication truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 submission-ready verdict。
+
 Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md) 读取；当前模板数量、Gallery 数量、retired alias 数量、Python evidence 数量和 quality-audit 结论按生成的 [Display Pack Gallery status](./examples/display_pack_gallery_status.md) 读取。MAS 域内已落地 pack/template descriptor、paper-level figure quality refs、article-level `paper/publication_style_profile.json` style-token lock、single/batch medical figure grammar、R/ggplot2-first subprocess runtime protocol、Python evidence 清理边界、AI/VLM polish lifecycle、template discovery/describe CLI、agent-facing orchestrate/discovery/plan/preflight/render receipt surface、one-shot scaffold render、golden refresh/check lower-bound surface、deterministic E2E render/QC/publication manifest、display lock 和 submission refs preservation；OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces。OPL surfaces 只消费和运输 refs，不表示 MAS 已拥有 generic Pack OS substrate。`publication_style_profile`、`display_pack_lock.json`、golden match、visual-audit clear、polish lifecycle、agent orchestration/render receipt、comparison receipt 或 OPL smoke receipt 都不能代签 publication readiness、artifact authority 或 owner receipt。
 
 ## Quality Floor 与重构边界
