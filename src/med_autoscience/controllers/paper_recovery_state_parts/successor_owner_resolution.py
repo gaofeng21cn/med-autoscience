@@ -25,8 +25,30 @@ from .typed_blocker_supersession import (
 )
 
 
+_CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projection"
+_CURRENT_OWNER_ACTION_SOURCES = {
+    "gate_clearing_batch_followthrough.actionable_current_work_unit",
+    "paper_recovery_state.next_safe_action.successor_owner_action",
+    "publication_eval.recommended_actions.readiness_blocker_repair",
+    "repair_progress_projection.mas_owner_repair_execution_evidence",
+}
+
+
 def current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, Any]:
-    return _mapping(progress.get("current_executable_owner_action"))
+    action = _mapping(progress.get("current_executable_owner_action"))
+    if _text(action.get("authority")) == _CANONICAL_OWNER_ACTION_AUTHORITY:
+        return action
+    if _text(action.get("source")) in _CURRENT_OWNER_ACTION_SOURCES:
+        return action
+    if _text(action.get("source_surface")) in _CURRENT_OWNER_ACTION_SOURCES:
+        return action
+    if _text(action.get("source")) == "canonical_current_work_unit" and _mapping(
+        action.get("owner_route_currentness_basis")
+    ):
+        return action
+    if action:
+        return {}
+    return action
 
 
 def successor_owner_action_from_terminal_blocker(

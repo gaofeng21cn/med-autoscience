@@ -544,6 +544,31 @@ def test_paper_recovery_ignores_monitoring_summary_legacy_current_action() -> No
     assert recovery.current_executable_owner_action(progress) == {}
 
 
+def test_paper_recovery_ignores_top_level_legacy_current_action_even_with_canonical_source() -> None:
+    recovery = importlib.import_module(
+        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+    )
+
+    progress = {
+        "canonical_next_action_source": "paper_mission_next_action_envelope",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "runtime.opl_route",
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "legacy_top_level_current_executable_owner_action",
+            "owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "legacy-top-level-write",
+            "work_unit_fingerprint": "legacy-top-level-write::fingerprint",
+        },
+    }
+
+    assert recovery.current_executable_owner_action(progress) == {}
+
+
 def test_paper_recovery_obligation_does_not_resurrect_legacy_owner_without_canonical_next_action() -> None:
     recovery = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
 

@@ -112,7 +112,7 @@ def test_typed_blocker_owns_recovery_even_when_residual_action_exists() -> None:
     assert state["current_authority"]["owner"] == "one-person-lab"
     assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
-    assert state["suppressed_surfaces"] == ["current_executable_owner_action"]
+    assert "suppressed_surfaces" not in state
 
 
 def test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuilding() -> None:
