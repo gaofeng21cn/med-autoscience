@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
-from .export_study_projection import mapping, text
+from .export_study_projection_common import mapping, text
 
 
 def latest_paper_mission_consumption_route_handoff(
