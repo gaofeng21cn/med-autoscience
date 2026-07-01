@@ -232,20 +232,6 @@ def sync_general_delivery(
         )
 
         copy_file(
-            source=source_root / "manuscript.docx",
-            target=staging_manuscript_root / "manuscript.docx",
-            category="manuscript",
-            copied_files=copied_files,
-            preserve_metadata=False,
-        )
-        copy_file(
-            source=source_root / "paper.pdf",
-            target=staging_manuscript_root / "paper.pdf",
-            category="manuscript",
-            copied_files=copied_files,
-            preserve_metadata=False,
-        )
-        copy_file(
             source=resolve_submission_manifest_path(source_root),
             target=audit_path(staging_manuscript_root, "submission_manifest"),
             category="manifest",
@@ -333,6 +319,7 @@ def sync_general_delivery(
             current_package_root=current_package_root,
             current_package_zip=current_package_zip,
             projected_current_package_root=manuscript_root / "current_package",
+            primary_artifact_delivery_root=staging_manuscript_root,
             study_id=study_id,
             stage=normalized_stage,
             source_relative_root=source_relative_root,

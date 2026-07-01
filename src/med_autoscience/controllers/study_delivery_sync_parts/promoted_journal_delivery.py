@@ -77,20 +77,6 @@ def sync_promoted_journal_delivery(
         relative_paths=source_relative_paths,
     )
     copy_file(
-        source=source_root / "manuscript.docx",
-        target=manuscript_root / "manuscript.docx",
-        category="manuscript",
-        copied_files=copied_files,
-        preserve_metadata=False,
-    )
-    copy_file(
-        source=source_root / "paper.pdf",
-        target=manuscript_root / "paper.pdf",
-        category="manuscript",
-        copied_files=copied_files,
-        preserve_metadata=False,
-    )
-    copy_file(
         source=resolve_submission_manifest_path(source_root),
         target=audit_path(manuscript_root, "submission_manifest"),
         category="manifest",
@@ -184,6 +170,7 @@ def sync_promoted_journal_delivery(
         source_root=source_root,
         current_package_root=current_package_root,
         current_package_zip=current_package_zip,
+        primary_artifact_delivery_root=manuscript_root,
         study_id=study_id,
         stage=f"{publication_profile}_submission",
         source_relative_root=source_relative_root,

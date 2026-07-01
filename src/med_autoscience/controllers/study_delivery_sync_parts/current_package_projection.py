@@ -54,6 +54,9 @@ __all__ = [
 ]
 
 
+PRIMARY_MANUSCRIPT_ARTIFACTS = ("manuscript.docx", "paper.pdf")
+
+
 def _copy_current_package_audit_surfaces(
     *,
     paper_root: Path | None,
@@ -291,6 +294,7 @@ def sync_current_package_projection(
     current_package_root: Path,
     current_package_zip: Path,
     projected_current_package_root: Path | None = None,
+    primary_artifact_delivery_root: Path | None = None,
     study_id: str,
     stage: str,
     source_relative_root: str,
@@ -309,6 +313,15 @@ def sync_current_package_projection(
         if projected_current_package_root is not None
         else current_package_root.expanduser().resolve()
     )
+    if primary_artifact_delivery_root is not None:
+        for filename in PRIMARY_MANUSCRIPT_ARTIFACTS:
+            copy_file(
+                source=source_root / filename,
+                target=primary_artifact_delivery_root / filename,
+                category="manuscript",
+                copied_files=copied_files,
+                preserve_metadata=False,
+            )
     copy_tree(
         source_root=source_root,
         target_root=current_package_root,
