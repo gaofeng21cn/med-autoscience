@@ -53,6 +53,16 @@ SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_DOMAINS = (
     "source_heterogeneity",
     "display_to_claim",
 )
+REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_RED_FLAGS = (
+    "missing enrollment window, source-specific data window, or data lock date",
+    "missing BMI calculation, adult/child standard, or diagnostic ascertainment definition",
+    "adult BMI classes promoted while age distribution or under-18 proportion is unresolved",
+    "selected diagnostic-field positivity described as prevalence or burden",
+    "figure title, legend, or caption claims variables not visible in the figure",
+    "missingness or availability atlas too thin for the manuscript's registry-atlas claim",
+    "discussion only defends limitations instead of explaining source heterogeneity, clinical meaning, and data-quality roadmap",
+    "submission-source prose residue such as placeholders, internal workflow notes, or informal 'clinical story' language",
+)
 AI_NATIVE_EXPERT_JUDGMENT_REQUIRED_FIELDS = (
     "role",
     "contracts_are_floor_not_ceiling",
@@ -141,6 +151,11 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "mechanical_projection_can_authorize_quality": False,
             "required_fields": list(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_FIELDS),
             "required_domains": list(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_DOMAINS),
+            "registry_initial_draft_quality_floor": {
+                "red_flags": list(REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_RED_FLAGS),
+                "any_red_flag_requires_major_or_blocker_row": True,
+                "cannot_be_cleared_by_restrained_wording_alone": True,
+            },
             "discipline": {
                 "requires_open_ended_clinical_judgment": True,
                 "requires_reporting_metadata_gate": True,
@@ -323,6 +338,22 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
     )
     if missing_sci_registry_domains:
         raise ValueError("sci_clinical_registry_review 缺少 domain: " + ", ".join(missing_sci_registry_domains))
+    registry_quality_floor = sci_registry_review.get("registry_initial_draft_quality_floor")
+    if not isinstance(registry_quality_floor, dict):
+        raise ValueError("sci_clinical_registry_review 缺少 registry_initial_draft_quality_floor。")
+    registry_red_flags = registry_quality_floor.get("red_flags")
+    if not isinstance(registry_red_flags, list):
+        raise ValueError("registry_initial_draft_quality_floor red_flags 必须是列表。")
+    normalized_registry_red_flags = tuple(
+        _require_non_empty_text(item, "registry_initial_draft_quality_floor.red_flags")
+        for item in registry_red_flags
+    )
+    if set(REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_RED_FLAGS) - set(normalized_registry_red_flags):
+        raise ValueError("registry_initial_draft_quality_floor 缺少必需 red flag。")
+    if registry_quality_floor.get("any_red_flag_requires_major_or_blocker_row") is not True:
+        raise ValueError("registry_initial_draft_quality_floor 必须要求 red flag 生成 major/blocker row。")
+    if registry_quality_floor.get("cannot_be_cleared_by_restrained_wording_alone") is not True:
+        raise ValueError("registry_initial_draft_quality_floor 不能只靠克制措辞清除。")
     sci_registry_discipline = sci_registry_review.get("discipline")
     if not isinstance(sci_registry_discipline, dict):
         raise ValueError("sci_clinical_registry_review discipline 必须是 object。")
@@ -357,6 +388,10 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
             **sci_registry_review,
             "required_fields": list(normalized_sci_registry_fields),
             "required_domains": list(normalized_sci_registry_domains),
+            "registry_initial_draft_quality_floor": {
+                **registry_quality_floor,
+                "red_flags": list(normalized_registry_red_flags),
+            },
             "discipline": dict(sci_registry_discipline),
         },
     }

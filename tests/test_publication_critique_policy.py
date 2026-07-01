@@ -131,6 +131,47 @@ def test_ai_reviewer_contract_keeps_native_expert_judgment_above_quality_floor()
     }
 
 
+def test_ai_reviewer_contract_exposes_registry_initial_draft_quality_floor() -> None:
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    floor = contract["sci_clinical_registry_review"]["registry_initial_draft_quality_floor"]
+    red_flags = " ".join(floor["red_flags"])
+
+    assert floor["any_red_flag_requires_major_or_blocker_row"] is True
+    assert floor["cannot_be_cleared_by_restrained_wording_alone"] is True
+    for expected in (
+        "data lock date",
+        "adult/child standard",
+        "prevalence or burden",
+        "variables not visible in the figure",
+        "clinical story",
+    ):
+        assert expected in red_flags
+
+
+def test_ai_reviewer_contract_fails_closed_without_registry_initial_draft_quality_floor() -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    policy = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    ai_reviewer_os = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY["ai_reviewer_operating_system"])
+    sci_review = dict(ai_reviewer_os["sci_clinical_registry_review"])
+    sci_review.pop("registry_initial_draft_quality_floor", None)
+    ai_reviewer_os["sci_clinical_registry_review"] = sci_review
+    policy["ai_reviewer_operating_system"] = ai_reviewer_os
+
+    with pytest.raises(ValueError, match="registry_initial_draft_quality_floor"):
+        build_ai_reviewer_operating_system_contract(policy)
+
+
 def test_ai_reviewer_contract_fails_closed_without_future_facing_limitations_plan() -> None:
     import pytest
 

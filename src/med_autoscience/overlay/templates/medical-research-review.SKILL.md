@@ -75,6 +75,19 @@ The matrix must cover these domains even when ordinary claim-evidence alignment 
 
 Each row must include `concern_id`, `domain`, `status`, `severity`, `finding`, `evidence_refs`, and `required_disposition`. Any `major` or `blocker` concern blocks publication-quality readiness and must route to write, analysis-campaign, decision, or human gate instead of being smoothed into cautious prose.
 
+For registry initial drafts, treat these as red flags that need a `major` or `blocker` row unless current evidence explicitly closes them:
+
+- missing enrollment window, source-specific data window, or data lock date
+- missing BMI calculation, adult/child standard, or diagnostic ascertainment definition
+- adult BMI classes promoted while age distribution or under-18 proportion is unresolved
+- selected diagnostic-field positivity described as prevalence or burden
+- figure title, legend, or caption claims variables not visible in the figure
+- missingness or availability atlas too thin for the manuscript's registry-atlas claim
+- discussion only defends limitations instead of explaining source heterogeneity, clinical meaning, and data-quality roadmap
+- submission-source prose residue such as placeholders, internal workflow notes, or informal "clinical story" language
+
+Restrained wording can reduce claim risk, but it cannot clear these red flags by itself. Route to analysis-campaign, write, decision, or human gate.
+
 ## Knowledge Obligations
 
 Before reviewing, recover the stage knowledge packet and make these inputs explicit:
