@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
+from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.runtime_control import callable_owner_names
 
 
@@ -45,16 +46,7 @@ def _canonical_next_action_bound(domain_transition: dict[str, Any]) -> bool:
     next_action = domain_transition.get("next_action")
     if not isinstance(next_action, dict):
         next_action = domain_transition.get("next_action_envelope")
-    if not isinstance(next_action, dict):
-        return False
-    if _text(next_action.get("surface_kind")) != "mas_next_action_envelope":
-        return False
-    identity = next_action.get("identity") if isinstance(next_action.get("identity"), dict) else next_action
-    return (
-        _text(identity.get("action_family")) is not None
-        and _text(identity.get("work_unit_id")) is not None
-        and _text(identity.get("work_unit_fingerprint")) is not None
-    )
+    return isinstance(next_action, dict) and canonical_next_action_gate.canonical_next_action_identity_complete(next_action)
 
 
 def _invalid_decision_request_note(

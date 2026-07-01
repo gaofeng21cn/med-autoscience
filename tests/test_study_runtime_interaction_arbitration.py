@@ -21,9 +21,12 @@ def _invalid_blocking_payload() -> dict[str, object]:
 def _canonical_next_action() -> dict[str, object]:
     return {
         "surface_kind": "mas_next_action_envelope",
+        "action_id": "next-action-canonical-owner-work",
+        "idempotency_key": "next-action-key-canonical-owner-work",
         "action_family": "runtime.opl_route",
         "work_unit_id": "canonical-owner-work",
         "work_unit_fingerprint": "sha256:canonical-owner-work",
+        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
     }
 
 

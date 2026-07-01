@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -29,6 +30,8 @@ def materialize_fresh_domain_transition_controller_decision_if_required(
         status_payload=status_payload,
     )
     domain_transition = _mapping(status.get("domain_transition"))
+    if not _canonical_next_action_bound(domain_transition):
+        return None
     transition_unit = _mapping(domain_transition.get("next_work_unit"))
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
@@ -155,6 +158,8 @@ def status_domain_transition_tick_request(
     study_root: Path,
     status_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if not _canonical_next_action_bound(_mapping(status_payload.get("domain_transition"))):
+        return None
     ai_reviewer_request = status_domain_transition_ai_reviewer_tick_request(
         study_root=study_root,
         status_payload=status_payload,
@@ -181,6 +186,8 @@ def status_domain_transition_ai_reviewer_tick_request(
     if _status_payload_requests_human_gate(status_payload):
         return None
     domain_transition = _mapping(status_payload.get("domain_transition"))
+    if not _canonical_next_action_bound(domain_transition):
+        return None
     transition_unit = _mapping(domain_transition.get("next_work_unit"))
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
@@ -229,6 +236,8 @@ def status_domain_transition_route_back_tick_request(
     if _status_payload_requests_human_gate(status_payload):
         return None
     domain_transition = _mapping(status_payload.get("domain_transition"))
+    if not _canonical_next_action_bound(domain_transition):
+        return None
     transition_unit = _mapping(domain_transition.get("next_work_unit"))
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
@@ -282,6 +291,8 @@ def status_domain_transition_publication_gate_tick_request(
     if _status_payload_requests_human_gate(status_payload):
         return None
     domain_transition = _mapping(status_payload.get("domain_transition"))
+    if not _canonical_next_action_bound(domain_transition):
+        return None
     transition_unit = _mapping(domain_transition.get("next_work_unit"))
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
@@ -485,6 +496,13 @@ def _status_payload_requests_human_gate(status_payload: Mapping[str, Any]) -> bo
     if current_required_action == "human_confirmation_required":
         return True
     return _text(status_payload.get("controller_confirmation_status")) == "pending"
+
+
+def _canonical_next_action_bound(domain_transition: Mapping[str, Any]) -> bool:
+    next_action = domain_transition.get("next_action")
+    if not isinstance(next_action, Mapping):
+        next_action = domain_transition.get("next_action_envelope")
+    return isinstance(next_action, Mapping) and canonical_next_action_gate.canonical_next_action_identity_complete(next_action)
 
 
 def _status_payload(
