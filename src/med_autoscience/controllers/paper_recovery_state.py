@@ -15,6 +15,9 @@ from med_autoscience.controllers.paper_recovery_state_parts.obligation_matching 
     action_matches_obligation as _current_action_matches_obligation,
     current_work_unit_matches_obligation as _current_work_unit_matches_obligation,
 )
+from med_autoscience.controllers.paper_recovery_state_parts.obligation_projection import (
+    obligation as _obligation,
+)
 from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
     supervisor_decision_for_projection as _supervisor_decision_for_projection,
 )
@@ -45,10 +48,8 @@ from med_autoscience.controllers.paper_recovery_state_parts.state_diagnostics im
     first_text as _first_text,
     has_running_provider_attempt as _has_running_provider_attempt,
     mapping as _mapping,
-    obligation_identity as _obligation_identity,
     provider_admission_readback as _provider_admission_readback,
     runtime_recovery_blocking_reason as _runtime_recovery_blocking_reason,
-    single_text_item as _single_text_item,
     study_id as _study_id,
     text as _text,
     text_items as _text_items,
@@ -955,115 +956,6 @@ def _owner_receipt_state(
         current_owner=owner,
         evidence_refs=[owner_receipt_ref] if owner_receipt_ref is not None else [],
         diagnostic_report=diagnostic_report,
-    )
-
-
-def _obligation(
-    progress: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any],
-) -> dict[str, Any]:
-    typed_blocker = _current_typed_blocker(current_work_unit)
-    blocker_reason = _typed_blocker_reason(typed_blocker)
-    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
-    action_type = _obligation_action_type(progress, current_work_unit=current_work_unit)
-    work_unit_id = _obligation_work_unit_id(progress, current_work_unit=current_work_unit)
-    fingerprint = _obligation_fingerprint(
-        progress,
-        current_work_unit=current_work_unit,
-        currentness_basis=currentness_basis,
-    )
-    identity = _obligation_identity(
-        blocker_reason=blocker_reason,
-        fingerprint=fingerprint,
-        current_work_unit=current_work_unit,
-        action_type=action_type,
-        work_unit_id=work_unit_id,
-    )
-    study_id = _study_id(progress)
-    return {
-        "recovery_obligation_id": "::".join(
-            [
-                "paper-recovery",
-                study_id or "unknown-study",
-                action_type or "unknown-action",
-                work_unit_id or "unknown-work-unit",
-                identity,
-            ]
-        ),
-        "study_id": study_id,
-        "quest_id": _text(progress.get("quest_id")) or _text(current_work_unit.get("quest_id")),
-        "owner": (
-            _text(typed_blocker.get("owner"))
-            or _text(current_work_unit.get("owner"))
-            or _text(_mapping(progress.get("current_executable_owner_action")).get("next_owner"))
-            or _text(_mapping(progress.get("current_execution_envelope")).get("owner"))
-        ),
-        "action_type": action_type,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-        "blocker_type": blocker_reason,
-        "currentness_basis": dict(currentness_basis) if currentness_basis else None,
-    }
-
-
-def _obligation_action_type(
-    progress: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any],
-) -> str | None:
-    owner_action_admission = _mapping(progress.get("owner_action_admission"))
-    return _first_text(
-        current_work_unit.get("action_type"),
-        _mapping(progress.get("current_executable_owner_action")).get("action_type"),
-        _mapping(progress.get("current_execution_envelope")).get("action_type"),
-        owner_action_admission.get("action_type"),
-        _single_text_item(owner_action_admission.get("allowed_actions")),
-    )
-
-
-def _obligation_work_unit_id(
-    progress: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any],
-) -> str | None:
-    currentness_basis = _mapping(current_work_unit.get("owner_route_currentness_basis")) or _mapping(
-        current_work_unit.get("currentness_basis")
-    )
-    owner_action_admission = _mapping(progress.get("owner_action_admission"))
-    return _first_text(
-        current_work_unit.get("work_unit_id"),
-        currentness_basis.get("work_unit_id"),
-        currentness_basis.get("explicit_publication_work_unit_id"),
-        currentness_basis.get("current_publication_work_unit_id"),
-        owner_action_admission.get("work_unit_id"),
-        _mapping(progress.get("current_execution_envelope")).get("next_work_unit"),
-        _mapping(progress.get("current_executable_owner_action")).get("work_unit_id"),
-    )
-
-
-def _obligation_fingerprint(
-    progress: Mapping[str, Any],
-    *,
-    current_work_unit: Mapping[str, Any],
-    currentness_basis: Mapping[str, Any],
-) -> str | None:
-    action = _mapping(progress.get("current_executable_owner_action"))
-    action_basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(
-        action.get("currentness_basis")
-    )
-    repair_precedence = _mapping(action.get("repair_progress_precedence"))
-    return _first_text(
-        current_work_unit.get("work_unit_fingerprint"),
-        current_work_unit.get("action_fingerprint"),
-        currentness_basis.get("work_unit_fingerprint"),
-        currentness_basis.get("source_fingerprint"),
-        action.get("work_unit_fingerprint"),
-        action.get("action_fingerprint"),
-        action.get("source_fingerprint"),
-        action_basis.get("work_unit_fingerprint"),
-        action_basis.get("source_fingerprint"),
-        repair_precedence.get("source_fingerprint"),
     )
 
 

@@ -581,3 +581,35 @@ def test_paper_recovery_ignores_monitoring_summary_legacy_current_action() -> No
     }
 
     assert recovery.current_executable_owner_action(progress) == {}
+
+
+def test_paper_recovery_obligation_does_not_resurrect_legacy_owner_without_canonical_next_action() -> None:
+    recovery = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
+
+    state = recovery.build_paper_recovery_state(
+        {
+            "study_id": "legacy-only-study",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "legacy-action-unit",
+                "work_unit_fingerprint": "legacy-action-unit::fingerprint",
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "action_type": "request_opl_stage_attempt",
+                "next_work_unit": "legacy-envelope-unit",
+            },
+        }
+    )
+
+    obligation = state["current_authority"]["obligation"]
+    assert obligation["owner"] is None
+    assert obligation["action_type"] is None
+    assert obligation["work_unit_id"] is None
+    assert obligation["recovery_obligation_id"].startswith(
+        "paper-recovery::legacy-only-study::unknown-action::unknown-work-unit::"
+    )
