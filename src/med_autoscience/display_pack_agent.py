@@ -1,25 +1,17 @@
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Mapping
-from dataclasses import dataclass
 from pathlib import Path
 import json
-import shutil
-import subprocess
 from typing import Any
+
+from med_autoscience.display_pack_agent_parts import preflight_support as _preflight_support
 
 from med_autoscience.display_layout_qc.router import QC_PROFILE_RUNNERS
 from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
 from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
-)
-from med_autoscience.display_pack_canonical_catalog import (
-    CanonicalTemplateCatalog,
-    CanonicalTemplateEntry,
-    canonical_catalog_entry_for_template,
-    load_canonical_template_catalog,
 )
 from med_autoscience.display_pack_agent_parts.figure_contract import (
     compile_display_figure_intent,
@@ -46,16 +38,22 @@ from med_autoscience.display_pack_agent_parts.template_fit import (
     template_sort_key,
 )
 from med_autoscience.display_pack_agent_parts.visual_audit import default_visual_audit_review
+from med_autoscience.display_pack_agent_parts.template_inventory import (
+    catalogs_by_pack_root as _catalogs_by_pack_root,
+    canonical_entry as _canonical_entry,
+    full_template_id as _full_template_id,
+    inventory_summary as _inventory_summary,
+    migration_index_from_catalogs as _migration_index_from_catalogs,
+    template_summary as _template_summary,
+)
+from med_autoscience.display_pack_agent_parts.preflight_support import (
+    quality_floor as _quality_floor,
+    route_for_finding as _route_for_finding,
+)
 from med_autoscience.display_pack_renderer_policy import (
     default_surface_renderer_policy,
-    renderer_policy_completion,
-    renderer_policy_payload,
-)
-from med_autoscience.display_pack_analysis_responsibility import (
-    analysis_boundary_payload,
 )
 from med_autoscience.display_pack_dependency_environment import (
-    dependency_requirements_for_records,
     dependency_environment_finding,
     dependency_environment_status,
 )
@@ -68,6 +66,13 @@ AGENT_CAPABILITY_ACTIONS = tuple(
     for name in ("capability-discover", "figure-plan", "preflight", "render", "orchestrate")
 )
 
+
+# Keep these module attributes for existing tests and monkeypatch-based runtime probes.
+shutil = _preflight_support.shutil
+subprocess = _preflight_support.subprocess
+_r_runtime_status = _preflight_support.r_runtime_status
+
+
 DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
     "can_mutate_data_or_statistics": False,
     "can_authorize_publication_readiness": False,
@@ -76,14 +81,6 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
     "can_emit_display_refs_and_receipts": True,
 }
 
-@dataclass(frozen=True)
-class _RendererPolicyProjection:
-    kind: str
-    renderer_family: str
-    default_visible: bool
-    canonical_family_id: str
-    canonical_template_id: str
-    template_id: str
 
 
 def _normal_repo_root(repo_root: Path | str | None) -> Path:
@@ -121,150 +118,6 @@ _PURPOSE_BRIEF_ANCHOR_KEYS = (
 )
 
 
-def _full_template_id(record: LoadedDisplayTemplate) -> str:
-    return record.template_manifest.full_template_id
-
-
-def _catalogs_by_pack_root(records: list[LoadedDisplayTemplate]) -> dict[Path, CanonicalTemplateCatalog | None]:
-    catalogs: dict[Path, CanonicalTemplateCatalog | None] = {}
-    for record in records:
-        if record.pack_root not in catalogs:
-            catalogs[record.pack_root] = load_canonical_template_catalog(record.pack_root)
-    return catalogs
-
-
-def _migration_index_from_catalogs(
-    catalogs: Mapping[Path, CanonicalTemplateCatalog | None],
-) -> dict[str, CanonicalTemplateEntry]:
-    entries: dict[str, CanonicalTemplateEntry] = {}
-    for catalog in catalogs.values():
-        if catalog is None:
-            continue
-        entries.update(catalog.entries_by_template_id)
-    return entries
-
-
-def _canonical_entry(
-    record: LoadedDisplayTemplate,
-    catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
-) -> CanonicalTemplateEntry:
-    manifest = record.template_manifest
-    catalog = catalogs.get(record.pack_root) if catalogs is not None else load_canonical_template_catalog(record.pack_root)
-    return canonical_catalog_entry_for_template(
-        catalog=catalog,
-        template_id=manifest.template_id,
-        category=manifest.audit_family,
-        title=manifest.display_name,
-    )
-
-
-def _renderer_policy_projection(
-    record: LoadedDisplayTemplate,
-    canonical: CanonicalTemplateEntry,
-) -> _RendererPolicyProjection:
-    manifest = record.template_manifest
-    return _RendererPolicyProjection(
-        kind=manifest.kind,
-        renderer_family=manifest.renderer_family,
-        default_visible=canonical.default_visible,
-        canonical_family_id=canonical.family_id,
-        canonical_template_id=canonical.canonical_template_id,
-        template_id=manifest.template_id,
-    )
-
-
-def _template_summary(
-    record: LoadedDisplayTemplate,
-    catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
-    request: Mapping[str, Any] | None = None,
-    repo_root: Path | None = None,
-) -> dict[str, Any]:
-    manifest = record.template_manifest
-    template_root = record.template_path.parent
-    canonical = _canonical_entry(record, catalogs)
-    request_payload = dict(request or {})
-    return {
-        "pack_id": record.pack_manifest.pack_id,
-        "pack_version": record.pack_manifest.version,
-        "template_id": manifest.template_id,
-        "full_template_id": manifest.full_template_id,
-        "kind": manifest.kind,
-        "display_name": manifest.display_name,
-        "display_class_id": manifest.display_class_id,
-        "audit_family": manifest.audit_family,
-        "paper_family_ids": list(manifest.paper_family_ids),
-        "renderer_family": manifest.renderer_family,
-        "execution_mode": manifest.execution_mode,
-        "entrypoint": manifest.entrypoint,
-        "input_schema_ref": manifest.input_schema_ref,
-        "qc_profile_ref": manifest.qc_profile_ref,
-        "required_exports": list(manifest.required_exports),
-        "allowed_paper_roles": list(manifest.allowed_paper_roles),
-        "paper_proven": manifest.paper_proven,
-        "canonical_family_id": canonical.family_id,
-        "canonical_family_title": canonical.family_title,
-        "canonical_family_category": canonical.family_category,
-        "canonical_template_id": canonical.canonical_template_id,
-        "figure_archetype": canonical.figure_archetype,
-        "analysis_responsibility": canonical.analysis_responsibility,
-        "analysis_input_state": canonical.analysis_input_state,
-        "medical_family_ids": list(canonical.medical_family_ids),
-        "publication_quality_profile": dict(canonical.publication_quality_profile),
-        "analysis_boundary": analysis_boundary_payload(
-            mode=canonical.analysis_responsibility,
-            input_state=canonical.analysis_input_state,
-            request=request_payload,
-        ),
-        "migration_status": canonical.migration_status,
-        "default_visible": canonical.default_visible,
-        "migrated_alias_template_ids": list(canonical.aliases) if canonical.migration_status == "canonical" else [],
-        "migration_reason": canonical.migration_reason,
-        "renderer_policy": renderer_policy_payload(_renderer_policy_projection(record, canonical)),
-        "dependency_requirements": dependency_requirements_for_records(
-            repo_root=repo_root or record.pack_root,
-            records=[record],
-        ),
-        "has_render_r": (template_root / "render.R").is_file(),
-        "has_render_candidate": (template_root / "render_candidate.R").is_file(),
-        "golden_case_count": len(manifest.golden_case_paths),
-        "exemplar_ref_count": len(manifest.exemplar_refs),
-    }
-
-
-def _inventory_summary(records: list[LoadedDisplayTemplate]) -> dict[str, Any]:
-    kinds = Counter(record.template_manifest.kind for record in records)
-    renderers = Counter(record.template_manifest.renderer_family for record in records)
-    execution_modes = Counter(record.template_manifest.execution_mode for record in records)
-    catalogs = _catalogs_by_pack_root(records)
-    canonical_entries = [_canonical_entry(record, catalogs) for record in records]
-    renderer_policy_records = [
-        _renderer_policy_projection(record, canonical)
-        for record, canonical in zip(records, canonical_entries, strict=True)
-    ]
-    canonical_template_count = sum(1 for entry in canonical_entries if entry.migration_status == "canonical")
-    legacy_alias_count = sum(1 for entry in canonical_entries if entry.migration_status == "migrated_alias")
-    default_visible_count = sum(1 for entry in canonical_entries if entry.default_visible)
-    paper_proven_count = sum(1 for record in records if record.template_manifest.paper_proven)
-    golden_template_count = sum(1 for record in records if record.template_manifest.golden_case_paths)
-    exemplar_template_count = sum(1 for record in records if record.template_manifest.exemplar_refs)
-    return {
-        "template_count": len(records),
-        "active_template_count": len(records),
-        "canonical_template_count": canonical_template_count,
-        "legacy_alias_template_count": legacy_alias_count,
-        "default_visible_template_count": default_visible_count,
-        "canonical_family_count": len({entry.family_id for entry in canonical_entries if entry.default_visible}),
-        "kind_counts": dict(sorted(kinds.items())),
-        "renderer_family_counts": dict(sorted(renderers.items())),
-        "execution_mode_counts": dict(sorted(execution_modes.items())),
-        "paper_proven_template_count": paper_proven_count,
-        "golden_template_count": golden_template_count,
-        "exemplar_template_count": exemplar_template_count,
-        "analysis_responsibility_counts": dict(
-            sorted(Counter(entry.analysis_responsibility for entry in canonical_entries).items())
-        ),
-        "renderer_policy_completion": renderer_policy_completion(renderer_policy_records),
-    }
 
 
 def display_pack_capability_discover(
@@ -634,139 +487,6 @@ def display_pack_figure_plan(
     }
 
 
-def _route_for_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
-    code = _text(finding.get("code"))
-    route_hint = _text(finding.get("route_hint"))
-    route_by_code = {
-        "analysis_summary_required_before_display_render": (
-            "analysis_materialization",
-            "materialize_validated_analysis_summary_before_display_render",
-        ),
-        "template_selection_empty": ("template_catalog", "display-pack-agent-plan"),
-        "qc_profile_missing": ("qc_profile", "display_pack_qc_profile_repair"),
-        "render_r_missing": ("renderer", "display_pack_renderer_asset_repair"),
-        "r_runtime_not_ready": ("runtime_dependency", "opl_runtime_env_doctor"),
-        "dependency_environment_not_prepared": ("dependency_environment", route_hint or "opl_runtime_env_doctor"),
-        "paper_root_missing": ("paper_context", "provide_paper_root_or_scaffold_paper"),
-        "publication_style_profile_missing": ("style_profile", "seed_publication_style_profile"),
-        "golden_case_not_declared": ("golden_regression", "display_pack_golden_refresh"),
-    }
-    layer, next_callable = route_by_code.get(code, ("display_pack_contract", route_hint or "display_pack_repair"))
-    return {
-        "surface_kind": "display_pack_typed_repair_route",
-        "code": code,
-        "layer": layer,
-        "repair_owner": "OPL Framework" if layer in {"runtime_dependency", "dependency_environment"} else "MedAutoScience",
-        "next_callable": next_callable,
-        "route_hint": route_hint,
-        "blocks_render": code != "golden_case_not_declared",
-        "authority_boundary": {
-            "repair_route_can_mutate_data_or_statistics": False,
-            "repair_route_can_authorize_publication_readiness": False,
-        },
-    }
-
-
-def _quality_floor(
-    *,
-    plan: Mapping[str, Any] | None = None,
-    preflight: Mapping[str, Any] | None = None,
-    render_receipt: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    plan_payload = _mapping(plan)
-    preflight_payload = _mapping(preflight)
-    render_payload = _mapping(render_receipt)
-    checks = {
-        "intent_compiled": bool(_mapping(plan_payload.get("figure_intent"))),
-        "template_selected": bool(plan_payload.get("recommended_template")),
-        "preflight_ready": preflight_payload.get("status") == "ready",
-        "style_profile_present": _mapping(preflight_payload.get("style_profile")).get("status") == "present",
-        "golden_declared": not any(
-            _text(item.get("code")) == "golden_case_not_declared"
-            for item in list(preflight_payload.get("advisory_findings") or [])
-            if isinstance(item, Mapping)
-        ),
-        "render_manifested": render_payload.get("status") == "publication_manifested",
-    }
-    score = sum(1 for value in checks.values() if value)
-    status = "strong_floor" if score >= 5 else "minimum_floor" if score >= 3 else "needs_repair"
-    return {
-        "surface_kind": "display_pack_quality_floor",
-        "score": score,
-        "max_score": len(checks),
-        "status": status,
-        "checks": checks,
-        "figure_contract_policy": figure_contract_policy(),
-        "quality_floor_only": True,
-        "ai_vlm_expected_for_quality_ceiling": True,
-        "publication_readiness_verdict": False,
-    }
-
-
-def _required_r_packages(records: list[LoadedDisplayTemplate]) -> tuple[str, ...]:
-    packages: set[str] = set()
-    for record in records:
-        template_id = record.template_manifest.template_id
-        full_template_id = record.template_manifest.full_template_id
-        for item in dependency_requirements_for_records(
-            repo_root=record.pack_root,
-            records=[record],
-        ):
-            item_map = _mapping(item)
-            r_packages = [
-                package
-                for package in _list(item_map.get("language_package_requirements"))
-                if _text(_mapping(package).get("language")) == "r"
-            ]
-            for package in r_packages:
-                package_map = _mapping(package)
-                template_ids = tuple(_text(value) for value in _list(package_map.get("template_ids")) if _text(value))
-                if template_ids and template_id not in template_ids and full_template_id not in template_ids:
-                    continue
-                if package_map.get("required") is True and _text(package_map.get("name")):
-                    packages.add(_text(package_map.get("name")))
-    return tuple(sorted(packages))
-
-
-def _r_runtime_status(records: list[LoadedDisplayTemplate], *, check_runtime_dependencies: bool) -> dict[str, Any]:
-    requires_r = bool(_required_r_packages(records))
-    if not requires_r:
-        return {"required": False, "status": "not_required", "binary": "Rscript", "packages": {}}
-    rscript_path = shutil.which("Rscript")
-    if rscript_path is None:
-        return {"required": True, "status": "missing", "binary": "Rscript", "packages": {}}
-    packages = _required_r_packages(records)
-    package_status: dict[str, Any] = {}
-    status = "present"
-    if check_runtime_dependencies and packages:
-        expr = "; ".join(
-            f'cat("{package} ", requireNamespace("{package}", quietly=TRUE), "\\n", sep="")'
-            for package in packages
-        )
-        completed = subprocess.run(
-            [rscript_path, "-e", expr],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
-        for line in completed.stdout.splitlines():
-            name, _, value = line.partition(" ")
-            if name in packages:
-                package_status[name] = value.strip() == "TRUE"
-        for package in packages:
-            package_status.setdefault(package, False)
-        if completed.returncode != 0 or not all(package_status.values()):
-            status = "missing_dependency"
-    elif packages:
-        package_status = {package: "not_checked" for package in packages}
-    return {
-        "required": True,
-        "status": status,
-        "binary": "Rscript",
-        "binary_path": rscript_path,
-        "packages": package_status,
-    }
 
 
 def display_pack_preflight(
