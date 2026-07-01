@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from med_autoscience.cli_parts.paper_mission_command_parts import route_back_budget
+
 
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
     commands = importlib.import_module(
@@ -66,7 +68,7 @@ def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: 
         }
         return readback, handoff
 
-    ledger = commands._empty_paper_mission_route_back_budget_ledger(
+    ledger = route_back_budget._empty_paper_mission_route_back_budget_ledger(
         study_id="study-001"
     )
     first_readback, first_handoff = route_back_readback()
@@ -80,7 +82,7 @@ def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: 
     assert first_guard["signature_payload"]["semantic_delta_refs"] == {}
 
     ledger_ref = tmp_path / "route_back_budget_ledger.json"
-    ledger = commands._record_paper_mission_route_back_budget_ledger(
+    ledger = route_back_budget._record_paper_mission_route_back_budget_ledger(
         ledger=ledger,
         ledger_ref=ledger_ref,
         progress_guard=first_guard,
@@ -113,7 +115,7 @@ def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: 
     assert second_guard["can_claim_submission_ready"] is False
     assert second_guard["can_claim_runtime_ready"] is False
 
-    ledger = commands._record_paper_mission_route_back_budget_ledger(
+    ledger = route_back_budget._record_paper_mission_route_back_budget_ledger(
         ledger=ledger,
         ledger_ref=ledger_ref,
         progress_guard=second_guard,
