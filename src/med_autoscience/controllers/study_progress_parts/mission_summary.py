@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.controllers.study_progress_parts.mission_summary_parts.materialized_readback import (
     _consume_result_for_consumption_ledger,
     _latest_consumption_ledger_readback,
+    _latest_receipt_owner_consumption_readback,
     _latest_stage_closure_ledger_readback,
     _latest_materialized_mission,
     _materialized_mission_summary,
@@ -40,6 +41,12 @@ from .mission_summary_parts.paper_mission_payload import (
 )
 from .mission_summary_parts.stage_closure_projection import (
     top_level_stage_closure_projection,
+)
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_consumption,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
+    next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 
 
@@ -170,6 +177,17 @@ def build_artifact_first_mission_summary(
         study_id=_study_id(progress),
         transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
     )
+    receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
+        progress=progress,
+        study_id=_study_id(progress),
+    )
+    if receipt_owner_consumption_readback and receipt_owner_consumption_superseded_by_consumption(
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        receipt_owner_consumption_readback = {}
+    if receipt_owner_consumption_readback:
+        effective_consume_candidate_status = "typed_blocker"
     live_readback = _study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
@@ -180,23 +198,42 @@ def build_artifact_first_mission_summary(
         or "not_requested_from_study_progress"
     )
     carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
-    summary = {
-        "surface_kind": "artifact_first_paper_mission_summary",
-        "schema_version": 1,
-        "contract_ref": PAPER_MISSION_RUN_CONTRACT_REF,
-        "validator": PAPER_MISSION_RUN_VALIDATOR,
-        "transaction_contract_ref": PAPER_MISSION_TRANSACTION_CONTRACT_REF,
-        "transaction_validator": PAPER_MISSION_TRANSACTION_VALIDATOR,
-        "paper_mission_run": paper_mission_run,
-        "paper_mission_transaction": effective_transaction,
-        "stage_terminal_decision": _mapping(
-            effective_transaction.get("stage_terminal_decision")
-        ),
-        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
-        "opl_runtime_carrier": carrier,
-        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
-        "opl_runtime_readback_status": runtime_readback_status,
-        "next_action": paper_mission_next_action_envelope(
+    stage_closure_decision = stage_closure_decision_projection(
+        readback={
+            **(
+                {"stage_closure_decision": progress["stage_closure_decision"]}
+                if _mapping(progress.get("stage_closure_decision"))
+                else {
+                    "stage_closure_decision": receipt_owner_consumption_readback[
+                        "stage_closure_decision"
+                    ]
+                }
+                if receipt_owner_consumption_readback
+                else {"stage_closure_decision": stage_closure_ledger_readback}
+                if stage_closure_ledger_readback
+                else {}
+            ),
+            "paper_mission_transaction": effective_transaction,
+            "stage_terminal_decision": _mapping(
+                effective_transaction.get("stage_terminal_decision")
+            ),
+            "consume_candidate_status": effective_consume_candidate_status,
+            "opl_runtime_readback_status": runtime_readback_status,
+            **(
+                {"opl_runtime_carrier_readback": carrier_readback}
+                if carrier_readback
+                else {}
+            ),
+        },
+        consumption_ledger_readback=consumption_ledger_readback,
+    )
+    next_action = (
+        _next_action_for_stage_closure_decision(
+            stage_closure_decision=stage_closure_decision,
+            transaction_readback={"paper_mission_transaction": effective_transaction},
+        )
+        if receipt_owner_consumption_readback
+        else paper_mission_next_action_envelope(
             transaction=effective_transaction,
             stage_terminal_decision=_mapping(
                 effective_transaction.get("stage_terminal_decision")
@@ -215,7 +252,25 @@ def build_artifact_first_mission_summary(
                 )
                 if ref is not None
             ],
+        )
+    )
+    summary = {
+        "surface_kind": "artifact_first_paper_mission_summary",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_RUN_CONTRACT_REF,
+        "validator": PAPER_MISSION_RUN_VALIDATOR,
+        "transaction_contract_ref": PAPER_MISSION_TRANSACTION_CONTRACT_REF,
+        "transaction_validator": PAPER_MISSION_TRANSACTION_VALIDATOR,
+        "paper_mission_run": paper_mission_run,
+        "paper_mission_transaction": effective_transaction,
+        "stage_terminal_decision": _mapping(
+            effective_transaction.get("stage_terminal_decision")
         ),
+        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
+        "opl_runtime_carrier": carrier,
+        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
+        "opl_runtime_readback_status": runtime_readback_status,
+        "next_action": next_action,
         "opl_transition_receipt": _opl_transition_receipt(
             progress=progress,
             consumption_ledger_readback=consumption_ledger_readback,
@@ -223,30 +278,11 @@ def build_artifact_first_mission_summary(
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
-        "stage_closure_decision": stage_closure_decision_projection(
-            readback={
-                **(
-                    {"stage_closure_decision": progress["stage_closure_decision"]}
-                    if _mapping(progress.get("stage_closure_decision"))
-                    else {"stage_closure_decision": stage_closure_ledger_readback}
-                    if stage_closure_ledger_readback
-                    else {}
-                ),
-                "paper_mission_transaction": effective_transaction,
-                "stage_terminal_decision": _mapping(
-                    effective_transaction.get("stage_terminal_decision")
-                ),
-                "consume_candidate_status": effective_consume_candidate_status,
-                "opl_runtime_readback_status": runtime_readback_status,
-                **(
-                    {"opl_runtime_carrier_readback": carrier_readback}
-                    if carrier_readback
-                    else {}
-                ),
-            },
-            consumption_ledger_readback=consumption_ledger_readback,
-        ),
+        "stage_closure_decision": stage_closure_decision,
         "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
+        "receipt_owner_consumption_readback": (
+            receipt_owner_consumption_readback or None
+        ),
         "current_objective": current_objective,
         "latest_artifact_delta": {
             **latest_artifact_delta,

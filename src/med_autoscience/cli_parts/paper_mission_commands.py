@@ -26,6 +26,7 @@ from med_autoscience.cli_parts.paper_mission_output_roots import (
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.receipt_owner_consumption import (
     build_receipt_owner_consumption_readback as _build_receipt_owner_consumption_readback,
+    latest_receipt_owner_consumption_readback as _latest_receipt_owner_consumption_readback,
     receipt_owner_consumption_apply_mode as _receipt_owner_consumption_apply_mode,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.candidate_package_readback import (
@@ -112,6 +113,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback 
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
+)
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
 )
 
 CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES = (
@@ -298,36 +302,6 @@ def build_paper_mission_readback(
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
-        consumption_readback = latest_paper_mission_consumption_transaction_readback(
-            workspace_root=Path(profile.workspace_root),
-            study_id=study_id,
-        )
-        if consumption_readback is not None:
-            return attach_opl_runtime_carrier_readback(
-                readback={
-                    **consumption_readback,
-                    "paper_mission_command": paper_mission_command,
-                    "action_intent": _action_intent(paper_mission_command),
-                    "dry_run": bool(dry_run),
-                    "profile": {
-                        "profile_name": str(getattr(profile, "name", "")),
-                        "profile_ref": str(profile_ref),
-                    },
-                    "study_root": str(Path(profile.studies_root) / study_id),
-                    "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
-                    "paper_mission_current_transaction_source": (
-                        "paper_mission_consumption_ledger"
-                    ),
-                    "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
-                    "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
-                    "mutation_policy": _mutation_policy(
-                        paper_mission_command=paper_mission_command
-                    ),
-                },
-                study_root=Path(profile.studies_root) / study_id,
-                enable_opl_live_probe=enable_opl_live_probe,
-                opl_bin=opl_bin,
-            )
         materialized = _build_materialized_mission_readback_if_available(
             profile=profile,
             profile_ref=profile_ref,
@@ -340,6 +314,22 @@ def build_paper_mission_readback(
         )
         if materialized is not None:
             return materialized
+        consumption_readback = latest_paper_mission_consumption_transaction_readback(
+            workspace_root=Path(profile.workspace_root),
+            study_id=study_id,
+        )
+        if consumption_readback is not None:
+            return _consumption_ledger_inspect_readback(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+                paper_mission_command=paper_mission_command,
+                dry_run=dry_run,
+                consumption_readback=consumption_readback,
+                study_root=Path(profile.studies_root) / study_id,
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
     selected_objective = _objective_for_command(
         paper_mission_command=paper_mission_command,
         objective=objective,
@@ -595,6 +585,125 @@ def build_paper_mission_readback(
             ),
             "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
         },
+    }
+
+
+def _consumption_ledger_inspect_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    paper_mission_command: str,
+    dry_run: bool,
+    consumption_readback: Mapping[str, Any],
+    study_root: Path,
+    enable_opl_live_probe: bool,
+    opl_bin: str | Path | None,
+) -> dict[str, Any]:
+    transaction_readback = _paper_mission_transaction_readback(
+        mission_id=str(consumption_readback.get("mission_id") or ""),
+        study_id=study_id,
+        objective=str(
+            consumption_readback.get("selected_outcome")
+            or consumption_readback.get("consume_candidate_status")
+            or "paper mission consumption ledger readback"
+        ),
+        paper_mission_command=paper_mission_command,
+        study_root=study_root,
+        mission=None,
+        transaction_override=_mapping(
+            consumption_readback.get("paper_mission_transaction")
+        ),
+        transaction_source_override="paper_mission_consumption_ledger",
+        authority_consume_readback=None,
+        enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
+    )
+    base = attach_opl_runtime_carrier_readback(
+        readback={
+            **consumption_readback,
+            "paper_mission_command": paper_mission_command,
+            "action_intent": _action_intent(paper_mission_command),
+            "dry_run": bool(dry_run),
+            "profile": {
+                "profile_name": str(getattr(profile, "name", "")),
+                "profile_ref": str(profile_ref),
+            },
+            "study_root": str(study_root),
+            "study_root_exists": study_root.exists(),
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+            "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+            "mutation_policy": _mutation_policy(paper_mission_command=paper_mission_command),
+        },
+        study_root=study_root,
+        enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
+    )
+    receipt_owner_consumption = _latest_receipt_owner_consumption_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
+    if receipt_owner_consumption is not None and _receipt_superseded_by_consumption(
+        receipt_owner_consumption_readback=receipt_owner_consumption,
+        consumption_ledger_readback=consumption_readback,
+    ):
+        receipt_owner_consumption = None
+    if receipt_owner_consumption is None:
+        return {
+            **base,
+            **_transaction_readback_output_fields(transaction_readback),
+        }
+    stage_closure_decision = stage_closure_decision_projection(
+        readback={
+            **transaction_readback,
+            "stage_closure_decision": receipt_owner_consumption["stage_closure_decision"],
+            "consume_candidate_status": "typed_blocker",
+        },
+        handoff=_mapping(consumption_readback.get("opl_route_handoff")),
+        consumption_ledger_readback=consumption_readback,
+    )
+    next_action_override = _next_action_for_stage_closure_decision(
+        stage_closure_decision=stage_closure_decision,
+        transaction_readback=transaction_readback,
+        typed_blocker_resolution_readback=latest_typed_blocker_resolution_readback(
+            workspace_root=Path(profile.workspace_root),
+            study_id=study_id,
+        ),
+    )
+    transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    if next_action_override is not None:
+        transaction_output_fields["next_action"] = next_action_override
+        transaction_output_fields["paper_mission_transaction_readback"] = {
+            **transaction_readback,
+            "next_action": next_action_override,
+        }
+    transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
+        transaction_output_fields=transaction_output_fields,
+        stage_closure_decision=stage_closure_decision,
+        next_action=next_action_override,
+    )
+    return {
+        **base,
+        **transaction_output_fields,
+        "receipt_owner_consumption_readback": receipt_owner_consumption,
+        "receipt_evidence": receipt_owner_consumption.get("receipt_evidence"),
+        "mas_receipt_consumption": receipt_owner_consumption.get(
+            "mas_receipt_consumption"
+        ),
+        "consume_candidate_status": "typed_blocker",
+        "mission_state": "stable_blocker",
+        "stage_closure_decision": stage_closure_decision,
+        "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
+            "kind"
+        ),
+        "durable_mission_stop_guard": _durable_mission_stop_guard(
+            consume_candidate_status="typed_blocker",
+            stage_closure_decision=stage_closure_decision,
+        ),
     }
 
 
