@@ -20,6 +20,17 @@ from .paper_autonomy_supervisor_decision import (
     supervisor_block_projection,
 )
 from .shared import _mapping_copy, _non_empty_text
+from .provider_admission_projection_parts.non_advancing import (
+    non_advancing_apply_consumption_projection as _non_advancing_apply_consumption_projection,
+)
+from .provider_admission_projection_parts.stage_refs import (
+    dedupe_text_items as _dedupe_text_items,
+    first_non_empty_text as _first_non_empty_text,
+    merge_stage_packet_ref_family as _merge_stage_packet_ref_family,
+    retain_stage_packet_refs_for_provider_readback as _retain_stage_packet_refs_for_provider_readback,
+    stage_packet_ref_family as _stage_packet_ref_family,
+    text_list as _text_list,
+)
 
 _GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE = "gate_clearing_batch_followthrough.actionable_current_work_unit"
 _PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE = (
@@ -268,176 +279,12 @@ def _candidate_with_opl_runtime_readback(
     return payload
 
 
-def _retain_stage_packet_refs_for_provider_readback(candidate: dict[str, Any]) -> None:
-    stage_family = _stage_packet_ref_family(candidate)
-    stage_packet_ref = _non_empty_text(stage_family.get("stage_packet_ref"))
-    stage_packet_refs = _text_list(stage_family.get("stage_packet_refs"))
-    checkpoint_refs = _text_list(stage_family.get("checkpoint_refs"))
-    source_refs = _mapping_copy(candidate.get("source_refs"))
-    if stage_packet_ref is not None:
-        candidate["stage_packet_ref"] = stage_packet_ref
-        source_refs["stage_packet_ref"] = stage_packet_ref
-    if stage_packet_refs:
-        candidate["stage_packet_refs"] = stage_packet_refs
-        source_refs["stage_packet_refs"] = stage_packet_refs
-    if checkpoint_refs:
-        candidate["checkpoint_refs"] = checkpoint_refs
-        source_refs["checkpoint_refs"] = checkpoint_refs
-    if source_refs:
-        candidate["source_refs"] = source_refs
-
-
-def _merge_stage_packet_ref_family(
-    target: dict[str, Any],
-    source: Mapping[str, Any],
-) -> None:
-    merged = _stage_packet_ref_family({**dict(source), **dict(target)})
-    source_family = _stage_packet_ref_family(source)
-    stage_packet_ref = _non_empty_text(merged.get("stage_packet_ref")) or _non_empty_text(
-        source_family.get("stage_packet_ref")
-    )
-    stage_packet_refs = _dedupe_text_items(
-        merged.get("stage_packet_refs"),
-        source_family.get("stage_packet_refs"),
-    )
-    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
-        stage_packet_refs.insert(0, stage_packet_ref)
-    checkpoint_refs = _dedupe_text_items(
-        merged.get("checkpoint_refs"),
-        source_family.get("checkpoint_refs"),
-    ) or list(stage_packet_refs)
-    source_refs = {
-        **_mapping_copy(source.get("source_refs")),
-        **_mapping_copy(target.get("source_refs")),
-    }
-    if stage_packet_ref is not None:
-        target["stage_packet_ref"] = stage_packet_ref
-        source_refs["stage_packet_ref"] = stage_packet_ref
-    if stage_packet_refs:
-        target["stage_packet_refs"] = stage_packet_refs
-        source_refs["stage_packet_refs"] = stage_packet_refs
-    if checkpoint_refs:
-        target["checkpoint_refs"] = checkpoint_refs
-        source_refs["checkpoint_refs"] = checkpoint_refs
-    if source_refs:
-        target["source_refs"] = source_refs
-
-
-def _stage_packet_ref_family(payload: Mapping[str, Any]) -> dict[str, Any]:
-    source_refs = _mapping_copy(payload.get("source_refs"))
-    owner_route_refs = _mapping_copy(_mapping_copy(payload.get("owner_route")).get("source_refs"))
-    currentness_basis = _mapping_copy(payload.get("currentness_basis"))
-    provider_identity = _mapping_copy(payload.get("provider_admission_identity"))
-    stage_packet_ref = _first_non_empty_text(
-        payload.get("stage_packet_ref"),
-        source_refs.get("stage_packet_ref"),
-        owner_route_refs.get("stage_packet_ref"),
-        currentness_basis.get("stage_packet_ref"),
-        provider_identity.get("stage_packet_ref"),
-    )
-    stage_packet_refs = _dedupe_text_items(
-        payload.get("stage_packet_refs"),
-        source_refs.get("stage_packet_refs"),
-        owner_route_refs.get("stage_packet_refs"),
-        currentness_basis.get("stage_packet_refs"),
-        provider_identity.get("stage_packet_refs"),
-    )
-    if stage_packet_ref is not None and stage_packet_ref not in stage_packet_refs:
-        stage_packet_refs.insert(0, stage_packet_ref)
-    checkpoint_refs = _dedupe_text_items(
-        payload.get("checkpoint_refs"),
-        source_refs.get("checkpoint_refs"),
-        owner_route_refs.get("checkpoint_refs"),
-        currentness_basis.get("checkpoint_refs"),
-        provider_identity.get("checkpoint_refs"),
-    ) or list(stage_packet_refs)
-    return {
-        key: value
-        for key, value in {
-            "stage_packet_ref": stage_packet_ref,
-            "stage_packet_refs": stage_packet_refs,
-            "checkpoint_refs": checkpoint_refs,
-        }.items()
-        if value not in (None, "", [], {})
-    }
-
-
-def _first_non_empty_text(*values: object) -> str | None:
-    for value in values:
-        text = _non_empty_text(value)
-        if text is not None:
-            return text
-    return None
-
-
-def _dedupe_text_items(*values: object) -> list[str]:
-    refs: list[str] = []
-    for value in values:
-        for item in _text_list(value):
-            if item not in refs:
-                refs.append(item)
-    return refs
-
-
 def _non_advancing_apply_consumed(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
     for candidate in candidates:
         readback = _non_advancing_apply_opl_transition_readback(candidate)
         if readback:
             return _non_advancing_apply_consumption_projection(candidate, readback=readback)
     return None
-
-
-def _non_advancing_apply_consumption_projection(
-    candidate: Mapping[str, Any],
-    *,
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    identity = _mapping_copy(readback.get("identity"))
-    aggregate_identity = _mapping_copy(identity.get("aggregate_identity"))
-    stage_run_identity = _mapping_copy(identity.get("stage_run_identity"))
-    latest_transaction = _mapping_copy(readback.get("latest_transaction_readback"))
-    return {
-        key: value
-        for key, value in {
-            "surface_kind": "opl_transition_non_advancing_apply_consumed",
-            "source": "opl_domain_progress_transition_runtime_live_readback",
-            "blocker_type": "non_advancing_apply",
-            "blocked_reason": "opl_transition_request_missing_for_authorized_stage_packet",
-            "study_id": _non_empty_text(candidate.get("study_id"))
-            or _non_empty_text(aggregate_identity.get("study_id")),
-            "action_type": _non_empty_text(candidate.get("action_type")),
-            "work_unit_id": _non_empty_text(candidate.get("work_unit_id"))
-            or _non_empty_text(aggregate_identity.get("work_unit_id")),
-            "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint"))
-            or _non_empty_text(candidate.get("action_fingerprint"))
-            or _non_empty_text(aggregate_identity.get("work_unit_fingerprint")),
-            "route_identity_key": _non_empty_text(candidate.get("route_identity_key"))
-            or _non_empty_text(stage_run_identity.get("route_identity_key")),
-            "attempt_idempotency_key": _non_empty_text(candidate.get("attempt_idempotency_key"))
-            or _non_empty_text(stage_run_identity.get("attempt_idempotency_key")),
-            "event_id": _non_empty_text(identity.get("latest_event_id"))
-            or _non_empty_text(latest_transaction.get("event_id")),
-            "outbox_item_id": _non_empty_text(identity.get("latest_outbox_item_id"))
-            or _non_empty_text(latest_transaction.get("outbox_item_id")),
-            "transaction_id": _non_empty_text(identity.get("latest_transaction_id"))
-            or _non_empty_text(latest_transaction.get("transaction_id")),
-            "provider_admission_allowed": False,
-            "current_executable_owner_action_allowed": False,
-            "paper_progress_delta": False,
-            "provider_completion_is_domain_completion": False,
-            "authority_boundary": {
-                "projection_only": True,
-                "runtime_owner": "one-person-lab",
-                "domain_truth_owner": "med-autoscience",
-                "can_authorize_provider_admission": False,
-                "can_start_provider_attempt": False,
-                "provider_running_is_paper_progress": False,
-                "provider_completion_is_domain_completion": False,
-                "paper_progress_delta": False,
-            },
-        }.items()
-        if value not in (None, "", [], {})
-    }
 
 
 def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
@@ -1102,20 +949,6 @@ def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[s
             "source_refs": source_refs,
         },
     }
-
-
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = _non_empty_text(value)
-        return [text] if text is not None else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    items: list[str] = []
-    for item in value:
-        text = _non_empty_text(item)
-        if text is not None and text not in items:
-            items.append(text)
-    return items
 
 
 def _provider_admission_currentness_basis(
