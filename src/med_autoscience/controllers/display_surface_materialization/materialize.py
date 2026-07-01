@@ -619,7 +619,6 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         if (
             display_kind == "figure"
             and shell_payload
-            and not display_registry.is_evidence_figure_template(requirement_key)
         ):
             contract_path = _resolve_contract_backed_figure_contract_path(
                 paper_root=resolved_paper_root,

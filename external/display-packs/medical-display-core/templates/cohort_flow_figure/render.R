@@ -291,6 +291,110 @@ cohort_step_frame <- function(steps, step_ids) {
   )
 }
 
+cohort_flow_mode <- function(payload) {
+  mode <- trimws(as.character(payload$flow_mode %||% "participant_flow"))
+  if (nzchar(mode)) mode else "participant_flow"
+}
+
+cohort_integer <- function(value, field_name) {
+  numeric_value <- suppressWarnings(as.integer(value))
+  if (is.na(numeric_value)) {
+    stop(sprintf("cohort_flow_figure %s must be an integer", field_name))
+  }
+  numeric_value
+}
+
+cohort_count_label <- function(n) {
+  format(as.integer(n), big.mark = ",", scientific = FALSE)
+}
+
+cohort_denominator_step <- function(payload) {
+  denominator_step_id <- trimws(as.character(payload$denominator_step_id %||% ""))
+  if (!nzchar(denominator_step_id)) {
+    stop("cohort_flow_figure source_layer_accounting requires denominator_step_id")
+  }
+  steps <- required_list(payload, "steps")
+  for (index in seq_along(steps)) {
+    step_id <- cohort_step_id(steps[[index]], index)
+    if (identical(step_id, make.names(denominator_step_id))) {
+      step <- steps[[index]]
+      label <- trimws(as.character(step$label %||% ""))
+      n <- cohort_integer(step$n, sprintf("steps[%d].n", index))
+      if (!nzchar(label)) {
+        stop(sprintf("cohort_flow_figure steps[%d].label must be non-empty", index))
+      }
+      return(list(step_id = step_id, label = label, n = n, detail = trimws(as.character(step$detail %||% ""))))
+    }
+  }
+  stop("cohort_flow_figure denominator_step_id must reference a declared step")
+}
+
+normalize_source_layers <- function(payload) {
+  source_layers <- payload$source_layers %||% list()
+  if (!is.list(source_layers) || length(source_layers) < 1) {
+    stop("cohort_flow_figure source_layer_accounting requires non-empty source_layers")
+  }
+  normalized <- list()
+  seen_ids <- character(0)
+  for (index in seq_along(source_layers)) {
+    layer <- source_layers[[index]]
+    layer_id <- trimws(as.character(layer$layer_id %||% layer$step_id %||% sprintf("source_layer_%d", index)))
+    label <- trimws(as.character(layer$label %||% ""))
+    n <- cohort_integer(layer$n, sprintf("source_layers[%d].n", index))
+    if (!nzchar(layer_id) || !nzchar(label)) {
+      stop(sprintf("cohort_flow_figure source_layers[%d] requires layer_id, label, and n", index))
+    }
+    layer_id <- make.names(layer_id)
+    if (layer_id %in% seen_ids) {
+      stop(sprintf("cohort_flow_figure source_layers[%d].layer_id must be unique", index))
+    }
+    seen_ids <- c(seen_ids, layer_id)
+    normalized[[length(normalized) + 1]] <- list(
+      layer_id = layer_id,
+      step_id = trimws(as.character(layer$step_id %||% layer_id)),
+      label = label,
+      detail = trimws(as.character(layer$detail %||% "")),
+      n = n
+    )
+  }
+  normalized
+}
+
+normalize_subcohort_coverage <- function(payload) {
+  coverage_items <- payload$subcohort_coverage %||% list()
+  if (!is.list(coverage_items) || length(coverage_items) < 1) {
+    stop("cohort_flow_figure source_layer_accounting requires non-empty subcohort_coverage")
+  }
+  normalized <- list()
+  seen_ids <- character(0)
+  for (index in seq_along(coverage_items)) {
+    item <- coverage_items[[index]]
+    coverage_id <- trimws(as.character(item$coverage_id %||% sprintf("coverage_%d", index)))
+    label <- trimws(as.character(item$label %||% ""))
+    n <- cohort_integer(item$n, sprintf("subcohort_coverage[%d].n", index))
+    denominator_n <- item$denominator_n
+    if (!is.null(denominator_n)) {
+      denominator_n <- cohort_integer(denominator_n, sprintf("subcohort_coverage[%d].denominator_n", index))
+    }
+    if (!nzchar(coverage_id) || !nzchar(label)) {
+      stop(sprintf("cohort_flow_figure subcohort_coverage[%d] requires coverage_id, label, and n", index))
+    }
+    coverage_id <- make.names(coverage_id)
+    if (coverage_id %in% seen_ids) {
+      stop(sprintf("cohort_flow_figure subcohort_coverage[%d].coverage_id must be unique", index))
+    }
+    seen_ids <- c(seen_ids, coverage_id)
+    normalized[[length(normalized) + 1]] <- list(
+      coverage_id = coverage_id,
+      label = label,
+      detail = trimws(as.character(item$detail %||% "")),
+      n = n,
+      denominator_n = denominator_n
+    )
+  }
+  normalized
+}
+
 cohort_exclusion_frame <- function(exclusions, step_df, step_ids) {
   if (length(exclusions) < 1) {
     return(data.frame())
@@ -315,7 +419,190 @@ cohort_exclusion_frame <- function(exclusions, step_df, step_ids) {
   do.call(rbind, rows)
 }
 
+source_layer_label <- function(layer) {
+  paste(
+    c(
+      strwrap(layer$label, width = 22, simplify = FALSE)[[1]],
+      sprintf("n=%s", cohort_count_label(layer$n))
+    ),
+    collapse = "\n"
+  )
+}
+
+source_layer_frame <- function(source_layers) {
+  count <- length(source_layers)
+  x_values <- if (count == 1) 0 else seq(from = -25, to = 25, length.out = count)
+  data.frame(
+    layer_id = vapply(source_layers, function(layer) layer$layer_id, character(1)),
+    label = vapply(source_layers, source_layer_label, character(1)),
+    x = x_values,
+    y = rep(62, count),
+    stringsAsFactors = FALSE
+  )
+}
+
+coverage_frame <- function(subcohort_coverage) {
+  max_n <- max(vapply(subcohort_coverage, function(item) item$n, numeric(1)))
+  if (!is.finite(max_n) || max_n <= 0) {
+    max_n <- 1
+  }
+  y_values <- rev(seq(from = 17, to = 37, length.out = length(subcohort_coverage)))
+  data.frame(
+    coverage_id = vapply(subcohort_coverage, function(item) item$coverage_id, character(1)),
+    label = vapply(subcohort_coverage, function(item) item$label, character(1)),
+    n = vapply(subcohort_coverage, function(item) item$n, numeric(1)),
+    denominator_n = vapply(subcohort_coverage, function(item) item$denominator_n %||% NA_integer_, numeric(1)),
+    width = vapply(subcohort_coverage, function(item) item$n, numeric(1)) / max_n * 44,
+    y = y_values,
+    stringsAsFactors = FALSE
+  )
+}
+
+build_source_layer_accounting_plot <- function(payload) {
+  require_ggconsort()
+  render_context <- payload$render_context %||% list()
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
+  denominator <- cohort_denominator_step(payload)
+  source_layers <- normalize_source_layers(payload)
+  subcohort_coverage <- normalize_subcohort_coverage(payload)
+  source_total <- sum(vapply(source_layers, function(layer) layer$n, numeric(1)))
+  if (!identical(as.integer(source_total), as.integer(denominator$n))) {
+    stop("cohort_flow_figure source_layers n must sum to denominator step n")
+  }
+  layer_df <- source_layer_frame(source_layers)
+  coverage_df <- coverage_frame(subcohort_coverage)
+
+  node_fill <- style_color(payload, "flow_main_fill", "#F2F5F7")
+  node_edge <- style_color(payload, "flow_main_edge", "#7B8794")
+  layer_fill <- style_color(payload, "flow_primary_fill", "#D9EAF0")
+  layer_edge <- style_color(payload, "flow_primary_edge", "#245A6B")
+  coverage_fill <- style_color(payload, "flow_context_fill", "#E6EDF5")
+  coverage_edge <- style_color(payload, "flow_context_edge", "#2F5D8A")
+  text_colour <- style_color(payload, "flow_body_text", "#111827")
+  panel_label_colour <- style_color(payload, "flow_panel_label", text_colour)
+
+  denominator_label <- paste(
+    c(
+      strwrap(denominator$label, width = 30, simplify = FALSE)[[1]],
+      sprintf("n=%s", cohort_count_label(denominator$n))
+    ),
+    collapse = "\n"
+  )
+
+  plot <- ggplot2::ggplot() +
+    ggplot2::theme_void() +
+    ggplot2::coord_cartesian(xlim = c(-42, 42), ylim = c(0, 100), clip = "off") +
+    ggplot2::annotate("text", x = -39, y = 96, label = "A", hjust = 0, vjust = 1, fontface = "bold", size = 4.0, colour = panel_label_colour) +
+    ggplot2::annotate("text", x = -39, y = 44, label = "B", hjust = 0, vjust = 1, fontface = "bold", size = 4.0, colour = panel_label_colour) +
+    ggplot2::annotate(
+      "rect",
+      xmin = -20,
+      xmax = 20,
+      ymin = 82,
+      ymax = 94,
+      fill = node_fill,
+      colour = node_edge,
+      linewidth = 0.36
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = 0,
+      y = 88,
+      label = denominator_label,
+      hjust = 0.5,
+      vjust = 0.5,
+      size = 3.2,
+      colour = text_colour,
+      lineheight = 0.9
+    )
+  for (index in seq_len(nrow(layer_df))) {
+    plot <- plot +
+      ggplot2::annotate(
+        "segment",
+        x = 0,
+        xend = layer_df$x[[index]],
+        y = 82,
+        yend = layer_df$y[[index]] + 7,
+        colour = node_edge,
+        linewidth = 0.28
+      ) +
+      ggplot2::annotate(
+        "rect",
+        xmin = layer_df$x[[index]] - 12,
+        xmax = layer_df$x[[index]] + 12,
+        ymin = layer_df$y[[index]] - 7,
+        ymax = layer_df$y[[index]] + 7,
+        fill = layer_fill,
+        colour = layer_edge,
+        linewidth = 0.34
+      ) +
+      ggplot2::annotate(
+        "text",
+        x = layer_df$x[[index]],
+        y = layer_df$y[[index]],
+        label = layer_df$label[[index]],
+        hjust = 0.5,
+        vjust = 0.5,
+        size = 2.85,
+        colour = text_colour,
+        lineheight = 0.88
+      )
+  }
+  for (index in seq_len(nrow(coverage_df))) {
+    n_label <- if (is.na(coverage_df$denominator_n[[index]])) {
+      sprintf("n=%s", cohort_count_label(coverage_df$n[[index]]))
+    } else {
+      sprintf("n=%s/%s", cohort_count_label(coverage_df$n[[index]]), cohort_count_label(coverage_df$denominator_n[[index]]))
+    }
+    plot <- plot +
+      ggplot2::annotate(
+        "rect",
+        xmin = -20,
+        xmax = -20 + coverage_df$width[[index]],
+        ymin = coverage_df$y[[index]] - 4.2,
+        ymax = coverage_df$y[[index]] + 4.2,
+        fill = coverage_fill,
+        colour = coverage_edge,
+        linewidth = 0.32
+      ) +
+      ggplot2::annotate(
+        "text",
+        x = -38,
+        y = coverage_df$y[[index]],
+        label = wrap_plain_label(coverage_df$label[[index]], width = 20),
+        hjust = 0,
+        vjust = 0.5,
+        size = 2.85,
+        colour = text_colour,
+        lineheight = 0.88
+      ) +
+      ggplot2::annotate(
+        "text",
+        x = 28,
+        y = coverage_df$y[[index]],
+        label = n_label,
+        hjust = 0,
+        vjust = 0.5,
+        size = 2.75,
+        colour = text_colour,
+        lineheight = 0.88
+      )
+  }
+  if (show_figure_title) {
+    plot <- plot +
+      ggplot2::labs(title = trimws(as.character(payload$title %||% "Cohort source accounting"))) +
+      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 11, hjust = 0))
+  } else {
+    plot <- plot + ggplot2::theme(plot.title = ggplot2::element_blank())
+  }
+  plot
+}
+
 build_ggconsort_plot <- function(payload) {
+  if (identical(cohort_flow_mode(payload), "source_layer_accounting")) {
+    return(build_source_layer_accounting_plot(payload))
+  }
   require_ggconsort()
   render_context <- payload$render_context %||% list()
   layout_override <- render_context$layout_override %||% list()
@@ -469,8 +756,8 @@ build_ggconsort_plot <- function(payload) {
   plot
 }
 
-sidecar_box <- function(box_id, box_type, x0, y0, x1, y1) {
-  list(
+sidecar_box <- function(box_id, box_type, x0, y0, x1, y1, panel_id = "") {
+  box <- list(
     box_id = box_id,
     box_type = box_type,
     x0 = min(as.numeric(x0), as.numeric(x1)),
@@ -478,9 +765,189 @@ sidecar_box <- function(box_id, box_type, x0, y0, x1, y1) {
     x1 = max(as.numeric(x0), as.numeric(x1)),
     y1 = max(as.numeric(y0), as.numeric(y1))
   )
+  panel_id <- trimws(as.character(panel_id %||% ""))
+  if (nzchar(panel_id)) {
+    box$panel_id <- panel_id
+  }
+  box
+}
+
+declared_panel_ids <- function(payload) {
+  panels <- payload$panels %||% list()
+  panel_ids <- vapply(panels, function(panel) {
+    trimws(as.character(panel$panel_id %||% ""))
+  }, character(1))
+  panel_ids[nzchar(panel_ids)]
+}
+
+source_accounting_panel_id <- function(panel_ids, fallback, position) {
+  if (fallback %in% panel_ids) {
+    return(fallback)
+  }
+  if (length(panel_ids) >= position) {
+    return(panel_ids[[position]])
+  }
+  ""
+}
+
+build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
+  render_context <- payload$render_context %||% list()
+  layout_override <- render_context$layout_override %||% list()
+  show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
+  denominator <- cohort_denominator_step(payload)
+  source_layers <- normalize_source_layers(payload)
+  subcohort_coverage <- normalize_subcohort_coverage(payload)
+  panel_ids <- declared_panel_ids(payload)
+  panel_a_id <- source_accounting_panel_id(panel_ids, "A", 1)
+  panel_b_id <- source_accounting_panel_id(panel_ids, "B", 2)
+  rendered_panel_ids <- panel_ids
+  source_count <- length(source_layers)
+  source_centers <- if (source_count == 1) 0.50 else seq(from = 0.20, to = 0.80, length.out = source_count)
+  coverage_count <- length(subcohort_coverage)
+  coverage_y <- if (coverage_count == 1) 0.26 else seq(from = 0.34, to = 0.17, length.out = coverage_count)
+  coverage_n <- vapply(subcohort_coverage, function(item) item$n, numeric(1))
+  coverage_max <- max(coverage_n)
+  if (!is.finite(coverage_max) || coverage_max <= 0) {
+    coverage_max <- 1
+  }
+  layout_boxes <- list()
+  if (show_figure_title) {
+    layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.94, 0.95, 0.98))
+  }
+  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("panel_label_A", "panel_label", 0.075, 0.905, 0.11, 0.94, panel_id = panel_a_id)
+  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("panel_label_B", "panel_label", 0.075, 0.405, 0.11, 0.44, panel_id = panel_b_id)
+  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+    paste0("source_denominator_", denominator$step_id),
+    "main_step",
+    0.32,
+    0.79,
+    0.68,
+    0.91,
+    panel_id = panel_a_id
+  )
+  flow_nodes <- list(list(
+    box_id = paste0("source_denominator_", denominator$step_id),
+    box_type = "main_step",
+    line_count = 2L,
+    max_line_chars = 44L,
+    rendered_height_pt = 78.0,
+    rendered_width_pt = 260.0,
+    padding_pt = 9.0
+  ))
+  guide_boxes <- list()
+  for (index in seq_along(source_layers)) {
+    layer <- source_layers[[index]]
+    x_center <- source_centers[[index]]
+    box_id <- paste0("source_layer_", layer$layer_id)
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      box_id,
+      "source_layer_box",
+      x_center - 0.13,
+      0.55,
+      x_center + 0.13,
+      0.70,
+      panel_id = panel_a_id
+    )
+    guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
+      paste0("source_layer_link_", layer$layer_id),
+      "source_layer_connector",
+      min(0.50, x_center),
+      0.70,
+      max(0.50, x_center),
+      0.79,
+      panel_id = panel_a_id
+    )
+    flow_nodes[[length(flow_nodes) + 1]] <- list(
+      box_id = box_id,
+      box_type = "source_layer_box",
+      line_count = 2L,
+      max_line_chars = 40L,
+      rendered_height_pt = 72.0,
+      rendered_width_pt = 170.0,
+      padding_pt = 8.0
+    )
+  }
+  for (index in seq_along(subcohort_coverage)) {
+    item <- subcohort_coverage[[index]]
+    y_center <- coverage_y[[index]]
+    width <- 0.42 * (item$n / coverage_max)
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      paste0("coverage_label_", item$coverage_id),
+      "coverage_label",
+      0.11,
+      y_center - 0.028,
+      0.31,
+      y_center + 0.028,
+      panel_id = panel_b_id
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      paste0("coverage_bar_", item$coverage_id),
+      "coverage_bar",
+      0.34,
+      y_center - 0.038,
+      0.34 + width,
+      y_center + 0.038,
+      panel_id = panel_b_id
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
+      paste0("coverage_value_", item$coverage_id),
+      "coverage_value",
+      0.78,
+      y_center - 0.026,
+      0.94,
+      y_center + 0.026,
+      panel_id = panel_b_id
+    )
+    flow_nodes[[length(flow_nodes) + 1]] <- list(
+      box_id = paste0("coverage_bar_", item$coverage_id),
+      box_type = "coverage_bar",
+      line_count = 1L,
+      max_line_chars = 24L,
+      rendered_height_pt = 52.0,
+      rendered_width_pt = 180.0,
+      padding_pt = 6.0
+    )
+  }
+  list(
+    template_id = "cohort_flow_figure",
+    device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+    layout_boxes = layout_boxes,
+    panel_boxes = list(
+      sidecar_box("subfigure_panel_A", "subfigure_panel", 0.06, 0.49, 0.98, 0.94, panel_id = panel_a_id),
+      sidecar_box("subfigure_panel_B", "subfigure_panel", 0.06, 0.08, 0.98, 0.44, panel_id = panel_b_id)
+    ),
+    guide_boxes = guide_boxes,
+    metrics = list(
+      layout_mode = "source_layer_accounting",
+      reporting_flow_kind = "cohort_source_layer_and_subcohort_coverage",
+      dependency_profile_ref = "r_ggplot2_ggconsort_reporting_flow_v1",
+      mature_dependency_intent = "ggconsort_capable_reporting_flow",
+      source_renderer = "MAS/ReportingFlow::cohort_flow_figure",
+      figure_purpose = "participant_accounting_and_strobe_source_boundary",
+      rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
+      uses_ggconsort = TRUE,
+      panel_ids = rendered_panel_ids,
+      ggconsort_capable_prepared_environment_required = TRUE,
+      renderer_family = "r_ggplot2",
+      renderer_role = "default",
+      opl_dependency_run_context_ref = dependency_environment$run_context_ref %||% "",
+      opl_dependency_run_context_fingerprint = dependency_environment$run_context_fingerprint %||% "",
+      publication_runtime_receipt = identical(dependency_environment$status %||% "", "prepared"),
+      gallery_preview_dependency_context = identical(dependency_environment$status %||% "", "gallery_preview"),
+      denominator_step = denominator,
+      source_layers = source_layers,
+      subcohort_coverage = subcohort_coverage,
+      exported_centers = payload$exported_centers %||% NULL,
+      flow_nodes = flow_nodes
+    ),
+    render_context = payload$render_context %||% list()
+  )
 }
 
 build_layout_sidecar <- function(payload, dependency_environment) {
+  if (identical(cohort_flow_mode(payload), "source_layer_accounting")) {
+    return(build_source_layer_layout_sidecar(payload, dependency_environment))
+  }
   render_context <- payload$render_context %||% list()
   layout_override <- render_context$layout_override %||% list()
   show_figure_title <- style_bool(layout_override, "show_figure_title", FALSE)
@@ -488,6 +955,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   exclusions <- payload$exclusions %||% list()
   endpoint_inventory <- payload$endpoint_inventory %||% list()
   design_panels <- payload$design_panels %||% list()
+  panel_ids <- declared_panel_ids(payload)
+  rendered_panel_ids <- if (length(panel_ids) == 1) panel_ids else character(0)
   has_side_content <- length(exclusions) > 0 || length(endpoint_inventory) > 0 || length(design_panels) > 0
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
   stack_top <- 0.835
@@ -618,7 +1087,15 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     template_id = "cohort_flow_figure",
     device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
     layout_boxes = layout_boxes,
-    panel_boxes = list(sidecar_box("participant_flow_main", "subfigure_panel", 0.06, flow_panel_y0, 0.98, flow_panel_y1)),
+    panel_boxes = list(sidecar_box(
+      "participant_flow_main",
+      "subfigure_panel",
+      0.06,
+      flow_panel_y0,
+      0.98,
+      flow_panel_y1,
+      panel_id = if (length(rendered_panel_ids) == 1) rendered_panel_ids[[1]] else ""
+    )),
     guide_boxes = guide_boxes,
     metrics = list(
       layout_mode = "participant_flow",
@@ -629,6 +1106,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       figure_purpose = "participant_accounting_and_strobe_consort_flow",
       rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
       uses_ggconsort = TRUE,
+      panel_ids = rendered_panel_ids,
       ggconsort_capable_prepared_environment_required = TRUE,
       renderer_family = "r_ggplot2",
       renderer_role = "default",

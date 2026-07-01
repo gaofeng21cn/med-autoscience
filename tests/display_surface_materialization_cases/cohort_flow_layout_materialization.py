@@ -345,3 +345,91 @@ def test_materialize_display_surface_normalizes_dense_participant_flow_sidecar(
     assert entry["source_renderer"] == "MAS/ReportingFlow::cohort_flow_figure"
     assert entry["figure_purpose"] == "participant_accounting_and_strobe_consort_flow"
     assert entry["rendered_title_policy"] == "figure_title_metadata_only_not_drawn_inside_plot"
+
+
+def test_materialize_display_surface_renders_source_layer_accounting_without_sequential_spine(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "Figure1",
+            "title": "Cohort and source-layer accounting",
+            "caption": "Cohort denominator and source layers with Xiangya2 subcohort coverage.",
+            "flow_mode": "source_layer_accounting",
+            "denominator_step_id": "registry_records",
+            "steps": [
+                {"step_id": "registry_records", "label": "Declared analytic registry records", "n": 4189},
+                {"step_id": "alliance_platform_records", "label": "Alliance platform source layer", "n": 2451},
+                {"step_id": "xiangya2_management_records", "label": "Xiangya2 management clinic source layer", "n": 1204},
+                {"step_id": "xiangya2_precision_records", "label": "Xiangya2 precision clinic source layer", "n": 534},
+            ],
+            "source_layers": [
+                {
+                    "layer_id": "alliance_platform_records",
+                    "step_id": "alliance_platform_records",
+                    "label": "Alliance platform source layer",
+                    "n": 2451,
+                },
+                {
+                    "layer_id": "xiangya2_management_records",
+                    "step_id": "xiangya2_management_records",
+                    "label": "Xiangya2 management clinic source layer",
+                    "n": 1204,
+                },
+                {
+                    "layer_id": "xiangya2_precision_records",
+                    "step_id": "xiangya2_precision_records",
+                    "label": "Xiangya2 precision clinic source layer",
+                    "n": 534,
+                },
+            ],
+            "subcohort_coverage": [
+                {
+                    "coverage_id": "xiangya2_subcohort",
+                    "label": "Xiangya2 subcohort",
+                    "n": 1748,
+                    "denominator_n": 4189,
+                },
+                {
+                    "coverage_id": "phq9_available",
+                    "label": "PHQ-9 available",
+                    "n": 979,
+                    "denominator_n": 1748,
+                },
+                {
+                    "coverage_id": "gad7_available",
+                    "label": "GAD-7 available",
+                    "n": 993,
+                    "denominator_n": 1748,
+                },
+            ],
+            "exported_centers": 33,
+            "exclusions": [],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["figures_materialized"] == ["F1"]
+    layout = json.loads((paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json").read_text(encoding="utf-8"))
+    assert layout["metrics"]["layout_mode"] == "source_layer_accounting"
+    assert layout["metrics"]["reporting_flow_kind"] == "cohort_source_layer_and_subcohort_coverage"
+    assert layout["metrics"]["figure_purpose"] == "participant_accounting_and_strobe_source_boundary"
+    assert layout["metrics"]["uses_ggconsort"] is True
+    assert [item["n"] for item in layout["metrics"]["source_layers"]] == [2451, 1204, 534]
+    assert [item["n"] for item in layout["metrics"]["subcohort_coverage"]] == [1748, 979, 993]
+    assert layout["metrics"]["exported_centers"] == 33
+    assert not any(item["box_type"] == "flow_connector" for item in layout["guide_boxes"])
+    assert any(item["box_type"] == "source_layer_connector" for item in layout["guide_boxes"])
+    assert any(item["box_type"] == "source_layer_box" for item in layout["layout_boxes"])
+    assert any(item["box_type"] == "coverage_bar" for item in layout["layout_boxes"])
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    entry = figure_catalog["figures"][0]
+    assert entry["qc_result"]["status"] == "pass"
+    assert entry["figure_purpose"] == "participant_accounting_and_strobe_source_boundary"

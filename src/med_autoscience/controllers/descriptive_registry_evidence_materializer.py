@@ -228,7 +228,8 @@ def _build_baseline_payload(rows: list[dict[str, str]]) -> dict[str, Any]:
         "title": "Baseline characteristics by registry source",
         "caption": (
             "Descriptive baseline characteristics across prespecified registry sources. "
-            "Denominators are available-record denominators and do not support prevalence or causal claims."
+            "Denominators are available-record denominators and do not support population-level burden "
+            "or cause-and-effect claims."
         ),
         "groups": groups,
         "variables": variables,
@@ -283,6 +284,111 @@ def _build_t3_source_rows(rows: list[dict[str, str]]) -> list[list[str]]:
     ]
 
 
+def _source_rows_for_key(rows: list[dict[str, str]], source_key: str) -> list[dict[str, str]]:
+    return [row for row in rows if _normalize_source_key(row) == source_key]
+
+
+def _xiangya2_subcohort_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        row
+        for row in rows
+        if _normalize_source_key(row) in {"management", "precision"}
+        or "xiangya" in _normalize_source_label(row).lower()
+        or "湘雅" in str(row.get("center_name") or "")
+    ]
+
+
+def _build_cohort_flow_payload(rows: list[dict[str, str]]) -> dict[str, Any]:
+    source_layers = [
+        {
+            "layer_id": "alliance_platform_records",
+            "step_id": "alliance_platform_records",
+            "label": "Alliance platform source layer",
+            "detail": "Records attributed to the Hunan Obesity Alliance platform source.",
+            "n": len(_source_rows_for_key(rows, "alliance")),
+        },
+        {
+            "layer_id": "xiangya2_management_records",
+            "step_id": "xiangya2_management_records",
+            "label": "Xiangya Second Hospital management clinic source layer",
+            "detail": "Records attributed to the Xiangya Second Hospital management clinic source.",
+            "n": len(_source_rows_for_key(rows, "management")),
+        },
+        {
+            "layer_id": "xiangya2_precision_records",
+            "step_id": "xiangya2_precision_records",
+            "label": "Xiangya Second Hospital precision clinic source layer",
+            "detail": "Records attributed to the Xiangya Second Hospital precision clinic source.",
+            "n": len(_source_rows_for_key(rows, "precision")),
+        },
+    ]
+    xiangya2_rows = _xiangya2_subcohort_rows(rows)
+    phq9_rows = [row for row in xiangya2_rows if _nonmissing(row, "phq9_total")]
+    gad7_rows = [row for row in xiangya2_rows if _nonmissing(row, "gad7_total")]
+    exported_centers = len(
+        {str(row.get("center_code") or "").strip() for row in rows if str(row.get("center_code") or "").strip()}
+    )
+    return {
+        "schema_version": 1,
+        "shell_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+        "display_id": "cohort_flow",
+        "catalog_id": "F1",
+        "paper_role": "main_text",
+        "flow_mode": "source_layer_accounting",
+        "denominator_step_id": "registry_records",
+        "title": "Cohort and source-layer accounting for the Hunan Obesity Alliance registry",
+        "caption": (
+            f"Cohort and source-layer accounting for {len(rows)} de-identified records in the first descriptive "
+            "obesity phenotype atlas. Counts distinguish alliance platform records, Xiangya Second Hospital "
+            "management clinic records, and Xiangya Second Hospital precision clinic records; psychobehavioral "
+            "interpretation remains limited to the Xiangya Second Hospital subcohort unless wider coverage is proven."
+        ),
+        "steps": [
+            {
+                "step_id": "registry_records",
+                "label": "Declared analytic registry records",
+                "detail": "De-identified records available for descriptive cohort accounting.",
+                "n": len(rows),
+            },
+            *[
+                {
+                    "step_id": layer["step_id"],
+                    "label": layer["label"],
+                    "detail": layer["detail"],
+                    "n": layer["n"],
+                }
+                for layer in source_layers
+            ],
+        ],
+        "source_layers": source_layers,
+        "subcohort_coverage": [
+            {
+                "coverage_id": "xiangya2_subcohort",
+                "label": "Xiangya Second Hospital subcohort",
+                "detail": "Management and precision clinic records.",
+                "n": len(xiangya2_rows),
+                "denominator_n": len(rows),
+            },
+            {
+                "coverage_id": "phq9_available",
+                "label": "PHQ-9 available",
+                "detail": "Psychobehavioral availability within the Xiangya2 subcohort.",
+                "n": len(phq9_rows),
+                "denominator_n": len(xiangya2_rows),
+            },
+            {
+                "coverage_id": "gad7_available",
+                "label": "GAD-7 available",
+                "detail": "Psychobehavioral availability within the Xiangya2 subcohort.",
+                "n": len(gad7_rows),
+                "denominator_n": len(xiangya2_rows),
+            },
+        ],
+        "exported_centers": exported_centers,
+        "exclusions": [],
+    }
+
+
 def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, Any]:
     def close_items(
         items: tuple[str, ...],
@@ -302,7 +408,9 @@ def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, 
         }
 
     not_applicable = "not_applicable_with_rationale"
-    no_treatment_note = "Descriptive registry atlas; treatment-effect and practice-changing claims are explicitly out of scope."
+    no_treatment_note = (
+        "Descriptive registry atlas; treatment response and practice-changing claims are explicitly out of scope."
+    )
     return {
         "study_archetype": "clinical_subtype_reconstruction",
         "paper_archetype": "clinical_subtype_reconstruction",
@@ -498,7 +606,8 @@ def _claim_rows() -> list[dict[str, Any]]:
             "claim_id": "descriptive-cross-sectional-boundary",
             "statement": (
                 "The manuscript is limited to a STROBE-aligned descriptive cross-sectional registry atlas "
-                "and does not support prevalence, causal, prognostic, or treatment-effect claims."
+                "and does not support population-level burden, cause-and-effect, future-risk, "
+                "or treatment-response claims."
             ),
             "status": "boundary_supported",
             "paper_role": "main_text",
@@ -542,7 +651,8 @@ def _ledger_claims_from_claims(claims: list[dict[str, Any]]) -> list[dict[str, A
                         "gap_id": f"{claim_id}-descriptive-scope-limitation",
                         "description": (
                             "The evidence supports descriptive registry reporting only and does not establish "
-                            "population prevalence, prognosis, causal effects, or treatment effectiveness."
+                            "population-level burden, future risk, cause-and-effect relationships, "
+                            "or treatment response."
                         ),
                         "submission_impact": (
                             "Keep the claim bounded to available-record denominators and preserve the "
@@ -556,7 +666,7 @@ def _ledger_claims_from_claims(claims: list[dict[str, Any]]) -> list[dict[str, A
                         "priority": "required_before_submission",
                         "description": (
                             "Bind the claim to its listed display and source paths, and avoid prevalence, "
-                            "causal, prognostic, or treatment-effect wording in the manuscript."
+                            "cause-and-effect, future-risk, or treatment-response wording in the manuscript."
                         ),
                     }
                 ],
@@ -586,7 +696,10 @@ def _results_narrative_map() -> dict[str, Any]:
                 "clinical_meaning": (
                     "The source-layer accounting defines where the descriptive findings can be interpreted."
                 ),
-                "boundary": "Descriptive denominator accounting only; not a prevalence or causal estimate.",
+                "boundary": (
+                    "Descriptive denominator accounting only; not a population-level burden "
+                    "or cause-and-effect estimate."
+                ),
             },
             {
                 "section_id": "bmi_metabolic_comorbidity_burden",
@@ -605,7 +718,7 @@ def _results_narrative_map() -> dict[str, Any]:
                 "clinical_meaning": (
                     "The table supports descriptive prioritization of phenotype burden within the observed registry."
                 ),
-                "boundary": "No treatment-effect, prognosis, or population prevalence claim is made.",
+                "boundary": "No treatment-response, future-risk, or population-level burden claim is made.",
             },
             {
                 "section_id": "center_psychobehavioral_support",
@@ -641,7 +754,10 @@ def _closed_charter_expectations(now: str) -> list[dict[str, Any]]:
         "xiangya2_psychobehavioral_subcohort_analysis": "T3 closes the Xiangya2 psychobehavioral availability surface with subcohort boundary guardrails.",
         "missingness_and_qc_supplement": "Missingness and QC support is linked through the descriptive registry materialization receipt.",
         "evidence_ledger": "Evidence ledger records claim, display, and charter expectation closures.",
-        "claim_guardrails": "Claim map and evidence ledger preserve descriptive, non-causal, non-prevalence guardrails.",
+        "claim_guardrails": (
+            "Claim map and evidence ledger preserve descriptive guardrails against population-level burden "
+            "and cause-and-effect overstatement."
+        ),
     }
     return [
         {
@@ -813,6 +929,7 @@ def _build_materialization_payload(*, study_root: Path, paper_root: Path) -> dic
             "medical_reporting_contract",
             "medical_analysis_contract",
             "display_registry",
+            "cohort_flow_payload",
             "table_shell_payloads",
             "claim_evidence_map",
             "evidence_ledger",
@@ -822,6 +939,7 @@ def _build_materialization_payload(*, study_root: Path, paper_root: Path) -> dic
         Path("medical_reporting_contract.json"): medical_reporting_contract,
         Path("medical_analysis_contract.json"): _medical_analysis_contract(study_payload, now),
         Path("display_registry.json"): _display_registry_payload(),
+        Path("cohort_flow.json"): _build_cohort_flow_payload(rows),
         Path("baseline_characteristics_schema.json"): _build_baseline_payload(rows),
         Path("phenotype_gap_summary_schema.json"): {
             "schema_version": 1,

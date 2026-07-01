@@ -15,6 +15,7 @@ from typing import Any
 from med_autoscience import display_layout_qc
 from med_autoscience.display_pack_dependency_environment import (
     apply_dependency_run_context,
+    dependency_environment_status,
     dependency_environment_authority_boundary,
     load_dependency_run_context,
 )
@@ -22,6 +23,7 @@ from med_autoscience.display_pack_lock import write_display_pack_lock
 from med_autoscience.display_pack_agent_parts.figure_workflow import (
     build_rendered_figure_workflow_packet,
 )
+from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
 from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 from med_autoscience.medical_figure_spec_contract import (
@@ -131,6 +133,28 @@ def _load_required_quality_inputs(paper_root: Path) -> tuple[dict[str, Any], lis
     return intent, figure_specs, style_reference_bundle
 
 
+def _dependency_environment_for_figure_specs(
+    *,
+    repo_root: Path,
+    paper_root: Path,
+    figure_specs: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    template_ids = {str(spec.get("template_id") or "").strip() for spec in figure_specs}
+    template_ids.discard("")
+    records = [
+        record
+        for record in load_enabled_local_display_template_records(repo_root, paper_root=paper_root)
+        if record.template_manifest.full_template_id in template_ids
+        or record.template_manifest.template_id in template_ids
+    ]
+    status = dependency_environment_status(repo_root=repo_root, paper_root=paper_root, records=records)
+    if status.get("required") is not True:
+        return {}
+    if status.get("status") == "prepared":
+        return status
+    return {}
+
+
 def _validate_intent_spec_binding(*, intent_figure: Mapping[str, Any], figure_spec: Mapping[str, Any]) -> None:
     for field_name in ("figure_id", "template_id", "figure_kind"):
         if intent_figure.get(field_name) != figure_spec.get(field_name):
@@ -138,6 +162,64 @@ def _validate_intent_spec_binding(*, intent_figure: Mapping[str, Any], figure_sp
                 f"figure_intent.{field_name} and medical_figure_spec.{field_name} must match "
                 f"for `{figure_spec.get('figure_id')}`"
             )
+
+
+def _declared_panel_ids(figure_spec: Mapping[str, Any]) -> set[str]:
+    panel_ids: set[str] = set()
+    for panel in figure_spec.get("panels") or []:
+        if isinstance(panel, Mapping):
+            panel_id = str(panel.get("panel_id") or "").strip()
+            if panel_id:
+                panel_ids.add(panel_id)
+    return panel_ids
+
+
+def _sidecar_panel_ids(layout_sidecar: Mapping[str, Any]) -> set[str]:
+    panel_ids: set[str] = set()
+    metrics = layout_sidecar.get("metrics")
+    if isinstance(metrics, Mapping):
+        raw_metric_panel_ids = metrics.get("panel_ids") or []
+        if isinstance(raw_metric_panel_ids, str):
+            metric_panel_ids = [raw_metric_panel_ids]
+        else:
+            metric_panel_ids = raw_metric_panel_ids
+        for panel_id in metric_panel_ids:
+            normalized = str(panel_id or "").strip()
+            if normalized:
+                panel_ids.add(normalized)
+    raw_panel_boxes = layout_sidecar.get("panel_boxes") or []
+    if isinstance(raw_panel_boxes, Mapping):
+        panel_boxes = [raw_panel_boxes]
+    else:
+        panel_boxes = raw_panel_boxes
+    for panel_box in panel_boxes:
+        if isinstance(panel_box, Mapping):
+            panel_id = str(panel_box.get("panel_id") or "").strip()
+            if panel_id:
+                panel_ids.add(panel_id)
+    return panel_ids
+
+
+def _validate_declared_panel_layout_contract(
+    *,
+    figure_spec: Mapping[str, Any],
+    layout_sidecar: Mapping[str, Any],
+) -> None:
+    expected_panel_ids = _declared_panel_ids(figure_spec)
+    if not expected_panel_ids:
+        return
+    observed_panel_ids = _sidecar_panel_ids(layout_sidecar)
+    missing_panel_ids = sorted(expected_panel_ids - observed_panel_ids)
+    if missing_panel_ids:
+        figure_id = str(figure_spec.get("figure_id") or "").strip()
+        observed = ", ".join(sorted(observed_panel_ids)) or "<none>"
+        missing = ", ".join(missing_panel_ids)
+        raise ValueError(
+            "display renderer did not implement declared panel semantics "
+            f"for `{figure_id}`; missing panel_id(s): {missing}; "
+            "layout sidecar must expose declared medical_figure_spec.panels IDs "
+            f"in panel_boxes[].panel_id or metrics.panel_ids; observed: {observed}"
+        )
 
 
 def _style_render_context(
@@ -524,6 +606,10 @@ def _render_figure(
         if not path.exists():
             raise FileNotFoundError(f"display pack renderer did not write required artifact: {path}")
     layout_sidecar = _read_json_object(layout_sidecar_path)
+    _validate_declared_panel_layout_contract(
+        figure_spec=figure_spec,
+        layout_sidecar=layout_sidecar,
+    )
     qc_result = display_layout_qc.run_display_layout_qc(
         qc_profile=template_manifest.qc_profile_ref,
         layout_sidecar=layout_sidecar,
@@ -888,6 +974,16 @@ def materialize_display_pack_publication_manifest(
     else:
         figure_specs = loaded_figure_specs
 
+    render_dependency_environment = (
+        dict(dependency_environment)
+        if dependency_environment is not None
+        else _dependency_environment_for_figure_specs(
+            repo_root=normalized_repo_root,
+            paper_root=normalized_paper_root,
+            figure_specs=figure_specs,
+        )
+    )
+
     figure_entries = []
     for figure_spec in figure_specs:
         figure_id = str(figure_spec["figure_id"])
@@ -899,7 +995,7 @@ def materialize_display_pack_publication_manifest(
                 paper_root=normalized_paper_root,
                 figure_spec=figure_spec,
                 intent_figure=intent_figure,
-                dependency_environment=dependency_environment,
+                dependency_environment=render_dependency_environment,
             )
         )
     audit_receipt = _write_visual_audit_receipt(
@@ -912,7 +1008,7 @@ def materialize_display_pack_publication_manifest(
         figure_entries=figure_entries,
         timestamp_factory=_utc_now,
         write_json=_write_json,
-        dependency_environment=dependency_environment,
+        dependency_environment=render_dependency_environment,
     )
     lifecycle = _write_figure_polish_lifecycle(
         paper_root=normalized_paper_root,
@@ -956,7 +1052,7 @@ def materialize_display_pack_publication_manifest(
         "display_pack_lock_ref": _workspace_ref(lock_path, paper_root=normalized_paper_root),
         "display_pack_lock_sha256": _sha256_file(lock_path),
         "publication_style_profile": publication_style_profile_lock,
-        "dependency_environment": dict(dependency_environment or {}),
+        "dependency_environment": render_dependency_environment,
         "publication_readiness_verdict": False,
         "authority_boundary": {
             "mas_display_artifact_authority": True,

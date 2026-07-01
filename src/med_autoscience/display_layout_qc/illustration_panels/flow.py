@@ -20,6 +20,9 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
+    if str(sidecar.metrics.get("layout_mode") or "").strip() == "source_layer_accounting":
+        issues.extend(_check_source_layer_accounting_flow(sidecar))
+        return issues
     issues.extend(_check_required_box_types(all_boxes, required_box_types=("main_step",)))
     if str(sidecar.metrics.get("layout_mode") or "").strip() == "participant_flow":
         issues.extend(_check_participant_reporting_flow(sidecar))
@@ -306,6 +309,179 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
             )
         )
 
+    return issues
+
+
+def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(
+        _check_required_box_types(
+            all_boxes,
+            required_box_types=("main_step", "source_layer_box", "coverage_bar", "panel_label"),
+        )
+    )
+    panel_boxes = {box.box_id: box for box in _boxes_of_type(sidecar.panel_boxes, "subfigure_panel")}
+    for panel_id in ("subfigure_panel_A", "subfigure_panel_B"):
+        if panel_id in panel_boxes:
+            continue
+        issues.append(
+            _issue(
+                rule_id="missing_subfigure_panel",
+                message="source-layer accounting requires both Panel A and Panel B containers",
+                target="panel_boxes",
+                expected=panel_id,
+            )
+        )
+
+    source_boxes = _boxes_of_type(sidecar.layout_boxes, "source_layer_box")
+    coverage_bars = _boxes_of_type(sidecar.layout_boxes, "coverage_bar")
+    coverage_labels = _boxes_of_type(sidecar.layout_boxes, "coverage_label")
+    coverage_values = _boxes_of_type(sidecar.layout_boxes, "coverage_value")
+    main_steps = _boxes_of_type(sidecar.layout_boxes, "main_step")
+    issues.extend(_check_pairwise_non_overlap(source_boxes, rule_id="source_layer_box_overlap", target="source_layer_box"))
+    issues.extend(_check_pairwise_non_overlap(coverage_bars, rule_id="coverage_bar_overlap", target="coverage_bar"))
+    issues.extend(_check_pairwise_non_overlap(coverage_labels, rule_id="coverage_label_overlap", target="coverage_label"))
+    issues.extend(_check_pairwise_non_overlap(coverage_values, rule_id="coverage_value_overlap", target="coverage_value"))
+
+    panel_a = panel_boxes.get("subfigure_panel_A")
+    if panel_a is not None:
+        for box in main_steps + source_boxes:
+            if _box_within_box(box, panel_a):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="source_layer_content_out_of_panel_a",
+                    message="denominator and source-layer boxes must stay within Panel A",
+                    target=box.box_type,
+                    box_refs=(box.box_id, panel_a.box_id),
+                )
+            )
+    panel_b = panel_boxes.get("subfigure_panel_B")
+    if panel_b is not None:
+        for box in coverage_bars + coverage_labels + coverage_values:
+            if _box_within_box(box, panel_b):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="coverage_content_out_of_panel_b",
+                    message="subcohort coverage marks must stay within Panel B",
+                    target=box.box_type,
+                    box_refs=(box.box_id, panel_b.box_id),
+                )
+            )
+
+    source_layers = [
+        item
+        for item in sidecar.metrics.get("source_layers", [])
+        if isinstance(item, dict) and str(item.get("layer_id") or "").strip()
+    ]
+    if not source_layers:
+        issues.append(
+            _issue(
+                rule_id="source_layers_missing",
+                message="source-layer accounting sidecar requires metrics.source_layers",
+                target="metrics.source_layers",
+            )
+        )
+    for layer in source_layers:
+        layer_id = str(layer.get("layer_id") or "").strip()
+        expected_box_id = f"source_layer_{layer_id}"
+        if not any(box.box_id == expected_box_id for box in source_boxes):
+            issues.append(
+                _issue(
+                    rule_id="missing_source_layer_box",
+                    message="each metrics.source_layers item must have a rendered source-layer box",
+                    target="layout_boxes",
+                    expected=expected_box_id,
+                )
+            )
+
+    coverage_items = [
+        item
+        for item in sidecar.metrics.get("subcohort_coverage", [])
+        if isinstance(item, dict) and str(item.get("coverage_id") or "").strip()
+    ]
+    if not coverage_items:
+        issues.append(
+            _issue(
+                rule_id="subcohort_coverage_missing",
+                message="source-layer accounting sidecar requires metrics.subcohort_coverage",
+                target="metrics.subcohort_coverage",
+            )
+        )
+    for item in coverage_items:
+        coverage_id = str(item.get("coverage_id") or "").strip()
+        expected_box_id = f"coverage_bar_{coverage_id}"
+        if not any(box.box_id == expected_box_id for box in coverage_bars):
+            issues.append(
+                _issue(
+                    rule_id="missing_coverage_bar",
+                    message="each metrics.subcohort_coverage item must have a rendered coverage bar",
+                    target="layout_boxes",
+                    expected=expected_box_id,
+                )
+            )
+
+    flow_nodes = sidecar.metrics.get("flow_nodes")
+    if not isinstance(flow_nodes, list) or not flow_nodes:
+        issues.append(
+            _issue(
+                rule_id="flow_nodes_missing",
+                message="source-layer accounting qc requires flow_nodes metrics for readability checks",
+                target="metrics.flow_nodes",
+            )
+        )
+        return issues
+    for index, item in enumerate(flow_nodes):
+        if not isinstance(item, dict):
+            raise ValueError(f"layout_sidecar.metrics.flow_nodes[{index}] must be an object")
+        box_type = str(item.get("box_type") or "").strip()
+        rendered_height_pt = _require_numeric(
+            item.get("rendered_height_pt"),
+            label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_height_pt",
+        )
+        rendered_width_pt = _require_numeric(
+            item.get("rendered_width_pt"),
+            label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_width_pt",
+        )
+        padding_pt = _require_numeric(
+            item.get("padding_pt"),
+            label=f"layout_sidecar.metrics.flow_nodes[{index}].padding_pt",
+        )
+        minimum_height_pt = 70.0 if box_type in {"main_step", "source_layer_box"} else 48.0
+        minimum_width_pt = 160.0 if box_type != "coverage_bar" else 120.0
+        minimum_padding_pt = 8.0 if box_type in {"main_step", "source_layer_box"} else 6.0
+        if rendered_height_pt < minimum_height_pt:
+            issues.append(
+                _issue(
+                    rule_id="flow_node_height_too_small",
+                    message="source-layer accounting node height is too small for readability",
+                    target=f"metrics.flow_nodes[{index}]",
+                    observed={"rendered_height_pt": rendered_height_pt, "box_type": box_type},
+                    expected={"minimum_height_pt": minimum_height_pt},
+                )
+            )
+        if rendered_width_pt < minimum_width_pt:
+            issues.append(
+                _issue(
+                    rule_id="flow_node_width_too_small",
+                    message="source-layer accounting node width is too small for readability",
+                    target=f"metrics.flow_nodes[{index}]",
+                    observed={"rendered_width_pt": rendered_width_pt, "box_type": box_type},
+                    expected={"minimum_width_pt": minimum_width_pt},
+                )
+            )
+        if padding_pt < minimum_padding_pt:
+            issues.append(
+                _issue(
+                    rule_id="flow_node_padding_too_small",
+                    message="source-layer accounting node padding is too small for readability",
+                    target=f"metrics.flow_nodes[{index}]",
+                    observed={"padding_pt": padding_pt, "box_type": box_type},
+                    expected={"minimum_padding_pt": minimum_padding_pt},
+                )
+            )
     return issues
 
 

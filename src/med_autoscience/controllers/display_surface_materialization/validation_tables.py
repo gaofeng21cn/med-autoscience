@@ -50,6 +50,102 @@ def _normalize_cohort_flow_design_panel_items(items: object) -> list[dict[str, A
             normalized_items.append({})
     return normalized_items
 
+
+def _validate_source_layer_accounting_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    normalized_steps: list[dict[str, Any]],
+    step_ids: set[str],
+) -> dict[str, Any]:
+    denominator_step_id = str(payload.get("denominator_step_id") or "").strip()
+    if not denominator_step_id:
+        raise ValueError(f"{path.name} source_layer_accounting requires denominator_step_id")
+    if denominator_step_id not in step_ids:
+        raise ValueError(f"{path.name} denominator_step_id must reference a declared step")
+    denominator_step = next(step for step in normalized_steps if step["step_id"] == denominator_step_id)
+
+    source_layers_payload = payload.get("source_layers")
+    if not isinstance(source_layers_payload, list) or not source_layers_payload:
+        raise ValueError(f"{path.name} source_layer_accounting requires a non-empty source_layers list")
+    normalized_source_layers: list[dict[str, Any]] = []
+    source_layer_ids: set[str] = set()
+    source_layer_total = 0
+    for index, layer in enumerate(source_layers_payload):
+        if not isinstance(layer, dict):
+            raise ValueError(f"{path.name} source_layers[{index}] must be an object")
+        layer_id = str(layer.get("layer_id") or layer.get("step_id") or "").strip()
+        step_id = str(layer.get("step_id") or layer_id).strip()
+        label = str(layer.get("label") or "").strip()
+        detail = str(layer.get("detail") or "").strip()
+        if not layer_id or not step_id or not label:
+            raise ValueError(f"{path.name} source_layers[{index}] must include layer_id, step_id, label, and n")
+        if layer_id in source_layer_ids:
+            raise ValueError(f"{path.name} source_layers[{index}].layer_id must be unique")
+        if step_id not in step_ids:
+            raise ValueError(f"{path.name} source_layers[{index}].step_id must reference a declared step")
+        raw_n = layer.get("n")
+        if not isinstance(raw_n, int):
+            raise ValueError(f"{path.name} source_layers[{index}].n must be an integer")
+        source_layer_ids.add(layer_id)
+        source_layer_total += raw_n
+        normalized_source_layers.append(
+            {
+                "layer_id": layer_id,
+                "step_id": step_id,
+                "label": label,
+                "detail": detail,
+                "n": raw_n,
+            }
+        )
+    if source_layer_total != denominator_step["n"]:
+        raise ValueError(
+            f"{path.name} source_layers n must sum to denominator_step_id `{denominator_step_id}` n"
+        )
+
+    subcohort_coverage_payload = payload.get("subcohort_coverage")
+    if not isinstance(subcohort_coverage_payload, list) or not subcohort_coverage_payload:
+        raise ValueError(f"{path.name} source_layer_accounting requires a non-empty subcohort_coverage list")
+    normalized_subcohort_coverage: list[dict[str, Any]] = []
+    coverage_ids: set[str] = set()
+    for index, item in enumerate(subcohort_coverage_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} subcohort_coverage[{index}] must be an object")
+        coverage_id = str(item.get("coverage_id") or "").strip()
+        label = str(item.get("label") or "").strip()
+        detail = str(item.get("detail") or "").strip()
+        if not coverage_id or not label:
+            raise ValueError(f"{path.name} subcohort_coverage[{index}] must include coverage_id, label, and n")
+        if coverage_id in coverage_ids:
+            raise ValueError(f"{path.name} subcohort_coverage[{index}].coverage_id must be unique")
+        raw_n = item.get("n")
+        if not isinstance(raw_n, int):
+            raise ValueError(f"{path.name} subcohort_coverage[{index}].n must be an integer")
+        raw_denominator = item.get("denominator_n")
+        if raw_denominator is not None and not isinstance(raw_denominator, int):
+            raise ValueError(f"{path.name} subcohort_coverage[{index}].denominator_n must be an integer when provided")
+        coverage_ids.add(coverage_id)
+        normalized_subcohort_coverage.append(
+            {
+                "coverage_id": coverage_id,
+                "label": label,
+                "detail": detail,
+                "n": raw_n,
+                **({"denominator_n": raw_denominator} if raw_denominator is not None else {}),
+            }
+        )
+
+    exported_centers = payload.get("exported_centers")
+    if exported_centers is not None and not isinstance(exported_centers, int):
+        raise ValueError(f"{path.name} exported_centers must be an integer when provided")
+    return {
+        "denominator_step_id": denominator_step_id,
+        "source_layers": normalized_source_layers,
+        "subcohort_coverage": normalized_subcohort_coverage,
+        **({"exported_centers": exported_centers} if exported_centers is not None else {}),
+    }
+
+
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
     steps = payload.get("steps")
     if not isinstance(steps, list) or not steps:
@@ -190,14 +286,28 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
             }
         )
 
+    flow_mode = str(payload.get("flow_mode") or "participant_flow").strip() or "participant_flow"
+    if flow_mode not in {"participant_flow", "source_layer_accounting"}:
+        raise ValueError(f"{path.name} flow_mode must be participant_flow or source_layer_accounting")
+    source_layer_payload: dict[str, Any] = {}
+    if flow_mode == "source_layer_accounting":
+        source_layer_payload = _validate_source_layer_accounting_payload(
+            path=path,
+            payload=payload,
+            normalized_steps=normalized_steps,
+            step_ids=step_ids,
+        )
+
     return {
         "display_id": str(payload.get("display_id") or "").strip(),
         "title": str(payload.get("title") or "").strip(),
         "caption": str(payload.get("caption") or "").strip(),
+        "flow_mode": flow_mode,
         "steps": normalized_steps,
         "exclusions": normalized_exclusions,
         "endpoint_inventory": normalized_endpoint_inventory,
         "design_panels": normalized_design_panels,
+        **source_layer_payload,
     }
 
 def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:

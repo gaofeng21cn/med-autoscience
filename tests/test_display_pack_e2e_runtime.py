@@ -5,6 +5,8 @@ from pathlib import Path
 import shutil
 import sys
 
+import pytest
+
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -83,6 +85,9 @@ def main() -> int:
     parser.add_argument("--request", required=True)
     args = parser.parse_args()
     request = json.loads(Path(args.request).read_text(encoding="utf-8"))
+    panel_ids = [str(item.get("panel_id") or "").strip() for item in request["display_payload"].get("panels", [])]
+    panel_ids = [item for item in panel_ids if item]
+    rendered_panel_ids = panel_ids if len(panel_ids) == 1 else []
     output_png_path = Path(request["output_png_path"])
     output_pdf_path = Path(request["output_pdf_path"])
     layout_sidecar_path = Path(request["layout_sidecar_path"])
@@ -102,7 +107,15 @@ def main() -> int:
                     {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 3.0, "y0": 7.2, "x1": 7.0, "y1": 7.7},
                 ],
                 "panel_boxes": [
-                    {"box_id": "panel", "box_type": "panel", "x0": 1.2, "y0": 1.0, "x1": 8.0, "y1": 6.7}
+                    {
+                        "box_id": "panel",
+                        "box_type": "panel",
+                        "panel_id": rendered_panel_ids[0] if rendered_panel_ids else "",
+                        "x0": 1.2,
+                        "y0": 1.0,
+                        "x1": 8.0,
+                        "y1": 6.7,
+                    }
                 ],
                 "guide_boxes": [
                     {"box_id": "legend", "box_type": "legend", "x0": 8.2, "y0": 1.0, "x1": 9.7, "y1": 2.0}
@@ -110,6 +123,7 @@ def main() -> int:
                 "metrics": {
                     "series": [{"x": [0.0, 0.4, 1.0], "y": [0.0, 0.82, 1.0]}],
                     "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+                    "panel_ids": rendered_panel_ids,
                 },
                 "render_context": request["display_payload"]["render_context"],
             },
@@ -171,6 +185,9 @@ def main() -> int:
     parser.add_argument("--request", required=True)
     args = parser.parse_args()
     request = json.loads(Path(args.request).read_text(encoding="utf-8"))
+    panel_ids = [str(item.get("panel_id") or "").strip() for item in request["display_payload"].get("panels", [])]
+    panel_ids = [item for item in panel_ids if item]
+    rendered_panel_ids = panel_ids if len(panel_ids) == 1 else []
     output_png_path = Path(request["output_png_path"])
     output_pdf_path = Path(request["output_pdf_path"])
     layout_sidecar_path = Path(request["layout_sidecar_path"])
@@ -189,7 +206,15 @@ def main() -> int:
                     {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 3.0, "y0": 7.2, "x1": 7.0, "y1": 7.7},
                 ],
                 "panel_boxes": [
-                    {"box_id": "panel", "box_type": "panel", "x0": 1.2, "y0": 1.0, "x1": 8.0, "y1": 6.7}
+                    {
+                        "box_id": "panel",
+                        "box_type": "panel",
+                        "panel_id": rendered_panel_ids[0] if rendered_panel_ids else "",
+                        "x0": 1.2,
+                        "y0": 1.0,
+                        "x1": 8.0,
+                        "y1": 6.7,
+                    }
                 ],
                 "guide_boxes": [
                     {"box_id": "legend", "box_type": "legend", "x0": 8.2, "y0": 1.0, "x1": 9.7, "y1": 2.0}
@@ -197,6 +222,7 @@ def main() -> int:
                 "metrics": {
                     "series": [{"x": [0.0, 0.4, 1.0], "y": [0.0, 0.82, 1.0]}],
                     "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+                    "panel_ids": rendered_panel_ids,
                 },
                 "render_context": request["display_payload"]["render_context"],
             },
@@ -687,6 +713,8 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert figure["publication_style_profile"]["grid"]["color"] == "#D9E2EC"
     layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
     render_context = layout_sidecar["render_context"]
+    assert layout_sidecar["panel_boxes"][0]["panel_id"] == "A"
+    assert layout_sidecar["metrics"]["panel_ids"] == ["A"]
     assert render_context["style_profile_sha256"] == style_lock["sha256"]
     assert render_context["palette"]["primary"] == "#245A6B"
     assert render_context["style_roles"]["model_curve"] == "#245A6B"
@@ -733,6 +761,47 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert refs["figure_render_receipt"]["status"] == "present"
     assert refs["figure_polish_lifecycle"]["status"] == "present"
     assert result["publication_figure_quality_refs"]["figure_render_receipt"]["status"] == "present"
+
+
+def test_materialize_display_pack_publication_manifest_fails_when_declared_panels_are_not_rendered(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    repo_root, paper_root = _build_workspace(tmp_path)
+    _write_json(
+        paper_root / "figure_spec.json",
+        {
+            "schema_version": 1,
+            "figure_id": "F1",
+            "intent_ref": "paper/figure_intent.json#/figures/F1",
+            "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+            "figure_kind": "evidence_figure",
+            "medical_semantics": {
+                "cohort_ref": "study/cohorts/derivation",
+                "endpoint_ref": "endpoint:mace",
+                "model_ref": "model:cox-primary",
+                "risk_horizon": "5y",
+                "effect_estimate_ref": "analysis/statistics/auc_primary",
+                "claim_role": "primary_evidence",
+            },
+            "panels": [
+                {"panel_id": "A", "data_role": "discrimination", "mark_role": "roc_curve"},
+                {"panel_id": "B", "data_role": "calibration", "mark_role": "calibration_curve"},
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match=r"missing panel_id\(s\): A, B"):
+        materialize_display_pack_publication_manifest(
+            repo_root=repo_root,
+            paper_root=paper_root,
+            visual_audit_review=_visual_audit_review(),
+        )
+
+    assert not (paper_root / "figure_visual_audit_receipt.json").exists()
+    assert not (paper_root / "figure_polish_lifecycle.json").exists()
+    assert not (paper_root / "build" / "display_pack_publication_manifest.json").exists()
 
 
 def test_cli_publication_display_pack_e2e_emits_manifest_json(tmp_path: Path, capsys) -> None:

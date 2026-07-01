@@ -36,7 +36,10 @@ def _fake_subprocess_display_renderer(monkeypatch):
         output_png_path.write_bytes(b"png")
         output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
         layout_sidecar_path.write_text(
-            json.dumps(_minimal_layout_sidecar_for_template(full_template_id), ensure_ascii=False),
+            json.dumps(
+                _minimal_layout_sidecar_for_template(full_template_id, display_payload=display_payload),
+                ensure_ascii=False,
+            ),
             encoding="utf-8",
         )
         return {

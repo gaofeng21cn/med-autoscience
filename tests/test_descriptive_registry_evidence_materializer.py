@@ -183,6 +183,7 @@ def test_apply_writes_tables_registry_and_closes_charter_expectations(tmp_path: 
     ]
     for relpath in (
         "baseline_characteristics_schema.json",
+        "cohort_flow.json",
         "phenotype_gap_summary_schema.json",
         "transition_site_support_summary_schema.json",
         "tables/T2_phenotype_gap_summary.csv",
@@ -198,6 +199,35 @@ def test_apply_writes_tables_registry_and_closes_charter_expectations(tmp_path: 
     assert figure_shell["display_id"] == "cohort_flow"
     assert figure_shell["catalog_id"] == "F1"
     assert figure_shell["requirement_key"] == "cohort_flow_figure"
+    cohort_flow = json.loads((paper_root / "cohort_flow.json").read_text(encoding="utf-8"))
+    assert cohort_flow["flow_mode"] == "source_layer_accounting"
+    assert cohort_flow["denominator_step_id"] == "registry_records"
+    assert cohort_flow["steps"][0]["n"] == 3
+    assert [item["n"] for item in cohort_flow["source_layers"]] == [1, 1, 1]
+    assert cohort_flow["subcohort_coverage"] == [
+        {
+            "coverage_id": "xiangya2_subcohort",
+            "label": "Xiangya Second Hospital subcohort",
+            "detail": "Management and precision clinic records.",
+            "n": 3,
+            "denominator_n": 3,
+        },
+        {
+            "coverage_id": "phq9_available",
+            "label": "PHQ-9 available",
+            "detail": "Psychobehavioral availability within the Xiangya2 subcohort.",
+            "n": 2,
+            "denominator_n": 3,
+        },
+        {
+            "coverage_id": "gad7_available",
+            "label": "GAD-7 available",
+            "detail": "Psychobehavioral availability within the Xiangya2 subcohort.",
+            "n": 2,
+            "denominator_n": 3,
+        },
+    ]
+    assert cohort_flow["exported_centers"] == 2
     ledger = json.loads((paper_root / "evidence_ledger.json").read_text(encoding="utf-8"))
     closed = {
         item["expectation_text"]: item["status"]

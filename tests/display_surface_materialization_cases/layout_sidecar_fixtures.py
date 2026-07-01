@@ -12,8 +12,341 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared_base)
 _module_reexport(_workspace_surface_fixtures)
 
-def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
+
+def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: dict[str, object]) -> dict[str, object]:
+    source_layers = list(display_payload.get("source_layers") or [])
+    subcohort_coverage = list(display_payload.get("subcohort_coverage") or [])
+    denominator_step = {"step_id": display_payload.get("denominator_step_id") or "registry_records"}
+    steps = [
+        item
+        for item in display_payload.get("steps") or []
+        if isinstance(item, dict) and item.get("step_id") == denominator_step["step_id"]
+    ]
+    if steps:
+        denominator_step = dict(steps[0])
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": [
+            {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.075, "y0": 0.905, "x1": 0.11, "y1": 0.94},
+            {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.075, "y0": 0.405, "x1": 0.11, "y1": 0.44},
+            {"box_id": f"source_denominator_{denominator_step['step_id']}", "box_type": "main_step", "x0": 0.32, "y0": 0.79, "x1": 0.68, "y1": 0.91},
+            *[
+                {
+                    "box_id": f"source_layer_{item.get('layer_id')}",
+                    "box_type": "source_layer_box",
+                    "x0": 0.10 + index * 0.30,
+                    "y0": 0.55,
+                    "x1": 0.34 + index * 0.30,
+                    "y1": 0.70,
+                }
+                for index, item in enumerate(source_layers)
+            ],
+            *[
+                {
+                    "box_id": f"coverage_label_{item.get('coverage_id')}",
+                    "box_type": "coverage_label",
+                    "x0": 0.11,
+                    "y0": 0.31 - index * 0.085,
+                    "x1": 0.31,
+                    "y1": 0.36 - index * 0.085,
+                }
+                for index, item in enumerate(subcohort_coverage)
+            ],
+            *[
+                {
+                    "box_id": f"coverage_bar_{item.get('coverage_id')}",
+                    "box_type": "coverage_bar",
+                    "x0": 0.34,
+                    "y0": 0.31 - index * 0.085,
+                    "x1": 0.62,
+                    "y1": 0.36 - index * 0.085,
+                }
+                for index, item in enumerate(subcohort_coverage)
+            ],
+            *[
+                {
+                    "box_id": f"coverage_value_{item.get('coverage_id')}",
+                    "box_type": "coverage_value",
+                    "x0": 0.78,
+                    "y0": 0.31 - index * 0.085,
+                    "x1": 0.94,
+                    "y1": 0.36 - index * 0.085,
+                }
+                for index, item in enumerate(subcohort_coverage)
+            ],
+        ],
+        "panel_boxes": [
+            {"box_id": "subfigure_panel_A", "box_type": "subfigure_panel", "x0": 0.06, "y0": 0.49, "x1": 0.98, "y1": 0.94},
+            {"box_id": "subfigure_panel_B", "box_type": "subfigure_panel", "x0": 0.06, "y0": 0.08, "x1": 0.98, "y1": 0.44},
+        ],
+        "guide_boxes": [
+            {
+                "box_id": f"source_layer_link_{item.get('layer_id')}",
+                "box_type": "source_layer_connector",
+                "x0": min(0.50, 0.22 + index * 0.30),
+                "y0": 0.70,
+                "x1": max(0.50, 0.22 + index * 0.30),
+                "y1": 0.79,
+            }
+            for index, item in enumerate(source_layers)
+        ],
+        "metrics": {
+            "layout_mode": "source_layer_accounting",
+            "reporting_flow_kind": "cohort_source_layer_and_subcohort_coverage",
+            "source_renderer": "MAS/ReportingFlow::cohort_flow_figure",
+            "figure_purpose": "participant_accounting_and_strobe_source_boundary",
+            "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
+            "uses_ggconsort": True,
+            "renderer_family": "r_ggplot2",
+            "denominator_step": denominator_step,
+            "source_layers": source_layers,
+            "subcohort_coverage": subcohort_coverage,
+            "exported_centers": display_payload.get("exported_centers"),
+            "flow_nodes": [
+                {
+                    "box_id": f"source_denominator_{denominator_step['step_id']}",
+                    "box_type": "main_step",
+                    "line_count": 2,
+                    "max_line_chars": 44,
+                    "rendered_height_pt": 78.0,
+                    "rendered_width_pt": 260.0,
+                    "padding_pt": 9.0,
+                },
+                *[
+                    {
+                        "box_id": f"source_layer_{item.get('layer_id')}",
+                        "box_type": "source_layer_box",
+                        "line_count": 2,
+                        "max_line_chars": 40,
+                        "rendered_height_pt": 72.0,
+                        "rendered_width_pt": 170.0,
+                        "padding_pt": 8.0,
+                    }
+                    for item in source_layers
+                ],
+                *[
+                    {
+                        "box_id": f"coverage_bar_{item.get('coverage_id')}",
+                        "box_type": "coverage_bar",
+                        "line_count": 1,
+                        "max_line_chars": 24,
+                        "rendered_height_pt": 52.0,
+                        "rendered_width_pt": 180.0,
+                        "padding_pt": 6.0,
+                    }
+                    for item in subcohort_coverage
+                ],
+            ],
+        },
+    }
+
+
+def _slug_id(value: object, *, fallback: str) -> str:
+    text = str(value or "").strip().lower()
+    slug = "".join(char if char.isalnum() else "_" for char in text).strip("_")
+    return slug or fallback
+
+
+def _payload_rows(value: object) -> list[dict[str, object]]:
+    return [dict(item) for item in value or [] if isinstance(item, dict)]
+
+
+def _normalize_design_role(value: object) -> str:
+    role = str(value or "").strip()
+    if role in {"full_right", "top_right"}:
+        return "wide_top"
+    return role or "wide_top"
+
+
+def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[str, object]) -> dict[str, object]:
+    steps = _payload_rows(display_payload.get("steps"))
+    if not steps:
+        steps = [
+            {"step_id": "screened", "label": "Screened records", "n": 10},
+            {"step_id": "included", "label": "Included cohort", "n": 8},
+        ]
+    for index, step in enumerate(steps):
+        step["step_id"] = str(step.get("step_id") or _slug_id(step.get("label"), fallback=f"step_{index + 1}"))
+
+    raw_exclusions = _payload_rows(display_payload.get("exclusions")) + _payload_rows(
+        display_payload.get("exclusion_branches")
+    )
+    exclusions: list[dict[str, object]] = []
+    for index, exclusion in enumerate(raw_exclusions):
+        exclusion_id = exclusion.get("exclusion_id") or exclusion.get("branch_id") or exclusion.get("label")
+        exclusions.append(
+            {
+                **exclusion,
+                "exclusion_id": _slug_id(exclusion_id, fallback=f"exclusion_{index + 1}"),
+                "from_step_id": str(exclusion.get("from_step_id") or steps[0]["step_id"]),
+            }
+        )
+
+    endpoint_inventory = _payload_rows(display_payload.get("endpoint_inventory"))
+    design_panels = _payload_rows(display_payload.get("design_panels"))
+    for index, panel in enumerate(design_panels):
+        panel["panel_id"] = str(panel.get("panel_id") or _slug_id(panel.get("title"), fallback=f"design_{index + 1}"))
+        panel["layout_role"] = _normalize_design_role(panel.get("layout_role"))
+    for index, block in enumerate(_payload_rows(display_payload.get("sidecar_blocks"))):
+        design_panels.append(
+            {
+                "panel_id": str(block.get("block_id") or _slug_id(block.get("title"), fallback=f"block_{index + 1}")),
+                "layout_role": _normalize_design_role(block.get("block_type")),
+                "title": block.get("title"),
+                "items": block.get("items") or [],
+            }
+        )
+
+    has_summary = bool(endpoint_inventory or design_panels)
+    panel_x1 = 0.60 if has_summary else 0.92
+    step_x0 = 0.13 if has_summary else 0.22
+    step_x1 = 0.39 if has_summary else 0.78
+    panel_y0 = 0.08
+    panel_y1 = 0.92
+    step_count = len(steps)
+    step_height = min(0.12, max(0.08, 0.58 / max(step_count, 1)))
+    step_gap = max(0.025, (panel_y1 - panel_y0 - step_count * step_height) / (step_count + 1))
+
+    step_boxes: list[dict[str, object]] = []
+    for index, step in enumerate(steps):
+        y1 = panel_y1 - step_gap - index * (step_height + step_gap)
+        y0 = y1 - step_height
+        step_boxes.append(
+            {
+                "box_id": f"participant_step_{step['step_id']}",
+                "box_type": "main_step",
+                "x0": step_x0,
+                "y0": y0,
+                "x1": step_x1,
+                "y1": y1,
+            }
+        )
+
+    exclusion_boxes: list[dict[str, object]] = []
+    for index, exclusion in enumerate(exclusions):
+        if len(step_boxes) >= 2:
+            upper = step_boxes[min(index, len(step_boxes) - 2)]
+            lower = step_boxes[min(index + 1, len(step_boxes) - 1)]
+            center_y = (float(upper["y0"]) + float(lower["y1"])) / 2.0
+        else:
+            center_y = 0.50
+        exclusion_boxes.append(
+            {
+                "box_id": f"participant_exclusion_{exclusion['exclusion_id']}",
+                "box_type": "exclusion_box",
+                "x0": min(step_x1 + 0.04, panel_x1 - 0.20),
+                "y0": center_y - 0.035,
+                "x1": min(step_x1 + 0.22, panel_x1 - 0.03),
+                "y1": center_y + 0.035,
+            }
+        )
+
+    summary_boxes: list[dict[str, object]] = []
+    if endpoint_inventory:
+        summary_boxes.append(
+            {
+                "box_id": "participant_endpoint_summary",
+                "box_type": "summary_panel",
+                "x0": 0.66,
+                "y0": 0.58,
+                "x1": 0.94,
+                "y1": 0.78,
+            }
+        )
+    if design_panels:
+        summary_boxes.append(
+            {
+                "box_id": "participant_design_summary",
+                "box_type": "summary_panel",
+                "x0": 0.66,
+                "y0": 0.30 if endpoint_inventory else 0.48,
+                "x1": 0.94,
+                "y1": 0.52 if endpoint_inventory else 0.70,
+            }
+        )
+
+    guide_boxes: list[dict[str, object]] = []
+    for upper, lower in zip(steps, steps[1:], strict=False):
+        upper_box = next(box for box in step_boxes if box["box_id"] == f"participant_step_{upper['step_id']}")
+        lower_box = next(box for box in step_boxes if box["box_id"] == f"participant_step_{lower['step_id']}")
+        guide_boxes.append(
+            {
+                "box_id": f"flow_spine_{upper['step_id']}_to_{lower['step_id']}",
+                "box_type": "flow_connector",
+                "x0": (step_x0 + step_x1) / 2.0 - 0.01,
+                "y0": float(lower_box["y1"]),
+                "x1": (step_x0 + step_x1) / 2.0 + 0.01,
+                "y1": float(upper_box["y0"]),
+            }
+        )
+    for exclusion, exclusion_box in zip(exclusions, exclusion_boxes, strict=False):
+        guide_boxes.append(
+            {
+                "box_id": f"flow_branch_{exclusion['exclusion_id']}",
+                "box_type": "flow_branch_connector",
+                "x0": step_x1,
+                "y0": (float(exclusion_box["y0"]) + float(exclusion_box["y1"])) / 2.0,
+                "x1": float(exclusion_box["x0"]),
+                "y1": (float(exclusion_box["y0"]) + float(exclusion_box["y1"])) / 2.0,
+            }
+        )
+
+    flow_nodes = [
+        {
+            "box_id": box["box_id"],
+            "box_type": box["box_type"],
+            "line_count": 2,
+            "max_line_chars": 36,
+            "rendered_height_pt": 86.0 if box["box_type"] == "main_step" else 60.0,
+            "rendered_width_pt": 220.0 if box["box_type"] == "main_step" else 176.0,
+            "padding_pt": 9.0 if box["box_type"] == "main_step" else 7.0,
+        }
+        for box in [*step_boxes, *exclusion_boxes, *summary_boxes]
+    ]
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": [*step_boxes, *exclusion_boxes, *summary_boxes],
+        "panel_boxes": [
+            {
+                "box_id": "participant_flow_main",
+                "box_type": "subfigure_panel",
+                "x0": 0.06,
+                "y0": panel_y0,
+                "x1": panel_x1,
+                "y1": panel_y1,
+            }
+        ],
+        "guide_boxes": guide_boxes,
+        "metrics": {
+            "layout_mode": "participant_flow",
+            "source_renderer": "MAS/ReportingFlow::cohort_flow_figure",
+            "figure_purpose": "participant_accounting_and_strobe_consort_flow",
+            "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
+            "renderer_family": "r_ggplot2",
+            "steps": steps,
+            "exclusions": exclusions,
+            "endpoint_inventory": endpoint_inventory,
+            "design_panels": design_panels,
+            "flow_nodes": flow_nodes,
+        },
+    }
+
+
+def _minimal_layout_sidecar_for_template(
+    template_id: str,
+    display_payload: dict[str, object] | None = None,
+) -> dict[str, object]:
     template_short_id = get_template_short_id(template_id) if "::" in template_id else template_id
+    if (
+        template_short_id == "cohort_flow_figure"
+        and isinstance(display_payload, dict)
+        and display_payload.get("flow_mode") == "source_layer_accounting"
+    ):
+        return _minimal_source_layer_accounting_sidecar(template_id, display_payload)
+    if template_short_id == "cohort_flow_figure" and isinstance(display_payload, dict):
+        return _minimal_participant_flow_sidecar(template_id, display_payload)
     current_sidecar = minimal_current_layout_sidecar(template_id)
     if current_sidecar is not None:
         return current_sidecar

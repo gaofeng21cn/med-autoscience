@@ -1162,6 +1162,11 @@ build_metrics <- function(template_id, display_payload, panel_box) {
 }
 
 default_renderer_metrics <- function(template_id, display_payload, panel_box) {
+  declared_panel_ids <- vapply(display_payload$panels %||% list(), function(panel) {
+    trimws(as.character(panel$panel_id %||% ""))
+  }, character(1))
+  declared_panel_ids <- declared_panel_ids[nzchar(declared_panel_ids)]
+  observed_panel_ids <- if (length(declared_panel_ids) == 1 && !is.null(panel_box)) declared_panel_ids else character(0)
   list(
     renderer = "r_ggplot2_evidence_subprocess_v1",
     renderer_family = "r_ggplot2",
@@ -1171,6 +1176,7 @@ default_renderer_metrics <- function(template_id, display_payload, panel_box) {
     figure_purpose = figure_purpose_for_template(template_id),
     rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
     data_fields = sort(names(display_payload)),
+    panel_ids = observed_panel_ids,
     panel_box_present = !is.null(panel_box)
   )
 }
@@ -1283,8 +1289,15 @@ save_rendered_plot <- function(plot, output_png, output_pdf, output_width, outpu
 }
 
 build_layout_sidecar <- function(plot, template_id, display_payload) {
+  declared_panel_ids <- vapply(display_payload$panels %||% list(), function(panel) {
+    trimws(as.character(panel$panel_id %||% ""))
+  }, character(1))
+  declared_panel_ids <- declared_panel_ids[nzchar(declared_panel_ids)]
   if (is_base_graphics_renderable(plot)) {
     panel_box <- list(box_id = "base_graphics_panel", box_type = "panel", x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    if (length(declared_panel_ids) == 1) {
+      panel_box$panel_id <- declared_panel_ids[[1]]
+    }
     metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
     return(list(
       template_id = template_id,
@@ -1306,6 +1319,9 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
       list()
     }
     panel_box <- list(box_id = grob_panel_id, box_type = grob_panel_type, x0 = 0.04, y0 = 0.06, x1 = 0.96, y1 = 0.94)
+    if (length(declared_panel_ids) == 1) {
+      panel_box$panel_id <- declared_panel_ids[[1]]
+    }
     metrics <- ensure_renderer_metrics(template_id, display_payload, panel_box, build_metrics(template_id, display_payload, panel_box))
     return(list(
       template_id = template_id,
@@ -1343,6 +1359,9 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     "panel",
     if (template_id %in% c("heatmap_group_comparison", "performance_heatmap", "confusion_matrix_heatmap_binary", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "heatmap_tile_region" else "panel"
   )
+  if (length(declared_panel_ids) == 1 && !is.null(panel_box)) {
+    panel_box$panel_id <- declared_panel_ids[[1]]
+  }
   guide_box <- find_layout_box(
     gt,
     widths,

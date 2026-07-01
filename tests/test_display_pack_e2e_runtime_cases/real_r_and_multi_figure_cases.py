@@ -206,6 +206,157 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
     assert len(locked_template["render_script_sha256"]) == 64
 
 
+def test_display_pack_publication_manifest_auto_consumes_prepared_dependency_environment_for_cohort_flow(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    assert shutil.which("Rscript") is not None
+    repo_root = REPO_ROOT
+    paper_root = tmp_path / "workspace" / "paper"
+    r_library_root = _install_fake_ggconsort_package(tmp_path)
+    dependency_environment = _write_fake_dependency_run_context(
+        paper_root,
+        r_library_root=r_library_root,
+    )
+    _write_json(
+        paper_root / "build" / "dependency_environment_receipt.json",
+        {
+            "schema_version": 1,
+            "status": "prepared",
+            "failure_class": "",
+            "lock_ref": "paper/build/dependency_environment_lock.json",
+            "environment_ref": "test-ggconsort-managed-r-library",
+            "cache_key": "test-ggconsort-managed-r-library",
+            "target_platform": "test-platform",
+            "run_context_ref": dependency_environment["run_context_ref"],
+        },
+    )
+    _write_cohort_flow_paper_inputs(paper_root)
+
+    result = materialize_display_pack_publication_manifest(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        visual_audit_review=_visual_audit_review(),
+        figure_ids=["F_cohort"],
+    )
+
+    assert result["dependency_environment"]["status"] == "prepared"
+    assert result["dependency_environment"]["run_context_ref"] == "paper/build/dependency_run_context.json"
+    assert result["dependency_environment"]["run_context_fingerprint"] == "sha256:test-ggconsort-run-context"
+    figure = result["figures"][0]
+    assert figure["dependency_environment"]["status"] == "prepared"
+    assert figure["render_result"]["returncode"] == 0
+    request_payload = json.loads(Path(figure["render_result"]["request_path"]).read_text(encoding="utf-8"))
+    assert request_payload["dependency_environment"]["status"] == "prepared"
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["uses_ggconsort"] is True
+    assert layout_sidecar["metrics"]["opl_dependency_run_context_fingerprint"] == (
+        "sha256:test-ggconsort-run-context"
+    )
+
+
+def test_materialize_display_pack_publication_manifest_runs_cohort_source_layer_accounting_mode(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    assert shutil.which("Rscript") is not None
+    repo_root = REPO_ROOT
+    paper_root = tmp_path / "workspace" / "paper"
+    r_library_root = _install_fake_ggconsort_package(tmp_path)
+    dependency_environment = _write_fake_dependency_run_context(
+        paper_root,
+        r_library_root=r_library_root,
+    )
+    _write_cohort_flow_paper_inputs(paper_root)
+    _write_json(
+        paper_root / "data" / "frozen" / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "source_data_digest": "data-digest-source-layer-flow",
+            "title": "Cohort and source-layer accounting",
+            "flow_mode": "source_layer_accounting",
+            "denominator_step_id": "registry_records",
+            "steps": [
+                {"step_id": "registry_records", "label": "Declared analytic registry records", "n": 4189},
+                {"step_id": "alliance_platform_records", "label": "Alliance platform source layer", "n": 2451},
+                {"step_id": "xiangya2_management_records", "label": "Xiangya2 management clinic source layer", "n": 1204},
+                {"step_id": "xiangya2_precision_records", "label": "Xiangya2 precision clinic source layer", "n": 534},
+            ],
+            "source_layers": [
+                {
+                    "layer_id": "alliance_platform_records",
+                    "step_id": "alliance_platform_records",
+                    "label": "Alliance platform source layer",
+                    "n": 2451,
+                },
+                {
+                    "layer_id": "xiangya2_management_records",
+                    "step_id": "xiangya2_management_records",
+                    "label": "Xiangya2 management clinic source layer",
+                    "n": 1204,
+                },
+                {
+                    "layer_id": "xiangya2_precision_records",
+                    "step_id": "xiangya2_precision_records",
+                    "label": "Xiangya2 precision clinic source layer",
+                    "n": 534,
+                },
+            ],
+            "subcohort_coverage": [
+                {"coverage_id": "xiangya2_subcohort", "label": "Xiangya2 subcohort", "n": 1748, "denominator_n": 4189},
+                {"coverage_id": "phq9_available", "label": "PHQ-9 available", "n": 979, "denominator_n": 1748},
+                {"coverage_id": "gad7_available", "label": "GAD-7 available", "n": 993, "denominator_n": 1748},
+            ],
+            "exported_centers": 33,
+            "exclusions": [],
+        },
+    )
+    _write_json(
+        paper_root / "figure_spec.json",
+        {
+            "schema_version": 1,
+            "figure_id": "F_cohort",
+            "intent_ref": "paper/figure_intent.json#/figures/F_cohort",
+            "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+            "figure_kind": "illustration_shell",
+            "medical_semantics": {
+                "cohort_ref": "study/cohorts/registry",
+                "claim_role": "source_layer_accounting",
+            },
+            "panels": [
+                {"panel_id": "A", "data_role": "source_layer_accounting", "mark_role": "source_layer_boxes"},
+                {"panel_id": "B", "data_role": "subcohort_coverage", "mark_role": "coverage_bars"},
+            ],
+        },
+    )
+
+    result = materialize_display_pack_publication_manifest(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        visual_audit_review=_visual_audit_review(),
+        figure_ids=["F_cohort"],
+        dependency_environment=dependency_environment,
+    )
+
+    figure = result["figures"][0]
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    metrics = layout_sidecar["metrics"]
+    assert figure["deterministic_qc"]["status"] == "pass"
+    assert metrics["layout_mode"] == "source_layer_accounting"
+    assert metrics["reporting_flow_kind"] == "cohort_source_layer_and_subcohort_coverage"
+    assert metrics["figure_purpose"] == "participant_accounting_and_strobe_source_boundary"
+    assert metrics["renderer_family"] == "r_ggplot2"
+    assert metrics["uses_ggconsort"] is True
+    assert metrics["panel_ids"] == ["A", "B"]
+    assert [item["n"] for item in metrics["source_layers"]] == [2451, 1204, 534]
+    assert [item["n"] for item in metrics["subcohort_coverage"]] == [1748, 979, 993]
+    assert metrics["exported_centers"] == 33
+    assert not any(item["box_type"] == "flow_connector" for item in layout_sidecar["guide_boxes"])
+    assert any(item["box_type"] == "source_layer_connector" for item in layout_sidecar["guide_boxes"])
+
+
 def test_materialize_display_pack_publication_manifest_runs_multi_figure_batch(tmp_path: Path) -> None:
     from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
     from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle

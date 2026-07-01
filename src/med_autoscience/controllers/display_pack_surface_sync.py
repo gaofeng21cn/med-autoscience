@@ -78,6 +78,66 @@ def _contract_backed_figure_contract_candidates(
     return candidates
 
 
+def _load_display_shell_payload(
+    *,
+    paper_root: Path,
+    display: dict[str, Any],
+) -> dict[str, Any] | None:
+    shell_path = str(display.get("shell_path") or "").strip()
+    if not shell_path:
+        return None
+    resolved_shell_path = _resolve_workspace_path(shell_path, paper_root=paper_root)
+    if not resolved_shell_path.exists():
+        return None
+    return load_json(resolved_shell_path)
+
+
+def _is_known_requirement_key(requirement_key: str) -> bool:
+    return (
+        display_registry.is_evidence_figure_template(requirement_key)
+        or display_registry.is_illustration_shell(requirement_key)
+        or display_registry.is_table_shell(requirement_key)
+    )
+
+
+def _resolve_requirement_key_from_shell(
+    *,
+    requirement_key: str,
+    shell_payload: dict[str, Any] | None,
+) -> str:
+    if _is_known_requirement_key(requirement_key):
+        return requirement_key
+    if not shell_payload:
+        return requirement_key
+    shell_requirement_key = str(shell_payload.get("requirement_key") or "").strip()
+    if shell_requirement_key and _is_known_requirement_key(shell_requirement_key):
+        return shell_requirement_key
+    shell_template_id = str(shell_payload.get("template_id") or "").strip()
+    if shell_template_id and display_registry.is_evidence_figure_template(shell_template_id):
+        return shell_template_id
+    shell_id = str(shell_payload.get("shell_id") or "").strip()
+    if shell_id and display_registry.is_illustration_shell(shell_id):
+        return shell_id
+    return requirement_key
+
+
+def _resolve_contract_backed_figure_contract_path(
+    *,
+    paper_root: Path,
+    display: dict[str, Any],
+    shell_payload: dict[str, Any],
+) -> Path | None:
+    for candidate_path in _contract_backed_figure_contract_candidates(
+        paper_root=paper_root,
+        display=display,
+        shell_payload=shell_payload,
+    ):
+        if not candidate_path.exists():
+            continue
+        return candidate_path
+    return None
+
+
 def _load_contract_backed_figure_payloads(
     *,
     paper_root: Path,
@@ -424,51 +484,62 @@ def sync_display_pack_surface(*, paper_root: Path) -> dict[str, Any]:
         catalog_id = str(display.get("catalog_id") or "").strip()
         if not display_id or not display_kind or not requirement_key:
             raise ValueError(f"display_registry.json displays[{index}] must include display_id, display_kind, and requirement_key")
+        shell_payload = _load_display_shell_payload(paper_root=resolved_paper_root, display=display)
+        effective_requirement_key = _resolve_requirement_key_from_shell(
+            requirement_key=requirement_key,
+            shell_payload=shell_payload,
+        )
 
-        if display_kind == "figure" and display_registry.is_evidence_figure_template(requirement_key):
-            spec = display_registry.get_evidence_figure_spec(requirement_key)
+        if display_kind == "figure" and shell_payload is not None:
+            contract_path = _resolve_contract_backed_figure_contract_path(
+                paper_root=resolved_paper_root,
+                display=display,
+                shell_payload=shell_payload,
+            )
+            if contract_path is not None:
+                figure_id, renderer_contract = _contract_backed_figure_renderer_contract(
+                    paper_root=resolved_paper_root,
+                    display=display,
+                    catalog_id=catalog_id,
+                )
+                figure_semantics_story_roles[figure_id] = display_story_role_for_requirement_key(effective_requirement_key)
+                figure_semantics_renderer_contracts[figure_id] = (
+                    materialized_catalog_renderer_contracts.get(figure_id) or renderer_contract
+                )
+                continue
+
+        if display_kind == "figure" and display_registry.is_evidence_figure_template(effective_requirement_key):
+            spec = display_registry.get_evidence_figure_spec(effective_requirement_key)
             input_filename = INPUT_FILENAME_BY_SCHEMA_ID.get(spec.input_schema_id)
             if input_filename is None:
-                raise ValueError(f"unsupported evidence input_schema_id `{spec.input_schema_id}` for `{requirement_key}`")
+                raise ValueError(f"unsupported evidence input_schema_id `{spec.input_schema_id}` for `{effective_requirement_key}`")
             input_path = resolved_paper_root / input_filename
             figure_display_templates_by_input_path.setdefault(input_path, {})[display_id] = spec.template_id
             if catalog_id:
-                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(requirement_key)
+                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(effective_requirement_key)
                 figure_semantics_renderer_contracts[catalog_id] = (
                     materialized_catalog_renderer_contracts.get(catalog_id) or _renderer_contract_for_evidence_spec(spec)
                 )
             continue
 
-        if display_kind == "figure" and display_registry.is_illustration_shell(requirement_key):
-            spec = display_registry.get_illustration_shell_spec(requirement_key)
-            if requirement_key == "cohort_flow_figure":
+        if display_kind == "figure" and display_registry.is_illustration_shell(effective_requirement_key):
+            spec = display_registry.get_illustration_shell_spec(effective_requirement_key)
+            if spec.shell_id.endswith("::cohort_flow_figure"):
                 cohort_flow_path = resolved_paper_root / "cohort_flow.json"
                 if cohort_flow_path.exists():
                     illustration_shell_ids_by_path[cohort_flow_path] = spec.shell_id
             if catalog_id:
-                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(requirement_key)
+                figure_semantics_story_roles[catalog_id] = display_story_role_for_requirement_key(effective_requirement_key)
                 figure_semantics_renderer_contracts[catalog_id] = (
                     materialized_catalog_renderer_contracts.get(catalog_id) or _renderer_contract_for_illustration_spec(spec)
                 )
-            continue
-
-        if display_kind == "figure":
-            figure_id, renderer_contract = _contract_backed_figure_renderer_contract(
-                paper_root=resolved_paper_root,
-                display=display,
-                catalog_id=catalog_id,
-            )
-            figure_semantics_story_roles[figure_id] = display_story_role_for_requirement_key(requirement_key)
-            figure_semantics_renderer_contracts[figure_id] = (
-                materialized_catalog_renderer_contracts.get(figure_id) or renderer_contract
-            )
             continue
 
         if display_kind == "table":
             table_requirement_key = _resolve_table_requirement_key(
                 paper_root=resolved_paper_root,
                 display=display,
-                requirement_key=requirement_key,
+                requirement_key=effective_requirement_key,
             )
             spec = display_registry.get_table_shell_spec(table_requirement_key)
             input_filename = TABLE_INPUT_FILENAME_BY_SCHEMA_ID.get(spec.input_schema_id)

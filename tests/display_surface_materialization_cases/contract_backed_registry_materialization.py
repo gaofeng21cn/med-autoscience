@@ -275,6 +275,7 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
         output_pdf_path: Path,
         layout_sidecar_path: Path,
         dependency_environment: dict[str, object] | None = None,
+        request_short_template_id: str | None = None,
     ) -> dict[str, object]:
         template_id = full_template_id
         render_calls.append(template_id)
