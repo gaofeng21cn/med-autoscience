@@ -4,6 +4,7 @@ from . import shared as _shared
 from .ai_reviewer_publication_eval_command_cases.test_identity_guard_cases import *  # noqa: F401,F403
 from .ai_reviewer_publication_eval_command_cases.test_payload_currentness_refs_cases import *  # noqa: F401,F403
 from .ai_reviewer_publication_eval_command_cases.test_payload_currentness_guard_cases import *  # noqa: F401,F403
+from .ai_reviewer_publication_eval_command_cases.test_payload_schema_and_trace_cases import *  # noqa: F401,F403
 
 globals().update({
     name: value
