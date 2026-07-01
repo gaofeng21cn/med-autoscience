@@ -134,16 +134,18 @@ def refresh_current_execution_surfaces(
     if (
         terminal_typed_blocker
         and payload_executable_action
-        and current_control_typed_blocker_successor_action(
+        and _terminal_typed_blocker_successor_action(
             payload_executable_action,
             typed_blocker=terminal_typed_blocker,
+            handoff=handoff,
             progress=updated,
         )
     ):
         handoff_executable_action = payload_executable_action
-    if terminal_typed_blocker and not current_control_typed_blocker_successor_action(
+    if terminal_typed_blocker and not _terminal_typed_blocker_successor_action(
         handoff_executable_action,
         typed_blocker=terminal_typed_blocker,
+        handoff=handoff,
         progress=payload,
     ):
         return _with_terminal_typed_blocker_execution_surfaces(
@@ -562,6 +564,45 @@ def _current_action_aligned_or_successor(
         action,
         typed_blocker=typed_blocker,
         progress=progress,
+    )
+
+
+def _terminal_typed_blocker_successor_action(
+    action: Mapping[str, Any] | None,
+    *,
+    typed_blocker: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if _provider_action_conflicts_with_consumed_terminal_closeout(
+        action,
+        typed_blocker=typed_blocker,
+        handoff=handoff,
+    ):
+        return False
+    return current_control_typed_blocker_successor_action(
+        action,
+        typed_blocker=typed_blocker,
+        progress=progress,
+    )
+
+
+def _provider_action_conflicts_with_consumed_terminal_closeout(
+    action: Mapping[str, Any] | None,
+    *,
+    typed_blocker: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    action_payload = _mapping_copy(action)
+    if _non_empty_text(action_payload.get("source")) != "opl_current_control_state.provider_admission_candidates":
+        return False
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return False
+    action_identity = _identity_values(action_payload)
+    return _identities_conflict(action_identity, _identity_values(consumed)) or _identities_conflict(
+        action_identity,
+        _identity_values(typed_blocker),
     )
 
 

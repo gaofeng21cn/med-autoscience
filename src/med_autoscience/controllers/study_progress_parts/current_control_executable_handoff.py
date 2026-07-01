@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.next_action_envelope import SURFACE_KIND as NEXT_ACTION_SURFACE_KIND
+
 from .current_action_identity import action_matches_canonical_executable_work_unit
 from .shared import _mapping_copy, _non_empty_text
 
@@ -12,35 +14,31 @@ TRANSITION_REQUEST_SOURCE = "opl_current_control_state.transition_request_candid
 def current_control_executable_owner_action(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
     if handoff.get("running_provider_attempt") is True:
         return None
+    next_action = _canonical_next_action(handoff)
+    if not next_action:
+        return None
     current_work_unit = _mapping_copy(handoff.get("current_work_unit"))
     current_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
     request_action = _transition_request_executable_owner_action(
         handoff,
+        next_action=next_action,
         current_work_unit=current_work_unit,
         current_envelope=current_envelope,
     )
     if request_action is not None:
         return request_action
-    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
-        return None
-    if current_envelope and _non_empty_text(current_envelope.get("state_kind")) != "executable_owner_action":
-        return None
     action = _mapping_copy(handoff.get("current_executable_owner_action"))
     if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
         return None
-    if not action_matches_canonical_executable_work_unit(
-        action=action,
-        current_work_unit=current_work_unit,
-        require_ready_status=True,
-    ):
+    if not _canonical_next_action_matches_action(next_action=next_action, action=action):
         return None
-    if not _envelope_matches_executable_action(
-        envelope=current_envelope,
+    if not _legacy_current_surfaces_allow_action(
         current_work_unit=current_work_unit,
+        current_envelope=current_envelope,
         action=action,
     ):
         return None
-    return action
+    return _with_next_action_identity(action=action, next_action=next_action)
 
 
 def current_control_executable_currentness_handoff(
@@ -89,6 +87,7 @@ def current_control_executable_currentness_handoff(
 def _transition_request_executable_owner_action(
     handoff: Mapping[str, Any],
     *,
+    next_action: Mapping[str, Any],
     current_work_unit: Mapping[str, Any],
     current_envelope: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -202,7 +201,9 @@ def _transition_request_executable_owner_action(
         action=action,
     ):
         return None
-    return action
+    if not _canonical_next_action_matches_action(next_action=next_action, action=action):
+        return None
+    return _with_next_action_identity(action=action, next_action=next_action)
 
 
 def _first_matching_transition_request_candidate(
@@ -319,6 +320,95 @@ def _transition_request_required_delta_kind(source: str) -> str | None:
     return None
 
 
+def _canonical_next_action(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping_copy(handoff.get("next_action"))
+    if _non_empty_text(next_action.get("surface_kind")) != NEXT_ACTION_SURFACE_KIND:
+        return {}
+    if _non_empty_text(next_action.get("action_family")) is None:
+        return {}
+    return next_action
+
+
+def _canonical_next_action_matches_action(
+    *,
+    next_action: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if not next_action:
+        return False
+    next_owner = _non_empty_text(next_action.get("owner")) or _non_empty_text(
+        next_action.get("next_owner")
+    )
+    action_owner = _non_empty_text(action.get("next_owner")) or _non_empty_text(action.get("owner"))
+    if next_owner is not None and action_owner != next_owner:
+        return False
+    next_action_type = _non_empty_text(next_action.get("action_type"))
+    action_types = _dedupe_text(
+        [action.get("action_type"), *_text_items(action.get("allowed_actions"))]
+    )
+    if next_action_type is not None and next_action_type not in action_types:
+        return False
+    next_allowed_actions = _text_items(next_action.get("allowed_actions"))
+    action_type = _non_empty_text(action.get("action_type"))
+    if next_allowed_actions and action_type not in next_allowed_actions:
+        return False
+    next_work_unit = _non_empty_text(next_action.get("work_unit_id"))
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    if next_work_unit is not None and action_work_unit != next_work_unit:
+        return False
+    next_fingerprint = _non_empty_text(next_action.get("work_unit_fingerprint")) or _non_empty_text(
+        next_action.get("semantic_progress_signature")
+    ) or _non_empty_text(next_action.get("action_id"))
+    action_fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if next_fingerprint is not None and action_fingerprint != next_fingerprint:
+        return False
+    return True
+
+
+def _legacy_current_surfaces_allow_action(
+    *,
+    current_work_unit: Mapping[str, Any],
+    current_envelope: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if current_work_unit:
+        status = _non_empty_text(current_work_unit.get("status"))
+        if status != "executable_owner_action":
+            return False
+        if not action_matches_canonical_executable_work_unit(
+            action=action,
+            current_work_unit=current_work_unit,
+            require_ready_status=True,
+        ):
+            return False
+    if current_envelope:
+        if _non_empty_text(current_envelope.get("state_kind")) != "executable_owner_action":
+            return False
+        if not _envelope_matches_executable_action(
+            envelope=current_envelope,
+            current_work_unit=current_work_unit,
+            action=action,
+        ):
+            return False
+    return True
+
+
+def _with_next_action_identity(
+    *,
+    action: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    updated = dict(action)
+    updated["next_action_id"] = _non_empty_text(next_action.get("action_id"))
+    updated["action_family"] = _non_empty_text(next_action.get("action_family"))
+    updated["action_family_authority"] = (
+        _mapping_copy(next_action.get("authority_boundary")).get("action_family_authority") is True
+    )
+    return {key: value for key, value in updated.items() if value not in (None, "", [], {})}
+
+
 def _current_work_unit_from_transition_request_action(
     action: Mapping[str, Any],
     *,
@@ -427,6 +517,29 @@ def _envelope_matches_executable_action(
     ):
         return False
     return True
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
+def _dedupe_text(items: list[object]) -> list[str]:
+    result: list[str] = []
+    for item in items:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 def _envelope_matches_action_identity(
