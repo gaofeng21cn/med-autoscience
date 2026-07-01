@@ -178,6 +178,115 @@ def _build_transportability_discrimination_calibration_payload(
     }
 
 
+def _build_transportability_cohort_flow_payload(
+    *,
+    metrics_payload: dict[str, Any],
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    context = "current transportability cohort-flow layout"
+    discrimination = _require_mapping(metrics_payload, "discrimination", context=context)
+    calibration = _require_mapping(metrics_payload, "calibration_drift", context=context)
+    china_n = _parse_int(discrimination.get("china_n"), label="china_n")
+    nhanes_n = _parse_int(discrimination.get("nhanes_n"), label="nhanes_n")
+    if china_n <= 0 or nhanes_n <= 0:
+        raise ValueError(f"{context} requires positive cohort sizes")
+    china_observed = _require_probability(calibration, "china_observed_5y_rate", context=context)
+    nhanes_observed = _require_probability(calibration, "nhanes_observed_5y_rate", context=context)
+    combined_n = china_n + nhanes_n
+    china_events = _event_count_from_rate(support_count=china_n, rate=china_observed)
+    nhanes_events = _event_count_from_rate(support_count=nhanes_n, rate=nhanes_observed)
+    return {
+        "schema_version": 1,
+        "shell_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "display_id": display_id,
+        "catalog_id": catalog_id,
+        "paper_role": "main_text",
+        "status": "materialized_from_current_transportability_layout",
+        "title": "External-validation cohort flow and model-input boundary",
+        "caption": (
+            "China development and NHANES external-validation analysis sets using the shared seven-predictor "
+            "Cox score and fixed 5-year all-cause mortality endpoint."
+        ),
+        "flow_mode": "source_layer_accounting",
+        "denominator_step_id": "harmonized_diabetes_analysis_sources",
+        "steps": [
+            {
+                "step_id": "harmonized_diabetes_analysis_sources",
+                "label": "Harmonized diabetes analysis sources",
+                "n": combined_n,
+                "detail": "China development source plus NHANES external-validation source.",
+            },
+        ],
+        "source_layers": [
+            {
+                "layer_id": "china_development_source",
+                "step_id": "harmonized_diabetes_analysis_sources",
+                "label": "China development cohort",
+                "n": china_n,
+                "detail": "Fixed Cox score source.",
+            },
+            {
+                "layer_id": "nhanes_validation_source",
+                "step_id": "harmonized_diabetes_analysis_sources",
+                "label": "NHANES external validation cohort",
+                "n": nhanes_n,
+                "detail": "Diagnosed diabetes adults.",
+            },
+        ],
+        "subcohort_coverage": [
+            {
+                "coverage_id": "score_derivation_endpoint",
+                "label": "China score derivation and mortality endpoint accounting",
+                "n": china_n,
+                "denominator_n": combined_n,
+                "detail": "Fixed seven-predictor Cox score.",
+            },
+            {
+                "coverage_id": "external_validation_no_refit",
+                "label": "NHANES external validation after unit harmonization",
+                "n": nhanes_n,
+                "denominator_n": combined_n,
+                "detail": "HDL converted to mmol/L; no model refitting.",
+            },
+        ],
+        "exclusion_branches": [],
+        "endpoint_inventory": [
+            {
+                "endpoint_id": "china_5_year_all_cause_mortality",
+                "label": "China 5-year all-cause mortality",
+                "event_n": china_events,
+                "detail": "Observed on the development analysis horizon.",
+            },
+            {
+                "endpoint_id": "nhanes_5_year_all_cause_mortality",
+                "label": "NHANES 5-year all-cause mortality",
+                "event_n": nhanes_events,
+                "detail": "Observed on the external-validation analysis horizon.",
+            },
+        ],
+        "design_panels": [
+            {
+                "panel_id": "model_input_boundary",
+                "layout_role": "wide_bottom",
+                "style_role": "secondary",
+                "title": "Model-input boundary",
+                "lines": [
+                    {
+                        "label": "Shared predictors",
+                        "detail": "Age, sex, smoking, HbA1c, HDL cholesterol, systolic BP, and diastolic BP.",
+                    },
+                    {
+                        "label": "Validation policy",
+                        "detail": "External validation only; no NHANES refitting or clinical treatment-effect claim.",
+                    },
+                ],
+            }
+        ],
+    }
+
+
 def _normalize_risk_group_label(cohort: str, risk_group: str) -> str:
     normalized_group = risk_group.strip().replace("_", " ")
     if not normalized_group:
@@ -508,6 +617,7 @@ def run_current_transportability_layout_migration(
     binding_requirement_keys: dict[str, str],
     f5_binding: dict[str, str],
     f5_requirement_key: str,
+    f1_binding: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     transportability_root = Path(study_root) / TRANSPORTABILITY_LAYOUT_RELATIVE_ROOT
     metrics_path = transportability_root / "metrics_summary.json"
@@ -518,6 +628,18 @@ def run_current_transportability_layout_migration(
             raise FileNotFoundError(f"missing required current transportability layout file: {path}")
     metrics_payload = _load_json(metrics_path)
     written_files: list[str] = []
+
+    if f1_binding is not None:
+        cohort_flow_path = Path(paper_root) / "cohort_flow.json"
+        _write_json(
+            cohort_flow_path,
+            _build_transportability_cohort_flow_payload(
+                metrics_payload=metrics_payload,
+                display_id=f1_binding["display_id"],
+                catalog_id=f1_binding["catalog_id"],
+            ),
+        )
+        written_files.append(str(cohort_flow_path))
 
     if binding_requirement_keys.get("f2") == "time_to_event_discrimination_calibration_panel":
         discrimination_path = Path(paper_root) / "time_to_event_discrimination_calibration_inputs.json"

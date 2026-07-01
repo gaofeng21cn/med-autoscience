@@ -551,7 +551,7 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     assert 'title: "Materialized Submission Title"' in submission_markdown
     assert "# Main Figures" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![F1](figures/Figure1.png)" in submission_markdown
+    assert "![F1](figures/Figure1.png){width=100%}" in submission_markdown
     assert "Materialized figure caption." in submission_markdown
     manuscript_surface_qc = manifest["manuscript"]["surface_qc"]
     assert manuscript_surface_qc["status"] == "pass"

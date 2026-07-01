@@ -58,6 +58,31 @@ def _copy_if_source_changed(
     return target_path
 
 
+def _current_generated_status(path: Path) -> str:
+    if not path.exists() or path.suffix != ".json":
+        return ""
+    try:
+        payload = load_json(path)
+    except (OSError, ValueError):
+        return ""
+    status = str(payload.get("status") or "").strip()
+    if status.startswith("materialized_from_current_"):
+        return status
+    return ""
+
+
+def _should_preserve_current_generated_target(
+    *,
+    source_path: Path,
+    target_path: Path,
+) -> bool:
+    target_status = _current_generated_status(target_path)
+    if not target_status:
+        return False
+    source_status = _current_generated_status(source_path)
+    return source_status != target_status
+
+
 def _copy_shell_path(
     *,
     source_root: Path,
@@ -148,10 +173,12 @@ def hydrate_display_surface_sources_from_current_body(
             "source_root": str(source_root),
             "hydrated_files": [],
             "missing_required_source_files": [],
+            "preserved_current_generated_sources": [],
         }
 
     copied_files: list[Path] = []
     missing_required_source_files: list[str] = []
+    preserved_current_generated_sources: list[str] = []
     required_rels: set[str] = set()
     displays = display_registry_payload.get("displays")
     if not isinstance(displays, list):
@@ -186,6 +213,9 @@ def hydrate_display_surface_sources_from_current_body(
             if not target_path.exists():
                 missing_required_source_files.append(rel_path)
             continue
+        if _should_preserve_current_generated_target(source_path=source_path, target_path=target_path):
+            preserved_current_generated_sources.append(rel_path)
+            continue
         copied_path = _copy_if_source_changed(
             source_root=source_root,
             paper_root=resolved_paper_root,
@@ -203,6 +233,9 @@ def hydrate_display_surface_sources_from_current_body(
         "source_root": str(source_root),
         "hydrated_files": hydrated_files,
         "missing_required_source_files": missing_required_source_files,
+        "preserved_current_generated_sources": [
+            f"paper/{rel_path}" for rel_path in sorted(set(preserved_current_generated_sources))
+        ],
     }
 
 

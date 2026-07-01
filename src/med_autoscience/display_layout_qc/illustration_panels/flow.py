@@ -503,6 +503,35 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
         and str(sidecar.metrics.get("flow_visual_policy") or "").strip()
         == "purpose_first_reporting_flow_no_legacy_card_shell"
     )
+    steps = [item for item in (sidecar.metrics.get("steps") or []) if isinstance(item, dict)]
+    exclusions = [item for item in (sidecar.metrics.get("exclusions") or []) if isinstance(item, dict)]
+    design_panels = [item for item in (sidecar.metrics.get("design_panels") or []) if isinstance(item, dict)]
+    has_design_boundary_detail = any(
+        str(line.get("detail") or "").strip()
+        for panel in design_panels
+        for line in (panel.get("lines") or [])
+        if isinstance(line, dict)
+    )
+    if is_v2_layout and len(steps) < 3 and not exclusions and not has_design_boundary_detail:
+        issues.append(
+            _issue(
+                rule_id="participant_flow_low_information_accounting",
+                message=(
+                    "ScholarSkills cohort-flow v2 Figure 1 must carry participant accounting or study-design "
+                    "boundary information, not only two cohort labels"
+                ),
+                target="metrics.steps",
+                observed={
+                    "step_count": len(steps),
+                    "exclusion_count": len(exclusions),
+                    "has_design_boundary_detail": has_design_boundary_detail,
+                },
+                expected={
+                    "minimum_step_count_without_exclusions": 3,
+                    "or": "non-empty exclusion branches or design-boundary details",
+                },
+            )
+        )
     flow_nodes = sidecar.metrics.get("flow_nodes")
     if not isinstance(flow_nodes, list) or not flow_nodes:
         issues.append(
@@ -541,6 +570,19 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
             minimum_height_pt = 70.0 if box_type == "main_step" else 52.0
             minimum_padding_pt = 8.0 if box_type == "main_step" else 6.0
             minimum_width_pt = 380.0 if is_v2_layout and box_type == "main_step" else 160.0
+            if is_v2_layout and box_type == "main_step" and item.get("detail_truncated") is True:
+                issues.append(
+                    _issue(
+                        rule_id="participant_flow_step_detail_truncated",
+                        message=(
+                            "ScholarSkills cohort-flow v2 Figure 1 must preserve concise step details; "
+                            "ellipsis truncation hides the participant-accounting or study-design meaning"
+                        ),
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"box_id": item.get("box_id"), "detail_truncated": True},
+                        expected={"detail_truncated": False},
+                    )
+                )
             if is_v2_layout and is_context_note:
                 issues.append(
                     _issue(
