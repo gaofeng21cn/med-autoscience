@@ -22,14 +22,19 @@ from med_autoscience.scientific_capability_registry_parts import (
     STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS as _STANDARD_AGENT_FALSE_COMPLETION_BLOCKERS,
     STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS as _STANDARD_AGENT_FEEDBACK_LOOP_TAIL_KEYS,
     authority_boundary as _authority_boundary,
-    authority_false_flags as _authority_false_flags,
+    capability_inventory as _capability_inventory,
+    capability_matches as _capability_matches,
+    capability_request_projection as _capability_request_projection,
     current_owner_summary as _current_owner_summary,
     dedupe_texts as _dedupe_texts,
+    descriptor_only_projection as _descriptor_only_projection,
     mapping as _mapping,
     merge_execution_receipt_input as _merge_execution_receipt_input,
     merge_mappings as _merge_mappings,
     no_forbidden_write_proof as _no_forbidden_write_proof_for_refs,
+    opl_capability_invocation_request as _opl_capability_invocation_request,
     owner_response_refs as _owner_response_refs,
+    resolution_candidate as _resolution_candidate,
     scholarskills_execution_receipt_evidence as _scholarskills_execution_receipt_evidence_for_capability,
     scholarskills_owner_gate_readback as _scholarskills_owner_gate_readback,
     standard_agent_feedback_loop_tail as _standard_agent_feedback_loop_tail,
@@ -147,32 +152,6 @@ NATURE_REVIEWER_REPAIR_TRIGGER_TERMS = (
     "repair_action",
     "repair_action_candidates",
 )
-_CURRENT_DELTA_DECLARATION_KEYS = {
-    "action_type",
-    "action_id",
-    "artifact_kind",
-    "artifact_need",
-    "capability_id",
-    "capability_ids",
-    "capability_families",
-    "capability_family",
-    "declared_need",
-    "declared_needs",
-    "display_need",
-    "figure_need",
-    "intent",
-    "manifest_need",
-    "need",
-    "paper_need",
-    "output_kind",
-    "requested_refs",
-    "requested_surface",
-    "route_required_ref_families",
-    "route_required_ref_family",
-    "router_need",
-    "stable_plotting_need",
-    "target_surface",
-}
 
 
 def build_scientific_capability_registry() -> dict[str, Any]:
@@ -362,6 +341,7 @@ def invoke_scientific_capability(
     capability = _capability_by_id(capability_id)
     delta = _mapping(current_owner_delta)
     runtime_request = _opl_capability_invocation_request(
+        schema_version=SCHEMA_VERSION,
         capability=capability,
         current_owner_delta=delta,
         study_root=study_root,
@@ -385,6 +365,7 @@ def invoke_scientific_capability(
         "output_refs": list(capability.get("output_refs") or []),
         "authority_boundary": _authority_boundary(),
         "result": _capability_request_projection(
+            schema_version=SCHEMA_VERSION,
             capability=capability,
             current_owner_delta=delta,
             runtime_request=runtime_request,
@@ -399,6 +380,7 @@ def invoke_scientific_capability(
                 "opl_capability_runtime_required": False,
                 "external_runner_invocation_allowed": False,
                 "result": _descriptor_only_projection(
+                    schema_version=SCHEMA_VERSION,
                     capability=capability,
                     current_owner_delta=delta,
                     runtime_request=runtime_request,
@@ -702,27 +684,6 @@ def _capabilities() -> list[dict[str, Any]]:
     ]
 
 
-def _capability_inventory(capabilities: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        {
-            "capability_id": _text(capability.get("capability_id")),
-            "capability_family": _text(capability.get("capability_family")),
-            "module_id": _text(capability.get("module_id")) or None,
-            "invocation_kind": _text(capability.get("invocation_kind")),
-            "refs_only": bool(capability.get("refs_only")),
-            "descriptor_only": bool(capability.get("descriptor_only")),
-            "external_runner_invocation_allowed": bool(
-                capability.get("external_runner_invocation_allowed", False)
-            ),
-            "source_frameworks": _text_list(capability.get("source_frameworks")),
-            "action_triggers": _text_list(capability.get("action_triggers")),
-            "output_refs": _text_list(capability.get("output_refs")),
-            "role": _text(capability.get("role")),
-        }
-        for capability in capabilities
-    ]
-
-
 def _scholarskills_capabilities() -> list[dict[str, Any]]:
     return build_scholarskills_capabilities(
         schema_version=SCHEMA_VERSION,
@@ -806,172 +767,6 @@ def _capability(
     return payload
 
 
-def _resolution_candidate(
-    capability: Mapping[str, Any],
-    *,
-    action_type: str,
-    current_owner_delta: Mapping[str, Any],
-) -> dict[str, Any]:
-    candidate = {
-        "capability_id": capability["capability_id"],
-        "capability_family": capability["capability_family"],
-        "source_frameworks": list(capability.get("source_frameworks") or []),
-        "candidate_ref": f"scientific-capability:{capability['capability_id']}:{action_type}",
-        "invocation_kind": capability["invocation_kind"],
-        "callable_surface": capability["callable_surface"],
-        "output_refs": list(capability.get("output_refs") or []),
-        "artifact_refs": list(capability.get("artifact_refs") or []),
-        "role": capability["role"],
-        "trigger_reason": _trigger_reason(capability, action_type=action_type, current_owner_delta=current_owner_delta),
-        "refs_only": True,
-        "body_included": False,
-        "can_block_current_owner_action": False,
-        "requires_explicit_invoke": True,
-        "descriptor_only": bool(capability.get("descriptor_only")),
-        "external_runner_invocation_allowed": bool(
-            capability.get("external_runner_invocation_allowed", False)
-        ),
-        "contract_refs": list(capability.get("contract_refs") or []),
-        "descriptor_refs": list(capability.get("descriptor_refs") or []),
-        "dependency_profile_refs": list(capability.get("dependency_profile_refs") or []),
-        "run_context_refs": list(capability.get("run_context_refs") or []),
-        "execution_receipt_expectation": dict(
-            _mapping(capability.get("execution_receipt_expectation"))
-        ),
-        "owner_consumption_boundary": dict(
-            _mapping(capability.get("owner_consumption_boundary"))
-        ),
-        "bridged_capability_refs": list(capability.get("bridged_capability_refs") or []),
-        "readback": _capability_readback(capability),
-        "authority_boundary": _authority_boundary(),
-    }
-    module_id = _text(capability.get("module_id"))
-    if module_id:
-        candidate["module_id"] = module_id
-    wildcard_policy = _mapping(capability.get("wildcard_action_trigger_policy"))
-    if wildcard_policy:
-        candidate["wildcard_action_trigger_policy"] = dict(wildcard_policy)
-    return candidate
-
-
-def _capability_matches(
-    capability: Mapping[str, Any],
-    *,
-    action_type: str,
-    requested_families: set[str],
-    current_owner_delta: Mapping[str, Any],
-) -> bool:
-    family = _text(capability.get("capability_family"))
-    if family in requested_families or _text(capability.get("capability_id")) in requested_families:
-        return True
-    triggers = set(_text_list(capability.get("action_triggers")))
-    if action_type in triggers:
-        return True
-    return _current_delta_declares_terms(
-        current_owner_delta,
-        terms=_text_list(capability.get("current_delta_trigger_terms")),
-    )
-
-
-def _trigger_reason(
-    capability: Mapping[str, Any],
-    *,
-    action_type: str,
-    current_owner_delta: Mapping[str, Any],
-) -> str:
-    requested = _text_set(current_owner_delta.get("capability_families")) | _text_set(
-        current_owner_delta.get("route_required_ref_families")
-    )
-    if _text(capability.get("capability_family")) in requested:
-        return "current_delta_requested_capability_family"
-    if _text(capability.get("capability_id")) in requested:
-        return "current_delta_requested_capability_id"
-    if action_type in set(_text_list(capability.get("action_triggers"))):
-        return "action_type_trigger"
-    if _current_delta_declares_terms(
-        current_owner_delta,
-        terms=_text_list(capability.get("current_delta_trigger_terms")),
-    ):
-        return (
-            _text(capability.get("current_delta_trigger_reason"))
-            or "current_delta_declared_capability_need"
-        )
-    return "default_jit_affordance"
-
-
-def _capability_readback(capability: Mapping[str, Any]) -> dict[str, Any]:
-    descriptor_only = (
-        capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
-    )
-    readback = {
-        "surface_kind": "mas_scientific_capability_readback",
-        "capability_id": capability["capability_id"],
-        "invocation_kind": capability["invocation_kind"],
-        "descriptor_only": descriptor_only,
-        "refs_only": True,
-        "request_only": not descriptor_only,
-        "can_execute_external_runner": False,
-        "can_authorize_publication_readiness": False,
-        "can_authorize_quality_verdict": False,
-        "contract_refs": list(capability.get("contract_refs") or []),
-    }
-    module_id = _text(capability.get("module_id"))
-    if module_id:
-        readback["module_id"] = module_id
-    for key in (
-        "descriptor_refs",
-        "dependency_profile_refs",
-        "run_context_refs",
-        "artifact_refs",
-    ):
-        refs = list(capability.get(key) or [])
-        if refs:
-            readback[key] = refs
-    execution_receipt_expectation = _mapping(
-        capability.get("execution_receipt_expectation")
-    )
-    if execution_receipt_expectation:
-        readback["execution_receipt_expectation"] = dict(execution_receipt_expectation)
-    owner_consumption_boundary = _mapping(capability.get("owner_consumption_boundary"))
-    if owner_consumption_boundary:
-        readback["owner_consumption_boundary"] = dict(owner_consumption_boundary)
-    if module_id:
-        readback["authority_false_flags"] = _authority_false_flags()
-    return readback
-
-
-def _current_delta_declares_terms(
-    current_owner_delta: Mapping[str, Any],
-    *,
-    terms: list[str],
-) -> bool:
-    if not terms:
-        return False
-    haystack = " ".join(_current_delta_declaration_texts(current_owner_delta)).lower()
-    return any(term.lower() in haystack for term in terms)
-
-
-def _current_delta_declaration_texts(value: object) -> list[str]:
-    if isinstance(value, Mapping):
-        texts: list[str] = []
-        for key, item in value.items():
-            if key in _CURRENT_DELTA_DECLARATION_KEYS or str(key).endswith(
-                ("_ref", "_refs", "_need", "_needs", "_kind", "_surface")
-            ):
-                texts.append(str(key))
-                texts.extend(_current_delta_declaration_texts(item))
-            elif isinstance(item, Mapping):
-                texts.extend(_current_delta_declaration_texts(item))
-        return texts
-    if isinstance(value, (list, tuple, set)):
-        texts = []
-        for item in value:
-            texts.extend(_current_delta_declaration_texts(item))
-        return texts
-    text = _text(value)
-    return [text] if text else []
-
-
 def _capability_by_id(capability_id: str) -> dict[str, Any]:
     requested = _require_text(capability_id, "capability_id")
     for capability in _capabilities():
@@ -999,96 +794,6 @@ def _capability_output_refs(invocation: Mapping[str, Any]) -> list[str]:
     if not refs:
         refs = _text_list(_capability_by_id(_text(invocation.get("capability_id"))).get("output_refs"))
     return _dedupe_texts(refs)
-
-
-def _opl_capability_invocation_request(
-    *,
-    capability: Mapping[str, Any],
-    current_owner_delta: Mapping[str, Any],
-    study_root: Path | str | None,
-    payload: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    delta = _mapping(current_owner_delta)
-    request_payload = _mapping(payload)
-    study_root_ref = _text(study_root)
-    return {
-        "surface_kind": "mas_opl_capability_invocation_request",
-        "schema_version": SCHEMA_VERSION,
-        "target_runtime_owner": "one-person-lab",
-        "target_runtime_kind": "CapabilityRegistry",
-        "request_owner": "med-autoscience",
-        "authority_role": "capability_request_only",
-        "capability_id": capability["capability_id"],
-        "capability_family": capability["capability_family"],
-        "invocation_kind": capability["invocation_kind"],
-        "callable_surface": capability["callable_surface"],
-        "study_root_ref": study_root_ref or None,
-        "current_owner_delta_identity": _current_owner_summary(delta),
-        "expected_output_refs": list(capability.get("output_refs") or []),
-        "payload_ref": _text(request_payload.get("payload_ref")) or None,
-        "mas_can_create_opl_outbox_record": False,
-        "mas_can_create_opl_event": False,
-        "mas_can_create_opl_stage_run": False,
-        "mas_can_run_capability_actuator": False,
-        "mainline_waits_for_capability": False,
-    }
-
-
-def _capability_request_projection(
-    *,
-    capability: Mapping[str, Any],
-    current_owner_delta: Mapping[str, Any],
-    runtime_request: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "mas_scientific_capability_invocation_request_projection",
-        "schema_version": SCHEMA_VERSION,
-        "status": "opl_capability_request_pending",
-        "capability_ref": capability["capability_ref"],
-        "capability_id": capability["capability_id"],
-        "capability_family": capability["capability_family"],
-        "invocation_kind": capability["invocation_kind"],
-        "refs_only": True,
-        "body_included": False,
-        "current_owner_delta_identity": _current_owner_summary(current_owner_delta),
-        "output_refs": list(capability.get("output_refs") or []),
-        "opl_capability_invocation_request": dict(runtime_request),
-        "mas_local_capability_actuator": False,
-        "mainline_waits_for_capability": False,
-        "can_block_current_owner_action": False,
-        "authority_boundary": _authority_boundary(),
-    }
-
-
-def _descriptor_only_projection(
-    *,
-    capability: Mapping[str, Any],
-    current_owner_delta: Mapping[str, Any],
-    runtime_request: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "mas_scientific_capability_descriptor_only_projection",
-        "schema_version": SCHEMA_VERSION,
-        "status": "descriptor_only",
-        "capability_ref": capability["capability_ref"],
-        "capability_id": capability["capability_id"],
-        "capability_family": capability["capability_family"],
-        "invocation_kind": capability["invocation_kind"],
-        "refs_only": True,
-        "descriptor_only": True,
-        "request_only": False,
-        "body_included": False,
-        "current_owner_delta_identity": _current_owner_summary(current_owner_delta),
-        "output_refs": list(capability.get("output_refs") or []),
-        "contract_refs": list(capability.get("contract_refs") or []),
-        "readback": _capability_readback(capability),
-        "opl_capability_invocation_request": dict(runtime_request),
-        "mas_local_capability_actuator": False,
-        "external_runner_invocation_allowed": False,
-        "mainline_waits_for_capability": False,
-        "can_block_current_owner_action": False,
-        "authority_boundary": _authority_boundary(),
-    }
 
 
 def _evo_event(*, delta: Mapping[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
