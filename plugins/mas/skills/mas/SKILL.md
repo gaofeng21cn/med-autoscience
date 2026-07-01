@@ -96,6 +96,15 @@ medautosci paper-mission terminalize-stage \
 - 如果某个所需能力在 MAS surface 中缺失，应回到 repo 层补最小 callable/controller surface 并验证，而不是在单个 study workspace 旁路实现。
 - 只有用户明确要求“探索 MAS 之外的替代技术路线”或“只做离线草稿、不进入 MAS runtime”时，才可以使用通用工具；回复中必须标明该路线不更新 MAS truth surface。
 
+## 用户论文反馈与大改边界
+
+- 用户对论文提出修改、导师意见、审稿意见、补分析、补参考文献、扩正文、重画图、改结果/讨论/表图或投稿包要求时，先按 `reviewer_revision` / paper-mission task intake 理解，并读取 `study progress` 与 `paper-mission inspect`，不要默认进入前台直接改稿。
+- Fast-lane 只允许小范围、低风险、不会改变证据面或论文结构的修正，例如错字、局部措辞、单个格式问题、显然的 caption 小修；即使 fast-lane 执行，也必须留下 MAS 格式记录或候选 delta，说明 `candidate_is_authority=false`、影响范围和后续 owner 路径。
+- 下列事项不是 fast-lane，必须走 MAS owner route / candidate package / revision work unit / OPL-MAS handoff：新增或替换参考文献批量集合、正文扩写或重写、补充结果图表、重画 paper-facing figures、改变 claim-evidence/display surface、修改统计或方法证据、构建或刷新 submission package、影响 publication gate 或 current package 的任何动作。
+- Codex foreground 可以产出 paper-facing candidate、diagnostic delta、修复建议或候选包，但这些在 MAS owner 消费前不是 authority；不得把 foreground 文件生成、脚本通过、包存在、figure render 成功或 refs-only package 表述为 paper progress、current package freshness、submission-ready、publication-ready、owner receipt、typed blocker 或 human gate 已完成。
+- 对已经发生的 foreground 大改，正确补救路径是立刻停止继续改正文，登记结构化 candidate/revision delta，经 `paper-mission package-candidate` / `consume-candidate` 或当前 study 的合法 owner route 消费，再用 fresh `study progress` / `paper-mission inspect` 报告 MAS 是否接受、route back、typed blocker、human gate 或仍只是 foreground artifact。
+- 禁止直接写入或伪造 `publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、`manuscript/current_package`、runtime queue/provider attempts 或 Yang study truth surface 来让前台大改看起来已被 MAS 承认。
+
 ## 操作约束
 
 - 任何写操作之前，先读 workspace 当前状态
