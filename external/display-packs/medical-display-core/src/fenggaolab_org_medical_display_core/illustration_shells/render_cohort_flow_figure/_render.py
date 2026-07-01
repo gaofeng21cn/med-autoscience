@@ -9,7 +9,6 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from ...shared_parts.common import _require_non_empty_string
 from ...shared_parts.flow_layout import (
     _FlowNodeSpec,
     _GraphvizNodeBox,
@@ -22,6 +21,7 @@ from ...shared_parts.flow_layout import (
 
 from ._participant_flow import _render_participant_flow
 from ._single_panel import _render_single_panel_cards
+from ._layout_config import read_float, read_ratio, role_color
 from ._specs import (
     _build_cohort_flow_design_panel_specs,
     _build_cohort_flow_exclusion_spec,
@@ -30,16 +30,6 @@ from ._specs import (
     _cohort_flow_spec_base_height,
 )
 from ._write_outputs import _write_multi_panel_outputs
-
-_COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
-    "full_right": "wide_top",
-}
-_COHORT_FLOW_LAYOUT_MODES = {"two_panel_flow", "single_panel_cards", "participant_flow"}
-_COHORT_FLOW_STEP_ROLE_LABELS: dict[str, str] = {
-    "historical_reference": "Historical patient reference",
-    "current_patient_surface": "Current patient surface",
-    "clinician_surface": "Clinician surface",
-}
 
 
 def _render_cohort_flow_figure(
@@ -57,48 +47,28 @@ def _render_cohort_flow_figure(
     comparison_summary: dict[str, Any],
     render_context: dict[str, Any],
 ) -> None:
-    def read_float(mapping: dict[str, Any], key: str, default: float) -> float:
-        value = mapping.get(key, default)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
-        return float(default)
-
-    def read_ratio(mapping: dict[str, Any], key: str) -> float | None:
-        value = mapping.get(key)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            normalized = float(value)
-            if 0.0 < normalized < 1.0:
-                return normalized
-        return None
-
     render_context_payload = dict(render_context or {})
     style_roles = dict(render_context_payload.get("style_roles") or {})
     layout_override = dict(render_context_payload.get("layout_override") or {})
     typography = dict(render_context_payload.get("typography") or {})
     stroke = dict(render_context_payload.get("stroke") or {})
 
-    def role_color(role_name: str) -> str:
-        return _require_non_empty_string(
-            style_roles.get(role_name),
-            label=f"cohort_flow_figure render_context.style_roles.{role_name}",
-        )
-
-    flow_main_fill = role_color("flow_main_fill")
-    flow_main_edge = role_color("flow_main_edge")
-    flow_exclusion_fill = role_color("flow_exclusion_fill")
-    flow_exclusion_edge = role_color("flow_exclusion_edge")
-    flow_primary_fill = role_color("flow_primary_fill")
-    flow_primary_edge = role_color("flow_primary_edge")
-    flow_secondary_fill = role_color("flow_secondary_fill")
-    flow_secondary_edge = role_color("flow_secondary_edge")
-    flow_context_fill = role_color("flow_context_fill")
-    flow_context_edge = role_color("flow_context_edge")
-    flow_audit_fill = role_color("flow_audit_fill")
-    flow_audit_edge = role_color("flow_audit_edge")
-    flow_title_text = role_color("flow_title_text")
-    flow_body_text = role_color("flow_body_text")
-    flow_panel_label = role_color("flow_panel_label")
-    flow_connector = role_color("flow_connector")
+    flow_main_fill = role_color(style_roles, "flow_main_fill")
+    flow_main_edge = role_color(style_roles, "flow_main_edge")
+    flow_exclusion_fill = role_color(style_roles, "flow_exclusion_fill")
+    flow_exclusion_edge = role_color(style_roles, "flow_exclusion_edge")
+    flow_primary_fill = role_color(style_roles, "flow_primary_fill")
+    flow_primary_edge = role_color(style_roles, "flow_primary_edge")
+    flow_secondary_fill = role_color(style_roles, "flow_secondary_fill")
+    flow_secondary_edge = role_color(style_roles, "flow_secondary_edge")
+    flow_context_fill = role_color(style_roles, "flow_context_fill")
+    flow_context_edge = role_color(style_roles, "flow_context_edge")
+    flow_audit_fill = role_color(style_roles, "flow_audit_fill")
+    flow_audit_edge = role_color(style_roles, "flow_audit_edge")
+    flow_title_text = role_color(style_roles, "flow_title_text")
+    flow_body_text = role_color(style_roles, "flow_body_text")
+    flow_panel_label = role_color(style_roles, "flow_panel_label")
+    flow_connector = role_color(style_roles, "flow_connector")
 
     base_card_title_size = max(11.8, read_float(typography, "axis_title_size", 11.0) + 0.8)
     base_label_size = max(10.4, read_float(typography, "tick_size", 10.0) + 0.4)
