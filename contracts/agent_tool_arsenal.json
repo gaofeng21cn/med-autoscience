@@ -9227,6 +9227,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "table_acceptance_for_current_paper",
+            "reporting_guideline_blocker",
+            "submission_facing_authority"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P0",
+          "migration_target": "opl-scholarskills",
+          "module_name": "tables",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -9401,6 +9418,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "medical_question_fit",
+            "result_to_manuscript_gate",
+            "analysis_campaign_closeout"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P0",
+          "migration_target": "opl-scholarskills",
+          "module_name": "stats",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -9577,6 +9611,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "biological_interpretation",
+            "source_readiness",
+            "result_to_figure_or_text_gate"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P2",
+          "migration_target": "opl-scholarskills",
+          "module_name": "omics",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -9750,6 +9801,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "claim_boundary",
+            "citation_accept_reject",
+            "evidence_ledger_acceptance"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P0",
+          "migration_target": "opl-scholarskills",
+          "module_name": "lit",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -9922,6 +9990,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "manuscript_truth",
+            "claim_accept_reject",
+            "publication_eval"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P1",
+          "migration_target": "opl-scholarskills",
+          "module_name": "write",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -10094,6 +10179,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "final_quality_verdict",
+            "route_back_owner_decision",
+            "typed_blocker"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P1",
+          "migration_target": "opl-scholarskills",
+          "module_name": "review",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -10267,6 +10369,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "submission_readiness",
+            "current_package_authority",
+            "irreversible_submission_action"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P0",
+          "migration_target": "opl-scholarskills",
+          "module_name": "submit",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -10440,6 +10559,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "source_readiness_verdict",
+            "study_binding",
+            "irreversible_data_mutation_authorization"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P1",
+          "migration_target": "opl-scholarskills",
+          "module_name": "data",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {
@@ -10612,6 +10748,23 @@
         },
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
+        "externalization_guard": {
+          "mas_may_write_scholarskills_authority": false,
+          "mas_module_authority_owner": false,
+          "mas_retained_authority": [
+            "ordinary_path_admission",
+            "default_capability_decision",
+            "authority_false_flag_acceptance"
+          ],
+          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+          "mas_second_truth_allowed": false,
+          "migration_priority": "P1",
+          "migration_target": "opl-scholarskills",
+          "module_name": "intake",
+          "schema_version": 1,
+          "source_of_truth_repo": "external:opl-scholarskills",
+          "surface_kind": "mas_scholarskills_non_display_migration_guard"
+        },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
         "local_install": {

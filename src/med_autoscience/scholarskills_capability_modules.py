@@ -30,6 +30,80 @@ SCHOLARSKILLS_MODULE_NAMES = (
 SCHOLARSKILLS_CAPABILITY_IDS = tuple(
     f"opl.scholarskills.{name}" for name in SCHOLARSKILLS_MODULE_NAMES
 )
+SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT = {
+    "lit": {
+        "migration_priority": "P0",
+        "mas_retained_authority": [
+            "claim_boundary",
+            "citation_accept_reject",
+            "evidence_ledger_acceptance",
+        ],
+    },
+    "tables": {
+        "migration_priority": "P0",
+        "mas_retained_authority": [
+            "table_acceptance_for_current_paper",
+            "reporting_guideline_blocker",
+            "submission_facing_authority",
+        ],
+    },
+    "stats": {
+        "migration_priority": "P0",
+        "mas_retained_authority": [
+            "medical_question_fit",
+            "result_to_manuscript_gate",
+            "analysis_campaign_closeout",
+        ],
+    },
+    "submit": {
+        "migration_priority": "P0",
+        "mas_retained_authority": [
+            "submission_readiness",
+            "current_package_authority",
+            "irreversible_submission_action",
+        ],
+    },
+    "write": {
+        "migration_priority": "P1",
+        "mas_retained_authority": [
+            "manuscript_truth",
+            "claim_accept_reject",
+            "publication_eval",
+        ],
+    },
+    "review": {
+        "migration_priority": "P1",
+        "mas_retained_authority": [
+            "final_quality_verdict",
+            "route_back_owner_decision",
+            "typed_blocker",
+        ],
+    },
+    "data": {
+        "migration_priority": "P1",
+        "mas_retained_authority": [
+            "source_readiness_verdict",
+            "study_binding",
+            "irreversible_data_mutation_authorization",
+        ],
+    },
+    "intake": {
+        "migration_priority": "P1",
+        "mas_retained_authority": [
+            "ordinary_path_admission",
+            "default_capability_decision",
+            "authority_false_flag_acceptance",
+        ],
+    },
+    "omics": {
+        "migration_priority": "P2",
+        "mas_retained_authority": [
+            "biological_interpretation",
+            "source_readiness",
+            "result_to_figure_or_text_gate",
+        ],
+    },
+}
 SCHOLARSKILLS_OPERATING_MODEL_REF = (
     "docs/runtime/designs/mas_opl_capability_module_operating_model.md"
 )
@@ -628,6 +702,7 @@ def build_scholarskills_capabilities(
                 artifact_refs=artifact_refs,
                 execution_receipt_expectation=execution_receipt_expectation,
                 owner_consumption_boundary=owner_consumption_boundary,
+                externalization_guard=_non_display_migration_guard(module_name),
                 bridged_capability_refs=list(
                     metadata.get("bridged_capability_refs") or []
                 ),
@@ -673,6 +748,7 @@ def _capability_payload(
     artifact_refs: list[str] | None = None,
     execution_receipt_expectation: Mapping[str, Any] | None = None,
     owner_consumption_boundary: Mapping[str, Any] | None = None,
+    externalization_guard: Mapping[str, Any] | None = None,
     bridged_capability_refs: list[str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
@@ -723,11 +799,32 @@ def _capability_payload(
         payload["execution_receipt_expectation"] = dict(execution_receipt_expectation)
     if owner_consumption_boundary:
         payload["owner_consumption_boundary"] = dict(owner_consumption_boundary)
+    if externalization_guard:
+        payload["externalization_guard"] = dict(externalization_guard)
     if bridged_capability_refs:
         payload["bridged_capability_refs"] = list(bridged_capability_refs)
     payload["descriptor_only"] = True
     payload["external_runner_invocation_allowed"] = False
     return payload
+
+
+def _non_display_migration_guard(module_name: str) -> dict[str, Any]:
+    audit = SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT.get(module_name)
+    if not audit:
+        return {}
+    return {
+        "surface_kind": "mas_scholarskills_non_display_migration_guard",
+        "schema_version": 1,
+        "module_name": module_name,
+        "migration_target": "opl-scholarskills",
+        "migration_priority": audit["migration_priority"],
+        "source_of_truth_repo": SCHOLARSKILLS_SOURCE_REPO_REF,
+        "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
+        "mas_module_authority_owner": False,
+        "mas_second_truth_allowed": False,
+        "mas_may_write_scholarskills_authority": False,
+        "mas_retained_authority": list(audit["mas_retained_authority"]),
+    }
 
 
 def _dedupe_texts(values: Iterable[str]) -> list[str]:

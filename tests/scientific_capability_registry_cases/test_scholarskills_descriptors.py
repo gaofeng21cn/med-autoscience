@@ -11,6 +11,19 @@ from .common import (
 )
 
 
+NON_DISPLAY_MIGRATION_PRIORITIES = {
+    "lit": "P0",
+    "tables": "P0",
+    "stats": "P0",
+    "submit": "P0",
+    "write": "P1",
+    "review": "P1",
+    "data": "P1",
+    "intake": "P1",
+    "omics": "P2",
+}
+
+
 def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholarskills_modules(
     tmp_path: Path,
 ) -> None:
@@ -48,6 +61,24 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
         assert capability["owner_consumption_boundary"]["counts_as_paper_truth"] is False
         assert capability["authority_boundary"]["can_write_publication_eval"] is False
         assert capability["authority_boundary"]["can_write_owner_receipt"] is False
+        if module_name == "display":
+            assert "externalization_guard" not in capability
+        else:
+            guard = capability["externalization_guard"]
+            assert guard["surface_kind"] == (
+                "mas_scholarskills_non_display_migration_guard"
+            )
+            assert guard["migration_target"] == "opl-scholarskills"
+            assert guard["migration_priority"] == NON_DISPLAY_MIGRATION_PRIORITIES[
+                module_name
+            ]
+            assert guard["mas_role"] == (
+                "refs_only_descriptor_and_owner_gate_consumer"
+            )
+            assert guard["mas_module_authority_owner"] is False
+            assert guard["mas_second_truth_allowed"] is False
+            assert guard["mas_may_write_scholarskills_authority"] is False
+            assert guard["mas_retained_authority"]
 
         current_owner_delta = {
             "action_type": f"prepare_{module_name}_candidate",
