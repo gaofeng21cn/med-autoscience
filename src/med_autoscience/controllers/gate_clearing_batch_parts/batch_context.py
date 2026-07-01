@@ -37,6 +37,7 @@ class GateClearingBatchContext:
     direct_submission_delivery_sync_requested: bool
     authority_settle_delivery_redrive_requested: bool
     work_unit_selection: dict[str, Any] | None
+    quality_authority_currentness: dict[str, Any] | None = None
 
 
 def build_gate_clearing_batch_context(
@@ -68,6 +69,11 @@ def build_gate_clearing_batch_context(
     publication_eval_payload = read_publication_eval_latest_fn(study_root=resolved_study_root)
     latest_batch = latest_batch_record(study_root=resolved_study_root)
     current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
+    quality_authority_currentness = currentness_controller.publication_eval_quality_authority_currentness(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        latest_batch=latest_batch,
+    )
     controller_decision_work_unit = currentness_controller.controller_decision_publication_work_unit(
         study_root=resolved_study_root,
         study_id=study_id,
@@ -80,7 +86,10 @@ def build_gate_clearing_batch_context(
     )
     if route_context_work_unit is not None:
         controller_decision_work_unit = route_context_work_unit
-    if latest_batch_closed_for_eval(latest_batch, current_eval_id):
+    if (
+        latest_batch_closed_for_eval(latest_batch, current_eval_id)
+        and not currentness_controller.quality_authority_refresh_required(quality_authority_currentness)
+    ):
         return GateClearingBatchContext(
             resolved_route_context=resolved_route_context,
             resolved_study_root=resolved_study_root,
@@ -102,6 +111,7 @@ def build_gate_clearing_batch_context(
             direct_submission_delivery_sync_requested=False,
             authority_settle_delivery_redrive_requested=False,
             work_unit_selection=None,
+            quality_authority_currentness=quality_authority_currentness,
         )
 
     paper_root = gate_state.paper_root
@@ -127,6 +137,7 @@ def build_gate_clearing_batch_context(
             direct_submission_delivery_sync_requested=False,
             authority_settle_delivery_redrive_requested=False,
             work_unit_selection=None,
+            quality_authority_currentness=quality_authority_currentness,
         )
 
     current_workspace_root = current_workspace_root_fn(quest_root=quest_root, default=paper_root.parent)
@@ -165,6 +176,75 @@ def build_gate_clearing_batch_context(
         direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
         controller_decision_work_unit=controller_decision_work_unit,
     )
+    if not authority_settle_delivery_redrive_requested:
+        current_publication_work_unit_payload = work_unit_selection.get("current_publication_work_unit_payload")
+        current_work_unit_fingerprint = (
+            str(current_publication_work_unit_payload.get("fingerprint") or "").strip() or None
+            if isinstance(current_publication_work_unit_payload, dict)
+            else None
+        )
+        assessment_provenance = (
+            publication_eval_payload.get("assessment_provenance")
+            if isinstance(publication_eval_payload.get("assessment_provenance"), dict)
+            else {}
+        )
+        allow_mechanical_eval_id_drift = (
+            str(assessment_provenance.get("owner") or "").strip() == "mechanical_projection"
+            and assessment_provenance.get("mechanical_projection_used_as_quality_authority") is not True
+        )
+        authority_settle_delivery_redrive_requested = (
+            authority_redrive_controller.authority_settle_delivery_redrive_matches_current(
+                latest_batch=latest_batch,
+                source_eval_id=current_eval_id,
+                current_work_unit_fingerprint=current_work_unit_fingerprint,
+                evaluated_source_signature=str(
+                    gate_report.get("submission_minimal_evaluated_source_signature") or ""
+                ).strip()
+                or None,
+                authority_source_signature=str(
+                    gate_report.get("submission_minimal_authority_source_signature") or ""
+                ).strip()
+                or None,
+                can_sync_study_delivery=can_sync_study_delivery,
+                allow_mechanical_eval_id_drift=allow_mechanical_eval_id_drift,
+            )
+        )
+        if authority_settle_delivery_redrive_requested:
+            direct_submission_delivery_sync_requested = True
+            submission_minimal_refresh_requested = False
+            work_unit_selection = currentness_controller.publication_work_unit_selection(
+                publication_eval_payload=publication_eval_payload,
+                latest_batch=latest_batch,
+                gate_report=gate_report,
+                authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
+                direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
+                controller_decision_work_unit=controller_decision_work_unit,
+            )
+    if currentness_controller.quality_authority_refresh_required(quality_authority_currentness):
+        direct_submission_delivery_sync_requested = True
+        submission_minimal_refresh_requested = False
+        authority_settle_delivery_redrive_requested = True
+        work_unit_selection = currentness_controller.publication_work_unit_selection(
+            publication_eval_payload={
+                **publication_eval_payload,
+                "recommended_actions": [
+                    {
+                        "next_work_unit": currentness_controller.submission_delivery_sync_closure_work_unit(),
+                        "work_unit_fingerprint": (
+                            work_unit_selection.get("current_publication_work_unit_payload", {}).get("fingerprint")
+                            if isinstance(work_unit_selection, dict)
+                            and isinstance(work_unit_selection.get("current_publication_work_unit_payload"), dict)
+                            else None
+                        ),
+                    }
+                ],
+            },
+            latest_batch=latest_batch,
+            gate_report=gate_report,
+            authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
+            direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
+            controller_decision_work_unit=controller_decision_work_unit,
+        )
     return GateClearingBatchContext(
         resolved_route_context=resolved_route_context,
         resolved_study_root=resolved_study_root,
@@ -186,6 +266,7 @@ def build_gate_clearing_batch_context(
         direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
         authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
         work_unit_selection=work_unit_selection,
+        quality_authority_currentness=quality_authority_currentness,
     )
 
 

@@ -407,9 +407,10 @@ def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, 
             for item in items
         }
 
-    not_applicable = "not_applicable_with_rationale"
     no_treatment_note = (
-        "Descriptive registry atlas; treatment response and practice-changing claims are explicitly out of scope."
+        "Closed by descriptive-scope guardrails: this registry atlas reports available-record "
+        "denominators and phenotype support only; treatment response and practice-changing "
+        "claims are explicitly out of scope."
     )
     return {
         "study_archetype": "clinical_subtype_reconstruction",
@@ -421,13 +422,13 @@ def _build_structured_reporting_contract(evidence_refs: list[str]) -> dict[str, 
         "clinical_actionability_required": True,
         "clinical_actionability": close_items(
             CLINICAL_ACTIONABILITY_ITEMS,
-            status=not_applicable,
             note=no_treatment_note,
+            applicability="closed_by_descriptive_scope_guardrail",
         ),
         "treatment_gap_reporting": close_items(
             TREATMENT_GAP_REPORTING_ITEMS,
-            status=not_applicable,
             note=no_treatment_note,
+            applicability="closed_by_descriptive_scope_guardrail",
         ),
         "manuscript_voice_reporting_required": True,
         "manuscript_voice_reporting": close_items(MANUSCRIPT_VOICE_REPORTING_ITEMS),

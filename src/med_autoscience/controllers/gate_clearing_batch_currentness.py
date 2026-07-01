@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -45,12 +46,124 @@ def _non_empty_text(value: object) -> str | None:
     return text or None
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, TypeError, ValueError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _quality_authority_fingerprint(refs: dict[str, Any] | None) -> str | None:
+    if not refs:
+        return None
+    digest = hashlib.sha256(
+        json.dumps(refs, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return f"quality-authority::{digest}"
+
+
+def _batch_quality_authority_refs(batch_payload: dict[str, Any]) -> dict[str, Any] | None:
+    refs = batch_payload.get("quality_authority_refs")
+    if isinstance(refs, dict) and refs:
+        return dict(refs)
+    unit_results = batch_payload.get("unit_results")
+    if isinstance(unit_results, list):
+        for item in reversed(unit_results):
+            if not isinstance(item, dict):
+                continue
+            result = item.get("result")
+            refs = result.get("quality_authority_refs") if isinstance(result, dict) else None
+            if isinstance(refs, dict) and refs:
+                return dict(refs)
+    gate_replay = batch_payload.get("gate_replay")
+    refs = gate_replay.get("quality_authority_refs") if isinstance(gate_replay, dict) else None
+    if isinstance(refs, dict) and refs:
+        return dict(refs)
+    return None
+
+
+def _current_quality_authority_refs(*, study_root: Path) -> dict[str, Any]:
+    from med_autoscience.controllers.study_delivery_sync_parts.authority_refs import (
+        build_delivery_authority_ref_block,
+    )
+
+    return _mapping(build_delivery_authority_ref_block(study_root=study_root).get("quality_authority_refs"))
+
+
+def _assessment_owner_from_refs(refs: dict[str, Any] | None) -> str | None:
+    publication_eval_ref = _mapping((refs or {}).get("publication_eval_latest"))
+    return _non_empty_text(publication_eval_ref.get("assessment_owner"))
+
+
+def _quality_authority_currentness_required(
+    *,
+    publication_eval_payload: dict[str, Any],
+    current_refs: dict[str, Any],
+    previous_refs: dict[str, Any] | None,
+    previous_fingerprint: str | None = None,
+) -> bool:
+    if previous_refs is None and previous_fingerprint is None:
+        return False
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _non_empty_text(provenance.get("owner")) == "ai_reviewer":
+        return True
+    if _non_empty_text(provenance.get("source_kind")) == "publication_eval_ai_reviewer":
+        return True
+    if _assessment_owner_from_refs(current_refs) == "ai_reviewer":
+        return True
+    return previous_refs is not None
+
+
+def publication_eval_quality_authority_currentness(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any],
+    latest_batch: dict[str, Any],
+) -> dict[str, Any]:
+    current_refs = _current_quality_authority_refs(study_root=study_root)
+    previous_refs = _batch_quality_authority_refs(latest_batch)
+    current_fingerprint = _quality_authority_fingerprint(current_refs)
+    previous_fingerprint = _non_empty_text(latest_batch.get("quality_authority_fingerprint")) or (
+        _quality_authority_fingerprint(previous_refs)
+    )
+    required = _quality_authority_currentness_required(
+        publication_eval_payload=publication_eval_payload,
+        current_refs=current_refs,
+        previous_refs=previous_refs,
+        previous_fingerprint=previous_fingerprint,
+    )
+    matches_previous = bool(
+        current_fingerprint
+        and previous_fingerprint
+        and current_fingerprint == previous_fingerprint
+    )
+    status = "not_required"
+    if required:
+        status = "current" if matches_previous else "stale"
+    return {
+        "status": status,
+        "required": required,
+        "matches_previous": matches_previous,
+        "current_fingerprint": current_fingerprint,
+        "previous_fingerprint": previous_fingerprint,
+        "current_assessment_owner": _assessment_owner_from_refs(current_refs),
+        "previous_assessment_owner": _assessment_owner_from_refs(previous_refs),
+        "current_quality_authority_refs": current_refs,
+        **({"previous_quality_authority_refs": previous_refs} if previous_refs is not None else {}),
+    }
+
+
+def quality_authority_refresh_required(quality_authority_currentness: dict[str, Any] | None) -> bool:
+    return (
+        isinstance(quality_authority_currentness, dict)
+        and quality_authority_currentness.get("required") is True
+        and quality_authority_currentness.get("matches_previous") is not True
+    )
 
 
 def publication_work_unit_id(value: object) -> str | None:
@@ -398,8 +511,11 @@ def batch_closed_for_source_eval(
     *,
     source_eval_id: str | None,
     gate_report: dict[str, Any] | None = None,
+    quality_authority_currentness: dict[str, Any] | None = None,
 ) -> bool:
     if source_eval_id is None or _non_empty_text(batch_payload.get("source_eval_id")) != source_eval_id:
+        return False
+    if quality_authority_refresh_required(quality_authority_currentness):
         return False
     if _unit_results_have_open_failures(batch_payload):
         return False
@@ -508,6 +624,7 @@ def build_executed_batch_record(
     repair_blocking_artifact_refs: list[dict[str, Any]],
     current_package_freshness_proof: dict[str, Any] | None,
     stale_gate_replay_closure: dict[str, Any] | None,
+    quality_authority_currentness: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     work_unit_fingerprint = _non_empty_text(current_publication_work_unit_payload.get("fingerprint"))
     record = {
@@ -540,6 +657,10 @@ def build_executed_batch_record(
         "publication_work_unit_lifecycle": lifecycle_record,
         "repair_blocking_artifact_refs": repair_blocking_artifact_refs,
     }
+    if isinstance(quality_authority_currentness, dict):
+        record["quality_authority_currentness"] = quality_authority_currentness
+        record["quality_authority_refs"] = quality_authority_currentness.get("current_quality_authority_refs") or {}
+        record["quality_authority_fingerprint"] = quality_authority_currentness.get("current_fingerprint")
     if current_package_freshness_proof is not None:
         record["current_package_freshness_proof"] = current_package_freshness_proof
     if stale_gate_replay_closure is not None:

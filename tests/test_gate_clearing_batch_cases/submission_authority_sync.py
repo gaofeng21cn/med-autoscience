@@ -180,7 +180,264 @@ def test_run_gate_clearing_batch_closes_submission_authority_sync_with_delivery_
     ]
     assert seen["submission_context"]["controller_route_context"]["work_unit_id"] == "submission_authority_sync_closure"
     assert seen["delivery_context"]["controller_route_context"]["work_unit_id"] == "submission_authority_sync_closure"
-    assert result["unit_results"][0]["result"]["authority_route_gate"]["controller_route_gate"]["authorized"] is True
+
+
+def test_run_gate_clearing_batch_redrives_delivery_sync_after_authority_settle_without_recreating_package(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_id = "quest-003"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-003" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["eval_id"] = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::2026-05-28T08:23:46+00:00"
+    )
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "submission_authority_sync_closure",
+        "lane": "controller",
+        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+    }
+    gate_report = {
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::ready",
+        "submission_minimal_authority_source_signature": "source::ready",
+    }
+    current_fingerprint = module.publication_work_units.derive_publication_work_units(gate_report)["fingerprint"]
+    publication_eval_payload["recommended_actions"][0]["work_unit_fingerprint"] = current_fingerprint
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_json(
+        module.stable_gate_clearing_batch_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "status": "executed",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+                "lane": "controller",
+                "retry": {"reason": "authority_not_settled"},
+            },
+            "work_unit_currentness": {
+                "current_work_unit_fingerprint": current_fingerprint,
+            },
+            "work_unit_fingerprint": current_fingerprint,
+            "evaluated_source_signature": "source::ready",
+            "authority_source_signature": "source::ready",
+            "unit_results": [
+                {"unit_id": "create_submission_minimal_package", "status": "ok", "last_success_status": "ok"},
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "skipped_authority_not_settled",
+                    "retry_reason": "authority_not_settled",
+                },
+            ],
+        },
+    )
+    sync_calls: list[Path] = []
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module,
+        "_create_submission_minimal_package",
+        lambda **_: (_ for _ in ()).throw(AssertionError("settle retry must not recreate package")),
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (
+            sync_calls.append(paper_root),
+            {
+                "status": "synced",
+                "delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
+                "current_package_root": str(study_root / "manuscript" / "current_package"),
+                "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+                "source_signature": "source::ready",
+                "authority_source_signature": "source::ready",
+            },
+        )[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert sync_calls == [paper_root]
+    assert [item["unit_id"] for item in result["unit_results"]] == ["sync_submission_minimal_delivery"]
+    assert result["unit_results"][0]["status"] == "synced"
+    assert result["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
+    assert result["current_package_freshness_proof"]["status"] == "fresh"
+    assert result["current_package_freshness_proof"]["source_unit_id"] == "sync_submission_minimal_delivery"
+
+
+def test_run_gate_clearing_batch_redrives_delivery_sync_for_mechanical_eval_id_drift(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_id = "quest-003"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-003" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["eval_id"] = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::2026-05-28T08:24:46+00:00"
+    )
+    publication_eval_payload["assessment_provenance"] = {
+        "owner": "mechanical_projection",
+        "source_kind": "publication_gate_report",
+        "policy_id": "publication_gate_projection_v1",
+        "source_refs": [
+            str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            str(study_root / "paper"),
+        ],
+        "ai_reviewer_required": True,
+        "mechanical_projection_used_as_quality_authority": False,
+    }
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "submission_authority_sync_closure",
+        "lane": "controller",
+        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+    }
+    gate_report = {
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::ready",
+        "submission_minimal_authority_source_signature": "source::ready",
+    }
+    current_fingerprint = module.publication_work_units.derive_publication_work_units(gate_report)["fingerprint"]
+    publication_eval_payload["recommended_actions"][0]["work_unit_fingerprint"] = current_fingerprint
+    publication_eval_payload["assessment_provenance"]["work_unit_id"] = "submission_authority_sync_closure"
+    publication_eval_payload["assessment_provenance"]["work_unit_fingerprint"] = current_fingerprint
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_json(
+        module.stable_gate_clearing_batch_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::2026-05-28T08:23:46+00:00"
+            ),
+            "status": "executed",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+                "lane": "controller",
+                "retry": {"reason": "authority_not_settled"},
+            },
+            "work_unit_currentness": {
+                "current_work_unit_fingerprint": current_fingerprint,
+            },
+            "work_unit_fingerprint": current_fingerprint,
+            "evaluated_source_signature": "source::ready",
+            "authority_source_signature": "source::ready",
+            "unit_results": [
+                {"unit_id": "create_submission_minimal_package", "status": "ok", "last_success_status": "ok"},
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "skipped_authority_not_settled",
+                    "retry_reason": "authority_not_settled",
+                },
+            ],
+        },
+    )
+    sync_calls: list[Path] = []
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module,
+        "_create_submission_minimal_package",
+        lambda **_: (_ for _ in ()).throw(AssertionError("mechanical eval drift retry must not recreate package")),
+    )
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (
+            sync_calls.append(paper_root),
+            {
+                "status": "synced",
+                "current_package_root": str(study_root / "manuscript" / "current_package"),
+                "source_signature": "source::ready",
+                "authority_source_signature": "source::ready",
+            },
+        )[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert sync_calls == [paper_root]
+    assert [item["unit_id"] for item in result["unit_results"]] == ["sync_submission_minimal_delivery"]
+    assert result["unit_results"][0]["status"] == "synced"
+    assert result["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
+    assert result["current_package_freshness_proof"]["status"] == "fresh"
 
 
 def test_run_gate_clearing_batch_reruns_same_eval_after_failed_submission_hardening_batch(

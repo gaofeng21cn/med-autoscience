@@ -181,11 +181,13 @@ def latest_batch_closed_for_current_gate(
     latest_batch: dict[str, Any],
     current_eval_id: str | None,
     gate_report: dict[str, Any],
+    quality_authority_currentness: dict[str, Any] | None = None,
 ) -> bool:
     return gate_clearing_batch_currentness.batch_closed_for_source_eval(
         latest_batch,
         source_eval_id=current_eval_id,
         gate_report=gate_report,
+        quality_authority_currentness=quality_authority_currentness,
     )
 
 

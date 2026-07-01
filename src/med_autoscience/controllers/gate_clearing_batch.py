@@ -261,6 +261,60 @@ def _base_publication_work_unit(value: object) -> dict[str, Any] | None:
     return closed_batch.base_publication_work_unit(value)
 
 
+def _write_normalized_closed_batch_record(
+    *,
+    study_root: Path,
+    latest_batch: dict[str, Any],
+    lifecycle_record: dict[str, Any] | None,
+    current_package_freshness_proof: dict[str, Any] | None,
+) -> None:
+    if lifecycle_record is None and current_package_freshness_proof is None:
+        return
+    normalized_batch_record = dict(latest_batch)
+    if lifecycle_record is not None:
+        normalized_batch_record["publication_work_unit_lifecycle"] = lifecycle_record
+        lifecycle_unit_statuses = {
+            _non_empty_text(item.get("unit_id")): _non_empty_text(item.get("status"))
+            for item in (lifecycle_record.get("unit_statuses") or [])
+            if isinstance(item, dict)
+        }
+        unit_results = latest_batch.get("unit_results")
+        if isinstance(unit_results, list):
+            normalized_batch_record["unit_results"] = [
+                {
+                    **item,
+                    "status": lifecycle_unit_statuses.get(_non_empty_text(item.get("unit_id")), item.get("status")),
+                }
+                if isinstance(item, dict)
+                else item
+                for item in unit_results
+            ]
+        selected_work_unit = normalized_batch_record.get("selected_publication_work_unit")
+        if isinstance(selected_work_unit, dict):
+            normalized_batch_record["selected_publication_work_unit"] = (
+                publication_work_unit_lifecycle.enrich_selected_work_unit(
+                    selected_work_unit=_base_publication_work_unit(selected_work_unit),
+                    lifecycle_record=lifecycle_record,
+                )
+            )
+    if current_package_freshness_proof is not None:
+        normalized_batch_record["current_package_freshness_proof"] = current_package_freshness_proof
+        normalized_batch_record["gate_fingerprint"] = current_package_freshness_proof.get(
+            "gate_fingerprint",
+            normalized_batch_record.get("gate_fingerprint"),
+        )
+        normalized_batch_record["evaluated_source_signature"] = current_package_freshness_proof.get(
+            "source_signature",
+            normalized_batch_record.get("evaluated_source_signature"),
+        )
+        normalized_batch_record["authority_source_signature"] = current_package_freshness_proof.get(
+            "authority_source_signature",
+            normalized_batch_record.get("authority_source_signature"),
+        )
+    if normalized_batch_record != latest_batch:
+        _write_json(stable_gate_clearing_batch_path(study_root=study_root), normalized_batch_record)
+
+
 def _closed_batch_lifecycle_record(
     *,
     latest_batch: dict[str, Any],
@@ -309,8 +363,14 @@ def _latest_batch_closed_for_current_gate(
     latest_batch: dict[str, Any],
     current_eval_id: str | None,
     gate_report: dict[str, Any],
+    quality_authority_currentness: dict[str, Any] | None = None,
 ) -> bool:
-    return closed_batch.latest_batch_closed_for_current_gate(latest_batch, current_eval_id, gate_report)
+    return closed_batch.latest_batch_closed_for_current_gate(
+        latest_batch,
+        current_eval_id,
+        gate_report,
+        quality_authority_currentness=quality_authority_currentness,
+    )
 
 
 def _current_gate_settles_authority_sync(
@@ -617,7 +677,13 @@ def run_gate_clearing_batch(
     latest_batch = context.latest_batch
     current_eval_id = context.current_eval_id
     controller_decision_work_unit = context.controller_decision_work_unit
-    if _latest_batch_closed_for_current_gate(latest_batch, current_eval_id, gate_report):
+    quality_authority_currentness = context.quality_authority_currentness
+    if _latest_batch_closed_for_current_gate(
+        latest_batch,
+        current_eval_id,
+        gate_report,
+        quality_authority_currentness=quality_authority_currentness,
+    ):
         lifecycle_record, lifecycle_normalized = _normalize_closed_batch_lifecycle_surface(
             latest_batch=latest_batch,
             study_root=resolved_study_root,
@@ -641,6 +707,12 @@ def run_gate_clearing_batch(
         if lifecycle_record is not None:
             result["publication_work_unit_lifecycle"] = lifecycle_record
             result["publication_work_unit_lifecycle_normalized"] = lifecycle_normalized
+        _write_normalized_closed_batch_record(
+            study_root=resolved_study_root,
+            latest_batch=latest_batch,
+            lifecycle_record=lifecycle_record,
+            current_package_freshness_proof=current_package_freshness_proof,
+        )
         return result
 
     paper_root = context.paper_root
@@ -900,6 +972,7 @@ def run_gate_clearing_batch(
         repair_blocking_artifact_refs=_unit_blocking_artifact_refs(unit_results),
         current_package_freshness_proof=current_package_freshness_proof,
         stale_gate_replay_closure=stale_gate_replay_closure,
+        quality_authority_currentness=quality_authority_currentness,
     )
     record_path = stable_gate_clearing_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)

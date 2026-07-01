@@ -664,6 +664,7 @@ def test_duplicate_authority_sync_batch_closes_when_current_gate_settles_deliver
     )
 
     lifecycle_record = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    batch_record = json.loads(module.stable_gate_clearing_batch_path(study_root=study_root).read_text(encoding="utf-8"))
     assert result["status"] == "skipped_duplicate_eval"
     assert result["publication_work_unit_lifecycle_normalized"] is True
     assert lifecycle_record["status"] == "done"
@@ -672,3 +673,194 @@ def test_duplicate_authority_sync_batch_closes_when_current_gate_settles_deliver
         "unit_id": "sync_submission_minimal_delivery",
         "status": "settled_by_current_gate",
     }
+    assert batch_record["publication_work_unit_lifecycle"]["status"] == "done"
+    assert "retry" not in batch_record["publication_work_unit_lifecycle"]
+    assert batch_record["unit_results"][1]["status"] == "settled_by_current_gate"
+    assert batch_record["selected_publication_work_unit"]["status"] == "done"
+
+
+def test_duplicate_closed_batch_refreshes_when_ai_reviewer_quality_authority_changes(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_id = "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    source_eval_id = "publication-eval::004-invasive-architecture::quest-004::2026-05-12T12:00:00+00:00"
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["eval_id"] = source_eval_id
+    publication_eval_payload["assessment_provenance"] = {
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer",
+        "policy_id": "medical_publication_critique_v1",
+        "source_refs": [
+            str(study_root / "paper" / "draft.md"),
+            str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+        ],
+        "ai_reviewer_required": False,
+        "mechanical_projection_used_as_quality_authority": False,
+    }
+    publication_eval_payload["verdict"]["overall_verdict"] = "promising"
+    publication_eval_payload["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::continue-same-line::2026-05-12T12:00:00+00:00",
+            "action_type": "continue_same_line",
+            "priority": "next",
+            "reason": "AI reviewer quality authority supports final package follow-through.",
+            "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json")],
+            "route_target": "finalize",
+            "route_key_question": "Which final submission metadata remain before handoff?",
+            "route_rationale": "Quality authority is clear, while submission authority remains a separate route.",
+            "requires_controller_decision": True,
+            "next_work_unit": {
+                "unit_id": "package_ready_handoff",
+                "lane": "human_gate",
+                "summary": "Submission package is current; park automation until explicit user resume.",
+            },
+            "work_unit_fingerprint": "ai-reviewer-quality::ready",
+        }
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json",
+        {
+            "surface": "medical_prose_review_request",
+            "review_owner": "ai_reviewer",
+            "request_digest": "sha256:current-request",
+            "style_digest": "sha256:style",
+            "style_currentness": {"style_version": "v1", "style_digest": "sha256:style"},
+            "request_currentness": {"status": "current"},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        {
+            "surface": "medical_prose_review",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "request_digest": "sha256:current-request",
+            },
+            "medical_journal_prose_quality": {"overall_style_verdict": "clear"},
+            "style_digest": "sha256:style",
+            "style_currentness": {
+                "status": "current",
+                "style_version": "v1",
+                "style_digest": "sha256:style",
+            },
+        },
+    )
+    old_quality_refs = {
+        "publication_eval_latest": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "present": True,
+            "assessment_owner": "mechanical_projection",
+            "overall_verdict": "promising",
+        },
+        "medical_prose_review": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            "present": True,
+            "owner": "ai_reviewer",
+            "request_digest": "sha256:old-request",
+            "overall_style_verdict": "clear",
+        },
+        "derived_delivery_surface_can_authorize_quality": False,
+    }
+    _write_json(
+        module.stable_gate_clearing_batch_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "status": "executed",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_delivery_sync_closure",
+                "lane": "controller",
+            },
+            "unit_results": [
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "ok",
+                    "result": {
+                        "status": "synced",
+                        "quality_authority_refs": old_quality_refs,
+                        "source_signature": "source::same",
+                        "authority_source_signature": "source::same",
+                    },
+                }
+            ],
+            "gate_replay": {"status": "clear", "allow_write": True, "blockers": []},
+        },
+    )
+    gate_report = {
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "current",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::same",
+        "submission_minimal_authority_source_signature": "source::same",
+        "gate_fingerprint": "publication-gate::ready",
+    }
+    sync_calls: list[Path] = []
+
+    monkeypatch.setattr(module, "CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS", 0)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda *, paper_root, profile: (
+            sync_calls.append(paper_root),
+            {
+                "status": "synced",
+                "delivery_manifest_path": str(study_root / "manuscript" / "delivery_manifest.json"),
+                "current_package_root": str(study_root / "manuscript" / "current_package"),
+                "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+                "source_signature": "source::same",
+                "authority_source_signature": "source::same",
+            },
+        )[1],
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["status"] == "executed"
+    assert sync_calls == [paper_root]
+    assert result["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
+    assert result["quality_authority_currentness"]["status"] == "stale"
+    assert result["quality_authority_currentness"]["current_assessment_owner"] == "ai_reviewer"
+    assert result["quality_authority_currentness"]["previous_assessment_owner"] == "mechanical_projection"
+    assert result["quality_authority_refs"]["publication_eval_latest"]["assessment_owner"] == "ai_reviewer"
