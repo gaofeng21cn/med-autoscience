@@ -430,6 +430,12 @@ def _attach_submission_authority_owner_gate_readback(payload: Mapping[str, Any])
     updated = dict(payload)
     updated["submission_authority_owner_gate_readback"] = readback
     updated["current_executable_owner_action"] = None
+    updated.pop("next_action", None)
+    updated.pop("canonical_next_action_source", None)
+    transaction_readback = _mapping_copy(updated.get("paper_mission_transaction_readback"))
+    if transaction_readback:
+        transaction_readback.pop("next_action", None)
+        updated["paper_mission_transaction_readback"] = transaction_readback
     return updated
 
 

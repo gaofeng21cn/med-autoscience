@@ -325,18 +325,32 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                 },
                 "manuscript_native_prose": {
                     "required": True,
-                    "forbidden_modes": [
-                        "work_report_question_answer_frame",
-                        "figure_table_anchor_section",
-                        "author_confirmation_placeholder",
-                        "figure_self_explanation_paragraph",
-                        "analysis_or_controller_jargon",
-                        "claim_boundary_meta_language_in_body",
-                    ],
-                    "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
-                    "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
-                },
-                "medical_prose_style_contract": {
+                        "forbidden_modes": [
+                            "work_report_question_answer_frame",
+                            "figure_table_anchor_section",
+                            "author_confirmation_placeholder",
+                            "figure_self_explanation_paragraph",
+                            "analysis_or_controller_jargon",
+                            "claim_boundary_meta_language_in_body",
+                            "internal_report_or_workflow_status_sentence",
+                        ],
+                        "forbidden_phrases": [
+                            "calendar enrollment period is not promoted",
+                            "this restriction is intentional",
+                            "MAS display-pack renderer",
+                            "TRIPOD is cited only as a boundary reference",
+                            "submission metadata incomplete",
+                            "defensible clinical story",
+                        ],
+                        "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
+                        "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
+                    },
+                    "registry_observational_first_draft_floor": (
+                        module.DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT[
+                            "registry_observational_first_draft_floor"
+                        ]
+                    ),
+                    "medical_prose_style_contract": {
                     "style_profile_id": "general_medical_journal_prose_v1",
                     "target_voice": "neutral_clinical_original_research",
                     "target_readers": ["clinician_researcher", "statistical_reviewer", "journal_editor"],

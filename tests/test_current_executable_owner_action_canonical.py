@@ -347,3 +347,175 @@ def test_submission_authority_gate_does_not_retire_unrelated_reviewer_route() ->
         payload,
         next_action=payload["next_action"],
     ) is None
+
+
+def test_submission_blocker_gate_readback_accepts_quality_repair_successor_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+    )
+
+    payload = {
+        "study_id": "obesity_multicenter_phenotype_atlas",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "paper.package.submission_minimal",
+            "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+            "allowed_actions": [
+                "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+            ],
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+            "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+        },
+        "study_intervention_events": [
+            {
+                "event_id": "intervention-event-000005-6184dcc4d3988930",
+                "intent": "owner_gate_decision",
+                "recorded_at": "2026-07-01T15:03:32+00:00",
+                "source": "codex",
+                "payload": {
+                    "owner_gate_kind": "submission_authority_gate",
+                    "decision": "request_submission_blocker_human_gate",
+                    "current_required_action": (
+                        "await_human_or_mas_authority_decision_for_submission_blocker"
+                    ),
+                    "human_gate_ref": (
+                        "human_gate:owner-gate-decision:5e98e1fda062290f848cd795"
+                    ),
+                    "owner_gate_decision_ref": (
+                        "owner-gate-decision:5e98e1fda062290f848cd795"
+                    ),
+                    "current_owner_identity": {
+                        "study_id": "obesity_multicenter_phenotype_atlas",
+                        "action_type": (
+                            "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                        ),
+                        "work_unit_id": (
+                            "submission_blocker_degraded_handoff_or_quality_repair"
+                        ),
+                        "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+                    },
+                    "submission_authority_closeout": {
+                        "status": "owner_gate_recorded",
+                        "authority_materialized": False,
+                        "writes_owner_receipt": False,
+                        "writes_human_gate_authority": False,
+                        "writes_current_package": False,
+                        "writes_publication_eval": False,
+                        "writes_controller_decision": False,
+                    },
+                },
+            }
+        ],
+    }
+
+    assert module.build_canonical_owner_action_projection(payload) is None
+    readback = module.submission_authority_owner_gate_readback(
+        payload,
+        next_action=payload["next_action"],
+    )
+
+    assert readback is not None
+    assert readback["status"] == "owner_gate_recorded"
+    assert readback["decision"] == "request_submission_blocker_human_gate"
+    assert readback["current_owner_identity"]["work_unit_id"] == (
+        "submission_blocker_degraded_handoff_or_quality_repair"
+    )
+    assert readback["next_legal_action"] == "await_submission_authority_or_human_gate_closeout"
+
+
+def test_submission_blocker_gate_readback_ignores_stale_submission_ready_closeout() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+    )
+
+    payload = {
+        "study_id": "obesity_multicenter_phenotype_atlas",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "paper.package.submission_minimal",
+            "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+            "allowed_actions": [
+                "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+            ],
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+            "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+        },
+        "study_intervention_events": [
+            {
+                "event_id": "intervention-event-000004-closeout",
+                "intent": "submission_authority_closeout",
+                "recorded_at": "2026-07-01T10:35:46+00:00",
+                "source": "cli:drive:mas-owner-materialization",
+                "payload": {
+                    "owner_gate_kind": "submission_authority_gate_closeout",
+                    "decision": "accept_submission_ready_authority_closeout",
+                    "current_required_action": "submission_ready_authority_closeout_recorded",
+                    "human_gate_ref": (
+                        "human_gate:owner-gate-decision:c232a4e55761e603577f3fd0"
+                    ),
+                    "owner_gate_decision_ref": (
+                        "owner-gate-decision:c232a4e55761e603577f3fd0"
+                    ),
+                    "current_owner_identity": {
+                        "study_id": "obesity_multicenter_phenotype_atlas",
+                        "action_type": (
+                            "materialize_submission_ready_owner_verdict_or_human_gate"
+                        ),
+                        "work_unit_id": (
+                            "submission_milestone_candidate::followthrough::followthrough-01"
+                        ),
+                        "work_unit_fingerprint": "older-submission-ready-fingerprint",
+                    },
+                    "submission_authority_closeout": {
+                        "status": "submission_ready_authority_closeout_recorded",
+                        "authority_materialized": True,
+                    },
+                },
+            },
+            {
+                "event_id": "intervention-event-000005-6184dcc4d3988930",
+                "intent": "owner_gate_decision",
+                "recorded_at": "2026-07-01T15:03:32+00:00",
+                "source": "codex",
+                "payload": {
+                    "owner_gate_kind": "submission_authority_gate",
+                    "decision": "request_submission_blocker_human_gate",
+                    "current_required_action": (
+                        "await_human_or_mas_authority_decision_for_submission_blocker"
+                    ),
+                    "human_gate_ref": (
+                        "human_gate:owner-gate-decision:5e98e1fda062290f848cd795"
+                    ),
+                    "owner_gate_decision_ref": (
+                        "owner-gate-decision:5e98e1fda062290f848cd795"
+                    ),
+                    "current_owner_identity": {
+                        "study_id": "obesity_multicenter_phenotype_atlas",
+                        "action_type": (
+                            "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                        ),
+                        "work_unit_id": (
+                            "submission_blocker_degraded_handoff_or_quality_repair"
+                        ),
+                        "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+                    },
+                    "submission_authority_closeout": {
+                        "status": "owner_gate_recorded",
+                        "authority_materialized": False,
+                    },
+                },
+            },
+        ],
+    }
+
+    readback = module.submission_authority_owner_gate_readback(
+        payload,
+        next_action=payload["next_action"],
+    )
+
+    assert readback is not None
+    assert readback["status"] == "owner_gate_recorded"
+    assert readback["decision"] == "request_submission_blocker_human_gate"
+    assert readback["event_id"] == "intervention-event-000005-6184dcc4d3988930"

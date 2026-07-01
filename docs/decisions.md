@@ -3142,6 +3142,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：NextAction 控制面已经完成默认 authority 收口和 fail-closed 防复活，但这些证据只约束 repo/source/control-plane。若把它们升级为 live acceptance，就会重新制造第二真相源，并掩盖仍需要 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back、canonical artifact delta 或 same-identity OPL StageRun readback 的真实验收门。
 - 影响：后续文档当前口径优先更新 `docs/runtime/control/next_action_control_plane.md`、`docs/active/mas-ideal-state-gap-plan.md` 和 `docs/status.md`；不得新增并行 truth doc。物理删除 tail 只能通过迁移或删除 active diagnostic consumer 关闭；Workbench tail 只能通过同一 envelope / transition receipt / owner consumption 的 live label readback 关闭；DM002/DM003 paper acceptance 只能通过 fresh owner/live evidence 关闭。
 
+## 2026-07-01：Registry 初稿质量与 submission owner-gate currentness 前移
+
+- 决策：registry first report / descriptive observational phenotype atlas 的 first-draft quality contract 必须在 submission-ready 前显式检查 source-specific enrollment windows、analytic data lock、ethics/consent/deidentification、source-specific inclusion/exclusion flow、diagnostic-field ascertainment、BMI 年龄适用性、adult-only 或 age-stratified sensitivity、以及 availability/missingness display-to-claim 支撑。正文必须清除 workflow/status 语言，例如 “calendar enrollment period is not promoted”、MAS renderer、TRIPOD boundary 自我解释、submission metadata incomplete 和 “defensible clinical story”；selected available diagnostic fields 不得写成 prevalence/burden。
+- 决策：submission authority owner-gate readback 必须按当前 `NextActionEnvelope` 的 study/action/work-unit/fingerprint 匹配 owner-gate 或 closeout；较新的 submission-blocker human gate 可以 supersede 旧 submission-ready closeout。`paper-mission inspect`、`study-progress` 和 truth snapshot 必须一致地退休已回答的 current action，不能用旧 closeout 或旧 next action 继续显示可自动执行的论文大改。
+- 理由：Obesity v4 外部 SCI review 暴露两个系统性缺口：医学 reviewer 能用一句 prompt 发现的 registry submission blockers 没被 MAS 初稿/review floor 前置拦住；同时 MAS readback 曾让旧 submission-ready closeout 压住较新的 human gate，并在部分 inspect 分支继续投影 next action，导致用户看到的 paper package/currentness 与真实 owner gate 不一致。
+- 影响：这是 MAS quality/readback contract 修复，不授权手写 study truth、`publication_eval/latest.json`、controller decision、owner receipt、typed blocker、`manuscript/current_package` 或 submission package。ScholarSkills 继续只能输出 refs-only review/prose-floor candidates；MAS owner surface 才能接受为 truth、human gate、typed blocker 或 submission readiness。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

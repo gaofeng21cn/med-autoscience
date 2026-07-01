@@ -5,6 +5,11 @@ from typing import Any
 
 SURFACE_KIND = "current_executable_owner_action"
 CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projection"
+SUBMISSION_AUTHORITY_OWNER_GATE_ACTION_TYPES = {
+    "materialize_submission_ready_owner_verdict_or_human_gate",
+    "await_human_or_mas_authority_decision_for_submission_blocker",
+    "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+}
 
 
 def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -62,11 +67,7 @@ def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[
             **({"source_ref": source_ref} if source_ref is not None else {}),
         }
         if not blocked_typed
-        and action_type
-        in {
-            "materialize_submission_ready_owner_verdict_or_human_gate",
-            "await_human_or_mas_authority_decision_for_submission_blocker",
-        }
+        and action_type in SUBMISSION_AUTHORITY_OWNER_GATE_ACTION_TYPES
         else {
             "ref_kind": "mas_ops_resolution_packet",
             "surface_ref": "ops/medautoscience/paper_mission_typed_blocker_resolution",
@@ -225,13 +226,8 @@ def submission_authority_owner_gate_readback(
     action_type = _non_empty_text(next_action.get("action_type")) or _first_text(
         next_action.get("allowed_actions")
     )
-    if action_type not in {
-        "materialize_submission_ready_owner_verdict_or_human_gate",
-        "await_human_or_mas_authority_decision_for_submission_blocker",
-    }:
+    if action_type not in SUBMISSION_AUTHORITY_OWNER_GATE_ACTION_TYPES:
         return None
-    if closeout_readback := _latest_submission_authority_closeout_readback(payload):
-        return closeout_readback
     expected = {
         "study_id": _non_empty_text(next_action.get("study_id"))
         or _non_empty_text(payload.get("study_id")),
@@ -243,6 +239,11 @@ def submission_authority_owner_gate_readback(
     }
     if any(value is None for value in expected.values()):
         return None
+    if closeout_readback := _latest_submission_authority_closeout_readback(
+        payload,
+        expected_identity=expected,
+    ):
+        return closeout_readback
     for event in _owner_gate_decision_events(payload):
         event_payload = _mapping(event.get("payload"))
         if _non_empty_text(event_payload.get("owner_gate_kind")) != "submission_authority_gate":
@@ -253,7 +254,7 @@ def submission_authority_owner_gate_readback(
         if _non_empty_text(event_payload.get("human_gate_ref")) is None:
             continue
         identity = _mapping(event_payload.get("current_owner_identity"))
-        if all(_non_empty_text(identity.get(field)) == value for field, value in expected.items()):
+        if _identity_matches(identity, expected):
             if closeout_readback := _submission_authority_closeout_readback(
                 payload,
                 owner_gate_decision_ref=_non_empty_text(
@@ -299,9 +300,14 @@ def submission_authority_owner_gate_readback(
 
 def _latest_submission_authority_closeout_readback(
     payload: Mapping[str, Any],
+    *,
+    expected_identity: Mapping[str, str | None],
 ) -> dict[str, Any] | None:
     for event in reversed(_submission_authority_closeout_events(payload)):
         event_payload = _mapping(event.get("payload"))
+        identity = _mapping(event_payload.get("current_owner_identity"))
+        if not _identity_matches(identity, expected_identity):
+            continue
         return _submission_authority_closeout_readback(
             payload,
             owner_gate_decision_ref=_non_empty_text(event_payload.get("owner_gate_decision_ref")),
@@ -309,6 +315,16 @@ def _latest_submission_authority_closeout_readback(
             base_payload=event_payload,
         )
     return None
+
+
+def _identity_matches(
+    identity: Mapping[str, Any],
+    expected_identity: Mapping[str, str | None],
+) -> bool:
+    return all(
+        _non_empty_text(identity.get(field)) == value
+        for field, value in expected_identity.items()
+    )
 
 
 def _submission_authority_closeout_readback(

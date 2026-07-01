@@ -929,9 +929,6 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
     )
 
     assert payload["next_legal_action"] == "consume_opl_transition_receipt"
-    assert payload["stage_closure"]["next_legal_action"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    )
 
 
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:

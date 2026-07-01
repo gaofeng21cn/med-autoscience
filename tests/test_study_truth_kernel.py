@@ -135,6 +135,70 @@ def test_submission_authority_closeout_dominates_older_explicit_resume(
     assert snapshot["dominant_authority_refs"][0]["event_type"] == "submission_authority_closeout"
 
 
+def test_newer_submission_blocker_owner_gate_dominates_stale_submission_ready_closeout(
+    tmp_path: Path,
+) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "obesity"
+    module.append_truth_event(
+        study_root=study_root,
+        study_id="obesity",
+        event_type="submission_authority_closeout",
+        payload={
+            "intervention_intent": "submission_authority_closeout",
+            "owner_gate_kind": "submission_authority_gate_closeout",
+            "decision": "accept_submission_ready_authority_closeout",
+            "submission_authority_closeout": {
+                "status": "submission_ready_authority_closeout_recorded",
+                "authority_materialized": True,
+                "terminal_gate_materialized": True,
+                "submission_ready_claim_authorized": True,
+            },
+        },
+        recorded_at="2026-07-01T10:35:46+00:00",
+    )
+    owner_gate = module.append_truth_event(
+        study_root=study_root,
+        study_id="obesity",
+        event_type="human_gate",
+        payload={
+            "intervention_intent": "owner_gate_decision",
+            "owner_gate_kind": "submission_authority_gate",
+            "decision": "request_submission_blocker_human_gate",
+            "current_required_action": (
+                "await_human_or_mas_authority_decision_for_submission_blocker"
+            ),
+            "human_gate_ref": "human_gate:owner-gate-decision:obesity-v4",
+            "owner_gate_decision_ref": "owner-gate-decision:obesity-v4",
+            "current_owner_identity": {
+                "study_id": "obesity",
+                "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+                "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+                "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+            },
+            "submission_authority_closeout": {
+                "status": "owner_gate_recorded",
+                "authority_materialized": False,
+                "writes_owner_receipt": False,
+                "writes_human_gate_authority": False,
+                "writes_current_package": False,
+                "writes_publication_eval": False,
+                "writes_controller_decision": False,
+            },
+        },
+        recorded_at="2026-07-01T15:03:32+00:00",
+    )
+
+    snapshot = module.rebuild_truth_snapshot(study_root=study_root, study_id="obesity")
+
+    assert snapshot["canonical_next_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert snapshot["blocking_reasons"] == [
+        "submission_authority_or_human_gate_closeout_required"
+    ]
+    assert snapshot["dominant_authority_refs"][0]["event_id"] == owner_gate["event_id"]
+    assert snapshot["dominant_authority_refs"][0]["event_type"] == "human_gate"
+
+
 def test_supervisor_only_and_downstream_bundle_block_define_allowed_actions(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dpcc"

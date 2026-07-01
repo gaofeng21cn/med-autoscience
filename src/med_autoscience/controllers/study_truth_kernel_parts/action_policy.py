@@ -89,12 +89,21 @@ def blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
         reasons.append("publication_supervisor_state.bundle_tasks_downstream_only")
     if _latest_event(events, "stop_loss") is not None:
         reasons.append("publishability_stop_loss_recommended")
-    human_gate = _last_payload(events, "human_gate")
-    closeout = _last_payload(events, "submission_authority_closeout")
-    if _text(_mapping(closeout.get("submission_authority_closeout")).get("status")) in {
+    human_gate_event = _latest_event(events, "human_gate")
+    closeout_event = _latest_event(events, "submission_authority_closeout")
+    human_gate = _mapping(human_gate_event.get("payload")) if human_gate_event is not None else {}
+    closeout = _mapping(closeout_event.get("payload")) if closeout_event is not None else {}
+    closeout_status = _text(_mapping(closeout.get("submission_authority_closeout")).get("status"))
+    human_gate_recorded_at = _parsed_recorded_at(
+        human_gate_event.get("recorded_at") if human_gate_event is not None else None
+    )
+    closeout_recorded_at = _parsed_recorded_at(
+        closeout_event.get("recorded_at") if closeout_event is not None else None
+    )
+    if closeout_status in {
         "submission_ready_authority_closeout_recorded",
         "submission_blocker_human_gate_recorded",
-    }:
+    } and closeout_recorded_at >= human_gate_recorded_at:
         return reasons
     if (
         _text(human_gate.get("intervention_intent")) == "owner_gate_decision"
@@ -147,6 +156,10 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _parsed_recorded_at(value: object) -> str:
+    return _text(value) or ""
 
 
 __all__ = [

@@ -51,10 +51,6 @@ from med_autoscience.cli_parts.paper_mission_command_parts.domain_handler_dispat
 from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import (
     build_paper_mission_drive_readback as _build_paper_mission_drive_readback,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers import (
-    paper_mission_drive_result as _paper_mission_drive_result,
-    paper_mission_mas_owned_executor_delta_checkpoint as _paper_mission_mas_owned_executor_delta_checkpoint,
-)
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
 )
@@ -75,13 +71,12 @@ from med_autoscience.cli_parts.paper_mission_command_parts.one_shot_migration im
 from med_autoscience.cli_parts.paper_mission_command_parts.opl_runtime_submission import (
     semantic_progress_guard as _paper_mission_semantic_progress_guard,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
-    _load_paper_mission_route_back_budget_ledger,
-    _record_paper_mission_route_back_budget_ledger,
-)
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
     merge_stage_closure_typed_blocker_gate_fields as _merge_stage_closure_typed_blocker_gate_fields,
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.submission_gate_readback import (
+    apply_submission_authority_owner_gate_readback as _apply_submission_authority_owner_gate_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _load_optional_json_object,
@@ -107,7 +102,6 @@ from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback 
     _durable_mission_stop_guard,
     _paper_mission_run_candidate,
     _paper_mission_transaction_readback,
-    _submission_authority_owner_gate_readback,
     _transaction_readback_output_fields,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
@@ -478,25 +472,16 @@ def build_paper_mission_readback(
         stage_closure_decision=stage_closure_decision,
         next_action=next_action_override,
     )
-    submission_gate_readback = _submission_authority_owner_gate_readback(
+    (
+        transaction_output_fields,
+        typed_blocker_resolution_readback,
+        submission_gate_readback,
+    ) = _apply_submission_authority_owner_gate_readback(
         study_root=Path(profile.studies_root) / study_id,
         study_id=study_id,
-        next_action=_mapping(transaction_output_fields.get("next_action")),
+        transaction_output_fields=transaction_output_fields,
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
-    if submission_gate_readback is not None:
-        transaction_output_fields.pop("next_action", None)
-        readback_payload = _mapping(
-            transaction_output_fields.get("paper_mission_transaction_readback")
-        )
-        if readback_payload:
-            readback_payload.pop("next_action", None)
-            transaction_output_fields["paper_mission_transaction_readback"] = readback_payload
-        if typed_blocker_resolution_readback is not None:
-            typed_blocker_resolution_readback = {
-                **typed_blocker_resolution_readback,
-                "next_owner_action": None,
-                "submission_authority_owner_gate_readback": submission_gate_readback,
-            }
     paper_facing_action_fields = _paper_facing_action_fields(
         readback={
             "study_id": study_id,
@@ -689,6 +674,16 @@ def _consumption_ledger_inspect_readback(
         stage_closure_decision=stage_closure_decision,
         next_action=next_action_override,
     )
+    (
+        transaction_output_fields,
+        typed_blocker_resolution_readback,
+        submission_gate_readback,
+    ) = _apply_submission_authority_owner_gate_readback(
+        study_root=Path(profile.studies_root) / study_id,
+        study_id=study_id,
+        transaction_output_fields=transaction_output_fields,
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+    )
     return {
         **base,
         **transaction_output_fields,
@@ -707,6 +702,11 @@ def _consumption_ledger_inspect_readback(
         **(
             {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
             if typed_blocker_resolution_readback is not None
+            else {}
+        ),
+        **(
+            {"submission_authority_owner_gate_readback": submission_gate_readback}
+            if submission_gate_readback is not None
             else {}
         ),
         "durable_mission_stop_guard": _durable_mission_stop_guard(

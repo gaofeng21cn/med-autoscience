@@ -430,11 +430,20 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
             stop_loss_candidates.append(event)
     if stop_loss := _latest_authority_candidate(stop_loss_candidates):
         return stop_loss
-    closeout_candidates = [
-        event for event in events if event.get("event_type") == "submission_authority_closeout"
-    ]
-    if closeout := _latest_authority_candidate(closeout_candidates):
-        return closeout
+    submission_authority_candidates: list[dict[str, Any]] = []
+    for event in events:
+        payload = _mapping(event.get("payload"))
+        if event.get("event_type") == "submission_authority_closeout":
+            submission_authority_candidates.append(event)
+            continue
+        if (
+            event.get("event_type") == "human_gate"
+            and _text(payload.get("intervention_intent")) == "owner_gate_decision"
+            and _text(payload.get("owner_gate_kind")) == "submission_authority_gate"
+        ):
+            submission_authority_candidates.append(event)
+    if submission_authority_event := _latest_authority_candidate(submission_authority_candidates):
+        return submission_authority_event
     reactivation_candidates: list[dict[str, Any]] = []
     for event in events:
         payload = _mapping(event.get("payload"))
