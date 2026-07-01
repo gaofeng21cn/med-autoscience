@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.test_ai_reviewer_publication_eval_workflow import (
+from tests.test_ai_reviewer_publication_eval_workflow_cases.shared import (
     _canonical_publication_eval_record,
     _reviewer_operating_system,
 )

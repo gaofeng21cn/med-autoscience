@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.test_ai_reviewer_publication_eval_workflow import (
+from tests.test_ai_reviewer_publication_eval_workflow_cases.shared import (
     _publication_eval_record,
     _refs,
     _write_ai_reviewer_alignment_inputs,
