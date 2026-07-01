@@ -27,11 +27,25 @@ from med_autoscience.controllers.provider_admission_parts.provider_admission_cur
     provider_admission_current_control_study,
 )
 from med_autoscience.controllers.opl_transition_readback import (
-    candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
 from med_autoscience.controllers.provider_admission_parts.provider_admission_transition_request import (
     candidate_with_opl_transition_request as _candidate_with_opl_transition_request,
+)
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_transition_requests import (
+    arbiter_candidate_key as _arbiter_candidate_key,
+    arbiter_decision_retains_transition_request as _arbiter_decision_retains_transition_request,
+    candidate_key as _candidate_key,
+    candidate_with_transition_request_pending_state as _candidate_with_transition_request_pending_state,
+    candidates_with_scanned_study_provider_readbacks as _candidates_with_scanned_study_provider_readbacks,
+    candidates_without_transition_requests_consumed_by_currentness as _candidates_without_transition_requests_consumed_by_currentness,
+    candidates_without_transition_requests_consumed_by_provider_readback as _candidates_without_transition_requests_consumed_by_provider_readback,
+    merge_transition_request_candidates as _merge_transition_request_candidates,
+)
+from med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_projection import (
+    audit_only_unscanned_handoff as _audit_only_unscanned_handoff,
+    study_with_terminal_precedence as _study_with_terminal_precedence,
+    terminal_precedence_by_study as _terminal_precedence_by_study,
 )
 from med_autoscience.controllers.provider_admission_parts.provider_admission_helpers import (
     mapping as _mapping,
@@ -292,149 +306,6 @@ def materialize_provider_admission_current_control_state(
     return payload
 
 
-def _candidates_with_scanned_study_provider_readbacks(
-    candidates: list[dict[str, Any]],
-    *,
-    scanned_studies: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    merged = [dict(candidate) for candidate in candidates]
-    index_by_key = {
-        _transition_request_readback_identity_key(candidate): index
-        for index, candidate in enumerate(merged)
-    }
-    for study in scanned_studies:
-        for candidate in _study_provider_readback_candidates(study):
-            key = _transition_request_readback_identity_key(candidate)
-            if key in index_by_key:
-                existing_index = index_by_key[key]
-                existing = merged[existing_index]
-                if provider_admission_opl_transition_readback(candidate) and not provider_admission_opl_transition_readback(existing):
-                    merged[existing_index] = {
-                        **existing,
-                        **candidate,
-                    }
-                continue
-            merged.append(candidate)
-            index_by_key[key] = len(merged) - 1
-    return merged
-
-
-def _study_provider_readback_candidates(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    for item in study.get("provider_admission_candidates") or []:
-        if not isinstance(item, Mapping):
-            continue
-        if provider_admission_opl_transition_readback(item):
-            candidates.append(dict(item))
-    handoff = _mapping(study.get("opl_current_control_state_handoff"))
-    for item in handoff.get("provider_admission_candidates") or []:
-        if not isinstance(item, Mapping):
-            continue
-        if provider_admission_opl_transition_readback(item):
-            candidates.append(dict(item))
-    return candidates
-
-
-def _arbiter_candidate_key(decision: Mapping[str, Any]) -> tuple[str | None, ...]:
-    return (
-        _non_empty_text(decision.get("study_id")),
-        _non_empty_text(decision.get("action_type")),
-        _non_empty_text(decision.get("work_unit_id")),
-        _non_empty_text(decision.get("work_unit_fingerprint"))
-        or _non_empty_text(decision.get("action_fingerprint")),
-    )
-
-
-def _candidate_key(candidate: Mapping[str, Any]) -> tuple[str | None, ...]:
-    return (
-        _non_empty_text(candidate.get("study_id")),
-        _non_empty_text(candidate.get("action_type")),
-        _non_empty_text(candidate.get("work_unit_id")),
-        _non_empty_text(candidate.get("work_unit_fingerprint"))
-        or _non_empty_text(candidate.get("action_fingerprint")),
-    )
-
-
-def _candidate_with_transition_request_pending_state(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(candidate)
-    payload["provider_admission_pending"] = False
-    payload["provider_admission_requires_opl_runtime_result"] = True
-    payload["provider_attempt_or_lease_required"] = False
-    payload["status"] = "transition_request_pending"
-    payload["dispatch_status"] = "transition_request_pending"
-    return payload
-
-
-def _merge_transition_request_candidates(
-    candidates: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    merged: list[dict[str, Any]] = []
-    index_by_key: dict[tuple[str | None, ...], int] = {}
-    for candidate in candidates:
-        key = _candidate_key(candidate)
-        if key in index_by_key:
-            existing_index = index_by_key[key]
-            merged[existing_index] = _merge_candidate_payloads(
-                merged[existing_index],
-                candidate,
-            )
-            continue
-        index_by_key[key] = len(merged)
-        merged.append(dict(candidate))
-    return merged
-
-
-def _merge_candidate_payloads(
-    existing: Mapping[str, Any],
-    incoming: Mapping[str, Any],
-) -> dict[str, Any]:
-    merged = {**dict(existing), **dict(incoming)}
-    for key, value in existing.items():
-        if merged.get(key) in (None, "", [], {}):
-            merged[key] = value
-    for key, value in incoming.items():
-        if isinstance(value, Mapping):
-            base = _mapping(existing.get(key))
-            if base:
-                merged[key] = {**base, **dict(value)}
-    return merged
-
-
-def _candidates_without_transition_requests_consumed_by_provider_readback(
-    candidates: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    provider_readback_keys = {
-        _transition_request_readback_identity_key(candidate)
-        for candidate in candidates
-        if provider_admission_opl_transition_readback(candidate)
-    }
-    if not provider_readback_keys:
-        return [dict(candidate) for candidate in candidates]
-    return [
-        dict(candidate)
-        for candidate in candidates
-        if not (
-            _transition_request_readback_identity_key(candidate) in provider_readback_keys
-            and _transition_request_only_candidate(candidate)
-        )
-    ]
-
-
-def _candidates_without_transition_requests_consumed_by_currentness(
-    candidates: list[dict[str, Any]],
-    *,
-    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
-) -> list[dict[str, Any]]:
-    return [
-        dict(candidate)
-        for candidate in candidates
-        if not _transition_request_consumed_by_scanned_currentness(
-            candidate,
-            scanned_studies_by_id=scanned_studies_by_id,
-        )
-    ]
-
-
 def _latest_provider_admission_terminal_consumed_readback(
     previous_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -588,139 +459,6 @@ def _terminal_consumed_readback_matches_candidate(
     return readback_fingerprint is not None
 
 
-def _transition_request_consumed_by_scanned_currentness(
-    candidate: Mapping[str, Any],
-    *,
-    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
-) -> bool:
-    if not _transition_request_only_candidate(candidate):
-        return False
-    study_id = _non_empty_text(candidate.get("study_id"))
-    if study_id is None:
-        return False
-    currentness = _mapping(scanned_studies_by_id.get(study_id))
-    if not _currentness_consumes_transition_request(currentness):
-        return False
-    consumed = _currentness_terminal_closeout_consumed(currentness)
-    if not consumed:
-        return False
-    return _consumed_closeout_matches_candidate(consumed, candidate)
-
-
-def _currentness_consumes_transition_request(currentness: Mapping[str, Any]) -> bool:
-    if currentness.get("provider_admission_pending_count") not in (None, 0):
-        return False
-    if currentness.get("transition_request_pending_count") not in (None, 0):
-        return False
-    if currentness.get("provider_admission_candidates") or currentness.get(
-        "transition_request_candidates"
-    ):
-        return False
-    return bool(_currentness_terminal_closeout_consumed(currentness))
-
-
-def _currentness_terminal_closeout_consumed(
-    currentness: Mapping[str, Any],
-) -> dict[str, Any]:
-    consumed = _mapping(currentness.get("provider_admission_terminal_closeout_consumed"))
-    if consumed:
-        return consumed
-    handoff = _mapping(currentness.get("opl_current_control_state_handoff"))
-    return _mapping(handoff.get("provider_admission_terminal_closeout_consumed"))
-
-
-def _consumed_closeout_matches_candidate(
-    consumed: Mapping[str, Any],
-    candidate: Mapping[str, Any],
-) -> bool:
-    if _non_empty_text(consumed.get("action_type")) not in (
-        None,
-        _non_empty_text(candidate.get("action_type")),
-    ):
-        return False
-    if _non_empty_text(consumed.get("work_unit_id")) not in (
-        None,
-        _non_empty_text(candidate.get("work_unit_id")),
-    ):
-        return False
-    consumed_fingerprint = _non_empty_text(consumed.get("work_unit_fingerprint")) or _non_empty_text(
-        consumed.get("action_fingerprint")
-    )
-    candidate_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
-        candidate.get("action_fingerprint")
-    )
-    if consumed_fingerprint not in (None, candidate_fingerprint):
-        return False
-    return _consumed_closeout_has_matching_runtime_identity(consumed, candidate)
-
-
-def _consumed_closeout_has_matching_runtime_identity(
-    consumed: Mapping[str, Any],
-    candidate: Mapping[str, Any],
-) -> bool:
-    for key in (
-        "route_identity_key",
-        "attempt_idempotency_key",
-        "idempotency_key",
-    ):
-        consumed_value = _non_empty_text(consumed.get(key))
-        candidate_value = _non_empty_text(candidate.get(key))
-        if consumed_value is not None and candidate_value is not None and consumed_value == candidate_value:
-            return True
-    return _non_empty_text(consumed.get("stage_attempt_id")) is not None
-
-
-def _transition_request_readback_identity_key(
-    candidate: Mapping[str, Any],
-) -> tuple[str | None, ...]:
-    transition_request = _mapping(candidate.get("opl_domain_progress_transition_request"))
-    if not transition_request:
-        transition_request = _mapping(
-            _mapping(candidate.get("paper_progress_policy_result")).get(
-                "opl_domain_progress_transition_request"
-            )
-        )
-    return (
-        *_candidate_key(candidate),
-        _non_empty_text(candidate.get("route_identity_key")),
-        _non_empty_text(candidate.get("attempt_idempotency_key")),
-        _non_empty_text(candidate.get("idempotency_key"))
-        or _non_empty_text(transition_request.get("idempotency_key")),
-    )
-
-
-def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> bool:
-    if candidate_opl_transition_readback(candidate):
-        return False
-    if candidate.get("provider_admission_requires_opl_runtime_result") is not True:
-        return False
-    return bool(
-        _mapping(candidate.get("opl_domain_progress_transition_request"))
-        or _mapping(
-            _mapping(candidate.get("paper_progress_policy_result")).get(
-                "opl_domain_progress_transition_request"
-            )
-        )
-    )
-
-
-def _arbiter_decision_retains_transition_request(decision: Mapping[str, Any]) -> bool:
-    if _non_empty_text(decision.get("mas_owner_action_source")) == (
-        "paper_recovery_state.accepted_owner_gate_decision"
-    ):
-        return True
-    currentness_basis = _mapping(decision.get("currentness_basis"))
-    if _non_empty_text(currentness_basis.get("source")) == (
-        "paper_recovery_state.accepted_owner_gate_decision"
-    ) or _non_empty_text(currentness_basis.get("mas_owner_action_source")) == (
-        "paper_recovery_state.accepted_owner_gate_decision"
-    ):
-        return True
-    evidence = _mapping(decision.get("evidence"))
-    weak_identity = _mapping(evidence.get("weak_provider_admission_identity"))
-    return not weak_identity
-
-
 def _payload_with_consumed_closeout_typed_blockers(payload: dict[str, Any]) -> dict[str, Any]:
     closeouts_by_study = _consumed_closeouts_by_study(payload.get("stage_route_arbiter_decisions"))
     if not closeouts_by_study:
@@ -775,72 +513,6 @@ def _consumed_closeouts_by_study(decisions: object) -> dict[str, dict[str, Any]]
         if study_id is not None and evidence:
             result[study_id] = dict(evidence)
     return result
-
-
-def _audit_only_unscanned_handoff(
-    *,
-    output_studies: list[dict[str, Any]],
-    output_actions: list[dict[str, Any]],
-    scanned_study_ids: set[str],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    retained_ids = {
-        study_id
-        for study in output_studies
-        if (study_id := _non_empty_text(study.get("study_id"))) is not None
-        and study_id not in scanned_study_ids
-    }
-    if not retained_ids:
-        return output_studies, output_actions, _unscanned_handoff_retention_payload(
-            retained_ids=[],
-            active_action_suppressed_count=0,
-        )
-    sanitized_studies: list[dict[str, Any]] = []
-    suppressed_count = 0
-    for study in output_studies:
-        study_id = _non_empty_text(study.get("study_id"))
-        if study_id not in retained_ids:
-            sanitized_studies.append(dict(study))
-            continue
-        action_queue = [
-            dict(action)
-            for action in study.get("action_queue") or []
-            if isinstance(action, Mapping)
-        ]
-        suppressed_count += len(action_queue)
-        payload = dict(study)
-        payload["retained_unscanned_study"] = True
-        payload["active_provider_admission_allowed"] = False
-        payload["unscanned_action_queue_retained_for_audit"] = action_queue
-        payload["action_queue"] = []
-        sanitized_studies.append(payload)
-    active_actions = [
-        dict(action)
-        for action in output_actions
-        if _non_empty_text(action.get("study_id")) not in retained_ids
-    ]
-    suppressed_count += len(output_actions) - len(active_actions)
-    return (
-        sanitized_studies,
-        active_actions,
-        _unscanned_handoff_retention_payload(
-            retained_ids=sorted(retained_ids),
-            active_action_suppressed_count=suppressed_count,
-        ),
-    )
-
-
-def _unscanned_handoff_retention_payload(
-    *,
-    retained_ids: list[str],
-    active_action_suppressed_count: int,
-) -> dict[str, Any]:
-    return {
-        "surface_kind": "provider_admission_current_control_unscanned_handoff_retention",
-        "retained_unscanned_study_ids": retained_ids,
-        "active_action_suppressed_count": active_action_suppressed_count,
-        "active_queue_semantics": "scanned_studies_only",
-        "retention_semantics": "audit_only",
-    }
 
 
 def _live_scanned_studies_by_id(
@@ -1135,45 +807,6 @@ def _study_with_accepted_closeout_typed_blocker(
                 "stale_queue_or_handoff_can_override": False,
             },
         }
-    return payload
-
-
-def _terminal_precedence_by_study(
-    scanned_studies: list[dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    result: dict[str, dict[str, Any]] = {}
-    for study in scanned_studies:
-        study_id = _non_empty_text(study.get("study_id"))
-        evidence = _mapping(study.get("terminal_closeout_precedence_evidence"))
-        if study_id is not None and evidence:
-            result[study_id] = dict(evidence)
-    return result
-
-
-def _study_with_terminal_precedence(
-    study: dict[str, Any],
-    *,
-    terminal_precedence_by_study: Mapping[str, Mapping[str, Any]],
-) -> dict[str, Any]:
-    study_id = _non_empty_text(study.get("study_id"))
-    evidence = _mapping(terminal_precedence_by_study.get(study_id)) if study_id is not None else {}
-    if not evidence:
-        return study
-    payload = dict(study)
-    payload["terminal_closeout_precedence_evidence"] = dict(evidence)
-    payload["stale_running_projection_suppressed"] = True
-    payload["running_provider_attempt"] = False
-    payload["active_run_id"] = None
-    payload["active_stage_attempt_id"] = None
-    payload["active_workflow_id"] = None
-    runtime_health = _mapping(payload.get("runtime_health"))
-    payload["runtime_health"] = {
-        **runtime_health,
-        "health_status": _non_empty_text(runtime_health.get("health_status"))
-        or "provider_admission_pending",
-        "runtime_liveness_status": "not_running",
-        "stale_running_projection_suppressed": True,
-    }
     return payload
 
 
