@@ -81,12 +81,14 @@ def sync_promoted_journal_delivery(
         target=manuscript_root / "manuscript.docx",
         category="manuscript",
         copied_files=copied_files,
+        preserve_metadata=False,
     )
     copy_file(
         source=source_root / "paper.pdf",
         target=manuscript_root / "paper.pdf",
         category="manuscript",
         copied_files=copied_files,
+        preserve_metadata=False,
     )
     copy_file(
         source=resolve_submission_manifest_path(source_root),

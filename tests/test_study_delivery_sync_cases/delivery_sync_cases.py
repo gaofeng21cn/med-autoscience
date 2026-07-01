@@ -111,6 +111,30 @@ def test_sync_study_delivery_current_package_pdf_mtime_marks_controller_refresh(
     assert int(current_package_pdf.stat().st_mtime) > old_timestamp
 
 
+def test_sync_study_delivery_primary_manuscript_artifact_mtimes_mark_controller_refresh(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_docx = paper_root / "submission_minimal" / "manuscript.docx"
+    source_pdf = paper_root / "submission_minimal" / "paper.pdf"
+    old_timestamp = 946684800
+    os.utime(source_docx, (old_timestamp, old_timestamp))
+    os.utime(source_pdf, (old_timestamp, old_timestamp))
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    manuscript_docx = study_root / "manuscript" / "manuscript.docx"
+    manuscript_pdf = study_root / "manuscript" / "paper.pdf"
+    assert manuscript_docx.exists()
+    assert manuscript_pdf.exists()
+    assert int(source_docx.stat().st_mtime) == old_timestamp
+    assert int(source_pdf.stat().st_mtime) == old_timestamp
+    assert int(manuscript_docx.stat().st_mtime) > old_timestamp
+    assert int(manuscript_pdf.stat().st_mtime) > old_timestamp
+
+
 def test_describe_submission_delivery_ignores_stale_submission_evidence_snapshot_for_current_package(
     tmp_path: Path,
 ) -> None:

@@ -236,12 +236,14 @@ def sync_general_delivery(
             target=staging_manuscript_root / "manuscript.docx",
             category="manuscript",
             copied_files=copied_files,
+            preserve_metadata=False,
         )
         copy_file(
             source=source_root / "paper.pdf",
             target=staging_manuscript_root / "paper.pdf",
             category="manuscript",
             copied_files=copied_files,
+            preserve_metadata=False,
         )
         copy_file(
             source=resolve_submission_manifest_path(source_root),
