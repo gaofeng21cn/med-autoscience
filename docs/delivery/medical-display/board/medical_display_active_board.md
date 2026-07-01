@@ -26,7 +26,7 @@ Machine boundary: 人读 board。模板真相、schema、renderer behavior、lay
 ## 当前主线状态
 
 - `A-H` 首个审计基线覆盖：`8/8`
-- 当前 strict audited inventory：按生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md)、[medical_display_arsenal.md](../catalogs/medical_display_arsenal.md) 和 generated template catalog 读取；board 不再手写数量。
+- 当前 strict audited inventory：按生成的 ScholarSkills compact gallery review package、[medical_display_arsenal.md](../catalogs/medical_display_arsenal.md) 和 generated template catalog 读取；board 不再手写数量。
 - 最近一次已吸收完成的 capability cluster：
   - `A/E / confusion_matrix_heatmap_binary`
 - 最近一次已完成的外部 exemplar intake：

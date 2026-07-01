@@ -708,7 +708,7 @@ def build_quality_audit_markdown(audit: dict[str, Any]) -> str:
 Owner: `MedAutoScience`
 Purpose: `human_readable_quality_audit_for_display_pack_gallery`
 State: `generated_support_reference`
-Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-docs` 从 Gallery manifest 和质量审计 builder 生成。机器真相继续归 Gallery manifest、template descriptor、renderer source、layout sidecar、display lock、publication manifest、真实论文 artifact 和 owner receipt；本文不持有 publication verdict、artifact authority 或 owner receipt。
+Machine boundary: 本文由 `scripts/build-display-pack-gallery.py` 从本地 Gallery manifest 和质量审计 builder 生成。机器真相继续归 Gallery manifest、template descriptor、renderer source、layout sidecar、display lock、publication manifest、真实论文 artifact 和 owner receipt；本文不持有 publication verdict、artifact authority 或 owner receipt。MAS 不把本文发布为 tracked docs gallery；人读 compact review package 归 ScholarSkills。
 
 ## 结论
 

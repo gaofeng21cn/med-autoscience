@@ -26,7 +26,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 ## Current Audited Inventory Snapshot
 
-当前数量不再在 backlog 手写维护。请读取生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 和 [medical_display_arsenal.md](./medical_display_arsenal.md)：
+当前数量不再在 backlog 手写维护。请读取生成的 ScholarSkills compact gallery review package 和 [medical_display_arsenal.md](./medical_display_arsenal.md)：
 
 - Gallery evidence figures 是当前默认 R/ggplot2 数据证据图；
 - current canonical templates 是 agent discover / figure plan 默认推荐面；

@@ -22,11 +22,6 @@ from med_autoscience.display_pack_gallery_catalog import (
 )
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.payloads import _load_seed_r_payloads
-from med_autoscience.display_pack_gallery_parts.pdf import (
-    _docs_manifest_payload,
-    _repo_relative_path,
-    docs_safe_gallery_asset_manifest_payload,
-)
 from med_autoscience.display_pack_gallery_parts.rendering import _gallery_dependency_environment_for
 from med_autoscience.display_pack_gallery_parts.status_writer import build_gallery_status_markdown
 from med_autoscience.display_pack_gallery_parts.html import _render_html
@@ -659,107 +654,15 @@ def test_gallery_html_exposes_composition_recipe_storyboards_without_counting_th
     assert "默认 Python 数据证据模板" not in html
 
 
-def test_docs_gallery_manifest_uses_repo_relative_paths() -> None:
+def test_mas_docs_gallery_review_package_is_externalized_to_scholarskills() -> None:
     docs_manifest_path = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples" / "gallery_manifest.json"
-    if docs_manifest_path.is_file():
-        payload = json.loads(docs_manifest_path.read_text(encoding="utf-8"))
-        assert payload["surface_kind"] == "display_pack_gallery_docs_manifest"
-        assert payload["composition_recipe_gallery_count"] == 6
-        if "reporting_flow_gallery_template_count" in payload:
-            assert payload["reporting_flow_gallery_template_count"] == 1
-            assert len(payload["reporting_flow_gallery_templates"]) == 1
-            assert payload["design_gallery_template_count"] == 1
-            assert len(payload["design_gallery_templates"]) == 1
-            if "table_preview_gallery_template_count" in payload:
-                assert payload["table_preview_gallery_template_count"] in {1, 3}
-                assert len(payload["table_preview_gallery_templates"]) in {1, 3}
-        else:
-            assert payload["design_gallery_template_count"] == 2
-            assert len(payload["design_gallery_templates"]) == 2
-        assert payload["visual_gallery_template_count"] in {36, 37, 38, 41, 43}
-        assert len(payload["evidence_gallery_templates"]) in {35, 38}
-        assert len(payload["composition_gallery_surface"]["recipes"]) == 6
-        for key, value in payload.items():
-            if key.endswith("_path") and isinstance(value, str):
-                assert not value.startswith(str(REPO_ROOT.parent))
-        assert docs_manifest_path.stat().st_size < 250_000
+    docs_asset_root = docs_manifest_path.parent / "medical_display_gallery_assets"
+    readme_path = docs_manifest_path.parent / "README.md"
 
-    assert _repo_relative_path(str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html")) == (
-        "outputs/display-pack-gallery/x.html"
-    )
-    compact = _docs_manifest_payload(
-        {
-            "schema_version": 9,
-            "status": "rendered",
-            "html_path": str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html"),
-            "evidence_gallery_template_count": 0,
-            "reporting_flow_gallery_template_count": 0,
-            "design_gallery_template_count": 0,
-            "table_preview_gallery_template_count": 0,
-            "visual_gallery_template_count": 0,
-            "composition_recipe_gallery_count": 0,
-            "templates": [],
-            "reporting_flow_gallery_templates": [],
-            "design_gallery_templates": [],
-            "table_preview_gallery_templates": [],
-        }
-    )
-    assert compact["source_manifest_schema_version"] == 9
-    assert compact["html_path"] == "outputs/display-pack-gallery/x.html"
-    compact_with_parity = _docs_manifest_payload(
-        {
-            **compact,
-            "schema_version": 9,
-            "lidocaineq_visual_parity_audit_path": str(
-                REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_audit.md"
-            ),
-            "lidocaineq_visual_parity_audit": {
-                "markdown_path": str(
-                    REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_audit.md"
-                ),
-                "contact_sheet_path": str(
-                    REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_contact_sheet.png"
-                ),
-            },
-        }
-    )
-    assert compact_with_parity["lidocaineq_visual_parity_audit_path"] == (
-        "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md"
-    )
-    assert compact_with_parity["lidocaineq_visual_parity_audit"]["markdown_path"] == (
-        "outputs/display-pack-gallery/lidocaineq_visual_parity_audit.md"
-    )
-
-
-def test_docs_gallery_asset_manifest_recursively_uses_repo_relative_paths() -> None:
-    payload = {
-        "html_path": str(REPO_ROOT / "outputs" / "display-pack-gallery" / "x.html"),
-        "nested": {
-            "contact_sheet_path": str(
-                REPO_ROOT / "outputs" / "display-pack-gallery" / "lidocaineq_visual_parity_contact_sheet.png"
-            ),
-            "rows": [
-                {
-                    "image": {
-                        "path": str(
-                            REPO_ROOT
-                            / "outputs"
-                            / "display-pack-gallery"
-                            / "medical_display_gallery_assets"
-                            / "roc_curve_binary.png"
-                        )
-                    }
-                }
-            ],
-        },
-    }
-
-    safe = docs_safe_gallery_asset_manifest_payload(payload)
-
-    assert safe["html_path"] == "outputs/display-pack-gallery/x.html"
-    assert safe["nested"]["contact_sheet_path"] == (
-        "outputs/display-pack-gallery/lidocaineq_visual_parity_contact_sheet.png"
-    )
-    assert safe["nested"]["rows"][0]["image"]["path"] == (
-        "outputs/display-pack-gallery/medical_display_gallery_assets/roc_curve_binary.png"
-    )
+    assert not docs_manifest_path.exists()
+    assert not docs_asset_root.exists()
+    assert readme_path.is_file()
+    readme = readme_path.read_text(encoding="utf-8")
+    assert "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/" in readme
+    assert "MAS 不在本目录维护 Display Pack gallery 发布包" in readme
+    assert "gallery PDF / status / quality-audit mirror" in readme

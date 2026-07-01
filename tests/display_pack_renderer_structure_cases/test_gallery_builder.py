@@ -414,7 +414,6 @@ def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, t
 
     monkeypatch.setattr(gallery_cli.shutil, "which", lambda _: None)
     monkeypatch.setattr(gallery_cli, "read_template_records", lambda *_: [record])
-    monkeypatch.setattr(gallery_cli, "seed_package_only_assets_from_docs_mirror", lambda: {"status": "source_missing"})
 
     try:
         gallery_cli.main(["--output-root", str(tmp_path / "package-only"), "--package-only"])
@@ -425,6 +424,7 @@ def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, t
 
     assert "package-only gallery build requires existing rendered gallery assets" in message
     assert "roc_curve_binary.png" in message
+    assert "local output gallery assets" in message
 
 
 def test_package_only_asset_seed_updates_stale_target_files(tmp_path: Path) -> None:
@@ -440,7 +440,7 @@ def test_package_only_asset_seed_updates_stale_target_files(tmp_path: Path) -> N
 
     result = seed_package_only_assets(source_asset_root=source_root, target_asset_root=target_root)
 
-    assert result["status"] == "synced_from_docs_mirror"
+    assert result["status"] == "synced_from_source_assets"
     assert result["updated_file_count"] == 1
     assert result["copied_file_count"] == 1
     assert result["skipped_existing_count"] == 0

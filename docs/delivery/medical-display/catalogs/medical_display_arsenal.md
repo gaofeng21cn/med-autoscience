@@ -11,10 +11,10 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 
 动态数量和逐项 truth 按以下 owner 读取：
 
-- current canonical template、Gallery evidence / reporting-flow / design / table-preview figure、retired alias、Python evidence、render/package 状态和 analysis responsibility 计数：生成的 [display_pack_gallery_status.md](../examples/display_pack_gallery_status.md) 与 Gallery manifest；
+- current canonical template、Gallery evidence / reporting-flow / design / table-preview figure、retired alias、Python evidence、render/package 状态和 analysis responsibility 计数：生成的 ScholarSkills compact gallery review package 与 Gallery manifest；
 - 完整 descriptor inventory、每个模板的 renderer family、input schema、QC profile 和 analysis responsibility：生成的 [medical_display_template_catalog.md](./medical_display_template_catalog.md)；
 - Display Pack v2 current landed status、E2E path、MAS/OPL handoff 和 forbidden-authority boundary：[display_pack_v2_landing_status.md](../contracts/display_pack_v2_landing_status.md)；
-- 人读 Gallery 和可视示例：生成的 [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) 与 `medical_display_gallery.pdf`。
+- 人读 Gallery 和可视示例：生成的 ScholarSkills compact gallery review package。
 
 默认用户路径、Gallery、agent discover 和 figure plan 只暴露 current canonical surface。旧 Python evidence ID 不维护为当前 pack inventory、Gallery 对比图、agent discover、runtime materialization 或显式请求库存。
 

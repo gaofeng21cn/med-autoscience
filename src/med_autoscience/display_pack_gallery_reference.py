@@ -22,7 +22,7 @@ def build_gallery_reference_markdown(
 Owner: `MedAutoScience`
 Purpose: `human_readable_gallery_for_builtin_mas_display_templates`
 State: `generated_support_reference`
-Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-docs` 从 Gallery manifest、canonical catalog 和 renderer inventory 生成。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts；本文不持有 artifact authority、publication readiness 或 owner receipt。
+Machine boundary: 本文由 `scripts/build-display-pack-gallery.py` 从本地 Gallery manifest、canonical catalog 和 renderer inventory 生成。机器真相继续归 display-pack template descriptor、renderer source、`paper/publication_style_profile.json`、layout sidecar、display lock、publication manifest、tests 和真实论文 artifacts；本文不持有 artifact authority、publication readiness 或 owner receipt。MAS 不把本文发布为 tracked docs gallery；人读 compact review package 归 ScholarSkills。
 
 - [PDF Gallery](./medical_display_gallery.pdf)：面向人阅读的主文档，用于直观判断 MAS 默认图页组织、非数据设计图起点、数据证据图起点和统一视觉风格。
 - [生成状态](./display_pack_gallery_status.md)：从 manifest 生成的数量、路由和生成口径。
@@ -31,13 +31,13 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py --publish-doc
 HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。代码、payload 或 style 可能变化时运行默认增量构建：
 
 ```bash
-./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs
+./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py
 ```
 
-只调整 Gallery 文档组织、标题、索引或 PDF 打包，不需要重新渲染图资产时，运行 package-only 快速打包：
+只调整 Gallery 文档组织、标题、索引或 PDF 打包，不需要重新渲染图资产时，运行 package-only 快速打包；`--publish-docs` 只更新 MAS template catalog，不复制 gallery PDF、manifest 或单图资产到 docs：
 
 ```bash
-./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs --package-only
+./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --package-only
 ```
 
 ## 设计目的

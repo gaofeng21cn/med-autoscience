@@ -13,7 +13,6 @@ from med_autoscience.display_pack_gallery_catalog import (
     table_preview_gallery_records,
 )
 from med_autoscience.display_pack_gallery_parts import paths
-from med_autoscience.display_pack_gallery_parts.asset_reuse import seed_package_only_assets_from_docs_mirror
 from med_autoscience.display_pack_gallery_parts.assets import RenderedAsset, _clean_assets, _strip_trailing_whitespace, write_json
 from med_autoscience.display_pack_gallery_parts.html import _render_html
 from med_autoscience.display_pack_gallery_parts.manifest import build_manifest
@@ -21,7 +20,7 @@ from med_autoscience.display_pack_gallery_parts.lidocaineq_parity_audit import (
     write_lidocaineq_visual_parity_audit,
 )
 from med_autoscience.display_pack_gallery_parts.payloads import _load_python_payload_fixtures, _load_seed_r_payloads, _python_display_payload
-from med_autoscience.display_pack_gallery_parts.pdf import _copy_docs_gallery, _export_pdf
+from med_autoscience.display_pack_gallery_parts.pdf import _export_pdf
 from med_autoscience.display_pack_gallery_parts.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery_parts.reference_writer import _write_reference
 from med_autoscience.display_pack_gallery_parts.rendering import (
@@ -58,7 +57,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--publish-docs",
         action="store_true",
-        help="Copy the gallery PDF, reference markdown, and quality audit into docs.",
+        help="Publish the generated template catalog into docs. Gallery review artifacts are owned by ScholarSkills.",
     )
     parser.add_argument(
         "--force-render",
@@ -68,7 +67,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--package-only",
         action="store_true",
-        help="Do not invoke renderers; rebuild HTML/PDF/docs from existing gallery assets only.",
+        help="Do not invoke renderers; rebuild HTML/PDF/local gallery markdown outputs from existing gallery assets only.",
     )
     return parser.parse_args(argv)
 
@@ -174,7 +173,12 @@ def _prepare_asset_root(*, force_render: bool, package_only: bool) -> dict[str, 
         return {"status": "cleaned_for_force_render", "copied_file_count": 0}
     paths.ASSET_ROOT.mkdir(parents=True, exist_ok=True)
     if package_only:
-        return seed_package_only_assets_from_docs_mirror()
+        return {
+            "status": "use_existing_output_asset_root",
+            "source_asset_root": str(paths.ASSET_ROOT),
+            "target_asset_root": str(paths.ASSET_ROOT),
+            "copied_file_count": 0,
+        }
     return {"status": "reuse_output_asset_root", "copied_file_count": 0}
 
 
@@ -206,7 +210,7 @@ def _assert_package_only_assets_ready(records: list) -> None:
         raise RuntimeError(
             "package-only gallery build requires existing rendered gallery assets. "
             f"Missing {len(missing)} required files: {preview}{suffix}. "
-            "Run the normal gallery build after OPL dependency prepare, or restore the docs gallery asset mirror."
+            "Run the normal gallery build after OPL dependency prepare, or restore the local output gallery assets."
         )
 
 
@@ -283,7 +287,6 @@ def main(argv: list[str] | None = None) -> int:
     _strip_trailing_whitespace(paths.STATUS_PATH)
     _export_pdf()
     if args.publish_docs:
-        _copy_docs_gallery()
         _publish_template_catalog()
 
     visible_records = gallery_display_records(records)
@@ -320,11 +323,8 @@ def main(argv: list[str] | None = None) -> int:
                 "lidocaineq_visual_parity_audit_json_path": str(paths.LIDOCAINEQ_PARITY_AUDIT_JSON_PATH),
                 "lidocaineq_visual_parity_contact_sheet_path": str(paths.LIDOCAINEQ_PARITY_CONTACT_SHEET_PATH),
                 "status_path": str(paths.STATUS_PATH),
-                "docs_pdf_path": str(paths.DOCS_PDF_PATH) if args.publish_docs else "",
-                "docs_reference_path": str(paths.DOCS_REFERENCE_PATH) if args.publish_docs else "",
-                "docs_quality_audit_path": str(paths.DOCS_QUALITY_AUDIT_PATH) if args.publish_docs else "",
-                "docs_status_path": str(paths.DOCS_STATUS_PATH) if args.publish_docs else "",
-                "docs_manifest_path": str(paths.DOCS_MANIFEST_PATH) if args.publish_docs else "",
+                "docs_template_catalog_path": str(paths.DOCS_TEMPLATE_CATALOG_PATH) if args.publish_docs else "",
+                "docs_gallery_review_package_owner": "ScholarSkills" if args.publish_docs else "",
                 "manifest_path": str(paths.MANIFEST_PATH),
             },
             ensure_ascii=False,

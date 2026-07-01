@@ -13,8 +13,7 @@ A display counts as current implemented inventory only when it is present in the
 
 Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
-- current counts: [Display Pack Gallery status](../examples/display_pack_gallery_status.md);
-- human visual Gallery: [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) and `medical_display_gallery.pdf`;
+- current counts and human visual Gallery: ScholarSkills compact review package at `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/`;
 - full descriptor inventory: [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
 - compact capability index: [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md).
 
@@ -22,23 +21,23 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 
 ## Source Of Truth
 
-- `external/display-packs/medical-display-core/templates/*/template.toml`
-- `external/display-packs/medical-display-core/canonical_template_catalog.json`
-- `external/display-packs/medical-display-core/renderer_migration_ledger.json`
+- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/templates/*/template.toml`
+- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/canonical_template_catalog.json`
+- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/renderer_migration_ledger.json`
 - `src/med_autoscience/display_registry.py`
 - `src/med_autoscience/display_schema_contract.py`
 - `src/med_autoscience/controllers/display_surface_materialization/`
 - `src/med_autoscience/display_layout_qc/`
-- generated Gallery manifest under `outputs/display-pack-gallery/medical_display_gallery_assets/gallery_manifest.json`
+- ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/`
 
-The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is [medical_display_gallery_reference.md](../examples/medical_display_gallery_reference.md) and `medical_display_gallery.pdf`; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
+The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
 ## Code, Assets, And Dependency Boundary
 
 Medical display maintenance uses three separate surfaces:
 
-- `external/display-packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
-- `outputs/display-pack-gallery/` and `docs/delivery/medical-display/examples/medical_display_gallery_assets/` are generated gallery artifacts. They may be rebuilt from renderers or repackaged from cached assets with `--package-only`.
+- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
+- `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/` is the compact human review package. MAS no longer commits gallery build output or single-figure gallery assets under `docs/delivery/medical-display/examples/`.
 - OPL Runtime Environment Substrate owns dependency preparation. MAS consumes dependency run-context refs and fails closed when a required prepared receipt, profile, binary, or managed R library is missing.
 
 `--package-only` is valid for document packaging, title/index changes, and PDF regeneration from existing assets. It is not evidence that renderer source, dependency environment, or real paper payloads were freshly rendered. Fresh rendering evidence requires render cache readback, layout sidecars, dependency run-context readback, and artifact inspection.
@@ -55,7 +54,7 @@ Future Python evidence may re-enter only after documented advantage over the R/g
 
 ## Current Audit Families
 
-Current audit-family membership is no longer maintained as a duplicate table in this guide. Use the generated Gallery status and reference for the user-facing current surface, and the generated template catalog for full descriptor inventory. This avoids treating input-schema variants or retired aliases as separate current templates.
+Current audit-family membership is no longer maintained as a duplicate table in this guide. Use the ScholarSkills compact gallery review package for the user-facing current surface, and the generated template catalog for full descriptor inventory. This avoids treating input-schema variants or retired aliases as separate current templates.
 
 ## Visual QA Boundary
 

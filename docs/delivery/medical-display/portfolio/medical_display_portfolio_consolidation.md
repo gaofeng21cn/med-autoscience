@@ -18,7 +18,7 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | lifecycle role | active path | status |
 | --- | --- | --- |
 | active execution surface | `../board/medical_display_active_board.md` | current owner-round board and reroute surface |
-| current inventory / reference | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, `../examples/display_pack_gallery_status.md` | strict audited inventory, generated gallery status and human inventory reference |
+| current inventory / reference | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, ScholarSkills compact gallery review package | strict audited inventory, externalized gallery status and human inventory reference |
 | roadmap / backlog | `medical_display_family_roadmap.md`, `../catalogs/medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
 | platform / template-pack support | `../plans/medical_display_template_pack_architecture.md`, `../contracts/medical_display_platform_mainline.md`, `../contracts/display_pack_v2_landing_status.md` | platform, template-pack execution model and current landed-boundary readout |
 | implementation provenance | `../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md` | historical Phase 1-2 execution packet; not active work queue |
@@ -32,7 +32,7 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | --- | --- |
 | active execution | `../board/medical_display_active_board.md` |
 | platform charter | `../contracts/medical_display_platform_mainline.md`, `../contracts/display_pack_v2_landing_status.md` |
-| current inventory / truth | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, `../examples/display_pack_gallery_status.md` |
+| current inventory / truth | `../contracts/medical_display_audit_guide.md`, `../catalogs/medical_display_template_catalog.md`, `../catalogs/medical_display_arsenal.md`, ScholarSkills compact gallery review package |
 | long-horizon roadmap | `medical_display_family_roadmap.md` |
 | visual review discipline | `../contracts/medical_display_visual_audit_protocol.md` |
 | candidate backlog | `../catalogs/medical_display_template_backlog.md` |

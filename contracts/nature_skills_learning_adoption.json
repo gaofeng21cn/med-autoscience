@@ -140,7 +140,7 @@
         "src/med_autoscience.display_pack_e2e_runtime.materialize_display_pack_publication_manifest",
         "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
         "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
-        "docs/delivery/medical-display/examples/display_pack_gallery_quality_audit.md"
+        "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/display_pack_gallery_quality_audit.md"
       ],
       "gap_status": [
         "live_paper_line_owner_receipt_tail_pending",
@@ -204,7 +204,7 @@
         "external/display-packs/medical-display-core/canonical_template_catalog.json",
         "src/med_autoscience.display_pack_canonical_catalog.load_canonical_template_catalog",
         "src/med_autoscience.display_pack_agent.display_pack_figure_plan",
-        "docs/delivery/medical-display/examples/ggplot2_template_reference_assets/gallery_manifest.json"
+        "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/gallery_manifest.json"
       ],
       "gap_status": [
         "default_application_surface_migrated_to_canonical_inventory",
@@ -405,7 +405,7 @@
         "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_rendered_figure_workflow_packet",
         "paper/figure_workflow_packet.json",
         "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet",
-        "docs/delivery/medical-display/examples/ggplot2_template_reference_assets/gallery_manifest.json#/figure_workflow_policy"
+        "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/gallery_manifest.json#/figure_workflow_policy"
       ],
       "gap_status": [
         "real_paper_visual_audit_still_required",

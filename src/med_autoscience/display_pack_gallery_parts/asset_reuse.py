@@ -5,7 +5,6 @@ import hashlib
 import shutil
 from typing import Any
 
-from med_autoscience.display_pack_gallery_parts import paths
 
 _ASSET_SUFFIXES = {
     ".json",
@@ -13,14 +12,6 @@ _ASSET_SUFFIXES = {
     ".png",
     ".svg",
 }
-
-
-def seed_package_only_assets_from_docs_mirror() -> dict[str, Any]:
-    docs_asset_root = paths.EXAMPLES_ROOT / paths.ASSET_ROOT.name
-    return seed_package_only_assets(
-        source_asset_root=docs_asset_root,
-        target_asset_root=paths.ASSET_ROOT,
-    )
 
 
 def seed_package_only_assets(
@@ -84,7 +75,7 @@ def seed_package_only_assets(
         extension_counts[source_path.suffix] = extension_counts.get(source_path.suffix, 0) + 1
     status = "target_already_complete"
     if copied or updated:
-        status = "synced_from_docs_mirror"
+        status = "synced_from_source_assets"
     return {
         "status": status,
         "source_asset_root": str(source_asset_root),

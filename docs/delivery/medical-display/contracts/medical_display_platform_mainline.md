@@ -41,7 +41,7 @@ For the tracked active execution surface that replaces retired project-local run
 
 Historical OMX / Codex materials under [`docs/history/omx/`](../../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
 
-Current Display Pack v2 status is intentionally not restated here. Read [display_pack_v2_landing_status.md](./display_pack_v2_landing_status.md) for current landed status, E2E path, MAS/OPL handoff and forbidden-authority boundary; read [display_pack_gallery_status.md](../examples/display_pack_gallery_status.md) for generated template/Gallery counts; read [display_pack_renderer_migration_assessment.md](../plans/display_pack_renderer_migration_assessment.md) for renderer migration support detail. This charter keeps the long-horizon operating model and must not maintain a parallel landed-status checklist.
+Current Display Pack v2 status is intentionally not restated here. Read [display_pack_v2_landing_status.md](./display_pack_v2_landing_status.md) for current landed status, E2E path, MAS/OPL handoff and forbidden-authority boundary; read ScholarSkills compact gallery review package for generated template/Gallery counts; read [display_pack_renderer_migration_assessment.md](../plans/display_pack_renderer_migration_assessment.md) for renderer migration support detail. This charter keeps the long-horizon operating model and must not maintain a parallel landed-status checklist.
 
 ## North Star
 

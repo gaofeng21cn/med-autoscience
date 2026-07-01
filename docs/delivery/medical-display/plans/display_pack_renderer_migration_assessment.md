@@ -7,7 +7,7 @@ Machine boundary: 本文是人读结构评估。机器真相继续归 `external/
 
 ## 当前结论
 
-`R/ggplot2-first` 已在 core pack 收口为当前默认路径：默认数据证据图只展示 canonical current R/ggplot2 模板，Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。非数据设计/流程/graphical-abstract shell 作为独立 design Gallery 分区展示，不承担统计证据 authority。当前数量由生成的 [Display Pack Gallery status](../examples/display_pack_gallery_status.md) 给出。
+`R/ggplot2-first` 已在 core pack 收口为当前默认路径：默认数据证据图只展示 canonical current R/ggplot2 模板，Python evidence 不再作为隐藏库存、显式请求库存或 Gallery 对比图保留。非数据设计/流程/graphical-abstract shell 作为独立 design Gallery 分区展示，不承担统计证据 authority。当前数量由生成的 ScholarSkills compact gallery review package 给出。
 
 当前 `fenggaolab.org.medical-display-core` 的真实 inventory 按生成状态读取：
 

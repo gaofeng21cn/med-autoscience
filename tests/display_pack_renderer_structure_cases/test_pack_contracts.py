@@ -18,6 +18,7 @@ from .common import (
 )
 from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
     LIDOCAINEQ_COVERAGE_ITEMS,
+    lidocaineq_coverage_payload,
 )
 
 
@@ -361,10 +362,21 @@ def test_lidocaineq_reference_coverage_contract_lists_all_33_reference_items() -
     }
 
 
-def test_docs_gallery_manifest_reports_complete_lidocaineq_coverage_when_built() -> None:
-    manifest_path = REPO_ROOT / "docs" / "delivery" / "medical-display" / "examples" / "gallery_manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    coverage = manifest["lidocaineq_reference_coverage"]
+def test_lidocaineq_coverage_payload_reports_complete_mapping_when_rendered() -> None:
+    rendered = {
+        template_id: SimpleNamespace(status="rendered")
+        for item in LIDOCAINEQ_COVERAGE_ITEMS
+        for template_id in (item.required_mas_template_ids or (item.mas_template_id,))
+    }
+    source_renderers = {
+        template_id: item.expected_source_renderer
+        for item in LIDOCAINEQ_COVERAGE_ITEMS
+        for template_id in (item.required_mas_template_ids or (item.mas_template_id,))
+    }
+    coverage = lidocaineq_coverage_payload(
+        rendered_by_template_id=rendered,
+        source_renderer_by_template_id=source_renderers,
+    )
 
     assert coverage["reference_template_count"] == 33
     assert coverage["covered_reference_template_count"] == 33
@@ -413,10 +425,3 @@ def test_docs_gallery_manifest_reports_complete_lidocaineq_coverage_when_built()
     }
     assert all(item["do_not_restore_legacy_alias"] is True for item in retired_alias_items.values())
     assert {item["legacy_alias_status"] for item in retired_alias_items.values()} == {"retired_do_not_restore"}
-    assert manifest["surface_kind"] == "display_pack_gallery_docs_manifest"
-    assert manifest["asset_ref_base"] == "docs/delivery/medical-display/examples"
-    assert manifest["asset_ref_docs_mirror"] == "docs/delivery/medical-display/examples"
-    assert manifest["source_manifest_schema_version"] == 9
-    assert manifest["quality_summary"]["gallery_lower_bound_admission_status"] == (
-        "gallery_lower_bound_passed_requires_paper_audit"
-    )
