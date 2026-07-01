@@ -126,7 +126,7 @@ PDF and the latest visual audit receipt are bound to the same rendered display s
 
 1. run `publication materialize-display-surface` so registry/catalog-driven figures and tables are regenerated through the current Display Pack renderer;
 2. run `publication export-submission-minimal` so the PDF consumes those regenerated artifacts;
-3. run `publication materialize-display-visual-audit` so `paper/figure_visual_audit_receipt.json` is refreshed after the final PDF export and records the final `figure_catalog.json` artifact refs and sha256 values;
+3. run `publication materialize-display-visual-audit` so `paper/figure_visual_audit_receipt.json` is refreshed after the final PDF export and records the final `figure_catalog.json` artifact refs, sha256 values, layout sidecar refs, and purpose-first readability findings;
 4. run `study delivery-sync --stage submission_minimal` so the human-facing current package mirrors the PDF and visual audit receipt;
 5. inspect the rendered PDF pages before claiming the package is latest or visually clear.
 
@@ -141,6 +141,8 @@ or display lock entry and check that:
 
 - `renderer_family` and `source_renderer` point to the intended current MAS Display Pack renderer;
 - `figure_purpose` matches the manuscript claim, comparison, or descriptive question;
+- dense cell/grid/multipanel displays declare a readable label policy in the layout sidecar; artifact existence
+  and sha256 alone cannot make the visual audit `clear`;
 - the rendered artifact in the human package is byte-identical to the generated submission figure, unless the
   package step intentionally converts format and records that conversion.
 

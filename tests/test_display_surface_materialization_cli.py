@@ -298,6 +298,26 @@ def test_r_evidence_renderer_keeps_figure_titles_as_metadata_only() -> None:
     assert renderer_source.count("title = NULL") >= 1
 
 
+def test_dpcc_transition_heatmap_renderer_uses_sparse_percent_cell_labels() -> None:
+    renderer_path = (
+        Path(__file__).resolve().parents[1]
+        / "external"
+        / "display-packs"
+        / "medical-display-core"
+        / "rlib"
+        / "medicaldisplaycore"
+        / "dpcc_primary_care_renderers.R"
+    )
+
+    renderer_source = renderer_path.read_text(encoding="utf-8")
+
+    transition_renderer = renderer_source.split("dpcc_plot_transition_site_support <- function(payload) {", 1)[1]
+    transition_renderer = transition_renderer.split("dpcc_plot_treatment_gap_alignment <- function(payload) {", 1)[0]
+    assert "(n=%s)" not in transition_renderer
+    assert "share_of_transition_patients >= 0.04" in transition_renderer
+    assert "transition_cell_label_policy = \"major_share_percent_only_no_counts\"" in renderer_source
+
+
 def test_cli_materialize_display_visual_audit_refreshes_receipt_after_export(tmp_path, monkeypatch, capsys) -> None:
     cli_module = importlib.import_module("med_autoscience.cli")
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
@@ -321,6 +341,67 @@ def test_cli_materialize_display_visual_audit_refreshes_receipt_after_export(tmp
     assert payload["visual_audit_receipt"]["inspected_artifact_count"] == len(receipt["inspected_artifacts"])
     assert payload["authority_boundary"]["writes_authority"] is False
     assert not (paper_root.parent / "manuscript" / "current_package").exists()
+
+
+def test_cli_materialize_display_visual_audit_flags_dense_transition_heatmap_without_label_policy(
+    tmp_path,
+    capsys,
+) -> None:
+    cli_module = importlib.import_module("med_autoscience.cli")
+    quality_contract = importlib.import_module("med_autoscience.publication_figure_quality_contract")
+    paper_root = tmp_path / "paper"
+    figure_root = paper_root / "figures" / "generated"
+    figure_root.mkdir(parents=True)
+    (figure_root / "F3_site_held_out_stability_figure.png").write_bytes(b"PNG")
+    dense_rows = [
+        {
+            "source_phenotype_label": f"Source {index // 6}",
+            "target_phenotype_label": f"Target {index % 6}",
+            "patient_count": 100 + index,
+            "share_of_transition_patients": 0.02,
+        }
+        for index in range(36)
+    ]
+    dump_json(
+        figure_root / "F3_site_held_out_stability_figure.layout.json",
+        {
+            "schema_version": 1,
+            "template_id": "site_held_out_stability_figure",
+            "metrics": {
+                "source_renderer": "MAS/DPCC::site_held_out_stability_figure",
+                "figure_purpose": "phenotype_transition_stability_plus_site_held_out_support",
+                "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
+                "transition_rows": dense_rows,
+            },
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F3",
+                    "template_id": "fenggaolab.org.medical-display-core::site_held_out_stability_figure",
+                    "export_paths": ["paper/figures/generated/F3_site_held_out_stability_figure.png"],
+                    "qc_result": {
+                        "layout_sidecar_path": "paper/figures/generated/F3_site_held_out_stability_figure.layout.json"
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli_module.main([*DISPLAY_VISUAL_AUDIT_COMMAND, "--paper-root", str(paper_root)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    receipt = quality_contract.load_figure_visual_audit_receipt(paper_root / "figure_visual_audit_receipt.json")
+    assert exit_code == 0
+    assert payload["visual_audit_receipt"]["final_status"] == "findings_open"
+    assert receipt["final_status"] == "findings_open"
+    assert receipt["findings"][0]["figure_id"] == "F3"
+    assert "transition heatmap" in receipt["findings"][0]["observed_issue"]
 
 
 def test_cli_materialize_display_surface_includes_full_registered_template_set(tmp_path, monkeypatch, capsys) -> None:

@@ -55,29 +55,112 @@ def _figure_audit_entry_from_catalog(*, paper_root: Path, entry: dict[str, Any])
     }
 
 
+def _catalog_layout_sidecar_path(*, paper_root: Path, entry: dict[str, Any]) -> Path | None:
+    qc_result = entry.get("qc_result")
+    if not isinstance(qc_result, dict):
+        return None
+    sidecar_ref = str(qc_result.get("layout_sidecar_path") or "").strip()
+    if not sidecar_ref:
+        return None
+    sidecar_path = _resolve_workspace_path(sidecar_ref, paper_root=paper_root)
+    if not sidecar_path.exists():
+        return None
+    return sidecar_path
+
+
+def _short_template_id(value: object) -> str:
+    text = str(value or "").strip()
+    return text.rsplit("::", 1)[-1]
+
+
+def _visual_audit_findings_from_sidecar(
+    *,
+    figure_id: str,
+    sidecar_path: Path,
+) -> list[dict[str, Any]]:
+    try:
+        sidecar = load_json(sidecar_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return []
+    metrics = sidecar.get("metrics")
+    if not isinstance(metrics, dict):
+        return []
+    template_id = _short_template_id(sidecar.get("template_id") or metrics.get("template_id"))
+    if template_id != "site_held_out_stability_figure":
+        return []
+    transition_rows = metrics.get("transition_rows")
+    if not isinstance(transition_rows, list) or len(transition_rows) < 24:
+        return []
+    label_policy = str(
+        metrics.get("transition_cell_label_policy")
+        or metrics.get("cell_label_policy")
+        or ""
+    ).strip()
+    if "no_counts" in label_policy and "major" in label_policy:
+        return []
+    return [
+        {
+            "figure_id": figure_id,
+            "observed_issue": (
+                "Dense DPCC transition heatmap lacks an explicit sparse cell-label policy; "
+                "paper PDF scaling can make cell text overlap."
+            ),
+            "paper_facing_impact": (
+                "The rendered Figure 3 may appear visually clear in the artifact catalog while "
+                "the final manuscript PDF contains overlapping heatmap labels."
+            ),
+            "suspected_layer": ["renderer_contract", "readability_qc", "manuscript_surface"],
+            "proposed_action": (
+                "Render transition cells with sparse major-share percentage labels only, omit "
+                "per-cell counts, and rerun post-PDF visual audit."
+            ),
+            "promotion_decision": "promote_to_qc",
+            "verification_plan": (
+                "Regenerate the figure and final paper.pdf, then inspect the rendered PDF page "
+                "for non-overlapping transition heatmap labels."
+            ),
+        }
+    ]
+
+
 def _write_catalog_visual_audit_receipt(*, paper_root: Path, figure_catalog: dict[str, Any]) -> dict[str, Any] | None:
     inspected_artifacts: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
     for entry in figure_catalog.get("figures") or []:
         if not isinstance(entry, dict):
             continue
         audit_entry = _figure_audit_entry_from_catalog(paper_root=paper_root, entry=entry)
         if audit_entry is not None:
+            sidecar_path = _catalog_layout_sidecar_path(paper_root=paper_root, entry=entry)
+            if sidecar_path is not None:
+                audit_entry["layout_sidecar_path"] = _paper_relative_path(sidecar_path, paper_root=paper_root)
+                findings.extend(
+                    _visual_audit_findings_from_sidecar(
+                        figure_id=str(audit_entry["figure_id"]),
+                        sidecar_path=sidecar_path,
+                    )
+                )
             inspected_artifacts.append(audit_entry)
     if not inspected_artifacts:
         return None
-    review_label = json.dumps(inspected_artifacts, ensure_ascii=False, sort_keys=True)
+    final_status = "findings_open" if findings else "clear"
+    review_label = json.dumps(
+        {"inspected_artifacts": inspected_artifacts, "findings": findings},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
     payload = {
         "schema_version": 1,
         "receipt_id": f"display-surface-visual-audit-{utc_now()}",
         "audit_mode": "human_visual_review",
         "inspected_artifacts": inspected_artifacts,
-        "findings": [],
+        "findings": findings,
         "reviewer": {
             "provider": "mas-display-surface-materializer",
             "model": "deterministic-render-inspect-revise",
             "prompt_hash": _sha256_text(review_label),
         },
-        "final_status": "clear",
+        "final_status": final_status,
     }
     receipt_path = paper_root / "figure_visual_audit_receipt.json"
     dump_json(receipt_path, payload)

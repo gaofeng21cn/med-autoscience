@@ -179,13 +179,17 @@ dpcc_plot_transition_site_support <- function(payload) {
   target_levels <- unique(transition_df$target_phenotype_label)
   transition_df$source_phenotype_label <- factor(transition_df$source_phenotype_label, levels = rev(source_levels))
   transition_df$target_phenotype_label <- factor(transition_df$target_phenotype_label, levels = target_levels)
-  transition_df$label <- sprintf("%.1f%%\n(n=%s)", transition_df$share_of_transition_patients * 100, format(round(transition_df$patient_count), big.mark = ",", scientific = FALSE))
+  transition_df$label <- ifelse(
+    transition_df$share_of_transition_patients >= 0.04,
+    sprintf("%.1f%%", transition_df$share_of_transition_patients * 100),
+    ""
+  )
   site_df <- dpcc_site_fold_rows_df(payload$site_fold_rows)
   site_df$fold_id <- factor(site_df$fold_id, levels = site_df$fold_id)
   palette <- candidate_palette(payload)
   transition_plot <- ggplot(transition_df, aes(x = target_phenotype_label, y = source_phenotype_label, fill = share_of_transition_patients)) +
     geom_tile(colour = "white", linewidth = 0.45) +
-    geom_text(aes(label = label), size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.21, lineheight = 0.88, colour = palette$text) +
+    geom_text(aes(label = label), size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.24, colour = palette$text) +
     scale_fill_gradient(
       low = style_color(payload, "heatmap_seq_low", "heatmap_seq_low", "#F4F8FA"),
       high = style_color(payload, "heatmap_seq_high", "heatmap_seq_high", "#0B4F6C"),
@@ -200,20 +204,19 @@ dpcc_plot_transition_site_support <- function(payload) {
     candidate_theme(payload) +
     theme_publication_colorbar(payload) +
     theme(
-      axis.text.x = element_text(angle = 28, hjust = 1, vjust = 1),
-      axis.text.y = element_text(size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.78),
+      axis.text.x = element_text(angle = 35, hjust = 1, vjust = 1, size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.70),
+      axis.text.y = element_text(size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.70),
       legend.position = "right"
     )
   site_plot <- ggplot(site_df, aes(x = share_of_index_patients * 100, y = fold_id)) +
     geom_col(fill = palette$secondary, width = 0.58) +
     geom_text(
-      aes(label = sprintf("%s patients\n%.1f%%", format(round(index_patients), big.mark = ",", scientific = FALSE), share_of_index_patients * 100)),
-      hjust = -0.08,
-      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.24,
-      lineheight = 0.9,
+      aes(label = sprintf("%.1f%%", share_of_index_patients * 100)),
+      hjust = -0.12,
+      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.27,
       colour = palette$text
     ) +
-    coord_cartesian(xlim = c(0, max(site_df$share_of_index_patients * 100, na.rm = TRUE) * 1.26), clip = "off") +
+    coord_cartesian(xlim = c(0, max(site_df$share_of_index_patients * 100, na.rm = TRUE) * 1.18), clip = "off") +
     labs(
       title = candidate_non_empty(payload$coverage_panel_title, "Site-held-out support"),
       x = "Share of index patients (%)",
@@ -221,7 +224,7 @@ dpcc_plot_transition_site_support <- function(payload) {
     ) +
     candidate_theme(payload) +
     theme(panel.grid.major.y = element_blank())
-  patchwork::wrap_plots(list(transition_plot, site_plot), ncol = 2, widths = c(1.35, 0.85))
+  patchwork::wrap_plots(list(transition_plot, site_plot), ncol = 2, widths = c(1.50, 0.82))
 }
 
 dpcc_plot_treatment_gap_alignment <- function(payload) {
@@ -309,6 +312,8 @@ dpcc_layout_override <- function(template_id, display_payload) {
         source_renderer = dpcc_source_renderer(template_id),
         figure_purpose = "phenotype_transition_stability_plus_site_held_out_support",
         rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
+        transition_cell_label_policy = "major_share_percent_only_no_counts",
+        site_support_label_policy = "percent_only_counts_remain_in_table",
         transition_rows = dpcc_metric_rows(display_payload$transition_rows),
         site_fold_rows = dpcc_metric_rows(display_payload$site_fold_rows),
         visit_coverage = display_payload$visit_coverage %||% NULL,
