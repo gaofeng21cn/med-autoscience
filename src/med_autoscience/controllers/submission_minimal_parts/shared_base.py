@@ -840,8 +840,23 @@ def validate_submission_references_coverage(
     source_markdown_path: Path,
     references_path: Path | None,
 ) -> dict[str, Any]:
-    citation_keys = sorted(markdown_citation_keys(source_markdown_path.read_text(encoding="utf-8")))
+    source_markdown_text = source_markdown_path.read_text(encoding="utf-8")
+    metadata, _ = split_front_matter(source_markdown_text)
+    citation_keys = sorted(markdown_citation_keys(source_markdown_text))
     if not citation_keys:
+        entry_count = (
+            count_bibtex_entries(references_path.read_text(encoding="utf-8"))
+            if references_path is not None and references_path.exists()
+            else 0
+        )
+        if entry_count > 0 and metadata.get("nocite") == "@*":
+            return {
+                "status": "nocite_all",
+                "citation_key_count": 0,
+                "bib_entry_count": entry_count,
+                "missing_citation_keys": [],
+                "rendered_bibliography_policy": "pandoc_nocite_all",
+            }
         return {
             "status": "not_required",
             "citation_key_count": 0,

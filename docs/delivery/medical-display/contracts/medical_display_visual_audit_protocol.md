@@ -141,6 +141,10 @@ or display lock entry and check that:
 
 - `renderer_family` and `source_renderer` point to the intended current MAS Display Pack renderer;
 - `figure_purpose` matches the manuscript claim, comparison, or descriptive question;
+- `cohort_flow_figure` outputs declare `layout_generation=scholarskills_cohort_flow_v2` and
+  `flow_visual_policy=purpose_first_reporting_flow_no_legacy_card_shell`; `renderer_family=r_ggplot2`
+  or `uses_ggconsort=true` alone is not enough to accept Figure 1 because the old card/bar shell can
+  still be technically R-backed while failing the participant-accounting purpose;
 - dense cell/grid/multipanel displays declare a readable label policy in the layout sidecar; artifact existence
   and sha256 alone cannot make the visual audit `clear`;
 - the rendered artifact in the human package is byte-identical to the generated submission figure, unless the

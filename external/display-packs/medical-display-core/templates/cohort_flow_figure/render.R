@@ -481,7 +481,7 @@ coverage_frame <- function(subcohort_coverage) {
   if (!is.finite(max_n) || max_n <= 0) {
     max_n <- 1
   }
-  y_values <- rev(seq(from = 17, to = 37, length.out = length(subcohort_coverage)))
+  y_values <- rev(seq(from = 14, to = 38, length.out = length(subcohort_coverage)))
   data.frame(
     coverage_id = vapply(subcohort_coverage, function(item) item$coverage_id, character(1)),
     label = vapply(subcohort_coverage, function(item) item$label, character(1)),
@@ -508,14 +508,15 @@ build_source_layer_accounting_plot <- function(payload) {
   layer_df <- source_layer_frame(source_layers)
   coverage_df <- coverage_frame(subcohort_coverage)
 
-  node_fill <- style_color(payload, "flow_main_fill", "#F2F5F7")
-  node_edge <- style_color(payload, "flow_main_edge", "#7B8794")
-  layer_fill <- style_color(payload, "flow_primary_fill", "#D9EAF0")
+  node_fill <- style_color(payload, "flow_main_fill", "#F8FAFC")
+  node_edge <- style_color(payload, "flow_main_edge", "#62717D")
+  layer_fill <- style_color(payload, "flow_primary_fill", "#DCEBF0")
   layer_edge <- style_color(payload, "flow_primary_edge", "#245A6B")
-  coverage_fill <- style_color(payload, "flow_context_fill", "#E6EDF5")
+  coverage_fill <- style_color(payload, "flow_context_fill", "#E7EEF5")
   coverage_edge <- style_color(payload, "flow_context_edge", "#2F5D8A")
   text_colour <- style_color(payload, "flow_body_text", "#111827")
-  panel_label_colour <- style_color(payload, "flow_panel_label", text_colour)
+  muted_text <- style_color(payload, "flow_muted_text", "#4B5563")
+  guide_colour <- style_color(payload, "flow_connector", "#7B8794")
 
   denominator_label <- paste(
     c(
@@ -528,14 +529,34 @@ build_source_layer_accounting_plot <- function(payload) {
   plot <- ggplot2::ggplot() +
     ggplot2::theme_void() +
     ggplot2::coord_cartesian(xlim = c(-42, 42), ylim = c(0, 100), clip = "off") +
-    ggplot2::annotate("text", x = -39, y = 96, label = "A", hjust = 0, vjust = 1, fontface = "bold", size = 4.0, colour = panel_label_colour) +
-    ggplot2::annotate("text", x = -39, y = 44, label = "B", hjust = 0, vjust = 1, fontface = "bold", size = 4.0, colour = panel_label_colour) +
+    ggplot2::annotate(
+      "text",
+      x = -37,
+      y = 95,
+      label = "Source layers",
+      hjust = 0,
+      vjust = 1,
+      fontface = "bold",
+      size = 3.35,
+      colour = muted_text
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = -37,
+      y = 40,
+      label = "Analysis coverage",
+      hjust = 0,
+      vjust = 1,
+      fontface = "bold",
+      size = 3.35,
+      colour = muted_text
+    ) +
     ggplot2::annotate(
       "rect",
       xmin = -20,
       xmax = 20,
-      ymin = 82,
-      ymax = 94,
+      ymin = 70,
+      ymax = 82,
       fill = node_fill,
       colour = node_edge,
       linewidth = 0.36
@@ -543,7 +564,7 @@ build_source_layer_accounting_plot <- function(payload) {
     ggplot2::annotate(
       "text",
       x = 0,
-      y = 88,
+      y = 76,
       label = denominator_label,
       hjust = 0.5,
       vjust = 0.5,
@@ -555,19 +576,29 @@ build_source_layer_accounting_plot <- function(payload) {
     plot <- plot +
       ggplot2::annotate(
         "segment",
-        x = 0,
+        x = layer_df$x[[index]],
         xend = layer_df$x[[index]],
-        y = 82,
-        yend = layer_df$y[[index]] + 7,
-        colour = node_edge,
+        y = 86,
+        yend = 82,
+        colour = guide_colour,
         linewidth = 0.28
+      ) +
+      ggplot2::annotate(
+        "segment",
+        x = layer_df$x[[index]],
+        xend = 0,
+        y = 70,
+        yend = 82,
+        colour = guide_colour,
+        linewidth = 0.28,
+        arrow = grid::arrow(type = "closed", length = grid::unit(0.075, "in"))
       ) +
       ggplot2::annotate(
         "rect",
         xmin = layer_df$x[[index]] - 12,
         xmax = layer_df$x[[index]] + 12,
-        ymin = layer_df$y[[index]] - 7,
-        ymax = layer_df$y[[index]] + 7,
+        ymin = 86,
+        ymax = 98,
         fill = layer_fill,
         colour = layer_edge,
         linewidth = 0.34
@@ -575,7 +606,7 @@ build_source_layer_accounting_plot <- function(payload) {
       ggplot2::annotate(
         "text",
         x = layer_df$x[[index]],
-        y = layer_df$y[[index]],
+        y = 92,
         label = layer_df$label[[index]],
         hjust = 0.5,
         vjust = 0.5,
@@ -590,21 +621,47 @@ build_source_layer_accounting_plot <- function(payload) {
     } else {
       sprintf("n=%s/%s", cohort_count_label(coverage_df$n[[index]]), cohort_count_label(coverage_df$denominator_n[[index]]))
     }
+    center_y <- coverage_df$y[[index]]
+    if (index == 1) {
+      plot <- plot +
+        ggplot2::annotate(
+          "segment",
+          x = 0,
+          xend = 0,
+          y = 70,
+          yend = center_y + 5.2,
+          colour = guide_colour,
+          linewidth = 0.28,
+          arrow = grid::arrow(type = "closed", length = grid::unit(0.075, "in"))
+        )
+    } else {
+      plot <- plot +
+        ggplot2::annotate(
+          "segment",
+          x = 0,
+          xend = 0,
+          y = coverage_df$y[[index - 1]] - 4.2,
+          yend = center_y + 4.2,
+          colour = guide_colour,
+          linewidth = 0.24,
+          arrow = grid::arrow(type = "closed", length = grid::unit(0.065, "in"))
+        )
+    }
     plot <- plot +
       ggplot2::annotate(
         "rect",
-        xmin = -20,
-        xmax = -20 + coverage_df$width[[index]],
-        ymin = coverage_df$y[[index]] - 4.2,
-        ymax = coverage_df$y[[index]] + 4.2,
+        xmin = -18,
+        xmax = 18,
+        ymin = center_y - 5.2,
+        ymax = center_y + 5.2,
         fill = coverage_fill,
         colour = coverage_edge,
         linewidth = 0.32
       ) +
       ggplot2::annotate(
         "text",
-        x = -38,
-        y = coverage_df$y[[index]],
+        x = -15.5,
+        y = center_y,
         label = wrap_plain_label(coverage_df$label[[index]], width = 20),
         hjust = 0,
         vjust = 0.5,
@@ -614,10 +671,10 @@ build_source_layer_accounting_plot <- function(payload) {
       ) +
       ggplot2::annotate(
         "text",
-        x = 28,
-        y = coverage_df$y[[index]],
+        x = 15.5,
+        y = center_y,
         label = n_label,
-        hjust = 0,
+        hjust = 1,
         vjust = 0.5,
         size = 2.75,
         colour = text_colour,
@@ -839,25 +896,20 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
   source_count <- length(source_layers)
   source_centers <- if (source_count == 1) 0.50 else seq(from = 0.20, to = 0.80, length.out = source_count)
   coverage_count <- length(subcohort_coverage)
-  coverage_y <- if (coverage_count == 1) 0.26 else seq(from = 0.34, to = 0.17, length.out = coverage_count)
-  coverage_n <- vapply(subcohort_coverage, function(item) item$n, numeric(1))
-  coverage_max <- max(coverage_n)
-  if (!is.finite(coverage_max) || coverage_max <= 0) {
-    coverage_max <- 1
-  }
+  coverage_y <- if (coverage_count == 1) 0.30 else seq(from = 0.38, to = 0.14, length.out = coverage_count)
   layout_boxes <- list()
   if (show_figure_title) {
     layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.94, 0.95, 0.98))
   }
-  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("panel_label_A", "panel_label", 0.075, 0.905, 0.11, 0.94, panel_id = panel_a_id)
-  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("panel_label_B", "panel_label", 0.075, 0.405, 0.11, 0.44, panel_id = panel_b_id)
+  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("source_layer_heading", "section_label", 0.075, 0.905, 0.28, 0.94, panel_id = panel_a_id)
+  layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box("analysis_coverage_heading", "section_label", 0.075, 0.355, 0.33, 0.39, panel_id = panel_b_id)
   layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
     paste0("source_denominator_", denominator$step_id),
     "main_step",
     0.32,
-    0.79,
+    0.67,
     0.68,
-    0.91,
+    0.79,
     panel_id = panel_a_id
   )
   flow_nodes <- list(list(
@@ -878,18 +930,18 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
       box_id,
       "source_layer_box",
       x_center - 0.13,
-      0.55,
+      0.83,
       x_center + 0.13,
-      0.70,
+      0.95,
       panel_id = panel_a_id
     )
     guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
       paste0("source_layer_link_", layer$layer_id),
       "source_layer_connector",
       min(0.50, x_center),
-      0.70,
-      max(0.50, x_center),
       0.79,
+      max(0.50, x_center),
+      0.83,
       panel_id = panel_a_id
     )
     flow_nodes[[length(flow_nodes) + 1]] <- list(
@@ -905,38 +957,40 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
   for (index in seq_along(subcohort_coverage)) {
     item <- subcohort_coverage[[index]]
     y_center <- coverage_y[[index]]
-    width <- 0.42 * (item$n / coverage_max)
-    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
-      paste0("coverage_label_", item$coverage_id),
-      "coverage_label",
-      0.11,
-      y_center - 0.028,
-      0.31,
-      y_center + 0.028,
-      panel_id = panel_b_id
-    )
     layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
       paste0("coverage_bar_", item$coverage_id),
-      "coverage_bar",
-      0.34,
-      y_center - 0.038,
-      0.34 + width,
-      y_center + 0.038,
+      "coverage_step",
+      0.30,
+      y_center - 0.052,
+      0.70,
+      y_center + 0.052,
       panel_id = panel_b_id
     )
-    layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
-      paste0("coverage_value_", item$coverage_id),
-      "coverage_value",
-      0.78,
-      y_center - 0.026,
-      0.94,
-      y_center + 0.026,
-      panel_id = panel_b_id
-    )
+    if (index == 1) {
+      guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
+        "denominator_to_coverage",
+        "coverage_flow_connector",
+        0.50,
+        y_center + 0.052,
+        0.50,
+        0.67,
+        panel_id = panel_b_id
+      )
+    } else {
+      guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
+        paste0("coverage_flow_", subcohort_coverage[[index - 1]]$coverage_id, "_to_", item$coverage_id),
+        "coverage_flow_connector",
+        0.50,
+        y_center + 0.052,
+        0.50,
+        coverage_y[[index - 1]] - 0.052,
+        panel_id = panel_b_id
+      )
+    }
     flow_nodes[[length(flow_nodes) + 1]] <- list(
       box_id = paste0("coverage_bar_", item$coverage_id),
-      box_type = "coverage_bar",
-      line_count = 1L,
+      box_type = "coverage_step",
+      line_count = 2L,
       max_line_chars = 24L,
       rendered_height_pt = 52.0,
       rendered_width_pt = 180.0,
@@ -954,6 +1008,9 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
     guide_boxes = guide_boxes,
     metrics = list(
       layout_mode = "source_layer_accounting",
+      layout_generation = "scholarskills_cohort_flow_v2",
+      flow_visual_policy = "purpose_first_reporting_flow_no_legacy_card_shell",
+      figure_title_policy = "metadata_only_no_drawn_title",
       reporting_flow_kind = "cohort_source_layer_and_subcohort_coverage",
       dependency_profile_ref = "r_ggplot2_ggconsort_reporting_flow_v1",
       mature_dependency_intent = "ggconsort_capable_reporting_flow",
@@ -1153,6 +1210,9 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     guide_boxes = guide_boxes,
     metrics = list(
       layout_mode = "participant_flow",
+      layout_generation = "scholarskills_cohort_flow_v2",
+      flow_visual_policy = "purpose_first_reporting_flow_no_legacy_card_shell",
+      figure_title_policy = "metadata_only_no_drawn_title",
       reporting_flow_kind = "consort_strobe_participant_flow",
       dependency_profile_ref = "r_ggplot2_ggconsort_reporting_flow_v1",
       mature_dependency_intent = "ggconsort_capable_reporting_flow",

@@ -691,6 +691,36 @@ def test_create_submission_minimal_package_uses_workspace_literature_references_
     }
 
 
+def test_general_medical_submission_renders_bibliography_when_refs_exist_without_inline_citations(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_text = (paper_root / "draft.md").read_text(encoding="utf-8")
+    write_text(
+        paper_root / "draft.md",
+        re.sub(r"\s*\[@ref1\]", "", draft_text),
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "bibliography: references.bib" in submission_markdown
+    assert "nocite: '@*'" in submission_markdown
+    assert manifest["references"]["coverage"] == {
+        "status": "nocite_all",
+        "citation_key_count": 0,
+        "bib_entry_count": 1,
+        "missing_citation_keys": [],
+        "rendered_bibliography_policy": "pandoc_nocite_all",
+    }
+
+
 def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_references(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

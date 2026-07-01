@@ -419,6 +419,9 @@ def test_materialize_display_surface_renders_source_layer_accounting_without_seq
     assert result["figures_materialized"] == ["F1"]
     layout = json.loads((paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json").read_text(encoding="utf-8"))
     assert layout["metrics"]["layout_mode"] == "source_layer_accounting"
+    assert layout["metrics"]["layout_generation"] == "scholarskills_cohort_flow_v2"
+    assert layout["metrics"]["flow_visual_policy"] == "purpose_first_reporting_flow_no_legacy_card_shell"
+    assert layout["metrics"]["figure_title_policy"] == "metadata_only_no_drawn_title"
     assert layout["metrics"]["reporting_flow_kind"] == "cohort_source_layer_and_subcohort_coverage"
     assert layout["metrics"]["figure_purpose"] == "participant_accounting_and_strobe_source_boundary"
     assert layout["metrics"]["uses_ggconsort"] is True
@@ -428,8 +431,49 @@ def test_materialize_display_surface_renders_source_layer_accounting_without_seq
     assert not any(item["box_type"] == "flow_connector" for item in layout["guide_boxes"])
     assert any(item["box_type"] == "source_layer_connector" for item in layout["guide_boxes"])
     assert any(item["box_type"] == "source_layer_box" for item in layout["layout_boxes"])
-    assert any(item["box_type"] == "coverage_bar" for item in layout["layout_boxes"])
+    assert any(item["box_type"] == "coverage_step" for item in layout["layout_boxes"])
+    assert any(item["box_type"] == "coverage_flow_connector" for item in layout["guide_boxes"])
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     entry = figure_catalog["figures"][0]
     assert entry["qc_result"]["status"] == "pass"
     assert entry["figure_purpose"] == "participant_accounting_and_strobe_source_boundary"
+
+
+def test_visual_audit_blocks_legacy_cohort_flow_sidecar_without_scholarskills_v2_policy(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    figure_path = paper_root / "figures" / "generated" / "F1_cohort_flow.png"
+    layout_path = paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json"
+    figure_path.parent.mkdir(parents=True, exist_ok=True)
+    figure_path.write_text("not a real png but sufficient for artifact hashing", encoding="utf-8")
+    dump_json(
+        layout_path,
+        {
+            "template_id": "cohort_flow_figure",
+            "metrics": {
+                "layout_mode": "source_layer_accounting",
+                "renderer_family": "r_ggplot2",
+                "uses_ggconsort": True,
+            },
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "export_paths": ["paper/figures/generated/F1_cohort_flow.png"],
+                    "qc_result": {
+                        "layout_sidecar_path": "paper/figures/generated/F1_cohort_flow.layout.json",
+                    },
+                }
+            ]
+        },
+    )
+
+    result = module.materialize_display_visual_audit(paper_root=paper_root)
+
+    assert result["visual_audit_receipt"]["final_status"] == "findings_open"
+    receipt = json.loads((paper_root / "figure_visual_audit_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["findings"][0]["promotion_decision"] == "promote_to_qc"

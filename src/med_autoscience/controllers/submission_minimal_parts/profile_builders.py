@@ -187,6 +187,12 @@ def build_general_medical_submission_markdown(
             figure_semantics_map = load_figure_semantics_map(paper_root)
 
     bibliography_rel = "references.bib"
+    references_path, _ = resolve_submission_references_source(paper_root=paper_root)
+    references_entry_count = (
+        count_bibtex_entries(references_path.read_text(encoding="utf-8"))
+        if references_path is not None and references_path.exists()
+        else 0
+    )
     catalog_image_map = build_catalog_backed_submission_figure_image_map(
         paper_root=paper_root,
         submission_root=submission_root,
@@ -218,13 +224,32 @@ def build_general_medical_submission_markdown(
         ("# Conclusion", conclusion),
         (appendix_heading or "# Appendix", appendix),
     ]
-    markdown_parts = [
-        "---\n"
-        f'title: "{title}"\n'
-        f"bibliography: {bibliography_rel}\n"
-        "link-citations: true\n"
-        "---"
+    front_matter_lines = [
+        "---",
+        f'title: "{title}"',
+        f"bibliography: {bibliography_rel}",
+        "link-citations: true",
     ]
+    if references_entry_count > 0:
+        candidate_body = "\n\n".join(
+            content.strip()
+            for _, content in section_blocks
+            if content.strip()
+        )
+        candidate_body = "\n\n".join(
+            part
+            for part in [
+                candidate_body,
+                "\n\n".join(submission_figure_blocks).strip(),
+                "\n\n".join(figure_legend_blocks).strip(),
+                "\n\n".join(table_blocks).strip(),
+            ]
+            if part
+        )
+        if not markdown_citation_keys(candidate_body):
+            front_matter_lines.append("nocite: '@*'")
+    front_matter_lines.append("---")
+    markdown_parts = ["\n".join(front_matter_lines)]
     for heading, content in section_blocks:
         if content.strip():
             markdown_parts.append(f"{heading}\n\n{content.strip()}")

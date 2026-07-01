@@ -315,10 +315,19 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
 def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
+    is_v2_layout = (
+        str(sidecar.metrics.get("layout_generation") or "").strip() == "scholarskills_cohort_flow_v2"
+        and str(sidecar.metrics.get("flow_visual_policy") or "").strip()
+        == "purpose_first_reporting_flow_no_legacy_card_shell"
+    )
     issues.extend(
         _check_required_box_types(
             all_boxes,
-            required_box_types=("main_step", "source_layer_box", "coverage_bar", "panel_label"),
+            required_box_types=(
+                ("main_step", "source_layer_box", "coverage_step", "section_label")
+                if is_v2_layout
+                else ("main_step", "source_layer_box", "coverage_bar", "panel_label")
+            ),
         )
     )
     panel_boxes = {box.box_id: box for box in _boxes_of_type(sidecar.panel_boxes, "subfigure_panel")}
@@ -335,7 +344,8 @@ def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str
         )
 
     source_boxes = _boxes_of_type(sidecar.layout_boxes, "source_layer_box")
-    coverage_bars = _boxes_of_type(sidecar.layout_boxes, "coverage_bar")
+    coverage_box_type = "coverage_step" if is_v2_layout else "coverage_bar"
+    coverage_bars = _boxes_of_type(sidecar.layout_boxes, coverage_box_type)
     coverage_labels = _boxes_of_type(sidecar.layout_boxes, "coverage_label")
     coverage_values = _boxes_of_type(sidecar.layout_boxes, "coverage_value")
     main_steps = _boxes_of_type(sidecar.layout_boxes, "main_step")
@@ -344,32 +354,33 @@ def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str
     issues.extend(_check_pairwise_non_overlap(coverage_labels, rule_id="coverage_label_overlap", target="coverage_label"))
     issues.extend(_check_pairwise_non_overlap(coverage_values, rule_id="coverage_value_overlap", target="coverage_value"))
 
-    panel_a = panel_boxes.get("subfigure_panel_A")
-    if panel_a is not None:
-        for box in main_steps + source_boxes:
-            if _box_within_box(box, panel_a):
-                continue
-            issues.append(
-                _issue(
-                    rule_id="source_layer_content_out_of_panel_a",
-                    message="denominator and source-layer boxes must stay within Panel A",
-                    target=box.box_type,
-                    box_refs=(box.box_id, panel_a.box_id),
+    if not is_v2_layout:
+        panel_a = panel_boxes.get("subfigure_panel_A")
+        if panel_a is not None:
+            for box in main_steps + source_boxes:
+                if _box_within_box(box, panel_a):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="source_layer_content_out_of_panel_a",
+                        message="denominator and source-layer boxes must stay within Panel A",
+                        target=box.box_type,
+                        box_refs=(box.box_id, panel_a.box_id),
+                    )
                 )
-            )
-    panel_b = panel_boxes.get("subfigure_panel_B")
-    if panel_b is not None:
-        for box in coverage_bars + coverage_labels + coverage_values:
-            if _box_within_box(box, panel_b):
-                continue
-            issues.append(
-                _issue(
-                    rule_id="coverage_content_out_of_panel_b",
-                    message="subcohort coverage marks must stay within Panel B",
-                    target=box.box_type,
-                    box_refs=(box.box_id, panel_b.box_id),
+        panel_b = panel_boxes.get("subfigure_panel_B")
+        if panel_b is not None:
+            for box in coverage_bars + coverage_labels + coverage_values:
+                if _box_within_box(box, panel_b):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="coverage_content_out_of_panel_b",
+                        message="subcohort coverage marks must stay within Panel B",
+                        target=box.box_type,
+                        box_refs=(box.box_id, panel_b.box_id),
+                    )
                 )
-            )
 
     source_layers = [
         item
@@ -416,8 +427,8 @@ def _check_source_layer_accounting_flow(sidecar: LayoutSidecar) -> list[dict[str
         if not any(box.box_id == expected_box_id for box in coverage_bars):
             issues.append(
                 _issue(
-                    rule_id="missing_coverage_bar",
-                    message="each metrics.subcohort_coverage item must have a rendered coverage bar",
+                    rule_id=f"missing_{coverage_box_type}",
+                    message=f"each metrics.subcohort_coverage item must have a rendered {coverage_box_type}",
                     target="layout_boxes",
                     expected=expected_box_id,
                 )

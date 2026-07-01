@@ -73,6 +73,35 @@ def _visual_audit_findings_from_sidecar(
     if not isinstance(metrics, dict):
         return []
     template_id = _short_template_id(sidecar.get("template_id") or metrics.get("template_id"))
+    if template_id == "cohort_flow_figure":
+        layout_generation = str(metrics.get("layout_generation") or "").strip()
+        flow_visual_policy = str(metrics.get("flow_visual_policy") or "").strip()
+        if layout_generation == "scholarskills_cohort_flow_v2" and flow_visual_policy == "purpose_first_reporting_flow_no_legacy_card_shell":
+            return []
+        return [
+            {
+                "figure_id": figure_id,
+                "observed_issue": (
+                    "Cohort-flow Figure 1 sidecar does not declare the ScholarSkills v2 purpose-first "
+                    "reporting-flow layout policy."
+                ),
+                "paper_facing_impact": (
+                    "The figure may be rendered by a technically ggplot2-backed path while still using "
+                    "the old card or explanation-shell layout rather than a participant-accounting flow."
+                ),
+                "suspected_layer": ["renderer_contract", "layout_qc", "manuscript_surface"],
+                "proposed_action": (
+                    "Regenerate Figure 1 with the ScholarSkills cohort_flow_figure v2 template and rerun "
+                    "post-PDF visual audit."
+                ),
+                "promotion_decision": "promote_to_qc",
+                "verification_plan": (
+                    "Confirm layout_generation=scholarskills_cohort_flow_v2, "
+                    "flow_visual_policy=purpose_first_reporting_flow_no_legacy_card_shell, and inspect "
+                    "the rendered PDF page."
+                ),
+            }
+        ]
     if template_id != "site_held_out_stability_figure":
         return []
     transition_rows = metrics.get("transition_rows")
