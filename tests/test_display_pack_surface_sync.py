@@ -420,6 +420,85 @@ def test_sync_display_pack_surface_adds_missing_story_role_to_keyed_manifest(tmp
     assert figure_semantics["figures"]["F2"]["story_role"] == "result_evidence"
 
 
+def test_sync_display_pack_surface_syncs_materialized_catalog_qc_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
+    paper_root = build_sync_workspace(tmp_path)
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "catalog_id": "F1",
+                    "display_id": "cohort_flow",
+                    "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                    "renderer_family": "r_ggplot2",
+                    "qc_profile": "publication_illustration_flow",
+                    "renderer_contract": {
+                        "figure_semantics": "illustration",
+                        "renderer_family": "r_ggplot2",
+                        "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                        "layout_qc_profile": "publication_illustration_flow",
+                        "required_exports": ["png", "pdf"],
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                    "qc_result": {
+                        "status": "fail",
+                        "failure_reason": "participant_flow_content_out_of_panel",
+                        "issues": [
+                            {
+                                "rule_id": "participant_flow_content_out_of_panel",
+                                "box_refs": ["participant_step_validation_records", "participant_flow_main"],
+                            }
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "current_display_status": "active_materialized_qc_pass",
+                    "renderer_contract": {
+                        "renderer": "r_ggplot2",
+                        "allowed_renderers": ["r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+                        "layout_qc_profile": "publication_illustration_flow",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+                {
+                    "figure_id": "F2",
+                    "current_display_status": "active_materialized_qc_pass",
+                    "renderer_contract": {
+                        "renderer": "r_ggplot2",
+                        "allowed_renderers": ["r_ggplot2"],
+                        "template_id": "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars",
+                        "layout_qc_profile": "publication_risk_layering_bars",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                },
+            ],
+        },
+    )
+
+    result = module.sync_display_pack_surface(paper_root=paper_root)
+
+    assert "paper/figure_semantics_manifest.json" in result["updated_files"]
+    figure_semantics = load_json(paper_root / "figure_semantics_manifest.json")
+    assert figure_semantics["figures"][0]["current_display_status"] == "active_materialized_qc_failed"
+    assert figure_semantics["figures"][1]["current_display_status"] == "active_materialized_qc_pass"
+
+
 def test_sync_display_pack_surface_resolves_contract_backed_figure_registry(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_pack_surface_sync")
     paper_root = build_sync_workspace(tmp_path)

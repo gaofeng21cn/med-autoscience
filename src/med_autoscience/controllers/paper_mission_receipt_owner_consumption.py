@@ -218,7 +218,11 @@ def _owner_consumption_verdict(
 ) -> dict[str, Any]:
     stage = _stage_closure_summary(paper_mission_readback)
     package = _current_package_summary(paper_mission_readback)
-    if stage["outcome_kind"] == "typed_blocker":
+    consumption_action = _text(consumption.get("next_legal_action"))
+    if (
+        consumption_action == "record_typed_blocker"
+        or stage["outcome_kind"] == "typed_blocker"
+    ):
         verdict_kind = "record_typed_blocker_owner_consumption_required"
         required_authority_surface = "paper-mission receipt-owner-consumption --apply-typed-blocker"
     elif (

@@ -357,6 +357,120 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_source_layer_
     assert any(item["box_type"] == "source_layer_connector" for item in layout_sidecar["guide_boxes"])
 
 
+def test_materialize_display_pack_publication_manifest_keeps_obesity_cohort_flow_inside_panel(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    assert shutil.which("Rscript") is not None
+    repo_root = REPO_ROOT
+    paper_root = tmp_path / "workspace" / "paper"
+    r_library_root = _install_fake_ggconsort_package(tmp_path)
+    dependency_environment = _write_fake_dependency_run_context(
+        paper_root,
+        r_library_root=r_library_root,
+    )
+    _write_cohort_flow_paper_inputs(paper_root)
+    _write_json(
+        paper_root / "data" / "frozen" / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "source_data_digest": "data-digest-obesity-cohort-flow",
+            "title": "Multicenter obesity phenotype cohort flow",
+            "steps": [
+                {
+                    "step_id": "xiangya1_records",
+                    "label": "Xiangya Hospital source records with BMI and follow-up linkage",
+                    "n": 472638,
+                },
+                {
+                    "step_id": "xiangya1_analysis",
+                    "label": "Xiangya derivation cohort after adult eligibility and duplicate cleanup",
+                    "n": 174522,
+                },
+                {
+                    "step_id": "xiangya2_records",
+                    "label": "Xiangya Second Hospital temporal validation records",
+                    "n": 291604,
+                },
+                {
+                    "step_id": "xiangya2_precision_records",
+                    "label": "External precision analysis cohort with harmonized phenotype windows",
+                    "n": 83617,
+                },
+            ],
+            "exclusions": [
+                {
+                    "exclusion_id": "missing_bmi_followup",
+                    "from_step_id": "xiangya1_records",
+                    "label": "Missing BMI, age, sex, or follow-up anchor",
+                    "n": 298116,
+                },
+                {
+                    "exclusion_id": "short_observation",
+                    "from_step_id": "xiangya2_records",
+                    "label": "Insufficient observation window for endpoint ascertainment",
+                    "n": 207987,
+                },
+            ],
+            "endpoint_inventory": [
+                {
+                    "endpoint_id": "obesity_complication",
+                    "label": "Incident obesity-related complication composite",
+                    "event_n": 18429,
+                    "detail": "Events counted after phenotype-index date across harmonized follow-up windows",
+                }
+            ],
+            "design_panels": [
+                {
+                    "panel_id": "interpretation_boundary",
+                    "title": "Interpretation boundary",
+                    "lines": [
+                        {
+                            "label": "Multicenter EHR phenotype atlas",
+                            "detail": "Descriptive association and transportability analysis, not causal treatment effect estimation",
+                        },
+                        {
+                            "label": "Harmonized phenotype windows",
+                            "detail": "BMI category and endpoint windows were aligned before site-level comparison",
+                        },
+                        {
+                            "label": "External validation",
+                            "detail": "Xiangya Second Hospital supports transportability assessment after local data-quality checks",
+                        },
+                        {
+                            "label": "Clinical guardrail",
+                            "detail": "Claims remain bounded to phenotype description and risk-stratification support",
+                        },
+                    ],
+                }
+            ],
+            "comparison_summary": [],
+        },
+    )
+
+    result = materialize_display_pack_publication_manifest(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        visual_audit_review=_visual_audit_review(),
+        figure_ids=["F_cohort"],
+        dependency_environment=dependency_environment,
+    )
+
+    figure = result["figures"][0]
+    assert figure["deterministic_qc"]["status"] == "pass"
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["uses_ggconsort"] is True
+    panel = next(item for item in layout_sidecar["panel_boxes"] if item["box_id"] == "participant_flow_main")
+    main_steps = [item for item in layout_sidecar["layout_boxes"] if item["box_type"] == "main_step"]
+    assert len(main_steps) == 4
+    for box in main_steps:
+        assert box["x0"] >= panel["x0"]
+        assert box["x1"] <= panel["x1"]
+        assert box["y0"] >= panel["y0"]
+        assert box["y1"] <= panel["y1"]
+
+
 def test_materialize_display_pack_publication_manifest_runs_multi_figure_batch(tmp_path: Path) -> None:
     from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
     from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle

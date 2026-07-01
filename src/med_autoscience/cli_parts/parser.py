@@ -706,6 +706,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_progress_parser.add_argument("--study-id", type=str)
     study_progress_parser.add_argument("--study-root", type=str)
     study_progress_parser.add_argument("--entry-mode", type=str)
+    study_progress_parser.add_argument("--request-opl-runtime-readback", action="store_true")
     study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     open_auto_research_soak_parser = subparsers.add_parser("open-auto-research-soak")
     open_auto_research_soak_parser.add_argument("--profile", required=True)

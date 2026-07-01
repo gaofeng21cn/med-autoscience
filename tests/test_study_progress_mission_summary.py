@@ -538,6 +538,7 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
         "role": "transport_receipt_only",
         "can_change_stage_terminal_decision": False,
         "can_select_next_owner": False,
+        "can_claim_paper_progress": False,
     }
     assert "next_owner" not in payload["next_owner_or_human_decision"]
     assert "platform_diagnostics" not in payload
@@ -713,6 +714,106 @@ def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_run
     assert payload["artifact_first_mission_summary"]["receipt_evidence"] == (
         payload["receipt_evidence"]
     )
+    assert payload["artifact_first_mission_summary"]["mas_receipt_consumption"] == (
+        payload["mas_receipt_consumption"]
+    )
+
+
+def test_live_terminal_receipt_consumption_supersedes_stale_runtime_readback_request(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    def fake_live_readback(**kwargs):
+        assert kwargs["enable_opl_live_probe"] is True
+        return {
+            "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
+            "opl_runtime_carrier_readback": {
+                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+                "carrier_status": "opl_runtime_terminal_readback_observed",
+                "runtime_readback_status": "terminal_closeout_observed",
+                "dispatch_status": "terminal_closeout_observed",
+                "can_claim_provider_running": False,
+                "can_claim_paper_progress": False,
+                "opl_transition_receipt": {
+                    "surface_kind": "opl_transition_receipt",
+                    "receipt_status": "terminal_closeout_observed",
+                    "role": "transport_receipt_only",
+                    "stage_attempt_ref": "opl://stage-attempts/sat-obesity-terminal",
+                    "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+                    "can_claim_paper_progress": False,
+                },
+                "receipt_evidence": {
+                    "surface_kind": "mas_receipt_evidence",
+                    "receipt_kind": "opl_transition_receipt",
+                    "receipt_ref": "opl://stage-attempts/sat-obesity-terminal",
+                    "typed_runtime_blocker_ref": (
+                        "/tmp/obesity/stage_closure_decision.json"
+                    ),
+                    "can_claim_paper_progress": False,
+                    "can_claim_publication_ready": False,
+                    "durable_stop_allowed": False,
+                },
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "requires_mas_owner_consumption",
+                    "next_legal_action": "record_typed_blocker",
+                    "typed_runtime_blocker_ref": (
+                        "/tmp/obesity/stage_closure_decision.json"
+                    ),
+                    "forbidden_next_action": "synonymous_route_back_redrive",
+                    "durable_stop_allowed": False,
+                    "can_claim_paper_progress": False,
+                    "can_claim_publication_ready": False,
+                    "can_claim_runtime_ready": False,
+                },
+            },
+        }
+
+    monkeypatch.setattr(module, "_study_progress_opl_runtime_readback", fake_live_readback)
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "study_root": str(
+                tmp_path / "studies" / "obesity_multicenter_phenotype_atlas"
+            ),
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_id": "next-action::obesity::runtime-route",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+            },
+            "canonical_next_action_source": "precomputed_canonical_next_action",
+            "stage_closure_decision": {
+                "projection_status": "terminalizer_outcome_observed",
+                "decision_ref": "/tmp/obesity/stage_closure_decision.json",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                },
+            },
+        },
+        enable_opl_live_probe=True,
+    )
+
+    assert payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert payload["canonical_next_action_source"] == "precomputed_canonical_next_action"
+    assert payload["opl_runtime_readback_status"] == (
+        "opl_runtime_terminal_readback_observed"
+    )
+    assert payload["mas_receipt_consumption"]["next_legal_action"] == (
+        "record_typed_blocker"
+    )
+    assert payload["next_legal_action"] == "record_typed_blocker"
     assert payload["artifact_first_mission_summary"]["mas_receipt_consumption"] == (
         payload["mas_receipt_consumption"]
     )

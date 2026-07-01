@@ -461,6 +461,64 @@ def test_running_provider_top_level_projection_yields_to_progress_first_terminal
     assert result["current_blockers"] == ["medical_paper_readiness_missing"]
 
 
+def test_paper_mission_live_carrier_suppresses_stale_explicit_wakeup_status() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+    )
+
+    payload = {
+        "study_id": "obesity_multicenter_phenotype_atlas",
+        "current_stage": "queued",
+        "current_stage_summary": "Waiting for explicit wakeup.",
+        "runtime_decision": "blocked",
+        "runtime_reason": "quest_user_paused_requires_explicit_wakeup",
+        "awaiting_explicit_wakeup": True,
+        "auto_runtime_parked": {
+            "parked": True,
+            "parked_state": "user_paused",
+            "awaiting_explicit_wakeup": True,
+        },
+        "current_blockers": ["opl_execution_authorization_required"],
+        "operator_status_card": {
+            "handling_state": "opl_runtime_owner_handoff_recovering",
+            "awaiting_explicit_wakeup": True,
+        },
+        "user_visible_projection": {
+            "why_not_progressing": "quest_user_paused_requires_explicit_wakeup",
+            "user_action_required": True,
+        },
+        "supervision": {},
+        "opl_runtime_carrier_readback": {
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "carrier_status": "opl_runtime_attempt_running_observed",
+            "runtime_readback_status": "running_attempt_observed",
+            "dispatch_status": "provider_attempt_running",
+            "can_claim_provider_running": True,
+            "can_claim_paper_progress": False,
+            "running_attempt": {
+                "status": "running",
+                "stage_attempt_id": "sat-obesity-live",
+                "workflow_id": "wf-obesity-live",
+                "provider_status": "running",
+                "task_status": "running",
+            },
+        },
+    }
+
+    result = module.apply_running_provider_attempt_top_level_status(payload)
+
+    assert result is not payload
+    assert result["current_stage"] == "managed_runtime_active"
+    assert result["current_blockers"] == []
+    assert result["awaiting_explicit_wakeup"] is False
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_running_provider_attempt"] is True
+    assert result["operator_status_card"]["handling_state"] == "monitor_only"
+    assert "awaiting_explicit_wakeup" not in result["operator_status_card"]
+    assert result["user_visible_projection"]["why_not_progressing"] is None
+    assert result["user_visible_projection"]["user_action_required"] is False
+
+
 def test_running_provider_top_level_projection_requires_current_action_running_proof() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"

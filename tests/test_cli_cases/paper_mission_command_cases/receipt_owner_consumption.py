@@ -18,6 +18,7 @@ def _readback(
     transition_kind: str | None,
     package_kind: str,
     can_submit: bool,
+    consumption_next_legal_action: str | None = None,
 ) -> dict[str, object]:
     outcome: dict[str, object] = {
         "kind": stage_outcome,
@@ -25,6 +26,12 @@ def _readback(
     }
     if transition_kind:
         outcome["transition_kind"] = transition_kind
+    if consumption_next_legal_action is None:
+        consumption_next_legal_action = (
+            "record_typed_blocker"
+            if stage_outcome == "typed_blocker"
+            else "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+        )
     return {
         "surface_kind": "paper_mission_materialized_readback",
         "schema_version": 1,
@@ -73,8 +80,9 @@ def _readback(
                 "can_claim_paper_progress": False,
             },
             "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
                 "status": "requires_mas_owner_consumption",
-                "next_legal_action": "record_typed_blocker",
+                "next_legal_action": consumption_next_legal_action,
                 "forbidden_next_action": "synonymous_route_back_redrive",
                 "durable_stop_allowed": False,
                 "can_claim_paper_progress": False,
@@ -410,6 +418,64 @@ def test_receipt_owner_consumption_apply_route_checkpoint_records_typed_blocker_
     assert payload["stage_closure_decision"]["authority_boundary"][
         "writes_current_package"
     ] is False
+
+
+def test_receipt_owner_consumption_route_checkpoint_can_require_typed_blocker_apply(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "obesity-readback.json"
+    output_root = (
+        tmp_path / "ops" / "medautoscience" / "paper_mission_receipt_owner_consumption"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                stage_outcome="next_stage_transition",
+                transition_kind="route_back_candidate_checkpoint",
+                package_kind="current_package",
+                can_submit=False,
+                consumption_next_legal_action="record_typed_blocker",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-typed-blocker",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["apply_mode"] == "typed_blocker"
+    assert payload["owner_consumption_verdict"]["verdict_kind"] == (
+        "record_typed_blocker_owner_consumption_required"
+    )
+    assert payload["owner_consumption_verdict"]["required_authority_surface"] == (
+        "paper-mission receipt-owner-consumption --apply-typed-blocker"
+    )
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
+    assert payload["stage_closure"]["outcome_kind"] == "typed_blocker"
+    assert payload["submission_ready_claim_authorized"] is False
 
 
 def test_receipt_owner_consumption_apply_mode_mismatch_fails_closed(

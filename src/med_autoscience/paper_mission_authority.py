@@ -580,7 +580,7 @@ def _continuation_transaction_for_submission_package(
         "continue paper-facing submission milestone work and request OPL "
         "route readback for the same PaperMissionTransaction"
     )
-    if blocker_kind in {"domain_gate", "route_back_without_blocker"}:
+    if blocker_kind in {"domain_gate", "route_back_without_blocker", "typed_blocker"}:
         reason = (
             "MAS mission executor consumed route-back/domain-gate evidence as a "
             "fresh paper-facing candidate and is continuing the PaperMission stage."

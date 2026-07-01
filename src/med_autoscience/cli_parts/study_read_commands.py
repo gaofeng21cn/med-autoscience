@@ -99,6 +99,9 @@ def handle_study_read_command(
             entry_mode=args.entry_mode,
             sync_runtime_summary=False,
             materialize_read_model_artifacts=False,
+            enable_opl_live_provider_attempt_probe=bool(
+                getattr(args, "request_opl_runtime_readback", False)
+            ),
         )
         if args.format == "json":
             payload = serialize_study_runtime_result(result)

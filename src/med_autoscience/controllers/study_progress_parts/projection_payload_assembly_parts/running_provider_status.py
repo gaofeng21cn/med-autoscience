@@ -123,6 +123,27 @@ def apply_running_provider_attempt_top_level_status(payload: dict[str, Any]) -> 
     updated["operator_status_card"] = _running_provider_operator_status_card(
         updated.get("operator_status_card"),
     )
+    updated["current_work_unit"] = _running_provider_current_work_unit(
+        updated.get("current_work_unit"),
+        handoff=handoff,
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
+    updated["current_execution_envelope"] = _running_provider_execution_envelope(
+        updated.get("current_execution_envelope"),
+        handoff=handoff,
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
+    updated["progress_first_monitoring_summary"] = _running_provider_monitoring_summary(
+        updated.get("progress_first_monitoring_summary"),
+        current_work_unit=updated["current_work_unit"],
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
     return updated
 
 
@@ -190,6 +211,8 @@ def _clear_stale_running_provider_attempt(payload: Mapping[str, Any]) -> dict[st
 
 
 def _payload_has_running_provider_attempt(payload: Mapping[str, Any]) -> bool:
+    if _paper_mission_carrier_has_running_attempt(payload):
+        return True
     current_work_unit = _mapping_copy(payload.get("current_work_unit"))
     if _non_empty_text(current_work_unit.get("status")) == "running_provider_attempt":
         return True
@@ -202,6 +225,22 @@ def _payload_has_running_provider_attempt(payload: Mapping[str, Any]) -> bool:
     return _handoff_has_strict_live_provider_attempt(
         _mapping_copy(payload.get("opl_current_control_state_handoff"))
     )
+
+
+def _paper_mission_carrier_has_running_attempt(payload: Mapping[str, Any]) -> bool:
+    carrier = _mapping_copy(payload.get("opl_runtime_carrier_readback"))
+    if not carrier:
+        carrier = _mapping_copy(
+            _mapping_copy(payload.get("artifact_first_mission_summary")).get(
+                "opl_runtime_carrier_readback"
+            )
+        )
+    if carrier.get("can_claim_provider_running") is not True:
+        return False
+    if _non_empty_text(carrier.get("runtime_readback_status")) != "running_attempt_observed":
+        return False
+    running_attempt = _mapping_copy(carrier.get("running_attempt"))
+    return _non_empty_text(running_attempt.get("status")) == "running"
 
 
 def _running_provider_current_blockers(value: object) -> list[str]:
@@ -375,6 +414,140 @@ def _running_provider_operator_status_card(value: object) -> dict[str, Any]:
         }
     )
     return operator_status
+
+
+def _running_provider_current_work_unit(
+    value: object,
+    *,
+    handoff: Mapping[str, Any],
+    active_run_id: str | None,
+    active_stage_attempt_id: str | None,
+    active_workflow_id: str | None,
+) -> dict[str, Any]:
+    current = _mapping_copy(value)
+    state = _mapping_copy(current.get("state"))
+    proof = _running_provider_attempt_proof(
+        handoff=handoff,
+        active_run_id=active_run_id,
+        active_stage_attempt_id=active_stage_attempt_id,
+        active_workflow_id=active_workflow_id,
+    )
+    state["provider_attempt_proof"] = proof
+    current.update(
+        {
+            "status": "running_provider_attempt",
+            "state": state,
+            "owner": "one-person-lab",
+            "provider_attempt_running_proven": True,
+            "active_run_id": active_run_id,
+            "active_stage_attempt_id": active_stage_attempt_id,
+            "active_workflow_id": active_workflow_id,
+        }
+    )
+    _apply_handoff_identity(current, handoff=handoff)
+    return {key: item for key, item in current.items() if item not in (None, "", [], {})}
+
+
+def _running_provider_execution_envelope(
+    value: object,
+    *,
+    handoff: Mapping[str, Any],
+    active_run_id: str | None,
+    active_stage_attempt_id: str | None,
+    active_workflow_id: str | None,
+) -> dict[str, Any]:
+    envelope = _mapping_copy(value)
+    envelope.update(
+        {
+            "state_kind": "running_provider_attempt",
+            "owner": "one-person-lab",
+            "provider_attempt_running_proven": True,
+            "provider_attempt_proof": _running_provider_attempt_proof(
+                handoff=handoff,
+                active_run_id=active_run_id,
+                active_stage_attempt_id=active_stage_attempt_id,
+                active_workflow_id=active_workflow_id,
+            ),
+        }
+    )
+    _apply_handoff_identity(envelope, handoff=handoff)
+    return {key: item for key, item in envelope.items() if item not in (None, "", [], {})}
+
+
+def _running_provider_monitoring_summary(
+    value: object,
+    *,
+    current_work_unit: Mapping[str, Any],
+    active_run_id: str | None,
+    active_stage_attempt_id: str | None,
+    active_workflow_id: str | None,
+) -> dict[str, Any]:
+    monitoring = _mapping_copy(value)
+    monitoring.update(
+        {
+            "active_run_id": active_run_id,
+            "active_stage_attempt_id": active_stage_attempt_id,
+            "active_workflow_id": active_workflow_id,
+            "running_provider_attempt": True,
+            "execution_state_kind": "running_provider_attempt",
+            "owner_action_current": False,
+            "current_work_unit": dict(current_work_unit),
+        }
+    )
+    worker_liveness = _mapping_copy(monitoring.get("worker_liveness"))
+    worker_liveness["runtime_liveness_status"] = (
+        _non_empty_text(worker_liveness.get("runtime_liveness_status")) or "live"
+    )
+    worker_liveness["health_status"] = (
+        _non_empty_text(worker_liveness.get("health_status")) or "running"
+    )
+    monitoring["worker_liveness"] = worker_liveness
+    return {
+        key: item
+        for key, item in monitoring.items()
+        if item not in (None, "", [], {})
+    }
+
+
+def _running_provider_attempt_proof(
+    *,
+    handoff: Mapping[str, Any],
+    active_run_id: str | None,
+    active_stage_attempt_id: str | None,
+    active_workflow_id: str | None,
+) -> dict[str, Any]:
+    proof = {
+        "source": "opl_current_control_state_handoff",
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id,
+    }
+    _apply_handoff_identity(proof, handoff=handoff)
+    return {key: item for key, item in proof.items() if item not in (None, "", [], {})}
+
+
+def _apply_handoff_identity(target: dict[str, Any], *, handoff: Mapping[str, Any]) -> None:
+    for source_key, target_key in (
+        ("action_type", "action_type"),
+        ("work_unit_id", "work_unit_id"),
+        ("next_work_unit", "next_work_unit"),
+        ("work_unit_fingerprint", "work_unit_fingerprint"),
+        ("action_fingerprint", "action_fingerprint"),
+    ):
+        if value := _non_empty_text(handoff.get(source_key)):
+            target[target_key] = value
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    for source_key, target_key in (
+        ("action_type", "action_type"),
+        ("work_unit_id", "work_unit_id"),
+        ("next_work_unit", "next_work_unit"),
+        ("work_unit_fingerprint", "work_unit_fingerprint"),
+        ("action_fingerprint", "action_fingerprint"),
+    ):
+        if target.get(target_key) is None and (
+            value := _non_empty_text(runtime_health.get(source_key))
+        ):
+            target[target_key] = value
 
 
 def _handoff_has_strict_live_provider_attempt(handoff: Mapping[str, Any]) -> bool:

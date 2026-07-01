@@ -153,6 +153,28 @@ wrap_plain_label <- function(label, width) {
   paste(lines, collapse = "\n")
 }
 
+clamp_wrapped_lines <- function(text, width, max_lines) {
+  lines <- unlist(strwrap(trimws(as.character(text %||% "")), width = width, simplify = FALSE), use.names = FALSE)
+  lines <- lines[nzchar(trimws(lines))]
+  if (length(lines) <= max_lines) {
+    return(paste(lines, collapse = "\n"))
+  }
+  clamped <- lines[seq_len(max_lines)]
+  clamped[[max_lines]] <- paste0(sub("\\s+$", "", clamped[[max_lines]]), " ...")
+  paste(clamped, collapse = "\n")
+}
+
+join_limited_lines <- function(lines, max_lines) {
+  normalized <- unlist(strsplit(paste(lines, collapse = "\n"), "\n", fixed = TRUE), use.names = FALSE)
+  normalized <- normalized[nzchar(trimws(normalized))]
+  if (length(normalized) <= max_lines) {
+    return(paste(normalized, collapse = "\n"))
+  }
+  pasted <- normalized[seq_len(max_lines)]
+  pasted[[max_lines]] <- paste0(sub("\\s+$", "", pasted[[max_lines]]), " ...")
+  paste(pasted, collapse = "\n")
+}
+
 cohort_design_line_label <- function(item) {
   label <- trimws(as.character(item$label %||% ""))
   detail <- trimws(as.character(item$detail %||% ""))
@@ -187,22 +209,25 @@ cohort_design_panel_body <- function(panel) {
   labels <- labels[nzchar(labels)]
   if (length(labels) > 0 && !any(nzchar(details))) {
     joined <- paste(labels, collapse = ", ")
-    return(paste(strwrap(joined, width = 32, simplify = FALSE)[[1]], collapse = "\n"))
+    return(clamp_wrapped_lines(joined, width = 30, max_lines = 5))
   }
   line_labels <- vapply(lines, cohort_design_line_label, character(1))
   line_labels <- line_labels[nzchar(trimws(line_labels))]
-  if (length(line_labels) > 4) {
-    line_labels <- c(line_labels[seq_len(4)], sprintf("+%d more", length(line_labels) - 4))
+  if (length(line_labels) > 3) {
+    line_labels <- c(line_labels[seq_len(3)], sprintf("+%d more", length(line_labels) - 3))
   }
-  paste(vapply(line_labels, wrap_plain_label, character(1), width = 28), collapse = "\n")
+  join_limited_lines(vapply(line_labels, clamp_wrapped_lines, character(1), width = 28, max_lines = 2), max_lines = 6)
 }
 
 cohort_endpoint_label <- function(endpoint) {
   label <- trimws(as.character(endpoint$label %||% endpoint$endpoint %||% "Endpoint"))
-  event_n <- endpoint$n %||% endpoint$event_n
-  event_text <- ""
+  event_n <- endpoint$event_n %||% endpoint$n_events
+  count_n <- endpoint$n
+  count_text <- ""
   if (!is.null(event_n)) {
-    event_text <- sprintf("Events: %s", format(as.integer(event_n), big.mark = ",", scientific = FALSE))
+    count_text <- sprintf("Events: %s", format(as.integer(event_n), big.mark = ",", scientific = FALSE))
+  } else if (!is.null(count_n)) {
+    count_text <- sprintf("n=%s", format(as.integer(count_n), big.mark = ",", scientific = FALSE))
   }
   detail <- trimws(as.character(endpoint$detail %||% endpoint$status %||% ""))
   cohort_events <- character(0)
@@ -211,14 +236,14 @@ cohort_endpoint_label <- function(endpoint) {
   if (length(event_parts) == 3) {
     cohort_events <- sprintf("China %s; NHANES %s", event_parts[[2]], event_parts[[3]])
   } else if (nzchar(detail)) {
-    cohort_events <- strwrap(detail, width = 42, simplify = FALSE)[[1]][[1]]
+    cohort_events <- clamp_wrapped_lines(detail, width = 32, max_lines = 2)
   }
   paste(
     c(
-      wrap_plain_label(label, width = 28),
-      wrap_plain_label(event_text, width = 28),
-      wrap_plain_label(cohort_events, width = 30)
-    )[nzchar(c(label, event_text, cohort_events))],
+      clamp_wrapped_lines(label, width = 28, max_lines = 2),
+      clamp_wrapped_lines(count_text, width = 28, max_lines = 1),
+      cohort_events
+    )[nzchar(c(label, count_text, cohort_events))],
     collapse = "\n"
   )
 }
@@ -279,14 +304,24 @@ cohort_step_plot_label <- function(step, index) {
   )
 }
 
+participant_flow_y_centers <- function(count) {
+  if (count < 1) {
+    return(numeric(0))
+  }
+  if (count == 1) {
+    return(76)
+  }
+  y_top <- 88
+  y_bottom <- 58
+  seq(from = y_top, to = y_bottom, length.out = count)
+}
+
 cohort_step_frame <- function(steps, step_ids) {
-  y_top <- 90
-  y_gap <- if (length(steps) > 1) min(22, max(14, 70 / (length(steps) - 1))) else 0
   data.frame(
     step_id = step_ids,
     label = vapply(seq_along(steps), function(index) cohort_step_plot_label(steps[[index]], index), character(1)),
-    x = rep(0, length(steps)),
-    y = y_top - (seq_along(steps) - 1) * y_gap,
+    x = rep(4, length(steps)),
+    y = participant_flow_y_centers(length(steps)),
     stringsAsFactors = FALSE
   )
 }
@@ -944,6 +979,18 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
   )
 }
 
+participant_flow_sidecar_y_centers <- function(count) {
+  if (count < 1) {
+    return(numeric(0))
+  }
+  if (count == 1) {
+    return(0.64)
+  }
+  y_top <- 0.75
+  y_bottom <- 0.39
+  seq(from = y_top, to = y_bottom, length.out = count)
+}
+
 build_layout_sidecar <- function(payload, dependency_environment) {
   if (identical(cohort_flow_mode(payload), "source_layer_accounting")) {
     return(build_source_layer_layout_sidecar(payload, dependency_environment))
@@ -970,6 +1017,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   y_top <- stack_top - node_height / 2
   flow_panel_y0 <- max(0.0, y_top - max(0, step_count - 1) * y_gap - node_height / 2 - 0.02)
   flow_panel_y1 <- min(1.0, y_top + node_height / 2 + 0.02)
+  y_centers <- y_top - (seq_along(steps) - 1) * y_gap
   layout_boxes <- list()
   if (show_figure_title) {
     layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
@@ -982,7 +1030,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   connector_x1 <- if (has_side_content) 0.42 else 0.50
   rendered_width_pt <- if (has_side_content) 260.0 else 420.0
   for (index in seq_along(steps)) {
-    y_center <- y_top - (index - 1) * y_gap
+    y_center <- y_centers[[index]]
     box_id <- paste0("participant_step_", step_ids[[index]])
     layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
       box_id,
@@ -1017,7 +1065,13 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       exclusion <- exclusions[[index]]
       exclusion_id <- make.names(trimws(as.character(exclusion$exclusion_id %||% exclusion$branch_id %||% sprintf("exclusion_%d", index))))
       from_index <- match(make.names(trimws(as.character(exclusion$from_step_id %||% ""))), step_ids)
-      y_center <- y_top - max(0, from_index - 0.5) * y_gap
+      if (is.na(from_index)) {
+        y_center <- y_centers[[1]]
+      } else if (length(y_centers) > from_index) {
+        y_center <- (y_centers[[from_index]] + y_centers[[from_index + 1]]) / 2.0
+      } else {
+        y_center <- y_centers[[from_index]] - (y_gap / 2.0)
+      }
       layout_boxes[[length(layout_boxes) + 1]] <- sidecar_box(
         paste0("participant_exclusion_", exclusion_id),
         "exclusion_box",

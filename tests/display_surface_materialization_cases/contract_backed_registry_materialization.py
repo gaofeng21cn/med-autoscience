@@ -282,8 +282,9 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
         _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_bytes(b"png")
         output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        sidecar_template_id = template_manifest.template_id
         layout_sidecar_path.write_text(
-            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            json.dumps(_minimal_layout_sidecar_for_template(sidecar_template_id), ensure_ascii=False),
             encoding="utf-8",
         )
         return {"status": "rendered", "figure_id": figure_id}

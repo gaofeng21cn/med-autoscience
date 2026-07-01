@@ -21,6 +21,7 @@ from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
 from med_autoscience.paper_mission_opl_readback import (
+    attach_opl_runtime_carrier_readback,
     paper_mission_next_action_envelope,
 )
 from med_autoscience.paper_mission_transaction import (
@@ -66,7 +67,11 @@ PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
 )
 
 
-def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+def build_artifact_first_mission_summary(
+    payload: Mapping[str, Any],
+    *,
+    enable_opl_live_probe: bool = False,
+) -> dict[str, Any]:
     progress = _mapping(payload)
     materialized_mission = _latest_materialized_mission(progress)
     if materialized_mission:
@@ -74,6 +79,7 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
             _materialized_mission_summary(
                 progress=progress,
                 materialized_mission=materialized_mission,
+                enable_opl_live_probe=enable_opl_live_probe,
             ),
             progress=progress,
         )
@@ -161,6 +167,16 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         paper_mission_run["paper_mission_transaction"]
     )
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
+    live_readback = _study_progress_opl_runtime_readback(
+        study_root=_materialized_study_root(progress=progress),
+        carrier=carrier,
+        enable_opl_live_probe=enable_opl_live_probe,
+    )
+    runtime_readback_status = (
+        _non_empty_text(live_readback.get("opl_runtime_readback_status"))
+        or "not_requested_from_study_progress"
+    )
+    carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -175,6 +191,8 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
+        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
+        "opl_runtime_readback_status": runtime_readback_status,
         "next_action": paper_mission_next_action_envelope(
             transaction=effective_transaction,
             stage_terminal_decision=_mapping(
@@ -214,7 +232,12 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
                     effective_transaction.get("stage_terminal_decision")
                 ),
                 "consume_candidate_status": effective_consume_candidate_status,
-                "opl_runtime_readback_status": "not_requested_from_study_progress",
+                "opl_runtime_readback_status": runtime_readback_status,
+                **(
+                    {"opl_runtime_carrier_readback": carrier_readback}
+                    if carrier_readback
+                    else {}
+                ),
             },
             consumption_ledger_readback=consumption_ledger_readback,
         ),
@@ -284,7 +307,11 @@ def build_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str
     return summary
 
 
-def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+def attach_artifact_first_mission_summary(
+    payload: Mapping[str, Any],
+    *,
+    enable_opl_live_probe: bool = False,
+) -> dict[str, Any]:
     updated = dict(payload)
     existing_next_action = (
         _mapping(payload.get("next_action")) if has_canonical_next_action(payload) else {}
@@ -292,7 +319,10 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     existing_next_action_source = _non_empty_text(
         payload.get("canonical_next_action_source")
     )
-    summary = build_artifact_first_mission_summary(updated)
+    summary = build_artifact_first_mission_summary(
+        updated,
+        enable_opl_live_probe=enable_opl_live_probe,
+    )
     summary_next_action = _mapping(summary.get("next_action"))
     summary_next_action_promotable = _summary_next_action_is_promotable(summary)
     next_action = (
@@ -331,6 +361,18 @@ def attach_artifact_first_mission_summary(payload: Mapping[str, Any]) -> dict[st
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
     updated["opl_route_command"] = summary["opl_route_command"]
     updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
+    if "opl_runtime_carrier_readback" in summary:
+        updated["opl_runtime_carrier_readback"] = summary[
+            "opl_runtime_carrier_readback"
+        ]
+    if "opl_runtime_readback_status" in summary:
+        updated["opl_runtime_readback_status"] = summary[
+            "opl_runtime_readback_status"
+        ]
+    if "receipt_owner_consumption_readback" in summary:
+        updated["receipt_owner_consumption_readback"] = summary[
+            "receipt_owner_consumption_readback"
+        ]
     if next_action:
         updated["next_action"] = next_action
         updated["canonical_next_action_source"] = (
@@ -361,13 +403,41 @@ def refresh_top_level_stage_closure_projection(payload: Mapping[str, Any]) -> di
     return updated
 
 
+def _summary_with_receipt_projection(
+    summary: Mapping[str, Any],
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    updated = dict(summary)
+    updated["opl_transition_receipt"] = _opl_transition_receipt(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+        summary=updated,
+    )
+    updated["receipt_evidence"] = (
+        _receipt_evidence(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+            summary=updated,
+        )
+    )
+    updated["mas_receipt_consumption"] = (
+        _mas_receipt_consumption(
+            progress=progress,
+            consumption_ledger_readback=consumption_ledger_readback,
+            summary=updated,
+        )
+    )
+    return updated
+
+
 def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     for key in (
         "current_work_unit",
         "current_executable_owner_action",
         "paper_recovery_state",
-        "progress_first_monitoring_summary",
         "provider_admission_candidates",
         "provider_admission_pending_count",
         "provider_admission_terminal_closeout_consumed",
@@ -377,6 +447,14 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "current_execution_envelope",
         "current_execution_evidence",
     ):
+        if key == "current_work_unit" and _mapping(updated.get(key)).get("status") == (
+            "running_provider_attempt"
+        ):
+            continue
+        if key == "current_execution_envelope" and _mapping(updated.get(key)).get(
+            "state_kind"
+        ) == "running_provider_attempt":
+            continue
         updated.pop(key, None)
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
@@ -388,6 +466,133 @@ def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
         _non_empty_text(read_model_source.get("source_kind"))
         != "legacy_progress_projection_fallback"
     )
+
+
+def _study_progress_opl_runtime_readback(
+    *,
+    study_root: Path,
+    carrier: Mapping[str, Any],
+    enable_opl_live_probe: bool,
+) -> dict[str, Any]:
+    if not enable_opl_live_probe:
+        return {}
+    return attach_opl_runtime_carrier_readback(
+        readback={"opl_runtime_carrier": carrier},
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+
+def _opl_transition_receipt(
+    *,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+    summary: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in _receipt_projection_sources(
+        summary=summary,
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        receipt = _mapping(source.get("opl_transition_receipt"))
+        if _non_empty_text(receipt.get("surface_kind")) == "opl_transition_receipt":
+            return {
+                **dict(receipt),
+                "role": "transport_receipt_only",
+                "can_change_stage_terminal_decision": False,
+                "can_select_next_owner": False,
+                "can_claim_paper_progress": False,
+            }
+    return {
+        "surface_kind": "opl_transition_receipt",
+        "status": "not_requested_from_study_progress",
+        "role": "transport_receipt_only",
+        "can_change_stage_terminal_decision": False,
+        "can_select_next_owner": False,
+    }
+
+
+def _receipt_projection_sources(
+    *,
+    summary: Mapping[str, Any] | None = None,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> tuple[Mapping[str, Any], ...]:
+    return (
+        _mapping(summary),
+        _mapping(_mapping(summary).get("receipt_owner_consumption_readback")),
+        _mapping(_mapping(summary).get("opl_runtime_carrier_readback")),
+        _mapping(
+            _mapping(_mapping(summary).get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
+        _mapping(progress),
+        _mapping(consumption_ledger_readback),
+        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
+        _mapping(_mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")),
+        _mapping(
+            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
+        _mapping(
+            _mapping(
+                _mapping(consumption_ledger_readback).get("opl_runtime_carrier_readback")
+            ).get("terminal_closeout")
+        ),
+    )
+
+
+def _receipt_evidence(
+    *,
+    summary: Mapping[str, Any] | None = None,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in _receipt_projection_sources(
+        summary=summary,
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        evidence = _mapping(source.get("receipt_evidence"))
+        if _non_empty_text(evidence.get("surface_kind")) == "mas_receipt_evidence":
+            return dict(evidence)
+    return {
+        "surface_kind": "mas_receipt_evidence",
+        "status": "not_requested_from_study_progress",
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "durable_stop_allowed": False,
+    }
+
+
+def _mas_receipt_consumption(
+    *,
+    summary: Mapping[str, Any] | None = None,
+    progress: Mapping[str, Any] | None = None,
+    consumption_ledger_readback: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    for source in _receipt_projection_sources(
+        summary=summary,
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        consumption = _mapping(source.get("mas_receipt_consumption"))
+        if _non_empty_text(consumption.get("surface_kind")) == (
+            "mas_receipt_consumption_projection"
+        ):
+            return dict(consumption)
+    return {
+        "surface_kind": "mas_receipt_consumption_projection",
+        "status": "not_requested_from_study_progress",
+        "next_legal_action": "request_opl_runtime_readback",
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "durable_stop_allowed": False,
+        "can_claim_paper_progress": False,
+        "can_claim_publication_ready": False,
+        "can_claim_runtime_ready": False,
+    }
 
 
 def _mission_state(

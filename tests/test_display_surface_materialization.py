@@ -30,11 +30,13 @@ def _fake_subprocess_display_renderer(monkeypatch):
         output_pdf_path,
         layout_sidecar_path,
         dependency_environment=None,
+        request_short_template_id=None,
     ):
         assert dependency_environment is None or dependency_environment.get("status") == "prepared"
         _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
         output_png_path.write_bytes(b"png")
         output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        sidecar_template_id = template_manifest.template_id
         layout_sidecar_path.write_text(
             json.dumps(
                 _minimal_layout_sidecar_for_template(full_template_id, display_payload=display_payload),

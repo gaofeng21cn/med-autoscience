@@ -350,7 +350,9 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
         "not_requested_from_study_progress"
     )
     assert summary["opl_transition_receipt"]["can_change_stage_terminal_decision"] is False
-    assert "opl_runtime_readback_status" not in summary
+    assert summary["opl_runtime_readback_status"] == (
+        "not_requested_from_study_progress"
+    )
     assert "opl_runtime_carrier_readback" not in summary
     assert "terminal_owner_gate" not in summary
     assert summary["next_owner_or_human_decision"] == {

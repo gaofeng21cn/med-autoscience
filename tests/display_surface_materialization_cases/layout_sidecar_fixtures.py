@@ -360,8 +360,11 @@ def _minimal_layout_sidecar_for_template(
                 {"box_id": "step_screened", "box_type": "main_step", "x0": 0.08, "y0": 0.40, "x1": 0.28, "y1": 0.50},
                 {"box_id": "step_included", "box_type": "main_step", "x0": 0.08, "y0": 0.24, "x1": 0.28, "y1": 0.34},
                 {"box_id": "exclusion_repeat", "box_type": "exclusion_box", "x0": 0.32, "y0": 0.30, "x1": 0.46, "y1": 0.38},
+                {"box_id": "participant_endpoint_summary", "box_type": "summary_panel", "x0": 0.54, "y0": 0.58, "x1": 0.92, "y1": 0.76},
+                {"box_id": "participant_design_summary", "box_type": "summary_panel", "x0": 0.54, "y0": 0.32, "x1": 0.92, "y1": 0.54},
             ],
             "panel_boxes": [
+                {"box_id": "participant_flow_main", "box_type": "subfigure_panel", "x0": 0.06, "y0": 0.10, "x1": 0.98, "y1": 0.84},
                 {"box_id": "subfigure_panel_A", "box_type": "subfigure_panel", "x0": 0.06, "y0": 0.10, "x1": 0.48, "y1": 0.54},
                 {"box_id": "subfigure_panel_B", "box_type": "subfigure_panel", "x0": 0.52, "y0": 0.10, "x1": 0.94, "y1": 0.54},
                 {"box_id": "flow_panel", "box_type": "flow_panel", "x0": 0.08, "y0": 0.12, "x1": 0.46, "y1": 0.50},
@@ -380,6 +383,7 @@ def _minimal_layout_sidecar_for_template(
                 {"box_id": "hierarchy_connector_right_middle_to_right_bottom", "box_type": "hierarchy_connector", "x0": 0.83, "y0": 0.24, "x1": 0.85, "y1": 0.28},
             ],
             "metrics": {
+                "layout_mode": "participant_flow",
                 "steps": [
                     {"step_id": "screened"},
                     {"step_id": "included"},
@@ -426,6 +430,9 @@ def _minimal_layout_sidecar_for_template(
                 ],
             },
         }
+    current_sidecar = minimal_current_layout_sidecar(template_short_id)
+    if current_sidecar is not None:
+        return current_sidecar
     if template_short_id == "submission_graphical_abstract":
         return {
             "template_id": template_id,
@@ -1105,6 +1112,7 @@ def _minimal_layout_sidecar_for_template(
                 {"box_id": "connector_2", "box_type": "connector", "x0": 0.48, "y0": 0.49, "x1": 0.56, "y1": 0.49},
             ],
             "metrics": {
+                "layout_mode": "participant_flow",
                 "steps": [
                     {"step_id": "screened", "label": "Screened", "n": 10},
                     {"step_id": "included", "label": "Included", "n": 8},

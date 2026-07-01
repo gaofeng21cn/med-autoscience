@@ -463,7 +463,10 @@ def _terminal_owner_callable_adapter_closeout_for_preferred_actions(
     study_root = _study_root_for_owner_callable_candidates(profile=profile, study_id=study_id)
     if study_root is None:
         return None
-    for execution, receipt_ref in owner_callable_receipt_candidates(study_root=study_root):
+    for execution, receipt_ref in owner_callable_receipt_candidates(
+        study_root=study_root,
+        allow_legacy_fallback=True,
+    ):
         closeout = dict(execution)
         closeout.setdefault("receipt_ref", receipt_ref)
         closeout.setdefault("source", "mas_owner_callable_adapter_closeout")

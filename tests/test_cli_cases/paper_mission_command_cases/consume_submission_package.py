@@ -261,6 +261,134 @@ def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semant
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_consume_candidate_refreshes_typed_blocker_package_artifacts(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::paper_mission_import::one-shot-migration"
+    stale_delta_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "paper_mission_drive"
+        / study_id
+        / "paper_facing_candidate_delta.json"
+    )
+    stale_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    stale_transaction["artifact_delta_refs"] = [
+        {
+            "ref_id": "submission_milestone_artifact::stale",
+            "ref_kind": "submission_milestone_candidate_artifact",
+            "uri": str(stale_delta_ref),
+        }
+    ]
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=stale_transaction,
+    )
+    package_root = package_path.parent
+    package_manifest = json.loads(package_path.read_text(encoding="utf-8"))
+    package_manifest["artifact_refs"] = {
+        **package_manifest.get("artifact_refs", {}),
+        "paper_mission_readback": str(package_root / "paper_mission_readback.json"),
+        "mission_candidate_artifact_delta": str(
+            package_root / "mission_candidate_artifact_delta.json"
+        ),
+        "owner_decision_packet": str(package_root / "owner_decision_packet.json"),
+    }
+    package_path.write_text(json.dumps(package_manifest), encoding="utf-8")
+    (package_root / "paper_mission_readback.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_materialized_readback",
+                "paper_mission_transaction": stale_transaction,
+            }
+        ),
+        encoding="utf-8",
+    )
+    owner_blocker_packet = json.loads(
+        (package_root / "owner_blocker_packet.json").read_text(encoding="utf-8")
+    )
+    owner_blocker_packet["blocker_kind"] = "typed_blocker"
+    owner_blocker_packet["current_terminal_decision"] = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": (
+            "MAS mission executor consumed route-back/domain-gate evidence as a "
+            "fresh paper-facing candidate and is continuing the PaperMission stage."
+        ),
+        "next_owner": "mission_executor",
+        "next_work_unit": "paper_mission_import::next",
+        "route_command": "resume_stage",
+        "route_target": "paper_mission_import::next",
+    }
+    (package_root / "owner_blocker_packet.json").write_text(
+        json.dumps(owner_blocker_packet),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "foreground-20260630T171704Z"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    transaction_refs = [
+        item["uri"] for item in payload["paper_mission_transaction"]["artifact_delta_refs"]
+    ]
+    assert str(package_root / "paper_facing_candidate_delta.json") in transaction_refs
+    assert str(package_root / "mission_candidate_artifact_delta.json") in transaction_refs
+    assert str(package_root / "owner_decision_packet.json") in transaction_refs
+    assert str(stale_delta_ref) not in transaction_refs
+    consume_readback = json.loads(
+        Path(payload["consume_output_manifest"]["consume_readback_ref"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    ledger_refs = [
+        item["uri"]
+        for item in consume_readback["paper_mission_transaction"]["artifact_delta_refs"]
+    ]
+    assert ledger_refs == transaction_refs
+    assert payload["authority_consume_readback"]["consume_result"][
+        "paper_facing_delta_ref"
+    ] == str(package_root / "paper_facing_candidate_delta.json")
+    assert payload["consume_output_manifest"]["writes_authority"] is False
+    assert payload["consume_output_manifest"]["writes_yang_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_auto_discovers_latest_package_manifest(
     tmp_path: Path,
     capsys,

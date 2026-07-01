@@ -11,6 +11,9 @@ from med_autoscience.paper_mission_consumption_readback import (
 from med_autoscience.paper_mission_stage_closure_ledger import (
     latest_paper_mission_stage_closure_decision_readback,
 )
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    latest_receipt_owner_consumption_readback,
+)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -109,6 +112,7 @@ def _materialized_mission_summary(
     *,
     progress: Mapping[str, Any],
     materialized_mission: Mapping[str, Any],
+    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     helpers = _summary_helpers()
     PAPER_MISSION_RUN_CONTRACT_REF = helpers.PAPER_MISSION_RUN_CONTRACT_REF
@@ -208,6 +212,16 @@ def _materialized_mission_summary(
     transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
     transaction_state = _transaction_state(transaction)
     carrier = paper_mission_opl_runtime_carrier(transaction)
+    live_readback = helpers._study_progress_opl_runtime_readback(
+        study_root=_materialized_study_root(progress=progress),
+        carrier=carrier,
+        enable_opl_live_probe=enable_opl_live_probe,
+    )
+    runtime_readback_status = (
+        _non_empty_text(live_readback.get("opl_runtime_readback_status"))
+        or "not_requested_from_study_progress"
+    )
+    carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
     effective_transaction = transaction
     effective_consume_candidate_status = _consume_candidate_status(
         mission,
@@ -240,6 +254,10 @@ def _materialized_mission_summary(
         study_id=study_id,
         transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
     )
+    receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
+        progress=progress,
+        study_id=study_id,
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             "paper_mission_transaction": effective_transaction,
@@ -247,12 +265,23 @@ def _materialized_mission_summary(
                 effective_transaction.get("stage_terminal_decision")
             ),
             **(
-                {"stage_closure_decision": stage_closure_ledger_readback}
+                {
+                    "stage_closure_decision": receipt_owner_consumption_readback[
+                        "stage_closure_decision"
+                    ]
+                }
+                if receipt_owner_consumption_readback
+                else {"stage_closure_decision": stage_closure_ledger_readback}
                 if stage_closure_ledger_readback
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
-            "opl_runtime_readback_status": "not_requested_from_study_progress",
+            "opl_runtime_readback_status": runtime_readback_status,
+            **(
+                {"opl_runtime_carrier_readback": carrier_readback}
+                if carrier_readback
+                else {}
+            ),
         },
         consumption_ledger_readback=consumption_ledger_readback,
     )
@@ -274,6 +303,8 @@ def _materialized_mission_summary(
         ),
         "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
         "opl_runtime_carrier": carrier,
+        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
+        "opl_runtime_readback_status": runtime_readback_status,
         "opl_transition_receipt": helpers._opl_transition_receipt(
             progress=progress,
             consumption_ledger_readback=consumption_ledger_readback,
@@ -285,6 +316,9 @@ def _materialized_mission_summary(
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision,
         "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
+        "receipt_owner_consumption_readback": (
+            receipt_owner_consumption_readback or None
+        ),
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "default_progress_metric": "paper_mission_run",
@@ -398,6 +432,21 @@ def _latest_stage_closure_ledger_readback(
         workspace_root=workspace_root,
         study_id=study_id,
         transaction_ref=transaction_ref,
+    ) or {}
+
+
+def _latest_receipt_owner_consumption_readback(
+    *,
+    progress: Mapping[str, Any],
+    study_id: str,
+) -> dict[str, Any]:
+    study_root = _materialized_study_root(progress=progress)
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is None:
+        return {}
+    return latest_receipt_owner_consumption_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
     ) or {}
 
 

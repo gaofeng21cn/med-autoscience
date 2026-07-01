@@ -110,6 +110,7 @@ def build_study_progress_projection(
     profile_ref: str | Path | None = None,
     entry_mode: str | None = None,
     materialize_read_model_artifacts: bool = True,
+    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     del entry_mode
     status = _status_payload(status_payload)
@@ -158,7 +159,10 @@ def build_study_progress_projection(
             publication_eval_payload=publication_eval_payload,
             payload=refreshed_existing,
         )
-        return attach_artifact_first_mission_summary(refreshed_existing)
+        return attach_artifact_first_mission_summary(
+            refreshed_existing,
+            enable_opl_live_probe=enable_opl_live_provider_attempt_probe,
+        )
 
     resolved_study_id = study_id
     resolved_study_root = study_root
@@ -918,6 +922,7 @@ def build_study_progress_projection(
         refs=refs,
         profile=profile,
         materialize_sidecar_observation=materialize_read_model_artifacts,
+        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
     payload = _progress_projection_respecting_current_domain_truth(
         study_root=resolved_study_root,
@@ -962,5 +967,6 @@ def read_study_progress(
         materialize_read_model_artifacts=False
         if materialize_read_model_artifacts is None
         else materialize_read_model_artifacts,
+        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
