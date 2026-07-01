@@ -140,7 +140,7 @@ def test_paper_recovery_state_consumes_explicit_policy_projection_without_rebuil
     assert state["supervisor_decision"]["mas_can_run_supervisor_decision_engine"] is False
 
 
-def test_current_ai_reviewer_gate_replay_action_supersedes_stale_ai_reviewer_blocker() -> None:
+def test_residual_ai_reviewer_gate_replay_action_does_not_supersede_typed_blocker() -> None:
     fingerprint = (
         "domain-transition::ai_reviewer_re_eval::"
         "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -212,16 +212,10 @@ def test_current_ai_reviewer_gate_replay_action_supersedes_stale_ai_reviewer_blo
         }
     )
 
-    assert state["phase"] == "owner_action_ready"
-    assert state["conditions"] == [
-        {
-            "condition": "current_owner_action_supersedes_terminal_typed_blocker",
-            "blocker_type": "ai_reviewer_record_stale_after_current_inputs",
-        }
-    ]
-    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
-    assert state["next_safe_action"]["successor_owner_action"]["action_type"] == "run_gate_clearing_batch"
-    assert state["current_authority"]["owner"] == "finalize"
+    assert state["phase"] == "domain_blocked"
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["current_authority"]["owner"] == "ai_reviewer"
 
 
 def test_paper_recovery_state_consumes_opl_supervisor_decision_readback() -> None:
@@ -290,7 +284,7 @@ def test_paper_recovery_state_consumes_opl_supervisor_decision_readback() -> Non
     assert state["next_safe_action"]["provider_admission_allowed"] is True
 
 
-def test_terminal_selector_residue_yields_successor_over_stale_progress_first_owner_receipt() -> None:
+def test_terminal_selector_residue_does_not_yield_legacy_successor_action() -> None:
     state = _module().build_paper_recovery_state(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -371,22 +365,10 @@ def test_terminal_selector_residue_yields_successor_over_stale_progress_first_ow
         }
     )
 
-    assert state["phase"] == "owner_action_ready"
-    assert state["conditions"] == [
-        {
-            "condition": "current_owner_action_supersedes_typed_blocker",
-            "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
-        }
-    ]
-    assert state["next_safe_action"]["kind"] == "materialize_successor_owner_action"
-    assert state["next_safe_action"]["provider_admission_allowed"] is True
-    assert state["next_safe_action"]["successor_owner_action"] == {
-        "action_type": "run_quality_repair_batch",
-        "owner": "write",
-        "work_unit_id": "medical_prose_write_repair",
-        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
-        "source_surface": "gate_clearing_batch_followthrough.actionable_current_work_unit",
-    }
+    assert state["phase"] == "domain_blocked"
+    assert state["next_safe_action"]["kind"] == "resolve_typed_blocker"
+    assert state["next_safe_action"]["provider_admission_allowed"] is False
+    assert state["current_authority"]["owner"] == "one-person-lab"
     _assert_readback_required_supervisor_projection(state)
 
 

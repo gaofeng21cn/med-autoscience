@@ -43,9 +43,7 @@ def paper_recovery_successor_action(
         return None
     next_action = _mapping(recovery.get("next_safe_action"))
     next_action_kind = _text(next_action.get("kind"))
-    if next_action_kind not in {"materialize_successor_owner_action", "run_mas_owner_callable"}:
-        return None
-    if not _mapping(next_action.get("successor_owner_action")) and next_action_kind != "run_mas_owner_callable":
+    if next_action_kind != "run_mas_owner_callable":
         return None
     successor = _mapping(next_action.get("successor_owner_action"))
     if not successor:
@@ -73,16 +71,8 @@ def paper_recovery_successor_action(
     if next_action_kind == "run_mas_owner_callable" and owner_callable_surface is None:
         return None
     source_surface = _text(successor.get("source_surface")) or _text(successor.get("source"))
-    provider_admission_required = next_action_kind != "run_mas_owner_callable"
-    mas_owner_callable = next_action_kind == "run_mas_owner_callable"
-    active_caller_class = "mas_owner_callable" if mas_owner_callable else "consume_readback_diagnostic_only"
-    paper_mission_default_role = (
-        "direct_mas_owner_callable"
-        if mas_owner_callable
-        else "consume_readback_diagnostic_or_explicit_owner_handoff"
-    )
-    replacement_task_kind = None if mas_owner_callable else "paper_mission/start_or_resume"
-    diagnostic_role = None if mas_owner_callable else "paper_recovery_successor_consume_readback"
+    active_caller_class = "mas_owner_callable"
+    paper_mission_default_role = "direct_mas_owner_callable"
     currentness_basis = normalize_currentness_sources(
         _mapping(successor.get("owner_route_currentness_basis")),
         _mapping(successor.get("currentness_basis")),
@@ -119,19 +109,17 @@ def paper_recovery_successor_action(
             "target_surface": _mapping(successor.get("target_surface")),
             "owner_receipt_required": True,
             "provider_admission_pending": False,
-            "transition_request_pending": provider_admission_required,
+            "transition_request_pending": False,
             "provider_attempt_or_lease_required": False,
-            "provider_admission_requires_opl_runtime_result": provider_admission_required,
-            "opl_transition_runtime_required": provider_admission_required,
+            "provider_admission_requires_opl_runtime_result": False,
+            "opl_transition_runtime_required": False,
             "default_paper_mission_entry": False,
-            "ordinary_schedulable": mas_owner_callable,
+            "ordinary_schedulable": True,
             "active_caller_class": active_caller_class,
             "paper_mission_default_role": paper_mission_default_role,
             "can_select_next_paper_stage": False,
             "can_authorize_provider_admission": False,
             "counts_as_paper_progress": False,
-            "replacement_task_kind": replacement_task_kind,
-            "diagnostic_role": diagnostic_role,
             "forbidden_claims": [
                 "ordinary_task_admission",
                 "paper_progress",
@@ -145,8 +133,8 @@ def paper_recovery_successor_action(
                 "phase": _text(recovery.get("phase")),
                 "source_next_safe_action_kind": next_action_kind,
                 "provider_admission_allowed": False,
-                "provider_admission_requires_opl_runtime_result": provider_admission_required,
-                "opl_transition_runtime_required": provider_admission_required,
+                "provider_admission_requires_opl_runtime_result": False,
+                "opl_transition_runtime_required": False,
                 "source_surface": source_surface,
                 "owner_callable_surface": owner_callable_surface,
                 "active_caller_class": active_caller_class,

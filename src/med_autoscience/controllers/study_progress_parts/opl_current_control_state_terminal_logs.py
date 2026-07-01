@@ -603,12 +603,21 @@ def _terminal_stage_log_authority_boundary() -> dict[str, bool]:
     }
 
 
-def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[float, str]:
+def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[int, float, str]:
     source_path = _non_empty_text(value.get("source_path"))
     mtime = _number_value(value.get("source_mtime")) or (
         _source_path_mtime(Path(source_path)) if source_path is not None else 0.0
     )
-    return (mtime, _non_empty_text(value.get("generated_at")) or "")
+    return (_terminal_stage_log_source_priority(value), mtime, _non_empty_text(value.get("generated_at")) or "")
+
+
+def _terminal_stage_log_source_priority(value: Mapping[str, Any]) -> int:
+    source_path = _non_empty_text(value.get("source_path")) or ""
+    if source_path.endswith(".closeout.json"):
+        return 2
+    if _non_empty_text(value.get("record_path")) is not None:
+        return 1
+    return 0
 
 
 def _latest_typed_owner_callable_closeout_projection(

@@ -414,15 +414,8 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "owner_action_admission",
         "current_execution_envelope",
         "current_execution_evidence",
+        "progress_first_monitoring_summary",
     ):
-        if key == "current_work_unit" and _mapping(updated.get(key)).get("status") == (
-            "running_provider_attempt"
-        ):
-            continue
-        if key == "current_execution_envelope" and _mapping(updated.get(key)).get(
-            "state_kind"
-        ) == "running_provider_attempt":
-            continue
         updated.pop(key, None)
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated

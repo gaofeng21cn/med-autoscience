@@ -599,3 +599,99 @@ def test_paper_recovery_obligation_does_not_resurrect_legacy_owner_without_canon
     assert obligation["recovery_obligation_id"].startswith(
         "paper-recovery::legacy-only-study::unknown-action::unknown-work-unit::"
     )
+
+
+def test_paper_recovery_obligation_does_not_resurrect_legacy_owner_with_canonical_next_action() -> None:
+    recovery = importlib.import_module("med_autoscience.controllers.paper_recovery_state")
+
+    state = recovery.build_paper_recovery_state(
+        {
+            "study_id": "canonical-study",
+            "canonical_next_action_source": "paper_mission_next_action_envelope",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "runtime.opl_route",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "legacy-action-unit",
+                "work_unit_fingerprint": "legacy-action-unit::fingerprint",
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "action_type": "request_opl_stage_attempt",
+                "next_work_unit": "legacy-envelope-unit",
+            },
+        }
+    )
+
+    obligation = state["current_authority"]["obligation"]
+    assert obligation["owner"] is None
+    assert obligation["action_type"] is None
+    assert obligation["work_unit_id"] is None
+
+
+def test_paper_recovery_materialize_successor_action_is_diagnostic_only() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit_parts.paper_recovery_projection"
+    )
+
+    progress = {
+        "paper_recovery_state": {
+            "phase": "owner_action_ready",
+            "next_safe_action": {
+                "kind": "materialize_successor_owner_action",
+                "successor_owner_action": {
+                    "owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "legacy-successor",
+                    "work_unit_fingerprint": "legacy-successor::fingerprint",
+                },
+            },
+        }
+    }
+
+    assert projection.paper_recovery_successor_action(progress) is None
+
+
+def test_stage_packet_identity_does_not_use_legacy_current_actions() -> None:
+    identity = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit_parts.stage_packet_identity"
+    )
+    blocker = {
+        "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "legacy-stage-packet",
+    }
+    legacy_action = {
+        "surface_kind": "current_executable_owner_action",
+        "status": "ready",
+        "source": "legacy_current_executable_owner_action",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "legacy-stage-packet",
+        "work_unit_fingerprint": "legacy-stage-packet::fingerprint",
+        "owner_route_currentness_basis": {
+            "source": "legacy_current_executable_owner_action",
+            "work_unit_id": "legacy-stage-packet",
+            "work_unit_fingerprint": "legacy-stage-packet::fingerprint",
+        },
+    }
+
+    assert (
+        identity.stage_packet_blocker_current_identity_action(
+            blocker=blocker,
+            action=None,
+            progress={
+                "progress_first_monitoring_summary": {
+                    "current_executable_owner_action": legacy_action
+                },
+                "current_executable_owner_action": legacy_action,
+            },
+            gate_replay_work_units=frozenset(),
+        )
+        is None
+    )

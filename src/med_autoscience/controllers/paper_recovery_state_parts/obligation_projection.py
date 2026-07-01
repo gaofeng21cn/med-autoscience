@@ -66,12 +66,7 @@ def obligation(
 
 
 def _legacy_owner(progress: Mapping[str, Any]) -> str | None:
-    if not _canonical_next_action_source(progress):
-        return None
-    return _first_text(
-        _mapping(progress.get("current_executable_owner_action")).get("next_owner"),
-        _mapping(progress.get("current_execution_envelope")).get("owner"),
-    )
+    return None
 
 
 def _obligation_action_type(
@@ -80,12 +75,8 @@ def _obligation_action_type(
     current_work_unit: Mapping[str, Any],
 ) -> str | None:
     owner_action_admission = _mapping(progress.get("owner_action_admission"))
-    legacy_action = _legacy_current_executable_owner_action(progress)
-    legacy_envelope = _legacy_current_execution_envelope(progress)
     return _first_text(
         current_work_unit.get("action_type"),
-        legacy_action.get("action_type"),
-        legacy_envelope.get("action_type"),
         owner_action_admission.get("action_type"),
         _single_text_item(owner_action_admission.get("allowed_actions")),
     )
@@ -100,16 +91,12 @@ def _obligation_work_unit_id(
         current_work_unit.get("currentness_basis")
     )
     owner_action_admission = _mapping(progress.get("owner_action_admission"))
-    legacy_action = _legacy_current_executable_owner_action(progress)
-    legacy_envelope = _legacy_current_execution_envelope(progress)
     return _first_text(
         current_work_unit.get("work_unit_id"),
         currentness_basis.get("work_unit_id"),
         currentness_basis.get("explicit_publication_work_unit_id"),
         currentness_basis.get("current_publication_work_unit_id"),
         owner_action_admission.get("work_unit_id"),
-        legacy_envelope.get("next_work_unit"),
-        legacy_action.get("work_unit_id"),
     )
 
 
@@ -119,41 +106,12 @@ def _obligation_fingerprint(
     current_work_unit: Mapping[str, Any],
     currentness_basis: Mapping[str, Any],
 ) -> str | None:
-    action = _legacy_current_executable_owner_action(progress)
-    action_basis = _mapping(action.get("owner_route_currentness_basis")) or _mapping(
-        action.get("currentness_basis")
-    )
-    repair_precedence = _mapping(action.get("repair_progress_precedence"))
     return _first_text(
         current_work_unit.get("work_unit_fingerprint"),
         current_work_unit.get("action_fingerprint"),
         currentness_basis.get("work_unit_fingerprint"),
         currentness_basis.get("source_fingerprint"),
-        action.get("work_unit_fingerprint"),
-        action.get("action_fingerprint"),
-        action.get("source_fingerprint"),
-        action_basis.get("work_unit_fingerprint"),
-        action_basis.get("source_fingerprint"),
-        repair_precedence.get("source_fingerprint"),
     )
-
-
-def _legacy_current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, Any]:
-    if not _canonical_next_action_source(progress):
-        return {}
-    return _mapping(progress.get("current_executable_owner_action"))
-
-
-def _legacy_current_execution_envelope(progress: Mapping[str, Any]) -> dict[str, Any]:
-    if not _canonical_next_action_source(progress):
-        return {}
-    return _mapping(progress.get("current_execution_envelope"))
-
-
-def _canonical_next_action_source(progress: Mapping[str, Any]) -> bool:
-    return _text(progress.get("canonical_next_action_source")) is not None or _mapping(
-        progress.get("next_action")
-    ).get("surface_kind") == "mas_next_action_envelope"
 
 
 __all__ = ["obligation"]

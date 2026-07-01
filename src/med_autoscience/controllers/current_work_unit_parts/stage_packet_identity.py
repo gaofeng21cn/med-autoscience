@@ -35,7 +35,6 @@ def stage_packet_blocker_current_identity_action(
         blocker.get("next_work_unit")
     )
     blocker_action_type = _text(blocker.get("action_type"))
-    progress_first = _mapping(progress.get("progress_first_monitoring_summary"))
     candidates = (
         _owner_gate_current_identity_action(
             blocker=blocker,
@@ -43,8 +42,6 @@ def stage_packet_blocker_current_identity_action(
             blocker_action_type=blocker_action_type,
             blocker_work_unit=blocker_work_unit,
         ),
-        _mapping(progress_first.get("current_executable_owner_action")),
-        _mapping(progress.get("current_executable_owner_action")),
         _mapping(action),
     )
     for candidate in candidates:
