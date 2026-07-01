@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sqlite3
+
 from . import shared as _shared
 from med_autoscience.workspace_paths import DATA_ASSET_LAYER_IDS, DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
 
@@ -508,7 +510,62 @@ def test_data_lifecycle_compact_runtime_dry_run_indexes_small_runtime_files_only
     assert "current_package.zip" in payload["forbidden_boundaries"]
     assert payload["sqlite_target_path"] == "runtime/index.sqlite"
     assert payload["estimated_benefit"]["candidate_small_file_count"] == 1
-    assert payload["compact_plan"]["apply_blocker"] == "sqlite_payload_materialization_not_implemented"
+    assert "compact-runtime --workspace-root <workspace> --apply --format json" in payload["compact_plan"]["apply_command"]
+    assert not (workspace_root / "runtime" / "index.sqlite").exists()
+
+
+def test_data_lifecycle_compact_runtime_apply_writes_sqlite_index_without_deleting_sources(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    small_runtime = workspace_root / "runtime" / "quests" / "q1" / "receipt.json"
+    small_runtime.parent.mkdir(parents=True)
+    small_runtime.write_text('{"ok": true}\n', encoding="utf-8")
+    current_package = workspace_root / "runtime" / "quests" / "q1" / "current_package.zip"
+    current_package.write_bytes(b"zip")
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.json"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("{}\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "compact-runtime",
+            "--workspace-root",
+            str(workspace_root),
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    index_path = workspace_root / "runtime" / "index.sqlite"
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "mas_data_lifecycle_runtime_compact_plan"
+    assert payload["status"] == "applied"
+    assert payload["dry_run"] is False
+    assert payload["mutation_policy"]["writes_runtime_index_only"] is True
+    assert payload["apply_receipt"]["indexed_file_count"] == 1
+    assert payload["apply_receipt"]["physical_delete_performed"] is False
+    assert small_runtime.exists()
+    assert current_package.exists()
+    assert dataset_file.exists()
+    assert index_path.exists()
+    with sqlite3.connect(index_path) as connection:
+        records = connection.execute(
+            "SELECT workspace_relative_path, bytes, source_file_preserved FROM runtime_file_records"
+        ).fetchall()
+        manifest = connection.execute(
+            "SELECT indexed_file_count, physical_delete_performed, source_files_preserved FROM runtime_compact_manifest"
+        ).fetchone()
+        payload_rows = connection.execute("SELECT bytes, payload FROM runtime_file_payloads").fetchall()
+
+    assert records == [("runtime/quests/q1/receipt.json", small_runtime.stat().st_size, 1)]
+    assert manifest == (1, 0, 1)
+    assert payload_rows == [(small_runtime.stat().st_size, small_runtime.read_bytes())]
 
 
 def test_data_lifecycle_inspect_classifies_current_package_zip_as_exchange(

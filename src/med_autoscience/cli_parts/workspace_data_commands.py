@@ -63,6 +63,7 @@ def handle_workspace_data_command(
             result = data_lifecycle.compact_runtime_lifecycle(
                 workspace_root=Path(args.workspace_root),
                 dry_run=bool(args.dry_run),
+                apply=bool(args.apply),
             )
         else:
             return None

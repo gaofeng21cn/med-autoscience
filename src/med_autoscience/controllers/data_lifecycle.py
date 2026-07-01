@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -60,36 +64,45 @@ def closeout_data_lifecycle(*, workspace_root: Path, dry_run: bool) -> dict[str,
     }
 
 
-def compact_runtime_lifecycle(*, workspace_root: Path, dry_run: bool) -> dict[str, Any]:
-    if not dry_run:
-        raise ValueError("data-lifecycle compact-runtime only supports --dry-run")
+def compact_runtime_lifecycle(*, workspace_root: Path, dry_run: bool, apply: bool = False) -> dict[str, Any]:
+    if dry_run == apply:
+        raise ValueError("data-lifecycle compact-runtime requires exactly one of --dry-run or --apply")
     resolved_workspace = Path(workspace_root).expanduser().resolve()
     candidates = _small_runtime_candidates(resolved_workspace)
     candidate_file_count = sum(int(candidate["file_count"]) for candidate in candidates)
     candidate_bytes = sum(int(candidate["bytes"]) for candidate in candidates)
+    if apply:
+        apply_receipt = _apply_runtime_index(workspace_root=resolved_workspace, candidates=candidates)
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": COMPACT_RUNTIME_SURFACE_KIND,
+            "workspace_root": str(resolved_workspace),
+            "dry_run": False,
+            "status": "applied",
+            "mutation_policy": _runtime_index_mutation_policy(apply=True),
+            "target_index": _SQLITE_TARGET_PATH,
+            "sqlite_target_path": _SQLITE_TARGET_PATH,
+            "blob_policy": "small_runtime_payloads_indexed_by_sha256; large_payloads_remain_file_backed_by_sha256_ref",
+            "forbidden_boundaries": _runtime_index_forbidden_boundaries(),
+            "forbidden_boundary": _runtime_index_forbidden_boundary(),
+            "candidate_count": len(candidates),
+            "candidate_file_count": candidate_file_count,
+            "candidate_bytes": candidate_bytes,
+            "apply_receipt": apply_receipt,
+            "candidates": candidates,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": COMPACT_RUNTIME_SURFACE_KIND,
         "workspace_root": str(resolved_workspace),
         "dry_run": True,
-        "status": "dry_run_apply_blocked",
-        "mutation_policy": _mutation_policy(),
+        "status": "dry_run",
+        "mutation_policy": _runtime_index_mutation_policy(apply=False),
         "target_index": _SQLITE_TARGET_PATH,
         "sqlite_target_path": _SQLITE_TARGET_PATH,
         "blob_policy": "large_payloads_remain_file_backed_by_sha256_ref",
-        "forbidden_boundaries": [
-            _DATASET_BODY_SKIP,
-            "current_package.zip",
-            "paper/submission_minimal.zip",
-            "owner receipts by hand",
-            "typed blockers by hand",
-            "runtime queues/provider attempts",
-        ],
-        "forbidden_boundary": {
-            "dataset_body_roots": [_DATASET_BODY_SKIP],
-            "excluded_surfaces": ["dataset body", "current_package.zip", "owner receipts", "typed blockers"],
-            "physical_payload_insert_performed": False,
-        },
+        "forbidden_boundaries": _runtime_index_forbidden_boundaries(),
+        "forbidden_boundary": _runtime_index_forbidden_boundary(),
         "candidate_count": len(candidates),
         "candidate_file_count": candidate_file_count,
         "candidate_bytes": candidate_bytes,
@@ -102,12 +115,46 @@ def compact_runtime_lifecycle(*, workspace_root: Path, dry_run: bool) -> dict[st
         },
         "compact_plan": {
             "mode": "dry_run",
-            "apply_blocker": "sqlite_payload_materialization_not_implemented",
+            "apply_command": "medautosci data-lifecycle compact-runtime --workspace-root <workspace> --apply --format json",
             "small_file_threshold_bytes": _SMALL_FILE_BYTES,
             "sqlite_target_path": _SQLITE_TARGET_PATH,
             "candidates": candidates,
         },
         "candidates": candidates,
+    }
+
+
+def _runtime_index_mutation_policy(*, apply: bool) -> dict[str, Any]:
+    return {
+        "read_only": not apply,
+        "dry_run_only": False,
+        "writes_workspace": apply,
+        "writes_runtime": apply,
+        "writes_runtime_index_only": apply,
+        "physical_cleanup_performed": False,
+        "physical_delete_performed": False,
+        "source_files_preserved": True,
+        "physical_cleanup_owner": "one-person-lab",
+    }
+
+
+def _runtime_index_forbidden_boundaries() -> list[str]:
+    return [
+        _DATASET_BODY_SKIP,
+        "current_package.zip",
+        "paper/submission_minimal.zip",
+        "owner receipts by hand",
+        "typed blockers by hand",
+        "runtime queues/provider attempts",
+    ]
+
+
+def _runtime_index_forbidden_boundary() -> dict[str, Any]:
+    return {
+        "dataset_body_roots": [_DATASET_BODY_SKIP],
+        "excluded_surfaces": ["dataset body", "current_package.zip", "owner receipts", "typed blockers"],
+        "physical_payload_insert_performed": False,
+        "source_file_delete_performed": False,
     }
 
 
@@ -355,6 +402,8 @@ def _small_runtime_candidates(workspace_root: Path) -> list[dict[str, Any]]:
             break
         if not path.is_file() or _is_under_dataset_body(path, workspace_root=workspace_root):
             continue
+        if _workspace_ref(workspace_root, path) == _SQLITE_TARGET_PATH:
+            continue
         if path.name in {"current_package.zip", "submission_minimal.zip"}:
             continue
         try:
@@ -376,6 +425,130 @@ def _small_runtime_candidates(workspace_root: Path) -> list[dict[str, Any]]:
             }
         )
     return candidates
+
+
+def _apply_runtime_index(*, workspace_root: Path, candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    indexed_at = datetime.now(timezone.utc).isoformat()
+    index_path = workspace_root / _SQLITE_TARGET_PATH
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    records = [
+        _runtime_index_record(workspace_root=workspace_root, candidate=candidate, indexed_at=indexed_at)
+        for candidate in candidates
+    ]
+    with sqlite3.connect(index_path) as connection:
+        connection.execute("PRAGMA journal_mode=DELETE")
+        connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS runtime_compact_manifest (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                schema_version INTEGER NOT NULL,
+                generated_at TEXT NOT NULL,
+                workspace_root TEXT NOT NULL,
+                small_file_threshold_bytes INTEGER NOT NULL,
+                indexed_file_count INTEGER NOT NULL,
+                indexed_bytes INTEGER NOT NULL,
+                physical_delete_performed INTEGER NOT NULL,
+                source_files_preserved INTEGER NOT NULL,
+                forbidden_boundaries_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS runtime_file_records (
+                workspace_relative_path TEXT PRIMARY KEY,
+                sha256 TEXT NOT NULL,
+                bytes INTEGER NOT NULL,
+                mtime_ns INTEGER NOT NULL,
+                indexed_at TEXT NOT NULL,
+                payload_sha256 TEXT NOT NULL,
+                source_file_preserved INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS runtime_file_payloads (
+                sha256 TEXT PRIMARY KEY,
+                bytes INTEGER NOT NULL,
+                payload BLOB NOT NULL
+            );
+            """
+        )
+        connection.execute("DELETE FROM runtime_file_records")
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO runtime_compact_manifest (
+                id,
+                schema_version,
+                generated_at,
+                workspace_root,
+                small_file_threshold_bytes,
+                indexed_file_count,
+                indexed_bytes,
+                physical_delete_performed,
+                source_files_preserved,
+                forbidden_boundaries_json
+            )
+            VALUES (1, ?, ?, ?, ?, ?, ?, 0, 1, ?)
+            """,
+            (
+                SCHEMA_VERSION,
+                indexed_at,
+                str(workspace_root),
+                _SMALL_FILE_BYTES,
+                len(records),
+                sum(int(record["bytes"]) for record in records),
+                json.dumps(_runtime_index_forbidden_boundaries()),
+            ),
+        )
+        for record in records:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO runtime_file_payloads (sha256, bytes, payload)
+                VALUES (?, ?, ?)
+                """,
+                (record["sha256"], record["bytes"], record["payload"]),
+            )
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO runtime_file_records (
+                    workspace_relative_path,
+                    sha256,
+                    bytes,
+                    mtime_ns,
+                    indexed_at,
+                    payload_sha256,
+                    source_file_preserved
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+                """,
+                (
+                    record["workspace_relative_path"],
+                    record["sha256"],
+                    record["bytes"],
+                    record["mtime_ns"],
+                    indexed_at,
+                    record["sha256"],
+                ),
+            )
+    return {
+        "sqlite_target_path": _SQLITE_TARGET_PATH,
+        "indexed_file_count": len(records),
+        "indexed_bytes": sum(int(record["bytes"]) for record in records),
+        "indexed_payload_count": len({str(record["sha256"]) for record in records}),
+        "physical_delete_performed": False,
+        "source_files_preserved": True,
+        "indexed_at": indexed_at,
+    }
+
+
+def _runtime_index_record(*, workspace_root: Path, candidate: dict[str, Any], indexed_at: str) -> dict[str, Any]:
+    relative_path = str(candidate["workspace_relative_path"])
+    file_path = workspace_root / relative_path
+    payload = file_path.read_bytes()
+    stat_result = file_path.stat()
+    sha256 = hashlib.sha256(payload).hexdigest()
+    return {
+        "workspace_relative_path": relative_path,
+        "sha256": sha256,
+        "bytes": len(payload),
+        "mtime_ns": stat_result.st_mtime_ns,
+        "indexed_at": indexed_at,
+        "payload": payload,
+    }
 
 
 def _closeout_operation(candidate: dict[str, Any]) -> dict[str, Any]:

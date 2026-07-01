@@ -179,7 +179,7 @@ MAS 必须继续拥有：
 
 运行态 SQLite compact 只处理 runtime lifecycle / refs index 的 DB 文件和 payload refs。数据 release 内的 `indexed_working_copy.sqlite` 是 release body 或 rebuildable sidecar，是否保留、重建、冷归档或删除必须由 `dataset_manifest.yaml` 的 output contract 与 study impact 决定。
 
-机器入口：`medautosci data-lifecycle inspect --format json` 输出 body/index/study/runtime/export/retention plane summary；`medautosci data-lifecycle compact-runtime --dry-run --format json` 只生成 runtime 小文件 SQLite refs index 候选计划，apply 仍由后续 owner-authorized 实现阻塞。
+机器入口：`medautosci data-lifecycle inspect --format json` 输出 body/index/study/runtime/export/retention plane summary；`medautosci data-lifecycle compact-runtime --dry-run --format json` 生成 runtime 小文件 SQLite refs index 候选计划；`medautosci data-lifecycle compact-runtime --apply --format json` 只写 `runtime/index.sqlite` 的 manifest、file record 与小 payload 索引，保留源文件，不执行物理删除，不写 owner receipt、typed blocker 或 runtime queue。
 
 更细的 runtime retention 操作口径见 [Data Asset Storage Retention Runbook](../runtime/data_asset_storage_retention.md)。
 

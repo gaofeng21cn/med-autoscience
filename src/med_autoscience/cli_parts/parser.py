@@ -395,7 +395,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     data_lifecycle_closeout_parser.add_argument("--format", choices=("json",), default="json")
     data_lifecycle_compact_parser = data_lifecycle_subparsers.add_parser("compact-runtime")
     data_lifecycle_compact_parser.add_argument("--workspace-root", required=True)
-    data_lifecycle_compact_parser.add_argument("--dry-run", action="store_true", required=True)
+    data_lifecycle_compact_mode = data_lifecycle_compact_parser.add_mutually_exclusive_group(required=True)
+    data_lifecycle_compact_mode.add_argument("--dry-run", action="store_true")
+    data_lifecycle_compact_mode.add_argument("--apply", action="store_true")
     data_lifecycle_compact_parser.add_argument("--format", choices=("json",), default="json")
 
     manifest_refs_rebuild_parser = subparsers.add_parser("data-asset-manifest-refs-rebuild")
