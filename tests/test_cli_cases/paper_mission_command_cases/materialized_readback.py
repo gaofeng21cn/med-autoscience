@@ -1128,6 +1128,62 @@ def test_paper_mission_inspect_projects_receipt_owner_consumption_without_materi
     assert payload["next_action"]["action_family"] == "blocked.typed"
     assert payload["durable_mission_stop_guard"]["durable_stop_allowed"] is True
 
+    resolution_readback_file = tmp_path / "fallback-inspect-readback.json"
+    resolution_readback_file.write_text(json.dumps(payload), encoding="utf-8")
+    resolution_exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(resolution_readback_file),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_typed_blocker_resolution"
+            ),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    assert resolution_exit_code == 0
+    resolution_payload = json.loads(capsys.readouterr().out)
+    assert resolution_payload["status"] == "owner_route_redesign_applied"
+
+    inspect_exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert inspect_exit_code == 0
+    assert payload["typed_blocker_resolution_readback"]["status"] == (
+        "owner_route_redesign_applied"
+    )
+    assert payload["next_action"]["action_family"] == (
+        "paper.package.submission_minimal"
+    )
+    assert payload["next_action"]["diagnostic_refs"] == [
+        {
+            "role": "typed_blocker_resolution",
+            "ref": payload["typed_blocker_resolution_readback"]["source_ref"],
+        }
+    ]
+
 
 def _unique_surface_action_ids(value: object, surface_kind: str) -> set[str]:
     if isinstance(value, dict):

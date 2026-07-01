@@ -665,13 +665,14 @@ def _consumption_ledger_inspect_readback(
         handoff=_mapping(consumption_readback.get("opl_route_handoff")),
         consumption_ledger_readback=consumption_readback,
     )
+    typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
     next_action_override = _next_action_for_stage_closure_decision(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
-        typed_blocker_resolution_readback=latest_typed_blocker_resolution_readback(
-            workspace_root=Path(profile.workspace_root),
-            study_id=study_id,
-        ),
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
     if next_action_override is not None:
@@ -699,6 +700,11 @@ def _consumption_ledger_inspect_readback(
         "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
         "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
             "kind"
+        ),
+        **(
+            {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
+            if typed_blocker_resolution_readback is not None
+            else {}
         ),
         "durable_mission_stop_guard": _durable_mission_stop_guard(
             consume_candidate_status="typed_blocker",
