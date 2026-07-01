@@ -248,47 +248,6 @@ cohort_endpoint_label <- function(endpoint) {
   )
 }
 
-add_context_note <- function(plot, payload, xmin, xmax, ymin, ymax, title, body, role = "flow_secondary") {
-  fill <- style_color(payload, paste0(role, "_fill"), "#F8FAFC")
-  edge <- style_color(payload, paste0(role, "_edge"), "#CBD5E1")
-  text_colour <- style_color(payload, "flow_body_text", "#4B5563")
-  title_colour <- style_color(payload, "flow_title_text", text_colour)
-  plot +
-    ggplot2::annotate(
-      "rect",
-      xmin = xmin,
-      xmax = xmax,
-      ymin = ymin,
-      ymax = ymax,
-      fill = fill,
-      colour = edge,
-      linewidth = 0.24
-    ) +
-    ggplot2::annotate(
-      "text",
-      x = xmin + 1.0,
-      y = ymax - 1.4,
-      label = wrap_plain_label(title, width = 28),
-      hjust = 0,
-      vjust = 1,
-      fontface = "bold",
-      size = 2.75,
-      colour = title_colour,
-      lineheight = 0.92
-    ) +
-    ggplot2::annotate(
-      "text",
-      x = xmin + 1.0,
-      y = ymax - 5.2,
-      label = body,
-      hjust = 0,
-      vjust = 1,
-      size = 2.28,
-      colour = text_colour,
-      lineheight = 0.88
-    )
-}
-
 cohort_step_plot_label <- function(step, index) {
   label <- trimws(as.character(step$label %||% ""))
   n <- suppressWarnings(as.integer(step$n))
@@ -1030,9 +989,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   panel_ids <- declared_panel_ids(payload)
   rendered_panel_ids <- if (length(panel_ids) == 1) panel_ids else character(0)
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
-  has_context_notes <- FALSE
   stack_top <- 0.93
-  stack_bottom <- if (has_context_notes) 0.35 else 0.08
+  stack_bottom <- 0.08
   stack_span <- stack_top - stack_bottom
   step_count <- length(steps)
   node_height <- min(0.16, stack_span / max(1, step_count + 0.35 * max(0, step_count - 1)))

@@ -611,11 +611,11 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                 rule_id="participant_flow_legacy_summary_panel_shell",
                 message=(
                     "ScholarSkills cohort-flow v2 participant layouts must not use legacy right-side "
-                    "summary_panel cards; use a full-width flow with a lightweight context note instead"
+                    "summary_panel cards; use a full-width flow and keep explanatory context in captions"
                 ),
                 target="layout_boxes",
                 observed={"summary_panel_box_ids": [box.box_id for box in summary_boxes]},
-                expected={"allowed_context_box_types": ["context_note", "design_context_note"]},
+                expected={"allowed_box_types": ["main_step", "exclusion_box"]},
                 box_refs=tuple(box.box_id for box in summary_boxes),
             )
         )
