@@ -259,6 +259,8 @@ def build_general_medical_submission_markdown(
         markdown_parts.append(f"# Figure Legends\n\n{'\n\n'.join(figure_legend_blocks).strip()}")
     if table_blocks:
         markdown_parts.append(f"# Main Tables\n\n{'\n\n'.join(table_blocks).strip()}")
+    if references_entry_count > 0:
+        markdown_parts.append("# References")
     output_path = submission_root / "manuscript_submission.md"
     write_text(output_path, "\n\n".join(markdown_parts).strip() + "\n")
     return output_path

@@ -156,6 +156,7 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
     assert 'title: "Manuscript-Shaped Draft Title"' in submission_markdown
     assert "bibliography: references.bib" in submission_markdown
     assert "bibliography: ../../references.bib" not in submission_markdown
+    assert "\n# References\n" in submission_markdown
     assert "title: \"Article Title\"" not in submission_markdown
     assert "\n# Methods\n\nStudy methods paragraph.\n" in submission_markdown
     assert "Draft abstract methods." in submission_markdown
@@ -712,6 +713,7 @@ def test_general_medical_submission_renders_bibliography_when_refs_exist_without
     )
     assert "bibliography: references.bib" in submission_markdown
     assert "nocite: '@*'" in submission_markdown
+    assert "\n# References\n" in submission_markdown
     assert manifest["references"]["coverage"] == {
         "status": "nocite_all",
         "citation_key_count": 0,
