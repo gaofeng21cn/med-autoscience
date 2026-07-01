@@ -235,6 +235,12 @@ def _publication_eval_record(study_root: Path) -> dict[str, Any]:
     }
 
 
+def _canonical_publication_eval_record(study_root: Path) -> dict[str, Any]:
+    record = _publication_eval_record(study_root)
+    record.pop("sci_clinical_registry_review", None)
+    return record
+
+
 def _write_ai_reviewer_currentness_inputs(
     study_root: Path,
     *,
