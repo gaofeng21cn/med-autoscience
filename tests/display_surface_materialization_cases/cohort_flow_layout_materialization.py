@@ -99,6 +99,102 @@ def test_display_layout_qc_rejects_v2_participant_flow_with_legacy_summary_cards
     assert "participant_flow_content_horizontally_compressed" in rule_ids
 
 
+def test_display_layout_qc_rejects_v2_participant_flow_with_prose_context_cards() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": {"x0": 0, "y0": 0, "x1": 1, "y1": 1},
+            "layout_boxes": [
+                {
+                    "box_id": "participant_step_source",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.70,
+                    "x1": 0.86,
+                    "y1": 0.82,
+                },
+                {
+                    "box_id": "participant_step_analysis",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.50,
+                    "x1": 0.86,
+                    "y1": 0.62,
+                },
+                {
+                    "box_id": "participant_endpoint_design_context",
+                    "box_type": "context_note",
+                    "x0": 0.06,
+                    "y0": 0.06,
+                    "x1": 0.94,
+                    "y1": 0.28,
+                },
+            ],
+            "panel_boxes": [
+                {
+                    "box_id": "participant_flow_main",
+                    "box_type": "subfigure_panel",
+                    "x0": 0.06,
+                    "y0": 0.42,
+                    "x1": 0.98,
+                    "y1": 0.86,
+                }
+            ],
+            "guide_boxes": [
+                {
+                    "box_id": "flow_spine_source_to_analysis",
+                    "box_type": "flow_connector",
+                    "x0": 0.50,
+                    "y0": 0.62,
+                    "x1": 0.50,
+                    "y1": 0.70,
+                }
+            ],
+            "metrics": {
+                "layout_mode": "participant_flow",
+                "layout_generation": "scholarskills_cohort_flow_v2",
+                "flow_visual_policy": "purpose_first_reporting_flow_no_legacy_card_shell",
+                "steps": [{"step_id": "source"}, {"step_id": "analysis"}],
+                "flow_nodes": [
+                    {
+                        "box_id": "participant_step_source",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                    {
+                        "box_id": "participant_step_analysis",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                    {
+                        "box_id": "participant_endpoint_design_context",
+                        "box_type": "context_note",
+                        "line_count": 5,
+                        "max_line_chars": 76,
+                        "rendered_height_pt": 92,
+                        "rendered_width_pt": 570,
+                        "padding_pt": 7,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert {issue["rule_id"] for issue in result["issues"]} == {"participant_flow_context_card_shell"}
+
+
 def test_materialize_display_surface_renders_cohort_flow_with_exclusions_and_design_panels(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -184,8 +280,8 @@ def test_materialize_display_surface_renders_cohort_flow_with_exclusions_and_des
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
     layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
     layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
-    assert "participant_endpoint_design_context" in layout_boxes
     assert not any(item["box_type"] == "summary_panel" for item in layout_sidecar["layout_boxes"])
+    assert not any(item["box_type"] in {"context_note", "design_context_note"} for item in layout_sidecar["layout_boxes"])
     step_boxes = [item for item in layout_sidecar["layout_boxes"] if item["box_type"] == "main_step"]
     participant_panel = next(item for item in layout_sidecar["panel_boxes"] if item["box_id"] == "participant_flow_main")
     panel_width = participant_panel["x1"] - participant_panel["x0"]
@@ -267,9 +363,8 @@ def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(t
     assert layout_sidecar["metrics"]["exclusions"]
     assert layout_sidecar["metrics"]["steps"]
     assert layout_sidecar["metrics"]["design_panels"]
-    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
-    assert "participant_endpoint_design_context" in layout_boxes
     assert not any(item["box_type"] == "summary_panel" for item in layout_sidecar["layout_boxes"])
+    assert not any(item["box_type"] in {"context_note", "design_context_note"} for item in layout_sidecar["layout_boxes"])
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     qc_result = figure_catalog["figures"][0]["qc_result"]
     assert qc_result["status"] == "pass"
@@ -325,7 +420,7 @@ def test_materialize_display_surface_accepts_legacy_full_right_sidecar_role(tmp_
     assert "full_right" not in panel_roles
 
 
-def test_materialize_display_surface_renders_cohort_flow_with_visible_design_summary_panels(
+def test_materialize_display_surface_keeps_design_summary_inputs_out_of_figure_canvas(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
@@ -395,10 +490,12 @@ def test_materialize_display_surface_renders_cohort_flow_with_visible_design_sum
     guide_boxes = {item["box_id"]: item for item in layout["guide_boxes"]}
 
     assert layout["metrics"]["layout_mode"] == "participant_flow"
+    assert layout["metrics"]["design_panels"]
     assert "participant_flow_main" in panel_boxes
     assert "title" not in layout_boxes
-    assert "participant_design_context" in layout_boxes
-    assert any(item["box_type"] == "design_context_note" for item in layout["layout_boxes"])
+    assert "participant_design_context" not in layout_boxes
+    assert not any(item["box_type"] == "design_context_note" for item in layout["layout_boxes"])
+    assert not any(item["box_type"] == "context_note" for item in layout["layout_boxes"])
     assert not any(item["box_type"] == "summary_panel" for item in layout["layout_boxes"])
     assert "flow_spine_screened_to_included" in guide_boxes
 

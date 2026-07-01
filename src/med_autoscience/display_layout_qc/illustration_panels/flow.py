@@ -541,6 +541,19 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
             minimum_height_pt = 70.0 if box_type == "main_step" else 52.0
             minimum_padding_pt = 8.0 if box_type == "main_step" else 6.0
             minimum_width_pt = 380.0 if is_v2_layout and box_type == "main_step" else 160.0
+            if is_v2_layout and is_context_note:
+                issues.append(
+                    _issue(
+                        rule_id="participant_flow_context_card_shell",
+                        message=(
+                            "ScholarSkills cohort-flow v2 participant layouts must keep explanatory context "
+                            "in captions or legends instead of rendering large prose cards inside Figure 1"
+                        ),
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"box_id": item.get("box_id"), "box_type": box_type},
+                        expected={"allowed_box_types": ["main_step", "exclusion_box"]},
+                    )
+                )
             if rendered_height_pt < minimum_height_pt:
                 issues.append(
                     _issue(
@@ -689,17 +702,19 @@ def _check_participant_reporting_flow(sidecar: LayoutSidecar) -> list[dict[str, 
                 )
         if is_v2_layout and context_note_boxes:
             for note_box in context_note_boxes:
-                if note_box.x1 - note_box.x0 < 0.70:
-                    issues.append(
-                        _issue(
-                            rule_id="participant_flow_context_note_too_narrow",
-                            message="participant-flow context notes must be lightweight full-width metadata bands",
-                            target=note_box.box_type,
-                            observed={"width_fraction": round(note_box.x1 - note_box.x0, 3)},
-                            expected={"minimum_width_fraction": 0.70},
-                            box_refs=(note_box.box_id,),
-                        )
+                issues.append(
+                    _issue(
+                        rule_id="participant_flow_context_card_shell",
+                        message=(
+                            "ScholarSkills cohort-flow v2 participant layouts must not render prose context "
+                            "cards; keep study-frame and endpoint explanation in captions or legends"
+                        ),
+                        target=note_box.box_type,
+                        observed={"box_id": note_box.box_id, "width_fraction": round(note_box.x1 - note_box.x0, 3)},
+                        expected={"allowed_box_types": ["main_step", "exclusion_box"]},
+                        box_refs=(note_box.box_id,),
                     )
+                )
 
     flow_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_connector")}
     flow_branch_connectors = {box.box_id: box for box in _boxes_of_type(sidecar.guide_boxes, "flow_branch_connector")}
