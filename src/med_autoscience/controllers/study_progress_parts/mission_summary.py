@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.controllers.study_progress_parts.mission_summary_parts.materialized_readback import (
     _consume_result_for_consumption_ledger,
     _latest_consumption_ledger_readback,
+    _latest_stage_closure_ledger_readback,
     _latest_materialized_mission,
     _materialized_mission_summary,
     _materialized_study_root,
@@ -164,6 +165,11 @@ def build_artifact_first_mission_summary(
         paper_mission_run["paper_mission_transaction"]
     )
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
+    stage_closure_ledger_readback = _latest_stage_closure_ledger_readback(
+        progress=progress,
+        study_id=_study_id(progress),
+        transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
+    )
     live_readback = _study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
@@ -222,6 +228,8 @@ def build_artifact_first_mission_summary(
                 **(
                     {"stage_closure_decision": progress["stage_closure_decision"]}
                     if _mapping(progress.get("stage_closure_decision"))
+                    else {"stage_closure_decision": stage_closure_ledger_readback}
+                    if stage_closure_ledger_readback
                     else {}
                 ),
                 "paper_mission_transaction": effective_transaction,
@@ -238,6 +246,7 @@ def build_artifact_first_mission_summary(
             },
             consumption_ledger_readback=consumption_ledger_readback,
         ),
+        "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
         "current_objective": current_objective,
         "latest_artifact_delta": {
             **latest_artifact_delta,

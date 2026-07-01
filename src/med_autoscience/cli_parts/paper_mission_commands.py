@@ -10,6 +10,9 @@ from med_autoscience.paper_mission_authority import consume_paper_mission_candid
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
 )
+from med_autoscience.paper_mission_opl_readback import (
+    attach_opl_runtime_carrier_readback,
+)
 from med_autoscience.paper_mission_consumption_ledger import (
     write_paper_mission_consumption_ledger_outputs,
 )
@@ -295,6 +298,36 @@ def build_paper_mission_readback(
             source=source,
         )
     if paper_mission_command in {"inspect", "start", "resume"}:
+        consumption_readback = latest_paper_mission_consumption_transaction_readback(
+            workspace_root=Path(profile.workspace_root),
+            study_id=study_id,
+        )
+        if consumption_readback is not None:
+            return attach_opl_runtime_carrier_readback(
+                readback={
+                    **consumption_readback,
+                    "paper_mission_command": paper_mission_command,
+                    "action_intent": _action_intent(paper_mission_command),
+                    "dry_run": bool(dry_run),
+                    "profile": {
+                        "profile_name": str(getattr(profile, "name", "")),
+                        "profile_ref": str(profile_ref),
+                    },
+                    "study_root": str(Path(profile.studies_root) / study_id),
+                    "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
+                    "paper_mission_current_transaction_source": (
+                        "paper_mission_consumption_ledger"
+                    ),
+                    "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+                    "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
+                    "mutation_policy": _mutation_policy(
+                        paper_mission_command=paper_mission_command
+                    ),
+                },
+                study_root=Path(profile.studies_root) / study_id,
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
         materialized = _build_materialized_mission_readback_if_available(
             profile=profile,
             profile_ref=profile_ref,
@@ -633,25 +666,12 @@ def _build_stage_closure_terminalizer_readback(
     dry_run: bool,
     source: str,
 ) -> dict[str, Any]:
-    source_readback = _build_materialized_mission_readback_if_available(
+    source_readback = _build_terminalizer_source_readback(
         profile=profile,
         profile_ref=profile_ref,
         study_id=study_id,
-        paper_mission_command="inspect",
-        dry_run=False,
         source=f"{source}:terminalize-stage:inspect",
-        enable_opl_live_probe=True,
-        opl_bin=None,
     )
-    if source_readback is None:
-        source_readback = build_paper_mission_readback(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            paper_mission_command="inspect",
-            dry_run=False,
-            source=f"{source}:terminalize-stage:inspect",
-        )
     existing_decision = _mapping(source_readback.get("stage_closure_decision"))
     if (
         existing_decision
@@ -730,6 +750,51 @@ def _build_stage_closure_terminalizer_readback(
         "required_next_owner": _mapping(decision.get("outcome")).get("next_owner"),
         "required_next_action": _mapping(decision.get("outcome")).get("next_action"),
     }
+
+
+def _build_terminalizer_source_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    source: str,
+) -> dict[str, Any]:
+    consumption_readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=Path(profile.workspace_root),
+        study_id=study_id,
+    )
+    if consumption_readback is not None:
+        return attach_opl_runtime_carrier_readback(
+            readback={
+                **consumption_readback,
+                "paper_mission_command": "terminalize-stage",
+                "source": "paper_mission_consumption_ledger",
+            },
+            study_root=Path(profile.studies_root) / study_id,
+            enable_opl_live_probe=True,
+            opl_bin=None,
+        )
+    source_readback = _build_materialized_mission_readback_if_available(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source=source,
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+    if source_readback is not None:
+        return source_readback
+    return build_paper_mission_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source=source,
+        enable_opl_live_probe=True,
+    )
 
 
 

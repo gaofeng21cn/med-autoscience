@@ -240,6 +240,117 @@ def test_materialized_mission_summary_prefers_latest_governed_consumption_ledger
     }
 
 
+def test_consumption_ledger_summary_uses_terminalized_stage_closure_readback(
+    tmp_path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    mission_id = f"paper-mission::{study_id}::reviewer-revision"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+    )
+
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "reviewer-revision"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    assert consume_exit_code == 0
+    consume_payload = json.loads(capsys.readouterr().out)
+    consume_readback = consume_payload["paper_mission_transaction_readback"]
+    ledger.write_paper_mission_stage_closure_decision(
+        output_root=(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_closure"
+            / "paper_mission_terminalize_stage"
+        ),
+        study_id=study_id,
+        decision={
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "consume_route_back_checkpoint",
+                "next_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "next_owner": "MedAutoScience.paper_mission",
+            },
+            "known_blockers": ["accepted_submission_milestone_candidate"],
+        },
+        source_readback=consume_readback,
+        source="pytest",
+        forbidden_authority_writes=("publication_eval/latest.json",),
+        forbidden_authority_claims=("submission_ready",),
+    )
+
+    progress_exit_code = cli.main(
+        [
+            "study",
+            "progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert progress_exit_code == 0
+    assert payload["artifact_first_mission_summary"]["read_model_source"][
+        "source_kind"
+    ] == "paper_mission_consumption_ledger"
+    assert payload["stage_closure_decision"]["projection_status"] == (
+        "terminalizer_outcome_observed"
+    )
+    assert payload["stage_closure_outcome"] == "next_stage_transition"
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert payload["artifact_first_mission_summary"]["stage_closure_ledger_readback"][
+        "source_surface_kind"
+    ] == "paper_mission_stage_closure_ledger"
+    assert payload["paper_mission_run"]["stage_closure_readback"][
+        "projection_status"
+    ] == "terminalizer_outcome_observed"
+
+
 def test_materialized_mission_summary_consumes_receipt_owner_consumption_ledger(
     tmp_path,
     capsys,
