@@ -308,3 +308,42 @@ def test_submission_authority_gate_readback_projects_terminal_closeout_event() -
     assert readback["terminal_gate_materialized"] is True
     assert readback["submission_ready_claim_authorized"] is True
     assert readback["next_legal_action"] == "submission_authority_or_human_gate_closed"
+
+
+def test_submission_authority_gate_does_not_retire_unrelated_reviewer_route() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+    )
+
+    payload = {
+        "study_id": "obesity_multicenter_phenotype_atlas",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "runtime.opl_route",
+            "action_kind": "submit_to_opl_runtime",
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "owner": "one-person-lab",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "action_id": "next-action-reviewer-revision",
+        },
+        "study_intervention_events": [
+            {
+                "event_id": "intervention-event-000008-closeout",
+                "intent": "submission_authority_closeout",
+                "recorded_at": "2026-06-30T02:40:00+00:00",
+                "source": "codex",
+                "payload": {
+                    "owner_gate_decision_ref": "owner-gate-decision:submission",
+                    "submission_authority_closeout": {
+                        "status": "submission_blocker_human_gate_recorded",
+                        "authority_materialized": True,
+                    },
+                },
+            }
+        ],
+    }
+
+    assert module.submission_authority_owner_gate_readback(
+        payload,
+        next_action=payload["next_action"],
+    ) is None

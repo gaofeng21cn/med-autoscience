@@ -222,8 +222,6 @@ def submission_authority_owner_gate_readback(
     *,
     next_action: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if closeout_readback := _latest_submission_authority_closeout_readback(payload):
-        return closeout_readback
     action_type = _non_empty_text(next_action.get("action_type")) or _first_text(
         next_action.get("allowed_actions")
     )
@@ -232,6 +230,8 @@ def submission_authority_owner_gate_readback(
         "await_human_or_mas_authority_decision_for_submission_blocker",
     }:
         return None
+    if closeout_readback := _latest_submission_authority_closeout_readback(payload):
+        return closeout_readback
     expected = {
         "study_id": _non_empty_text(next_action.get("study_id"))
         or _non_empty_text(payload.get("study_id")),

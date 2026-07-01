@@ -662,6 +662,12 @@ def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, A
     inline = _mapping(payload.get("paper_mission_transaction"))
     if inline:
         return inline
+    reviewer_revision_transaction = _reviewer_revision_candidate_transaction(
+        payload=payload,
+        candidate_path=path,
+    )
+    if reviewer_revision_transaction:
+        return reviewer_revision_transaction
     sidecar_refs = _mapping(payload.get("mission_candidate_sidecar_refs"))
     readback_ref = _optional_text(sidecar_refs.get("paper_mission_readback"))
     if readback_ref is not None:
@@ -689,6 +695,118 @@ def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, A
     except (OSError, json.JSONDecodeError, ValueError):
         return {}
     return _mapping(default_readback.get("paper_mission_transaction"))
+
+
+def _reviewer_revision_candidate_transaction(
+    *,
+    payload: Mapping[str, Any],
+    candidate_path: Path,
+) -> dict[str, Any]:
+    if _optional_text(payload.get("milestone_kind")) != "reviewer_revision_candidate":
+        return {}
+    if payload.get("candidate_is_authority") is not False:
+        return {}
+    study_id = _optional_text(payload.get("study_id"))
+    mission_id = _optional_text(payload.get("mission_id"))
+    if not study_id or not mission_id:
+        return {}
+    artifact_refs = _mapping(payload.get("artifact_refs"))
+    owner_request = _load_candidate_ref_mapping(
+        artifact_refs.get("owner_consumption_request"),
+        base_path=candidate_path.parent,
+    )
+    requested_action = _optional_text(owner_request.get("requested_action"))
+    if requested_action != "consume_external_sci_registry_review_as_reviewer_revision":
+        return {}
+    stage_id = "external_sci_registry_reviewer_revision"
+    next_work_unit = "ai_reviewer_medical_prose_quality_review"
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "reviewer_revision_candidate_ready",
+        "reason": (
+            "External SCI registry review candidate accepted for MAS AI reviewer "
+            "recheck and downstream analysis/write routing."
+        ),
+        "next_owner": "ai_reviewer",
+        "next_work_unit": next_work_unit,
+        "reviewer_revision_candidate_ref": str(candidate_path),
+        "recommended_next_route": _first_text(
+            payload.get("recommended_next_route"),
+            owner_request.get("recommended_next_route"),
+            "analysis-campaign_then_write",
+        ),
+    }
+    artifact_delta_refs = _reviewer_revision_artifact_refs(
+        artifact_refs=artifact_refs,
+        base_path=candidate_path.parent,
+    )
+    return build_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        stage_run_ref=f"paper-mission-candidate://{study_id}/{stage_id}",
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=artifact_delta_refs,
+        paper_audit_pack_refs={
+            family: [
+                {
+                    "ref_id": f"{family}::reviewer_revision_candidate",
+                    "ref_kind": "reviewer_revision_candidate_ref",
+                    "uri": str(candidate_path),
+                }
+            ]
+            for family in PAPER_AUDIT_PACK_FAMILIES
+        },
+        idempotency_basis=(
+            f"reviewer-revision-candidate-consumed::{candidate_path}"
+        ),
+    )
+
+
+def _load_candidate_ref_mapping(ref: Any, *, base_path: Path) -> dict[str, Any]:
+    ref_text = _optional_text(ref)
+    if ref_text is None:
+        return {}
+    path = Path(ref_text).expanduser()
+    if not path.is_absolute():
+        path = base_path / path
+    try:
+        return _mapping(_load_json_object(path))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {}
+
+
+def _reviewer_revision_artifact_refs(
+    *,
+    artifact_refs: Mapping[str, Any],
+    base_path: Path,
+) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for ref_id in (
+        "reviewer_action_matrix",
+        "review_gap_root_cause",
+        "owner_consumption_request",
+    ):
+        ref_text = _optional_text(artifact_refs.get(ref_id))
+        if ref_text is None:
+            continue
+        path = Path(ref_text).expanduser()
+        if not path.is_absolute():
+            path = base_path / path
+        refs.append(
+            {
+                "ref_id": ref_id,
+                "ref_kind": "reviewer_revision_candidate_artifact",
+                "uri": str(path),
+            }
+        )
+    return refs or [
+        {
+            "ref_id": "reviewer_revision_candidate_manifest",
+            "ref_kind": "reviewer_revision_candidate_ref",
+            "uri": str(base_path / "package_manifest.json"),
+        }
+    ]
 
 
 def _candidate_mission_id_for_readback(
