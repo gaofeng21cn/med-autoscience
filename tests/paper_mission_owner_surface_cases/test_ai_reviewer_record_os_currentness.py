@@ -260,7 +260,7 @@ def test_stage_native_current_body_record_supersedes_mechanical_latest_eval(
     latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(latest_path, latest_eval)
 
-    eval_id = "publication-eval::dm002::stage-native-current-body::2026-06-05T08:01:00+00:00"
+    eval_id = "publication-eval::dm002::stage-native-current-body::2026-06-05T09:01:00+00:00"
     current_record = current_manuscript_routeback_record(
         study_root=study_root,
         manuscript_path=manuscript_path,
@@ -268,14 +268,14 @@ def test_stage_native_current_body_record_supersedes_mechanical_latest_eval(
         study_id=study_id,
         quest_id=quest_id,
         eval_id=eval_id,
-        emitted_at="2026-06-05T08:01:00+00:00",
+        emitted_at="2026-06-05T09:01:00+00:00",
     )
     record_path = (
         study_root
         / "artifacts"
         / "publication_eval"
         / "ai_reviewer_responses"
-        / "20260605T080100Z_publication_eval_record.json"
+        / "20260605T090100Z_publication_eval_record.json"
     )
     _write_json(record_path, current_record)
 

@@ -60,6 +60,21 @@ Name material concerns even when no existing rubric item names them, including:
 
 When open-ended judgment adds a concern, still bind it back to MAS owner surfaces through evidence refs, citation refs, affected text or display locations, route decision, typed blocker, or human gate.
 
+## SCI Clinical Registry Review
+
+For observational, cohort, registry, real-world, or descriptive atlas manuscripts, the review must include a `sci_clinical_registry_review` matrix. This is a scientific review layer, not a prose check.
+
+The matrix must cover these domains even when ordinary claim-evidence alignment is green:
+
+- `clinical_contribution`: whether the paper makes a memorable clinician-facing contribution rather than only explaining what cannot be inferred.
+- `reporting_metadata`: enrollment window, data lock/export date, inclusion/exclusion flow, ethics/consent, funding/COI, and data availability readiness.
+- `population_applicability`: adult/child eligibility, age-dependent definitions, subgroup applicability, and whether promoted thresholds or classes apply to the analyzed population.
+- `variable_ascertainment`: diagnostic definitions, source-specific ascertainment, selectively populated positive fields, and clinically implausible rates such as universal positivity.
+- `source_heterogeneity`: source composition, missingness by source, source-specific denominators, and whether source mix can explain promoted patterns.
+- `display_to_claim`: whether figures/tables show denominator, missingness, source composition, and avoid prevalence or burden impressions not supported by the registry design.
+
+Each row must include `concern_id`, `domain`, `status`, `severity`, `finding`, `evidence_refs`, and `required_disposition`. Any `major` or `blocker` concern blocks publication-quality readiness and must route to write, analysis-campaign, decision, or human gate instead of being smoothed into cautious prose.
+
 ## Knowledge Obligations
 
 Before reviewing, recover the stage knowledge packet and make these inputs explicit:
@@ -175,6 +190,7 @@ Write findings as an action matrix. Each row should include:
 - affected claim, section, figure, table, or citation
 - evidence path or missing evidence path
 - citation path or missing citation path
+- domain and status when the row belongs to `sci_clinical_registry_review`
 - severity: blocker, major, minor, or note
 - disposition: `accept_as_is`, `downgrade_claim`, `repair_citation`, `route_back_write`, `route_back_analysis`, `route_back_decision`, `human_gate`, or `stop`
 - readiness label blocked: `draft-ready`, `paper-ready`, or `submission-ready`

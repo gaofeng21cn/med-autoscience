@@ -45,6 +45,28 @@ def claim_evidence_alignment_digest(gate: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+def clear_sci_clinical_registry_review(*, manuscript_ref: str, evidence_ref: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "concern_id": f"sci-registry-{domain}",
+            "domain": domain,
+            "status": "clear",
+            "severity": "note",
+            "finding": f"{domain} was checked against medical SCI expectations.",
+            "evidence_refs": [manuscript_ref, evidence_ref],
+            "required_disposition": "accept_as_is",
+        }
+        for domain in (
+            "clinical_contribution",
+            "reporting_metadata",
+            "population_applicability",
+            "variable_ascertainment",
+            "source_heterogeneity",
+            "display_to_claim",
+        )
+    ]
+
+
 def current_manuscript_routeback_reviewer_os(
     *,
     study_root: Path,
@@ -121,6 +143,10 @@ def current_manuscript_routeback_reviewer_os(
             },
         },
         "claim_evidence_alignment": claim_alignment,
+        "sci_clinical_registry_review": clear_sci_clinical_registry_review(
+            manuscript_ref=manuscript_ref,
+            evidence_ref=evidence_ref,
+        ),
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",

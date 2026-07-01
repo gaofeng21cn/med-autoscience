@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from tests.test_ai_reviewer_publication_eval_workflow import (
-    _publication_eval_record,
+    _canonical_publication_eval_record,
     _reviewer_operating_system,
 )
 
@@ -14,7 +14,7 @@ def test_ai_reviewer_publication_eval_latest_rejects_trace_without_currentness_c
     from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
 
     study_root = tmp_path / "study"
-    record = _publication_eval_record(study_root)
+    record = _canonical_publication_eval_record(study_root)
     record.pop("future_facing_limitations_plan")
     trace = _reviewer_operating_system(study_root)
     trace.pop("currentness_checks", None)
@@ -36,7 +36,7 @@ def test_ai_reviewer_publication_eval_latest_rejects_ready_without_quality_readi
     from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
 
     study_root = tmp_path / "study"
-    record = _publication_eval_record(study_root)
+    record = _canonical_publication_eval_record(study_root)
     record["reviewer_operating_system"] = _reviewer_operating_system(study_root)
 
     try:
@@ -55,7 +55,7 @@ def test_ai_reviewer_publication_eval_latest_rejects_requested_prose_currentness
     from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
 
     study_root = tmp_path / "study"
-    record = _publication_eval_record(study_root)
+    record = _canonical_publication_eval_record(study_root)
     trace = _reviewer_operating_system(study_root)
     trace["currentness_checks"]["medical_prose_review"] = {
         "status": "requested",
