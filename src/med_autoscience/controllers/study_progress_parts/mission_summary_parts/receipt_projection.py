@@ -25,19 +25,24 @@ def _summary_with_receipt_projection(
     consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     updated = dict(summary)
-    updated.setdefault(
-        "receipt_evidence",
+    updated["opl_transition_receipt"] = _opl_transition_receipt(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+        summary=updated,
+    )
+    updated["receipt_evidence"] = (
         _receipt_evidence(
             progress=progress,
             consumption_ledger_readback=consumption_ledger_readback,
-        ),
+            summary=updated,
+        )
     )
-    updated.setdefault(
-        "mas_receipt_consumption",
+    updated["mas_receipt_consumption"] = (
         _mas_receipt_consumption(
             progress=progress,
             consumption_ledger_readback=consumption_ledger_readback,
-        ),
+            summary=updated,
+        )
     )
     return updated
 
@@ -46,8 +51,10 @@ def _opl_transition_receipt(
     *,
     progress: Mapping[str, Any] | None = None,
     consumption_ledger_readback: Mapping[str, Any] | None = None,
+    summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     for source in _receipt_projection_sources(
+        summary=summary,
         progress=progress,
         consumption_ledger_readback=consumption_ledger_readback,
     ):
@@ -71,10 +78,19 @@ def _opl_transition_receipt(
 
 def _receipt_projection_sources(
     *,
+    summary: Mapping[str, Any] | None = None,
     progress: Mapping[str, Any] | None = None,
     consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> tuple[Mapping[str, Any], ...]:
     return (
+        _mapping(summary),
+        _mapping(_mapping(summary).get("receipt_owner_consumption_readback")),
+        _mapping(_mapping(summary).get("opl_runtime_carrier_readback")),
+        _mapping(
+            _mapping(_mapping(summary).get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
         _mapping(progress),
         _mapping(consumption_ledger_readback),
         _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
@@ -94,10 +110,12 @@ def _receipt_projection_sources(
 
 def _receipt_evidence(
     *,
+    summary: Mapping[str, Any] | None = None,
     progress: Mapping[str, Any] | None = None,
     consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     for source in _receipt_projection_sources(
+        summary=summary,
         progress=progress,
         consumption_ledger_readback=consumption_ledger_readback,
     ):
@@ -115,10 +133,12 @@ def _receipt_evidence(
 
 def _mas_receipt_consumption(
     *,
+    summary: Mapping[str, Any] | None = None,
     progress: Mapping[str, Any] | None = None,
     consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     for source in _receipt_projection_sources(
+        summary=summary,
         progress=progress,
         consumption_ledger_readback=consumption_ledger_readback,
     ):
