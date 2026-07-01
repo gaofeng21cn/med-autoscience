@@ -375,6 +375,13 @@ def test_data_lifecycle_inspect_reports_read_only_categories_and_skips_dataset_b
     assert payload["management_mode"]["data_datasets"]["generic_cleanup_allowed"] is False
     assert payload["management_mode"]["data_datasets"]["reason"] == "current_clinical_data_asset_authority"
     assert "data/datasets" in payload["skipped_generic_cleanup_roots"]
+    assert payload["plane_summary"]["body"]["workspace_relative_path"] == "data/datasets"
+    assert payload["plane_summary"]["body"]["generic_cleanup_allowed"] is False
+    assert payload["plane_summary"]["body"]["file_count"] == 1
+    assert payload["plane_summary"]["body"]["bytes"] == dataset_file.stat().st_size
+    assert payload["plane_summary"]["runtime"]["small_file_count"] >= 1
+    assert payload["plane_summary"]["study"]["small_file_count"] >= 1
+    assert set(payload["plane_summary"]) == {"body", "index", "study", "runtime", "export", "retention"}
     candidate_refs = {item["workspace_relative_path"] for item in payload["cleanup_candidates"]}
     assert "data/datasets/master/v1/clinical.csv" not in candidate_refs
     assert "runtime/quests/q1" in candidate_refs
@@ -459,3 +466,78 @@ def test_data_lifecycle_closeout_dry_run_projects_plan_without_workspace_mutatio
     assert payload["closeout_plan"]["operations"][0]["candidate_unit"] == "directory"
     assert payload["closeout_plan"]["operations"][0]["workspace_relative_path"] == ".pytest_cache"
     assert payload["closeout_plan"]["operations"][0]["physical_delete_performed"] is False
+
+
+def test_data_lifecycle_compact_runtime_dry_run_indexes_small_runtime_files_only(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    small_runtime = workspace_root / "runtime" / "quests" / "q1" / "receipt.json"
+    small_runtime.parent.mkdir(parents=True)
+    small_runtime.write_text("{}\n", encoding="utf-8")
+    current_package = workspace_root / "runtime" / "quests" / "q1" / "current_package.zip"
+    current_package.write_bytes(b"zip")
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.json"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("{}\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "compact-runtime",
+            "--workspace-root",
+            str(workspace_root),
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "mas_data_lifecycle_runtime_compact_plan"
+    assert payload["dry_run"] is True
+    assert payload["mutation_policy"]["writes_workspace"] is False
+    assert payload["target_index"] == "runtime/index.sqlite"
+    candidate_refs = {candidate["workspace_relative_path"] for candidate in payload["candidates"]}
+    assert "runtime/quests/q1/receipt.json" in candidate_refs
+    assert "runtime/quests/q1/current_package.zip" not in candidate_refs
+    assert "data/datasets/master/v1/clinical.json" not in candidate_refs
+    assert "current_package.zip" in payload["forbidden_boundaries"]
+    assert payload["sqlite_target_path"] == "runtime/index.sqlite"
+    assert payload["estimated_benefit"]["candidate_small_file_count"] == 1
+    assert payload["compact_plan"]["apply_blocker"] == "sqlite_payload_materialization_not_implemented"
+
+
+def test_data_lifecycle_inspect_classifies_current_package_zip_as_exchange(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    package_zip = workspace_root / "manuscript" / "current_package.zip"
+    package_zip.parent.mkdir(parents=True)
+    package_zip.write_bytes(b"zip")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "inspect",
+            "--workspace-root",
+            str(workspace_root),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    package_candidate = next(
+        candidate
+        for candidate in payload["cleanup_candidates"]
+        if candidate["workspace_relative_path"] == "manuscript/current_package.zip"
+    )
+    assert package_candidate["category"] == "exchange"
+    assert package_candidate["candidate_action"] == "retain_as_human_facing_exchange_surface"

@@ -59,6 +59,11 @@ def handle_workspace_data_command(
                 workspace_root=Path(args.workspace_root),
                 dry_run=bool(args.dry_run),
             )
+        elif args.data_lifecycle_command == "compact-runtime":
+            result = data_lifecycle.compact_runtime_lifecycle(
+                workspace_root=Path(args.workspace_root),
+                dry_run=bool(args.dry_run),
+            )
         else:
             return None
         _print_json(result)

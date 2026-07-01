@@ -10,9 +10,12 @@ from med_autoscience.workspace_paths import DATASETS_RELPATH
 SCHEMA_VERSION = 1
 INSPECTION_SURFACE_KIND = "mas_data_lifecycle_inspection"
 CLOSEOUT_SURFACE_KIND = "mas_data_lifecycle_closeout_plan"
+COMPACT_RUNTIME_SURFACE_KIND = "mas_data_lifecycle_runtime_compact_plan"
 _CANDIDATE_LIMIT = 200
 _DATASET_BODY_SKIP = DATASETS_RELPATH.as_posix()
 _CACHE_DIR_NAMES = {".pytest_cache", ".mypy_cache", ".ruff_cache", "__pycache__"}
+_SMALL_FILE_BYTES = 16 * 1024
+_SQLITE_TARGET_PATH = "runtime/index.sqlite"
 
 
 def inspect_data_lifecycle(*, workspace_root: Path) -> dict[str, Any]:
@@ -26,6 +29,7 @@ def inspect_data_lifecycle(*, workspace_root: Path) -> dict[str, Any]:
         "management_mode": _management_mode(resolved_workspace),
         "mutation_policy": _mutation_policy(),
         "retention_faces": retention_faces,
+        "plane_summary": _plane_summary(resolved_workspace),
         "lifecycle_gaps": _lifecycle_gaps(resolved_workspace, retention_faces=retention_faces),
         "skipped_generic_cleanup_roots": [_DATASET_BODY_SKIP],
         "cleanup_candidate_count": len(cleanup_candidates),
@@ -56,6 +60,57 @@ def closeout_data_lifecycle(*, workspace_root: Path, dry_run: bool) -> dict[str,
     }
 
 
+def compact_runtime_lifecycle(*, workspace_root: Path, dry_run: bool) -> dict[str, Any]:
+    if not dry_run:
+        raise ValueError("data-lifecycle compact-runtime only supports --dry-run")
+    resolved_workspace = Path(workspace_root).expanduser().resolve()
+    candidates = _small_runtime_candidates(resolved_workspace)
+    candidate_file_count = sum(int(candidate["file_count"]) for candidate in candidates)
+    candidate_bytes = sum(int(candidate["bytes"]) for candidate in candidates)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": COMPACT_RUNTIME_SURFACE_KIND,
+        "workspace_root": str(resolved_workspace),
+        "dry_run": True,
+        "status": "dry_run_apply_blocked",
+        "mutation_policy": _mutation_policy(),
+        "target_index": _SQLITE_TARGET_PATH,
+        "sqlite_target_path": _SQLITE_TARGET_PATH,
+        "blob_policy": "large_payloads_remain_file_backed_by_sha256_ref",
+        "forbidden_boundaries": [
+            _DATASET_BODY_SKIP,
+            "current_package.zip",
+            "paper/submission_minimal.zip",
+            "owner receipts by hand",
+            "typed blockers by hand",
+            "runtime queues/provider attempts",
+        ],
+        "forbidden_boundary": {
+            "dataset_body_roots": [_DATASET_BODY_SKIP],
+            "excluded_surfaces": ["dataset body", "current_package.zip", "owner receipts", "typed blockers"],
+            "physical_payload_insert_performed": False,
+        },
+        "candidate_count": len(candidates),
+        "candidate_file_count": candidate_file_count,
+        "candidate_bytes": candidate_bytes,
+        "estimated_benefit": {
+            "candidate_count": len(candidates),
+            "candidate_file_count": candidate_file_count,
+            "candidate_small_file_count": candidate_file_count,
+            "candidate_bytes": candidate_bytes,
+            "estimated_metadata_entry_count": candidate_file_count,
+        },
+        "compact_plan": {
+            "mode": "dry_run",
+            "apply_blocker": "sqlite_payload_materialization_not_implemented",
+            "small_file_threshold_bytes": _SMALL_FILE_BYTES,
+            "sqlite_target_path": _SQLITE_TARGET_PATH,
+            "candidates": candidates,
+        },
+        "candidates": candidates,
+    }
+
+
 def _mutation_policy() -> dict[str, Any]:
     return {
         "read_only": True,
@@ -83,6 +138,7 @@ def _management_mode(workspace_root: Path) -> dict[str, Any]:
         "classified_categories": {
             "runtime": "runtime attempt and quest residue; MAS only projects retention candidates",
             "artifact": "workspace/study artifact projections requiring owner review before cleanup",
+            "exchange": "human-facing package/export surfaces; never runtime residue",
             "archive": "cold or stopped runtime/archive material requiring restore proof before cleanup",
             "cache": "tool cache candidates; still no physical deletion from this command",
         },
@@ -131,6 +187,31 @@ def _lifecycle_gaps(workspace_root: Path, *, retention_faces: dict[str, Any]) ->
     return gaps
 
 
+def _plane_summary(workspace_root: Path) -> dict[str, Any]:
+    planes = {
+        "body": workspace_root / _DATASET_BODY_SKIP,
+        "index": workspace_root / "memory" / "portfolio" / "data_assets",
+        "study": workspace_root / "studies",
+        "runtime": workspace_root / "runtime",
+        "export": workspace_root / "manuscript",
+        "retention": workspace_root / "memory" / "portfolio" / "data_assets" / "retention",
+    }
+    return {
+        name: {
+            **_path_stats(
+                path,
+                workspace_root=workspace_root,
+                skip_cache=False,
+                include_dataset_body=name == "body",
+            ),
+            "workspace_relative_path": _workspace_ref(workspace_root, path),
+            "exists": path.exists(),
+            "generic_cleanup_allowed": False if name == "body" else None,
+        }
+        for name, path in planes.items()
+    }
+
+
 def _gap(gap_type: str, ref: str) -> dict[str, str]:
     return {
         "gap_type": gap_type,
@@ -170,6 +251,7 @@ def _candidate_units(workspace_root: Path) -> dict[str, tuple[Path, ...]]:
             *_existing_paths(workspace_root / "artifacts" / "runtime"),
             *(workspace_root / "studies").glob("*/artifacts"),
         ),
+        "exchange": _current_package_units(workspace_root),
         "cache": tuple(path for path in workspace_root.iterdir() if path.name in _CACHE_DIR_NAMES)
         if workspace_root.exists()
         else (),
@@ -188,11 +270,23 @@ def _existing_paths(*paths: Path) -> tuple[Path, ...]:
     return tuple(path for path in paths if path.exists())
 
 
+def _current_package_units(workspace_root: Path) -> tuple[Path, ...]:
+    roots = [workspace_root / "manuscript"]
+    studies_root = workspace_root / "studies"
+    if studies_root.exists():
+        roots.extend(study / "manuscript" for study in studies_root.iterdir() if study.is_dir())
+    paths: list[Path] = []
+    for root in roots:
+        paths.extend(_existing_paths(root / "current_package", root / "current_package.zip"))
+    return tuple(paths)
+
+
 def _candidate(*, workspace_root: Path, path: Path, category: str) -> dict[str, Any]:
     action_by_category = {
         "runtime": "review_runtime_retention",
         "archive": "restore_proof_required_before_cleanup",
         "artifact": "owner_review_required_before_cleanup",
+        "exchange": "retain_as_human_facing_exchange_surface",
         "cache": "delete_safe_cache_candidate",
     }
     stats = _path_stats(path, workspace_root=workspace_root)
@@ -211,28 +305,77 @@ def _candidate(*, workspace_root: Path, path: Path, category: str) -> dict[str, 
     }
 
 
-def _path_stats(path: Path, *, workspace_root: Path) -> dict[str, int]:
+def _path_stats(
+    path: Path,
+    *,
+    workspace_root: Path,
+    skip_cache: bool = True,
+    include_dataset_body: bool = False,
+) -> dict[str, int]:
     if path.is_file():
         try:
-            return {"bytes": path.stat().st_size, "file_count": 1}
+            size = path.stat().st_size
+            return {"bytes": size, "file_count": 1, "small_file_count": int(size < _SMALL_FILE_BYTES)}
         except FileNotFoundError:
-            return {"bytes": 0, "file_count": 0}
+            return {"bytes": 0, "file_count": 0, "small_file_count": 0}
     total_bytes = 0
     file_count = 0
+    small_file_count = 0
+    if not path.exists():
+        return {"bytes": 0, "file_count": 0, "small_file_count": 0}
     for current_root, dirnames, filenames in os.walk(path):
         current_path = Path(current_root)
-        if _is_under_dataset_body(current_path, workspace_root=workspace_root):
+        if not include_dataset_body and _is_under_dataset_body(current_path, workspace_root=workspace_root):
             dirnames[:] = []
             continue
-        dirnames[:] = sorted(dirname for dirname in dirnames if dirname not in _CACHE_DIR_NAMES)
+        if skip_cache:
+            dirnames[:] = sorted(dirname for dirname in dirnames if dirname not in _CACHE_DIR_NAMES)
+        else:
+            dirnames[:] = sorted(dirnames)
         for filename in filenames:
             file_path = current_path / filename
             try:
-                total_bytes += file_path.stat().st_size
+                size = file_path.stat().st_size
             except FileNotFoundError:
                 continue
+            total_bytes += size
             file_count += 1
-    return {"bytes": total_bytes, "file_count": file_count}
+            if size < _SMALL_FILE_BYTES:
+                small_file_count += 1
+    return {"bytes": total_bytes, "file_count": file_count, "small_file_count": small_file_count}
+
+
+def _small_runtime_candidates(workspace_root: Path) -> list[dict[str, Any]]:
+    runtime_root = workspace_root / "runtime"
+    if not runtime_root.exists():
+        return []
+    candidates: list[dict[str, Any]] = []
+    for path in sorted(runtime_root.rglob("*")):
+        if len(candidates) >= _CANDIDATE_LIMIT:
+            break
+        if not path.is_file() or _is_under_dataset_body(path, workspace_root=workspace_root):
+            continue
+        if path.name in {"current_package.zip", "submission_minimal.zip"}:
+            continue
+        try:
+            size = path.stat().st_size
+        except FileNotFoundError:
+            continue
+        if size >= _SMALL_FILE_BYTES:
+            continue
+        candidates.append(
+            {
+                "workspace_relative_path": _workspace_ref(workspace_root, path),
+                "file_count": 1,
+                "bytes": size,
+                "small_file_count": 1,
+                "candidate_action": "index_small_runtime_record",
+                "target_index": _SQLITE_TARGET_PATH,
+                "dry_run": True,
+                "writes_workspace": False,
+            }
+        )
+    return candidates
 
 
 def _closeout_operation(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -260,4 +403,4 @@ def _workspace_ref(workspace_root: Path, path: Path) -> str:
         return path.as_posix()
 
 
-__all__ = ["closeout_data_lifecycle", "inspect_data_lifecycle"]
+__all__ = ["closeout_data_lifecycle", "compact_runtime_lifecycle", "inspect_data_lifecycle"]

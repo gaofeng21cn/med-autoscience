@@ -393,6 +393,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     data_lifecycle_closeout_parser.add_argument("--workspace-root", required=True)
     data_lifecycle_closeout_parser.add_argument("--dry-run", action="store_true", required=True)
     data_lifecycle_closeout_parser.add_argument("--format", choices=("json",), default="json")
+    data_lifecycle_compact_parser = data_lifecycle_subparsers.add_parser("compact-runtime")
+    data_lifecycle_compact_parser.add_argument("--workspace-root", required=True)
+    data_lifecycle_compact_parser.add_argument("--dry-run", action="store_true", required=True)
+    data_lifecycle_compact_parser.add_argument("--format", choices=("json",), default="json")
 
     manifest_refs_rebuild_parser = subparsers.add_parser("data-asset-manifest-refs-rebuild")
     manifest_refs_rebuild_parser.add_argument("--workspace-root", required=True)
