@@ -11,9 +11,15 @@ from med_autoscience.cli_parts.paper_mission_command_parts.followthrough_materia
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
     NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS,
+    _load_paper_mission_route_back_budget_ledger,
+    _record_paper_mission_route_back_budget_ledger,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
     PAPER_AUDIT_PACK_FAMILIES,
+)
+from med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers import (
+    paper_mission_drive_result,
+    paper_mission_mas_owned_executor_delta_checkpoint,
 )
 
 
@@ -292,13 +298,13 @@ def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None
         }
     }
 
-    checkpoint = commands._paper_mission_mas_owned_executor_delta_checkpoint(
+    checkpoint = paper_mission_mas_owned_executor_delta_checkpoint(
         package_readback=package_readback,
         consume_readback=consume_readback,
         handoff=handoff,
         progress_guard=progress_guard,
     )
-    result = commands._paper_mission_drive_result(
+    result = paper_mission_drive_result(
         consume_readback=consume_readback,
         handoff=handoff,
         opl_runtime_submission={"status": "not_requested"},
@@ -346,7 +352,7 @@ def test_stage_closure_projection_missing_blocks_same_stage_followthrough() -> N
         handoff=handoff,
         opl_runtime_submission={"status": "submitted"},
     )
-    drive_result = commands._paper_mission_drive_result(
+    drive_result = paper_mission_drive_result(
         consume_readback=readback,
         handoff=handoff,
         opl_runtime_submission={"status": "submitted"},
@@ -509,7 +515,7 @@ def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     first_readback = _route_back_consume_readback(candidate_ref="/tmp/run-01/package.json")
     first_handoff = _route_back_handoff(candidate_ref="/tmp/run-01/package.json")
-    ledger = commands._load_paper_mission_route_back_budget_ledger(
+    ledger = _load_paper_mission_route_back_budget_ledger(
         ledger_ref=ledger_ref,
         study_id=study_id,
     )
@@ -519,7 +525,7 @@ def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path)
         handoff=first_handoff,
         route_back_budget_ledger=ledger,
     )
-    ledger = commands._record_paper_mission_route_back_budget_ledger(
+    ledger = _record_paper_mission_route_back_budget_ledger(
         ledger=ledger,
         ledger_ref=ledger_ref,
         progress_guard=first_guard,
