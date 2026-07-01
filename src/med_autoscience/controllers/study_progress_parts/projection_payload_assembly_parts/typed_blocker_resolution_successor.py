@@ -30,6 +30,11 @@ def attach_typed_blocker_resolution_successor_projection(
         workspace_root=Path(workspace_root),
         study_id=study_id,
     )
+    if _current_consumption_route_supersedes_resolution(
+        payload=payload,
+        typed_blocker_resolution_readback=readback,
+    ):
+        return dict(payload)
     envelope = _typed_blocker_resolution_successor_envelope(
         payload=payload,
         readback=readback,
@@ -43,6 +48,44 @@ def attach_typed_blocker_resolution_successor_projection(
     updated["canonical_next_action_source"] = "paper_mission_typed_blocker_resolution"
     updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
     return _promote_typed_blocker_resolution_owner_action(updated)
+
+
+def _current_consumption_route_supersedes_resolution(
+    *,
+    payload: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+) -> bool:
+    next_action = _mapping_copy(payload.get("next_action"))
+    if _non_empty_text(next_action.get("action_family")) != "runtime.opl_route":
+        return False
+    summary = _mapping_copy(payload.get("artifact_first_mission_summary"))
+    read_model_source = _mapping_copy(summary.get("read_model_source"))
+    if (
+        _non_empty_text(read_model_source.get("source_kind"))
+        != "paper_mission_consumption_ledger"
+    ):
+        return False
+    consumption_ref = _non_empty_text(read_model_source.get("consumption_ledger_ref"))
+    resolution = _mapping_copy(typed_blocker_resolution_readback)
+    resolution_ref = _non_empty_text(resolution.get("source_ref")) or _non_empty_text(
+        resolution.get("decision_ref")
+    )
+    consumption_mtime = _path_mtime(consumption_ref)
+    resolution_mtime = _path_mtime(resolution_ref)
+    return (
+        consumption_mtime is not None
+        and resolution_mtime is not None
+        and consumption_mtime > resolution_mtime
+    )
+
+
+def _path_mtime(path_text: str | None) -> float | None:
+    if path_text is None:
+        return None
+    try:
+        return Path(path_text).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
 
 
 def _promote_typed_blocker_resolution_owner_action(

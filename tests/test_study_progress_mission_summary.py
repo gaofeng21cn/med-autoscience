@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 
 import pytest
 
@@ -37,6 +38,47 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
     write_profile(profile_path, workspace_root=workspace_root)
     study_root.mkdir(parents=True)
     (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    old_resolution = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+        / study_id
+        / "typed_blocker_resolution.json"
+    )
+    old_resolution.parent.mkdir(parents=True)
+    old_resolution.write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_typed_blocker_resolution",
+                "schema_version": 1,
+                "status": "human_gate_resolution_packet_materialized",
+                "study_id": study_id,
+                "typed_blocker": {
+                    "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+                    "typed_blocker_evidence_ref": "/tmp/old-typed-blocker.json",
+                },
+                "next_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "schema_version": 1,
+                    "status": "ready",
+                    "study_id": study_id,
+                    "next_owner": "mas_authority_kernel",
+                    "owner": "mas_authority_kernel",
+                    "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+                    "allowed_actions": [
+                        "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                    ],
+                    "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+                    "work_unit_fingerprint": "oldtypedblockerroute",
+                    "acceptance_refs": ["/tmp/old-typed-blocker.json"],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    old_time = old_resolution.stat().st_mtime - 10
+    os.utime(old_resolution, (old_time, old_time))
     mission_id = f"paper-mission::{study_id}::fallback-ledger-current"
     transaction = _paper_mission_transaction_payload(
         mission_id=mission_id,
@@ -119,6 +161,10 @@ def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_
     assert payload["artifact_first_mission_summary"]["next_action_ref"] == (
         payload["next_action"]["action_id"]
     )
+    assert payload["canonical_next_action_source"] != (
+        "paper_mission_typed_blocker_resolution"
+    )
+    assert payload.get("typed_blocker_resolution_readback") is None
     assert "accepted_submission_milestone_candidate" in payload["paper_mission_run"][
         "stage_closure_readback"
     ]["known_blockers"]
