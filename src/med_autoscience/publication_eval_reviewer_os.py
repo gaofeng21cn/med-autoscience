@@ -16,6 +16,7 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "decision_matrix",
         "currentness_checks",
         "claim_evidence_alignment",
+        "sci_clinical_registry_review",
         "publication_quality_readiness",
         "future_facing_limitations_plan",
         "provenance_checks",
@@ -312,6 +313,51 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
             "reviewer_operating_system.publication_quality_readiness blocked status requires missing_required_fields"
         )
 
+    sci_registry_review = _list_of_mappings(payload.get("sci_clinical_registry_review"))
+    sci_registry_contract = _mapping(contract.get("sci_clinical_registry_review"))
+    required_sci_registry_fields = tuple(
+        _text(item) for item in sci_registry_contract.get("required_fields", []) if _text(item)
+    )
+    required_sci_registry_domains = {
+        _text(item) for item in sci_registry_contract.get("required_domains", []) if _text(item)
+    }
+    if not sci_registry_review:
+        errors.append("reviewer_operating_system.sci_clinical_registry_review must not be empty")
+    covered_sci_registry_domains: set[str] = set()
+    sci_registry_has_major_or_blocker = False
+    for index, item in enumerate(sci_registry_review):
+        for field in required_sci_registry_fields:
+            if field == "evidence_refs":
+                if not _list_has_items(item.get(field)):
+                    errors.append(
+                        "reviewer_operating_system.sci_clinical_registry_review"
+                        f"[{index}].{field} must not be empty"
+                    )
+                continue
+            if not _text(item.get(field)):
+                errors.append(
+                    "reviewer_operating_system.sci_clinical_registry_review"
+                    f"[{index}].{field} must be non-empty"
+                )
+        domain = _text(item.get("domain"))
+        if domain:
+            covered_sci_registry_domains.add(domain)
+        severity = _text(item.get("severity"))
+        status = _text(item.get("status"))
+        if severity in {"blocker", "major"} or status in {"blocked", "major_concern"}:
+            sci_registry_has_major_or_blocker = True
+    missing_sci_registry_domains = sorted(required_sci_registry_domains - covered_sci_registry_domains)
+    if missing_sci_registry_domains:
+        errors.append(
+            "reviewer_operating_system.sci_clinical_registry_review missing domains: "
+            + ", ".join(missing_sci_registry_domains)
+        )
+    if sci_registry_has_major_or_blocker and readiness_status != "blocked":
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.status must be blocked "
+            "when sci_clinical_registry_review has major or blocker concerns"
+        )
+
     future_limitations_plan = _list_of_mappings(payload.get("future_facing_limitations_plan"))
     future_limitations_contract = _mapping(contract.get("future_facing_limitations_plan"))
     required_future_limitations_fields = tuple(
@@ -357,7 +403,7 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     if _text(route_back_decision.get("recommended_action")) in _ACTION_TYPES_THAT_ROUTE_BACK:
         if decision_route_target not in _ROUTE_BACK_TARGETS:
             errors.append("reviewer_operating_system.route_back_decision.route_target must name the current route target")
-        elif prose_route_target and prose_route_target != decision_route_target:
+        elif prose_route_target and prose_route_target != decision_route_target and not sci_registry_has_major_or_blocker:
             errors.append(
                 "reviewer_operating_system.route_back_decision.route_target must match "
                 "currentness_checks.medical_prose_review.route_target"

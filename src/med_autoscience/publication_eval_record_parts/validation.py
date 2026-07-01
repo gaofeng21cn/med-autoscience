@@ -19,6 +19,7 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "verdict",
         "quality_assessment",
         "reviewer_operating_system",
+        "sci_clinical_registry_review",
         "future_facing_limitations_plan",
         "gaps",
         "recommended_actions",

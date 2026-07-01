@@ -225,6 +225,27 @@ def _route_back_decision(record_payload: Mapping[str, Any]) -> dict[str, str]:
     recommended_action = "continue_same_line"
     route_rationale = "AI reviewer publication eval workflow trace is complete."
     route_target: str | None = None
+    reviewer_os = _mapping(record_payload.get("reviewer_operating_system"))
+    sci_review = record_payload.get("sci_clinical_registry_review") or reviewer_os.get("sci_clinical_registry_review")
+    if isinstance(sci_review, list):
+        sci_blockers = _sci_registry_review_blockers([item for item in sci_review if isinstance(item, Mapping)])
+        if sci_blockers:
+            route_target = "analysis-campaign"
+            for item in sci_review:
+                if not isinstance(item, Mapping):
+                    continue
+                disposition = _text(item.get("required_disposition"))
+                if disposition in {"route_back_write", "downgrade_claim", "repair_citation"}:
+                    route_target = "write"
+                    break
+                if disposition == "route_back_review":
+                    route_target = "review"
+                    break
+            return {
+                "recommended_action": "route_back_same_line",
+                "route_target": route_target,
+                "rationale": "SCI clinical registry review has major or blocker concerns requiring same-line repair.",
+            }
     actions = [item for item in _list(record_payload.get("recommended_actions")) if isinstance(item, Mapping)]
     if actions:
         recommended_action = _text(actions[0].get("action_type")) or _text(actions[0].get("action_id")) or recommended_action
@@ -284,6 +305,57 @@ def _record_is_current_manuscript_review(record_payload: Mapping[str, Any]) -> b
 def _record_publication_quality_readiness(record_payload: Mapping[str, Any]) -> Mapping[str, Any]:
     reviewer_os = _mapping(record_payload.get("reviewer_operating_system"))
     return _mapping(reviewer_os.get("publication_quality_readiness"))
+
+
+def _sci_clinical_registry_review(record_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw_review = record_payload.get("sci_clinical_registry_review")
+    if not isinstance(raw_review, list) or not raw_review:
+        raise ValueError("AI reviewer publication eval workflow missing sci_clinical_registry_review")
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    review_contract = _mapping(contract.get("sci_clinical_registry_review"))
+    required_fields = tuple(_text(item) for item in _list(review_contract.get("required_fields")) if _text(item))
+    required_domains = {_text(item) for item in _list(review_contract.get("required_domains")) if _text(item)}
+    review: list[dict[str, Any]] = []
+    covered_domains: set[str] = set()
+    for index, raw_item in enumerate(raw_review):
+        if not isinstance(raw_item, Mapping):
+            raise ValueError(f"AI reviewer publication eval workflow sci_clinical_registry_review[{index}] must be an object")
+        item = dict(raw_item)
+        for field in required_fields:
+            if field == "evidence_refs":
+                if not _list(item.get(field)):
+                    raise ValueError(
+                        "AI reviewer publication eval workflow "
+                        f"sci_clinical_registry_review[{index}].{field} missing"
+                    )
+                continue
+            if not _text(item.get(field)):
+                raise ValueError(
+                    "AI reviewer publication eval workflow "
+                    f"sci_clinical_registry_review[{index}].{field} missing"
+                )
+        domain = _text(item.get("domain"))
+        if domain:
+            covered_domains.add(domain)
+        review.append(item)
+    missing_domains = sorted(required_domains - covered_domains)
+    if missing_domains:
+        raise ValueError(
+            "AI reviewer publication eval workflow sci_clinical_registry_review missing domains: "
+            + ", ".join(missing_domains)
+        )
+    return review
+
+
+def _sci_registry_review_blockers(review: list[Mapping[str, Any]]) -> list[str]:
+    blockers: list[str] = []
+    for item in review:
+        severity = _text(item.get("severity"))
+        status = _text(item.get("status"))
+        if severity in {"blocker", "major"} or status in {"blocked", "major_concern"}:
+            concern_id = _text(item.get("concern_id")) or _text(item.get("domain")) or "sci_clinical_registry_review"
+            blockers.append(f"sci_clinical_registry_review::{concern_id}")
+    return blockers
 
 
 def _current_manuscript_currentness(
@@ -434,7 +506,11 @@ def _publication_quality_readiness(
         for item in _list(record_readiness.get("missing_required_fields"))
         if _text(item) and _text(item) not in computed_present_fields
     ]
-    missing = list(dict.fromkeys([*base_missing, *record_missing]))
+    sci_registry_review = [
+        dict(item) for item in _list(trace.get("sci_clinical_registry_review")) if isinstance(item, Mapping)
+    ]
+    sci_registry_blockers = _sci_registry_review_blockers(sci_registry_review)
+    missing = list(dict.fromkeys([*base_missing, *record_missing, *sci_registry_blockers]))
     record_status = _text(record_readiness.get("status"))
     status = "ready" if not missing else "blocked"
     if record_status == "blocked":
@@ -921,6 +997,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
             claim_evidence_map_ref=ref_bundle["claim_evidence_map"],
             evidence_ledger_ref=ref_bundle["evidence_ledger"],
         ),
+        "sci_clinical_registry_review": _sci_clinical_registry_review(record_payload),
         "future_facing_limitations_plan": _future_facing_limitations_plan(record_payload),
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
@@ -1041,5 +1118,6 @@ def run_ai_reviewer_publication_eval_workflow(
         "publication_eval_surface": "artifacts/publication_eval/latest.json",
         "artifact_path": materialized["artifact_path"],
         "eval_id": materialized["eval_id"],
+        "record": record_with_trace,
         "reviewer_operating_system": trace,
     }

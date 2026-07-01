@@ -85,6 +85,7 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
                 "requires_controller_decision": True,
             }
         ],
+        "sci_clinical_registry_review": _sci_clinical_registry_review(study_root),
     }
 
 
@@ -120,6 +121,31 @@ def _quality_assessment(study_root: Path) -> dict[str, object]:
             "evidence_refs": [str(study_root / "paper" / "submission_minimal" / "submission_manifest.json")],
         },
     }
+
+
+def _sci_clinical_registry_review(study_root: Path) -> list[dict[str, object]]:
+    quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    manuscript_ref = str(study_root / "paper" / "manuscript.md")
+    evidence_ref = str(quest_root / "artifacts" / "results" / "main_result.json")
+    return [
+        {
+            "concern_id": f"sci-registry-{domain}",
+            "domain": domain,
+            "status": "clear",
+            "severity": "note",
+            "finding": f"{domain} was checked against medical SCI expectations.",
+            "evidence_refs": [manuscript_ref, evidence_ref],
+            "required_disposition": "accept_as_is",
+        }
+        for domain in (
+            "clinical_contribution",
+            "reporting_metadata",
+            "population_applicability",
+            "variable_ascertainment",
+            "source_heterogeneity",
+            "display_to_claim",
+        )
+    ]
 
 
 def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
@@ -212,6 +238,7 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
                 "current_manuscript_wording_must_be_restrained": True,
             }
         ],
+        "sci_clinical_registry_review": _sci_clinical_registry_review(study_root),
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

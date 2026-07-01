@@ -138,7 +138,31 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             "recommended_action": "continue_same_line",
             "rationale": "Proceed to first full draft.",
         },
+        "sci_clinical_registry_review": _sci_clinical_registry_review(study_root),
     }
+
+
+def _sci_clinical_registry_review(study_root: Path) -> list[dict[str, Any]]:
+    refs = _refs(study_root)
+    return [
+        {
+            "concern_id": f"sci-registry-{domain}",
+            "domain": domain,
+            "status": "clear",
+            "severity": "note",
+            "finding": f"{domain} was checked against high-quality medical SCI expectations.",
+            "evidence_refs": [refs["manuscript"], refs["evidence_ledger"]],
+            "required_disposition": "accept_as_is",
+        }
+        for domain in (
+            "clinical_contribution",
+            "reporting_metadata",
+            "population_applicability",
+            "variable_ascertainment",
+            "source_heterogeneity",
+            "display_to_claim",
+        )
+    ]
 
 
 def _publication_eval_record(study_root: Path) -> dict[str, Any]:
@@ -207,6 +231,7 @@ def _publication_eval_record(study_root: Path) -> dict[str, Any]:
                 "current_manuscript_wording_must_be_restrained": True,
             }
         ],
+        "sci_clinical_registry_review": _sci_clinical_registry_review(study_root),
     }
 
 
@@ -697,6 +722,78 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_without_future_facin
         raise AssertionError("workflow accepted AI reviewer trace without future-facing limitations plan")
 
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_requires_sci_registry_review_matrix(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record.pop("sci_clinical_registry_review")
+    _write_ai_reviewer_currentness_inputs(study_root)
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+        )
+    except ValueError as exc:
+        assert "sci_clinical_registry_review" in str(exc)
+    else:
+        raise AssertionError("workflow accepted publication eval without SCI clinical registry review matrix")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_blocks_major_sci_registry_concern(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["sci_clinical_registry_review"][2] = {
+        "concern_id": "adult-child-bmi-classification-risk",
+        "domain": "population_applicability",
+        "status": "major_concern",
+        "severity": "major",
+        "finding": "Median age near 18 requires adult-only or pediatric classification handling before BMI class claims can be paper-ready.",
+        "evidence_refs": [refs["manuscript"], refs["evidence_ledger"]],
+        "required_disposition": "route_back_analysis",
+    }
+    _write_ai_reviewer_currentness_inputs(study_root)
+
+    result = module.run_ai_reviewer_publication_eval_workflow(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+        },
+        record=record,
+    )
+
+    latest = json.loads(Path(result["artifact_path"]).read_text(encoding="utf-8"))
+    readiness = latest["reviewer_operating_system"]["publication_quality_readiness"]
+    assert readiness["status"] == "blocked"
+    assert "sci_clinical_registry_review::adult-child-bmi-classification-risk" in readiness["missing_required_fields"]
 
 
 def test_ai_reviewer_publication_eval_workflow_rejects_disclosure_only_limitations(

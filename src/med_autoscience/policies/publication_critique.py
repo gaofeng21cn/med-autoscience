@@ -36,6 +36,23 @@ FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS = (
     "required_future_analysis_data_or_design",
     "current_manuscript_wording_must_be_restrained",
 )
+SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_FIELDS = (
+    "concern_id",
+    "domain",
+    "status",
+    "severity",
+    "finding",
+    "evidence_refs",
+    "required_disposition",
+)
+SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_DOMAINS = (
+    "clinical_contribution",
+    "reporting_metadata",
+    "population_applicability",
+    "variable_ascertainment",
+    "source_heterogeneity",
+    "display_to_claim",
+)
 AI_NATIVE_EXPERT_JUDGMENT_REQUIRED_FIELDS = (
     "role",
     "contracts_are_floor_not_ceiling",
@@ -115,8 +132,25 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "currentness_checks",
             "provenance_checks",
             "route_back_decision",
+            "sci_clinical_registry_review",
             "future_facing_limitations_plan",
         ],
+        "sci_clinical_registry_review": {
+            "surface": "sci_clinical_registry_review",
+            "role": "high_quality_medical_sci_adversarial_review",
+            "mechanical_projection_can_authorize_quality": False,
+            "required_fields": list(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_FIELDS),
+            "required_domains": list(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_DOMAINS),
+            "discipline": {
+                "requires_open_ended_clinical_judgment": True,
+                "requires_reporting_metadata_gate": True,
+                "requires_population_applicability_gate": True,
+                "requires_variable_ascertainment_gate": True,
+                "requires_source_heterogeneity_gate": True,
+                "requires_display_to_claim_gate": True,
+                "major_or_blocker_concerns_block_publication_quality": True,
+            },
+        },
         "future_facing_limitations_plan": {
             "surface": "future_facing_limitations_plan",
             "role": "prescriptive_limitations_review_contract",
@@ -148,6 +182,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         {"field": "overall_diagnosis", "description": "global diagnosis of the current publication-quality state"},
         {"field": "top_priority_issue", "description": "the single issue that should be repaired first"},
         {"field": "style_diagnosis", "description": "diagnosis of whether the manuscript voice reads as a medical journal article rather than a work report"},
+        {"field": "sci_clinical_registry_review", "description": "adversarial SCI registry review matrix for clinical contribution, reporting metadata, population applicability, variable ascertainment, source heterogeneity, and display-to-claim risks"},
         {"field": "revision_items", "description": "ordered revision items with explicit done criteria"},
         {"field": "future_facing_limitations_plan", "description": "limitations mapped to claim impact, required future analysis/data/design, and current wording restraint"},
         {"field": "next_review_focus", "description": "what the next re-review pass must verify"},
@@ -192,12 +227,14 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         "decision_matrix",
         "provenance_checks",
         "route_back_decision",
+        "sci_clinical_registry_review",
         "future_facing_limitations_plan",
         "currentness_checks",
     ):
         if required_field not in normalized_trace_fields:
             raise ValueError(f"AI reviewer operating system 缺少 trace 字段: {required_field}")
     _require_future_facing_limitations_output(policy)
+    _require_sci_clinical_registry_review_output(policy)
 
     provenance = contract.get("required_provenance")
     if not isinstance(provenance, dict):
@@ -257,6 +294,50 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         if future_limitations_discipline.get(discipline_field) is not True:
             raise ValueError(f"future_facing_limitations_plan discipline 必须启用 {discipline_field}。")
 
+    sci_registry_review = contract.get("sci_clinical_registry_review")
+    if not isinstance(sci_registry_review, dict):
+        raise ValueError("AI reviewer operating system 缺少 sci_clinical_registry_review。")
+    if sci_registry_review.get("mechanical_projection_can_authorize_quality") is not False:
+        raise ValueError("sci_clinical_registry_review 必须禁止 mechanical projection 授权质量。")
+    sci_registry_fields = sci_registry_review.get("required_fields")
+    if not isinstance(sci_registry_fields, list):
+        raise ValueError("sci_clinical_registry_review required_fields 必须是列表。")
+    normalized_sci_registry_fields = tuple(
+        _require_non_empty_text(item, "sci_clinical_registry_review.required_fields")
+        for item in sci_registry_fields
+    )
+    missing_sci_registry_fields = sorted(
+        set(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_FIELDS) - set(normalized_sci_registry_fields)
+    )
+    if missing_sci_registry_fields:
+        raise ValueError("sci_clinical_registry_review 缺少字段: " + ", ".join(missing_sci_registry_fields))
+    sci_registry_domains = sci_registry_review.get("required_domains")
+    if not isinstance(sci_registry_domains, list):
+        raise ValueError("sci_clinical_registry_review required_domains 必须是列表。")
+    normalized_sci_registry_domains = tuple(
+        _require_non_empty_text(item, "sci_clinical_registry_review.required_domains")
+        for item in sci_registry_domains
+    )
+    missing_sci_registry_domains = sorted(
+        set(SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_DOMAINS) - set(normalized_sci_registry_domains)
+    )
+    if missing_sci_registry_domains:
+        raise ValueError("sci_clinical_registry_review 缺少 domain: " + ", ".join(missing_sci_registry_domains))
+    sci_registry_discipline = sci_registry_review.get("discipline")
+    if not isinstance(sci_registry_discipline, dict):
+        raise ValueError("sci_clinical_registry_review discipline 必须是 object。")
+    for discipline_field in (
+        "requires_open_ended_clinical_judgment",
+        "requires_reporting_metadata_gate",
+        "requires_population_applicability_gate",
+        "requires_variable_ascertainment_gate",
+        "requires_source_heterogeneity_gate",
+        "requires_display_to_claim_gate",
+        "major_or_blocker_concerns_block_publication_quality",
+    ):
+        if sci_registry_discipline.get(discipline_field) is not True:
+            raise ValueError(f"sci_clinical_registry_review discipline 必须启用 {discipline_field}。")
+
     return {
         **contract,
         "required_input_surfaces": list(normalized_inputs),
@@ -272,6 +353,12 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
             "required_fields": list(normalized_future_limitations_fields),
             "discipline": dict(future_limitations_discipline),
         },
+        "sci_clinical_registry_review": {
+            **sci_registry_review,
+            "required_fields": list(normalized_sci_registry_fields),
+            "required_domains": list(normalized_sci_registry_domains),
+            "discipline": dict(sci_registry_discipline),
+        },
     }
 
 
@@ -286,6 +373,19 @@ def _require_future_facing_limitations_output(policy: dict[str, Any]) -> None:
         output_fields.append(_require_non_empty_text(item.get("field"), "required_outputs.field"))
     if "future_facing_limitations_plan" not in output_fields:
         raise ValueError("publication critique policy 缺少 required output: future_facing_limitations_plan。")
+
+
+def _require_sci_clinical_registry_review_output(policy: dict[str, Any]) -> None:
+    required_outputs = policy.get("required_outputs")
+    if not isinstance(required_outputs, list):
+        raise ValueError("publication critique policy required_outputs 必须是列表。")
+    output_fields: list[str] = []
+    for item in required_outputs:
+        if not isinstance(item, dict):
+            raise ValueError("publication critique policy required_outputs 必须是 object 列表。")
+        output_fields.append(_require_non_empty_text(item.get("field"), "required_outputs.field"))
+    if "sci_clinical_registry_review" not in output_fields:
+        raise ValueError("publication critique policy 缺少 required output: sci_clinical_registry_review。")
 
 
 def _require_non_empty_text(value: Any, field_name: str) -> str:
