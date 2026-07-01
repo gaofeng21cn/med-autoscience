@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.paper_mission_authority_parts.normalization import (
+    dedupe as _dedupe,
+    first_mapping as _first_mapping,
+    first_text as _first_text,
+    mapping as _mapping,
+    normalized_path as _normalized_path,
+    path_matches as _path_matches,
+    text_list as _text_list,
+    text_or_none as _text,
+)
 from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
 
 
@@ -956,76 +966,6 @@ def _authority_boundary() -> dict[str, bool | str]:
         "can_authorize_quality_verdict": False,
         "can_authorize_artifact_authority": False,
     }
-
-
-def _normalized_path(value: str) -> str:
-    path = Path(value).as_posix().lower()
-    return path.replace("\\", "/")
-
-
-def _path_matches(path: str, parts: tuple[str, ...]) -> bool:
-    position = 0
-    for part in parts:
-        found = path.find(part, position)
-        if found < 0:
-            return False
-        position = found + len(part)
-    return True
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _first_mapping(*values: Mapping[str, Any]) -> dict[str, Any]:
-    for value in values:
-        mapped = _mapping(value)
-        if mapped:
-            return mapped
-    return {}
-
-
-def _first_text(*values: object) -> str | None:
-    for value in values:
-        text = _text(value)
-        if text is not None:
-            return text
-    return None
-
-
-def _text_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        items: Sequence[object] = [value]
-    elif isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
-        items = value
-    else:
-        items = []
-    result: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        text = _text(item)
-        if text is None or text in seen:
-            continue
-        seen.add(text)
-        result.append(text)
-    return result
-
-
-def _dedupe(values: Sequence[str]) -> list[str]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        text = _text(value)
-        if text is None or text in seen:
-            continue
-        seen.add(text)
-        result.append(text)
-    return result
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 __all__ = [
