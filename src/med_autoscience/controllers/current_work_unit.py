@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 
@@ -16,26 +16,6 @@ RETIRED_AUTHORITY_BOUNDARY = {
     "can_start_provider_attempt": False,
     "can_claim_paper_progress": False,
 }
-
-
-def build_current_work_unit(
-    *,
-    status: Mapping[str, Any] | None = None,
-    progress: Mapping[str, Any] | None = None,
-    actions: Sequence[Mapping[str, Any]] | None = None,
-    current_executable_owner_action: Mapping[str, Any] | None = None,
-    current_execution_envelope: Mapping[str, Any] | None = None,
-    owner_route: Mapping[str, Any] | None = None,
-    provider_admission: Mapping[str, Any] | None = None,
-    provider_running_proof: Mapping[str, Any] | None = None,
-    live_provider_attempt: Mapping[str, Any] | None = None,
-    typed_blocker: Mapping[str, Any] | None = None,
-    blocked_reason: str | None = None,
-    next_owner: str | None = None,
-    runtime_health: Mapping[str, Any] | None = None,
-    source_refs: Sequence[str] | None = None,
-) -> dict[str, Any]:
-    return {}
 
 
 def action_supersedes_typed_blocker(
@@ -58,6 +38,5 @@ def _mapping(value: object) -> dict[str, Any]:
 __all__ = [
     "RETIRED_AUTHORITY_BOUNDARY",
     "action_supersedes_typed_blocker",
-    "build_current_work_unit",
     "retired_authority_boundary",
 ]

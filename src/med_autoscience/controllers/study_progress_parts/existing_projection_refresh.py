@@ -446,18 +446,7 @@ def refresh_existing_projection_current_owner_surfaces(
         paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
     )
     runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
-    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
-        status=status,
-        progress=updated,
-        actions=envelope_actions,
-        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
-        provider_admission=currentness_handoff,
-        live_provider_attempt=currentness_handoff,
-        typed_blocker=current_control_typed_blocker,
-        blocked_reason=current_control_blocked_reason,
-        next_owner=current_control_next_owner,
-        runtime_health=runtime_health_snapshot,
-    )
+    updated["current_work_unit"] = {}
     updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
         status=status,
         progress=updated,
@@ -730,13 +719,7 @@ def _typed_blocker_stop_projection(
     if _paper_recovery_supersedes_typed_blocker_stop(recovery):
         updated["paper_recovery_state"] = recovery
         updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
-        updated["current_work_unit"] = current_work_unit.build_current_work_unit(
-            status={},
-            progress=updated,
-            current_executable_owner_action=_mapping_copy(
-                updated.get("current_executable_owner_action")
-            ),
-        )
+        updated["current_work_unit"] = {}
         updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
             status={},
             progress=updated,
@@ -1001,18 +984,7 @@ def _refresh_current_owner_surfaces_from_existing_action(
         current_control_blocked_reason = None
         current_control_next_owner = None
     runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
-    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
-        status=status,
-        progress=updated,
-        actions=envelope_actions,
-        current_executable_owner_action=current_action,
-        provider_admission=handoff,
-        live_provider_attempt=handoff,
-        typed_blocker=current_control_typed_blocker,
-        blocked_reason=current_control_blocked_reason,
-        next_owner=current_control_next_owner,
-        runtime_health=runtime_health_snapshot,
-    )
+    updated["current_work_unit"] = {}
     updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
         status=status,
         progress=updated,

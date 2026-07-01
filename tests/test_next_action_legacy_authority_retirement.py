@@ -58,9 +58,7 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     current_action = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
-    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
     assert current_action.build_canonical_owner_action_projection(payload) is None
-    assert current_work_unit.build_current_work_unit(progress=payload) == {}
     assert (
         importlib.util.find_spec(
             "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
@@ -174,13 +172,11 @@ def test_missing_canonical_next_action_closes_all_legacy_owner_inputs() -> None:
     current_action = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
-    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
     provider_actions = importlib.import_module(
         "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
     )
 
     assert current_action.build_canonical_owner_action_projection(payload) is None
-    assert current_work_unit.build_current_work_unit(progress=payload) == {}
     assert not hasattr(provider_actions, "_study_current_action_for_provider_admission")
 
 
@@ -410,42 +406,6 @@ def test_materializer_retires_legacy_current_action_even_with_complete_next_acti
 
     assert selected == []
     assert ignored[0]["reason"] == legacy.LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON
-
-
-def test_missing_canonical_next_action_does_not_promote_bare_action_queue() -> None:
-    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
-
-    work_unit = current_work_unit.build_current_work_unit(
-        actions=[
-            {
-                "action_type": "return_to_ai_reviewer_workflow",
-                "owner": "ai_reviewer",
-                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-                "work_unit_fingerprint": "sha256:legacy-queue-action",
-                "action_fingerprint": "sha256:legacy-queue-action",
-            }
-        ],
-        blocked_reason="domain_transition_ai_reviewer_re_eval",
-        next_owner="ai_reviewer",
-    )
-
-    assert work_unit == {}
-
-
-def test_missing_canonical_next_action_does_not_resurrect_current_execution_envelope() -> None:
-    current_work_unit = importlib.import_module("med_autoscience.controllers.current_work_unit")
-
-    work_unit = current_work_unit.build_current_work_unit(
-        current_execution_envelope={
-            "state_kind": "executable_owner_action",
-            "owner": "write",
-            "next_work_unit": "legacy-envelope-work-unit",
-        },
-        blocked_reason="current_work_unit_unresolved",
-        next_owner="write",
-    )
-
-    assert work_unit == {}
 
 
 def test_residual_current_work_unit_projection_does_not_default_owner_without_envelope() -> None:

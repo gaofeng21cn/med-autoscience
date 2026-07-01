@@ -47,24 +47,6 @@ def _non_advancing_step(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _current_work_unit_from_progress(
-    *,
-    progress: Mapping[str, Any],
-    actions: list[Mapping[str, Any]] | None = None,
-    current_executable_owner_action: Mapping[str, Any] | None = None,
-    typed_blocker: Mapping[str, Any] | None = None,
-    next_owner: str | None = None,
-) -> dict[str, Any]:
-    module = importlib.import_module("med_autoscience.controllers.current_work_unit")
-    return module.build_current_work_unit(
-        progress=progress,
-        actions=actions,
-        current_executable_owner_action=current_executable_owner_action,
-        typed_blocker=typed_blocker,
-        next_owner=next_owner,
-    )
-
-
 def _assert_mas_adapter_only(step: Mapping[str, Any]) -> None:
     boundary = step["authority_boundary"]
     assert boundary["mas_can_authorize_provider_admission"] is False
@@ -388,71 +370,21 @@ def test_closeout_stagerun_identity_split_replay_converges_to_one_stable_typed_b
         "consumer/owner_callable_adapter_receipt/sat_cfb833131bfa30d6661c26c2.closeout.json"
     )
 
-    current_work_unit = _current_work_unit_from_progress(
-        progress={
-            "study_id": study_id,
-            "quest_id": study_id,
-            "current_stage": "publication_supervision",
-            "progress_first_monitoring_summary": {
-                "latest_terminal_stage": {
-                    "stage_attempt_id": "sat_cfb833131bfa30d6661c26c2",
-                    "action_type": "run_quality_repair_batch",
-                    "status": "blocked",
-                    "blocked_reason": "stage_packet_not_current_selected_dispatch",
-                    "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
-                    "work_unit_fingerprint": stale_stage_packet_fingerprint,
-                    "stage_name": current_work_unit_id,
-                    "source_path": closeout_ref,
-                    "closeout_refs": [closeout_ref],
-                    "typed_blocker": {
-                        "blocker_type": "stage_packet_not_current_selected_dispatch",
-                        "owner": "one-person-lab",
-                        "action_type": "run_quality_repair_batch",
-                        "required_owner_action": (
-                            "provide or admit a current stage packet for "
-                            f"{current_work_unit_id}/{current_fingerprint}"
-                        ),
-                    },
-                    "domain_execution": {
-                        "blocked_reason": "stage_packet_not_current_selected_dispatch",
-                        "requested_stage_packet_work_unit_id": (
-                            "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
-                        ),
-                        "requested_stage_packet_work_unit_fingerprint": stale_stage_packet_fingerprint,
-                        "fresh_current_control_work_unit_id": current_work_unit_id,
-                        "fresh_current_control_work_unit_fingerprint": current_fingerprint,
-                    },
-                },
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "typed_blocker",
+        "owner": "one-person-lab",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": current_work_unit_id,
+        "work_unit_fingerprint": current_fingerprint,
+        "state": {
+            "source": "dm002_dm003.replay_fixture",
+            "typed_blocker": {
+                "blocker_type": "stage_packet_not_current_selected_dispatch",
+                "typed_blocker_ref": closeout_ref,
             },
         },
-        current_executable_owner_action={
-            "surface_kind": "current_executable_owner_action",
-            "status": "ready",
-            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
-            "next_owner": "write",
-            "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
-            "work_unit_fingerprint": stale_stage_packet_fingerprint,
-            "action_fingerprint": stale_stage_packet_fingerprint,
-            "action_type": "run_quality_repair_batch",
-            "allowed_actions": ["run_quality_repair_batch"],
-        },
-        typed_blocker={
-            "surface_kind": "mas_domain_typed_blocker",
-            "blocker_type": "stage_packet_not_current_selected_dispatch",
-            "blocked_reason": "stage_packet_not_current_selected_dispatch",
-            "owner": "one-person-lab",
-            "action_type": "run_quality_repair_batch",
-            "work_unit_id": current_work_unit_id,
-            "work_unit_fingerprint": stale_stage_packet_fingerprint,
-            "source_ref": closeout_ref,
-            "typed_blocker_ref": closeout_ref,
-            "currentness_basis": {
-                "work_unit_id": current_work_unit_id,
-                "work_unit_fingerprint": stale_stage_packet_fingerprint,
-            },
-        },
-        next_owner="write",
-    )
+    }
     step = _stable_transition_step(
         {
             "study_id": study_id,

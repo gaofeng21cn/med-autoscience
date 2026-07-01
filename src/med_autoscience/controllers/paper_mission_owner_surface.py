@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import current_execution_envelope, current_work_unit, domain_status_projection, study_progress
+from med_autoscience.controllers import current_execution_envelope, domain_status_projection, study_progress
 from med_autoscience.controllers.paper_mission_owner_surface_parts import action_projection, artifact_freshness
 from med_autoscience.controllers.paper_mission_owner_surface_parts import ai_reviewer, canonical_inputs
 from med_autoscience.controllers.paper_mission_owner_surface_parts import block_state as block_state_part, completion_evidence
@@ -772,16 +772,7 @@ def _study_projection(
         ),
     )
     runtime_health = provider_attempt_projection["runtime_health"]
-    current_work_unit_payload = current_work_unit.build_current_work_unit(
-        status=status_payload,
-        progress=progress_payload,
-        actions=actions,
-        owner_route=owner_route,
-        live_provider_attempt=live_provider_attempt,
-        blocked_reason=blocked_reason,
-        next_owner=next_owner,
-        runtime_health=runtime_health,
-    )
+    current_work_unit_payload: dict[str, Any] = {}
     execution_envelope = current_execution_envelope.build_current_execution_envelope(
         status=status_payload,
         progress=progress_payload,

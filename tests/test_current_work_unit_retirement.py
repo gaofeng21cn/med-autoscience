@@ -1,46 +1,26 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 
-def test_current_work_unit_default_selector_is_retired_fail_closed() -> None:
+def test_current_work_unit_builder_is_physically_retired() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_work_unit")
 
-    result = module.build_current_work_unit(
-        actions=[
-            {
-                "action_type": "run_gate_clearing_batch",
-                "owner": "gate_clearing_batch",
-                "work_unit_id": "legacy-gate-replay",
-                "work_unit_fingerprint": "sha256:legacy-gate-replay",
-            }
-        ],
-        blocked_reason="legacy_owner_route_available",
-        next_owner="gate_clearing_batch",
-    )
-
-    assert result == {}
+    assert not hasattr(module, "build_current_work_unit")
 
 
-def test_current_work_unit_does_not_promote_provider_or_envelope_residue() -> None:
-    module = importlib.import_module("med_autoscience.controllers.current_work_unit")
+def test_current_work_unit_active_sources_do_not_call_retired_builder() -> None:
+    root = Path(__file__).resolve().parents[1]
+    offenders = []
+    for path in (root / "src").rglob("*.py"):
+        if path.name == "current_work_unit.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "build_current_work_unit" in text:
+            offenders.append(str(path.relative_to(root)))
 
-    result = module.build_current_work_unit(
-        current_execution_envelope={
-            "state_kind": "executable_owner_action",
-            "owner": "write",
-            "next_work_unit": "legacy-envelope-work-unit",
-        },
-        live_provider_attempt={
-            "status": "running",
-            "work_unit_id": "legacy-provider-attempt",
-        },
-        provider_admission={"status": "ready"},
-        blocked_reason="legacy_running_provider_attempt",
-        next_owner="write",
-    )
-
-    assert result == {}
+    assert offenders == []
 
 
 def test_current_work_unit_typed_blocker_supersession_is_fail_closed() -> None:
