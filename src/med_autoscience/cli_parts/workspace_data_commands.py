@@ -84,6 +84,13 @@ def handle_workspace_data_command(
                 dry_run=bool(args.dry_run),
                 apply=bool(args.apply),
             )
+        elif args.data_lifecycle_command == "finalize-governance":
+            result = data_lifecycle.finalize_governance(
+                workspace_root=Path(args.workspace_root),
+                project_id=str(args.project_id),
+                dry_run=bool(args.dry_run),
+                apply=bool(args.apply),
+            )
         else:
             return None
         _print_json(result)

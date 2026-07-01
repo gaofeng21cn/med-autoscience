@@ -18,6 +18,7 @@ COMPACT_RUNTIME_SURFACE_KIND = "mas_data_lifecycle_runtime_compact_plan"
 ASSET_INDEX_SURFACE_KIND = "mas_data_lifecycle_asset_index"
 COMPACT_STUDY_SURFACE_KIND = "mas_data_lifecycle_study_compact_plan"
 COMPLETED_PROJECT_CLOSEOUT_SURFACE_KIND = "mas_data_lifecycle_completed_project_closeout"
+FINAL_GOVERNANCE_SURFACE_KIND = "mas_data_lifecycle_final_governance"
 _CANDIDATE_LIMIT = 200
 _DATASET_BODY_SKIP = DATASETS_RELPATH.as_posix()
 _CACHE_DIR_NAMES = {".pytest_cache", ".mypy_cache", ".ruff_cache", "__pycache__"}
@@ -25,6 +26,7 @@ _SMALL_FILE_BYTES = 16 * 1024
 _SQLITE_TARGET_PATH = "runtime/index.sqlite"
 _ASSET_INDEX_PATH = "memory/portfolio/data_assets/index.sqlite"
 _STUDY_INDEX_PATH = "studies/index.sqlite"
+_GOVERNANCE_ROOT = "memory/portfolio/data_assets/governance"
 
 
 def inspect_data_lifecycle(*, workspace_root: Path) -> dict[str, Any]:
@@ -264,6 +266,48 @@ def closeout_completed_project(*, workspace_root: Path, project_id: str, dry_run
             "bytes": capsule_path.stat().st_size,
             "json_bytes": capsule_json_path.stat().st_size,
             "physical_delete_performed": False,
+            "source_files_preserved": True,
+        }
+    return payload
+
+
+def finalize_governance(*, workspace_root: Path, project_id: str, dry_run: bool, apply: bool = False) -> dict[str, Any]:
+    if dry_run == apply:
+        raise ValueError("data-lifecycle finalize-governance requires exactly one of --dry-run or --apply")
+    resolved_workspace = Path(workspace_root).expanduser().resolve()
+    generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    refs = _governance_refs(project_id)
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": FINAL_GOVERNANCE_SURFACE_KIND,
+        "workspace_root": str(resolved_workspace),
+        "project_id": project_id,
+        "dry_run": dry_run,
+        "status": "dry_run" if dry_run else "applied",
+        "mutation_policy": {
+            "writes_workspace": apply,
+            "writes_governance_refs_only": apply,
+            "physical_delete_performed": False,
+            "clinical_data_transformation_performed": False,
+            "source_files_preserved": True,
+        },
+        "refs": refs,
+        "governance": _governance_payload(
+            workspace_root=resolved_workspace,
+            project_id=project_id,
+            generated_at=generated_at,
+        ),
+    }
+    if apply:
+        written = _write_governance_refs(
+            workspace_root=resolved_workspace,
+            refs=refs,
+            governance=payload["governance"],
+        )
+        payload["apply_receipt"] = {
+            "written_refs": written,
+            "physical_delete_performed": False,
+            "clinical_data_transformation_performed": False,
             "source_files_preserved": True,
         }
     return payload
@@ -996,6 +1040,118 @@ def _completed_project_capsule_payload(
     }
 
 
+def _governance_refs(project_id: str) -> dict[str, str]:
+    prefix = f"{_GOVERNANCE_ROOT}/{project_id}"
+    return {
+        "study_ttl_pin_audit": f"{prefix}/study_ttl_pin_audit_latest.json",
+        "owner_gated_deletion_receipt": f"{prefix}/owner_gated_deletion_receipt_latest.json",
+        "omop_like_semantic_mapping": f"{prefix}/omop_like_semantic_mapping_latest.json",
+        "sidecar_registry": f"{prefix}/sidecar_registry_latest.json",
+        "ro_crate_metadata": f"{prefix}/ro_crate_metadata_latest.json",
+    }
+
+
+def _governance_payload(*, workspace_root: Path, project_id: str, generated_at: str) -> dict[str, Any]:
+    studies = _study_ttl_pin_records(workspace_root)
+    releases = _dataset_release_records(workspace_root)
+    return {
+        "generated_at": generated_at,
+        "study_ttl_pin_audit": {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "mas_data_lifecycle_study_ttl_pin_audit",
+            "project_id": project_id,
+            "generated_at": generated_at,
+            "study_count": len(studies),
+            "studies": studies,
+            "physical_delete_performed": False,
+        },
+        "owner_gated_deletion_receipt": {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "mas_data_lifecycle_owner_gated_deletion_receipt",
+            "project_id": project_id,
+            "generated_at": generated_at,
+            "status": "not_authorized",
+            "physical_delete_performed": False,
+            "required_before_apply_delete": [
+                "owner_decision_ref",
+                "important_result_reproduction_ref",
+                "study_impact_ref",
+                "post_cleanup_readback_ref",
+            ],
+        },
+        "omop_like_semantic_mapping": {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "mas_data_lifecycle_omop_like_semantic_mapping",
+            "project_id": project_id,
+            "generated_at": generated_at,
+            "status": "mapping_manifest_only",
+            "clinical_data_transformation_performed": False,
+            "stable_keys": ["person_id", "event_date", "site_or_facility", "condition", "medication_exposure"],
+            "recommended_dataset_ref": _DATASET_BODY_SKIP,
+        },
+        "sidecar_registry": {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "mas_data_lifecycle_sidecar_registry",
+            "project_id": project_id,
+            "generated_at": generated_at,
+            "status": "registry_only",
+            "clinical_data_transformation_performed": False,
+            "allowed_sidecar_types": ["parquet", "duckdb"],
+            "release_count": len(releases),
+            "release_refs": [release["workspace_relative_path"] for release in releases],
+        },
+        "ro_crate_metadata": {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "mas_data_lifecycle_ro_crate_metadata",
+            "project_id": project_id,
+            "generated_at": generated_at,
+            "status": "metadata_only",
+            "conforms_to": "RO-Crate-like semantic metadata; not a full RO-Crate package",
+            "dataset_root": _DATASET_BODY_SKIP,
+            "has_part": [release["workspace_relative_path"] for release in releases],
+        },
+    }
+
+
+def _study_ttl_pin_records(workspace_root: Path) -> list[dict[str, Any]]:
+    studies_root = workspace_root / "studies"
+    if not studies_root.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    for study_root in sorted(path for path in studies_root.iterdir() if path.is_dir()):
+        package_refs = [
+            _workspace_ref(workspace_root, path)
+            for path in (study_root / "manuscript").glob("current_package*")
+            if path.exists()
+        ]
+        records.append(
+            {
+                "study_id": study_root.name,
+                "study_ref": _workspace_ref(workspace_root, study_root),
+                "current_package_refs": package_refs,
+                "ttl_required_for_non_current_outputs": True,
+                "milestone_pin_required_for_retention": True,
+                "physical_delete_performed": False,
+            }
+        )
+    return records
+
+
+def _write_governance_refs(
+    *,
+    workspace_root: Path,
+    refs: dict[str, str],
+    governance: dict[str, Any],
+) -> list[str]:
+    written: list[str] = []
+    for key, ref in refs.items():
+        path = workspace_root / ref
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(governance[key], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        written.append(ref)
+    return written
+
+
 def _runtime_index_record(*, workspace_root: Path, candidate: dict[str, Any], indexed_at: str) -> dict[str, Any]:
     relative_path = str(candidate["workspace_relative_path"])
     file_path = workspace_root / relative_path
@@ -1042,6 +1198,7 @@ __all__ = [
     "closeout_data_lifecycle",
     "compact_runtime_lifecycle",
     "compact_study_lifecycle",
+    "finalize_governance",
     "index_data_assets",
     "inspect_data_lifecycle",
 ]

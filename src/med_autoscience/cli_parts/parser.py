@@ -418,6 +418,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     data_lifecycle_completed_project_mode.add_argument("--dry-run", action="store_true")
     data_lifecycle_completed_project_mode.add_argument("--apply", action="store_true")
     data_lifecycle_completed_project_parser.add_argument("--format", choices=("json",), default="json")
+    data_lifecycle_finalize_governance_parser = data_lifecycle_subparsers.add_parser("finalize-governance")
+    data_lifecycle_finalize_governance_parser.add_argument("--workspace-root", required=True)
+    data_lifecycle_finalize_governance_parser.add_argument("--project-id", required=True)
+    data_lifecycle_finalize_governance_mode = data_lifecycle_finalize_governance_parser.add_mutually_exclusive_group(required=True)
+    data_lifecycle_finalize_governance_mode.add_argument("--dry-run", action="store_true")
+    data_lifecycle_finalize_governance_mode.add_argument("--apply", action="store_true")
+    data_lifecycle_finalize_governance_parser.add_argument("--format", choices=("json",), default="json")
 
     manifest_refs_rebuild_parser = subparsers.add_parser("data-asset-manifest-refs-rebuild")
     manifest_refs_rebuild_parser.add_argument("--workspace-root", required=True)

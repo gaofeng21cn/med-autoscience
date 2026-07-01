@@ -757,6 +757,64 @@ def test_data_lifecycle_closeout_completed_project_apply_writes_semantic_capsule
     assert capsule_json["mutation_policy"]["physical_delete_performed"] is False
 
 
+def test_data_lifecycle_finalize_governance_apply_writes_refs_only_without_delete_or_transform(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    dataset_file = workspace_root / "data" / "datasets" / "master" / "v1" / "clinical.csv"
+    dataset_file.parent.mkdir(parents=True)
+    dataset_file.write_text("id,value\n1,2\n", encoding="utf-8")
+    study_note = workspace_root / "studies" / "s1" / "analysis" / "note.json"
+    study_note.parent.mkdir(parents=True)
+    study_note.write_text("{}\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "data-lifecycle",
+            "finalize-governance",
+            "--workspace-root",
+            str(workspace_root),
+            "--project-id",
+            "study_a",
+            "--apply",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "applied"
+    assert payload["mutation_policy"]["physical_delete_performed"] is False
+    assert payload["mutation_policy"]["clinical_data_transformation_performed"] is False
+    assert dataset_file.exists()
+    assert study_note.exists()
+    assert set(payload["refs"]) == {
+        "study_ttl_pin_audit",
+        "owner_gated_deletion_receipt",
+        "omop_like_semantic_mapping",
+        "sidecar_registry",
+        "ro_crate_metadata",
+    }
+    for ref in payload["refs"].values():
+        assert (workspace_root / ref).exists()
+
+    deletion_receipt = json.loads((workspace_root / payload["refs"]["owner_gated_deletion_receipt"]).read_text())
+    semantic_mapping = json.loads((workspace_root / payload["refs"]["omop_like_semantic_mapping"]).read_text())
+    sidecar_registry = json.loads((workspace_root / payload["refs"]["sidecar_registry"]).read_text())
+    ro_crate = json.loads((workspace_root / payload["refs"]["ro_crate_metadata"]).read_text())
+
+    assert deletion_receipt["status"] == "not_authorized"
+    assert deletion_receipt["physical_delete_performed"] is False
+    assert semantic_mapping["status"] == "mapping_manifest_only"
+    assert semantic_mapping["clinical_data_transformation_performed"] is False
+    assert sidecar_registry["status"] == "registry_only"
+    assert sidecar_registry["clinical_data_transformation_performed"] is False
+    assert ro_crate["status"] == "metadata_only"
+
+
 def test_data_lifecycle_inspect_classifies_current_package_zip_as_exchange(
     tmp_path: Path,
     capsys,
