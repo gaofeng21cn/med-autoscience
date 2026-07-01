@@ -50,20 +50,24 @@
       "gate_id": "single_default_recovery_and_progress_root",
       "required_status": "satisfied",
       "source_of_truth": [
+        "canonical StageOutcome -> NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json",
         "contracts/stage_route_reconcile_contract.json",
         "fresh study_progress and domain diagnostic dry-run for live studies"
       ],
       "requires": [
-        "ordinary progress root is current_owner_delta",
-        "paper recovery root is paper_recovery_state",
-        "study_progress, domain diagnostic provider admission, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection derive from the authority root",
-        "queue, active_run_id, transport status, operator card, parked runtime, docs-only claim, and stale dispatch are audit-only unless adopted by an owner answer"
+        "ordinary progress and recovery default authority is canonical StageOutcome -> NextActionEnvelope",
+        "current_owner_delta, current_work_unit, and paper_recovery_state are diagnostic/provenance projections only and cannot select the default next action",
+        "study_progress, domain diagnostic provider-admission drilldown, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection must derive from the canonical envelope or show diagnostic/no-resurrection context",
+        "queue, active_run_id, transport status, operator card, parked runtime, docs-only claim, stale dispatch, PaperRecovery residue, and current_work_unit residue are audit-only unless consumed by MAS owner evidence on the same envelope identity"
       ],
       "cannot_be_satisfied_by": [
         "old action queue empty",
         "active_run_id present or absent",
         "provider completion",
+        "PaperRecovery paper_recovery_state alone",
+        "current_work_unit or current_owner_delta alone",
+        "provider admission candidate not bound to StageOutcome -> NextActionEnvelope",
         "domain diagnostic observe_only report",
         "operator card wording"
       ]

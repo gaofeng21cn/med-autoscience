@@ -3,8 +3,8 @@
   "version": "paper-recovery-kernel.v1",
   "owner": "MedAutoScience",
   "state": "active_contract",
-  "purpose": "Machine-readable contract for the MAS PaperRecovery diagnostic recovery kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary.",
-  "machine_boundary": "This contract defines PaperRecovery recovery-obligation truth, diagnostic projection invariants, and replay acceptance only. It is not default next-action authority, cannot generate or replace a NextActionEnvelope, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
+  "purpose": "Machine-readable contract for the MAS PaperRecovery diagnostic recovery kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary after canonical StageOutcome -> NextActionEnvelope selection.",
+  "machine_boundary": "This contract defines PaperRecovery diagnostic/provenance projection invariants and replay acceptance only. It is not default next-action authority, cannot generate or replace a NextActionEnvelope or StageOutcome, cannot authorize provider admission or completion, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
   "source_design_ref": "docs/runtime/control/paper_recovery_replay.md",
   "related_contract_refs": [
     "contracts/stage_route_reconcile_contract.json",
@@ -20,7 +20,12 @@
     "canonical_state_owner": "MedAutoScience",
     "default_next_action_authority": false,
     "next_action_authority": "NextActionEnvelope",
+    "stage_outcome_to_next_action_authority": "StageOutcome -> NextActionEnvelope",
     "diagnostic_role": "recovery_obligation_provenance_only",
+    "provider_admission_authority": false,
+    "completion_authority": false,
+    "current_work_unit_authority": "diagnostic_provenance_only",
+    "current_owner_delta_authority": "diagnostic_provenance_only",
     "execution_substrate_owner": "OPL Framework",
     "projection_consumers": [
       "study_progress",
@@ -64,6 +69,8 @@
       "obligation_kind",
       "current_owner_delta_ref",
       "current_work_unit_identity",
+      "stage_outcome_ref",
+      "next_action_envelope_ref",
       "acceptance_refs_any",
       "forbidden_authority_claims"
     ],
@@ -260,6 +267,7 @@
     "recovery_obligation_kernel_interface": {
       "surface_kind": "paper_recovery_obligation_kernel_interface",
       "module_role": "single_authority_decision_root_for_recovery_obligation",
+      "authority_role": "diagnostic_no_resurrection_projection_after_stage_outcome_next_action_envelope",
       "input_families": [
         "mas_owner_evidence",
         "opl_execution_observation",
@@ -299,15 +307,32 @@
         "treat_read_model_refresh_as_domain_progress",
         "same_obligation_redrive_without_new_evidence"
       ],
+      "additional_no_resurrection_forbidden_behaviors": [
+        "derive_default_next_action_from_paper_recovery_state",
+        "derive_provider_admission_authority_from_current_work_unit",
+        "derive_completion_from_current_owner_delta"
+      ],
       "migration_sequence": [
         "introduce_pure_kernel_decision_fixture",
         "route_current_work_unit_and_domain_diagnostic_provider_admission_through_kernel_output",
         "route_domain_handler_export_through_kernel_admission_output",
         "retire_duplicate_projection_precedence_logic"
       ],
+      "canonical_migration_target": [
+        "route_current_work_unit_and_domain_diagnostic_provider_admission_to_next_action_envelope_then_project_kernel_output_as_diagnostic",
+        "route_domain_handler_export_through_next_action_envelope_identity_and_use_kernel_output_as_no_resurrection_guard"
+      ],
       "same_write_set_boundary": "implementation_must_not_overlap_live_recovery_reducer_or_provider_admission_lanes_without_fresh_owner"
     },
     "next_safe_action_authority_boundary": {
+      "canonical_rule": {
+        "meaning": "Default next action, provider-admission eligibility, and completion judgment must come from canonical StageOutcome -> NextActionEnvelope plus same-identity OPL receipt/MAS owner consumption. PaperRecovery, current_work_unit, and current_owner_delta can only explain diagnostics, provenance, and no-resurrection guards.",
+        "paper_recovery_can_select_next_action": false,
+        "paper_recovery_can_authorize_provider_admission": false,
+        "paper_recovery_can_claim_completion": false,
+        "current_work_unit_can_select_next_action": false,
+        "current_owner_delta_can_claim_completion": false
+      },
       "materialize_mas_transition_request_or_owner_callable": {
         "meaning": "MAS may emit domain policy intent or run a MAS owner callable; OPL owns command/event/outbox/StageRun materialization.",
         "mas_can_create_opl_outbox_record": false,
@@ -322,10 +347,18 @@
         "non_advancing_apply_is_typed_blocker": true
       },
       "admit_provider_attempt": {
-        "meaning": "Legacy alias retained only for historical contract compatibility; current MAS recovery state should use consume_opl_provider_admission_readback.",
+        "meaning": "Legacy action name retained only for historical contract compatibility and diagnostic replay; current MAS recovery state must use StageOutcome -> NextActionEnvelope and same-identity OPL readback before any provider-admission interpretation.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_admission": false,
-        "provider_completion_is_domain_completion": false
+        "provider_completion_is_domain_completion": false,
+        "default_next_action_authority": false
+      },
+      "admit_identity_bound_stage_packet": {
+        "meaning": "Legacy action name retained only for diagnostic replay; an identity-bound stage packet is not admitted from PaperRecovery/current_work_unit and requires canonical NextActionEnvelope plus OPL transition authority.",
+        "mas_can_create_opl_outbox_record": false,
+        "mas_can_authorize_provider_admission": false,
+        "provider_completion_is_domain_completion": false,
+        "default_next_action_authority": false
       },
       "consume_opl_provider_admission_readback": {
         "meaning": "A complete same-transition OPL provider-admission runtime readback exists; MAS may consume the derived projection but cannot authorize or start provider attempts.",
@@ -435,7 +468,9 @@
   },
   "authority_boundaries": {
     "mas_authority": [
+      "StageOutcome -> NextActionEnvelope default next-action authority",
       "PaperRecovery recovery obligation and paper_recovery_state diagnostic truth",
+      "PaperRecovery recovery obligation and paper_recovery_state diagnostic/provenance projection only",
       "recovery_obligation_id selection",
       "current owner delta",
       "owner receipt",
@@ -456,6 +491,7 @@
     "derived_surfaces_must_read_from_paper_recovery": [
       "study_progress",
       "domain diagnostic provider admission",
+      "domain diagnostic provider-admission drilldown",
       "operator_status_card",
       "intervention_lane",
       "operator_verdict",
@@ -464,8 +500,10 @@
       "autonomy_contract",
       "user_visible_projection",
       "OPL admission",
+      "OPL admission diagnostic projection",
       "human workbench card"
     ],
+    "derived_surfaces_may_project_paper_recovery_as_diagnostic_only": true,
     "opl_false_authority_flags": {
       "opl_can_select_recovery_obligation": false,
       "opl_can_mark_paper_progress": false,
@@ -478,11 +516,18 @@
       "transport_status_can_create_current_obligation": false,
       "operator_card_can_be_source_of_truth": false
     },
+    "additional_false_authority_flags": {
+      "current_work_unit_can_authorize_provider_admission": false,
+      "current_owner_delta_can_claim_completion": false
+    },
     "forbidden_authority_claims": [
       "OPL execution substrate owns PaperRecovery",
       "PaperRecovery is default next-action authority",
+      "PaperRecovery authorizes provider admission or completion",
       "paper_recovery_state can generate or replace NextActionEnvelope",
+      "current_work_unit or current_owner_delta selects the default next action",
       "study_progress derives paper recovery independently from PaperRecovery",
+      "study_progress derives paper recovery independently from StageOutcome -> NextActionEnvelope",
       "domain diagnostic observe_only alone creates pending recovery execution",
       "operator card status is recovery truth",
       "provider terminal completion is MAS acceptance",
