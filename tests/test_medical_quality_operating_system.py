@@ -65,7 +65,19 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "invalid_or_corrected_analysis_history_as_main_story"
         in draft_contract["manuscript_native_prose"]["forbidden_modes"]
     )
+    assert (
+        "authoring_strategy_or_workflow_status_sentence"
+        in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    )
+    assert (
+        "submission_metadata_gap_in_article_body"
+        in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    )
     assert "invalid_analysis_history_rule" in draft_contract["manuscript_native_prose"]
+    assert (
+        "calendar enrollment period is not promoted"
+        in draft_contract["manuscript_native_prose"]["registry_article_body_rule"]
+    )
     prose_contract = draft_contract["medical_prose_style_contract"]
     assert prose_contract["style_profile_id"] == "general_medical_journal_prose_v1"
     assert prose_contract["target_voice"] == "neutral_clinical_original_research"
@@ -115,6 +127,34 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "policy_id": "medical_publication_critique_v1",
         "ai_reviewer_required": False,
     }
+
+
+def test_first_draft_contract_hardens_descriptive_registry_manuscripts() -> None:
+    module = importlib.import_module(
+        "med_autoscience.policies.medical_manuscript_draft_quality"
+    )
+
+    contract = module.build_first_draft_manuscript_quality_contract(
+        guideline_family="STROBE",
+        manuscript_family="phenotype_atlas",
+    )
+    registry_contract = contract["descriptive_registry_first_draft_contract"]
+    required = " ".join(registry_contract["required_before_first_full_draft"])
+    figure_rules = " ".join(registry_contract["figure_language_rules"])
+    obligations = " ".join(contract["first_draft_generation_model"]["writer_obligations"])
+
+    assert registry_contract["applies_to_current_manuscript_family"] is True
+    for expected in (
+        "enrollment_window_or_source_specific_data_windows",
+        "analytic_data_lock_or_export_date",
+        "ethics_approval_consent_or_waiver_and_deidentification",
+        "diagnostic_variable_ascertainment_table",
+        "source_specific_missingness_or_variable_availability_atlas",
+    ):
+        assert expected in required
+    assert "burden/prevalence" in figure_rules
+    assert "diagnostic variable ascertainment" in obligations
+    assert "unresolved facts belong in checklist" in registry_contract["if_missing"]
 
 
 def test_quality_os_selects_ai_guidelines_without_record_overlay_when_not_rwd() -> None:

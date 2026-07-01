@@ -608,16 +608,29 @@ def build_first_draft_manuscript_quality_contract(
                 "figure_self_explanation_paragraph",
                 "analysis_or_controller_jargon",
                 "claim_boundary_meta_language_in_body",
+                "authoring_strategy_or_workflow_status_sentence",
+                "tool_or_renderer_pipeline_disclosure",
+                "submission_metadata_gap_in_article_body",
+                "manuscript_self_evaluation_conclusion",
                 "invalid_or_corrected_analysis_history_as_main_story",
             ],
             "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
             "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
+            "registry_article_body_rule": (
+                "do not write phrases such as calendar enrollment period is not promoted, this restriction is intentional, "
+                "submission metadata remain incomplete, TRIPOD is cited only as a boundary reference, or the manuscript has "
+                "a defensible clinical story in manuscript body text; replace them with verified methods/results language "
+                "or route unresolved facts to checklist, handoff, typed blocker, or human gate surfaces"
+            ),
             "invalid_analysis_history_rule": (
                 "do not turn data-processing mistakes, contaminated runs, raw-scale debug outputs, or corrected "
                 "invalid analyses into the manuscript's main Results or Discussion story; retain them in provenance, "
                 "handoff, or a minimal methods caveat only when reproducibility requires it"
             ),
         },
+        "descriptive_registry_first_draft_contract": _descriptive_registry_first_draft_contract(
+            manuscript_family
+        ),
         "medical_prose_style_contract": build_medical_prose_style_contract(),
         "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
         "pre_draft_writing_readiness_contract": build_pre_draft_writing_readiness_contract(),
@@ -643,6 +656,8 @@ def build_first_draft_manuscript_quality_contract(
                 "write the main scientific story from the cleaned valid evidence rather than from corrected data-processing errors or debug history",
                 "write figure legends as reader interpretation aids rather than reviewer instructions",
                 "keep Figure Legends to a concise title plus compact explanation by default; do not dump figure_semantics_manifest discussion, clinical implications, interpretation boundaries, or threshold caveats into the legend",
+                "for descriptive registry or phenotype-atlas manuscripts, write Methods as completed study methods with enrollment/data lock, ethics/consent, inclusion/exclusion, diagnostic variable ascertainment, age/BMI applicability, and missingness handling whenever evidence exists",
+                "for descriptive registry figures, avoid burden/prevalence titles unless the design supports population inference; prefer recorded/populated fields with visible denominators and missingness",
                 "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
                 "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
             ],
@@ -655,6 +670,54 @@ def build_first_draft_manuscript_quality_contract(
             "paper/claim_evidence_map.json",
             "paper/evidence_ledger.json",
             "paper/review_ledger.json",
+        ],
+    }
+
+
+def _descriptive_registry_first_draft_contract(
+    manuscript_family: str | None,
+) -> dict[str, Any]:
+    applies = (
+        str(manuscript_family or "").strip().lower()
+        in {
+            "registry",
+            "clinical_registry",
+            "descriptive_registry",
+            "descriptive_atlas",
+            "phenotype_atlas",
+            "observational_registry",
+            "real_world_registry",
+        }
+    )
+    return {
+        "surface": "descriptive_registry_first_draft_contract",
+        "applies_by_default_to": [
+            "registry",
+            "observational registry",
+            "real-world registry",
+            "descriptive phenotype atlas",
+        ],
+        "applies_to_current_manuscript_family": applies,
+        "required_before_first_full_draft": [
+            "enrollment_window_or_source_specific_data_windows",
+            "analytic_data_lock_or_export_date",
+            "inclusion_exclusion_flow_with_final_denominator",
+            "ethics_approval_consent_or_waiver_and_deidentification",
+            "funding_competing_interests_and_data_availability_surfaces",
+            "BMI_calculation_and_adult_child_applicability_standard",
+            "age_distribution_and_adult_only_or_age_stratified_sensitivity_plan_when_cutoffs_are_age_dependent",
+            "diagnostic_variable_ascertainment_table",
+            "source_specific_missingness_or_variable_availability_atlas",
+            "display_to_claim_map_with_denominators_missingness_and_source_composition",
+        ],
+        "if_missing": (
+            "unresolved facts belong in checklist, handoff, route-back, typed blocker, or human gate surfaces; "
+            "do not put unresolved authoring or metadata workflow language into the manuscript body"
+        ),
+        "figure_language_rules": [
+            "avoid burden/prevalence wording; use recorded/populated diagnostic fields unless population inference is design-supported",
+            "caption only variables that appear in the figure",
+            "show n/N, denominator, missingness, or source composition when those quantities drive the claim",
         ],
     }
 
