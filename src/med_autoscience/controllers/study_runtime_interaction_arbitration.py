@@ -41,6 +41,22 @@ def _has_structured_reply_schema(reply_schema: dict[str, Any]) -> bool:
     return True
 
 
+def _canonical_next_action_bound(domain_transition: dict[str, Any]) -> bool:
+    next_action = domain_transition.get("next_action")
+    if not isinstance(next_action, dict):
+        next_action = domain_transition.get("next_action_envelope")
+    if not isinstance(next_action, dict):
+        return False
+    if _text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return False
+    identity = next_action.get("identity") if isinstance(next_action.get("identity"), dict) else next_action
+    return (
+        _text(identity.get("action_family")) is not None
+        and _text(identity.get("work_unit_id")) is not None
+        and _text(identity.get("work_unit_fingerprint")) is not None
+    )
+
+
 def _invalid_decision_request_note(
     *,
     kind: str | None,
@@ -221,6 +237,8 @@ def arbitrate_waiting_for_user(
 def _domain_transition_arbitration(domain_transition: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(domain_transition, dict):
         return None
+    if not _canonical_next_action_bound(domain_transition):
+        return None
     decision_type = _text(domain_transition.get("decision_type"))
     if decision_type is None:
         return None
@@ -361,7 +379,7 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
     if closeout_path is None and next_owner is None:
         return None
     owner_token = _owner_token(next_owner)
-    if owner_token in _CALLABLE_OWNER_TOKENS or owner_token.startswith("mas/controller "):
+    if owner_token in _CALLABLE_OWNER_TOKENS or owner_token == "mas/controller" or owner_token.startswith("mas/controller "):
         return {
             "classification": "blocked_closeout_owner_redrive",
             "action": "resume",

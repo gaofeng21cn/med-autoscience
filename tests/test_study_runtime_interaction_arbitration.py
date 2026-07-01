@@ -18,6 +18,15 @@ def _invalid_blocking_payload() -> dict[str, object]:
     }
 
 
+def _canonical_next_action() -> dict[str, object]:
+    return {
+        "surface_kind": "mas_next_action_envelope",
+        "action_family": "runtime.opl_route",
+        "work_unit_id": "canonical-owner-work",
+        "work_unit_fingerprint": "sha256:canonical-owner-work",
+    }
+
+
 def test_arbitrate_waiting_for_user_rejects_invalid_blocking_progress_under_autonomous_policy() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
 
@@ -298,6 +307,7 @@ def test_arbitrate_waiting_for_user_respects_delivered_package_oracle_over_block
             "next_owner": "MAS/controller",
         },
         domain_transition={
+            "next_action": _canonical_next_action(),
             "decision_type": "delivered_package_handoff",
             "route_target": "human_gate",
             "controller_action": "wait_for_human_gate",
@@ -335,6 +345,7 @@ def test_arbitrate_waiting_for_user_respects_human_gate_oracle_over_auto_resume(
             "work_unit_fingerprint": "fingerprint-human-gate",
         },
         domain_transition={
+            "next_action": _canonical_next_action(),
             "decision_type": "human_gate",
             "route_target": "human_gate",
             "controller_action": "wait_for_human_gate",
@@ -364,6 +375,7 @@ def test_arbitrate_waiting_for_user_respects_stop_loss_oracle_over_runtime_redri
             "pending_user_message_count": 0,
         },
         domain_transition={
+            "next_action": _canonical_next_action(),
             "decision_type": "stop_loss",
             "route_target": "stop",
             "controller_action": "stop_runtime",
@@ -403,6 +415,7 @@ def test_arbitrate_waiting_for_user_routes_publication_blocker_as_oracle_blocker
             "current_required_action": "complete_bundle_stage",
         },
         domain_transition={
+            "next_action": _canonical_next_action(),
             "decision_type": "publication_gate_blocker",
             "route_target": "review",
             "controller_action": "run_gate_clearing_batch",
@@ -431,6 +444,7 @@ def test_arbitrate_waiting_for_user_routes_ai_reviewer_re_eval_as_oracle_redrive
         decision_policy="autonomous",
         submission_metadata_only=False,
         domain_transition={
+            "next_action": _canonical_next_action(),
             "decision_type": "ai_reviewer_re_eval",
             "route_target": "review",
             "controller_action": "return_to_ai_reviewer_workflow",
@@ -448,3 +462,23 @@ def test_arbitrate_waiting_for_user_routes_ai_reviewer_re_eval_as_oracle_redrive
     assert result["valid_blocking"] is False
     assert result["domain_transition_decision_type"] == "ai_reviewer_re_eval"
     assert result["next_work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+
+
+def test_arbitrate_waiting_for_user_ignores_legacy_domain_transition_without_next_action() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        domain_transition={
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {"unit_id": "ai_reviewer_medical_prose_quality_review"},
+        },
+    )
+
+    assert result["classification"] == "unclassified_waiting_state"
+    assert result["reason_code"] == "missing_pending_interaction_payload"
+    assert result["kind"] is None
