@@ -52,6 +52,7 @@ def latest_paper_mission_consumption_route_handoff(
             (
                 _candidate_external_delta_priority(
                     text(handoff.get("candidate_ref")),
+                    workspace_root=workspace_root,
                 ),
                 mtime,
                 _paper_mission_handoff_timestamp_key(handoff_ref),
@@ -105,21 +106,38 @@ def _paper_mission_handoff_timestamp_key(handoff_ref: Path) -> str:
     return ""
 
 
-def _candidate_external_delta_priority(candidate_ref: str | None) -> int:
+def _candidate_external_delta_priority(
+    candidate_ref: str | None,
+    *,
+    workspace_root: Path,
+) -> int:
     if not candidate_ref:
         return 0
     try:
-        payload = json.loads(Path(candidate_ref).read_text(encoding="utf-8"))
+        payload = json.loads(
+            _candidate_manifest_path(candidate_ref, workspace_root).read_text(
+                encoding="utf-8"
+            )
+        )
     except (OSError, json.JSONDecodeError):
         return 0
     manifest = mapping(payload)
     delta = mapping(manifest.get("paper_facing_candidate_delta"))
     return int(
         bool(
-            text(manifest.get("adopted_external_paper_delta_ref"))
+            text(manifest.get("milestone_kind")) == "reviewer_revision_candidate"
+            or text(manifest.get("paper_facing_candidate_delta_ref"))
+            or text(manifest.get("adopted_external_paper_delta_ref"))
             or text(delta.get("adopted_external_paper_delta_ref"))
         )
     )
+
+
+def _candidate_manifest_path(candidate_ref: str, workspace_root: Path) -> Path:
+    path = Path(candidate_ref).expanduser()
+    if path.is_absolute():
+        return path
+    return workspace_root.expanduser().resolve() / path
 
 
 def _valid_paper_mission_consumption_route_handoff(

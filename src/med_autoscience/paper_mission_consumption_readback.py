@@ -39,6 +39,7 @@ def latest_paper_mission_consumption_transaction_readback(
         except OSError:
             mtime = 0.0
         paper_facing_delta_priority = _candidate_paper_facing_delta_priority(
+            workspace_root=workspace_root,
             candidate_ref=_text(readback.get("candidate_ref")),
             consume_result=_mapping(readback.get("consume_record")).get(
                 "consume_result"
@@ -50,6 +51,7 @@ def latest_paper_mission_consumption_transaction_readback(
                 mtime if paper_facing_delta_priority else 0.0,
                 _candidate_external_delta_priority(
                     _text(readback.get("candidate_ref")),
+                    workspace_root=workspace_root,
                 ),
                 mtime if not paper_facing_delta_priority else 0.0,
                 _ledger_timestamp_key(consume_record_ref),
@@ -453,10 +455,14 @@ def _ledger_timestamp_key(path: Path) -> str:
     return ""
 
 
-def _candidate_external_delta_priority(candidate_ref: str | None) -> int:
+def _candidate_external_delta_priority(
+    candidate_ref: str | None,
+    *,
+    workspace_root: Path,
+) -> int:
     if not candidate_ref:
         return 0
-    manifest = _read_json_object(Path(candidate_ref))
+    manifest = _read_json_object(_candidate_manifest_path(candidate_ref, workspace_root))
     delta = _mapping(manifest.get("paper_facing_candidate_delta"))
     return int(
         bool(
@@ -468,6 +474,7 @@ def _candidate_external_delta_priority(candidate_ref: str | None) -> int:
 
 def _candidate_paper_facing_delta_priority(
     *,
+    workspace_root: Path,
     candidate_ref: str | None,
     consume_result: object,
 ) -> int:
@@ -475,7 +482,9 @@ def _candidate_paper_facing_delta_priority(
         return 1
     if not candidate_ref:
         return 0
-    manifest = _read_json_object(Path(candidate_ref))
+    manifest = _read_json_object(_candidate_manifest_path(candidate_ref, workspace_root))
+    if _text(manifest.get("milestone_kind")) == "reviewer_revision_candidate":
+        return 1
     if _text(manifest.get("paper_facing_candidate_delta_ref")):
         return 1
     delta = _mapping(manifest.get("paper_facing_candidate_delta"))
@@ -485,6 +494,13 @@ def _candidate_paper_facing_delta_priority(
             or _text(delta.get("source_paper_facing_delta_ref"))
         )
     )
+
+
+def _candidate_manifest_path(candidate_ref: str, workspace_root: Path) -> Path:
+    path = Path(candidate_ref).expanduser()
+    if path.is_absolute():
+        return path
+    return workspace_root.expanduser().resolve() / path
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:

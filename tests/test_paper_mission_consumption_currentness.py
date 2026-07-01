@@ -179,6 +179,54 @@ def test_consumption_currentness_prefers_newer_paper_facing_delta_over_old_exter
     )
 
 
+def test_consumption_currentness_prefers_reviewer_revision_over_old_submission_candidate(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    old_submission_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260701T045145Z_manuscript_volume_clinical_figures_submit",
+        transaction_ref="paper-mission-transaction::obesity::submission-candidate",
+        fingerprint="fingerprint::obesity::submission-candidate",
+        paper_facing_delta_ref="/workspace/obesity/submission/paper_facing_delta.json",
+    )
+    reviewer_revision_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="20260701T1425Z_external_sci_registry_review",
+        transaction_ref="paper-mission-transaction::obesity::reviewer-revision",
+        fingerprint="fingerprint::obesity::reviewer-revision",
+        milestone_kind="reviewer_revision_candidate",
+        relative_candidate_ref=True,
+    )
+    os.utime(old_submission_record, (2_000_000_000, 2_000_000_000))
+    os.utime(reviewer_revision_record, (3_000_000_000, 3_000_000_000))
+
+    readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+    handoff = latest_paper_mission_consumption_route_handoff(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+
+    assert readback["source_ref"] == str(reviewer_revision_record)
+    assert readback["candidate_ref"] == str(
+        Path("ops")
+        / "medautoscience"
+        / "paper_mission_candidate_package"
+        / "20260701T1425Z_external_sci_registry_review"
+        / study_id
+        / "package_manifest.json"
+    )
+    assert handoff["source_ref"] == str(
+        reviewer_revision_record.parent / "opl_route_handoff.json"
+    )
+
+
 def test_consumption_ledger_timestamp_keys_accept_z_run_ids(tmp_path: Path) -> None:
     z_run_path = (
         tmp_path
@@ -305,6 +353,8 @@ def _write_ledger(
     fingerprint: str,
     external_delta_ref: str | None = None,
     paper_facing_delta_ref: str | None = None,
+    milestone_kind: str | None = None,
+    relative_candidate_ref: bool = False,
 ) -> Path:
     ledger_root = (
         workspace_root
@@ -322,11 +372,26 @@ def _write_ledger(
         fingerprint=fingerprint,
     )
     carrier = paper_mission_opl_runtime_carrier(transaction)
+    candidate_manifest = ledger_root / "package_manifest.json"
+    if relative_candidate_ref:
+        candidate_manifest = (
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_candidate_package"
+            / run_id
+            / study_id
+            / "package_manifest.json"
+        )
+        candidate_manifest.parent.mkdir(parents=True, exist_ok=True)
+    candidate_ref = candidate_manifest
+    if relative_candidate_ref:
+        candidate_ref = candidate_ref.relative_to(workspace_root)
     consume_record = {
         "surface_kind": "mas_paper_mission_candidate_consumption_record",
         "schema_version": 1,
         "study_id": study_id,
-        "candidate_ref": str(ledger_root / "package_manifest.json"),
+        "candidate_ref": str(candidate_ref),
         "candidate_id": f"candidate::{run_id}",
         "status": "accepted_candidate",
         "selected_outcome": "accepted_candidate",
@@ -355,7 +420,7 @@ def _write_ledger(
         "schema_version": 1,
         "study_id": study_id,
         "mission_id": transaction["mission_id"],
-        "candidate_ref": str(ledger_root / "package_manifest.json"),
+        "candidate_ref": str(candidate_ref),
         "handoff_status": "ready_for_opl_route_command",
         "next_owner": "mission_executor",
         "paper_mission_transaction_ref": transaction_ref,
@@ -379,9 +444,10 @@ def _write_ledger(
         json.dumps(consume_record),
         encoding="utf-8",
     )
-    (ledger_root / "package_manifest.json").write_text(
+    candidate_manifest.write_text(
         json.dumps(
             {
+                "milestone_kind": milestone_kind,
                 "adopted_external_paper_delta_ref": external_delta_ref,
                 "paper_facing_candidate_delta_ref": paper_facing_delta_ref,
             }
@@ -397,7 +463,7 @@ def _write_ledger(
             {
                 "surface_kind": "mas_paper_mission_stage_terminal_decision_packet",
                 "study_id": study_id,
-                "candidate_ref": str(ledger_root / "package_manifest.json"),
+                "candidate_ref": str(candidate_ref),
                 "paper_mission_transaction_ref": transaction_ref,
                 "stage_terminal_decision_ref": f"{transaction_ref}#stage_terminal_decision",
                 "transaction_state": transaction["stage_terminal_decision"]["status"],
@@ -413,7 +479,7 @@ def _write_ledger(
             {
                 "surface_kind": "mas_paper_mission_opl_route_command_packet",
                 "study_id": study_id,
-                "candidate_ref": str(ledger_root / "package_manifest.json"),
+                "candidate_ref": str(candidate_ref),
                 "paper_mission_transaction_ref": transaction_ref,
                 "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
                 "opl_route_command": transaction["opl_route_command"],
