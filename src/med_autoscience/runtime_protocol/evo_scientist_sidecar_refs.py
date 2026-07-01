@@ -50,6 +50,23 @@ _FORBIDDEN_WRITE_SURFACES = (
     "control/current_owner_delta.json",
 )
 
+_AUTHORITY_EFFECT = "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+
+
+def diagnostic_ref_boundary() -> dict[str, bool | str]:
+    return {
+        "diagnostic_only": True,
+        "refs_only": True,
+        "authority_effect": _AUTHORITY_EFFECT,
+        "can_select_next_action": False,
+        "can_generate_default_next_action": False,
+        "can_generate_current_owner": False,
+        "can_generate_owner_receipt": False,
+        "can_generate_typed_blocker": False,
+        "can_generate_paper_progress": False,
+        "can_authorize_provider_admission": False,
+    }
+
 
 def build_evo_scientist_sidecar_execution_surface() -> dict[str, Any]:
     return {
@@ -72,6 +89,7 @@ def build_evo_scientist_sidecar_execution_surface() -> dict[str, Any]:
         "latest_ref": str(LATEST_REF),
         "observation_ref_glob": str(OBSERVATIONS_DIR / "*.json"),
         "refs_only_state_index_family": "evo_scientist_sidecar_ref",
+        **diagnostic_ref_boundary(),
         "implemented_launch_points": [
             "after_current_owner_delta_materialized",
             "after_executor_turn_or_subagent_completion_via_cli",
@@ -150,13 +168,14 @@ def write_evo_scientist_sidecar_observation(
         if apply and observation_path.exists():
             existing = _read_json_object(observation_path)
             if existing.get("surface_kind") == SURFACE_KIND:
+                existing = _with_diagnostic_ref_boundary(existing)
                 written_refs = _sync_latest_ref_if_needed(
                     latest_path=latest_path,
                     observation=existing,
                     latest_ref=str(LATEST_REF),
                 )
                 return {
-                    **existing,
+                    **_with_diagnostic_ref_boundary(existing),
                     "apply": True,
                     "write_status": (
                         "latest_ref_refreshed" if written_refs else "existing_ref_reused"
@@ -200,6 +219,7 @@ def read_latest_evo_scientist_sidecar_projection(*, study_root: Path) -> dict[st
             "status": "absent",
             "study_root": str(resolved_study_root),
             "latest_ref": str(LATEST_REF),
+            **diagnostic_ref_boundary(),
             "nonblocking_contract": _nonblocking_contract(),
             "authority_boundary": _authority_boundary(),
         }
@@ -213,6 +233,7 @@ def read_latest_evo_scientist_sidecar_projection(*, study_root: Path) -> dict[st
             "study_root": str(resolved_study_root),
             "latest_ref": str(LATEST_REF),
             "diagnostic": {"exception_type": type(exc).__name__, "message": str(exc)},
+            **diagnostic_ref_boundary(),
             "nonblocking_contract": _nonblocking_contract(),
             "authority_boundary": _authority_boundary(),
         }
@@ -222,7 +243,8 @@ def read_latest_evo_scientist_sidecar_projection(*, study_root: Path) -> dict[st
         "status": "available",
         "study_root": str(resolved_study_root),
         "latest_ref": str(LATEST_REF),
-        "observation": _mapping(payload),
+        **diagnostic_ref_boundary(),
+        "observation": _with_diagnostic_ref_boundary(_mapping(payload)),
         "nonblocking_contract": _nonblocking_contract(),
         "authority_boundary": _authority_boundary(),
     }
@@ -287,6 +309,7 @@ def _build_recorded_observation(
         "authority_boundary": _authority_boundary(),
         "forbidden_write_surfaces": list(_FORBIDDEN_WRITE_SURFACES),
         "payload_role": "refs_only_observation",
+        **diagnostic_ref_boundary(),
         "body_included": False,
         "counts_as_paper_progress": False,
         "counts_as_owner_answer": False,
@@ -345,6 +368,7 @@ def _skipped_projection(
         "nonblocking_contract": _nonblocking_contract(),
         "authority_boundary": _authority_boundary(),
         "forbidden_write_surfaces": list(_FORBIDDEN_WRITE_SURFACES),
+        **diagnostic_ref_boundary(),
         "body_included": False,
         "counts_as_paper_progress": False,
         "counts_as_owner_answer": False,
@@ -364,8 +388,9 @@ def _nonblocking_contract() -> dict[str, bool]:
     }
 
 
-def _authority_boundary() -> dict[str, bool]:
+def _authority_boundary() -> dict[str, bool | str]:
     return {
+        **diagnostic_ref_boundary(),
         "can_write_domain_truth": False,
         "can_write_publication_eval": False,
         "can_write_controller_decisions": False,
@@ -382,6 +407,10 @@ def _authority_boundary() -> dict[str, bool]:
         "can_close_quality_gate": False,
         "can_close_stage": False,
     }
+
+
+def _with_diagnostic_ref_boundary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {**dict(payload), **diagnostic_ref_boundary()}
 
 
 def _has_observable_input(event: Mapping[str, Any]) -> bool:
@@ -470,6 +499,7 @@ __all__ = [
     "SURFACE_KIND",
     "WRITER_REF",
     "build_evo_scientist_sidecar_execution_surface",
+    "diagnostic_ref_boundary",
     "observe_current_owner_payload",
     "read_latest_evo_scientist_sidecar_projection",
     "write_evo_scientist_sidecar_observation",

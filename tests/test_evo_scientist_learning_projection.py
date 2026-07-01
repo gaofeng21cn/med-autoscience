@@ -54,6 +54,16 @@ def test_evo_scientist_learning_projection_absorbs_progress_accelerators_only() 
     assert absorbed["attempt_budget_stop_loss"]["authority"] == "route_hint_not_attempt_hard_stop"
 
     boundary = projection["ordinary_progress_boundary"]
+    assert boundary["diagnostic_only"] is True
+    assert boundary["refs_only"] is True
+    assert boundary["authority_effect"] == (
+        "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+    )
+    assert boundary["can_select_next_action"] is False
+    assert boundary["can_generate_current_owner"] is False
+    assert boundary["can_generate_owner_receipt"] is False
+    assert boundary["can_generate_typed_blocker"] is False
+    assert boundary["can_authorize_provider_admission"] is False
     assert boundary["ordinary_progress_spine"] == [
         "current_owner_delta",
         "concrete_delta",
@@ -156,6 +166,16 @@ def test_evo_scientist_learning_projection_lands_complete_target_sidecar_archite
     assert runtime_surface["runtime_ref_root"] == "artifacts/runtime/evo_scientist_sidecar"
     assert runtime_surface["latest_ref"] == "artifacts/runtime/evo_scientist_sidecar/latest.json"
     assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
+    assert runtime_surface["diagnostic_only"] is True
+    assert runtime_surface["refs_only"] is True
+    assert runtime_surface["authority_effect"] == (
+        "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+    )
+    assert runtime_surface["can_select_next_action"] is False
+    assert runtime_surface["can_generate_current_owner"] is False
+    assert runtime_surface["can_generate_owner_receipt"] is False
+    assert runtime_surface["can_generate_typed_blocker"] is False
+    assert runtime_surface["can_authorize_provider_admission"] is False
     assert set(runtime_surface["implemented_outputs"]) == {
         "tool_affordance_ref",
         "observation_memory_ref",
@@ -216,6 +236,13 @@ def test_evo_scientist_learning_projection_fails_open_and_preserves_authority() 
 
     authority = projection["authority_boundary"]
     assert authority["source_project_role"] == "external_pattern_source_only"
+    assert authority["diagnostic_only"] is True
+    assert authority["refs_only"] is True
+    assert authority["can_select_next_action"] is False
+    assert authority["can_generate_current_owner"] is False
+    assert authority["can_generate_owner_receipt"] is False
+    assert authority["can_generate_typed_blocker"] is False
+    assert authority["can_authorize_provider_admission"] is False
     assert authority["can_write_domain_truth"] is False
     assert authority["can_write_evidence_ledger"] is False
     assert authority["can_write_review_ledger"] is False
@@ -244,6 +271,9 @@ def test_evo_scientist_progress_accelerator_contract_matches_projection_boundary
     assert contract["ordinary_progress_policy"]["ordinary_progress_spine"] == projection[
         "ordinary_progress_boundary"
     ]["ordinary_progress_spine"]
+    assert contract["ordinary_progress_policy"]["diagnostic_only"] is True
+    assert contract["ordinary_progress_policy"]["refs_only"] is True
+    assert contract["ordinary_progress_policy"]["can_select_next_action"] is False
     assert contract["ordinary_progress_policy"]["can_block_current_owner_action"] is False
     assert contract["ordinary_progress_policy"]["critical_path_waits_for_sidecar"] is False
     assert contract["ordinary_progress_policy"]["missing_learning_sidecar_blocks_dispatch"] is False
@@ -277,6 +307,10 @@ def test_evo_scientist_progress_accelerator_contract_matches_projection_boundary
     ] is False
     assert contract["quality_gate_policy"]["self_review_closes_quality_gate"] is False
     assert contract["authority_boundary"]["can_write_domain_truth"] is False
+    assert contract["authority_boundary"]["diagnostic_only"] is True
+    assert contract["authority_boundary"]["refs_only"] is True
+    assert contract["authority_boundary"]["can_select_next_action"] is False
+    assert contract["authority_boundary"]["can_authorize_provider_admission"] is False
     assert contract["authority_boundary"]["can_close_stage"] is False
     assert set(contract["rejected_patterns"]) >= {
         "auxiliary_model_as_mas_owner",

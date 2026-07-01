@@ -4,6 +4,7 @@ from typing import Any
 
 from med_autoscience.runtime_protocol.evo_scientist_sidecar_refs import (
     build_evo_scientist_sidecar_execution_surface,
+    diagnostic_ref_boundary,
 )
 
 
@@ -148,6 +149,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
         ],
         "ordinary_progress_boundary": {
             "surface_kind": "mas_progress_first_learning_sidecar_boundary",
+            **diagnostic_ref_boundary(),
             "ordinary_progress_spine": [
                 "current_owner_delta",
                 "concrete_delta",
@@ -359,6 +361,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
             "publication_artifact_authority_owner": "MedAutoScience",
             "generic_runtime_owner": "one-person-lab",
             "source_project_role": "external_pattern_source_only",
+            **diagnostic_ref_boundary(),
             "can_write_domain_truth": False,
             "can_write_evidence_ledger": False,
             "can_write_review_ledger": False,

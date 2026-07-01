@@ -34,6 +34,16 @@ def test_evo_scientist_sidecar_writer_records_refs_only_observation(tmp_path: Pa
     assert result["status"] == "recorded"
     assert result["write_status"] == "written"
     assert result["body_included"] is False
+    assert result["diagnostic_only"] is True
+    assert result["refs_only"] is True
+    assert result["authority_effect"] == (
+        "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+    )
+    assert result["can_select_next_action"] is False
+    assert result["can_generate_current_owner"] is False
+    assert result["can_generate_owner_receipt"] is False
+    assert result["can_generate_typed_blocker"] is False
+    assert result["can_authorize_provider_admission"] is False
     assert result["counts_as_paper_progress"] is False
     assert result["counts_as_owner_answer"] is False
     assert result["can_close_stage"] is False
@@ -68,9 +78,15 @@ def test_evo_scientist_sidecar_writer_records_refs_only_observation(tmp_path: Pa
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest["event_id"] == result["event_id"]
     assert latest["payload_role"] == "refs_only_observation"
+    assert latest["diagnostic_only"] is True
+    assert latest["refs_only"] is True
+    assert latest["can_select_next_action"] is False
 
     projection = module.read_latest_evo_scientist_sidecar_projection(study_root=study_root)
     assert projection["status"] == "available"
+    assert projection["diagnostic_only"] is True
+    assert projection["refs_only"] is True
+    assert projection["can_select_next_action"] is False
     assert projection["observation"]["event_id"] == result["event_id"]
 
 
@@ -187,8 +203,49 @@ def test_evo_scientist_sidecar_dry_run_and_skipped_inputs_do_not_write(tmp_path:
     )
     assert skipped["status"] == "skipped"
     assert skipped["write_status"] == "skipped_no_write"
+    assert skipped["diagnostic_only"] is True
+    assert skipped["refs_only"] is True
+    assert skipped["can_select_next_action"] is False
     assert skipped["nonblocking_contract"]["failure_blocks_current_owner_action"] is False
     assert not (study_root / "artifacts" / "runtime" / "evo_scientist_sidecar").exists()
+
+
+def test_evo_scientist_sidecar_ref_cannot_be_next_action_or_authority_source(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.evo_scientist_sidecar_refs")
+    study_root = tmp_path / "study"
+    study_root.mkdir()
+
+    result = module.write_evo_scientist_sidecar_observation(
+        study_root=study_root,
+        event={
+            "event_kind": "receipt_or_typed_blocker_recorded",
+            "receipt_or_typed_blocker_ref": "artifacts/stage_outputs/typed_blocker.json",
+            "current_executable_owner_action": {
+                "next_owner": "MedAutoScience",
+                "action_type": "complete_medical_paper_readiness_surface",
+            },
+        },
+        apply=True,
+    )
+
+    assert result["payload_role"] == "refs_only_observation"
+    assert result["authority_effect"] == (
+        "diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission"
+    )
+    assert result["can_select_next_action"] is False
+    assert result["can_generate_current_owner"] is False
+    assert result["can_generate_owner_receipt"] is False
+    assert result["can_generate_typed_blocker"] is False
+    assert result["can_authorize_provider_admission"] is False
+    assert "next_action" not in result
+    assert "next_action_ref" not in result
+
+    latest = module.read_latest_evo_scientist_sidecar_projection(study_root=study_root)
+    assert latest["authority_effect"] == result["authority_effect"]
+    assert latest["can_select_next_action"] is False
+    assert latest["observation"]["can_select_next_action"] is False
 
 
 def test_evo_scientist_sidecar_cli_observe_and_read_latest(tmp_path: Path, capsys) -> None:
