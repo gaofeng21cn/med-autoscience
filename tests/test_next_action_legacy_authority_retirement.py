@@ -5,6 +5,13 @@ import importlib.util
 from pathlib import Path
 
 
+def _module_absent(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is None
+    except ModuleNotFoundError:
+        return True
+
+
 def _canonical_payload() -> dict[str, object]:
     legacy_action = {
         "surface_kind": "current_executable_owner_action",
@@ -60,17 +67,15 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     )
     assert current_action.build_canonical_owner_action_projection(payload) is None
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
         )
-        is None
     )
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.domain_transition"
         )
-        is None
     )
 
 
@@ -234,11 +239,10 @@ def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() 
 
 def test_terminal_next_forced_delta_owner_successor_producer_is_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.terminal_next_forced_delta"
         )
-        is None
     )
 
 
@@ -252,6 +256,8 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
         / "study_progress_parts"
         / "owner_action_diagnostics"
     )
+    if not producer_dir.exists():
+        return
 
     missing: list[str] = []
     for path in sorted(producer_dir.glob("*.py")):
@@ -268,51 +274,46 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
 
 def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.stage_artifact_index"
         )
-        is None
     )
 
 
 def test_repair_progress_owner_successor_producer_is_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.repair_progress"
         )
-        is None
     )
 
 
 def test_non_advancing_terminal_closeout_diagnostic_is_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.non_advancing_terminal_closeout"
         )
-        is None
     )
 
 
 def test_owner_action_diagnostic_action_types_are_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.action_types"
         )
-        is None
     )
 
 
 def test_paper_recovery_owner_successor_producer_is_physically_retired() -> None:
     assert (
-        importlib.util.find_spec(
+        _module_absent(
             "med_autoscience.controllers.study_progress_parts."
             "owner_action_diagnostics.paper_recovery"
         )
-        is None
     )
 
 

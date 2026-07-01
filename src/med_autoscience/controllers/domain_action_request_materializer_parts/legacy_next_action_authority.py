@@ -29,13 +29,6 @@ STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES = {
     "legacy_next_action_authority",
     "study_progress.current_executable_owner_action",
 }
-DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES = {
-    "complete_medical_paper_readiness_surface",
-    "run_gate_clearing_batch",
-    "run_quality_repair_batch",
-}
-
-
 def retire_incomplete_authority_actions(
     actions: Iterable[Mapping[str, Any]],
     ignored: Iterable[Mapping[str, Any]],
@@ -164,7 +157,6 @@ __all__ = [
     "LEGACY_NEXT_ACTION_AUTHORITY_RETIRED_REASON",
     "CANONICAL_NEXT_ACTION_AUTHORITY_VALUES",
     "LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
-    "DEFAULT_EXECUTABLE_NEXT_ACTION_TYPES",
     "NEXT_ACTION_ENVELOPE_IDENTITY_MISMATCH_REASON",
     "STRICT_LEGACY_NEXT_ACTION_AUTHORITY_VALUES",
     "next_action_identity_mismatches",
