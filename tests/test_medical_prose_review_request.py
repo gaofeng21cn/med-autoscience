@@ -389,6 +389,83 @@ def test_review_request_blocks_clear_verdict_when_methodology_repair_enters_stor
         )
 
 
+def test_review_request_flags_registry_initial_draft_quality_floor_residue(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_ai_medical_prose_review_from_response,
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    (study_root / "paper" / "draft.md").write_text(
+        "\n".join(
+            [
+                "# Hunan Obesity Alliance Multicenter Obesity Phenotype Atlas",
+                "",
+                "## Methods",
+                "The calendar enrollment period is not promoted as a main-text claim until source metadata are audited.",
+                "This restriction is intentional.",
+                "Result figures were generated with an R ggplot2 renderer using the current MAS display-pack style profile.",
+                "TRIPOD is cited only as a boundary reference for what is not being claimed.",
+                "",
+                "## Results",
+                "### BMI category and metabolic comorbidity burden",
+                "BMI-category strata and metabolic comorbidity burden were reported using available-record denominators.",
+                "",
+                "## Discussion",
+                "Administrative and submission metadata also remain incomplete.",
+                "The manuscript now has a defensible clinical story.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    request = read_medical_prose_review_request(study_root=study_root)
+
+    flag_ids = {flag["flag_id"] for flag in request["mechanical_safety_flags"]}
+    assert {
+        "registry_methods_time_window_placeholder",
+        "internal_restriction_explanation_residue",
+        "workflow_tool_prose_residue",
+        "prediction_reporting_boundary_overexplained",
+        "selected_diagnostic_field_burden_language",
+        "self_evaluative_conclusion_residue",
+    }.issubset(flag_ids)
+
+    with pytest.raises(ValueError, match="blocking mechanical safety flags"):
+        materialize_ai_medical_prose_review_from_response(
+            study_root=study_root,
+            response_payload={
+                "overall_style_verdict": "clear",
+                "summary": "The manuscript is ready for journal prose.",
+                "section_level_diagnosis": {
+                    "introduction": "The clinical problem is clear.",
+                    "methods": "Methods are adequate.",
+                    "results": "Results are adequate.",
+                    "discussion": "Discussion is restrained.",
+                },
+                "representative_bad_sentences": [
+                    "The calendar enrollment period is not promoted as a main-text claim until source metadata are audited."
+                ],
+                "representative_rewrites": [
+                    {
+                        "before": "The calendar enrollment period is not promoted as a main-text claim until source metadata are audited.",
+                        "after": "The registry included records collected from the audited source windows reported in the study metadata.",
+                    }
+                ],
+                "route_back_recommendation": {
+                    "route_target": "none",
+                    "reason": "The reviewer judged the manuscript clear.",
+                },
+            },
+        )
+
+
 def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review import read_medical_prose_review
     from med_autoscience.medical_prose_review_request import (

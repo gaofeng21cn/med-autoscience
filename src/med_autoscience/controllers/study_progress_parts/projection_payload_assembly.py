@@ -26,6 +26,9 @@ from .canonical_owner_action_projection import (
     build_canonical_owner_action_projection,
     submission_authority_owner_gate_readback,
 )
+from .canonical_next_action_selection import (
+    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
+)
 from .current_owner_action_projection_reconcile import (
     reconcile_current_owner_action_projection,
 )
@@ -444,6 +447,11 @@ def _attach_submission_authority_owner_gate_readback(payload: Mapping[str, Any])
 
 def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
+    domain_transition_next_action = _domain_transition_canonical_next_action(updated)
+    if domain_transition_next_action:
+        updated["next_action"] = domain_transition_next_action
+        updated["canonical_next_action_source"] = "domain_transition.next_action"
+        return _sync_user_visible_next_action_owner(updated)
     existing = _mapping_copy(updated.get("next_action"))
     if existing:
         updated["next_action"] = existing

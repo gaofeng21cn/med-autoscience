@@ -75,6 +75,11 @@ def current_controller_runtime_route(
     )
     if decision is None or decision.get("requires_human_confirmation") is True:
         return None
+    if _controller_decision_bound_to_stale_publication_eval(
+        decision=decision,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return None
     work_unit = _mapping(decision.get("next_work_unit"))
     work_unit_id = _text(work_unit.get("unit_id"))
     if work_unit_id is None:
@@ -132,6 +137,16 @@ def current_controller_runtime_route(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": decision_fingerprint,
     }
+
+
+def _controller_decision_bound_to_stale_publication_eval(
+    *,
+    decision: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    decision_eval_id = _text(_mapping(decision.get("publication_eval_ref")).get("eval_id"))
+    current_eval_id = _text(publication_eval_payload.get("eval_id"))
+    return bool(decision_eval_id and current_eval_id and decision_eval_id != current_eval_id)
 
 
 def _current_controller_decision_candidate(

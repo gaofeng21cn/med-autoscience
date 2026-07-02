@@ -344,7 +344,31 @@ def _compact_current_work_unit(status_payload: Mapping[str, Any]) -> dict[str, A
     }
     if any(compact.get(key) for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint")):
         return compact
+    next_action_compact = _compact_current_work_unit_from_next_action(status_payload)
+    if any(
+        next_action_compact.get(key)
+        for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint")
+    ):
+        return next_action_compact
     return _compact_current_work_unit_from_intervention_lane(status_payload)
+
+
+def _compact_current_work_unit_from_next_action(status_payload: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping(status_payload.get("next_action"))
+    if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return {}
+    return {
+        "status": "canonical_next_action",
+        "owner": _optional_text(next_action.get("owner"))
+        or _optional_text(next_action.get("next_owner")),
+        "action_type": _optional_text(next_action.get("action_type"))
+        or _optional_text(next_action.get("action_kind")),
+        "work_unit_id": _optional_text(next_action.get("work_unit_id")),
+        "work_unit_fingerprint": _optional_text(next_action.get("work_unit_fingerprint"))
+        or _optional_text(next_action.get("action_fingerprint")),
+        "phase": _optional_text(next_action.get("stage_id")),
+        "typed_blocker": None,
+    }
 
 
 def _compact_current_work_unit_from_intervention_lane(status_payload: Mapping[str, Any]) -> dict[str, Any]:

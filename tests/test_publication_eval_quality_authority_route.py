@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 import pytest
 
@@ -186,3 +187,67 @@ def test_mechanical_projection_cannot_mark_medical_journal_prose_quality_ready()
     assert prose.status == "underdefined"
     assert "Mechanical publication-gate projection cannot authorize" in prose.summary
     assert "medical_prose_review.json" in prose.evidence_refs[-1]
+
+
+def test_publication_eval_consumes_ai_medical_prose_review_route_back(tmp_path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality"
+    )
+    review_path = tmp_path / "medical_prose_review.json"
+    review_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "surface": "medical_prose_review",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "medical_prose_review",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                },
+                "medical_journal_prose_quality": {
+                    "status": "partial",
+                    "overall_style_verdict": "revise",
+                    "summary": "Internal workflow prose remains in Methods and Discussion.",
+                    "route_back_recommendation": {
+                        "required": True,
+                        "route_target": "write",
+                        "reason": "Remove internal work-report residue before submission.",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assessment = module.publication_eval_quality_assessment(
+        report={
+            "status": "clear",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+            "submission_minimal_present": True,
+            "submission_minimal_docx_present": True,
+            "submission_minimal_pdf_present": True,
+            "results_summary": "Registry records support a descriptive phenotype atlas.",
+            "conclusion": "The registry supports cautious available-record descriptive summaries.",
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "Stale projection says prose is ready.",
+            "medical_prose_review_path": str(review_path),
+        },
+        charter_payload={
+            "publication_objective": "Describe a multicenter obesity registry.",
+            "paper_framing_summary": "Descriptive obesity registry first report.",
+            "explanation_targets": ["clinician-facing interpretation"],
+            "scientific_followup_questions": ["Which registry fields are clinically informative?"],
+        },
+        evidence_refs=("/tmp/study/artifacts/publication_eval/latest.json",),
+        assessment_owner="mechanical_projection",
+        ai_reviewer_required=True,
+    )
+
+    prose = assessment.medical_journal_prose_quality
+    assert prose.status == "partial"
+    assert prose.summary == "Internal workflow prose remains in Methods and Discussion."
+    assert prose.evidence_refs[-1] == str(review_path)
+    assert "revise" in prose.reviewer_reason
+    assert "Route back to write" in prose.reviewer_revision_advice

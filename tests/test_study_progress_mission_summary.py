@@ -902,6 +902,119 @@ def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request(
     assert payload["next_legal_action"] == "request_opl_runtime_readback"
 
 
+def test_single_next_action_projection_prefers_domain_transition_reviewer_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+
+    payload = module._attach_single_next_action_projection(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "next_action": {
+                "surface_kind": SURFACE_KIND,
+                "action_id": "next-action::obesity::old-submission-route",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": "submission_milestone_candidate",
+            },
+            "canonical_next_action_source": "paper_mission_next_action_envelope",
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+                "next_action": {
+                    "surface_kind": SURFACE_KIND,
+                    "action_id": "next-action::obesity::ai-reviewer",
+                    "action_family": "paper.review.ai_reviewer",
+                    "action_kind": "owner_review",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner": "ai_reviewer",
+                    "executor_target": "mas_owner_callable",
+                    "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "expected_output_contract": {
+                        "output_kind": "ai_reviewer_publication_eval_record"
+                    },
+                },
+            },
+            "user_visible_projection": {
+                "next_owner": "one-person-lab",
+                "conditions": [
+                    {"type": "next_owner", "status": "true", "message": "one-person-lab"}
+                ],
+            },
+        }
+    )
+
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert payload["next_action"]["owner"] == "ai_reviewer"
+    assert payload["next_action"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["user_visible_projection"]["next_owner"] == "ai_reviewer"
+    assert payload["user_visible_projection"]["conditions"][0]["message"] == "ai_reviewer"
+
+
+def test_typed_blocker_successor_does_not_override_domain_transition_reviewer_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.typed_blocker_resolution_successor"
+    )
+    monkeypatch.setattr(
+        module,
+        "latest_typed_blocker_resolution_readback",
+        lambda **_: {
+            "source_ref": "/tmp/old-typed-blocker-resolution.json",
+            "next_owner_action": {
+                "study_id": "obesity_multicenter_phenotype_atlas",
+                "next_owner": "mas_authority_kernel",
+                "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+                "allowed_actions": [
+                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                ],
+                "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+                "work_unit_fingerprint": "old-submission-blocker",
+            },
+        },
+    )
+    profile = type("Profile", (), {"workspace_root": "/tmp/obesity-workspace"})()
+    ai_reviewer_next_action = {
+        "surface_kind": SURFACE_KIND,
+        "action_id": "next-action::obesity::ai-reviewer",
+        "action_family": "paper.review.ai_reviewer",
+        "action_kind": "owner_review",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+    }
+
+    payload = module.attach_typed_blocker_resolution_successor_projection(
+        payload={
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "next_action": ai_reviewer_next_action,
+            "canonical_next_action_source": "domain_transition.next_action",
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "owner": "ai_reviewer",
+                "next_action": ai_reviewer_next_action,
+            },
+        },
+        profile=profile,
+        study_id="obesity_multicenter_phenotype_atlas",
+    )
+
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"] == ai_reviewer_next_action
+    assert "typed_blocker_resolution_readback" not in payload
+
+
 def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"

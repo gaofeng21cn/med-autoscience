@@ -111,6 +111,10 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
 )
+from med_autoscience.controllers import study_domain_transition_table
+from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
+    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
+)
 
 CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -455,14 +459,36 @@ def build_paper_mission_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
     )
+    study_root = Path(profile.studies_root) / study_id
+    domain_transition = study_domain_transition_table.project_domain_transition(
+        study_id=study_id,
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+    domain_transition_next_action = _domain_transition_canonical_next_action(
+        {"domain_transition": domain_transition}
+    )
     next_action_override = _next_action_for_stage_closure_decision(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
+    canonical_next_action_source = None
+    if domain_transition_next_action:
+        next_action_override = domain_transition_next_action
+        canonical_next_action_source = "domain_transition.next_action"
+        typed_blocker_resolution_readback = None
+    elif next_action_override is not None:
+        canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
+        if canonical_next_action_source is not None:
+            transaction_output_fields["canonical_next_action_source"] = (
+                canonical_next_action_source
+            )
         transaction_output_fields["paper_mission_transaction_readback"] = {
             **transaction_readback,
             "next_action": next_action_override,
@@ -524,6 +550,7 @@ def build_paper_mission_readback(
         "stage_closure_outcome": _mapping(
             stage_closure_decision.get("outcome")
         ).get("kind"),
+        "domain_transition": domain_transition,
         "durable_mission_stop_guard": _durable_mission_stop_guard(
             consume_candidate_status=_consume_candidate_status_for_transaction_readback(
                 transaction_readback=transaction_readback,

@@ -70,6 +70,70 @@ def test_ai_reviewer_record_dry_run_plan_blocks_when_expected_identity_is_unavai
     assert result["written_files"] == []
 
 
+def test_ai_reviewer_record_dry_run_plan_accepts_canonical_next_action_identity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_id = "obesity_multicenter_phenotype_atlas"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_root = workspace_root / "studies" / study_id
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    request_path.parent.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "request_lifecycle": {"state": "requested"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        module.study_progress_projection,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "study_root": str(study_root),
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "paper.review.ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+            },
+            "canonical_next_action_source": "domain_transition.next_action",
+        },
+    )
+
+    result = module.plan_ai_reviewer_publication_eval_record_materialization(
+        profile=profile,
+        study_id=study_id,
+        study_root=None,
+        entry_mode=None,
+        source="cli",
+        expected_owner="ai_reviewer",
+        expected_action_type="return_to_ai_reviewer_workflow",
+        expected_work_unit_id="ai_reviewer_medical_prose_quality_review",
+        expected_work_unit_fingerprint="domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+    )
+
+    assert result["status"] == "dry_run"
+    assert result["current_work_unit"]["status"] == "canonical_next_action"
+    assert result["identity_guard"]["matched"] is True
+    assert result["written_files"] == []
+
+
 def test_ai_reviewer_record_dry_run_plan_fails_closed_on_expected_owner_mismatch(
     monkeypatch,
     tmp_path: Path,

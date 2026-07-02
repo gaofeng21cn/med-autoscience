@@ -259,6 +259,126 @@ def test_paper_mission_consume_candidate_counts_accepted_package_delta_as_semant
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_consume_candidate_preserves_canonical_next_action_transaction(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::paper_mission_import::one-shot-migration"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    transaction["transaction_id"] = (
+        f"paper-mission-transaction::{study_id}::write::{mission_id}::followthrough::canonical"
+    )
+    transaction["stage_id"] = "write"
+    transaction["stage_run_ref"] = (
+        f"paper-mission-followthrough://{study_id}/write/"
+        "medical-methods-and-registry-reporting-repair"
+    )
+    transaction["stage_terminal_decision"] = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": "MAS canonical next action requests the current owner work unit.",
+        "next_owner": "write",
+        "next_work_unit": "medical_methods_and_registry_reporting_repair",
+        "recommended_next_action": "request_opl_stage_attempt",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+        "source_next_action_ref": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+    }
+    transaction["opl_route_command"] = {
+        "command_kind": "resume_stage",
+        "target": "medical_methods_and_registry_reporting_repair",
+        "reason": "MAS canonical next action requests the current owner work unit.",
+        "source_terminal_decision_ref": (
+            f"{transaction['transaction_id']}#stage_terminal_decision"
+        ),
+        "stage_run_ref": transaction["stage_run_ref"],
+        "runtime_owner": "one-person-lab",
+    }
+    transaction["idempotency"]["idempotency_key"] = (
+        f"{study_id}::write::medical_methods_and_registry_reporting_repair"
+    )
+    transaction["idempotency"]["transaction_fingerprint"] = (
+        f"{mission_id}::write::continue_same_stage::accepted_submission_milestone_candidate"
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=transaction,
+    )
+    owner_blocker_packet = json.loads(
+        (package_path.parent / "owner_blocker_packet.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    owner_blocker_packet["blocker_kind"] = "domain_gate"
+    owner_blocker_packet["current_terminal_decision"] = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": "Old submission milestone followthrough.",
+        "next_owner": "mission_executor",
+        "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-01",
+    }
+    (package_path.parent / "owner_blocker_packet.json").write_text(
+        json.dumps(owner_blocker_packet),
+        encoding="utf-8",
+    )
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "canonical-next-action"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["paper_mission_transaction"]["stage_id"] == "write"
+    assert "::write::" in payload["paper_mission_transaction"]["transaction_id"]
+    assert payload["stage_terminal_decision"]["next_owner"] == "write"
+    assert payload["stage_terminal_decision"]["next_work_unit"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert payload["opl_route_command"]["target"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert payload["opl_runtime_carrier"]["work_unit_id"] == "write"
+    assert "submission_milestone_candidate::followthrough" not in (
+        payload["paper_mission_transaction"]["transaction_id"]
+    )
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
 def test_paper_mission_consume_candidate_refreshes_typed_blocker_package_artifacts(
     tmp_path: Path,
     capsys,

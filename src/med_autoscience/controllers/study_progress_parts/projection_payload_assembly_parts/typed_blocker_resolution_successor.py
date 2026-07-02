@@ -9,6 +9,7 @@ from med_autoscience.controllers.next_action_envelope import (
 from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
     latest_typed_blocker_resolution_readback,
 )
+from med_autoscience.controllers import study_domain_transition_guard
 
 from ..canonical_owner_action_projection import (
     build_canonical_owner_action_projection,
@@ -30,6 +31,8 @@ def attach_typed_blocker_resolution_successor_projection(
         workspace_root=Path(workspace_root),
         study_id=study_id,
     )
+    if _domain_transition_redrive_supersedes_resolution(payload):
+        return dict(payload)
     if _current_consumption_route_supersedes_resolution(
         payload=payload,
         typed_blocker_resolution_readback=readback,
@@ -48,6 +51,20 @@ def attach_typed_blocker_resolution_successor_projection(
     updated["canonical_next_action_source"] = "paper_mission_typed_blocker_resolution"
     updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
     return _promote_typed_blocker_resolution_owner_action(updated)
+
+
+def _domain_transition_redrive_supersedes_resolution(payload: Mapping[str, Any]) -> bool:
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if study_domain_transition_guard.runtime_redrive_decision_type(
+        {"domain_transition": transition}
+    ) is None:
+        return False
+    next_action = _mapping_copy(transition.get("next_action")) or _mapping_copy(
+        transition.get("next_action_envelope")
+    )
+    if _non_empty_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return False
+    return _non_empty_text(next_action.get("owner")) is not None
 
 
 def _current_consumption_route_supersedes_resolution(

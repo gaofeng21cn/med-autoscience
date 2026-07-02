@@ -502,6 +502,8 @@ def _submission_package_transaction_for_consume(
     embedded = _mapping(embedded_transaction)
     continuation = _mapping(continuation_transaction)
     embedded_decision = _mapping(embedded.get("stage_terminal_decision"))
+    if _embedded_transaction_is_canonical_next_action(embedded):
+        return embedded
     if (
         _text(embedded_decision.get("decision_kind")) == "continue_same_stage"
         and _text(embedded_decision.get("status"))
@@ -514,6 +516,24 @@ def _submission_package_transaction_for_consume(
     if _text(embedded_decision.get("decision_kind")) not in {None, "route_back"}:
         return embedded
     return _first_mapping(continuation, embedded)
+
+
+def _embedded_transaction_is_canonical_next_action(transaction: Mapping[str, Any]) -> bool:
+    tx = _mapping(transaction)
+    decision = _mapping(tx.get("stage_terminal_decision"))
+    if _text(decision.get("decision_kind")) != "continue_same_stage":
+        return False
+    if _text(decision.get("recommended_next_action")) != "request_opl_stage_attempt":
+        return False
+    if _text(decision.get("next_work_unit")) is None:
+        return False
+    if not (
+        _text(decision.get("work_unit_fingerprint"))
+        or _text(decision.get("source_next_action_ref"))
+    ):
+        return False
+    stage_id = _text(tx.get("stage_id"))
+    return stage_id is not None and stage_id != "submission_milestone_candidate"
 
 
 def _transaction_idempotency_matches_ref(

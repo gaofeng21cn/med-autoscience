@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 import subprocess
+from types import SimpleNamespace
 
 from med_autoscience.cli_parts.paper_mission_command_parts import opl_runtime_submission
 from med_autoscience.cli_parts.paper_mission_command_parts.followthrough_materialized_readback import (
@@ -179,6 +180,107 @@ def test_followthrough_transaction_uses_canonical_mission_identity() -> None:
     assert "::followthrough::followthrough" not in transaction["transaction_id"]
     route = transaction["opl_route_command"]
     assert "::followthrough::followthrough" not in route["source_terminal_decision_ref"]
+
+
+def test_followthrough_transaction_prefers_canonical_next_action_route() -> None:
+    readback = _route_back_consume_readback(
+        mission_id="paper-mission::obesity",
+        transaction_ref="paper-mission-transaction::obesity::old-submission-route",
+    )
+    readback["consume_candidate_status"] = "accepted_submission_milestone_candidate"
+    readback["paper_mission_transaction"]["stage_id"] = (
+        "submission_milestone_candidate::followthrough::followthrough-02"
+    )
+    readback["paper_mission_transaction"]["stage_terminal_decision"] = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": "Old submission milestone followthrough.",
+        "next_owner": "mission_executor",
+        "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-01",
+    }
+    readback["paper_mission_transaction"]["artifact_delta_refs"] = [
+        {
+            "ref_id": "existing-delta",
+            "ref_kind": "submission_milestone_candidate_artifact",
+            "uri": "artifact-delta::same",
+        }
+    ]
+    readback["paper_mission_transaction"]["paper_audit_pack_refs"] = {
+        family: [
+            {
+                "ref_id": f"{family}::same",
+                "ref_kind": "submission_milestone_candidate_ref",
+                "uri": f"audit-pack::{family}",
+            }
+        ]
+        for family in PAPER_AUDIT_PACK_FAMILIES
+    }
+    readback["next_action"] = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_family": "paper.write.prose_repair",
+        "action_type": "request_opl_stage_attempt",
+        "owner": "write",
+        "stage_id": "write",
+        "work_unit_id": "medical_methods_and_registry_reporting_repair",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+        "outcome_ref": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+    }
+
+    transaction = followthrough_transaction_for_readback(readback)
+
+    assert transaction["stage_id"] == "write"
+    decision = transaction["stage_terminal_decision"]
+    assert decision["next_owner"] == "write"
+    assert decision["next_work_unit"] == "medical_methods_and_registry_reporting_repair"
+    assert decision["recommended_next_action"] == "request_opl_stage_attempt"
+    assert decision["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::"
+        "medical_methods_and_registry_reporting_repair"
+    )
+    route = transaction["opl_route_command"]
+    assert route["command_kind"] == "resume_stage"
+    assert route["target"] == "medical_methods_and_registry_reporting_repair"
+
+
+def test_drive_initial_source_prefers_canonical_next_action_inspect() -> None:
+    drive = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.drive_readback"
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_readback_builder(**kwargs):
+        calls.append(kwargs)
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_type": "request_opl_stage_attempt",
+                "owner": "write",
+                "stage_id": "write",
+                "work_unit_id": "medical_methods_and_registry_reporting_repair",
+            },
+        }
+
+    source = drive._drive_canonical_next_action_source_readback(
+        profile=SimpleNamespace(),
+        profile_ref="/tmp/profile.toml",
+        study_id="obesity_multicenter_phenotype_atlas",
+        source="pytest",
+        consume_candidate_readback_builder=fake_readback_builder,
+    )
+
+    assert source is not None
+    assert source["next_action"]["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert calls[0]["paper_mission_command"] == "inspect"
+    assert calls[0]["enable_opl_live_probe"] is False
 
 
 def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:

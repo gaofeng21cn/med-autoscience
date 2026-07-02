@@ -195,12 +195,13 @@ def followthrough_transaction_for_readback(
         _optional_text(_mapping(readback.get("next_action")).get("action_family"))
         == "runtime.opl_route"
     )
+    canonical_next_action_route = _canonical_next_action_followthrough_route(readback)
     if decision_kind != "route_back" and not (
         decision_kind == "continue_same_stage" and terminal_closeout_observed
     ) and not (
         decision_kind == "continue_same_stage"
         and accepted_submission_candidate
-        and runtime_opl_route_ready
+        and (runtime_opl_route_ready or canonical_next_action_route)
     ):
         return {}
     study_id = _optional_text(transaction.get("study_id"))
@@ -209,7 +210,10 @@ def followthrough_transaction_for_readback(
     )
     if study_id is None or mission_id is None:
         return {}
-    target_stage = (
+    target_stage = _first_text(
+        canonical_next_action_route.get("stage_id"),
+        canonical_next_action_route.get("owner"),
+    ) or (
         _first_text(
             decision.get("target_stage_id"),
             decision.get("route_target"),
@@ -218,7 +222,10 @@ def followthrough_transaction_for_readback(
         )
         or "submission_milestone_candidate"
     )
-    next_work_unit = (
+    next_work_unit = _first_text(
+        canonical_next_action_route.get("work_unit_id"),
+        canonical_next_action_route.get("stage_id"),
+    ) or (
         _first_text(
             decision.get("target_stage_id"),
             decision.get("route_target"),
@@ -229,26 +236,56 @@ def followthrough_transaction_for_readback(
         )
         or "continue paper-facing submission milestone work"
     )
-    terminal_decision = {
-        "decision_kind": "continue_same_stage",
-        "status": "accepted_submission_milestone_candidate",
-        "reason": (
+    next_owner = _first_text(canonical_next_action_route.get("owner"), "mission_executor")
+    reason = (
+        "MAS canonical next action supersedes the stale PaperMission followthrough "
+        "route and requests the current owner work unit."
+        if canonical_next_action_route
+        else (
             "MAS mission executor consumed the terminal closeout/route-back as a "
             "fresh paper-facing candidate and is continuing the same PaperMission "
             "stage."
-        ),
-        "next_owner": "mission_executor",
+        )
+    )
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": reason,
+        "next_owner": next_owner,
         "next_work_unit": next_work_unit,
         "source_route_back_evidence_ref": _optional_text(
             decision.get("route_back_evidence_ref")
         ),
     }
+    if canonical_next_action_route:
+        terminal_decision.update(
+            {
+                "recommended_next_action": _optional_text(
+                    canonical_next_action_route.get("action_type")
+                )
+                or "request_opl_stage_attempt",
+                "work_unit_fingerprint": _optional_text(
+                    canonical_next_action_route.get("work_unit_fingerprint")
+                ),
+                "source_next_action_ref": _optional_text(
+                    canonical_next_action_route.get("outcome_ref")
+                ),
+            }
+        )
     source_transaction_id = _optional_text(transaction.get("transaction_id")) or mission_id
+    identity_suffix = _first_text(
+        canonical_next_action_route.get("work_unit_fingerprint"),
+        next_work_unit,
+    )
     followthrough_basis = (
         "terminal-route-back-followthrough::"
         f"{_slug(mission_id)}::{_slug(source_transaction_id)}"
+        f"::{_slug(identity_suffix)}"
     )
-    stage_run_ref = f"paper-mission-followthrough://{study_id}/{_slug(mission_id)}"
+    stage_run_ref = (
+        f"paper-mission-followthrough://{study_id}/"
+        f"{_slug(target_stage)}/{_slug(next_work_unit)}"
+    )
     return _paper_mission_followthrough_transaction_instance(
         build_paper_mission_transaction(
             mission_id=mission_id,
@@ -262,6 +299,33 @@ def followthrough_transaction_for_readback(
         ),
         instance_basis=followthrough_basis,
     )
+
+
+def _canonical_next_action_followthrough_route(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return {}
+    if _optional_text(next_action.get("action_type")) != "request_opl_stage_attempt":
+        return {}
+    work_unit_id = _optional_text(next_action.get("work_unit_id"))
+    owner = _first_text(next_action.get("owner"), next_action.get("next_owner"))
+    stage_id = _first_text(next_action.get("stage_id"), owner)
+    if not work_unit_id or not stage_id:
+        return {}
+    return {
+        "owner": owner or stage_id,
+        "stage_id": stage_id,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _optional_text(
+            next_action.get("work_unit_fingerprint")
+        )
+        or _optional_text(next_action.get("action_fingerprint")),
+        "action_type": _optional_text(next_action.get("action_type")),
+        "outcome_ref": _optional_text(next_action.get("outcome_ref"))
+        or _optional_text(next_action.get("action_id")),
+    }
 
 
 def _typed_blocker_resolution_followthrough_transaction(

@@ -144,7 +144,12 @@ def test_medical_prose_review_consumes_target_journal_writing_context(tmp_path: 
         verdict="revise",
         style_diagnosis="AI reviewer found figure-led Results prose.",
         representative_bad_sentences=["Figure 1 shows the model worked well."],
-        representative_rewrites=[],
+        representative_rewrites=[
+            {
+                "before": "Figure 1 shows the model worked well.",
+                "after": "The model improved risk stratification across the prespecified threshold range.",
+            }
+        ],
         route_back_target="write",
     )
 
@@ -184,6 +189,61 @@ def test_medical_prose_review_consumes_target_journal_writing_context(tmp_path: 
         "mechanical_projection_can_authorize_quality": False,
         "quality_claim_authorized": False,
     }
+
+
+def test_medical_prose_review_rejects_clear_with_blocking_methodology_flags(tmp_path: Path) -> None:
+    from med_autoscience.medical_prose_review import materialize_medical_prose_review
+
+    study_root = tmp_path / "study"
+    _write_valid_blueprint(study_root)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.write_text(
+        "## Methods\n\nThe calendar enrollment period is not promoted as a main-text claim.\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="clear medical prose review cannot coexist"):
+        materialize_medical_prose_review(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            verdict="clear",
+            style_diagnosis="AI reviewer incorrectly cleared a methods-hardness issue.",
+            representative_bad_sentences=[],
+            representative_rewrites=[],
+            route_back_target="none",
+            mechanical_safety_flags=[
+                {
+                    "flag_id": "registry_methods_minimum_missing",
+                    "severity": "blocking",
+                    "clear_verdict_allowed": False,
+                    "evidence_snippet": "The calendar enrollment period is not promoted as a main-text claim.",
+                    "route_target": "write",
+                }
+            ],
+        )
+
+
+def test_medical_prose_review_requires_rewrite_evidence_for_non_clear_verdict(tmp_path: Path) -> None:
+    from med_autoscience.medical_prose_review import materialize_medical_prose_review
+
+    study_root = tmp_path / "study"
+    _write_valid_blueprint(study_root)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.write_text(
+        "## Results\n\nBMI-category metabolic comorbidity burden was high.\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="non-clear medical prose review must include representative_bad_sentences"):
+        materialize_medical_prose_review(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            verdict="revise",
+            style_diagnosis="Burden language overstates populated diagnostic fields.",
+            representative_bad_sentences=[],
+            representative_rewrites=[],
+            route_back_target="write",
+        )
 
 
 def test_medical_prose_review_rejects_mechanical_projection_owner(tmp_path: Path) -> None:

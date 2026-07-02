@@ -734,34 +734,44 @@ def _validate_readback(
 
     decision = _mapping(paper_mission_readback.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
-    if not decision:
-        missing.append("stage_closure_decision")
-    elif _text(outcome.get("kind")) != "typed_blocker":
-        mismatched.append("stage_closure_decision.outcome.kind")
-
     receipt = _mapping(paper_mission_readback.get("receipt_owner_consumption_readback"))
-    if not receipt:
-        missing.append("receipt_owner_consumption_readback")
-    else:
-        if _text(receipt.get("status")) != "owner_consumption_applied":
-            mismatched.append("receipt_owner_consumption_readback.status")
-        consumption = _mapping(receipt.get("mas_receipt_consumption"))
-        if _text(consumption.get("status")) != "owner_consumed_typed_blocker":
-            mismatched.append("receipt_owner_consumption_readback.mas_receipt_consumption.status")
     consumed_typed_blocker = (
         _text(outcome.get("kind")) == "typed_blocker"
         and _text(receipt.get("status")) == "owner_consumption_applied"
         and _text(_mapping(receipt.get("mas_receipt_consumption")).get("status"))
         == "owner_consumed_typed_blocker"
     )
-    if not consumed_typed_blocker:
-        next_action = _mapping(paper_mission_readback.get("next_action"))
-        action_family = _text(next_action.get("action_family"))
-        action_kind = _text(next_action.get("action_kind"))
-        allowed_next_actions = {
-            ("blocked.typed", "stop_with_typed_blocker"),
-            ("paper.package.submission_minimal", "package_materialization"),
-        }
+    next_action = _mapping(paper_mission_readback.get("next_action"))
+    action_family = _text(next_action.get("action_family"))
+    action_kind = _text(next_action.get("action_kind"))
+    consumed_typed_blocker_next_actions = {
+        ("blocked.typed", "stop_with_typed_blocker"),
+    }
+    owner_action_without_consumed_receipt = {
+        ("paper.package.submission_minimal", "package_materialization"),
+        (
+            "paper.package.submission_minimal",
+            "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        ),
+    }
+    allowed_next_actions = consumed_typed_blocker_next_actions | owner_action_without_consumed_receipt
+    allowed_owner_next_action = (
+        (action_family, action_kind) in owner_action_without_consumed_receipt
+        and _text(next_action.get("owner")) == "mas_authority_kernel"
+    )
+    if not (consumed_typed_blocker or allowed_owner_next_action):
+        if not decision:
+            missing.append("stage_closure_decision")
+        elif _text(outcome.get("kind")) != "typed_blocker":
+            mismatched.append("stage_closure_decision.outcome.kind")
+        if not receipt:
+            missing.append("receipt_owner_consumption_readback")
+        else:
+            if _text(receipt.get("status")) != "owner_consumption_applied":
+                mismatched.append("receipt_owner_consumption_readback.status")
+            consumption = _mapping(receipt.get("mas_receipt_consumption"))
+            if _text(consumption.get("status")) != "owner_consumed_typed_blocker":
+                mismatched.append("receipt_owner_consumption_readback.mas_receipt_consumption.status")
         if (action_family, action_kind) not in allowed_next_actions:
             mismatched.append("next_action.action_family")
             mismatched.append("next_action.action_kind")

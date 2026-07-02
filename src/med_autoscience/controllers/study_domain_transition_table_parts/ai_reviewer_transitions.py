@@ -16,6 +16,11 @@ from med_autoscience.publication_eval_reviewer_os import (
     current_ai_reviewer_route_back_action,
     validate_ai_reviewer_operating_system_trace,
 )
+from med_autoscience.controllers.next_action_envelope import (
+    FAMILY_PAPER_REVIEW_AI_REVIEWER,
+    FAMILY_PAPER_WRITE_PROSE_REPAIR,
+    compile_next_action_envelope,
+)
 from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
 
 
@@ -73,7 +78,10 @@ def project_transition(
             controller_action="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
             typed_blocker=None,
-            guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),
+            guard_boundary=_guard_boundary(
+                required_owner_surface=str(publication_eval_relative_path),
+                opl_generic_runner_may_resume=True,
+            ),
             source_refs=source_refs,
             completion_receipt_consumption=completion_receipt_consumption,
         )
@@ -105,7 +113,10 @@ def project_stale_reviewer_revision_transition(
             controller_action="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
             typed_blocker=None,
-            guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),
+            guard_boundary=_guard_boundary(
+                required_owner_surface=str(publication_eval_relative_path),
+                opl_generic_runner_may_resume=True,
+            ),
             source_refs=source_refs,
             completion_receipt_consumption=completion_receipt_consumption,
         )
@@ -175,7 +186,10 @@ def project_stale_ai_reviewer_record_transition(
         controller_action="return_to_ai_reviewer_workflow",
         owner="ai_reviewer",
         typed_blocker=None,
-        guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),
+        guard_boundary=_guard_boundary(
+            required_owner_surface=str(publication_eval_relative_path),
+            opl_generic_runner_may_resume=True,
+        ),
         source_refs=[*source_refs, *request_refs],
         completion_receipt_consumption=completion_receipt_consumption,
     )
@@ -402,6 +416,7 @@ def _transition(
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    materialized_source_refs = list(source_refs)
     payload = {
         "study_id": study_id,
         "decision_type": decision_type,
@@ -411,11 +426,112 @@ def _transition(
         "owner": owner,
         "typed_blocker": dict(typed_blocker) if typed_blocker else None,
         "guard_boundary": dict(guard_boundary),
-        "source_refs": list(source_refs),
+        "source_refs": materialized_source_refs,
     }
+    if decision_type == "ai_reviewer_re_eval":
+        payload["next_action"] = build_ai_reviewer_next_action(
+            study_id=study_id,
+            next_work_unit=next_work_unit,
+            controller_action=controller_action,
+            owner=owner,
+            guard_boundary=guard_boundary,
+            source_refs=materialized_source_refs,
+        )
+    elif decision_type == "route_back_same_line":
+        payload["next_action"] = build_route_back_next_action(
+            study_id=study_id,
+            route_target=route_target,
+            next_work_unit=next_work_unit,
+            controller_action=controller_action,
+            owner=owner,
+            guard_boundary=guard_boundary,
+            source_refs=materialized_source_refs,
+        )
     if completion_receipt_consumption:
         payload["completion_receipt_consumption"] = dict(completion_receipt_consumption)
     return payload
+
+
+def build_ai_reviewer_next_action(
+    *,
+    study_id: str,
+    next_work_unit: Mapping[str, Any],
+    controller_action: str,
+    owner: str,
+    guard_boundary: Mapping[str, Any],
+    source_refs: Iterable[str],
+) -> dict[str, Any]:
+    work_unit = dict(next_work_unit)
+    stage_outcome = {
+        "study_id": study_id,
+        "stage_id": "review",
+        "work_unit_id": _text(work_unit.get("unit_id")),
+        "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{_text(work_unit.get('unit_id'))}",
+        "next_work_unit": work_unit,
+        "controller_action": controller_action,
+        "action_family": FAMILY_PAPER_REVIEW_AI_REVIEWER,
+        "source_refs": list(source_refs),
+    }
+    owner_route = {
+        "owner": owner,
+        "next_owner": owner,
+        "action_type": controller_action,
+        "work_unit_id": _text(work_unit.get("unit_id")),
+        "next_work_unit": work_unit,
+        "action_family": FAMILY_PAPER_REVIEW_AI_REVIEWER,
+        "required_input_refs": list(source_refs),
+    }
+    return compile_next_action_envelope(
+        stage_outcome=stage_outcome,
+        study_id=study_id,
+        stage_id="review",
+        outcome_ref=f"domain-transition::ai_reviewer_re_eval::{_text(work_unit.get('unit_id'))}",
+        owner_route=owner_route,
+        authority_boundary=guard_boundary,
+        diagnostic_refs=list(source_refs),
+    )
+
+
+def build_route_back_next_action(
+    *,
+    study_id: str,
+    route_target: str,
+    next_work_unit: Mapping[str, Any],
+    controller_action: str,
+    owner: str,
+    guard_boundary: Mapping[str, Any],
+    source_refs: Iterable[str],
+) -> dict[str, Any]:
+    work_unit = dict(next_work_unit)
+    work_unit_id = _text(work_unit.get("unit_id"))
+    stage_outcome = {
+        "study_id": study_id,
+        "stage_id": route_target,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
+        "next_work_unit": work_unit,
+        "controller_action": controller_action,
+        "action_family": FAMILY_PAPER_WRITE_PROSE_REPAIR,
+        "source_refs": list(source_refs),
+    }
+    owner_route = {
+        "owner": owner,
+        "next_owner": owner,
+        "action_type": controller_action,
+        "work_unit_id": work_unit_id,
+        "next_work_unit": work_unit,
+        "action_family": FAMILY_PAPER_WRITE_PROSE_REPAIR,
+        "required_input_refs": list(source_refs),
+    }
+    return compile_next_action_envelope(
+        stage_outcome=stage_outcome,
+        study_id=study_id,
+        stage_id=route_target,
+        outcome_ref=f"domain-transition::route_back_same_line::{work_unit_id}",
+        owner_route=owner_route,
+        authority_boundary=guard_boundary,
+        diagnostic_refs=list(source_refs),
+    )
 
 
 def _work_unit(unit_id: str, lane: str, summary: str) -> dict[str, str]:
@@ -476,6 +592,8 @@ def _read_json_mapping(path: Path) -> dict[str, Any]:
 
 
 __all__ = [
+    "build_ai_reviewer_next_action",
+    "build_route_back_next_action",
     "project_stale_ai_reviewer_record_transition",
     "project_stale_reviewer_revision_transition",
     "project_transition",

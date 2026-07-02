@@ -96,6 +96,44 @@ _INTERNAL_METHOD_REPAIR_STORY_PATTERNS = (
     re.compile(r"\bdefensible contribution\b.{0,120}\bharmonization[-\s]?sensitive\b", re.IGNORECASE),
     re.compile(r"\bforegrounds?\b.{0,120}\b(?:data[-\s]?harmonization|unit[-\s]?harmonization|harmonization lesson)\b", re.IGNORECASE),
 )
+_REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_PATTERNS: tuple[tuple[str, re.Pattern[str], str, str], ...] = (
+    (
+        "registry_methods_time_window_placeholder",
+        re.compile(r"\bcalendar enrollment period is not promoted\b", re.IGNORECASE),
+        "write",
+        "Methods must state enrollment period, data lock date, and source-specific windows or route the missing facts to a submission metadata TODO outside the article body.",
+    ),
+    (
+        "internal_restriction_explanation_residue",
+        re.compile(r"\bthis restriction is intentional\b", re.IGNORECASE),
+        "write",
+        "Internal process explanations should be rewritten as ordinary methods limitations or removed from manuscript body text.",
+    ),
+    (
+        "workflow_tool_prose_residue",
+        re.compile(r"\b(?:current\s+)?MAS display[-\s]?pack|current package|submission metadata remain incomplete\b", re.IGNORECASE),
+        "write",
+        "Workflow, renderer, current-package, or submission-administration residue must not appear in the article body.",
+    ),
+    (
+        "prediction_reporting_boundary_overexplained",
+        re.compile(r"\bTRIPOD is cited only as a boundary reference\b", re.IGNORECASE),
+        "review",
+        "Non-prediction registry papers should not carry internal defensive explanations about TRIPOD unless the journal-facing rationale is necessary.",
+    ),
+    (
+        "self_evaluative_conclusion_residue",
+        re.compile(r"\bdefensible clinical story\b", re.IGNORECASE),
+        "write",
+        "Conclusions should state evidence-based clinical interpretation, not self-evaluate manuscript readiness or story quality.",
+    ),
+    (
+        "selected_diagnostic_field_burden_language",
+        re.compile(r"\bmetabolic comorbidity burden\b|\bavailable[-\s]?record burden\b", re.IGNORECASE),
+        "write",
+        "Selected populated diagnostic fields should be labelled as recorded or populated diagnostic-field summaries, not burden.",
+    ),
+)
 
 
 def stable_medical_prose_review_request_path(*, study_root: Path) -> Path:
@@ -338,6 +376,33 @@ def _internal_methodology_repair_story_flags(
     return flags
 
 
+def _registry_initial_draft_quality_floor_flags(*, manuscript_text: str) -> list[dict[str, Any]]:
+    flags: list[dict[str, Any]] = []
+    current_section: str | None = None
+    for line_number, line in enumerate(manuscript_text.splitlines(), start=1):
+        current_section = _story_section_for_heading(_heading_label(line), current_section)
+        text = line.strip()
+        if not text:
+            continue
+        for flag_id, pattern, route_target, reason in _REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_PATTERNS:
+            if not pattern.search(text):
+                continue
+            flags.append(
+                {
+                    "flag_id": flag_id,
+                    "severity": "blocking",
+                    "line_number": line_number,
+                    "section": current_section or "unknown",
+                    "evidence_snippet": text[:500],
+                    "source": "registry_initial_draft_quality_floor",
+                    "reason": reason,
+                    "clear_verdict_allowed": False,
+                    "route_target": route_target,
+                }
+            )
+    return flags
+
+
 def _blocking_mechanical_safety_flags(request: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     flags: list[Mapping[str, Any]] = []
     for item in request.get("mechanical_safety_flags") or []:
@@ -390,6 +455,9 @@ def build_medical_prose_review_request(
         manuscript_text=manuscript_text,
         analysis_harmonization=analysis_harmonization,
     )
+    registry_quality_floor_flags = _registry_initial_draft_quality_floor_flags(
+        manuscript_text=manuscript_text,
+    )
     payload: dict[str, Any] = {
         "schema_version": 1,
         "surface": "medical_prose_review_request",
@@ -429,12 +497,20 @@ def build_medical_prose_review_request(
             "digest": _sha256_text(manuscript_text),
             "text": manuscript_text,
         },
-        "mechanical_safety_flags": [*list(mechanical_safety_flags or []), *story_flags],
+        "mechanical_safety_flags": [
+            *list(mechanical_safety_flags or []),
+            *story_flags,
+            *registry_quality_floor_flags,
+        ],
         "review_tasks": [
             "Judge whether the manuscript sounds like a medical original research article rather than a work report.",
             "Assess Introduction clinical problem -> evidence gap -> objective flow.",
+            "For registry or observational medical manuscripts, verify that Methods states enrollment period, data lock date, source-specific windows, ethics/consent/deidentification, cohort flow, inclusion/exclusion criteria, age eligibility, and variable definitions before allowing a clear verdict.",
+            "For obesity or BMI-category manuscripts, flag adult/child mixing unless the draft reports age distribution, under-18 proportion, adult-only sensitivity, and pediatric BMI-standard boundaries when applicable.",
+            "Flag burden, prevalence, incidence, risk, and comorbidity language when denominators only represent populated diagnostic fields; require recorded/populated diagnostic-field wording unless population denominators are valid.",
             "Assess Results subject choice and old-to-new information flow.",
             "Assess Discussion restraint, claim boundary, and limitation integration.",
+            "Reject internal workflow residue such as MAS/display-pack/current package language, self-evaluative submission-readiness claims, or statements that administrative metadata remain incomplete inside the article body.",
             "Return representative bad sentences and concrete rewrite examples for the writer.",
             "Route back to blueprint, analysis, write, or review when the prose issue cannot be repaired by surface editing alone.",
         ],

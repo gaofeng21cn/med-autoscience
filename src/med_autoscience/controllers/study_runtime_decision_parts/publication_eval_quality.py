@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
 from med_autoscience.publication_eval_record import (
     PublicationEvalQualityAssessment,
     PublicationEvalQualityDimension,
@@ -63,6 +67,34 @@ def _quality_dimension(
         reviewer_revision_advice=reviewer_revision_advice,
         reviewer_next_round_focus=reviewer_next_round_focus,
     )
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _read_json_object(path: str) -> dict[str, Any]:
+    if not path:
+        return {}
+    try:
+        payload = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return _mapping(payload)
+
+
+def _medical_prose_review_quality(report: dict[str, object]) -> dict[str, Any]:
+    payload = _read_json_object(_text(report.get("medical_prose_review_path")))
+    if payload.get("surface") != "medical_prose_review":
+        return {}
+    provenance = _mapping(payload.get("assessment_provenance"))
+    if provenance.get("owner") != "ai_reviewer":
+        return {}
+    return _mapping(payload.get("medical_journal_prose_quality"))
 
 
 def _clinical_significance_dimension(
@@ -236,15 +268,26 @@ def _medical_journal_prose_dimension(
     assessment_owner: str,
     ai_reviewer_required: bool,
 ) -> PublicationEvalQualityDimension:
-    medical_prose_review_status = str(report.get("medical_prose_review_status") or "").strip()
-    medical_prose_review_summary = str(report.get("medical_prose_review_summary") or "").strip()
-    medical_prose_review_ref = str(report.get("medical_prose_review_path") or "").strip()
+    medical_prose_review = _medical_prose_review_quality(report)
+    route_back = _mapping(medical_prose_review.get("route_back_recommendation"))
+    medical_prose_review_status = _text(medical_prose_review.get("status") or report.get("medical_prose_review_status"))
+    medical_prose_review_summary = _text(medical_prose_review.get("summary") or report.get("medical_prose_review_summary"))
+    medical_prose_review_ref = _text(report.get("medical_prose_review_path"))
+    overall_style_verdict = _text(medical_prose_review.get("overall_style_verdict"))
+    route_back_required = route_back.get("required") is True
+    route_target = _text(route_back.get("route_target")) or "review"
     mechanical_projection_cannot_authorize_ready = (
         assessment_owner == "mechanical_projection" or ai_reviewer_required
     )
+    if route_back_required and medical_prose_review_status == "ready":
+        medical_prose_review_status = "partial"
     if not medical_prose_review_status:
         medical_prose_review_status = "underdefined"
-    if mechanical_projection_cannot_authorize_ready and medical_prose_review_status == "ready":
+    if (
+        mechanical_projection_cannot_authorize_ready
+        and medical_prose_review_status == "ready"
+        and not medical_prose_review
+    ):
         medical_prose_review_status = "underdefined"
         medical_prose_review_summary = (
             "Mechanical publication-gate projection cannot authorize subjective medical journal prose quality; "
@@ -259,17 +302,29 @@ def _medical_journal_prose_dimension(
     prose_evidence_refs = evidence_refs
     if medical_prose_review_ref and medical_prose_review_ref not in prose_evidence_refs:
         prose_evidence_refs = (*evidence_refs, medical_prose_review_ref)
+    if medical_prose_review and medical_prose_review_status != "ready":
+        reviewer_reason = (
+            f"AI medical prose review verdict is {overall_style_verdict or medical_prose_review_status} "
+            "and requires manuscript revision before publication quality closure."
+        )
+        reviewer_revision_advice = (
+            f"Route back to {route_target} and repair the manuscript-native prose issues identified in "
+            "medical_prose_review.json before re-running publication evaluation."
+        )
+    else:
+        reviewer_reason = (
+            "Mechanical publication-gate projection cannot authorize subjective manuscript prose quality."
+        )
+        reviewer_revision_advice = (
+            "Route the manuscript through an AI prose review and consume its representative rewrites "
+            "before full-draft quality closure."
+        )
     return PublicationEvalQualityDimension(
         status=medical_prose_review_status,
         summary=medical_prose_review_summary,
         evidence_refs=prose_evidence_refs,
-        reviewer_reason=(
-            "Mechanical publication-gate projection cannot authorize subjective manuscript prose quality."
-        ),
-        reviewer_revision_advice=(
-            "Route the manuscript through an AI prose review and consume its representative rewrites "
-            "before full-draft quality closure."
-        ),
+        reviewer_reason=reviewer_reason,
+        reviewer_revision_advice=reviewer_revision_advice,
         reviewer_next_round_focus=(
             "Confirm medical journal voice, reader flow, paragraph argumentation, claim restraint, "
             "and absence of work-report residue."

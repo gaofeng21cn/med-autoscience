@@ -98,6 +98,68 @@ def test_typed_blocker_resolution_accepts_successor_owner_action_envelope(
     ] == "quality_repair_or_degraded_handoff"
 
 
+def test_typed_blocker_resolution_accepts_route_back_owner_action_without_receipt(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback = _readback(
+        study_id=study_id,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback.pop("receipt_owner_consumption_readback")
+    readback["stage_closure_decision"] = {
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+        }
+    }
+    readback["next_action"] = {
+        "action_family": "paper.package.submission_minimal",
+        "action_kind": "package_materialization",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "owner": "mas_authority_kernel",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "work_unit_fingerprint": "7ca5e4d5e993dd9304f45400",
+    }
+    readback_file = tmp_path / "route-back-owner-action-readback.json"
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_route_redesign_applied"
+    assert payload["readback_validation"] == {
+        "valid": True,
+        "missing_required_fields": [],
+        "mismatched_fields": [],
+    }
+    assert payload["next_owner_action"]["action_type"] == (
+        "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+    )
+    assert payload["next_owner_action"]["required_delta_kind"] == (
+        "typed_blocker_resolution_owner_action"
+    )
+
+
 def test_typed_blocker_resolution_reports_missing_owner_apply_surface(
     tmp_path: Path,
     capsys,
@@ -593,6 +655,98 @@ def test_typed_blocker_resolution_packet_projects_canonical_next_action(
     assert paper_action["next_step"].startswith("等待 mas_authority_kernel owner")
     assert paper_action["authority_boundary"]["can_write_owner_receipt"] is False
     assert paper_action["authority_boundary"]["can_claim_submission_ready"] is False
+
+
+def test_paper_mission_inspect_prefers_domain_transition_ai_reviewer_over_old_resolution(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval_path.parent.mkdir(parents=True)
+    publication_eval_path.write_text(
+        json.dumps(
+            {
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "partial",
+                        "summary": "Reviewer revision requires a fresh medical prose review.",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    readback_file = tmp_path / "readback.json"
+    output_root = (
+        tmp_path
+        / "workspace"
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    next_action = payload["next_action"]
+
+    assert exit_code == 0
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["domain_transition"]["decision_type"] == "ai_reviewer_re_eval"
+    assert next_action["action_family"] == "paper.review.ai_reviewer"
+    assert next_action["owner"] == "ai_reviewer"
+    assert next_action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert next_action["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert "typed_blocker_resolution_readback" not in payload
 
 
 def test_paper_mission_inspect_retires_submission_authority_owner_gate_after_matching_event(

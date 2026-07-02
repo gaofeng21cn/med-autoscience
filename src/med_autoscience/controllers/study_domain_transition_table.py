@@ -612,6 +612,10 @@ def _current_controller_runtime_route_transition(
     controller_action = _domain_transition_controller_action(decision_type=decision_type, action_types=action_types)
     if controller_action is None:
         return None
+    guard_boundary = _guard_boundary(
+        required_owner_surface=str(CONTROLLER_DECISION_RELATIVE_PATH),
+        opl_generic_runner_may_resume=decision_type == "ai_reviewer_re_eval",
+    )
     return _transition(
         study_id=study_id,
         decision_type=decision_type,
@@ -620,7 +624,7 @@ def _current_controller_runtime_route_transition(
         controller_action=controller_action,
         owner=_domain_transition_owner(decision_type=decision_type, route_target=route_target),
         typed_blocker=None,
-        guard_boundary=_guard_boundary(required_owner_surface=str(CONTROLLER_DECISION_RELATIVE_PATH)),
+        guard_boundary=guard_boundary,
         source_refs=[*source_refs, *([decision_path] if decision_path else [])],
         completion_receipt_consumption=completion_receipt_consumption,
     )
@@ -701,6 +705,7 @@ def _transition(
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    materialized_source_refs = list(source_refs)
     payload = {
         "study_id": study_id,
         "decision_type": decision_type,
@@ -710,8 +715,17 @@ def _transition(
         "owner": owner,
         "typed_blocker": dict(typed_blocker) if typed_blocker else None,
         "guard_boundary": dict(guard_boundary),
-        "source_refs": list(source_refs),
+        "source_refs": materialized_source_refs,
     }
+    if decision_type == "ai_reviewer_re_eval":
+        payload["next_action"] = ai_reviewer_transitions.build_ai_reviewer_next_action(
+            study_id=study_id,
+            next_work_unit=next_work_unit,
+            controller_action=controller_action,
+            owner=owner,
+            guard_boundary=guard_boundary,
+            source_refs=materialized_source_refs,
+        )
     if completion_receipt_consumption:
         payload["completion_receipt_consumption"] = dict(completion_receipt_consumption)
     return payload

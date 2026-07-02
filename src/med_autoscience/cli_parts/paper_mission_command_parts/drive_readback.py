@@ -87,6 +87,13 @@ def build_paper_mission_drive_readback(
         ledger_ref=route_back_budget_ledger_ref,
         study_id=study_id,
     )
+    source_readback_override = _drive_canonical_next_action_source_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        source=source,
+        consume_candidate_readback_builder=consume_candidate_readback_builder,
+    )
     try:
         package_readback = _build_materialized_candidate_package_readback(
             profile=profile,
@@ -94,6 +101,7 @@ def build_paper_mission_drive_readback(
             study_id=study_id,
             output_root=package_root,
             source=f"{source}:drive:package-candidate",
+            source_readback_override=source_readback_override,
         )
     except ValueError as exc:
         if "package-candidate requires a materialized PaperMissionRun" not in str(exc):
@@ -367,6 +375,32 @@ def build_paper_mission_drive_readback(
         "forbidden_authority_claims": list(forbidden_authority_claims),
         "drive_result": drive_result,
     }
+
+
+def _drive_canonical_next_action_source_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    source: str,
+    consume_candidate_readback_builder: Callable[..., dict[str, Any]],
+) -> dict[str, Any] | None:
+    inspect_readback = consume_candidate_readback_builder(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        source=f"{source}:drive:canonical-next-action-inspect",
+        enable_opl_live_probe=False,
+    )
+    next_action = _mapping(inspect_readback.get("next_action"))
+    if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return None
+    if _optional_text(next_action.get("action_type")) != "request_opl_stage_attempt":
+        return None
+    if _optional_text(next_action.get("work_unit_id")) is None:
+        return None
+    return inspect_readback
 
 
 def _existing_consumption_handoff_drive_readback(

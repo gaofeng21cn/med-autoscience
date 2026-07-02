@@ -349,7 +349,7 @@ def test_submission_authority_gate_does_not_retire_unrelated_reviewer_route() ->
     ) is None
 
 
-def test_submission_blocker_gate_readback_accepts_quality_repair_successor_action() -> None:
+def test_submission_blocker_gate_does_not_retire_quality_repair_successor_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
     )
@@ -409,19 +409,19 @@ def test_submission_blocker_gate_readback_accepts_quality_repair_successor_actio
         ],
     }
 
-    assert module.build_canonical_owner_action_projection(payload) is None
+    action = module.build_canonical_owner_action_projection(payload)
+    assert action is not None
+    assert action["required_delta_kind"] == "typed_blocker_resolution_owner_action"
+    assert action["target_surface_specificity"] == "typed_blocker_resolution"
+    assert action["work_unit_id"] == (
+        "submission_blocker_degraded_handoff_or_quality_repair"
+    )
     readback = module.submission_authority_owner_gate_readback(
         payload,
         next_action=payload["next_action"],
     )
 
-    assert readback is not None
-    assert readback["status"] == "owner_gate_recorded"
-    assert readback["decision"] == "request_submission_blocker_human_gate"
-    assert readback["current_owner_identity"]["work_unit_id"] == (
-        "submission_blocker_degraded_handoff_or_quality_repair"
-    )
-    assert readback["next_legal_action"] == "await_submission_authority_or_human_gate_closeout"
+    assert readback is None
 
 
 def test_submission_blocker_gate_readback_ignores_stale_submission_ready_closeout() -> None:
@@ -515,7 +515,4 @@ def test_submission_blocker_gate_readback_ignores_stale_submission_ready_closeou
         next_action=payload["next_action"],
     )
 
-    assert readback is not None
-    assert readback["status"] == "owner_gate_recorded"
-    assert readback["decision"] == "request_submission_blocker_human_gate"
-    assert readback["event_id"] == "intervention-event-000005-6184dcc4d3988930"
+    assert readback is None

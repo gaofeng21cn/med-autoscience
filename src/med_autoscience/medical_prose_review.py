@@ -85,6 +85,18 @@ def _text_list(value: object) -> list[str]:
     return items
 
 
+def _blocking_mechanical_safety_flags(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    flags: list[Mapping[str, Any]] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        if item.get("clear_verdict_allowed") is False or _text(item.get("severity")) == "blocking":
+            flags.append(item)
+    return flags
+
+
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
@@ -276,6 +288,18 @@ def validate_medical_prose_review(payload: object) -> list[str]:
         return ["medical_journal_prose_quality.route_back_recommendation.route_target is invalid"]
     if not isinstance(payload.get("mechanical_safety_flags"), list):
         return ["mechanical_safety_flags must be a list"]
+    if verdict == "clear" and _blocking_mechanical_safety_flags(payload.get("mechanical_safety_flags")):
+        return ["clear medical prose review cannot coexist with blocking mechanical_safety_flags"]
+    if verdict != "clear" and not _text_list(quality.get("representative_bad_sentences")):
+        return ["non-clear medical prose review must include representative_bad_sentences"]
+    rewrites = quality.get("representative_rewrites")
+    if not isinstance(rewrites, list):
+        return ["medical_journal_prose_quality.representative_rewrites must be a list"]
+    if verdict != "clear" and not rewrites:
+        return ["non-clear medical prose review must include representative_rewrites"]
+    for item in rewrites:
+        if not isinstance(item, Mapping) or not _text(item.get("before")) or not _text(item.get("after")):
+            return ["medical_journal_prose_quality.representative_rewrites entries must include before and after"]
     if not _text_list(payload.get("source_refs")):
         return ["source_refs must be a non-empty list"]
     return []

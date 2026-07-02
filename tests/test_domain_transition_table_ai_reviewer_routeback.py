@@ -118,6 +118,60 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     assert transition["route_target"] == "write"
     assert transition["owner"] == "write"
     assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
+    assert transition["next_action"]["owner"] == "write"
+    assert transition["next_action"]["work_unit_id"] == "manuscript_story_repair"
+
+
+def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeback(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        _current_ai_reviewer_route_back_eval(study_root),
+    )
+    _write_json(
+        study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+        {
+            "decision_type": "continue_same_line",
+            "requires_human_confirmation": False,
+            "publication_eval_ref": {
+                "eval_id": "publication-eval::dm002::stale-ai-reviewer-recheck"
+            },
+            "controller_actions": [
+                {"action_type": "return_to_ai_reviewer_workflow"}
+            ],
+            "route_target": "review",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "ai_reviewer_medical_prose_quality_review"
+            ),
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_medical_prose_quality_review",
+                "lane": "review",
+                "summary": "Stale reviewer recheck from an older publication eval.",
+            },
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
+    assert transition["next_action"]["owner"] == "write"
+    assert transition["next_action"]["work_unit_id"] == "manuscript_story_repair"
 
 
 def test_current_ai_reviewer_write_routeback_owner_route_has_explicit_target_surface(
@@ -266,6 +320,16 @@ def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeba
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
     assert transition["typed_blocker"] is None
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
+    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert transition["next_action"]["action_kind"] == "owner_review"
+    assert transition["next_action"]["owner"] == "ai_reviewer"
+    assert transition["next_action"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
+        "ai_reviewer_publication_eval"
+    )
     assert str(stale_record_path) in transition["source_refs"]
 
 
@@ -377,6 +441,48 @@ def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_ro
     )
     assert transition["completion_receipt_consumption"]["receipt_ref"] == str(current_record_path.resolve())
     assert str(current_record_path.resolve()) in transition["source_refs"]
+
+
+def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    old_eval = _current_ai_reviewer_route_back_eval(study_root)
+    old_eval["emitted_at"] = "2026-07-01T01:00:00+00:00"
+    old_eval["recommended_actions"] = []
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm002::20260702T002000Z",
+            "emitted_at": "2026-07-02T00:20:00+00:00",
+            "study_id": "dm002",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "Reviewer revision asks MAS to re-run manuscript medical prose quality review.",
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
+    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert transition["next_action"]["action_kind"] == "owner_review"
+    assert transition["next_action"]["owner"] == "ai_reviewer"
+    assert transition["next_action"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert transition["next_action"]["idempotency_key"]
+    assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
+        "ai_reviewer_publication_eval"
+    )
 
 
 def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(
@@ -685,6 +791,53 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
     assert route is not None
     assert route["route_target"] == "analysis-campaign"
     assert route["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+
+
+def test_materialized_controller_ai_reviewer_route_has_own_next_action(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    publication_eval["recommended_actions"] = []
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, publication_eval)
+    _write_json(
+        study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+        {
+            "schema_version": 1,
+            "decision_id": "dm003-controller-ai-reviewer-re-eval",
+            "decision_type": "continue_same_line",
+            "study_id": "dm003",
+            "quest_id": "dm003",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "route_target": "review",
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+            ),
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_medical_prose_quality_review",
+                "lane": "review",
+                "summary": "Continue the current MAS controller-authorized domain route.",
+            },
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm003",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
+    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert transition["next_action"]["action_kind"] == "owner_review"
+    assert transition["next_action"]["owner"] == "ai_reviewer"
+    assert transition["next_action"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
 
 
 def test_materialized_controller_write_route_preempts_stale_ai_reviewer_projection(

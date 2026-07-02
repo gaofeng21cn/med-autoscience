@@ -216,6 +216,7 @@ def publication_eval_action(
         status=status,
         action_type=action_type,
         work_unit_payload=work_unit_payload,
+        specificity_targets=list(resolved_specificity_targets),
     ):
         work_unit_payload = _gate_needs_specificity_work_unit_payload()
         action_type = "return_to_controller"
@@ -248,6 +249,7 @@ def _blocked_gate_needs_specificity(
     status: str,
     action_type: str,
     work_unit_payload: dict[str, object],
+    specificity_targets: list[dict[str, str]],
 ) -> bool:
     if status == "clear":
         return False
@@ -268,7 +270,10 @@ def _blocked_gate_needs_specificity(
     if (
         "medical_publication_surface_blocked" in blocker_set
         or "reviewer_first_concerns_unresolved" in blocker_set
-    ) and not _gate_report_has_concrete_blocker_refs(report):
+    ) and not (
+        _gate_report_has_concrete_blocker_refs(report)
+        or _specificity_targets_are_concrete(specificity_targets)
+    ):
         return True
     next_work_unit = work_unit_payload.get("next_work_unit")
     if not isinstance(next_work_unit, dict):
@@ -292,3 +297,12 @@ def _gate_report_has_concrete_blocker_refs(report: dict[str, object]) -> bool:
         if isinstance(value, dict) and value:
             return True
     return False
+
+
+def _specificity_targets_are_concrete(targets: list[dict[str, str]]) -> bool:
+    return bool(targets) and all(
+        str(item.get("target_kind") or "").strip()
+        and str(item.get("target_id") or "").strip()
+        and str(item.get("source_path") or "").strip()
+        for item in targets
+    )

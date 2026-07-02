@@ -8,7 +8,6 @@ CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projec
 SUBMISSION_AUTHORITY_OWNER_GATE_ACTION_TYPES = {
     "materialize_submission_ready_owner_verdict_or_human_gate",
     "await_human_or_mas_authority_decision_for_submission_blocker",
-    "classify_quality_blockers_or_materialize_degraded_handoff_gate",
 }
 
 
