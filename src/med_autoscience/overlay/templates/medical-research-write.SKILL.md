@@ -741,7 +741,9 @@ If these are still unstable, continue planning or route back for evidence instea
 
 Do not rush into polished prose before evidence assembly, figure planning, and citation verification are far enough along to keep the draft honest.
 If writing uncovers missing information, it is acceptable to return to focused literature search or artifact reading, but persist the findings immediately before resuming drafting.
-Use web search to discover missing papers or references, and use `artifact.arxiv(paper_id=..., full_text=False)` when you need to actually read an arXiv paper rather than just locate it.
+When the missing item is biomedical literature, a PMID/DOI, a guideline, a primary source, claim support, source verification, or citation repair, trigger lookup from the MAS `write` skill through the read-only OPL Connect PubMed connector first:
+`opl connect pubmed search --query <query> --limit <n> --json`
+Use web search to discover non-PubMed papers or references, and use `artifact.arxiv(paper_id=..., full_text=False)` when you need to actually read an arXiv paper rather than just locate it.
 Only set `full_text=True` when the shorter view is insufficient for the needed detail.
 Before treating related work coverage as adequate, run broad literature discovery and reading passes; for a normal paper-like deliverable, aim for roughly `30` to `50` verified references unless the scope clearly justifies fewer.
 
@@ -1147,12 +1149,16 @@ A thin bibliography created from convenience searches is not acceptable.
 For a normal paper-like deliverable, the default target is roughly `30` to `50` verified references unless the scope clearly justifies fewer.
 Every final citation must correspond to a real paper you verified from an actual source; do not cite from memory, model recall, or unverified secondary summaries.
 Use one consistent citation workflow: `SEARCH -> VERIFY -> RETRIEVE -> VALIDATE -> ADD`.
-For discovery, use Semantic Scholar by default.
+For biomedical citation repair, claim support, source verification, guideline lookup, PMID lookup, or DOI lookup, use OPL Connect PubMed first:
+`opl connect pubmed search --query <query> --limit <n> --json`
+Keep the output as normalized reference candidates; MAS still decides citation judgment, claim-evidence support, claim downgrade, the citation ledger, and the publication-quality verdict.
+For ML / AI literature discovery outside that PubMed lane, use Semantic Scholar by default.
 If Google Scholar is still needed after the normal agent-side discovery stack, use it only through an agent-executed browser workflow rather than assuming a human manual search/export step.
 Google Scholar has no official API, so do not treat Scholar scraping as a normal automated backend.
 Use Crossref / DOI, arXiv, OpenAlex, and publisher metadata as verification or metadata backfill sources around that same workflow.
 Store actual bibliography entries in `paper/references.bib` as valid BibTeX or equivalent metadata normalized from Semantic Scholar-linked metadata, DOI/Crossref, publisher pages, OpenAlex, arXiv, or an agent-executed Scholar export when strictly needed.
 Do not hand-write BibTeX entries from scratch.
+If OPL Connect PubMed is unavailable for a PubMed-routed need, persist a route-back or `connector_gap` with the attempted query and missing connector surface instead of inventing or memory-filling the reference.
 
 For each important citation:
 
@@ -1174,6 +1180,7 @@ If verification remains incomplete, do not present the draft or bundle as final.
 Use these as the normal citation-resource stack for the workflow above:
 
 - discovery:
+  - OPL Connect PubMed for biomedical literature, PMID/DOI lookup, guideline discovery, primary-source discovery, source verification, and citation repair
   - Semantic Scholar API / UI
   - Google Scholar UI only through agent-executed browser interaction when other discovery sources are insufficient
 - metadata and BibTeX retrieval:

@@ -282,9 +282,13 @@ Build a compact but sufficient neighborhood of references and implementations.
 Use external search actively when local evidence is not enough.
 When available, prefer:
 
-1. web search targeting arXiv for paper discovery
-2. official benchmark docs and official repos for evaluation truth
-3. broader web search for provenance checks, follow-up work, and comparison context
+1. OPL Connect PubMed for biomedical literature, guidelines, primary-source, PMID, DOI, or citation-repair discovery:
+   `opl connect pubmed search --query <query> --limit <n> --json`
+2. web search targeting arXiv for paper discovery outside PubMed-covered biomedical literature
+3. official benchmark docs and official repos for evaluation truth
+4. broader web search for provenance checks, follow-up work, and comparison context
+
+The MAS `scout` skill is the trigger and evidence-judgment owner; OPL Connect PubMed is the read-only execution surface for PubMed lookup. Treat returned normalized refs as citation candidates for MAS source readiness, provider provenance, and citation readiness. If the connector is unavailable, record a route-back or `connector_gap` with the attempted query and missing connector surface; do not fabricate papers, PMIDs, DOIs, guidelines, or source metadata.
 
 For papers that survive triage and need real reading, switch from discovery to reading:
 

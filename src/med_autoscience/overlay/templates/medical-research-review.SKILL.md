@@ -199,11 +199,16 @@ Open a citation repair request when:
 - a citation is contradicted by a newer or stronger source
 - source metadata, DOI, PMID, journal, year, or full-text provenance is incomplete
 
+When citation repair, claim support, source verification, guideline lookup, primary-source lookup, PMID lookup, or DOI lookup needs external biomedical literature search, trigger the read-only OPL Connect PubMed connector from the MAS `review` skill:
+`opl connect pubmed search --query <query> --limit <n> --json`
+Use the returned normalized refs only as inputs. MAS remains responsible for citation judgment, claim-evidence mapping, review ledger updates, contradiction disposition, route-back decisions, and publication-quality verdicts. If the connector is unavailable, record a route-back or `connector_gap` with the attempted query and missing connector surface; do not fill citation gaps from memory or invented metadata.
+
 Citation repair output must include:
 
 - affected claim or section
 - existing citation and why it is insufficient
 - required source type, such as primary study, guideline, systematic review, reporting standard, dataset documentation, or official registry
+- PubMed connector query, normalized ref ids such as PMID/DOI when available, or the explicit connector gap
 - blocking status and next route
 
 Do not fabricate citations, infer guideline requirements from memory, or use third-party summaries as authority when official or primary sources are required.

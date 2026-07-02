@@ -54,6 +54,10 @@ Bind the figure to concrete refs before choosing a visual form:
 
 Missing refs are blockers, not styling issues. Do not fill missing evidence with template defaults, synthetic labels, or caption prose.
 
+If a figure needs background, guideline, reporting-methods, primary-source, PMID, DOI, or citation support for its caption, methods note, or reviewer handoff, trigger lookup from the MAS `figure` skill through the read-only OPL Connect PubMed connector:
+`opl connect pubmed search --query <query> --limit <n> --json`
+Use the returned normalized refs only as inputs to MAS evidence, citation, and review workflows. Do not turn figure work into a literature platform, and do not treat connector output as figure acceptance or publication authority. If the connector is unavailable, record a route-back or `connector_gap`; do not invent citations.
+
 ### Panel Plan
 
 Plan panels as scientific units, not decorations. For every panel, name:
