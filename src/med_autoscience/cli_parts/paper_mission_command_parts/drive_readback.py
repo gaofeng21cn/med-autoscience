@@ -416,12 +416,22 @@ def _drive_should_submit_direct_next_action(
 ) -> bool:
     readback = _mapping(inspect_readback)
     next_action = _mapping(readback.get("next_action"))
-    if _optional_text(next_action.get("action_type")) != "request_opl_stage_attempt":
-        return False
-    return _optional_text(next_action.get("action_family")) not in {
+    action_family = _optional_text(next_action.get("action_family"))
+    if action_family in {
         "paper.package.submission_minimal",
         "paper.stage_closure.owner_consumption",
-    }
+    }:
+        return False
+    if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
+        return True
+    return (
+        _optional_text(readback.get("canonical_next_action_source"))
+        == "domain_transition.next_action"
+        and _optional_text(next_action.get("surface_kind")) == "mas_next_action_envelope"
+        and action_family is not None
+        and _optional_text(next_action.get("owner")) is not None
+        and _optional_text(next_action.get("work_unit_id")) is not None
+    )
 
 
 def _drive_direct_next_action_readback(
@@ -656,6 +666,8 @@ def _drive_owner_action_stop_readback(
     if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
+    if _drive_should_submit_direct_next_action(readback):
+        return None
     has_owner_stop = _drive_has_terminal_owner_consumption_action(readback) or (
         bool(_mapping(readback.get("typed_blocker_resolution_readback")))
         and not can_package_from_next_action

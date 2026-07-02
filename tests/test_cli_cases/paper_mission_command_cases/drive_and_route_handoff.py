@@ -768,6 +768,90 @@ def test_paper_mission_drive_submits_domain_transition_next_action_without_candi
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_drive_submits_domain_transition_owner_workflow_after_route_back_checkpoint(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    output_root = workspace_root / "ops" / "medautoscience" / "drive"
+
+    def fake_readback_builder(**kwargs):
+        assert kwargs["paper_mission_command"] == "inspect"
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Re-run AI reviewer after manuscript revision.",
+            "study_id": study_id,
+            "canonical_next_action_source": "domain_transition.next_action",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-ai-reviewer",
+                "study_id": study_id,
+                "stage_id": "review",
+                "outcome_ref": (
+                    "domain-transition::ai_reviewer_re_eval::"
+                    "ai_reviewer_medical_prose_quality_review"
+                ),
+                "action_family": "paper.review.ai_reviewer",
+                "action_kind": "owner_review",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "executor_target": "mas_owner_callable",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::"
+                    "ai_reviewer_medical_prose_quality_review"
+                ),
+            },
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "stage_closure_decision": {
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                }
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "obesity.local.toml",
+        study_id=study_id,
+        output_root=output_root,
+        run_id=None,
+        submit_opl_runtime=False,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["next_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert payload["opl_route_handoff"]["route_target"] == "review"
+    assert payload["opl_route_handoff"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["output_manifest"]["candidate_package"] is None
+    assert payload["output_manifest"]["consumption_ledger"] is None
+    assert payload["mutation_policy"]["writes_runtime"] is False
+
+
 def test_paper_mission_inspect_projects_domain_transition_running_attempt(
     tmp_path: Path,
 ) -> None:

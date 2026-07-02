@@ -976,13 +976,17 @@ def _stage_closure_next_action_should_own_next_action(
     action = _mapping(next_action)
     if not action:
         return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if (
+        _mapping(domain_transition_next_action)
+        and outcome.get("kind") == "next_stage_transition"
+        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    ):
+        return False
     if _optional_text(action.get("action_family")) == (
         "paper.stage_closure.owner_consumption"
     ):
         return True
-    outcome = _mapping(stage_closure_decision.get("outcome"))
-    if _domain_transition_next_action_requests_stage_attempt(domain_transition_next_action):
-        return False
     return (
         outcome.get("kind") == "next_stage_transition"
         and outcome.get("transition_kind") == "route_back_candidate_checkpoint"

@@ -100,7 +100,11 @@ def next_action_for_stage_closure_decision(
     decision = _mapping(stage_closure_decision)
     outcome = _mapping(decision.get("outcome"))
     resolution = _mapping(typed_blocker_resolution_readback)
-    if resolution:
+    route_back_checkpoint = (
+        outcome.get("kind") == "next_stage_transition"
+        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    )
+    if resolution and not route_back_checkpoint:
         action = _mapping(resolution.get("next_owner_action"))
         if action:
             source_ref = _first_text(resolution.get("source_ref"), resolution.get("decision_ref"))

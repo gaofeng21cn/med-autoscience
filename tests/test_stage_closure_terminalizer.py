@@ -266,6 +266,68 @@ def test_route_back_checkpoint_projects_owner_consumption_next_action() -> None:
     assert action["authority_boundary"]["can_claim_publication_ready"] is False
 
 
+def test_route_back_checkpoint_supersedes_old_typed_blocker_resolution_action() -> None:
+    decision = terminalize_stage_closure(
+        study_id="obesity_multicenter_phenotype_atlas",
+        stage_id="write",
+        work_unit_id="submission_milestone_candidate::followthrough::followthrough-02",
+        work_unit_fingerprint="paper-mission::obesity::write::route-back",
+        identity={
+            "paper_mission_transaction_ref": (
+                "paper-mission-transaction::obesity::write"
+            ),
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "transaction_state": "accepted_submission_milestone_candidate",
+        },
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "accepted_submission_milestone_candidate",
+                "paper_mission_stage_route_domain_gate_pending",
+            ],
+        },
+        semantic_delta={
+            "paper_delta_refs": ["route-back:paper-mission-terminal-owner-gate:obesity:1"],
+        },
+    )
+
+    action = next_action_for_stage_closure_decision(
+        stage_closure_decision=decision,
+        transaction_readback={
+            "paper_mission_transaction": {
+                "transaction_id": "paper-mission-transaction::obesity::write",
+                "study_id": "obesity_multicenter_phenotype_atlas",
+                "stage_id": "write",
+            }
+        },
+        typed_blocker_resolution_readback={
+            "surface_kind": "paper_mission_typed_blocker_resolution",
+            "status": "owner_route_redesign_applied",
+            "source_ref": "/tmp/old-typed-blocker-resolution.json",
+            "next_owner_action": {
+                "next_owner": "mas_authority_kernel",
+                "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+                "work_unit_fingerprint": "old-typed-blocker-resolution",
+                "action_type": (
+                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                ),
+                "allowed_actions": [
+                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                ],
+            },
+        },
+    )
+
+    assert action is not None
+    assert action["action_family"] == "paper.stage_closure.owner_consumption"
+    assert action["action_type"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert action["work_unit_id"] == (
+        "submission_milestone_candidate::followthrough::followthrough-02"
+    )
+
+
 def test_repeated_route_back_checkpoint_stops_same_stage_redrive() -> None:
     first = terminalize_stage_closure(
         study_id="003-dm-china-us-mortality-attribution",
