@@ -201,6 +201,24 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "handoff_evidence_surface",
     ]
     assert summary["revision_intake"]["reactivation_required"] is True
+    trigger = summary["revision_intake"]["self_evolution_trigger"]
+    assert trigger["feedbackops_event_kind"] == "target_agent_feedback_external_suite"
+    assert trigger["accepted_feedback_profile"] == "target_agent_feedback_external_suite"
+    assert trigger["feedback_profiles"] == [
+        "target_agent_feedback_external_suite",
+        "reviewer_revision_feedback",
+    ]
+    assert trigger["target_agent_id"] == "med-autoscience"
+    assert trigger["idempotency_key"] == (
+        "feedbackops:mas/study-revision/reviewer_revision/2026-04-24T00:00:00+00:00"
+    )
+    assert trigger["feedback_capture_requires_developer_mode"] is False
+    assert trigger["repo_fix_execution_requires_opl_developer_mode"] is True
+    assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
+    assert trigger["refs_only"] is True
+    assert trigger["writes_study_truth"] is False
+    assert trigger["authority_boundary"]["can_write_study_truth"] is False
+    assert trigger["authority_boundary"]["can_write_typed_blocker"] is False
     assert (
         summary["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"]
         is False

@@ -8,6 +8,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-07-02：Reviewer revision 质量反馈默认触发 OPL Agent Lab / OMA 自进化
 
 - 决策：`reviewer_revision` intake 不再只登记同线稿件返修；当反馈超过 text-only fast lane，涉及科学性、引用、正文体量、表图、结果临床价值、figure skill 一致性、claim-evidence 或文风质量时，MAS 必须输出 `mas_reviewer_revision_self_evolution_trigger`，并通过 `agent-lab-medical-manuscript-quality-suite` 生成 refs-only external suite，交给 OPL Agent Lab 与 OMA developer work-order 路由。MAS 仍持有 study truth、publication quality、artifact authority、owner receipt 和 gate readback。
+- 决策：上述触发器是 OPL 通用 FeedbackOps 的 MAS adapter，必须暴露 `feedbackops_event_kind=target_agent_feedback_external_suite`、`accepted_feedback_profile=target_agent_feedback_external_suite`、target agent id、idempotency key 与 developer-mode execution gate refs；MAS 特化 profile 继续保留为 `reviewer_revision_feedback` 与 `high_quality_medical_manuscript_feedback`。反馈捕获本身不要求 developer mode；只有 repo 修复、work-order 执行或 promotion 才要求 OPL Developer Mode gate。该 adapter 只输出 refs，不写 study truth、publication verdict、`current_package`、owner receipt、typed blocker、human gate 或 runtime/provider attempt。
 - 理由：近期肥胖论文反馈暴露出 reviewer stage 没有把明显医学 SCI 初稿质量缺口自动上收到机制改进；Codex 前台可止血，但不能成为长期自进化触发器。触发器必须进入 OPL/OMA 可见的 work-order/status route，同时保持 `current_package`、owner receipt、typed blocker 和 human gate 不可伪造。
 - 影响：肥胖 registry/descriptive 论文获得专用 first-draft quality profile，覆盖 25-40 references、3500+ words、临床价值结果图、figure-polish 一致性、表图体量、内部报告式语言清理、registry 方法完整性和描述性 claim guardrails。后续类似论文反馈应通过 MAS suite -> OPL Agent Lab -> OMA work-order -> MAS readback 闭环处理，而不是直接前台大改后补记录。
 

@@ -40,6 +40,17 @@ from .publication_aftercare import build_publication_aftercare_plan
 from med_autoscience.runtime_protocol import quest_state
 
 
+FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
+HIGH_QUALITY_MEDICAL_MANUSCRIPT_FEEDBACK_PROFILE = "high_quality_medical_manuscript_feedback"
+FEEDBACKOPS_TARGET_AGENT_ID = "med-autoscience"
+DEVELOPER_MODE_EXECUTION_GATE_REFS = [
+    "opl-developer-mode:repo-fix-execution",
+    "workspace-profile-ref:developer_supervisor_mode",
+    "workspace-profile-ref:github_username",
+    "workspace-profile-ref:mas_developer_github_usernames",
+]
+
+
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / SUITE_RELATIVE_PATH
 
@@ -255,6 +266,19 @@ def _feedback_self_evolution_trigger(
     return {
         "surface_kind": "mas_agent_lab_feedback_self_evolution_trigger",
         "schema_version": 1,
+        "feedbackops_event_kind": FEEDBACKOPS_ACCEPTED_PROFILE,
+        "accepted_feedback_profile": FEEDBACKOPS_ACCEPTED_PROFILE,
+        "feedback_profiles": [
+            FEEDBACKOPS_ACCEPTED_PROFILE,
+            HIGH_QUALITY_MEDICAL_MANUSCRIPT_FEEDBACK_PROFILE,
+        ],
+        "target_agent_id": FEEDBACKOPS_TARGET_AGENT_ID,
+        "idempotency_key": f"feedbackops:mas/{study_id}/high_quality_medical_manuscript/latest_suite",
+        "feedback_capture_requires_developer_mode": False,
+        "repo_fix_execution_requires_opl_developer_mode": True,
+        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "refs_only": True,
+        "writes_study_truth": False,
         "status": "runnable_after_suite_materialized",
         "study_id": study_id,
         "feedback_ref": feedback_ref,

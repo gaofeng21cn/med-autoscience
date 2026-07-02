@@ -991,6 +991,21 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
 
     assert trigger == task_trigger
     assert trigger["surface_kind"] == "mas_agent_lab_feedback_self_evolution_trigger"
+    assert trigger["feedbackops_event_kind"] == "target_agent_feedback_external_suite"
+    assert trigger["accepted_feedback_profile"] == "target_agent_feedback_external_suite"
+    assert trigger["feedback_profiles"] == [
+        "target_agent_feedback_external_suite",
+        "high_quality_medical_manuscript_feedback",
+    ]
+    assert trigger["target_agent_id"] == "med-autoscience"
+    assert trigger["idempotency_key"] == (
+        "feedbackops:mas/obesity_multicenter_phenotype_atlas/high_quality_medical_manuscript/latest_suite"
+    )
+    assert trigger["feedback_capture_requires_developer_mode"] is False
+    assert trigger["repo_fix_execution_requires_opl_developer_mode"] is True
+    assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
+    assert trigger["refs_only"] is True
+    assert trigger["writes_study_truth"] is False
     assert trigger["status"] == "runnable_after_suite_materialized"
     assert trigger["target_route"] == {
         "domain_owner": "med-autoscience",

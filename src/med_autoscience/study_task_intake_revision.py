@@ -77,6 +77,15 @@ REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY = {
     "can_mutate_current_package": False,
     "can_authorize_publication_ready": False,
 }
+FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
+REVIEWER_REVISION_FEEDBACK_PROFILE = "reviewer_revision_feedback"
+FEEDBACKOPS_TARGET_AGENT_ID = "med-autoscience"
+DEVELOPER_MODE_EXECUTION_GATE_REFS = [
+    "opl-developer-mode:repo-fix-execution",
+    "workspace-profile-ref:developer_supervisor_mode",
+    "workspace-profile-ref:github_username",
+    "workspace-profile-ref:mas_developer_github_usernames",
+]
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -205,6 +214,19 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
     return {
         "surface_kind": "mas_reviewer_revision_self_evolution_trigger",
         "schema_version": 1,
+        "feedbackops_event_kind": FEEDBACKOPS_ACCEPTED_PROFILE,
+        "accepted_feedback_profile": FEEDBACKOPS_ACCEPTED_PROFILE,
+        "feedback_profiles": [
+            FEEDBACKOPS_ACCEPTED_PROFILE,
+            REVIEWER_REVISION_FEEDBACK_PROFILE,
+        ],
+        "target_agent_id": FEEDBACKOPS_TARGET_AGENT_ID,
+        "idempotency_key": _reviewer_revision_feedbackops_idempotency_key(payload, study_id=study_id),
+        "feedback_capture_requires_developer_mode": False,
+        "repo_fix_execution_requires_opl_developer_mode": True,
+        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "refs_only": True,
+        "writes_study_truth": False,
         "status": "queued_for_agent_lab_external_suite",
         "trigger_kind": "reviewer_revision_quality_gap",
         "study_id": study_id,
@@ -252,6 +274,20 @@ def _study_id(payload: dict[str, Any] | None) -> str:
             if text is not None:
                 return text
     return "<study_id>"
+
+
+def _reviewer_revision_feedbackops_idempotency_key(
+    payload: dict[str, Any] | None,
+    *,
+    study_id: str,
+) -> str:
+    identity = None
+    if isinstance(payload, dict):
+        for key in ("task_id", "feedback_id", "request_id", "emitted_at"):
+            identity = _non_empty_text(payload.get(key))
+            if identity is not None:
+                break
+    return f"feedbackops:mas/{study_id}/reviewer_revision/{identity or 'latest'}"
 
 
 def _build_manuscript_fast_lane_contract(payload: dict[str, Any] | None) -> dict[str, Any] | None:
