@@ -36,6 +36,14 @@ def current_executable_owner_action(progress: Mapping[str, Any]) -> dict[str, An
         action.get("owner_route_currentness_basis")
     ):
         return action
+    if (
+        _text(action.get("source")) == "paper_mission_typed_blocker_resolution"
+        and _text(action.get("required_delta_kind"))
+        == "typed_blocker_resolution_owner_action"
+        and _text(action.get("work_unit_id")) is not None
+        and _text(action.get("work_unit_fingerprint")) is not None
+    ):
+        return action
     return {}
 
 

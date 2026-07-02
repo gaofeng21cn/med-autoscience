@@ -174,8 +174,10 @@ def test_agent_lab_quality_suite_projects_first_draft_quality_route_back_checkli
     assert runtime_item["owner"] == "write"
     assert "MAS" in runtime_item["forbidden_terms"]
     assert "AI reviewer" in runtime_item["forbidden_terms"]
+    assert "candidate" in runtime_item["forbidden_terms"]
     assert "submission readiness" in runtime_item["forbidden_terms"]
     assert "source gaps" in runtime_item["forbidden_terms"]
+    assert "prespecified clinical figure style profile" in runtime_item["forbidden_terms"]
     assert runtime_item["expected_repair_result"] == (
         "canonical manuscript body contains no runtime/control-plane or internal QA terminology"
     )

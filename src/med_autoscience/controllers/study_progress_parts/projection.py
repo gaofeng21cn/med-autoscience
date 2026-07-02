@@ -19,7 +19,13 @@ from .delivery_inspection import (
     read_delivery_inspection_projection as _read_delivery_inspection_projection,
 )
 from .medical_writing_surfaces import medical_writing_quality_surface_status
-from .mission_summary import attach_artifact_first_mission_summary
+from .mission_summary import (
+    attach_artifact_first_mission_summary,
+    without_legacy_next_action_authority as _without_legacy_next_action_authority,
+)
+from .projection_payload_assembly_parts.typed_blocker_resolution_successor import (
+    attach_typed_blocker_resolution_successor_projection as _attach_typed_blocker_resolution_successor_projection,
+)
 from .parked_projection import (
     build_progress_parked_projection,
     parked_text_override,
@@ -159,10 +165,16 @@ def build_study_progress_projection(
             publication_eval_payload=publication_eval_payload,
             payload=refreshed_existing,
         )
-        return attach_artifact_first_mission_summary(
+        refreshed_existing = attach_artifact_first_mission_summary(
             refreshed_existing,
             enable_opl_live_probe=enable_opl_live_provider_attempt_probe,
         )
+        refreshed_existing = _attach_typed_blocker_resolution_successor_projection(
+            payload=refreshed_existing,
+            profile=profile,
+            study_id=study_id,
+        )
+        return _without_legacy_next_action_authority(refreshed_existing)
 
     resolved_study_id = study_id
     resolved_study_root = study_root

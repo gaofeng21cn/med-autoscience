@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers import study_domain_transition_guard
 from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
 )
 from med_autoscience.controllers.paper_mission_typed_blocker_resolution import (
     latest_typed_blocker_resolution_readback,
 )
-from med_autoscience.controllers import study_domain_transition_guard
+from med_autoscience.study_task_intake import (
+    read_latest_task_intake,
+    task_intake_is_reviewer_revision,
+)
 
 from ..canonical_owner_action_projection import (
     build_canonical_owner_action_projection,
@@ -31,6 +36,12 @@ def attach_typed_blocker_resolution_successor_projection(
         workspace_root=Path(workspace_root),
         study_id=study_id,
     )
+    if _reviewer_revision_supersedes_resolution(
+        workspace_root=Path(workspace_root),
+        study_id=study_id,
+        typed_blocker_resolution_readback=readback,
+    ):
+        return dict(payload)
     if _domain_transition_redrive_supersedes_resolution(payload):
         return dict(payload)
     if _current_consumption_route_supersedes_resolution(
@@ -49,7 +60,9 @@ def attach_typed_blocker_resolution_successor_projection(
     updated["typed_blocker_resolution_readback"] = readback
     updated["next_action"] = envelope
     updated["canonical_next_action_source"] = "paper_mission_typed_blocker_resolution"
-    updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
+    updated["current_executable_owner_action"] = _mapping_copy(
+        _mapping_copy(readback).get("next_owner_action")
+    ) or build_canonical_owner_action_projection(updated)
     return _promote_typed_blocker_resolution_owner_action(updated)
 
 
@@ -109,6 +122,62 @@ def _path_mtime(path_text: str | None) -> float | None:
         return Path(path_text).expanduser().resolve().stat().st_mtime
     except OSError:
         return None
+
+
+def _reviewer_revision_supersedes_resolution(
+    *,
+    workspace_root: Path,
+    study_id: str,
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+) -> bool:
+    resolution = _mapping_copy(typed_blocker_resolution_readback)
+    if not resolution:
+        return False
+    task_intake = read_latest_task_intake(
+        study_root=workspace_root.expanduser().resolve() / "studies" / study_id
+    )
+    if not task_intake_is_reviewer_revision(task_intake):
+        return False
+    task_time = _payload_time(task_intake)
+    resolution_time = _payload_time(resolution) or _source_ref_time(resolution)
+    return (
+        task_time is not None
+        and resolution_time is not None
+        and task_time > resolution_time
+    )
+
+
+def _payload_time(payload: Mapping[str, Any]) -> datetime | None:
+    for key in ("emitted_at", "generated_at", "recorded_at", "created_at"):
+        parsed = _timestamp(_non_empty_text(payload.get(key)))
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _source_ref_time(payload: Mapping[str, Any]) -> datetime | None:
+    source_ref = _non_empty_text(payload.get("source_ref")) or _non_empty_text(
+        payload.get("decision_ref")
+    )
+    if source_ref is None:
+        return None
+    mtime = _path_mtime(source_ref)
+    if mtime is None:
+        return None
+    return datetime.fromtimestamp(mtime, tz=timezone.utc)
+
+
+def _timestamp(text: str | None) -> datetime | None:
+    if text is None:
+        return None
+    value = f"{text[:-1]}+00:00" if text.endswith("Z") else text
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _promote_typed_blocker_resolution_owner_action(

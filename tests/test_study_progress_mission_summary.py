@@ -1015,6 +1015,72 @@ def test_typed_blocker_successor_does_not_override_domain_transition_reviewer_ac
     assert "typed_blocker_resolution_readback" not in payload
 
 
+def test_new_reviewer_revision_intake_retire_stale_typed_blocker_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.typed_blocker_resolution_successor"
+    )
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    task_root = workspace_root / "studies" / study_id / "artifacts" / "controller" / "task_intake"
+    task_root.mkdir(parents=True)
+    (task_root / "latest.json").write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "task_intake_kind": "reviewer_revision",
+                "emitted_at": "2026-07-02T10:38:00+00:00",
+                "task_intent": "根据用户反馈继续 manuscript revision。",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module,
+        "latest_typed_blocker_resolution_readback",
+        lambda **_: {
+            "recorded_at": "2026-07-02T02:36:01Z",
+            "source_ref": "/tmp/old-typed-blocker-resolution.json",
+            "next_owner_action": {
+                "study_id": study_id,
+                "next_owner": "mas_authority_kernel",
+                "action_type": "await_human_or_mas_authority_decision_for_submission_blocker",
+                "allowed_actions": [
+                    "await_human_or_mas_authority_decision_for_submission_blocker"
+                ],
+                "work_unit_id": "submission_blocker_human_gate",
+                "work_unit_fingerprint": "old-submission-human-gate",
+            },
+        },
+    )
+    profile = type("Profile", (), {"workspace_root": str(workspace_root)})()
+    revision_next_action = {
+        "surface_kind": SURFACE_KIND,
+        "action_id": "next-action::obesity::write-repair",
+        "action_family": "paper.write.prose_repair",
+        "action_kind": "paper_write",
+        "action_type": "request_opl_stage_attempt",
+        "owner": "write",
+        "work_unit_id": "medical_methods_and_registry_reporting_repair",
+    }
+
+    payload = module.attach_typed_blocker_resolution_successor_projection(
+        payload={
+            "study_id": study_id,
+            "next_action": revision_next_action,
+            "canonical_next_action_source": "domain_transition.next_action",
+        },
+        profile=profile,
+        study_id=study_id,
+    )
+
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"] == revision_next_action
+    assert "typed_blocker_resolution_readback" not in payload
+
+
 def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"

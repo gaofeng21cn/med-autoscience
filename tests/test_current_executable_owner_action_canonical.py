@@ -82,6 +82,130 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
     assert action["authority_boundary"]["can_write_human_gate"] is False
 
 
+def test_legacy_next_action_cleanup_preserves_canonical_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    canonical_action = {
+        "surface_kind": "current_executable_owner_action",
+        "authority": "study_progress.canonical_owner_action_projection",
+        "source": "paper_mission.next_action.owner_successor",
+        "next_owner": "mas_authority_kernel",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
+    }
+
+    cleaned = module.without_legacy_next_action_authority(
+        {
+            "current_work_unit": {"legacy": True},
+            "current_executable_owner_action": canonical_action,
+            "provider_admission_candidates": [{"legacy": True}],
+        }
+    )
+
+    assert cleaned["current_executable_owner_action"] == canonical_action
+    assert "current_work_unit" not in cleaned
+    assert "provider_admission_candidates" not in cleaned
+
+
+def test_legacy_next_action_cleanup_removes_noncanonical_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    cleaned = module.without_legacy_next_action_authority(
+        {
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "legacy_current_executable_owner_action",
+            },
+        }
+    )
+
+    assert "current_executable_owner_action" not in cleaned
+
+
+def test_legacy_next_action_cleanup_preserves_typed_blocker_resolution_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    typed_blocker_resolution_action = {
+        "surface_kind": "current_executable_owner_action",
+        "source": "paper_mission_typed_blocker_resolution",
+        "authority": "study_progress.current_executable_owner_action",
+        "required_delta_kind": "typed_blocker_resolution_owner_action",
+        "next_owner": "mas_authority_kernel",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
+    }
+
+    cleaned = module.without_legacy_next_action_authority(
+        {"current_executable_owner_action": typed_blocker_resolution_action}
+    )
+
+    assert cleaned["current_executable_owner_action"] == typed_blocker_resolution_action
+
+
+def test_legacy_next_action_cleanup_restores_typed_blocker_action_from_paper_facing_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    cleaned = module.without_legacy_next_action_authority(
+        {
+            "paper_facing_action": {
+                "surface_kind": "paper_mission_paper_facing_action",
+                "status": "owner_action_ready",
+                "study_id": "obesity_multicenter_phenotype_atlas",
+                "next_owner": "mas_authority_kernel",
+                "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+                "allowed_actions": [
+                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                ],
+                "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+                "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
+                "required_delta_kind": "typed_blocker_resolution_owner_action",
+                "target_surface_specificity": "typed_blocker_resolution",
+                "authority_boundary": {"projection_only": True},
+            }
+        }
+    )
+
+    action = cleaned["current_executable_owner_action"]
+    assert action["source"] == "paper_mission_typed_blocker_resolution"
+    assert action["next_owner"] == "mas_authority_kernel"
+    assert action["action_type"] == (
+        "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+    )
+    assert action["work_unit_id"] == "submission_blocker_degraded_handoff_or_quality_repair"
+    assert action["required_delta_kind"] == "typed_blocker_resolution_owner_action"
+
+
+def test_paper_recovery_accepts_typed_blocker_resolution_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+    )
+
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "source": "paper_mission_typed_blocker_resolution",
+        "authority": "study_progress.current_executable_owner_action",
+        "required_delta_kind": "typed_blocker_resolution_owner_action",
+        "next_owner": "mas_authority_kernel",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
+    }
+
+    assert module.current_executable_owner_action(
+        {"current_executable_owner_action": action}
+    ) == action
+
+
 def test_current_owner_action_projects_submission_authority_owner_gate_surface() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"

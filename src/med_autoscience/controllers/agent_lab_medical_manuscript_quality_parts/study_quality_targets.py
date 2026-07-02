@@ -55,6 +55,12 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
             "figure-polish-skill-consistency",
             "tables-and-figures-volume-floor",
             "internal-report-style-language-purge",
+            "administrative-declaration-sections-required",
+            "registry-data-lock-enrollment-boundary",
+            "diagnostic-provenance-caveat-required",
+            "figure-caption-content-consistency",
+            "supplementary-missingness-atlas-required",
+            "adult-bmi-sensitivity-table-required",
             "methods-registry-cohort-completeness",
             "results-phenotype-clinical-interpretability",
             "discussion-claim-guardrails",
@@ -117,6 +123,57 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
                     "and defensive stage narration from the manuscript body"
                 ),
                 "route_target": "write",
+            },
+            {
+                "target_id": "administrative_declaration_sections_required",
+                "requirement": (
+                    "manuscript or submission package includes ethics approval and consent or waiver, "
+                    "data availability, funding, and conflict-of-interest sections; unknown facts remain "
+                    "owner-confirmation gates rather than invented text"
+                ),
+                "route_target": "publication-gate",
+            },
+            {
+                "target_id": "registry_data_lock_enrollment_boundary",
+                "requirement": (
+                    "Methods distinguish observed visit-date coverage, formal registry enrollment period, "
+                    "analytic release version, and analytic data-lock date without inferring missing owner metadata"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "diagnostic_provenance_caveat_required",
+                "requirement": (
+                    "recorded diagnostic fields state available denominators and provenance limits, including "
+                    "whether fields are diagnosis labels, laboratory thresholds, medications, imaging, PSG, "
+                    "questionnaires, or history when that information is known"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "figure_caption_content_consistency",
+                "requirement": (
+                    "figure captions and visible display labels must match the rendered content; captions must "
+                    "not mention domains such as sleep or psychobehavioral measures unless the figure actually displays them"
+                ),
+                "route_target": "figure-polish",
+            },
+            {
+                "target_id": "supplementary_missingness_atlas_required",
+                "requirement": (
+                    "registry descriptive manuscripts include a materialized supplementary missingness atlas "
+                    "or an explicit typed blocker explaining why variable-level availability cannot be reported"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "adult_bmi_sensitivity_table_required",
+                "requirement": (
+                    "obesity registry manuscripts with pediatric or age-missing records include an adult-known-age "
+                    "BMI-category and diagnostic-denominator sensitivity table or a typed blocker explaining why "
+                    "adult interpretation cannot be separated"
+                ),
+                "route_target": "analysis-campaign",
             },
             {
                 "target_id": "methods_registry_cohort_completeness",

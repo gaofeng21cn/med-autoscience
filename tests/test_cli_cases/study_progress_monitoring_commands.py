@@ -93,3 +93,92 @@ def test_study_progress_json_surfaces_progress_first_user_visible_view(
     assert payload["current_blockers"] == ["medical journal prose style not met"]
     assert payload["user_visible_projection"]["state"] == "queued/repair/quality"
     assert payload["progress_first_projection"]["source"] == "user_visible_projection"
+
+
+def test_study_progress_json_preserves_typed_blocker_resolution_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "source": "paper_mission_typed_blocker_resolution",
+        "authority": "study_progress.current_executable_owner_action",
+        "required_delta_kind": "typed_blocker_resolution_owner_action",
+        "next_owner": "mas_authority_kernel",
+        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
+    }
+
+    monkeypatch.setattr(
+        cli.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": kwargs["study_id"],
+            "current_stage": "paper_mission",
+            "current_executable_owner_action": action,
+        },
+    )
+
+    exit_code = cli.main(
+        [
+            "study-progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "obesity_multicenter_phenotype_atlas",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["current_executable_owner_action"] == action
+
+
+def test_study_progress_json_still_removes_legacy_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    monkeypatch.setattr(
+        cli.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": kwargs["study_id"],
+            "current_stage": "paper_mission",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "legacy_current_executable_owner_action",
+            },
+        },
+    )
+
+    exit_code = cli.main(
+        [
+            "study-progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "obesity_multicenter_phenotype_atlas",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert "current_executable_owner_action" not in payload

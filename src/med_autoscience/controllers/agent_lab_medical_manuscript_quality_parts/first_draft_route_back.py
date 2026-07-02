@@ -9,6 +9,8 @@ from .study_quality_targets import study_quality_target_profile
 RUNTIME_FORBIDDEN_TERMS = [
     "MAS",
     "AI reviewer",
+    "candidate",
+    "current package",
     "verified outputs",
     "accepted records",
     "source gaps",
@@ -16,6 +18,8 @@ RUNTIME_FORBIDDEN_TERMS = [
     "repair note",
     "blocker",
     "route-back",
+    "prespecified clinical figure style profile",
+    "scientific strength",
 ]
 
 

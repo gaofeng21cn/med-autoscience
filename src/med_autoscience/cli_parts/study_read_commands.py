@@ -236,9 +236,36 @@ def _progress_first_status_payload(
 
 def _without_legacy_default_completion_surfaces(payload: dict[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
+    retained_current_action = _retained_current_executable_owner_action(
+        updated.get("current_executable_owner_action")
+    )
     for key in _LEGACY_DEFAULT_COMPLETION_KEYS:
         updated.pop(key, None)
+    if retained_current_action:
+        updated["current_executable_owner_action"] = retained_current_action
     return updated
+
+
+def _retained_current_executable_owner_action(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    if str(value.get("surface_kind") or "").strip() != "current_executable_owner_action":
+        return {}
+    authority = str(value.get("authority") or "").strip()
+    if authority in {
+        "study_progress.canonical_owner_action_projection",
+        "study_progress.current_executable_owner_action",
+    }:
+        return dict(value)
+    if (
+        str(value.get("source") or "").strip() == "paper_mission_typed_blocker_resolution"
+        and str(value.get("required_delta_kind") or "").strip()
+        == "typed_blocker_resolution_owner_action"
+        and str(value.get("work_unit_id") or "").strip()
+        and str(value.get("work_unit_fingerprint") or "").strip()
+    ):
+        return dict(value)
+    return {}
 
 
 def _is_current_user_visible_projection(value: object) -> bool:

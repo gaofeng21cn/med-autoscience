@@ -70,6 +70,7 @@ MISSION_STATES = (
 PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_one_shot_migration"
 )
+CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projection"
 
 
 def build_artifact_first_mission_summary(
@@ -447,6 +448,11 @@ def refresh_top_level_stage_closure_projection(payload: Mapping[str, Any]) -> di
 
 def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
+    current_action = _mapping(updated.get("current_executable_owner_action")) or (
+        _current_executable_owner_action_from_paper_facing_action(
+            updated.get("paper_facing_action")
+        )
+    )
     for key in (
         "current_work_unit",
         "current_executable_owner_action",
@@ -462,8 +468,62 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "progress_first_monitoring_summary",
     ):
         updated.pop(key, None)
+    if _current_executable_owner_action_is_retained_authority(current_action):
+        updated["current_executable_owner_action"] = current_action
     updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
     return updated
+
+
+def _current_executable_owner_action_is_retained_authority(action: Mapping[str, Any]) -> bool:
+    if _non_empty_text(action.get("authority")) == CANONICAL_OWNER_ACTION_AUTHORITY:
+        return True
+    return (
+        _non_empty_text(action.get("surface_kind")) == "current_executable_owner_action"
+        and _non_empty_text(action.get("source")) == "paper_mission_typed_blocker_resolution"
+        and _non_empty_text(action.get("required_delta_kind"))
+        == "typed_blocker_resolution_owner_action"
+        and _non_empty_text(action.get("work_unit_id")) is not None
+        and _non_empty_text(action.get("work_unit_fingerprint")) is not None
+    )
+
+
+def _current_executable_owner_action_from_paper_facing_action(value: object) -> dict[str, Any]:
+    action = _mapping(value)
+    if not (
+        _non_empty_text(action.get("surface_kind")) == "paper_mission_paper_facing_action"
+        and _non_empty_text(action.get("status")) == "owner_action_ready"
+        and _non_empty_text(action.get("required_delta_kind"))
+        == "typed_blocker_resolution_owner_action"
+        and _non_empty_text(action.get("target_surface_specificity"))
+        == "typed_blocker_resolution"
+        and _non_empty_text(action.get("work_unit_id")) is not None
+        and _non_empty_text(action.get("work_unit_fingerprint")) is not None
+    ):
+        return {}
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": "paper_mission_typed_blocker_resolution",
+        "study_id": _non_empty_text(action.get("study_id")),
+        "next_owner": _non_empty_text(action.get("next_owner")),
+        "owner": _non_empty_text(action.get("next_owner")),
+        "action_type": _non_empty_text(action.get("action_type")),
+        "allowed_actions": list(action.get("allowed_actions") or []),
+        "work_unit_id": _non_empty_text(action.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(action.get("work_unit_fingerprint")),
+        "action_fingerprint": _non_empty_text(action.get("work_unit_fingerprint")),
+        "required_delta_kind": _non_empty_text(action.get("required_delta_kind")),
+        "target_surface": _mapping(action.get("target_surface")),
+        "target_surface_specificity": _non_empty_text(action.get("target_surface_specificity")),
+        "paper_facing_delta": _mapping(action.get("paper_facing_delta")),
+        "accepted_answer_shape": _mapping(action.get("accepted_answer_shape")),
+        "route_back": _mapping(action.get("route_back")),
+        "verification": _mapping(action.get("verification")),
+        "owner_receipt_required": True,
+        "authority": "study_progress.current_executable_owner_action",
+        "authority_boundary": _mapping(action.get("authority_boundary")),
+    }
 
 
 def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
