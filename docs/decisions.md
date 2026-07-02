@@ -12,6 +12,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：近期肥胖论文反馈暴露出 reviewer stage 没有把明显医学 SCI 初稿质量缺口自动上收到机制改进；Codex 前台可止血，但不能成为长期自进化触发器。触发器必须进入 OPL/OMA 可见的 work-order/status route，同时保持 `current_package`、owner receipt、typed blocker 和 human gate 不可伪造。
 - 影响：肥胖 registry/descriptive 论文获得专用 first-draft quality profile，覆盖 25-40 references、3500+ words、临床价值结果图、figure-polish 一致性、表图体量、内部报告式语言清理、registry 方法完整性和描述性 claim guardrails。后续类似论文反馈应通过 MAS suite -> OPL Agent Lab -> OMA work-order -> MAS readback 闭环处理，而不是直接前台大改后补记录。
 
+## 2026-07-02：Submission milestone candidate 不是自动论文推进终点
+
+- 决策：用户要求新增分析、补结果图表、重构故事线、AI review 或刷新投稿包时，`paper-mission package-candidate` / `consume-candidate` 只是 stage 2 的候选和 governed ledger，不是完成态。消费到 `accepted_submission_milestone_candidate` 后，MAS 必须继续通过 `paper-mission drive --submit-opl-runtime` 进入 review / write / finalize / package follow-through，直到 fresh readback 出现 OPL live attempt、owner receipt、stable typed blocker、human gate、route-back evidence、canonical semantic paper/artifact delta 或 submission package authority result。
+- 决策：当最新 consumption ledger 已经把同一事务收束为 `route_back_candidate_checkpoint`，旧 `typed_blocker_resolution` successor 只能作为 diagnostic/provenance。`stage_closure_next_action` 不得让旧 resolution 覆盖新 checkpoint；若同一 readback 中已有 canonical `domain_transition.next_action`，且该 action 指向具体 `paper.review.*`、`paper.write.*`、finalize 或 package work unit，`paper-mission drive` 必须 direct handoff 给 OPL，而不是返回 `owner_action_ready_no_redrive`。
+- 理由：肥胖论文线暴露出候选包后续跑断裂：前台新增分析后生成了 submission milestone candidate，但旧 typed-blocker-resolution 和 drive guard 让流程停在候选/owner-action readback，未自动进入 AI reviewer 和后续投稿包链路。这违反“分析候选 -> analysis campaign -> 故事线 -> review/meta-review -> 修订 -> package”的科研流程。
+- 影响：候选包仍保持 `candidate_is_authority=false`、`writes_authority=false`、`can_claim_submission_ready=false`。本决策只改变 next-action selection 与 drive orchestration，不授权写 `publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、`current_package` 或 paper body；真实论文进展仍必须由后续 MAS/OPL fresh readback 和 owner surfaces 证明。
+
 ## 全局读法：2026-06-29 之前的 next-action 旧词已被 NextActionEnvelope 取代
 
 - 决策：凡 2026-06-29 之前的决策段落提到 `current_work_unit`、`current_executable_owner_action`、`current_execution_envelope`、PaperRecovery、provider admission、domain transition、OPL transport 队列 / StageAttempt、Stage Native `control/next_action.json` 或类似“当前 owner/action/work unit/provider admission”语言，默认只按 history、provenance、migration diagnostic 或 retired observability-only diagnostic 读取；除非同段落被 2026-06-29 之后的决策明确重新确认，否则不得作为默认 next-action authority。
