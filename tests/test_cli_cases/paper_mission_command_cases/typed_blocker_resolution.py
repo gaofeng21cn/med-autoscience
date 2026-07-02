@@ -749,6 +749,158 @@ def test_paper_mission_inspect_prefers_domain_transition_ai_reviewer_over_old_re
     assert "typed_blocker_resolution_readback" not in payload
 
 
+def test_paper_mission_inspect_prefers_domain_transition_write_attempt_over_old_resolution(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval_path.parent.mkdir(parents=True)
+    publication_eval_path.write_text(
+        json.dumps(
+            {
+                "eval_id": (
+                    "publication-eval::obesity_multicenter_phenotype_atlas::"
+                    "medical-methods-registry-repair::current"
+                ),
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "ready",
+                        "summary": "Current AI reviewer record routes a same-line registry reporting repair.",
+                    }
+                },
+                "recommended_actions": [
+                    {
+                        "action_id": "obesity-current-methods-registry-repair",
+                        "action_type": "route_back_same_line",
+                        "requires_controller_decision": True,
+                        "route_target": "write",
+                        "work_unit_fingerprint": (
+                            "domain-transition::route_back_same_line::"
+                            "medical_methods_and_registry_reporting_repair"
+                        ),
+                        "next_work_unit": {
+                            "unit_id": "medical_methods_and_registry_reporting_repair",
+                            "lane": "write",
+                            "summary": (
+                                "Repair Methods, Results terminology, variable-definition "
+                                "table, adult-only sensitivity/missingness display "
+                                "requirements, and internal prose residue."
+                            ),
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    controller_decision_path.parent.mkdir(parents=True)
+    controller_decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "obesity-current-methods-registry-repair",
+                "decision_type": "route_back_same_line",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "requires_human_confirmation": False,
+                "controller_actions": [{"action_type": "run_quality_repair_batch"}],
+                "route_target": "write",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::"
+                    "medical_methods_and_registry_reporting_repair"
+                ),
+                "next_work_unit": {
+                    "unit_id": "medical_methods_and_registry_reporting_repair",
+                    "lane": "write",
+                    "summary": (
+                        "Repair Methods, Results terminology, variable-definition "
+                        "table, adult-only sensitivity/missingness display "
+                        "requirements, and internal prose residue."
+                    ),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    readback_file = tmp_path / "readback.json"
+    output_root = (
+        tmp_path
+        / "workspace"
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+    )
+    readback_file.write_text(
+        json.dumps(
+            _readback(
+                study_id=study_id,
+                package_kind="current_package",
+                can_submit=False,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    next_action = payload["next_action"]
+
+    assert exit_code == 0
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["domain_transition"]["decision_type"] == "route_back_same_line"
+    assert payload["domain_transition"]["route_target"] == "write"
+    assert next_action["action_type"] == "request_opl_stage_attempt"
+    assert next_action["owner"] == "write"
+    assert next_action["stage_id"] == "write"
+    assert next_action["work_unit_id"] == "medical_methods_and_registry_reporting_repair"
+    assert next_action["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::"
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert "typed_blocker_resolution_readback" not in payload
+
+
 def test_paper_mission_inspect_retires_submission_authority_owner_gate_after_matching_event(
     tmp_path: Path,
     capsys,

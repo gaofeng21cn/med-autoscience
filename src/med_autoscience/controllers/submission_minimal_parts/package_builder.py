@@ -148,6 +148,27 @@ def _supplementary_material_payload(
     }
 
 
+_SUBMISSION_AUDIT_MATERIALIZATION_BLOCKERS = frozenset(
+    {
+        "dispatch_gate_blocked",
+        "submission_authority_or_human_gate_closeout_required",
+    }
+)
+
+
+def _can_materialize_submission_audit_package(gate: Mapping[str, Any]) -> bool:
+    if bool(gate.get("authorized")):
+        return True
+    if bool(gate.get("projection_only")):
+        return False
+    blockers = {
+        str(reason or "").strip()
+        for reason in gate.get("blocking_reasons") or []
+        if str(reason or "").strip()
+    }
+    return bool(blockers) and blockers.issubset(_SUBMISSION_AUDIT_MATERIALIZATION_BLOCKERS)
+
+
 def create_submission_minimal_package(
     *,
     paper_root: Path,
@@ -175,7 +196,7 @@ def create_submission_minimal_package(
         context=write_route_context,
         default_paths=[paper_root / "submission_minimal", paper_root / "references.bib"],
     )
-    if not bool(authority_route_gate.get("authorized")):
+    if not _can_materialize_submission_audit_package(authority_route_gate):
         return blocked_authority_write_payload(
             gate=authority_route_gate,
             paper_root=str(paper_root),
@@ -601,6 +622,13 @@ def create_submission_minimal_package(
             manifest["supplementary_material"] = supplementary_material
 
         manifest["authority_route_gate"] = authority_route_gate
+        if not bool(authority_route_gate.get("authorized")):
+            manifest["submission_materialization_status"] = {
+                "package_role": "audit_source_package",
+                "can_submit": False,
+                "quality_gate_status": "blocked",
+                "known_blockers": list(authority_route_gate.get("blocking_reasons") or []),
+            }
         write_text(
             readme_path,
             build_submission_minimal_readme(publication_profile=resolved_publication_profile),

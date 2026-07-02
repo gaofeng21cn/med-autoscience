@@ -596,7 +596,9 @@ def _receipt_summary(receipt: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
-    carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
+    carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
+    if not carrier:
+        carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
     for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption"):
         if not _mapping(carrier.get(key)):
             value = _mapping(readback.get(key))

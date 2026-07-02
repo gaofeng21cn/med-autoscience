@@ -567,6 +567,7 @@ def _execute_supported_work_unit(
     changed: list[Path] = []
     if _work_unit_updates_manuscript(work_unit=work_unit, work_unit_type=work_unit_type):
         changed.append(_update_manuscript(study_root=study_root, work_unit=work_unit, work_unit_type=work_unit_type))
+    changed.extend(_apply_json_artifact_patches(study_root=study_root, work_unit=work_unit))
     if work_unit_type in {"analysis_repair", "evidence_ledger_repair", "claim_downgrade", "route_decision"}:
         changed.append(
             _update_json_ledger(
@@ -686,6 +687,9 @@ def _update_manuscript(*, study_root: Path, work_unit: Mapping[str, Any], work_u
 def _preflight_blocker(*, work_unit: Mapping[str, Any], work_unit_type: str) -> str | None:
     if work_unit_type == "text_repair" and not _has_structured_patch(work_unit):
         return STRUCTURED_PATCH_BLOCKER
+    json_patch_blocker = _json_artifact_patch_blocker(work_unit)
+    if json_patch_blocker is not None:
+        return json_patch_blocker
     return None
 
 
@@ -719,6 +723,117 @@ def _apply_structured_patch(*, existing: str, work_unit: Mapping[str, Any]) -> s
     if replacement_text:
         return existing.rstrip() + f"\n\n{replacement_text}\n"
     return existing
+
+
+def _apply_json_artifact_patches(*, study_root: Path, work_unit: Mapping[str, Any]) -> list[Path]:
+    changed: list[Path] = []
+    for patch in _json_artifact_patch_items(work_unit):
+        path = _json_artifact_patch_path(study_root=study_root, patch=patch)
+        payload = _read_json(path)
+        updated = False
+        for update in _json_artifact_patch_updates(patch):
+            if _apply_json_path_update(payload, update):
+                updated = True
+        if updated:
+            _write_json(path, payload)
+            changed.append(path)
+    return changed
+
+
+def _json_artifact_patch_blocker(work_unit: Mapping[str, Any]) -> str | None:
+    for patch in _json_artifact_patch_items(work_unit):
+        relative_path = _text(patch.get("relative_path"))
+        if relative_path is None:
+            return "json_artifact_patch_relative_path_missing"
+        if not _json_artifact_patch_relative_path_allowed(relative_path):
+            return "json_artifact_patch_path_not_allowed"
+        if not _json_artifact_patch_updates(patch):
+            return "json_artifact_patch_updates_missing"
+        for update in _json_artifact_patch_updates(patch):
+            if not _json_path(update.get("path")):
+                return "json_artifact_patch_update_path_missing"
+            if "value" not in update:
+                return "json_artifact_patch_update_value_missing"
+    return None
+
+
+def _json_artifact_patch_items(work_unit: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    patches = work_unit.get("json_artifact_patches")
+    if not isinstance(patches, list):
+        return []
+    return [patch for patch in patches if isinstance(patch, Mapping)]
+
+
+def _json_artifact_patch_updates(patch: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    updates = patch.get("updates")
+    if not isinstance(updates, list):
+        return []
+    return [update for update in updates if isinstance(update, Mapping)]
+
+
+def _json_artifact_patch_path(*, study_root: Path, patch: Mapping[str, Any]) -> Path:
+    relative_path = _text(patch.get("relative_path"))
+    if relative_path is None or not _json_artifact_patch_relative_path_allowed(relative_path):
+        raise ValueError("json artifact patch path is not allowed")
+    return (study_root / relative_path).resolve()
+
+
+def _json_artifact_patch_relative_path_allowed(relative_path: str) -> bool:
+    path = Path(relative_path)
+    parts = path.parts
+    return (
+        not path.is_absolute()
+        and ".." not in parts
+        and len(parts) >= 2
+        and parts[0] == "paper"
+        and "current_package" not in parts
+        and path.suffix == ".json"
+    )
+
+
+def _apply_json_path_update(payload: dict[str, Any], update: Mapping[str, Any]) -> bool:
+    path = _json_path(update.get("path"))
+    if not path:
+        return False
+    cursor: Any = payload
+    for token in path[:-1]:
+        cursor = _json_child(cursor, token)
+        if cursor is None:
+            return False
+    final = path[-1]
+    if isinstance(cursor, list) and isinstance(final, int) and 0 <= final < len(cursor):
+        if cursor[final] == update.get("value"):
+            return False
+        cursor[final] = update.get("value")
+        return True
+    if isinstance(cursor, dict) and isinstance(final, str):
+        if cursor.get(final) == update.get("value"):
+            return False
+        cursor[final] = update.get("value")
+        return True
+    return False
+
+
+def _json_child(value: Any, token: str | int) -> Any | None:
+    if isinstance(value, list) and isinstance(token, int) and 0 <= token < len(value):
+        return value[token]
+    if isinstance(value, dict) and isinstance(token, str):
+        return value.get(token)
+    return None
+
+
+def _json_path(value: object) -> list[str | int]:
+    if not isinstance(value, list):
+        return []
+    result: list[str | int] = []
+    for item in value:
+        if isinstance(item, int):
+            result.append(item)
+        elif isinstance(item, str) and item:
+            result.append(item)
+        else:
+            return []
+    return result
 
 
 def _update_json_ledger(*, path: Path, entry_key: str, entry: Mapping[str, Any]) -> Path:

@@ -12,6 +12,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import
     build_paper_mission_drive_readback,
     _drive_owner_action_stop_readback,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts import (
+    materialized_mission_readback as materialized_readback,
+)
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
 
@@ -763,6 +766,109 @@ def test_paper_mission_drive_submits_domain_transition_next_action_without_candi
     assert enqueue_payload["stage_run_request"]["route_target"] == "write"
     assert enqueue_payload["authority_boundary"]["writes_paper_body"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_inspect_projects_domain_transition_running_attempt(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "action_id": "next-action-write-repair",
+        "study_id": study_id,
+        "stage_id": "write",
+        "outcome_ref": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+        "action_family": "paper.write.prose_repair",
+        "action_kind": "paper_write",
+        "action_type": "request_opl_stage_attempt",
+        "owner": "write",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "medical_methods_and_registry_reporting_repair",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "medical_methods_and_registry_reporting_repair"
+        ),
+    }
+    fake_opl = tmp_path / "fake-opl-running-list.py"
+    fake_opl.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json, sys",
+                "args = sys.argv[1:]",
+                "if args[:3] != ['family-runtime', 'queue', 'list']:",
+                "    raise SystemExit('unexpected args: ' + ' '.join(args))",
+                f"study_id = {study_id!r}",
+                "transaction_ref = 'paper-mission-transaction::' + study_id + '::write::paper-mission::' + study_id + '::paper_mission_import::one-shot-migration'",
+                "route_ref = transaction_ref + '#opl_route_command'",
+                "payload = {",
+                "    'study_id': study_id,",
+                "    'paper_mission_transaction_ref': transaction_ref,",
+                "    'opl_route_command_ref': route_ref,",
+                "    'command_kind': 'resume_stage',",
+                "    'route_target': 'write',",
+                "    'work_unit_id': 'medical_methods_and_registry_reporting_repair',",
+                "    'work_unit_fingerprint': 'domain-transition::route_back_same_line::medical_methods_and_registry_reporting_repair',",
+                "}",
+                "linked = {",
+                "    'stage_attempt_id': 'sat-write-repair',",
+                "    'status': 'live',",
+                "    'stage_id': 'write',",
+                "    'provider_kind': 'temporal',",
+                "    'workflow_id': 'wf-write-repair',",
+                "    'provider_run': {'provider_status': 'running', 'last_heartbeat_at': '2026-07-02T03:49:04.038Z'},",
+                "    'workspace_locator': payload,",
+                "}",
+                "task = {",
+                "    'task_id': 'frt-write-repair',",
+                "    'domain_id': 'medautoscience',",
+                "    'task_kind': 'paper_mission/stage-route',",
+                "    'status': 'running',",
+                "    'payload': payload,",
+                "    'linked_stage_attempt_liveness': linked,",
+                "}",
+                "print(json.dumps({'version': 'g2', 'family_runtime_queue': {'tasks': [task]}}))",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+
+    readback = materialized_readback._domain_transition_direct_next_action_runtime_readback(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::paper_mission_import::one-shot-migration",
+        },
+        next_action=next_action,
+        canonical_next_action_source="domain_transition.next_action",
+        enable_opl_live_probe=True,
+        opl_bin=fake_opl,
+    )
+
+    assert readback["transaction_state"] == "domain_transition_direct_stage_attempt"
+    assert readback["opl_runtime_readback_status"] == (
+        "opl_runtime_attempt_running_observed"
+    )
+    running = readback["opl_runtime_carrier_readback"]["running_attempt"]
+    assert running["stage_attempt_id"] == "sat-write-repair"
+    assert running["stage_id"] == "write"
+    assert running["work_unit_id"] == "medical_methods_and_registry_reporting_repair"
+    assert readback["authority_boundary"]["writes_paper_body"] is False
 
 
 def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(

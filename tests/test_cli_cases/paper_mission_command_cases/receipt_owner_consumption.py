@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
     latest_receipt_owner_consumption_readback,
+    materialize_receipt_owner_consumption,
 )
 
 from tests.test_cli_cases.paper_mission_command_helpers import _write_profile_with_study
@@ -146,6 +147,93 @@ def test_receipt_owner_consumption_classifies_dm002_typed_blocker_without_author
     assert payload["current_package"]["can_submit"] is False
     assert payload["submission_ready_claim_authorized"] is False
     assert "publication_eval/latest.json" in payload["forbidden_authority_writes"]
+
+
+def test_receipt_owner_consumption_prefers_current_direct_stage_carrier_over_legacy(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="typed_blocker",
+        transition_kind=None,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    legacy_carrier = readback["opl_runtime_carrier_readback"]
+    legacy_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-old"
+    legacy_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    legacy_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    legacy_carrier["receipt_evidence"]["runtime_closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    legacy_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    legacy_carrier["receipt_evidence"]["typed_runtime_blocker_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    legacy_carrier["mas_receipt_consumption"]["receipt_evidence_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    legacy_carrier["mas_receipt_consumption"]["typed_runtime_blocker_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    current_carrier = json.loads(json.dumps(legacy_carrier))
+    current_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-current"
+    current_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["runtime_closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-current/"
+        "stage_attempt_closeout_packet.json"
+    )
+    current_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["typed_runtime_blocker_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-current/"
+        "stage_attempt_closeout_packet.json"
+    )
+    current_carrier["mas_receipt_consumption"]["receipt_evidence_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["mas_receipt_consumption"]["typed_runtime_blocker_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-current/"
+        "stage_attempt_closeout_packet.json"
+    )
+    readback["current_opl_runtime_carrier_readback"] = current_carrier
+
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref="profile.toml",
+        output_root=tmp_path / "receipt_owner_consumption",
+        apply_mode="typed_blocker",
+        source="test",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current"
+    )
+    assert payload["stage_closure"]["typed_blocker_evidence_ref"] == (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-current/"
+        "stage_attempt_closeout_packet.json"
+    )
+    assert payload["owner_consumption_verdict"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current"
+    )
 
 
 def test_receipt_owner_consumption_keeps_dm003_submission_ready_mirror_non_terminal(

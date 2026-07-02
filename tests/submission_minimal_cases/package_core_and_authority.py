@@ -81,6 +81,112 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
     assert not (paper_root / "submission_minimal").exists()
 
 
+def test_create_submission_minimal_package_materializes_audit_package_for_submission_human_gate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    result = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context={
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
+                "control_state": "ready",
+                "canonical_next_action": "await_submission_authority_or_human_gate_closeout",
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "dispatch_allowed": False,
+                    "blocking_reasons": ["submission_authority_or_human_gate_closeout_required"],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+                "authority_refs": {
+                    "study_truth": {"epoch": "truth-1"},
+                    "runtime_health": {"epoch": "runtime-1"},
+                },
+            }
+        },
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    manifest_path = submission_root / "audit" / "submission_manifest.json"
+    assert result["authority_route_gate"]["allowed"] is False
+    assert result["submission_materialization_status"]["can_submit"] is False
+    assert result["submission_materialization_status"]["quality_gate_status"] == "blocked"
+    assert result["submission_materialization_status"]["known_blockers"] == [
+        "dispatch_gate_blocked",
+        "submission_authority_or_human_gate_closeout_required",
+    ]
+    assert (submission_root / "paper.pdf").exists()
+    assert manifest_path.exists()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["submission_materialization_status"] == result["submission_materialization_status"]
+
+
+def test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    write_text(
+        paper_root / "draft.md",
+        """# Current MAS Draft Title
+
+## Abstract
+
+### Importance
+
+Current draft abstract.
+
+## Introduction
+
+Current draft introduction with citation [@ref1].
+
+## Methods
+
+Current draft methods.
+
+## Results
+
+Current draft results.
+
+## Discussion
+
+Current draft discussion.
+
+## Conclusion
+
+Current draft conclusion.
+""",
+    )
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "schema_version": 1,
+            "source_markdown_path": "paper/draft.md",
+            "output_pdf": "paper/paper.pdf",
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Current MAS Draft Title" in submission_text
+    assert "Current draft methods." in submission_text
+    assert "Test Medical Manuscript" not in submission_text
+
+
 def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")

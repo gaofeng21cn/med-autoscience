@@ -16,6 +16,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _mapping,
     _optional_text,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff import (
+    build_direct_next_action_handoff,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback_context import (
     consume_candidate_status as _consume_candidate_status,
     materialized_opl_route_command as _materialized_opl_route_command,
@@ -73,6 +76,9 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 )
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
+)
+from med_autoscience.paper_mission_opl_readback import (
+    paper_mission_opl_runtime_carrier_readback,
 )
 
 
@@ -282,6 +288,7 @@ def build_materialized_mission_readback_if_available(
         and not _typed_blocker_resolution_should_own_next_action(
             stage_closure_decision=stage_closure_decision,
             typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+            domain_transition_next_action=domain_transition_next_action,
         )
         and not _stage_closure_next_action_should_own_next_action(
             stage_closure_decision=stage_closure_decision,
@@ -305,6 +312,31 @@ def build_materialized_mission_readback_if_available(
             **transaction_readback,
             "next_action": next_action_override,
         }
+        direct_next_action_runtime = (
+            _domain_transition_direct_next_action_runtime_readback(
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                inspect_readback={**mission, **transaction_output_fields},
+                next_action=next_action_override,
+                canonical_next_action_source=canonical_next_action_source,
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
+        )
+        if direct_next_action_runtime:
+            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
+                direct_next_action_runtime
+            )
+            transaction_output_fields["current_opl_runtime_carrier"] = (
+                direct_next_action_runtime["opl_runtime_carrier"]
+            )
+            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            transaction_output_fields["current_opl_runtime_readback_status"] = (
+                direct_next_action_runtime["opl_runtime_readback_status"]
+            )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,
@@ -503,13 +535,79 @@ def _typed_blocker_resolution_should_own_next_action(
     *,
     stage_closure_decision: Mapping[str, Any],
     typed_blocker_resolution_readback: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None = None,
 ) -> bool:
     if not typed_blocker_resolution_readback:
+        return False
+    if _domain_transition_next_action_requests_stage_attempt(domain_transition_next_action):
         return False
     outcome = _mapping(stage_closure_decision.get("outcome"))
     if outcome.get("kind") != "typed_blocker":
         return False
     return bool(_mapping(typed_blocker_resolution_readback.get("next_owner_action")))
+
+
+def _domain_transition_direct_next_action_runtime_readback(
+    *,
+    profile: Any,
+    study_id: str,
+    study_root: Path,
+    inspect_readback: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+    canonical_next_action_source: str | None,
+    enable_opl_live_probe: bool,
+    opl_bin: str | Path | None,
+) -> dict[str, Any]:
+    if canonical_next_action_source != "domain_transition.next_action":
+        return {}
+    if not _domain_transition_next_action_requests_stage_attempt(next_action):
+        return {}
+    handoff = build_direct_next_action_handoff(
+        profile=profile,
+        study_id=study_id,
+        inspect_readback=inspect_readback,
+        next_action=next_action,
+    )
+    carrier = _mapping(handoff.get("opl_runtime_carrier"))
+    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=enable_opl_live_probe,
+        opl_bin=opl_bin,
+    )
+    return {
+        "surface_kind": "paper_mission_domain_transition_direct_stage_attempt_readback",
+        "schema_version": 1,
+        "canonical_next_action_source": canonical_next_action_source,
+        "next_action": dict(next_action),
+        "opl_route_handoff": handoff,
+        "paper_mission_transaction": handoff["paper_mission_transaction"],
+        "stage_terminal_decision": handoff["stage_terminal_decision"],
+        "opl_route_command": handoff["opl_route_command"],
+        "opl_runtime_carrier": carrier,
+        "opl_runtime_carrier_readback": carrier_readback,
+        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "transaction_state": "domain_transition_direct_stage_attempt",
+        "consume_candidate_status": "not_applicable_domain_transition_direct",
+        "authority_boundary": {
+            "surface_role": "current_next_action_runtime_projection",
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": False,
+            "writes_provider_attempt": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
 
 
 def _stage_closure_next_action_should_own_next_action(

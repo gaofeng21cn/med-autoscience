@@ -726,6 +726,16 @@ def _transition(
             guard_boundary=guard_boundary,
             source_refs=materialized_source_refs,
         )
+    elif decision_type == "route_back_same_line":
+        payload["next_action"] = ai_reviewer_transitions.build_route_back_next_action(
+            study_id=study_id,
+            route_target=route_target,
+            next_work_unit=next_work_unit,
+            controller_action=controller_action,
+            owner=owner,
+            guard_boundary=guard_boundary,
+            source_refs=materialized_source_refs,
+        )
     if completion_receipt_consumption:
         payload["completion_receipt_consumption"] = dict(completion_receipt_consumption)
     return payload

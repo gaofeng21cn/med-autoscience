@@ -290,10 +290,10 @@ def resolve_compiled_markdown_path(
     return _resolve_compiled_surface_candidate(
         workspace_root=workspace_root,
         candidate_values=[
-            bundle_inputs.get("compiled_markdown_path"),
             compile_report.get("source_markdown_path"),
             compile_report.get("source_markdown"),
             bundle_manifest.get("draft_path"),
+            bundle_inputs.get("compiled_markdown_path"),
         ],
         excluded_roots=excluded_roots,
         missing_error=(

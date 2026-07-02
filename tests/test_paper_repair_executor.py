@@ -79,6 +79,92 @@ def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_pat
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_applies_bounded_json_artifact_patch(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "001-json"
+    manuscript = study_root / "paper" / "draft.md"
+    figure_catalog = study_root / "paper" / "figures" / "figure_catalog.json"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    _write_json(
+        figure_catalog,
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F2",
+                    "title": "BMI-category metabolic comorbidity burden",
+                }
+            ],
+        },
+    )
+
+    work_unit = _work_unit("text_repair")
+    work_unit["json_artifact_patches"] = [
+        {
+            "relative_path": "paper/figures/figure_catalog.json",
+            "updates": [
+                {
+                    "path": ["figures", 0, "title"],
+                    "value": "Recorded metabolic diagnostic fields by BMI category",
+                }
+            ],
+        }
+    ]
+
+    result = module.dispatch_repair_work_unit(
+        study_id="001-json",
+        quest_id="quest-001-json",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("json-artifact"),
+        apply=True,
+    )
+
+    payload = json.loads(figure_catalog.read_text(encoding="utf-8"))
+    changed_roles = {
+        item["artifact_role"]
+        for item in result["repair_execution_evidence"]["changed_artifact_refs"]
+    }
+    assert result["execution_status"] == "executed"
+    assert payload["figures"][0]["title"] == (
+        "Recorded metabolic diagnostic fields by BMI category"
+    )
+    assert "canonical_paper_artifact" in changed_roles
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_paper_repair_executor_rejects_json_artifact_patch_outside_paper_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "001-json-blocked"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    work_unit = _work_unit("text_repair")
+    work_unit["json_artifact_patches"] = [
+        {
+            "relative_path": "manuscript/current_package/audit/submission_manifest.json",
+            "updates": [{"path": ["can_submit"], "value": True}],
+        }
+    ]
+
+    result = module.dispatch_repair_work_unit(
+        study_id="001-json-blocked",
+        quest_id="quest-001-json-blocked",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("json-artifact-blocked"),
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "json_artifact_patch_path_not_allowed"
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
 def test_paper_repair_executor_downgrades_claim_and_updates_evidence_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "002-negative"
