@@ -145,6 +145,9 @@ def terminalize_stage_closure_from_readback(
     )
     work_unit_id = str(
         _first_text(
+            transaction.get("work_unit_id"),
+            stage_decision.get("next_work_unit"),
+            stage_decision.get("target_work_unit_id"),
             transaction.get("stage_id"),
             stage_decision.get("target_stage_id"),
             readback.get("objective"),

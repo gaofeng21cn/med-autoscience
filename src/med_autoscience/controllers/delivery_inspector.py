@@ -282,9 +282,15 @@ def _freshness_verdict(
     delivery_status: str,
     source_package: Mapping[str, Any],
     human_package: Mapping[str, Any],
+    current_package_freshness: Mapping[str, Any] | None = None,
 ) -> str:
     package_statuses = {str(source_package.get("layout_status")), str(human_package.get("layout_status"))}
     if delivery_status == "current":
+        if _current_package_freshness_matches_human_mirror(
+            current_package_freshness=current_package_freshness,
+            human_package=human_package,
+        ):
+            return "current"
         if "legacy" in package_statuses:
             return "legacy"
         return "current"
@@ -295,6 +301,26 @@ def _freshness_verdict(
     if delivery_status in {"missing", "not_applicable"} or "missing" in package_statuses:
         return "missing"
     return "unknown"
+
+
+def _current_package_freshness_matches_human_mirror(
+    *,
+    current_package_freshness: Mapping[str, Any] | None,
+    human_package: Mapping[str, Any],
+) -> bool:
+    if not current_package_freshness:
+        return False
+    if str(current_package_freshness.get("status") or "").strip() != "fresh":
+        return False
+    if str(human_package.get("layout_status") or "").strip() != "v2":
+        return False
+    proof_root = str(current_package_freshness.get("current_package_root") or "").strip()
+    human_root = str(human_package.get("root") or "").strip()
+    if proof_root and human_root and Path(proof_root).expanduser().resolve() != Path(human_root).expanduser().resolve():
+        return False
+    proof_signature = str(current_package_freshness.get("source_signature") or "").strip()
+    human_signature = str(human_package.get("source_signature") or "").strip()
+    return bool(proof_signature and human_signature and proof_signature == human_signature)
 
 
 def inspect_study_delivery(
@@ -395,6 +421,9 @@ def inspect_study_delivery(
             human_package=human_package,
         )
     )
+    current_package_freshness = _load_json_object(
+        resolved_study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    )
     inspection_package = submission_inspection_export.inspect_inspection_package(study_root=resolved_study_root)
 
     try:
@@ -420,6 +449,7 @@ def inspect_study_delivery(
         delivery_status=status,
         source_package=source_package,
         human_package=human_package,
+        current_package_freshness=current_package_freshness,
     )
     source_signature = {
         "evaluated": delivery_status.get("evaluated_source_signature"),
@@ -458,6 +488,7 @@ def inspect_study_delivery(
             "delivery_status": status,
             "stale_reason": delivery_status.get("stale_reason"),
             "gate_freshness_handshake": delivery_status.get("gate_freshness_handshake"),
+            "current_package_freshness": current_package_freshness or None,
         },
         "next_sync_command": (
             "medautosci study delivery-sync "

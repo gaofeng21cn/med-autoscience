@@ -111,6 +111,38 @@ def test_sync_study_delivery_current_package_pdf_mtime_marks_controller_refresh(
     assert int(current_package_pdf.stat().st_mtime) > old_timestamp
 
 
+def test_sync_study_delivery_writes_current_package_freshness_proof_when_publication_eval_exists(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    eval_id = "publication-eval::002-early-residual-risk::freshness-test"
+    dump_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": eval_id,
+            "study_id": study_root.name,
+        },
+    )
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    proof_path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    assert manifest["current_package_freshness_proof"]["source_eval_id"] == eval_id
+    assert proof["status"] == "fresh"
+    assert proof["source_eval_id"] == eval_id
+    assert proof["source_unit_id"] == "sync_submission_minimal_delivery"
+    assert proof["current_package_root"] == str(study_root / "manuscript" / "current_package")
+    assert proof["current_package_zip"] == str(study_root / "manuscript" / "current_package.zip")
+    assert proof["source_signature"] == manifest["source_signature"]
+    assert proof["authority_source_signature"] == manifest["authority_source_signature"]
+
+
 def test_sync_study_delivery_primary_manuscript_artifact_mtimes_mark_controller_refresh(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

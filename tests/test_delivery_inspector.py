@@ -328,6 +328,27 @@ def test_delivery_inspector_preserves_stale_verdict_for_legacy_layout(tmp_path: 
     assert verdict == "stale"
 
 
+def test_delivery_inspector_uses_fresh_current_package_proof_for_v2_human_mirror() -> None:
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+
+    verdict = inspector._freshness_verdict(
+        delivery_status="current",
+        source_package={"layout_status": "legacy"},
+        human_package={
+            "layout_status": "v2",
+            "root": "/tmp/study/manuscript/current_package",
+            "source_signature": "source::fresh",
+        },
+        current_package_freshness={
+            "status": "fresh",
+            "current_package_root": "/tmp/study/manuscript/current_package",
+            "source_signature": "source::fresh",
+        },
+    )
+
+    assert verdict == "current"
+
+
 def test_delivery_inspector_cli_supports_public_publication_alias_json(tmp_path: Path, capsys) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     cli = importlib.import_module("med_autoscience.cli")

@@ -561,13 +561,55 @@ def resolve_submission_minimal_output_paths(
 ) -> tuple[Path | None, Path | None]:
     if paper_root is None or submission_minimal_manifest is None:
         return None, None
+    submission_manifest_path = resolve_submission_minimal_manifest(paper_root=paper_root)
+    surface_root = (
+        paper_artifacts.surface_root_from_submission_manifest_path(submission_manifest_path)
+        if submission_manifest_path is not None
+        else paper_root / "submission_minimal"
+    )
     workspace_root = paper_root.parent
     manuscript = submission_minimal_manifest.get("manuscript") or {}
     docx_relpath = _non_empty_text(manuscript.get("docx_path"))
     pdf_relpath = _non_empty_text(manuscript.get("pdf_path"))
-    docx_path = workspace_root / docx_relpath if docx_relpath else None
-    pdf_path = workspace_root / pdf_relpath if pdf_relpath else None
+    delivery_documents = submission_minimal_manifest.get("contents", {}).get("delivery_documents") or []
+    if docx_relpath is None:
+        docx_relpath = next(
+            (str(item).strip() for item in delivery_documents if str(item).strip().lower().endswith(".docx")),
+            None,
+        )
+    if pdf_relpath is None:
+        pdf_relpath = next(
+            (str(item).strip() for item in delivery_documents if str(item).strip().lower().endswith(".pdf")),
+            None,
+        )
+    docx_path = _resolve_submission_surface_path(
+        workspace_root=workspace_root,
+        surface_root=surface_root,
+        raw_path=docx_relpath,
+    )
+    pdf_path = _resolve_submission_surface_path(
+        workspace_root=workspace_root,
+        surface_root=surface_root,
+        raw_path=pdf_relpath,
+    )
     return docx_path, pdf_path
+
+
+def _resolve_submission_surface_path(
+    *,
+    workspace_root: Path,
+    surface_root: Path,
+    raw_path: str | None,
+) -> Path | None:
+    if raw_path is None:
+        return None
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    workspace_candidate = (workspace_root / path).resolve()
+    if workspace_candidate.exists() or (len(path.parts) > 1 and path.parts[0] == "paper"):
+        return workspace_candidate
+    return (surface_root / path).resolve()
 
 
 def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -807,9 +849,7 @@ def collect_submission_surface_qc_failures(
                 }
             )
     expected_main_figure_count = active_main_text_figure_count(paper_root) or 0
-    manuscript_payload = submission_minimal_manifest.get("manuscript") or {}
     if expected_main_figure_count > 0:
-        source_markdown_rel = _non_empty_text(manuscript_payload.get("source_markdown_path"))
         authoritative_submission_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(
             paper_bundle_manifest_path
         )
@@ -820,11 +860,16 @@ def collect_submission_surface_qc_failures(
             if authoritative_submission_manifest_path is not None
             else (paper_bundle_manifest_path.resolve().parent.parent if paper_bundle_manifest_path else None)
         )
-        source_markdown_path = (
-            (worktree_root / source_markdown_rel).resolve()
-            if worktree_root is not None and source_markdown_rel is not None
-            else ((worktree_root / "__missing_submission_source_markdown__.md").resolve() if worktree_root else Path("/__missing_submission_source_markdown__.md"))
+        source_markdown_path = paper_artifacts.resolve_submission_minimal_source_markdown_path(
+            paper_bundle_manifest_path=paper_bundle_manifest_path,
+            submission_minimal_manifest=submission_minimal_manifest,
         )
+        if source_markdown_path is None:
+            source_markdown_path = (
+                (worktree_root / "__missing_submission_source_markdown__.md").resolve()
+                if worktree_root
+                else Path("/__missing_submission_source_markdown__.md")
+            )
         docx_path, pdf_path = paper_artifacts.resolve_submission_minimal_output_paths(
             paper_bundle_manifest_path=paper_bundle_manifest_path,
             submission_minimal_manifest=submission_minimal_manifest,

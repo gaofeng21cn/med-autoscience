@@ -179,6 +179,7 @@ def handle_paper_mission_command(
             "paper_mission_readback_file",
             None,
         ),
+        stage_packet=getattr(args, "stage_packet", None),
         receipt_apply_typed_blocker=bool(
             getattr(args, "apply_typed_blocker", False)
         ),
@@ -222,6 +223,7 @@ def build_paper_mission_readback(
     output_root: str | Path | None = None,
     paper_facing_delta_ref: str | Path | None = None,
     paper_mission_readback_file: str | Path | None = None,
+    stage_packet: str | Path | None = None,
     receipt_apply_typed_blocker: bool = False,
     receipt_apply_route_checkpoint: bool = False,
     typed_resolution_apply_owner_decision: bool = False,
@@ -273,6 +275,7 @@ def build_paper_mission_readback(
             profile_ref=profile_ref,
             study_id=study_id,
             output_root=output_root,
+            stage_packet=stage_packet,
             dry_run=dry_run,
             source=source,
         )
@@ -820,15 +823,25 @@ def _build_stage_closure_terminalizer_readback(
     profile_ref: str | Path,
     study_id: str,
     output_root: str | Path | None,
+    stage_packet: str | Path | None,
     dry_run: bool,
     source: str,
 ) -> dict[str, Any]:
-    source_readback = _build_terminalizer_source_readback(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        source=f"{source}:terminalize-stage:inspect",
-    )
+    if stage_packet is not None:
+        source_readback = _build_terminalizer_source_readback_from_stage_packet(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            stage_packet=stage_packet,
+            source=f"{source}:terminalize-stage:stage-packet",
+        )
+    else:
+        source_readback = _build_terminalizer_source_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            source=f"{source}:terminalize-stage:inspect",
+        )
     existing_decision = _mapping(source_readback.get("stage_closure_decision"))
     if (
         existing_decision
@@ -891,6 +904,7 @@ def _build_stage_closure_terminalizer_readback(
         "source_readback_summary": _stage_closure_source_readback_summary(
             source_readback
         ),
+        **_stage_closure_receipt_passthrough(source_readback),
         **({"output_manifest": output_manifest} if output_manifest is not None else {}),
         "authority_boundary": {
             "writes_authority": False,
@@ -907,6 +921,21 @@ def _build_stage_closure_terminalizer_readback(
         "required_next_owner": _mapping(decision.get("outcome")).get("next_owner"),
         "required_next_action": _mapping(decision.get("outcome")).get("next_action"),
     }
+
+
+def _stage_closure_receipt_passthrough(
+    source_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key in (
+        "current_package",
+        "opl_runtime_carrier_readback",
+        "current_opl_runtime_carrier_readback",
+    ):
+        value = _mapping(source_readback.get(key))
+        if value:
+            result[key] = value
+    return result
 
 
 def _build_terminalizer_source_readback(
@@ -952,6 +981,211 @@ def _build_terminalizer_source_readback(
         source=source,
         enable_opl_live_probe=True,
     )
+
+
+def _build_terminalizer_source_readback_from_stage_packet(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    stage_packet: str | Path,
+    source: str,
+) -> dict[str, Any]:
+    packet_ref = Path(stage_packet).expanduser()
+    if not packet_ref.is_absolute():
+        packet_ref = Path(profile.workspace_root).expanduser().resolve() / packet_ref
+    packet = _load_json_object(packet_ref)
+    packet_study_id = _optional_text(packet.get("study_id"))
+    if packet_study_id is not None and packet_study_id != study_id:
+        raise ValueError(
+            f"stage packet study_id mismatch: expected {study_id}, got {packet_study_id}"
+        )
+    base_readback = _build_terminalizer_source_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        source=f"{source}:base-current-package",
+    )
+    route_back = _load_stage_packet_route_back_evidence(
+        workspace_root=Path(profile.workspace_root).expanduser().resolve(),
+        packet=packet,
+    )
+    stage_attempt_id = _optional_text(packet.get("stage_attempt_id"))
+    work_unit_id = _optional_text(packet.get("work_unit_id")) or _optional_text(
+        route_back.get("work_unit_id")
+    )
+    stage_id = _optional_text(packet.get("stage_id")) or _optional_text(
+        route_back.get("stage_id")
+    )
+    stage_packet_ref = _optional_text(packet.get("stage_packet_ref")) or str(packet_ref)
+    route_back_ref = _optional_text(packet.get("route_back_evidence_ref"))
+    candidate_ref = _optional_text(packet.get("owner_answer_ref")) or _optional_text(
+        route_back.get("owner_answer_ref")
+    )
+    provider_attempt_ref = _optional_text(packet.get("provider_attempt_ref")) or (
+        f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
+    )
+    closeout_ref = str(packet_ref)
+    return {
+        **base_readback,
+        "surface_kind": "paper_mission_stage_attempt_closeout_readback",
+        "source": source,
+        "source_ref": closeout_ref,
+        "study_id": study_id,
+        "mission_id": base_readback.get("mission_id"),
+        "candidate_ref": candidate_ref,
+        "candidate_manifest_ref": candidate_ref,
+        "route_back_evidence_ref": route_back_ref,
+        "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        "stage_closure_decision": {},
+        "stage_closure_decision_ref": None,
+        "stage_closure_outcome": None,
+        "paper_mission_transaction": {
+            "schema_version": "paper-mission-transaction.v1",
+            "transaction_id": stage_packet_ref,
+            "mission_id": base_readback.get("mission_id"),
+            "study_id": study_id,
+            "stage_id": stage_id,
+            "work_unit_id": work_unit_id,
+            "stage_terminal_decision": {
+                "decision_kind": "route_back",
+                "status": "route_back_evidence_observed",
+                "reason": "paper_mission_stage_route_domain_gate_pending",
+                "next_owner": "MedAutoScience",
+                "next_work_unit": work_unit_id,
+                "source_route_back_evidence_ref": route_back_ref,
+                "route_back_evidence_ref": route_back_ref,
+            },
+            "transaction_state": "route_back",
+        },
+        "stage_terminal_decision": {
+            "decision_kind": "route_back",
+            "status": "route_back_evidence_observed",
+            "reason": "paper_mission_stage_route_domain_gate_pending",
+            "next_owner": "MedAutoScience",
+            "next_work_unit": work_unit_id,
+            "source_route_back_evidence_ref": route_back_ref,
+            "route_back_evidence_ref": route_back_ref,
+        },
+        "transaction_state": "route_back",
+        "consume_candidate_status": "route_back",
+        "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
+        "opl_runtime_carrier_readback": _stage_packet_opl_runtime_carrier_readback(
+            packet=packet,
+            route_back=route_back,
+            stage_attempt_id=stage_attempt_id,
+            stage_id=stage_id,
+            work_unit_id=work_unit_id,
+            provider_attempt_ref=provider_attempt_ref,
+            closeout_ref=closeout_ref,
+        ),
+        "stage_attempt_closeout_packet": packet,
+    }
+
+
+def _load_stage_packet_route_back_evidence(
+    *,
+    workspace_root: Path,
+    packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    ref = _optional_text(packet.get("route_back_evidence_ref"))
+    if ref is None:
+        return {}
+    path = Path(ref).expanduser()
+    if not path.is_absolute():
+        path = workspace_root / path
+    if not path.exists():
+        return {}
+    return _load_json_object(path)
+
+
+def _stage_packet_opl_runtime_carrier_readback(
+    *,
+    packet: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+    stage_attempt_id: str | None,
+    stage_id: str | None,
+    work_unit_id: str | None,
+    provider_attempt_ref: str | None,
+    closeout_ref: str,
+) -> dict[str, Any]:
+    closeout_receipt_status = (
+        _optional_text(packet.get("closeout_receipt_status"))
+        or "accepted_stage_attempt_closeout"
+    )
+    blocked_reason = (
+        _optional_text(packet.get("blocked_reason"))
+        or "paper_mission_stage_route_domain_gate_pending"
+    )
+    receipt_ref = provider_attempt_ref or closeout_ref
+    receipt_evidence = {
+        "receipt_kind": "opl_transition_receipt",
+        "receipt_ref": receipt_ref,
+        "runtime_closeout_ref": closeout_ref,
+        "stage_attempt_ref": receipt_ref,
+        "can_claim_paper_progress": False,
+    }
+    return {
+        "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+        "schema_version": 1,
+        "carrier_status": "opl_runtime_terminal_readback_observed",
+        "runtime_readback_status": "terminal_closeout_observed",
+        "dispatch_status": "terminal_closeout_observed",
+        "domain_ready_verdict": "domain_gate_pending",
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_materialized": False,
+        "request_carrier_preserved": True,
+        "terminal_closeout": {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": _optional_text(packet.get("status")) or "completed",
+            "study_id": _optional_text(packet.get("study_id"))
+            or _optional_text(route_back.get("study_id")),
+            "stage_id": stage_id,
+            "stage_attempt_id": stage_attempt_id,
+            "work_unit_id": work_unit_id,
+            "provider_attempt_ref": provider_attempt_ref,
+            "blocked_reason": blocked_reason,
+            "closeout_refs": [closeout_ref],
+            "closeout_receipt_status": closeout_receipt_status,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "domain_completion_claimed": False,
+            "domain_ready_claimed": False,
+        },
+        "opl_transition_receipt": {
+            "surface_kind": "opl_transition_receipt",
+            "receipt_status": "terminal_closeout_observed",
+            "role": "transport_receipt_only",
+            "stage_attempt_id": stage_attempt_id,
+            "stage_attempt_ref": receipt_ref,
+            "closeout_receipt_status": closeout_receipt_status,
+            "blocked_reason": blocked_reason,
+            "can_claim_paper_progress": False,
+        },
+        "receipt_evidence": receipt_evidence,
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+            "next_legal_action": (
+                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+            ),
+            "forbidden_next_action": "synonymous_route_back_redrive",
+            "receipt_ref": receipt_ref,
+            "runtime_closeout_ref": closeout_ref,
+            "durable_stop_allowed": False,
+        },
+    }
+
+
+def _load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"Expected JSON object at {path}")
+    return dict(payload)
 
 
 def _typed_blocker_resolution_should_own_next_action(

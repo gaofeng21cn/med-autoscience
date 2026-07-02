@@ -434,7 +434,7 @@ def test_paper_mission_drive_reuses_existing_reviewer_revision_handoff_without_o
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
-def test_paper_mission_drive_stops_when_typed_blocker_resolution_owner_action_ready(
+def test_paper_mission_drive_packages_when_submission_minimal_owner_action_ready(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -525,18 +525,17 @@ def test_paper_mission_drive_stops_when_typed_blocker_resolution_owner_action_re
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
-    assert payload["drive_result"]["status"] == "owner_action_ready_no_redrive"
-    assert payload["drive_result"]["forbidden_next_action"] == (
-        "synonymous_route_back_redrive"
-    )
-    assert payload["next_action"]["action_type"] == (
+    assert payload["drive_mode"] == "package_consume_and_optionally_submit"
+    assert payload["candidate_package_readback"]["output_manifest"][
+        "package_manifest_ref"
+    ]
+    assert payload["inspect_readback"]["next_action"]["action_type"] == (
         "classify_quality_blockers_or_materialize_degraded_handoff_gate"
     )
     assert payload["mutation_policy"]["writes_yang_ops_candidate_package"] is False
     assert payload["mutation_policy"]["writes_yang_ops_consumption_ledger"] is False
-    assert not (drive_output_root / "candidate_package").exists()
-    assert not (drive_output_root / "consumption_ledger").exists()
+    assert (drive_output_root / "candidate_package").exists()
+    assert (drive_output_root / "consumption_ledger").exists()
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

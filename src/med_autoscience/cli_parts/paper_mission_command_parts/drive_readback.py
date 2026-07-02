@@ -301,6 +301,7 @@ def build_paper_mission_drive_readback(
         "paper_mission_command": "drive",
         "action_intent": _action_intent("drive"),
         "source": source,
+        "drive_mode": "package_consume_and_optionally_submit",
         "dry_run": False,
         "profile": package_readback["profile"],
         "requested_study_id": package_readback["requested_study_id"],
@@ -310,6 +311,11 @@ def build_paper_mission_drive_readback(
         "mission_id": consume_readback["mission_id"],
         "objective": consume_readback["objective"],
         "output_root": str(root),
+        **(
+            {"inspect_readback": dict(next_action_source_readback)}
+            if next_action_source_readback is not None
+            else {}
+        ),
         "candidate_package_readback": package_readback,
         "authority_consume_readback": consume_readback.get(
             "authority_consume_readback"
@@ -648,7 +654,13 @@ def _drive_can_package_from_next_action(
     inspect_readback: Mapping[str, Any] | None,
 ) -> bool:
     next_action = _mapping(_mapping(inspect_readback).get("next_action"))
-    return _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt"
+    action_type = _optional_text(next_action.get("action_type"))
+    return (
+        action_type == "request_opl_stage_attempt"
+        or _optional_text(next_action.get("action_family"))
+        == "paper.package.submission_minimal"
+        or action_type == "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+    )
 
 
 def _drive_owner_action_stop_readback(
@@ -668,12 +680,11 @@ def _drive_owner_action_stop_readback(
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
     if _drive_should_submit_direct_next_action(readback):
         return None
+    if can_package_from_next_action:
+        return None
     has_owner_stop = _drive_has_terminal_owner_consumption_action(readback) or (
         bool(_mapping(readback.get("typed_blocker_resolution_readback")))
-        and not can_package_from_next_action
     )
-    if can_package_from_next_action and not has_owner_stop:
-        return None
     if not has_owner_stop:
         return None
     current_action = _mapping(readback.get("current_executable_owner_action"))
@@ -783,7 +794,7 @@ def _drive_has_terminal_owner_consumption_action(
         "owner_gate_required",
     }:
         return from_consumption_ledger
-    return bool(_mapping(readback.get("typed_blocker_resolution_readback")))
+    return False
 
 
 def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:

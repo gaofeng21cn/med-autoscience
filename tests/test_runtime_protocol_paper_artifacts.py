@@ -315,6 +315,45 @@ def test_resolve_submission_minimal_output_paths_from_manifest(tmp_path: Path) -
     assert pdf_path == pdf
 
 
+def test_resolve_submission_minimal_output_paths_from_review_package_contents_manifest(
+    tmp_path: Path,
+) -> None:
+    paper_bundle_manifest = tmp_path / "worktree" / "paper" / "paper_bundle_manifest.json"
+    submission_root = paper_bundle_manifest.parent / "submission_minimal"
+    dump_json(paper_bundle_manifest, {"schema_version": 1})
+    dump_json(
+        submission_root / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "submission_minimal_review_package_manifest",
+            "contents": {
+                "manuscript": "manuscript.md",
+                "delivery_documents": ["manuscript.docx", "paper.pdf"],
+            },
+        },
+    )
+    docx = submission_root / "manuscript.docx"
+    pdf = submission_root / "paper.pdf"
+    source_markdown = submission_root / "manuscript.md"
+    docx.write_text("docx", encoding="utf-8")
+    pdf.write_text("%PDF", encoding="utf-8")
+    source_markdown.write_text("# Manuscript\n", encoding="utf-8")
+    submission_manifest = json.loads((submission_root / "submission_manifest.json").read_text(encoding="utf-8"))
+
+    docx_path, pdf_path = resolve_submission_minimal_output_paths(
+        paper_bundle_manifest_path=paper_bundle_manifest,
+        submission_minimal_manifest=submission_manifest,
+    )
+    source_markdown_path = paper_artifacts.resolve_submission_minimal_source_markdown_path(
+        paper_bundle_manifest_path=paper_bundle_manifest,
+        submission_minimal_manifest=submission_manifest,
+    )
+
+    assert docx_path == docx
+    assert pdf_path == pdf
+    assert source_markdown_path == source_markdown
+
+
 def test_submission_minimal_artifact_authority_uses_lifecycle_kernel_shape(tmp_path: Path) -> None:
     paper_bundle_manifest = tmp_path / "worktree" / "paper" / "paper_bundle_manifest.json"
     dump_json(paper_bundle_manifest, {"schema_version": 1})

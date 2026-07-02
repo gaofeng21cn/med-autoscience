@@ -39,6 +39,7 @@ def register_paper_mission_parsers(subparsers: argparse._SubParsersAction) -> No
 
     terminalize_parser = mission_subparsers.add_parser("terminalize-stage")
     _add_common_args(terminalize_parser)
+    terminalize_parser.add_argument("--stage-packet")
     terminalize_parser.add_argument("--output-root")
     terminalize_parser.add_argument("--dry-run", action="store_true")
 

@@ -561,12 +561,81 @@ def resolve_submission_minimal_output_paths(
         return None, None
     paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
     workspace_root = paper_root.parent
+    submission_manifest_path = resolve_submission_minimal_manifest(paper_bundle_manifest_path)
+    surface_root = (
+        surface_root_from_submission_manifest_path(submission_manifest_path)
+        if submission_manifest_path is not None
+        else paper_root / "submission_minimal"
+    )
     manuscript = submission_minimal_manifest.get("manuscript") or {}
     docx_relpath = str(manuscript.get("docx_path") or "").strip()
     pdf_relpath = str(manuscript.get("pdf_path") or "").strip()
-    docx_path = workspace_root / docx_relpath if docx_relpath else None
-    pdf_path = workspace_root / pdf_relpath if pdf_relpath else None
+    delivery_documents = submission_minimal_manifest.get("contents", {}).get("delivery_documents") or []
+    if not docx_relpath:
+        docx_relpath = next(
+            (str(item).strip() for item in delivery_documents if str(item).strip().lower().endswith(".docx")),
+            "",
+        )
+    if not pdf_relpath:
+        pdf_relpath = next(
+            (str(item).strip() for item in delivery_documents if str(item).strip().lower().endswith(".pdf")),
+            "",
+        )
+    docx_path = _resolve_submission_surface_path(
+        workspace_root=workspace_root,
+        surface_root=surface_root,
+        raw_path=docx_relpath,
+    )
+    pdf_path = _resolve_submission_surface_path(
+        workspace_root=workspace_root,
+        surface_root=surface_root,
+        raw_path=pdf_relpath,
+    )
     return docx_path, pdf_path
+
+
+def resolve_submission_minimal_source_markdown_path(
+    *,
+    paper_bundle_manifest_path: Path | None,
+    submission_minimal_manifest: dict[str, Any] | None,
+) -> Path | None:
+    if paper_bundle_manifest_path is None or submission_minimal_manifest is None:
+        return None
+    paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
+    workspace_root = paper_root.parent
+    submission_manifest_path = resolve_submission_minimal_manifest(paper_bundle_manifest_path)
+    surface_root = (
+        surface_root_from_submission_manifest_path(submission_manifest_path)
+        if submission_manifest_path is not None
+        else paper_root / "submission_minimal"
+    )
+    manuscript = submission_minimal_manifest.get("manuscript") or {}
+    raw_path = str(manuscript.get("source_markdown_path") or "").strip()
+    if not raw_path:
+        contents = submission_minimal_manifest.get("contents", {})
+        raw_path = str(contents.get("source_markdown") or contents.get("manuscript") or "").strip()
+    return _resolve_submission_surface_path(
+        workspace_root=workspace_root,
+        surface_root=surface_root,
+        raw_path=raw_path,
+    )
+
+
+def _resolve_submission_surface_path(
+    *,
+    workspace_root: Path,
+    surface_root: Path,
+    raw_path: str,
+) -> Path | None:
+    if not raw_path:
+        return None
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    workspace_candidate = (workspace_root / path).resolve()
+    if workspace_candidate.exists() or len(path.parts) > 1 and path.parts[0] == "paper":
+        return workspace_candidate
+    return (surface_root / path).resolve()
 
 
 def _submission_minimal_authority_record(path: Path | None, *, artifact_format: str) -> dict[str, Any]:

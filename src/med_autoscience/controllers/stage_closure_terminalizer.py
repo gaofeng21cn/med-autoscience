@@ -73,6 +73,7 @@ ROUTE_BACK_CHECKPOINT_BLOCKERS = frozenset(
     {
         "accepted_submission_milestone_candidate",
         "paper_mission_stage_route_domain_gate_pending",
+        "route_back",
     }
 )
 

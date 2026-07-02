@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
+import json
 from pathlib import Path
+import time
 from typing import Any
 
 from med_autoscience.controllers.authority_route_gate import attach_authority_route_gate
@@ -25,6 +28,58 @@ from .delivery_stage_sync import (
     sync_journal_specific_delivery,
     sync_promoted_journal_delivery,
 )
+
+
+def _latest_publication_eval_id(*, study_root: Path) -> str | None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    eval_id = str(payload.get("eval_id") or "").strip()
+    return eval_id or None
+
+
+def _freshness_clock() -> tuple[int, str]:
+    return time.time_ns(), datetime.now(timezone.utc).isoformat()
+
+
+def _write_current_package_freshness_after_sync(
+    *,
+    study_root: Path,
+    result: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    source_eval_id = _latest_publication_eval_id(study_root=study_root)
+    if source_eval_id is None:
+        return None
+    from med_autoscience.controllers import gate_clearing_batch_package_freshness
+
+    targets = result.get("targets") if isinstance(result.get("targets"), Mapping) else {}
+    current_package_root = result.get("current_package_root") or targets.get("current_package_root")
+    proof_result = {
+        **dict(result),
+        "submission_manifest_path": result.get("submission_manifest_path")
+        or (str(Path(str(current_package_root)) / "audit" / "submission_manifest.json") if current_package_root else None),
+        "delivery_manifest_path": result.get("delivery_manifest_path")
+        or (str(study_root / "manuscript" / "delivery_manifest.json")),
+        "current_package_root": current_package_root,
+        "current_package_zip": result.get("current_package_zip") or targets.get("current_package_zip"),
+    }
+    return gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id=source_eval_id,
+        unit_results=[
+            {
+                "unit_id": "sync_submission_minimal_delivery",
+                "status": str(proof_result.get("status") or "synced").strip() or "synced",
+                "result": proof_result,
+            }
+        ],
+        clock=_freshness_clock,
+        schema_version=1,
+    )
 
 
 def _known_submission_authority_blockers(gate: Mapping[str, Any]) -> tuple[str, ...]:
@@ -129,6 +184,11 @@ def sync_study_delivery(
             known_blockers=known_submission_authority_blockers,
         )
         result["submission_authority_gate"] = authority_route_gate
+        if normalized_stage == "submission_minimal":
+            result["current_package_freshness_proof"] = _write_current_package_freshness_after_sync(
+                study_root=study_root,
+                result=result,
+            )
         return attach_authority_route_gate(result, mirror_authority_gate)
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE and not submission_authority_allowed:
@@ -142,6 +202,10 @@ def sync_study_delivery(
             known_blockers=known_submission_authority_blockers,
         )
         result["submission_authority_gate"] = authority_route_gate
+        result["current_package_freshness_proof"] = _write_current_package_freshness_after_sync(
+            study_root=study_root,
+            result=result,
+        )
         return attach_authority_route_gate(result, mirror_authority_gate)
 
     if not is_supported_publication_profile(normalized_publication_profile):
@@ -159,6 +223,10 @@ def sync_study_delivery(
             known_blockers=known_submission_authority_blockers,
         )
         result["submission_authority_gate"] = authority_route_gate
+        result["current_package_freshness_proof"] = _write_current_package_freshness_after_sync(
+            study_root=study_root,
+            result=result,
+        )
         return attach_authority_route_gate(result, mirror_authority_gate)
 
     sync_journal_delivery = (
@@ -176,6 +244,10 @@ def sync_study_delivery(
         publication_profile=normalized_publication_profile,
     )
     result["submission_authority_gate"] = authority_route_gate
+    result["current_package_freshness_proof"] = _write_current_package_freshness_after_sync(
+        study_root=study_root,
+        result=result,
+    )
     return attach_authority_route_gate(result, authority_route_gate)
 
 

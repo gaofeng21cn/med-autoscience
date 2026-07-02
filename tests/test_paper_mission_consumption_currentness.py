@@ -8,6 +8,9 @@ from med_autoscience.controllers.owner_route_handoff_parts.paper_mission_consump
     _paper_mission_handoff_timestamp_key,
     latest_paper_mission_consumption_route_handoff,
 )
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_consumption,
+)
 from med_autoscience.paper_mission_consumption_readback import (
     _ledger_timestamp_key,
     latest_paper_mission_consumption_transaction_readback,
@@ -302,6 +305,52 @@ def test_consumption_transaction_readback_keeps_accepted_candidate_when_route_ha
     assert readback["stage_terminal_decision"]["decision_kind"] == "route_back"
     assert readback["opl_route_command"]["command_kind"] == "route_back"
     assert readback["transaction_state"] == "route_back"
+
+
+def test_route_back_consumption_does_not_supersede_consumed_typed_blocker_receipt(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    receipt_ref = workspace_root / "ops" / "medautoscience" / "receipt.json"
+    receipt_ref.parent.mkdir(parents=True)
+    receipt_ref.write_text("{}", encoding="utf-8")
+    consume_record = _write_ledger(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        run_id="paper_mission_drive",
+        transaction_ref="paper-mission-transaction::obesity::submission-candidate",
+        fingerprint="fingerprint::obesity::submission-candidate",
+    )
+    _patch_json(
+        consume_record.parent / "stage_terminal_decision.json",
+        {"transaction_state": "route_back"},
+    )
+    os.utime(receipt_ref, (2_000_000_000, 2_000_000_000))
+    os.utime(consume_record, (3_000_000_000, 3_000_000_000))
+
+    readback = latest_paper_mission_consumption_transaction_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+    )
+
+    assert readback["transaction_state"] == "route_back"
+    assert (
+        receipt_owner_consumption_superseded_by_consumption(
+            receipt_owner_consumption_readback={
+                "status": "owner_consumption_applied",
+                "source_ref": str(receipt_ref),
+                "mas_receipt_consumption": {
+                    "status": "owner_consumed_typed_blocker",
+                },
+                "stage_closure_decision": {
+                    "outcome": {"kind": "typed_blocker"}
+                },
+            },
+            consumption_ledger_readback=readback,
+        )
+        is False
+    )
 
 
 def test_consumption_route_handoff_rejects_cross_identity_carrier(
