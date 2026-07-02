@@ -37,11 +37,13 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 ## MAS Stage 主提示词与专业 Skill 单源
 
-医学论文写作、审稿和图件的流程主入口是 MAS 本仓维护的 stage 主提示词：`write`、`review` 和 `figure`。当前物理承载仍是 overlay template 生成到 `.codex/skills/medical-research-write`、`.codex/skills/medical-research-review` 和 `.codex/skills/medical-research-figure`，但它们的架构角色是 stage operating prompt：负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。
+医学论文写作、审稿和图件的流程主入口是 MAS 本仓维护的 stage 主提示词/策略。canonical repo source 是 `agent/stages/` + `agent/prompts/`；产品语义中的 `write`、`review` 和 `figure` 负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。
+
+`src/med_autoscience/overlay/templates/*.SKILL.md` 与运行时 `.codex/skills/medical-research-*` 是 Codex 自动发现兼容投影，不是 stage 主提示词源头，也不是 professional specialist skill 源头。
 
 医学论文写作、审稿、图件设计和文献检索的专业正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design` 和 `medical-research-lit`。
 
-当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
+当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成。前三段默认都是 no-authority surface；最终是否接受、退回、阻塞或交给 human gate，只由 MAS owner surface 决定。
 
 文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
