@@ -1,7 +1,9 @@
+from __future__ import annotations
+
+from med_autoscience.research_integrity.claim_citation_support_v2 import (
+    build_claim_citation_support_matrix_v2,
+)
 from med_autoscience.research_integrity.reference_authenticity import (
-    SCHEMA_VERSION,
-    SURFACE_KIND,
-    SUPPORTED_PROVIDERS,
     ReferenceVerificationAttestation,
     ReferenceVerificationStatus,
     build_reference_verification_attestation,
@@ -9,11 +11,9 @@ from med_autoscience.research_integrity.reference_authenticity import (
 )
 
 __all__ = [
-    "SCHEMA_VERSION",
-    "SURFACE_KIND",
-    "SUPPORTED_PROVIDERS",
     "ReferenceVerificationAttestation",
     "ReferenceVerificationStatus",
+    "build_claim_citation_support_matrix_v2",
     "build_reference_verification_attestation",
     "build_reference_verification_attestation_dict",
 ]
