@@ -16,8 +16,10 @@ SUPPORT_GRADES = frozenset(
     )
 )
 HARD_GATE_SUPPORT_GRADES = frozenset(("unsupported", "contradicted"))
-HARD_GATE_ATTESTATION_STATUSES = frozenset(("retracted", "unresolved"))
-ATTESTATION_STATUSES = frozenset(("supported", "verified", "retracted", "unresolved"))
+HARD_GATE_ATTESTATION_STATUSES = frozenset(("unresolved", "contradicted", "retracted"))
+ATTESTATION_STATUSES = frozenset(
+    ("verified", "needs_review", "unresolved", "contradicted", "retracted")
+)
 
 
 def build_claim_citation_support_matrix_v2(

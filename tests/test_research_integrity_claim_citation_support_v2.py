@@ -93,6 +93,12 @@ def test_hard_gate_candidates_are_candidate_evidence_only() -> None:
                 "evidence_refs": ["analysis/results.json#/C3"],
                 "support_grade": "contradicted",
             },
+            {
+                "claim_id": "C6",
+                "citation_refs": [{"doi": "10.1000/contradicted-ref"}],
+                "evidence_refs": ["analysis/results.json#/C6"],
+                "support_grade": "partial_support",
+            },
         ],
         reference_attestation_refs=[
             {
@@ -104,6 +110,11 @@ def test_hard_gate_candidates_are_candidate_evidence_only() -> None:
                 "doi": "10.1000/unresolved",
                 "reference_attestation_ref": "refs/attestations.json#/unresolved",
                 "reference_attestation_status": "unresolved",
+            },
+            {
+                "doi": "10.1000/contradicted-ref",
+                "reference_attestation_ref": "refs/attestations.json#/contradicted",
+                "reference_attestation_status": "contradicted",
             },
         ],
     )
@@ -130,6 +141,12 @@ def test_hard_gate_candidates_are_candidate_evidence_only() -> None:
         "reference_attestation_unresolved",
         "doi:10.1000/unresolved",
         "unresolved",
+    ) in reasons
+    assert (
+        "C6",
+        "reference_attestation_contradicted",
+        "doi:10.1000/contradicted-ref",
+        "contradicted",
     ) in reasons
     assert all(candidate["hard_gate"] is True for candidate in result["blocker_candidates"])
     assert all(
