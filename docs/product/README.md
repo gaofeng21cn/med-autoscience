@@ -35,6 +35,12 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 - `contracts/test-lane-manifest.json` 的 `mas-workbench-projection` 与 `mas-functional-consumer-followthrough` 只允许 App/workbench 消费 MAS refs-only projection 和 action receipt，不允许写 study truth、publication eval、controller decisions、terminal commands、current package、evidence/review ledger、memory body 或 artifact authority。
 - MAS 不再提供 repo-local Progress Portal / static HTML display materializer；默认 study read model 是 artifact-first mission summary，platform repair 折叠进 diagnostics。`medautosci workspace progress-portal`、`--serve`、`--enable-actions` 和 `ops/mas/bin/start-web` 不是当前入口。OPL hosted workbench / App shell 消费 MAS refs-only projection；MAS 不写 paper/package、publication gate、controller decision 或 provider runtime state。
 
+## MAS 核心 Skill 单源
+
+写作、审稿和图件的主入口分别是 MAS overlay skill：`medical-research-write`、`medical-research-review` 和 `medical-research-figure`。这些 skill 持有 MAS paper-facing owner path、claim/evidence/display 读法和 route-back 边界。`medical-research-figure-polish` 只保留为 `medical-research-figure` 的 polish/review 阶段兼容入口，不是独立权威源。
+
+OPL ScholarSkills 的 `write`、`review`、`display` 等模块只能作为增强 pack、refs-only candidate、gallery/reference 或 owner-gate input。它们不取代 MAS owner skill，不写 MAS paper truth、publication eval、controller decision、owner receipt、typed blocker、human gate、`current_package` 或 submission-ready verdict。
+
 ## 当前文档职责
 
 | 文档 | 当前职责 | 不承载 |

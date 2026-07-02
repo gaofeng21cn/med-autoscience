@@ -372,6 +372,53 @@ def test_install_medical_overlay_can_target_selected_skill_subset(tmp_path: Path
     assert [item["status"] for item in status["targets"]] == ["overlay_applied", "overlay_applied"]
 
 
+def test_install_medical_overlay_materializes_primary_figure_skill(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+
+    result = module.install_medical_overlay(quest_root=quest_root, skill_ids=("figure",))
+    skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-figure" / "SKILL.md"
+    skill_text = skill_path.read_text(encoding="utf-8")
+
+    assert [item["skill_id"] for item in result["targets"]] == ["figure"]
+    assert Path(result["targets"][0]["target_root"]).name == f"{OVERLAY_PREFIX}-figure"
+    assert "name: figure" in skill_text
+    assert "Figure Intent And Claim" in skill_text
+    assert "Evidence Refs" in skill_text
+    assert "Panel Plan" in skill_text
+    assert "Template And Backend Selection" in skill_text
+    assert "Draft Render" in skill_text
+    assert "Visual QA" in skill_text
+    assert "Polish" in skill_text
+    assert "Reviewer Handoff" in skill_text
+    assert "AI-first" in skill_text
+    assert "Scripts are render and check tools" in skill_text
+
+
+def test_figure_polish_overlay_remains_installable_as_figure_phase_entry(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+
+    result = module.install_medical_overlay(quest_root=quest_root, skill_ids=("figure-polish",))
+    skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-figure-polish" / "SKILL.md"
+    skill_text = skill_path.read_text(encoding="utf-8")
+
+    assert [item["skill_id"] for item in result["targets"]] == ["figure-polish"]
+    assert Path(result["targets"][0]["target_root"]).name == f"{OVERLAY_PREFIX}-figure-polish"
+    assert "name: figure-polish" in skill_text
+    assert "polish/review phase of `medical-research-figure`" in skill_text
+    assert "not an independent authority source" in skill_text
+
+
+def test_write_template_routes_figures_through_primary_figure_skill() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP["write"])
+
+    assert "open `figure/SKILL.md` first" in skill_text
+    assert "Use `figure-polish/SKILL.md` only for the polish/review phase" in skill_text
+
+
 def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skills(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     runtime_repo_root = tmp_path / "med-deepscientist"

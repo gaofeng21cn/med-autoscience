@@ -12,7 +12,7 @@ DEFAULT_SKILL_IDS = (
     "decision",
     "experiment",
     "analysis-campaign",
-    "figure-polish",
+    "figure",
     "write",
     "review",
     "rebuttal",

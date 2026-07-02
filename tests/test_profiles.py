@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import tomllib
 import pytest
 
 CANONICAL_NFPITNET_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
@@ -159,7 +160,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
         "decision",
         "experiment",
         "analysis-campaign",
-        "figure-polish",
+        "figure",
         "write",
         "review",
         "rebuttal",
@@ -183,6 +184,14 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.developer_supervisor_mode_explicit is False
     assert profile.github_username is None
     assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
+
+
+def test_workspace_profile_template_defaults_to_primary_figure_overlay_skill() -> None:
+    template_path = Path(__file__).resolve().parents[1] / "profiles" / "workspace.profile.template.toml"
+    payload = tomllib.loads(template_path.read_text(encoding="utf-8"))
+
+    assert "figure" in payload["medical_overlay_skills"]
+    assert "figure-polish" not in payload["medical_overlay_skills"]
 
 
 def test_load_profile_accepts_historical_reference_tables_without_top_level_mds_fields(tmp_path: Path) -> None:

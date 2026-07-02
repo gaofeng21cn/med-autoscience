@@ -59,6 +59,7 @@ FULL_TEMPLATE_MAP = {
     "idea": "medical-research-idea.SKILL.md",
     "decision": "medical-research-decision.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
+    "figure": "medical-research-figure.SKILL.md",
     "figure-polish": "medical-research-figure-polish.SKILL.md",
     "write": "medical-research-write.SKILL.md",
     "review": "medical-research-review.SKILL.md",

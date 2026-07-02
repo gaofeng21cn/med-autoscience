@@ -51,7 +51,7 @@ This skill intentionally absorbs the strongest legacy runtime writing discipline
 - Explanation figures such as method overviews, workflow schematics, cohort diagrams, and graphical abstracts should be generated through MedAutoScience-controlled programmatic drawing, not through an assumed external figure-editing runtime.
 - Prefer vector-first export for paper figures: `pdf` or `svg`, plus one `png` preview when helpful.
 - When practical, size figures so they can survive later single-column or double-column placement without unreadable text.
-- For any figure that will enter the draft, appendix, or paper bundle, open `figure-polish/SKILL.md` and complete its render-inspect-revise pass before treating the figure as final.
+- For any figure that will enter the draft, appendix, or paper bundle, open `figure/SKILL.md` first. Use `figure-polish/SKILL.md` only for the polish/review phase after figure intent, claim, evidence refs, panel plan, backend selection, draft render, and visual QA are scoped.
 - Evidence figures must lock their renderer family in `paper/figure_semantics_manifest.json`; only `python` and `r_ggplot2` are allowed.
 - Illustration figures must also lock their renderer family in `paper/figure_semantics_manifest.json`; allowed families are `python`, `r_ggplot2`, and `html_svg`.
 - Do not switch renderer family because an environment, package, or runtime call fails. If the selected renderer cannot run, stop and fix the environment. The manifest must keep `fallback_on_failure=false` and `failure_action=block_and_fix_environment`.
