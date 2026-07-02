@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -315,7 +316,7 @@ def _dispatch_research_integrity_command(command: str, request: Mapping[str, Any
         raise ValueError(f"不支持的 research integrity domain entry command: {command}")
     gate_bundle = import_module("med_autoscience.research_integrity.gate_bundle")
     return gate_bundle.build_research_integrity_gate_input_bundle(
-        payload=_research_integrity_gate_input_payload(request),
+        **_research_integrity_gate_input_kwargs(request),
     )
 
 
@@ -328,11 +329,19 @@ def _research_integrity_gate_input_payload(request: Mapping[str, Any]) -> dict[s
     else:
         raise ValueError("research integrity domain entry `payload` 必须是 mapping。")
     for field_name in (
+        "reference_checks",
         "reference",
         "references",
+        "claim_spans",
         "claim",
         "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
         "manuscript",
+        "numeric_facts",
+        "display_facts",
         "provider_evidence",
         "reference_attestations",
         "display_to_claim_map",
@@ -341,6 +350,115 @@ def _research_integrity_gate_input_payload(request: Mapping[str, Any]) -> dict[s
         if field_name in request:
             payload[field_name] = request[field_name]
     return payload
+
+
+def _research_integrity_gate_input_kwargs(request: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _research_integrity_gate_input_payload(request)
+    manuscript = _optional_mapping_value(payload.get("manuscript"))
+    return {
+        "reference_checks": _research_integrity_reference_checks(payload),
+        "claim_spans": _mapping_sequence(_first_present(payload, "claim_spans", "claims", "claim"), "claim_spans"),
+        "citation_refs": _ref_sequence(payload.get("citation_refs"), "citation_refs"),
+        "evidence_refs": _ref_sequence(payload.get("evidence_refs"), "evidence_refs"),
+        "reference_attestation_refs": _ref_sequence(
+            _first_present(payload, "reference_attestation_refs", "reference_attestations"),
+            "reference_attestation_refs",
+        ),
+        "manuscript_sections": _research_integrity_manuscript_sections(payload),
+        "numeric_facts": _first_present(payload, "numeric_facts", mapping=manuscript),
+        "display_facts": _first_present(payload, "display_facts", "display_to_claim_map", mapping=manuscript),
+        "reporting_checklist_expectations": _first_present(
+            payload,
+            "reporting_checklist_expectations",
+            mapping=manuscript,
+        ),
+    }
+
+
+def _research_integrity_reference_checks(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    if "reference_checks" in payload:
+        return _mapping_sequence(payload.get("reference_checks"), "reference_checks")
+    references = (
+        _mapping_sequence(payload.get("references"), "references")
+        + _mapping_sequence(payload.get("reference"), "reference")
+    )
+    if not references:
+        return ()
+    shared_evidence = _mapping_sequence(payload.get("provider_evidence"), "provider_evidence")
+    checks: list[Mapping[str, Any]] = []
+    for reference in references:
+        reference_evidence = _first_present(reference, "provider_evidence", "evidence")
+        evidence = _mapping_sequence(
+            reference_evidence if reference_evidence is not None else shared_evidence,
+            "provider_evidence",
+        )
+        checks.append({"reference": reference, "provider_evidence": list(evidence)})
+    return tuple(checks)
+
+
+def _research_integrity_manuscript_sections(payload: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    if "manuscript_sections" in payload:
+        return _optional_research_integrity_mapping(payload.get("manuscript_sections"), "manuscript_sections")
+    manuscript = _optional_mapping_value(payload.get("manuscript"))
+    if manuscript is None:
+        return None
+    sections = manuscript.get("sections")
+    if sections is not None:
+        return _optional_research_integrity_mapping(sections, "manuscript.sections")
+    return manuscript
+
+
+def _first_present(
+    payload: Mapping[str, Any],
+    *field_names: str,
+    mapping: Mapping[str, Any] | None = None,
+) -> Any:
+    for field_name in field_names:
+        if field_name in payload:
+            return payload[field_name]
+    if mapping is not None:
+        for field_name in field_names:
+            if field_name in mapping:
+                return mapping[field_name]
+    return None
+
+
+def _mapping_sequence(value: Any, field_name: str) -> tuple[Mapping[str, Any], ...]:
+    if value is None:
+        return ()
+    if isinstance(value, Mapping):
+        return (value,)
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(f"research integrity domain entry `{field_name}` 必须是 mapping 或 mapping list。")
+    items: list[Mapping[str, Any]] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise ValueError(f"research integrity domain entry `{field_name}` 只能包含 mapping。")
+        items.append(item)
+    return tuple(items)
+
+
+def _ref_sequence(value: Any, field_name: str) -> tuple[Mapping[str, Any] | str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, Mapping)):
+        return (value,)
+    if not isinstance(value, Sequence) or isinstance(value, (bytes, bytearray)):
+        raise ValueError(f"research integrity domain entry `{field_name}` 必须是 ref、mapping 或 list。")
+    items: list[Mapping[str, Any] | str] = []
+    for item in value:
+        if not isinstance(item, (str, Mapping)):
+            raise ValueError(f"research integrity domain entry `{field_name}` 只能包含 ref 或 mapping。")
+        items.append(item)
+    return tuple(items)
+
+
+def _optional_research_integrity_mapping(value: Any, field_name: str) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError(f"research integrity domain entry `{field_name}` 必须是 mapping。")
+    return value
 
 
 def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:

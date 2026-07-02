@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
-from types import ModuleType
 
 
 def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descriptor() -> None:
@@ -18,13 +16,14 @@ def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descr
     assert action["source_command"]["surface_kind"] == "research_integrity_gate_input_bundle"
     assert action["supported_surfaces"]["mcp"]["descriptor_only"] is True
     assert action["supported_surfaces"]["mcp"]["public_runtime"] is False
-    assert action["supported_surfaces"]["mcp"]["surface_kind"] == (
-        "research_integrity_gate_input_bundle"
-    )
+    assert action["supported_surfaces"]["mcp"]["surface_kind"] == "research_integrity_gate_input_bundle"
     assert "only produces evidence" in action["summary"]
     assert "does not write publication authority" in action["summary"]
     assert mcp_projection["research_integrity_gate_input"]["input_schema"]["properties"]["payload"] == {
         "type": "object"
+    }
+    assert mcp_projection["research_integrity_gate_input"]["input_schema"]["properties"]["reference_checks"] == {
+        "type": "array"
     }
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["can_write_mas_study_truth"] is False
@@ -56,11 +55,19 @@ def test_domain_entry_contract_exposes_research_integrity_gate_input_without_wor
     assert contract["required_fields"] == []
     assert contract["optional_fields"] == [
         "payload",
+        "reference_checks",
         "reference",
         "references",
+        "claim_spans",
         "claim",
         "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
         "manuscript",
+        "numeric_facts",
+        "display_facts",
         "provider_evidence",
         "reference_attestations",
         "display_to_claim_map",
@@ -68,55 +75,66 @@ def test_domain_entry_contract_exposes_research_integrity_gate_input_without_wor
     ]
 
 
-def test_domain_entry_dispatches_research_integrity_gate_input_without_profile(monkeypatch) -> None:
+def test_domain_entry_dispatches_research_integrity_gate_input_without_profile() -> None:
     domain_entry = importlib.import_module("med_autoscience.domain_entry")
-    captured: dict[str, object] = {}
-    fake_gate_bundle = ModuleType("med_autoscience.research_integrity.gate_bundle")
 
-    def fake_build_research_integrity_gate_input_bundle(*, payload):
-        captured["payload"] = payload
-        return {
-            "surface_kind": "research_integrity_gate_input_bundle",
-            "authority_boundary": {
-                "outputs_are_gate_inputs": True,
-                "can_write_publication_eval_latest": False,
-                "can_write_controller_decisions": False,
-                "can_mutate_current_package": False,
-                "can_sign_owner_receipt": False,
-                "can_materialize_typed_blocker": False,
-                "can_materialize_human_gate": False,
-                "can_write_runtime_queue_or_provider_attempt": False,
-            },
-        }
+    def fail_if_profile_loaded(_profile_ref):
+        raise AssertionError("research integrity gate input must not require a workspace profile")
 
-    fake_gate_bundle.build_research_integrity_gate_input_bundle = (
-        fake_build_research_integrity_gate_input_bundle
-    )
-    monkeypatch.setitem(
-        sys.modules,
-        "med_autoscience.research_integrity.gate_bundle",
-        fake_gate_bundle,
-    )
-
-    payload = domain_entry.MedAutoScienceDomainEntry().dispatch(
+    payload = domain_entry.MedAutoScienceDomainEntry(profile_loader=fail_if_profile_loaded).dispatch(
         {
             "command": "research-integrity-gate-input",
-            "payload": {"provider_evidence": [{"provider": "crossref"}]},
-            "reference": {"id": "smith2024", "doi": "10.1000/example"},
-            "claim": {"claim_id": "c1", "text": "Claim text"},
-            "manuscript": {"sections": [{"name": "results"}]},
+            "provider_evidence": [
+                {
+                    "provider": "crossref",
+                    "matched_identifiers": {"doi": "10.1000/example"},
+                    "metadata": {"title": "Example Trial", "year": "2024"},
+                }
+            ],
+            "reference": {
+                "id": "smith2024",
+                "doi": "10.1000/example",
+                "title": "Example Trial",
+                "year": "2024",
+            },
+            "claim": {
+                "claim_id": "c1",
+                "text": "Intervention improved AUC.",
+                "citation_refs": ["ref:smith2024"],
+                "evidence_refs": ["analysis:auc"],
+            },
+            "manuscript": {
+                "results": {
+                    "numeric_facts": [
+                        {
+                            "fact_id": "auc",
+                            "value": "0.71",
+                            "unit": "AUROC",
+                            "source_ref": "analysis:auc",
+                        }
+                    ]
+                }
+            },
+            "display_facts": [
+                {
+                    "fact_id": "auc",
+                    "value": "0.71",
+                    "unit": "AUROC",
+                    "display_id": "figure_1",
+                }
+            ],
         }
     )
 
-    assert captured["payload"] == {
-        "provider_evidence": [{"provider": "crossref"}],
-        "reference": {"id": "smith2024", "doi": "10.1000/example"},
-        "claim": {"claim_id": "c1", "text": "Claim text"},
-        "manuscript": {"sections": [{"name": "results"}]},
-    }
     assert payload["command"] == "research-integrity-gate-input"
     assert payload["surface_kind"] == "research_integrity_gate_input_bundle"
-    assert payload["authority_boundary"]["outputs_are_gate_inputs"] is True
+    assert payload["status"] == "clear"
+    assert payload["surfaces"]["reference_verification_attestations"][0]["status"] == "verified"
+    assert (
+        payload["surfaces"]["claim_citation_support_matrix_v2"]["claims"][0]["support_grade"]
+        == "direct_support"
+    )
+    assert payload["surfaces"]["manuscript_consistency_meta_review"]["status"] == "clear"
     assert payload["authority_boundary"]["can_write_publication_eval_latest"] is False
     assert payload["authority_boundary"]["can_write_controller_decisions"] is False
     assert payload["authority_boundary"]["can_mutate_current_package"] is False

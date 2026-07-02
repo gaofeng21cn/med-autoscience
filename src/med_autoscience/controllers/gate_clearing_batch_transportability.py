@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -43,6 +41,8 @@ def _write_json_if_changed(path: Path, payload: dict[str, Any]) -> bool:
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
+    import yaml
+
     if not path.exists():
         return {}
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

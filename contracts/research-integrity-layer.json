@@ -103,6 +103,34 @@
         "section_logic_contradiction",
         "reporting_guideline_gap"
       ]
+    },
+    {
+      "surface_kind": "research_integrity_gate_input_bundle",
+      "producer": "MAS research_integrity.gate_bundle pure builder",
+      "callable_entry": "MedAutoScienceDomainEntry.dispatch command research-integrity-gate-input",
+      "action_catalog_descriptor": "research_integrity_gate_input",
+      "inputs": [
+        "reference_checks or reference/references with provider_evidence",
+        "claim_spans or claim/claims with citation and evidence refs",
+        "citation_refs, evidence_refs, and reference_attestation_refs",
+        "manuscript_sections or manuscript payload",
+        "numeric_facts, display_facts, and reporting_checklist_expectations"
+      ],
+      "required_output_fields": [
+        "surface_kind",
+        "schema_version",
+        "status",
+        "surfaces",
+        "blocker_candidates",
+        "review_candidates",
+        "authority_boundary"
+      ],
+      "status_values": [
+        "clear",
+        "needs_review",
+        "blocked"
+      ],
+      "authority": "gate_input_only_no_publication_authority"
     }
   ],
   "provider_crosscheck_catalog": [
@@ -200,15 +228,23 @@
     "pure_builder_modules": [
       "src/med_autoscience/research_integrity/reference_authenticity.py",
       "src/med_autoscience/research_integrity/claim_citation_support_v2.py",
-      "src/med_autoscience/research_integrity/manuscript_consistency.py"
+      "src/med_autoscience/research_integrity/manuscript_consistency.py",
+      "src/med_autoscience/research_integrity/gate_bundle.py"
+    ],
+    "callable_surfaces": [
+      "src/med_autoscience/domain_entry.py::research-integrity-gate-input",
+      "src/med_autoscience/action_catalog.py::research_integrity_gate_input",
+      "src/med_autoscience/domain_entry_contract.py::research-integrity-gate-input"
     ],
     "expected_tests": [
+      "tests/test_research_integrity_gate_bundle.py",
+      "tests/test_research_integrity_domain_entry.py",
       "tests/test_research_integrity_reference_authenticity.py",
       "tests/test_research_integrity_claim_citation_support_v2.py",
       "tests/test_research_integrity_manuscript_consistency.py"
     ],
     "standard_verification": [
-      "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py",
+      "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py",
       "rtk make test-meta",
       "rtk scripts/verify.sh"
     ]

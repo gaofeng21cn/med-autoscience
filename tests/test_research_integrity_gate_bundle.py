@@ -1,94 +1,93 @@
 from __future__ import annotations
 
-from med_autoscience.domain_entry import MedAutoScienceDomainEntry
-from med_autoscience.research_integrity.gate_bundle import (
-    build_research_integrity_gate_input_bundle,
-)
+import json
+
+from med_autoscience.research_integrity import build_research_integrity_gate_input_bundle
 
 
-def test_research_integrity_gate_bundle_combines_reference_claim_and_manuscript_checks() -> None:
-    bundle = build_research_integrity_gate_input_bundle(
-        payload={
-            "reference": {
-                "reference_id": "smith2024",
-                "doi": "10.1000/example",
-                "title": "Recorded metabolic diagnostic fields",
-                "year": "2024",
-            },
-            "provider_evidence": [
-                {
-                    "provider": "crossref",
-                    "reference_id": "smith2024",
-                    "doi": "10.1000/example",
-                    "title": "Recorded metabolic diagnostic fields",
-                    "year": "2024",
-                }
-            ],
-            "claim": {
-                "claim_id": "claim-1",
-                "claim_text": "Diagnostic fields are recorded among populated records.",
-                "citation_refs": ["smith2024"],
-                "evidence_refs": ["table-2"],
-            },
-            "manuscript": {
-                "results": {
-                    "numeric_facts": [
-                        {
-                            "fact_id": "n-records",
-                            "reported_value": 4189,
-                            "unit": "records",
-                            "population": "registry",
-                        }
-                    ]
-                },
-                "tables": {
-                    "numeric_facts": [
-                        {
-                            "fact_id": "n-records",
-                            "reported_value": 4189,
-                            "unit": "records",
-                            "population": "registry",
-                        }
-                    ]
-                },
-            },
-            "reporting_guideline_expectations": [
-                {"item_id": "ethics_approval", "status": "missing", "required": True}
-            ],
-        }
+def test_research_integrity_gate_input_bundle_blocks_hard_integrity_findings() -> None:
+    result = build_research_integrity_gate_input_bundle(
+        reference_checks=[
+            {
+                "reference": {"id": "ref1", "doi": "10.1000/source", "title": "Original"},
+                "provider_evidence": [
+                    {
+                        "provider": "crossref",
+                        "matched_identifiers": {"doi": "10.1000/source"},
+                        "retraction_or_update_flags": {"retracted": True},
+                    }
+                ],
+            }
+        ],
+        claim_spans=[
+            {
+                "claim_id": "C1",
+                "citation_refs": [{"ref": "ref:ref1"}],
+                "evidence_refs": ["analysis/results.json#/C1"],
+                "support_grade": "direct_support",
+            }
+        ],
+        manuscript_sections={
+            "abstract": {"numeric_facts": [_fact("cohort_n", 100)]},
+            "results": {"numeric_facts": [_fact("cohort_n", 101)]},
+        },
     )
 
-    assert bundle["surface_kind"] == "research_integrity_gate_input_bundle"
-    assert bundle["status"] == "blocked"
-    assert bundle["reference_attestations"][0]["status"] == "verified"
-    assert bundle["claim_citation_support_matrix"]["claims"][0]["support_grade"] == "direct_support"
-    assert bundle["manuscript_consistency_meta_review"]["status"] == "blocked"
-    assert bundle["blocker_candidates"][0]["authority_boundary"]["can_write_owner_receipt"] is False
-    assert bundle["authority_boundary"]["can_write_current_package"] is False
+    assert json.loads(json.dumps(result, sort_keys=True)) == result
+    assert result["surface_kind"] == "research_integrity_gate_input_bundle"
+    assert result["status"] == "blocked"
+    reasons = {(item["family"], item["reason"]) for item in result["blocker_candidates"]}
+    assert ("reference_authenticity", "retracted") in reasons
+    assert result["surfaces"]["claim_citation_support_matrix_v2"]["blocker_candidates"][0][
+        "reason"
+    ] == "reference_attestation_retracted"
+    assert result["surfaces"]["manuscript_consistency_meta_review"]["status"] == "blocked"
+    assert all(value is False for value in result["authority_boundary"].values())
 
 
-def test_domain_entry_dispatches_real_research_integrity_gate_bundle_without_profile() -> None:
-    payload = MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "research-integrity-gate-input",
-            "reference": {"reference_id": "smith2024", "doi": "10.1000/example"},
-            "provider_evidence": [
-                {
-                    "provider": "crossref",
-                    "reference_id": "smith2024",
-                    "doi": "10.1000/example",
-                }
-            ],
-            "claim": {
-                "claim_id": "claim-1",
-                "citation_refs": ["smith2024"],
-                "evidence_refs": ["analysis-1"],
-            },
-        }
+def test_research_integrity_gate_input_bundle_separates_review_candidates() -> None:
+    result = build_research_integrity_gate_input_bundle(
+        reference_checks=[
+            {
+                "reference": {"id": "ref2", "doi": "10.1000/source", "title": "Original"},
+                "provider_evidence": [
+                    {
+                        "provider": "semantic_scholar",
+                        "matched_identifiers": {"doi": "10.1000/source"},
+                        "metadata": {"title": "Corrected"},
+                    }
+                ],
+            }
+        ],
+        claim_spans=[
+            {
+                "claim_id": "C2",
+                "citation_refs": [{"ref": "ref:ref2"}],
+                "evidence_refs": ["analysis/results.json#/C2"],
+                "support_grade": "partial_support",
+            }
+        ],
+        manuscript_sections={"abstract": {"numeric_facts": [_fact("event_rate", "7.5", unit="%")]}},
+        reporting_checklist_expectations=[
+            {"item_id": "optional_threshold_rationale", "status": "missing", "required": False}
+        ],
     )
 
-    assert payload["command"] == "research-integrity-gate-input"
-    assert payload["surface_kind"] == "research_integrity_gate_input_bundle"
-    assert payload["status"] == "clear"
-    assert payload["authority_boundary"]["outputs_are_gate_inputs"] is True
-    assert payload["authority_boundary"]["can_write_runtime_queue_or_provider_attempt"] is False
+    assert result["status"] == "needs_review"
+    assert result["blocker_candidates"] == []
+    families = {item["family"] for item in result["review_candidates"]}
+    assert families == {
+        "reference_authenticity",
+        "claim_citation_support",
+        "manuscript_consistency",
+    }
+
+
+def _fact(fact_id: str, value: object, *, unit: str = "patients") -> dict[str, object]:
+    return {
+        "fact_id": fact_id,
+        "reported_value": value,
+        "unit": unit,
+        "population": "eligible cohort",
+        "window": "2018-2022",
+    }

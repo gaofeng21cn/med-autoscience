@@ -925,6 +925,97 @@
       ]
     },
     {
+      "action_id": "research_integrity_gate_input",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_publication_readiness": false,
+        "can_authorize_submission_readiness": false,
+        "can_materialize_human_gate": false,
+        "can_materialize_typed_blocker": false,
+        "can_mutate_current_package": false,
+        "can_sign_owner_receipt": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_mas_study_truth": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_publication_eval_latest": false,
+        "can_write_runtime_queue_or_provider_attempt": false,
+        "can_write_typed_blocker": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "outputs_are_gate_inputs": true,
+        "surface_authority": "research_integrity_gate_input_only"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+        "surface_kind": "research_integrity_gate_input_bundle"
+      },
+      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "research_integrity_gate_input"
+        },
+        "cli": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "surface_kind": "research_integrity_gate_input_bundle"
+        },
+        "mcp": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "research_integrity_gate_input_bundle",
+          "tool_name": "research_integrity_gate_input"
+        },
+        "openai": {
+          "tool_name": "research_integrity_gate_input"
+        },
+        "product_entry": {
+          "action_key": "research_integrity_gate_input",
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "surface_kind": "research_integrity_gate_input_bundle"
+        },
+        "skill": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "command_contract_id": "research_integrity_gate_input",
+          "surface_kind": "research_integrity_gate_input_bundle"
+        }
+      },
+      "title": "Build Research Integrity gate input",
+      "workspace_locator_fields": [
+        "payload",
+        "reference_checks",
+        "reference",
+        "references",
+        "claim_spans",
+        "claim",
+        "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
+        "manuscript",
+        "numeric_facts",
+        "display_facts",
+        "provider_evidence",
+        "reference_attestations",
+        "display_to_claim_map",
+        "reporting_guideline_expectations"
+      ]
+    },
+    {
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [

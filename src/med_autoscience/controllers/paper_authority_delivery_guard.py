@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import paper_authority_migration
-from med_autoscience.runtime_protocol import resolve_study_root_from_paper_root
 
 
 def pending_clean_migration_blocker(*, study_root: Path) -> dict[str, Any] | None:
@@ -35,6 +34,8 @@ def delivery_write_blocked(*, study_root: Path) -> bool:
 
 
 def study_root_for_paper_delivery(*, paper_root: Path) -> Path:
+    from med_autoscience.runtime_protocol import resolve_study_root_from_paper_root
+
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     try:
         _study_id, study_root = resolve_study_root_from_paper_root(resolved_paper_root)

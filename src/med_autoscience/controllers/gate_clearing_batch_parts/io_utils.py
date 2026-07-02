@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from med_autoscience.stable_json import write_stable_json
 
 
@@ -23,6 +21,8 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def read_yaml(path: Path) -> dict[str, Any]:
+    import yaml
+
     if not path.exists():
         return {}
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -32,6 +32,8 @@ def read_yaml(path: Path) -> dict[str, Any]:
 
 
 def write_yaml(path: Path, payload: dict[str, Any]) -> None:
+    import yaml
+
     path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
