@@ -112,3 +112,87 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 @pytest.fixture
 def writable_authority_route_context() -> dict[str, object]:
     return writable_route_context()
+
+
+@pytest.fixture(scope="session")
+def mas_scholar_skills_external_owner_skill_repo_path(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Path:
+    repo_root = tmp_path_factory.mktemp("mas-scholar-skills")
+    skill_bodies = {
+        "medical-research-write": """---
+name: write
+description: MAS medical manuscript writing owner skill. Use for medical paper section drafting, rewrite, claim tightening, journal voice, figure-to-text integration, and response-ready manuscript repair.
+---
+
+# Medical Research Write
+
+Use this AI-first skill for MAS medical manuscript writing. Preserve MAS owner gates: every claim needs evidence refs, every number needs source trace, and publication readiness still requires MAS owner acceptance.
+
+Open `figure/SKILL.md` first for figures that enter the draft. Use `figure-polish/SKILL.md` only after figure intent, claim, evidence refs, panel plan, backend selection, draft render, and visual QA are scoped.
+
+Use `opl connect pubmed search --query <query> --limit <n> --json` or `medical-research-lit` when the draft needs literature candidates. Treat the returned literature as candidate refs until MAS accepts them.
+
+Key blockers: numeric_trace_blocker, claim_evidence_blocker, display_to_claim_blocker, reporting_guideline_gate.
+""",
+        "medical-research-review": """---
+name: review
+description: MAS medical manuscript review owner skill. Use for adversarial medical paper review, claim/evidence/display consistency checks, citation repair, route-back, and publishability critique.
+---
+
+# Medical Research Review
+
+Run an independent AI reviewer pass. Check citation support, numeric consistency, table and figure alignment, reporting guideline coverage, and whether the manuscript should route back to analysis, writing, figure, or submission work.
+
+Use `opl connect pubmed search --query <query> --limit <n> --json` or `medical-research-lit` for citation repair candidates. Keep reviewer output as review_signal_only until MAS owner evidence accepts it.
+
+Return concrete route-back items, claim downgrade candidates, reusable critique lessons, and closeout evidence.
+""",
+        "medical-research-figure": """---
+name: figure
+description: MAS medical research figure owner skill. Use for zero-to-one medical paper figure planning, evidence refs, panel design, rendering, visual QA, polish, reviewer handoff, and publication-facing figure repair.
+---
+
+# Medical Research Figure
+
+Use this AI-first figure skill for new or materially reworked paper-facing figures.
+
+## Figure Intent And Claim
+State the manuscript claim the figure supports and the owner gate that must accept it.
+
+## Evidence Refs
+Bind all inputs to paper-local or MAS refs. Use `opl connect pubmed search --query <query> --limit <n> --json` or `medical-research-lit` for literature context when needed.
+
+## Panel Plan
+Design panel order, comparison groups, labels, statistical annotations, and caption obligations before rendering.
+
+## Template And Backend Selection
+Choose a renderer or template from the available MAS/ScholarSkills Display refs. Nature Figure-style planning and K-Dense-style manifest/QA ideas are references inside this owner path.
+Do not introduce a parallel `opl-scholar-display` main entry.
+
+## Draft Render
+Scripts are render and check tools. Tool/Fabric execution may create candidate outputs, but MAS owner gate decides paper truth.
+
+## Visual QA
+Check typography, scale, color, legends, sample sizes, figure manifest, and claim/evidence consistency.
+
+## Polish
+Polish after the draft supports the claim. `figure-polish` remains the bounded review phase entry.
+
+## Reviewer Handoff
+Return figure refs, QA notes, and route-back items. Domain Owner Gate remains MAS-owned.
+""",
+    }
+    for skill_id, body in skill_bodies.items():
+        skill_path = repo_root / "skills" / skill_id / "SKILL.md"
+        skill_path.parent.mkdir(parents=True, exist_ok=True)
+        skill_path.write_text(body, encoding="utf-8")
+    return repo_root
+
+
+@pytest.fixture(autouse=True)
+def mas_scholar_skills_external_owner_skill_repo(
+    mas_scholar_skills_external_owner_skill_repo_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MAS_SCHOLAR_SKILLS_REPO", str(mas_scholar_skills_external_owner_skill_repo_path))

@@ -387,8 +387,18 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     quest_root = profile.runtime_root / "quest-001"
 
     profile_readback = contract["scholarskills_local_install"]
+    assert profile_readback["synced_skill_ids"] == [
+        "mas-scholar-skills",
+        "medical-research-lit",
+        "medical-research-write",
+        "medical-research-review",
+        "medical-research-figure",
+    ]
     assert profile_readback["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
+    )
+    assert profile_readback["workspace"]["target_skill_paths"]["medical-research-review"] == str(
+        workspace_root / ".codex" / "skills" / "medical-research-review"
     )
     assert profile_readback["workspace"]["sync_command"]["argv"] == [
         "opl",
@@ -406,6 +416,9 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert profile_readback["quest"]["target_skill_path_template"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
     )
+    assert profile_readback["quest"]["target_skill_path_templates"]["medical-research-figure"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-research-figure")
+    )
     assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
     assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
 
@@ -416,6 +429,9 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert quest_readback["quest"]["target_quest_root"] == str(quest_root)
     assert quest_readback["quest"]["target_skill_path"] == str(
         quest_root / ".codex" / "skills" / "mas-scholar-skills"
+    )
+    assert quest_readback["quest"]["target_skill_paths"]["medical-research-write"] == str(
+        quest_root / ".codex" / "skills" / "medical-research-write"
     )
     assert quest_readback["quest"]["sync_command"]["argv"] == [
         "opl",

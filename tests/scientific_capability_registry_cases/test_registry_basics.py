@@ -112,6 +112,13 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     candidate = capabilities["opl.scholarskills.write"]
 
     assert registry["scholarskills_local_install"]["install_owner"] == "one-person-lab"
+    assert registry["scholarskills_local_install"]["synced_skill_ids"] == [
+        "mas-scholar-skills",
+        "medical-research-lit",
+        "medical-research-write",
+        "medical-research-review",
+        "medical-research-figure",
+    ]
     assert registry["scholarskills_local_install"]["workspace"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
@@ -127,6 +134,9 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_template"] == (
         "<workspace_root>/.codex/skills/mas-scholar-skills"
     )
+    assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
+        "medical-research-write"
+    ] == "<workspace_root>/.codex/skills/medical-research-write"
     assert registry["scholarskills_local_install"]["quest"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
@@ -142,6 +152,9 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["quest"]["target_skill_path_template"] == (
         "<quest_root>/.codex/skills/mas-scholar-skills"
     )
+    assert registry["scholarskills_local_install"]["quest"]["target_skill_path_templates"][
+        "medical-research-figure"
+    ] == "<quest_root>/.codex/skills/medical-research-figure"
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
 

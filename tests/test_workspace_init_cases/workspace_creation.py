@@ -78,8 +78,18 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert strategy_seed["authority_boundary"]["can_score_or_select_route"] is False
     assert str(workspace_root / "studies") not in layout["body_plane"]["root"]
     scholarskills_install = result["scholarskills_local_install"]
+    assert scholarskills_install["synced_skill_ids"] == [
+        "mas-scholar-skills",
+        "medical-research-lit",
+        "medical-research-write",
+        "medical-research-review",
+        "medical-research-figure",
+    ]
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
+    )
+    assert scholarskills_install["workspace"]["target_skill_paths"]["medical-research-write"] == str(
+        workspace_root / ".codex" / "skills" / "medical-research-write"
     )
     assert scholarskills_install["workspace"]["sync_command"]["argv"] == [
         "opl",
@@ -95,6 +105,9 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     ]
     assert scholarskills_install["quest"]["target_skill_path_template"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
+    )
+    assert scholarskills_install["quest"]["target_skill_path_templates"]["medical-research-review"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-research-review")
     )
     assert scholarskills_install["authority_boundary"]["writes_yang_authority"] is False
     assert scholarskills_install["authority_boundary"]["writes_runtime_authority"] is False

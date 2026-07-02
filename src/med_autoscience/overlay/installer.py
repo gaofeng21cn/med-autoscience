@@ -14,6 +14,9 @@ from med_autoscience.overlay.companion_blocks import (
     write_companion_files,
 )
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
+from med_autoscience.overlay.external_owner_skills import EXTERNAL_OWNER_SKILL_IDS, EXTERNAL_OWNER_SKILL_MAP
+from med_autoscience.overlay.external_owner_skills import external_owner_skill_missing_message, external_owner_skill_source_path, load_external_owner_skill_text, seed_external_owner_skill_from_source
+from med_autoscience.overlay.medical_runtime_contract import render_medical_runtime_contract_block
 from med_autoscience.overlay.system_prompt_hygiene import (
     audit_runtime_system_prompt,
     sanitize_runtime_system_prompt,
@@ -49,9 +52,7 @@ AUTOMATION_READY_TOKEN = "{{MED_AUTOSCIENCE_AUTOMATION_READY}}"
 MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
 STAGE_SKILL_SURFACE_TOKEN = "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}"
 STAGE_SKILL_SURFACE_IDS = frozenset(MAIN_STAGE_ROUTE_IDS)
-FRONTLOAD_STAGE_IDS = frozenset(
-    {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
-)
+FRONTLOAD_STAGE_IDS = frozenset({"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"})
 FULL_TEMPLATE_MAP = {
     "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
     "baseline": "medical-research-baseline.SKILL.md",
@@ -59,10 +60,7 @@ FULL_TEMPLATE_MAP = {
     "idea": "medical-research-idea.SKILL.md",
     "decision": "medical-research-decision.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
-    "figure": "medical-research-figure.SKILL.md",
     "figure-polish": "medical-research-figure-polish.SKILL.md",
-    "write": "medical-research-write.SKILL.md",
-    "review": "medical-research-review.SKILL.md",
     "finalize": "medical-research-finalize.SKILL.md",
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
 }
@@ -156,17 +154,6 @@ def _frontmatter_wrapped_skill_text(skill_id: str, text: str) -> str:
     return _minimal_skill_base_text(skill_id).rstrip() + "\n\n" + body + "\n"
 
 
-def render_medical_runtime_contract_block() -> str:
-    return (
-        "## Medical runtime contract\n\n"
-        "- Read `paper/medical_analysis_contract.json` before deciding follow-up analyses, manuscript rewrites, or review responses.\n"
-        "- Treat `paper/cohort_flow.json`, `paper/baseline_characteristics_schema.json`, and `paper/reporting_guideline_checklist.json` as required truth sources when present.\n"
-        "- If `paper/display_registry.json` declares official shells such as `cohort_flow_figure` or `table1_baseline_characteristics`, materialize them through `medautosci materialize-display-surface --paper-root paper` before polishing captions or exporting submission assets.\n"
-        "- If the runtime contract calls for calibration, transportability, cohort flow, or baseline characteristics evidence, do not treat ablation-heavy follow-up as sufficient.\n"
-        "- Keep TRIPOD / STROBE / CONSORT family requirements explicit in durable manuscript-facing artifacts.\n"
-    )
-
-
 def _load_template_text(template_name: str) -> str:
     template_path = TEMPLATE_ROOT / template_name
     return template_path.read_text(encoding="utf-8")
@@ -193,6 +180,7 @@ def _render_overlay_text_from_template(
     default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None,
     default_publication_profile: str | None,
     default_citation_style: str | None,
+    strict_required_tokens: bool = True,
 ) -> str:
     rendered = template
     if skill_id in STAGE_SKILL_SURFACE_IDS and STAGE_SKILL_SURFACE_TOKEN in rendered:
@@ -200,7 +188,7 @@ def _render_overlay_text_from_template(
             STAGE_SKILL_SURFACE_TOKEN,
             render_stage_skill_surface_block(skill_id).rstrip(),
         )
-    if skill_id in {"experiment", "analysis-campaign", "write", "review"}:
+    if skill_id in {"experiment", "analysis-campaign", "write", "review"} and strict_required_tokens:
         if MEDICAL_RUNTIME_CONTRACT_TOKEN not in rendered:
             raise ValueError(f"Overlay template for {skill_id} is missing medical runtime contract token")
     if MEDICAL_RUNTIME_CONTRACT_TOKEN in rendered:
@@ -209,23 +197,25 @@ def _render_overlay_text_from_template(
             render_medical_runtime_contract_block().rstrip(),
         )
     if skill_id in {"scout", "idea", "write"}:
-        if REFERENCE_PAPERS_TOKEN not in rendered:
+        if REFERENCE_PAPERS_TOKEN not in rendered and strict_required_tokens:
             raise ValueError(f"Overlay template for {skill_id} is missing reference paper token")
-        rendered = rendered.replace(
-            REFERENCE_PAPERS_TOKEN,
-            render_reference_paper_overlay_block(stage_id=skill_id).rstrip(),
-        )
+        if REFERENCE_PAPERS_TOKEN in rendered:
+            rendered = rendered.replace(
+                REFERENCE_PAPERS_TOKEN,
+                render_reference_paper_overlay_block(stage_id=skill_id).rstrip(),
+            )
     if skill_id in {"write", "finalize", "journal-resolution"}:
-        if SUBMISSION_TARGETS_TOKEN not in rendered:
+        if SUBMISSION_TARGETS_TOKEN not in rendered and strict_required_tokens:
             raise ValueError(f"Overlay template for {skill_id} is missing submission target token")
-        rendered = rendered.replace(
-            SUBMISSION_TARGETS_TOKEN,
-            render_submission_target_overlay_block(
-                default_submission_targets=default_submission_targets,
-                default_publication_profile=default_publication_profile,
-                default_citation_style=default_citation_style,
-            ).rstrip(),
-        )
+        if SUBMISSION_TARGETS_TOKEN in rendered:
+            rendered = rendered.replace(
+                SUBMISSION_TARGETS_TOKEN,
+                render_submission_target_overlay_block(
+                    default_submission_targets=default_submission_targets,
+                    default_publication_profile=default_publication_profile,
+                    default_citation_style=default_citation_style,
+                ).rstrip(),
+            )
     if CONTROLLER_FIRST_TOKEN in rendered:
         rendered = rendered.replace(CONTROLLER_FIRST_TOKEN, render_controller_first_block().rstrip())
     if AUTOMATION_READY_TOKEN in rendered:
@@ -252,7 +242,7 @@ def _normalize_skill_ids(skill_ids: tuple[str, ...] | list[str] | None) -> tuple
     normalized = DEFAULT_MEDICAL_OVERLAY_SKILL_IDS if skill_ids is None else tuple(skill_ids)
     if ("write" in normalized or "finalize" in normalized) and "journal-resolution" not in normalized:
         normalized = normalized + ("journal-resolution",)
-    supported_skill_ids = set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)
+    supported_skill_ids = set(FULL_TEMPLATE_MAP) | set(EXTERNAL_OWNER_SKILL_IDS) | set(APPEND_BLOCK_TEMPLATE_MAP)
     invalid = [skill_id for skill_id in normalized if skill_id not in supported_skill_ids]
     if invalid:
         raise ValueError(f"Unsupported medical overlay skill ids: {', '.join(invalid)}")
@@ -345,6 +335,18 @@ def load_overlay_skill_text(
     default_publication_profile: str | None = None,
     default_citation_style: str | None = None,
 ) -> str:
+    if skill_id in EXTERNAL_OWNER_SKILL_IDS:
+        return _render_overlay_text_from_template(
+            load_external_owner_skill_text(skill_id),
+            skill_id=skill_id,
+            policy_id=policy_id,
+            archetype_ids=archetype_ids,
+            default_submission_targets=default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
+            strict_required_tokens=False,
+        )
+
     if skill_id in FULL_TEMPLATE_MAP:
         return _render_overlay_text_from_template(
             _load_template_text(FULL_TEMPLATE_MAP[skill_id]),
@@ -357,7 +359,7 @@ def load_overlay_skill_text(
         )
 
     if skill_id not in APPEND_BLOCK_TEMPLATE_MAP:
-        supported = ", ".join(sorted(set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)))
+        supported = ", ".join(sorted(set(FULL_TEMPLATE_MAP) | set(EXTERNAL_OWNER_SKILL_IDS) | set(APPEND_BLOCK_TEMPLATE_MAP)))
         raise ValueError(f"Unsupported medical overlay skill id: {skill_id}. Supported: {supported}")
 
     if base_text is None:
@@ -400,7 +402,14 @@ def _describe_target(
         source_text_before_overlay = current_text
     overlay_text = None
     overlay_fingerprint = None
-    can_render_overlay = target.skill_id not in APPEND_BLOCK_TEMPLATE_MAP or source_text_before_overlay is not None
+    external_source_path = (
+        external_owner_skill_source_path(target.skill_id) if target.skill_id in EXTERNAL_OWNER_SKILL_IDS else None
+    )
+    external_source_missing = target.skill_id in EXTERNAL_OWNER_SKILL_IDS and external_source_path is None
+    can_render_overlay = (
+        not external_source_missing
+        and (target.skill_id not in APPEND_BLOCK_TEMPLATE_MAP or source_text_before_overlay is not None)
+    )
     if can_render_overlay:
         overlay_text = load_overlay_skill_text(
             target.skill_id,
@@ -452,7 +461,7 @@ def _describe_target(
                 status = "not_installed"
             needs_reapply = status != "overlay_applied"
     else:
-        status = "missing_target"
+        status = "external_source_missing" if external_source_missing else "missing_target"
         needs_reapply = True
         companion_files = _companion_file_statuses(target)
 
@@ -471,6 +480,9 @@ def _describe_target(
         "companion_files": companion_files,
         "policy_id": policy_id,
         "archetype_ids": list(archetype_ids),
+        "source_owner": "mas-scholar-skills" if target.skill_id in EXTERNAL_OWNER_SKILL_IDS else "med-autoscience",
+        "external_source_skill_id": EXTERNAL_OWNER_SKILL_MAP.get(target.skill_id),
+        "external_source_path": str(external_source_path) if external_source_path is not None else None,
     }
 
 
@@ -523,8 +535,15 @@ def describe_medical_overlay(
 
 def _ensure_target_ready(target: OverlayTarget) -> str:
     _migrate_legacy_target_if_present(target)
+    seed_external_owner_skill_from_source(
+        skill_id=target.skill_id,
+        target_root=target.target_root,
+        skill_path=target.skill_path,
+    )
     if target.skill_path.exists():
         return target.skill_path.read_text(encoding="utf-8")
+    if target.skill_id in EXTERNAL_OWNER_SKILL_IDS:
+        raise FileNotFoundError(external_owner_skill_missing_message(target.skill_id))
     if target.skill_id in FULL_TEMPLATE_MAP:
         target.target_root.mkdir(parents=True, exist_ok=True)
         return ""
@@ -602,6 +621,11 @@ def _install_for_target(
     default_citation_style: str | None,
 ) -> dict[str, Any]:
     _copy_authoritative_target_seed(target=target, authoritative_root=authoritative_root)
+    seed_external_owner_skill_from_source(
+        skill_id=target.skill_id,
+        target_root=target.target_root,
+        skill_path=target.skill_path,
+    )
     _seed_workspace_target_from_runtime_repo(
         target=target,
         med_deepscientist_repo_root=med_deepscientist_repo_root,

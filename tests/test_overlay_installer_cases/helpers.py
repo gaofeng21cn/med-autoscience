@@ -63,19 +63,16 @@ STAGE_SKILL_TEMPLATE_FILES = {
     "finalize": "medical-research-finalize.SKILL.md",
     "idea": "medical-research-idea.SKILL.md",
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
-    "review": "medical-research-review.SKILL.md",
     "scout": "medical-research-scout.SKILL.md",
-    "write": "medical-research-write.SKILL.md",
 }
 EXISTING_FULL_STAGE_SKILL_IDS = (
     "scout",
     "idea",
     "decision",
-    "write",
     "finalize",
     "journal-resolution",
 )
-NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment", "analysis-campaign", "review")
+NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment", "analysis-campaign")
 FULL_STAGE_IDS = tuple(STAGE_SKILL_TEMPLATE_FILES)
 APPEND_STAGE_IDS = ("intake-audit", "rebuttal")
 

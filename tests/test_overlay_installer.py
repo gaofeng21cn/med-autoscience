@@ -100,14 +100,12 @@ def test_experiment_skill_surface_binds_runtime_route_and_archetype_tokens() -> 
     assert STUDY_ARCHETYPES_TOKEN in skill_text
 
 
-def test_analysis_campaign_and_review_full_skill_templates_are_stage_surfaces() -> None:
+def test_analysis_campaign_full_skill_template_is_stage_surface() -> None:
     analysis_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["analysis-campaign"]).read_text(
         encoding="utf-8"
     )
-    review_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["review"]).read_text(encoding="utf-8")
 
     assert MEDICAL_RUNTIME_CONTRACT_TOKEN in analysis_text
-    assert MEDICAL_RUNTIME_CONTRACT_TOKEN in review_text
     assert ROUTE_BIAS_TOKEN in analysis_text
     assert STUDY_ARCHETYPES_TOKEN in analysis_text
     assert "Bounded Analysis Candidate Board" in analysis_text
@@ -115,14 +113,19 @@ def test_analysis_campaign_and_review_full_skill_templates_are_stage_surfaces() 
     assert "Claim-Evidence And Display Repair" in analysis_text
     assert "Route-Back Discipline" in analysis_text
 
+
+def test_external_owner_review_skill_is_loaded_from_mas_scholar_skills() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    review_text = module.load_overlay_skill_text("review")
+
     assert ROUTE_BIAS_TOKEN not in review_text
     assert STUDY_ARCHETYPES_TOKEN not in review_text
-    assert "Adversarial Review" in review_text
+    assert "independent AI reviewer pass" in review_text
     assert "review_signal_only" in review_text
-    assert "Claim Downgrade" in review_text
-    assert "Citation Repair" in review_text
-    assert "Reusable Critique Lessons" in review_text
-    assert "Route-Back Closeout" in review_text
+    assert "claim downgrade" in review_text.lower()
+    assert "citation repair" in review_text.lower()
+    assert "reusable critique lessons" in review_text.lower()
 
 
 def test_existing_full_stage_skill_templates_keep_rh_clean_room_boundary() -> None:
@@ -151,12 +154,6 @@ def test_existing_full_stage_skill_templates_include_stage_specific_blocker_term
         "scout": ("source_readiness", "provider_provenance", "citation_readiness"),
         "idea": ("candidate path", "gap ranking", "Controller decisions and human gates"),
         "decision": ("stop-loss", "human checkpoints", "does not produce a `paper-ready` verdict"),
-        "write": (
-            "numeric_trace_blocker",
-            "claim_evidence_blocker",
-            "display_to_claim_blocker",
-            "reporting_guideline_gate",
-        ),
         "finalize": (
             "numeric_trace_blocker",
             "claim_evidence_blocker",
@@ -421,17 +418,21 @@ def test_figure_polish_overlay_remains_installable_as_figure_phase_entry(tmp_pat
 def test_write_template_routes_figures_through_primary_figure_skill() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
-    skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP["write"])
+    skill_text = module.load_overlay_skill_text("write")
 
-    assert "open `figure/SKILL.md` first" in skill_text
-    assert "Use `figure-polish/SKILL.md` only for the polish/review phase" in skill_text
+    assert "open `figure/skill.md` first" in skill_text.lower()
+    assert "figure-polish/skill.md" in skill_text.lower()
+    assert "only after" in skill_text.lower()
 
 
 def test_owner_skill_templates_route_literature_candidates_through_opl_connect_or_lit_specialist() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
     for skill_id in ("scout", "figure", "write", "review"):
-        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
+        if skill_id in {"figure", "write", "review"}:
+            skill_text = module.load_overlay_skill_text(skill_id)
+        else:
+            skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
 
         assert "opl connect pubmed search --query <query> --limit <n> --json" in skill_text
         assert "medical-research-lit" in skill_text

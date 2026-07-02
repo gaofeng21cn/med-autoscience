@@ -37,13 +37,13 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 ## MAS 核心 Skill 单源
 
-写作、审稿和图件的主入口分别是 MAS overlay skill：`medical-research-write`、`medical-research-review` 和 `medical-research-figure`。这些 skill 持有 MAS paper-facing owner path、claim/evidence/display 读法和 route-back 边界。`medical-research-figure-polish` 只保留为 `medical-research-figure` 的 polish/review 阶段兼容入口，不是独立权威源。
+医学论文写作、审稿和图件的主入口是 MAS Scholar Skills 维护的真实 Codex skill：`medical-research-write`、`medical-research-review` 和 `medical-research-figure`。MAS 在本仓保留 runtime owner gate、profile、overlay 安装和 companion files；skill 正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest。
 
-当前策略是 `Skill-first + Tool/Fabric execution + Domain Owner Gate`：MAS owner skill 先判断写作、审稿和图件意图；OPL Connect、Fabric、脚本、renderer 或外置 specialist 只执行检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
+当前策略是 `Skill-first + Tool/Fabric execution + Domain Owner Gate`：外部 owner skill 负责让 Codex 以医学论文专家方式理解任务、规划写作/审稿/图件路径并生成候选 refs；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
 
-文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或外置 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` owner skill 负责筛选、证据映射、claim/citation/display 归位和最终判断。
+文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
-MAS Scholar Skills 的 `write`、`review`、`display` 等模块只能作为增强 pack、refs-only candidate、gallery/reference 或 owner-gate input。它们不取代 MAS owner skill，不写 MAS paper truth、publication eval、controller decision、owner receipt、typed blocker、human gate、`current_package` 或 submission-ready verdict。
+`medical-research-figure-polish` 只保留为 `medical-research-figure` 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `medical-research-figure`，避免把“初稿设计”和“后期打磨”拆成两个来源。
 
 ## 当前文档职责
 
