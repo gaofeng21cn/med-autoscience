@@ -378,26 +378,30 @@ def test_materialize_display_pack_publication_manifest_keeps_obesity_cohort_flow
             "source_data_digest": "data-digest-obesity-cohort-flow",
             "title": "Multicenter obesity phenotype cohort flow",
             "steps": [
-                {
-                    "step_id": "xiangya1_records",
-                    "label": "Xiangya Hospital source records with BMI and follow-up linkage",
-                    "n": 472638,
-                },
-                {
-                    "step_id": "xiangya1_analysis",
-                    "label": "Xiangya derivation cohort after adult eligibility and duplicate cleanup",
-                    "n": 174522,
-                },
-                {
-                    "step_id": "xiangya2_records",
-                    "label": "Xiangya Second Hospital temporal validation records",
-                    "n": 291604,
-                },
-                {
-                    "step_id": "xiangya2_precision_records",
-                    "label": "External precision analysis cohort with harmonized phenotype windows",
-                    "n": 83617,
-                },
+                    {
+                        "step_id": "xiangya1_records",
+                        "label": "Xiangya Hospital source records with BMI and follow-up linkage",
+                        "detail": "Derivation source before adult eligibility and duplicate cleanup",
+                        "n": 472638,
+                    },
+                    {
+                        "step_id": "xiangya1_analysis",
+                        "label": "Xiangya derivation cohort after adult eligibility and duplicate cleanup",
+                        "detail": "Primary phenotype atlas analysis set",
+                        "n": 174522,
+                    },
+                    {
+                        "step_id": "xiangya2_records",
+                        "label": "Xiangya Second Hospital temporal validation records",
+                        "detail": "External validation source before observation-window checks",
+                        "n": 291604,
+                    },
+                    {
+                        "step_id": "xiangya2_precision_records",
+                        "label": "External precision analysis cohort with harmonized phenotype windows",
+                        "detail": "Harmonized endpoint-window analysis set",
+                        "n": 83617,
+                    },
             ],
             "exclusions": [
                 {
@@ -461,9 +465,17 @@ def test_materialize_display_pack_publication_manifest_keeps_obesity_cohort_flow
     assert figure["deterministic_qc"]["status"] == "pass"
     layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
     assert layout_sidecar["metrics"]["uses_ggconsort"] is True
+    assert layout_sidecar["metrics"]["step_detail_render_policy"] == "visible_when_present"
+    assert (
+        layout_sidecar["metrics"]["step_detail_truncation_policy"]
+        == "no_ellipsis_truncation_complete_wrapped_text"
+    )
     panel = next(item for item in layout_sidecar["panel_boxes"] if item["box_id"] == "participant_flow_main")
     main_steps = [item for item in layout_sidecar["layout_boxes"] if item["box_type"] == "main_step"]
+    flow_nodes = [item for item in layout_sidecar["metrics"]["flow_nodes"] if item["box_type"] == "main_step"]
     assert len(main_steps) == 4
+    assert all(item["line_count"] > 2 for item in flow_nodes)
+    assert all(item["detail_truncated"] is False for item in flow_nodes)
     for box in main_steps:
         assert box["x0"] >= panel["x0"]
         assert box["x1"] <= panel["x1"]

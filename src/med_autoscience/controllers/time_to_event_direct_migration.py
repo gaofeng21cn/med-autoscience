@@ -13,6 +13,7 @@ from .time_to_event_direct_migration_parts.file_sync import (
     RISK_GROUP_SUMMARY_REQUIREMENT_KEY,
     TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
     _REQUIRED_DISPLAY_KEYS,
+    _optional_binding,
     _require_binding,
     _require_binding_variant,
     _require_f5_binding_variant,
@@ -624,6 +625,10 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     )
     written_files: list[str] = list(authority_sync.get("synced_files") or [])
     registry_payload = _load_json(resolved_paper_root / "display_registry.json")
+    f1_binding = _optional_binding(
+        registry_payload=registry_payload,
+        requirement_key="cohort_flow_figure",
+    )
 
     f2_requirement_key, f2_binding = _require_binding_variant(
         registry_payload=registry_payload,
@@ -661,6 +666,7 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
             },
             f5_binding=f5_binding,
             f5_requirement_key=f5_requirement_key,
+            f1_binding=f1_binding,
         )
         written_files.extend(current_layout_result["written_files"])
         report_path = resolved_paper_root / "direct_migration" / "time_to_event_direct_migration_report.json"

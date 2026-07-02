@@ -164,6 +164,12 @@ clamp_wrapped_lines <- function(text, width, max_lines) {
   paste(clamped, collapse = "\n")
 }
 
+wrap_complete_lines <- function(text, width) {
+  lines <- unlist(strwrap(trimws(as.character(text %||% "")), width = width, simplify = FALSE), use.names = FALSE)
+  lines <- lines[nzchar(trimws(lines))]
+  paste(lines, collapse = "\n")
+}
+
 join_limited_lines <- function(lines, max_lines) {
   normalized <- unlist(strsplit(paste(lines, collapse = "\n"), "\n", fixed = TRUE), use.names = FALSE)
   normalized <- normalized[nzchar(trimws(normalized))]
@@ -254,13 +260,29 @@ cohort_step_plot_label <- function(step, index) {
   if (!nzchar(label) || is.na(n)) {
     stop(sprintf("cohort_flow_figure steps[%d] requires label and integer n", index))
   }
-  paste(
-    c(
-      strwrap(label, width = 24, simplify = FALSE)[[1]],
-      sprintf("n=%s", format(n, big.mark = ",", scientific = FALSE))
-    ),
-    collapse = "\n"
+  detail <- trimws(as.character(step$detail %||% ""))
+  detail_text <- ""
+  if (nzchar(detail)) {
+    detail_text <- wrap_complete_lines(detail, width = 36)
+  }
+  lines <- c(
+    strwrap(label, width = 24, simplify = FALSE)[[1]],
+    sprintf("n=%s", format(n, big.mark = ",", scientific = FALSE)),
+    detail_text
   )
+  paste(lines[nzchar(trimws(lines))], collapse = "\n")
+}
+
+cohort_step_label_line_count <- function(step) {
+  label <- trimws(as.character(step$label %||% ""))
+  detail <- trimws(as.character(step$detail %||% ""))
+  label_lines <- strwrap(label, width = 24, simplify = FALSE)[[1]]
+  detail_lines <- character(0)
+  if (nzchar(detail)) {
+    detail_lines <- strsplit(wrap_complete_lines(detail, width = 36), "\n", fixed = TRUE)[[1]]
+    detail_lines <- detail_lines[nzchar(trimws(detail_lines))]
+  }
+  length(label_lines) + 1L + length(detail_lines)
 }
 
 participant_flow_y_centers <- function(count) {
@@ -270,8 +292,8 @@ participant_flow_y_centers <- function(count) {
   if (count == 1) {
     return(82)
   }
-  y_top <- 93
-  y_bottom <- 48
+  y_top <- 91
+  y_bottom <- 12
   seq(from = y_top, to = y_bottom, length.out = count)
 }
 
@@ -496,24 +518,24 @@ build_source_layer_accounting_plot <- function(payload) {
       hjust = 0,
       vjust = 1,
       fontface = "bold",
-      size = 3.35,
+      size = 3.5,
       colour = muted_text
     ) +
     ggplot2::annotate(
       "text",
       x = -37,
-      y = 40,
+      y = 48,
       label = "Analysis coverage",
       hjust = 0,
       vjust = 1,
       fontface = "bold",
-      size = 3.35,
+      size = 3.5,
       colour = muted_text
     ) +
     ggplot2::annotate(
       "rect",
-      xmin = -20,
-      xmax = 20,
+      xmin = -24,
+      xmax = 24,
       ymin = 70,
       ymax = 82,
       fill = node_fill,
@@ -527,7 +549,7 @@ build_source_layer_accounting_plot <- function(payload) {
       label = denominator_label,
       hjust = 0.5,
       vjust = 0.5,
-      size = 3.2,
+      size = 3.45,
       colour = text_colour,
       lineheight = 0.9
     )
@@ -545,8 +567,8 @@ build_source_layer_accounting_plot <- function(payload) {
       ggplot2::annotate(
         "segment",
         x = layer_df$x[[index]],
-        xend = 0,
-        y = 70,
+        xend = layer_df$x[[index]] * 0.25,
+        y = 86,
         yend = 82,
         colour = guide_colour,
         linewidth = 0.28,
@@ -554,8 +576,8 @@ build_source_layer_accounting_plot <- function(payload) {
       ) +
       ggplot2::annotate(
         "rect",
-        xmin = layer_df$x[[index]] - 12,
-        xmax = layer_df$x[[index]] + 12,
+        xmin = layer_df$x[[index]] - 14,
+        xmax = layer_df$x[[index]] + 14,
         ymin = 86,
         ymax = 98,
         fill = layer_fill,
@@ -569,7 +591,7 @@ build_source_layer_accounting_plot <- function(payload) {
         label = layer_df$label[[index]],
         hjust = 0.5,
         vjust = 0.5,
-        size = 2.85,
+        size = 3.25,
         colour = text_colour,
         lineheight = 0.88
       )
@@ -609,8 +631,8 @@ build_source_layer_accounting_plot <- function(payload) {
     plot <- plot +
       ggplot2::annotate(
         "rect",
-        xmin = -18,
-        xmax = 18,
+        xmin = -22,
+        xmax = 22,
         ymin = center_y - 5.2,
         ymax = center_y + 5.2,
         fill = coverage_fill,
@@ -619,23 +641,23 @@ build_source_layer_accounting_plot <- function(payload) {
       ) +
       ggplot2::annotate(
         "text",
-        x = -15.5,
+        x = -19.5,
         y = center_y,
         label = wrap_plain_label(coverage_df$label[[index]], width = 20),
         hjust = 0,
         vjust = 0.5,
-        size = 2.85,
+        size = 3.15,
         colour = text_colour,
         lineheight = 0.88
       ) +
       ggplot2::annotate(
         "text",
-        x = 15.5,
+        x = 19.5,
         y = center_y,
         label = n_label,
         hjust = 1,
         vjust = 0.5,
-        size = 2.75,
+        size = 3.0,
         colour = text_colour,
         lineheight = 0.88
       )
@@ -662,6 +684,9 @@ build_ggconsort_plot <- function(payload) {
   exclusions <- payload$exclusions %||% list()
   endpoint_inventory <- payload$endpoint_inventory %||% list()
   design_panels <- payload$design_panels %||% list()
+  has_step_details <- any(vapply(steps, function(step) nzchar(trimws(as.character(step$detail %||% ""))), logical(1)))
+  step_line_counts <- vapply(steps, cohort_step_label_line_count, integer(1))
+  max_step_line_count <- max(step_line_counts, 1L)
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
   if (length(unique(step_ids)) != length(step_ids)) {
     stop("cohort_flow_figure step ids must be unique after ggconsort normalization")
@@ -669,8 +694,12 @@ build_ggconsort_plot <- function(payload) {
   step_df <- cohort_step_frame(steps, step_ids)
   step_df$x <- 0
   exclusion_df <- cohort_exclusion_frame(exclusions, step_df, step_ids)
-  node_width <- if (length(exclusions) > 0) 50 else 62
-  node_height <- 9.5
+  node_width <- if (length(exclusions) > 0) 50 else 68
+  node_height <- if (has_step_details) {
+    min(22.0, max(13.0, as.numeric(max_step_line_count) * 2.8 + 2.8))
+  } else {
+    9.5
+  }
   exclusion_width <- if (length(exclusions) > 0) 18 else 22
   exclusion_height <- 8
   plot_y_min <- min(38, min(step_df$y - node_height / 2) - 5)
@@ -684,7 +713,7 @@ build_ggconsort_plot <- function(payload) {
   exclusion_edge <- style_color(payload, "flow_exclusion_edge", "#B57F7F")
   text_colour <- style_color(payload, "flow_body_text", "#111827")
 
-  plot_xlim <- c(-44, 44)
+  plot_xlim <- if (length(exclusions) > 0) c(-44, 44) else c(-36, 36)
   plot <- ggplot2::ggplot() +
     ggplot2::theme_void() +
     ggplot2::coord_cartesian(xlim = plot_xlim, ylim = c(plot_y_min, 101), clip = "off")
@@ -737,9 +766,9 @@ build_ggconsort_plot <- function(payload) {
       label = step_df$label,
       hjust = 0.5,
       vjust = 0.5,
-      size = 3.15,
+      size = if (has_step_details && max_step_line_count > 6L) 3.35 else if (has_step_details) 3.55 else 3.65,
       colour = text_colour,
-      lineheight = 0.9
+      lineheight = if (has_step_details) 0.88 else 0.9
     )
   if (nrow(exclusion_df) > 0) {
     plot <- plot +
@@ -986,6 +1015,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   exclusions <- payload$exclusions %||% list()
   endpoint_inventory <- payload$endpoint_inventory %||% list()
   design_panels <- payload$design_panels %||% list()
+  has_step_details <- any(vapply(steps, function(step) nzchar(trimws(as.character(step$detail %||% ""))), logical(1)))
+  step_line_counts <- vapply(steps, cohort_step_label_line_count, integer(1))
   panel_ids <- declared_panel_ids(payload)
   rendered_panel_ids <- if (length(panel_ids) == 1) panel_ids else character(0)
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
@@ -1027,11 +1058,12 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     flow_nodes[[length(flow_nodes) + 1]] <- list(
       box_id = box_id,
       box_type = "main_step",
-      line_count = 2L,
-      max_line_chars = 44L,
-      rendered_height_pt = 74.0,
+      line_count = as.integer(step_line_counts[[index]]),
+      max_line_chars = if (has_step_details) 48L else 44L,
+      rendered_height_pt = if (has_step_details) max(94.0, as.numeric(step_line_counts[[index]]) * 18.0) else 74.0,
       rendered_width_pt = rendered_width_pt,
-      padding_pt = 10.0
+      padding_pt = 10.0,
+      detail_truncated = FALSE
     )
     if (index > 1) {
       guide_boxes[[length(guide_boxes) + 1]] <- sidecar_box(
@@ -1108,6 +1140,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       source_renderer = "MAS/ReportingFlow::cohort_flow_figure",
       figure_purpose = "participant_accounting_and_strobe_consort_flow",
       rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
+      step_detail_render_policy = if (has_step_details) "visible_when_present" else "not_requested",
+      step_detail_truncation_policy = "no_ellipsis_truncation_complete_wrapped_text",
       uses_ggconsort = TRUE,
       panel_ids = rendered_panel_ids,
       ggconsort_capable_prepared_environment_required = TRUE,

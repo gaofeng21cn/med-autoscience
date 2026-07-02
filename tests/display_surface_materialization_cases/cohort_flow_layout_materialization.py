@@ -192,7 +192,205 @@ def test_display_layout_qc_rejects_v2_participant_flow_with_prose_context_cards(
     )
 
     assert result["status"] == "fail"
-    assert {issue["rule_id"] for issue in result["issues"]} == {"participant_flow_context_card_shell"}
+    assert "participant_flow_context_card_shell" in {issue["rule_id"] for issue in result["issues"]}
+
+
+def test_display_layout_qc_rejects_v2_participant_flow_with_truncated_step_detail() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": {"x0": 0, "y0": 0, "x1": 1, "y1": 1},
+            "layout_boxes": [
+                {
+                    "box_id": "participant_step_source",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.72,
+                    "x1": 0.86,
+                    "y1": 0.86,
+                },
+                {
+                    "box_id": "participant_step_denominator",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.48,
+                    "x1": 0.86,
+                    "y1": 0.62,
+                },
+                {
+                    "box_id": "participant_step_analysis",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.24,
+                    "x1": 0.86,
+                    "y1": 0.38,
+                },
+            ],
+            "panel_boxes": [
+                {
+                    "box_id": "participant_flow_main",
+                    "box_type": "subfigure_panel",
+                    "x0": 0.06,
+                    "y0": 0.18,
+                    "x1": 0.98,
+                    "y1": 0.90,
+                }
+            ],
+            "guide_boxes": [
+                {
+                    "box_id": "flow_spine_source_to_denominator",
+                    "box_type": "flow_connector",
+                    "x0": 0.50,
+                    "y0": 0.62,
+                    "x1": 0.50,
+                    "y1": 0.72,
+                },
+                {
+                    "box_id": "flow_spine_denominator_to_analysis",
+                    "box_type": "flow_connector",
+                    "x0": 0.50,
+                    "y0": 0.38,
+                    "x1": 0.50,
+                    "y1": 0.48,
+                },
+            ],
+            "metrics": {
+                "layout_mode": "participant_flow",
+                "layout_generation": "scholarskills_cohort_flow_v2",
+                "flow_visual_policy": "purpose_first_reporting_flow_no_legacy_card_shell",
+                "steps": [
+                    {"step_id": "source"},
+                    {"step_id": "denominator"},
+                    {"step_id": "analysis"},
+                ],
+                "flow_nodes": [
+                    {
+                        "box_id": "participant_step_source",
+                        "box_type": "main_step",
+                        "line_count": 4,
+                        "max_line_chars": 42,
+                        "rendered_height_pt": 94,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                        "detail_truncated": True,
+                    },
+                    {
+                        "box_id": "participant_step_denominator",
+                        "box_type": "main_step",
+                        "line_count": 3,
+                        "max_line_chars": 42,
+                        "rendered_height_pt": 94,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                    {
+                        "box_id": "participant_step_analysis",
+                        "box_type": "main_step",
+                        "line_count": 3,
+                        "max_line_chars": 42,
+                        "rendered_height_pt": 94,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert "participant_flow_step_detail_truncated" in {issue["rule_id"] for issue in result["issues"]}
+
+
+def test_display_layout_qc_rejects_low_information_v2_participant_flow() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": {"x0": 0, "y0": 0, "x1": 1, "y1": 1},
+            "layout_boxes": [
+                {
+                    "box_id": "participant_step_china",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.70,
+                    "x1": 0.86,
+                    "y1": 0.82,
+                },
+                {
+                    "box_id": "participant_step_nhanes",
+                    "box_type": "main_step",
+                    "x0": 0.14,
+                    "y0": 0.50,
+                    "x1": 0.86,
+                    "y1": 0.62,
+                },
+            ],
+            "panel_boxes": [
+                {
+                    "box_id": "participant_flow_main",
+                    "box_type": "subfigure_panel",
+                    "x0": 0.06,
+                    "y0": 0.42,
+                    "x1": 0.98,
+                    "y1": 0.86,
+                }
+            ],
+            "guide_boxes": [
+                {
+                    "box_id": "flow_spine_china_to_nhanes",
+                    "box_type": "flow_connector",
+                    "x0": 0.50,
+                    "y0": 0.62,
+                    "x1": 0.50,
+                    "y1": 0.70,
+                }
+            ],
+            "metrics": {
+                "layout_mode": "participant_flow",
+                "layout_generation": "scholarskills_cohort_flow_v2",
+                "flow_visual_policy": "purpose_first_reporting_flow_no_legacy_card_shell",
+                "steps": [{"step_id": "china"}, {"step_id": "nhanes"}],
+                "exclusions": [],
+                "design_panels": [
+                    {
+                        "panel_id": "common_predictor_set",
+                        "lines": [
+                            {"label": "Age", "detail": ""},
+                            {"label": "Sex", "detail": ""},
+                        ],
+                    }
+                ],
+                "flow_nodes": [
+                    {
+                        "box_id": "participant_step_china",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                    {
+                        "box_id": "participant_step_nhanes",
+                        "box_type": "main_step",
+                        "line_count": 2,
+                        "max_line_chars": 44,
+                        "rendered_height_pt": 74,
+                        "rendered_width_pt": 460,
+                        "padding_pt": 10,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert "participant_flow_low_information_accounting" in {issue["rule_id"] for issue in result["issues"]}
 
 
 def test_materialize_display_surface_renders_cohort_flow_with_exclusions_and_design_panels(tmp_path: Path) -> None:
@@ -370,6 +568,143 @@ def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(t
     assert qc_result["status"] == "pass"
     assert qc_result["qc_profile"] == "publication_illustration_flow"
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
+
+
+def test_materialize_display_surface_preserves_current_generated_cohort_flow_over_stale_current_body(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    current_body_paper_root = (
+        paper_root.parent
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    dump_json(
+        current_body_paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "Figure1",
+            "catalog_id": "F1",
+            "title": "Stale two-cohort cutover flow",
+            "steps": [
+                {"step_id": "china", "label": "China cohort", "n": 15787},
+                {"step_id": "nhanes", "label": "NHANES cohort", "n": 7408},
+            ],
+            "design_panels": [],
+        },
+    )
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "fenggaolab.org.medical-display-core::cohort_flow_figure",
+            "display_id": "Figure1",
+            "catalog_id": "F1",
+            "status": "materialized_from_current_transportability_layout",
+            "title": "External-validation cohort flow and model-input boundary",
+            "flow_mode": "source_layer_accounting",
+            "denominator_step_id": "harmonized_diabetes_analysis_sources",
+            "steps": [
+                {"step_id": "harmonized_diabetes_analysis_sources", "label": "Harmonized diabetes analysis sources", "n": 23195},
+            ],
+            "source_layers": [
+                {
+                    "layer_id": "china_development_source",
+                    "step_id": "harmonized_diabetes_analysis_sources",
+                    "label": "China development cohort",
+                    "n": 15787,
+                },
+                {
+                    "layer_id": "nhanes_validation_source",
+                    "step_id": "harmonized_diabetes_analysis_sources",
+                    "label": "NHANES external validation cohort",
+                    "n": 7408,
+                },
+            ],
+            "subcohort_coverage": [
+                {
+                    "coverage_id": "score_derivation_endpoint",
+                    "label": "China score derivation and mortality endpoint accounting",
+                    "n": 15787,
+                    "denominator_n": 23195,
+                },
+                {
+                    "coverage_id": "external_validation_no_refit",
+                    "label": "NHANES external validation after unit harmonization",
+                    "n": 7408,
+                    "denominator_n": 23195,
+                },
+            ],
+            "endpoint_inventory": [
+                {"endpoint_id": "china_mortality", "label": "China 5-year all-cause mortality", "event_n": 309},
+                {"endpoint_id": "nhanes_mortality", "label": "NHANES 5-year all-cause mortality", "event_n": 704},
+            ],
+            "design_panels": [
+                {
+                    "panel_id": "model_input_boundary",
+                    "layout_role": "wide_bottom",
+                    "title": "Model-input boundary",
+                    "lines": [
+                        {
+                            "label": "Validation policy",
+                            "detail": "External validation only; no NHANES refitting or treatment-effect claim.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    def fake_subprocess_renderer(
+        *,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(
+                _minimal_layout_sidecar_for_template(full_template_id, display_payload),
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return {"status": "rendered", "figure_id": figure_id}
+
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["source_hydration"]["preserved_current_generated_sources"] == ["paper/cohort_flow.json"]
+    assert "paper/cohort_flow.json" not in result["source_hydration"]["hydrated_files"]
+    cohort_flow = json.loads((paper_root / "cohort_flow.json").read_text(encoding="utf-8"))
+    assert cohort_flow["status"] == "materialized_from_current_transportability_layout"
+    assert cohort_flow["flow_mode"] == "source_layer_accounting"
+    assert [item["step_id"] for item in cohort_flow["steps"]] == ["harmonized_diabetes_analysis_sources"]
+    assert [item["layer_id"] for item in cohort_flow["source_layers"]] == [
+        "china_development_source",
+        "nhanes_validation_source",
+    ]
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
 def test_materialize_display_surface_accepts_legacy_full_right_sidecar_role(tmp_path: Path) -> None:

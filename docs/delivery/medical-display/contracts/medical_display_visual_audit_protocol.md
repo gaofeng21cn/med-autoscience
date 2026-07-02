@@ -145,6 +145,17 @@ or display lock entry and check that:
   `flow_visual_policy=purpose_first_reporting_flow_no_legacy_card_shell`; `renderer_family=r_ggplot2`
   or `uses_ggconsort=true` alone is not enough to accept Figure 1 because the old card/bar shell can
   still be technically R-backed while failing the participant-accounting purpose;
+- the Figure 1 payload carries enough participant-accounting information for its purpose. A v2 participant-flow
+  sidecar with fewer than three main steps, no exclusion branches, and no substantive design-boundary detail is
+  a low-information Figure 1 even when it was rendered by the current ggconsort-capable path;
+- external-validation and transportability papers must not model a score, method caveat, or conclusion as a
+  participant-flow step. When the figure purpose is source/cohort accounting, the accepted layout should expose
+  source layers, denominator, analysis coverage, endpoint boundary, and no-refit / harmonization policy through
+  figure elements or the caption/manifest. If those payload fields exist but the rendered figure ignores them,
+  classify the finding as a renderer/payload semantic-consumption defect rather than a cosmetic issue;
+- step detail text is rendered as complete wrapped text. A sidecar that reports truncated detail, or a visible
+  Figure 1 that hides cohort-accounting meaning behind ellipses, fails the purpose-first audit even if there is
+  no geometric overlap;
 - the `cohort_flow_figure` layout sidecar has no `summary_panel`, `context_note`, `prose_card`, or
   fake-axis prose box. If endpoint, design, or interpretation text is present in the payload, the
   accepted output keeps that text in metadata, caption, legend, or manuscript prose rather than drawing

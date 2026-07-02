@@ -840,6 +840,13 @@ def test_run_time_to_event_direct_migration_accepts_current_semantic_transportab
             "source_contract_path": "paper/medical_reporting_contract.json",
             "displays": [
                 {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                    "shell_path": "paper/figures/cohort_flow.shell.json",
+                },
+                {
                     "display_id": "discrimination_calibration",
                     "display_kind": "figure",
                     "requirement_key": "time_to_event_discrimination_calibration_panel",
@@ -898,6 +905,7 @@ def test_run_time_to_event_direct_migration_accepts_current_semantic_transportab
 
     f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
     f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    f1 = json.loads((paper_root / "cohort_flow.json").read_text(encoding="utf-8"))
 
     assert report["status"] == "synced"
     assert report["blockers"] == []
@@ -906,6 +914,27 @@ def test_run_time_to_event_direct_migration_accepts_current_semantic_transportab
     assert report["notes"]["f5_requirement_key"] == "center_transportability_governance_summary_panel"
     assert report["notes"]["f5_payload"] == "preserved_existing_center_transportability_governance_payload"
     assert report["source_paths"]["metrics_summary"] == str(transportability_root / "metrics_summary.json")
+
+    assert f1["display_id"] == "cohort_flow"
+    assert f1["catalog_id"] == "F1"
+    assert f1["status"] == "materialized_from_current_transportability_layout"
+    assert f1["flow_mode"] == "source_layer_accounting"
+    assert f1["denominator_step_id"] == "harmonized_diabetes_analysis_sources"
+    assert [item["step_id"] for item in f1["steps"]] == ["harmonized_diabetes_analysis_sources"]
+    assert [item["layer_id"] for item in f1["source_layers"]] == [
+        "china_development_source",
+        "nhanes_validation_source",
+    ]
+    assert [item["coverage_id"] for item in f1["subcohort_coverage"]] == [
+        "score_derivation_endpoint",
+        "external_validation_no_refit",
+    ]
+    assert f1["subcohort_coverage"][0]["denominator_n"] == 21448
+    assert f1["subcohort_coverage"][0]["label"] == "China score derivation and mortality endpoint accounting"
+    assert f1["subcohort_coverage"][1]["label"] == "NHANES external validation after unit harmonization"
+    assert f1["endpoint_inventory"][0]["event_n"] == 309
+    assert f1["endpoint_inventory"][1]["event_n"] == 704
+    assert f1["design_panels"][0]["lines"][0]["detail"]
 
     assert f2["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
     assert f2["displays"][0]["display_id"] == "discrimination_calibration"
