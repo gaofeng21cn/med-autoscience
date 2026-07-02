@@ -9,7 +9,7 @@ Use this skill to lock a reproducible comparator surface for the active study li
 
 ## Core renderer hook
 
-The core lane renderer injects the generated stage skill surface here.
+The core lane renderer injects the generated stage operating surface here.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 

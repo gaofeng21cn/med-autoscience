@@ -10,9 +10,9 @@ SCHOLARSKILLS_SKILL_ID = "mas-scholar-skills"
 SCHOLARSKILLS_DEFAULT_SKILL_IDS = (
     "mas-scholar-skills",
     "medical-research-lit",
-    "medical-research-write",
-    "medical-research-review",
-    "medical-research-figure",
+    "medical-manuscript-writing",
+    "medical-manuscript-review",
+    "medical-figure-design",
 )
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"

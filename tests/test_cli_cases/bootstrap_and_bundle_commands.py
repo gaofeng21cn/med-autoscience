@@ -116,17 +116,17 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert payload["scholarskills_local_install"]["synced_skill_ids"] == [
         "mas-scholar-skills",
         "medical-research-lit",
-        "medical-research-write",
-        "medical-research-review",
-        "medical-research-figure",
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-figure-design",
     ]
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]
     assert workspace_install["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
-    assert workspace_install["target_skill_paths"]["medical-research-figure"] == str(
-        workspace_root / ".codex" / "skills" / "medical-research-figure"
+    assert workspace_install["target_skill_paths"]["medical-figure-design"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-design"
     )
     assert workspace_install["sync_command"]["argv"] == [
         "opl",

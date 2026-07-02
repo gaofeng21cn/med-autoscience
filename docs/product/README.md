@@ -35,15 +35,17 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 - `contracts/test-lane-manifest.json` 的 `mas-workbench-projection` 与 `mas-functional-consumer-followthrough` 只允许 App/workbench 消费 MAS refs-only projection 和 action receipt，不允许写 study truth、publication eval、controller decisions、terminal commands、current package、evidence/review ledger、memory body 或 artifact authority。
 - MAS 不再提供 repo-local Progress Portal / static HTML display materializer；默认 study read model 是 artifact-first mission summary，platform repair 折叠进 diagnostics。`medautosci workspace progress-portal`、`--serve`、`--enable-actions` 和 `ops/mas/bin/start-web` 不是当前入口。OPL hosted workbench / App shell 消费 MAS refs-only projection；MAS 不写 paper/package、publication gate、controller decision 或 provider runtime state。
 
-## MAS 核心 Skill 单源
+## MAS Stage 主提示词与专业 Skill 单源
 
-医学论文写作、审稿和图件的主入口是 MAS Scholar Skills 维护的真实 Codex skill：`medical-research-write`、`medical-research-review` 和 `medical-research-figure`。MAS 在本仓保留 runtime owner gate、profile、overlay 安装和 companion files；skill 正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest。
+医学论文写作、审稿和图件的流程主入口是 MAS 本仓维护的 stage 主提示词：`write`、`review` 和 `figure`。当前物理承载仍是 overlay template 生成到 `.codex/skills/medical-research-write`、`.codex/skills/medical-research-review` 和 `.codex/skills/medical-research-figure`，但它们的架构角色是 stage operating prompt：负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。
 
-当前策略是 `Skill-first + Tool/Fabric execution + Domain Owner Gate`：外部 owner skill 负责让 Codex 以医学论文专家方式理解任务、规划写作/审稿/图件路径并生成候选 refs；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
+医学论文写作、审稿、图件设计和文献检索的专业正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design` 和 `medical-research-lit`。
+
+当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
 
 文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
-`medical-research-figure-polish` 只保留为 `medical-research-figure` 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `medical-research-figure`，避免把“初稿设计”和“后期打磨”拆成两个来源。
+`medical-research-figure-polish` 只保留为 `figure` stage 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `figure` stage 主提示词和 `medical-figure-design` 专业 skill，保持一个 MAS-owned 图件流程入口。
 
 ## 当前文档职责
 

@@ -1,12 +1,65 @@
 ---
 name: figure
-description: Retired MAS-local source marker for the external MAS Scholar Skills medical figure owner skill.
+description: MAS figure stage operating prompt for claim-bound medical figure planning, rendering, and handoff.
 ---
 
-# Retired Local Source
+# Figure Stage Operating Prompt
 
-`medical-research-figure` is maintained in the external `mas-scholar-skills`
-repo under `skills/medical-research-figure/SKILL.md`.
+Use this stage prompt when MAS routes the current work unit to `figure`.
 
-MAS keeps runtime owner gates, profile wiring, companion files, and overlay
-manifests here. It does not maintain the figure skill body in this repository.
+This is not the professional figure-design skill itself. It is the MAS-owned
+stage operating prompt: decide whether a figure should exist, what claim and
+evidence it must carry, which artifact surfaces may change, and which owner
+gate must accept the result. Use `medical-figure-design` from MAS Scholar Skills
+for professional figure design and visual QA patterns.
+
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Stage Contract
+
+Before planning or rendering a figure, confirm:
+
+- figure purpose and supported claim;
+- source data/statistical refs and allowed artifact target;
+- intended figure family, panel role, and manuscript placement;
+- caption/legend boundary and forbidden in-figure prose;
+- visual audit and owner-gate handoff surface.
+
+## Professional Skill Route
+
+Use `medical-figure-design` when the work needs:
+
+- figure intent and panel planning;
+- renderer/template selection;
+- first-draft figure design;
+- Visual QA and polish;
+- figure-to-claim consistency checks;
+- reviewer handoff for display issues.
+
+The specialist skill may prepare design candidates, figure refs, QA notes, and
+route-back recommendations. MAS remains the owner for figure artifact mutation,
+visual-audit receipts, owner receipts, typed blockers, human gates, current
+package, and publication readiness.
+
+## Default Defense
+
+- Do not make decorative figures without a claim/evidence role.
+- Do not change data, statistics, methods labels, or claims while polishing.
+- Do not use a gallery or template preview as paper truth.
+- Do not create owner receipts, typed blockers, human gates, publication evals,
+  controller decisions, runtime queues, or current-package authority from this
+  prompt.
+- If the figure lacks evidence refs, purpose, or owner target, emit a route-back
+  candidate instead of rendering.
+
+## Closeout Shape
+
+Return one of:
+
+- `figure_intent_ref`;
+- `figure_design_candidate_ref`;
+- `figure_render_candidate_ref`;
+- `visual_qa_candidate_ref`;
+- `figure_route_back_ref`;
+- `owner_gate_handoff_ref`;
+- `human_gate_request_ref` when a real human decision is required.

@@ -7,7 +7,7 @@ description: Use when a quest needs a polished milestone chart, paper-facing fig
 
 Use this skill when a figure matters beyond transient debugging.
 
-This compatibility entry is the polish/review phase of `medical-research-figure`. It is not an independent authority source. For a new or materially reworked paper-facing figure, start with `medical-research-figure` so figure intent, claim, evidence refs, panel plan, backend selection, draft render, visual QA, polish, and reviewer handoff stay on one MAS-owned path.
+This compatibility entry is the polish/review phase of the MAS `figure` stage prompt. It is not an independent authority source. For a new or materially reworked paper-facing figure, start with the `figure` stage prompt and use `medical-figure-design` only as the professional design skill so figure intent, claim, evidence refs, panel plan, backend selection, draft render, visual QA, polish, and reviewer handoff stay on one MAS-owned path.
 
 This includes:
 

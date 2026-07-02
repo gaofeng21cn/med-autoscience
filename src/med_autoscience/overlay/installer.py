@@ -14,8 +14,6 @@ from med_autoscience.overlay.companion_blocks import (
     write_companion_files,
 )
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
-from med_autoscience.overlay.external_owner_skills import EXTERNAL_OWNER_SKILL_IDS, EXTERNAL_OWNER_SKILL_MAP
-from med_autoscience.overlay.external_owner_skills import external_owner_skill_missing_message, external_owner_skill_source_path, load_external_owner_skill_text, seed_external_owner_skill_from_source
 from med_autoscience.overlay.medical_runtime_contract import render_medical_runtime_contract_block
 from med_autoscience.overlay.system_prompt_hygiene import (
     audit_runtime_system_prompt,
@@ -60,9 +58,12 @@ FULL_TEMPLATE_MAP = {
     "idea": "medical-research-idea.SKILL.md",
     "decision": "medical-research-decision.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
+    "figure": "medical-research-figure.SKILL.md",
     "figure-polish": "medical-research-figure-polish.SKILL.md",
     "finalize": "medical-research-finalize.SKILL.md",
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
+    "review": "medical-research-review.SKILL.md",
+    "write": "medical-research-write.SKILL.md",
 }
 APPEND_BLOCK_TEMPLATE_MAP = {
     "intake-audit": "medical-research-intake-audit.block.md",
@@ -242,7 +243,7 @@ def _normalize_skill_ids(skill_ids: tuple[str, ...] | list[str] | None) -> tuple
     normalized = DEFAULT_MEDICAL_OVERLAY_SKILL_IDS if skill_ids is None else tuple(skill_ids)
     if ("write" in normalized or "finalize" in normalized) and "journal-resolution" not in normalized:
         normalized = normalized + ("journal-resolution",)
-    supported_skill_ids = set(FULL_TEMPLATE_MAP) | set(EXTERNAL_OWNER_SKILL_IDS) | set(APPEND_BLOCK_TEMPLATE_MAP)
+    supported_skill_ids = set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)
     invalid = [skill_id for skill_id in normalized if skill_id not in supported_skill_ids]
     if invalid:
         raise ValueError(f"Unsupported medical overlay skill ids: {', '.join(invalid)}")
@@ -335,18 +336,6 @@ def load_overlay_skill_text(
     default_publication_profile: str | None = None,
     default_citation_style: str | None = None,
 ) -> str:
-    if skill_id in EXTERNAL_OWNER_SKILL_IDS:
-        return _render_overlay_text_from_template(
-            load_external_owner_skill_text(skill_id),
-            skill_id=skill_id,
-            policy_id=policy_id,
-            archetype_ids=archetype_ids,
-            default_submission_targets=default_submission_targets,
-            default_publication_profile=default_publication_profile,
-            default_citation_style=default_citation_style,
-            strict_required_tokens=False,
-        )
-
     if skill_id in FULL_TEMPLATE_MAP:
         return _render_overlay_text_from_template(
             _load_template_text(FULL_TEMPLATE_MAP[skill_id]),
@@ -359,7 +348,7 @@ def load_overlay_skill_text(
         )
 
     if skill_id not in APPEND_BLOCK_TEMPLATE_MAP:
-        supported = ", ".join(sorted(set(FULL_TEMPLATE_MAP) | set(EXTERNAL_OWNER_SKILL_IDS) | set(APPEND_BLOCK_TEMPLATE_MAP)))
+        supported = ", ".join(sorted(set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)))
         raise ValueError(f"Unsupported medical overlay skill id: {skill_id}. Supported: {supported}")
 
     if base_text is None:
@@ -402,13 +391,8 @@ def _describe_target(
         source_text_before_overlay = current_text
     overlay_text = None
     overlay_fingerprint = None
-    external_source_path = (
-        external_owner_skill_source_path(target.skill_id) if target.skill_id in EXTERNAL_OWNER_SKILL_IDS else None
-    )
-    external_source_missing = target.skill_id in EXTERNAL_OWNER_SKILL_IDS and external_source_path is None
     can_render_overlay = (
-        not external_source_missing
-        and (target.skill_id not in APPEND_BLOCK_TEMPLATE_MAP or source_text_before_overlay is not None)
+        target.skill_id not in APPEND_BLOCK_TEMPLATE_MAP or source_text_before_overlay is not None
     )
     if can_render_overlay:
         overlay_text = load_overlay_skill_text(
@@ -461,7 +445,7 @@ def _describe_target(
                 status = "not_installed"
             needs_reapply = status != "overlay_applied"
     else:
-        status = "external_source_missing" if external_source_missing else "missing_target"
+        status = "missing_target"
         needs_reapply = True
         companion_files = _companion_file_statuses(target)
 
@@ -480,9 +464,9 @@ def _describe_target(
         "companion_files": companion_files,
         "policy_id": policy_id,
         "archetype_ids": list(archetype_ids),
-        "source_owner": "mas-scholar-skills" if target.skill_id in EXTERNAL_OWNER_SKILL_IDS else "med-autoscience",
-        "external_source_skill_id": EXTERNAL_OWNER_SKILL_MAP.get(target.skill_id),
-        "external_source_path": str(external_source_path) if external_source_path is not None else None,
+        "source_owner": "med-autoscience",
+        "external_source_skill_id": None,
+        "external_source_path": None,
     }
 
 
@@ -535,15 +519,8 @@ def describe_medical_overlay(
 
 def _ensure_target_ready(target: OverlayTarget) -> str:
     _migrate_legacy_target_if_present(target)
-    seed_external_owner_skill_from_source(
-        skill_id=target.skill_id,
-        target_root=target.target_root,
-        skill_path=target.skill_path,
-    )
     if target.skill_path.exists():
         return target.skill_path.read_text(encoding="utf-8")
-    if target.skill_id in EXTERNAL_OWNER_SKILL_IDS:
-        raise FileNotFoundError(external_owner_skill_missing_message(target.skill_id))
     if target.skill_id in FULL_TEMPLATE_MAP:
         target.target_root.mkdir(parents=True, exist_ok=True)
         return ""
@@ -621,11 +598,6 @@ def _install_for_target(
     default_citation_style: str | None,
 ) -> dict[str, Any]:
     _copy_authoritative_target_seed(target=target, authoritative_root=authoritative_root)
-    seed_external_owner_skill_from_source(
-        skill_id=target.skill_id,
-        target_root=target.target_root,
-        skill_path=target.skill_path,
-    )
     _seed_workspace_target_from_runtime_repo(
         target=target,
         med_deepscientist_repo_root=med_deepscientist_repo_root,

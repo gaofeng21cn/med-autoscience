@@ -60,10 +60,13 @@ STAGE_SKILL_TEMPLATE_FILES = {
     "baseline": "medical-research-baseline.SKILL.md",
     "decision": "medical-research-decision.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
+    "figure": "medical-research-figure.SKILL.md",
     "finalize": "medical-research-finalize.SKILL.md",
     "idea": "medical-research-idea.SKILL.md",
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
+    "review": "medical-research-review.SKILL.md",
     "scout": "medical-research-scout.SKILL.md",
+    "write": "medical-research-write.SKILL.md",
 }
 EXISTING_FULL_STAGE_SKILL_IDS = (
     "scout",

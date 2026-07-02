@@ -114,18 +114,18 @@ def test_analysis_campaign_full_skill_template_is_stage_surface() -> None:
     assert "Route-Back Discipline" in analysis_text
 
 
-def test_external_owner_review_skill_is_loaded_from_mas_scholar_skills() -> None:
+def test_review_stage_prompt_routes_professional_review_to_mas_scholar_skills() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
     review_text = module.load_overlay_skill_text("review")
 
     assert ROUTE_BIAS_TOKEN not in review_text
     assert STUDY_ARCHETYPES_TOKEN not in review_text
-    assert "independent AI reviewer pass" in review_text
-    assert "review_signal_only" in review_text
+    assert "Review Stage Operating Prompt" in review_text
+    assert "medical-manuscript-review" in review_text
     assert "claim downgrade" in review_text.lower()
     assert "citation repair" in review_text.lower()
-    assert "reusable critique lessons" in review_text.lower()
+    assert "MAS remains the owner" in review_text
 
 
 def test_existing_full_stage_skill_templates_keep_rh_clean_room_boundary() -> None:
@@ -380,24 +380,12 @@ def test_install_medical_overlay_materializes_primary_figure_skill(tmp_path: Pat
     assert [item["skill_id"] for item in result["targets"]] == ["figure"]
     assert Path(result["targets"][0]["target_root"]).name == f"{OVERLAY_PREFIX}-figure"
     assert "name: figure" in skill_text
-    assert "Figure Intent And Claim" in skill_text
-    assert "Evidence Refs" in skill_text
-    assert "Panel Plan" in skill_text
-    assert "Template And Backend Selection" in skill_text
-    assert "Draft Render" in skill_text
+    assert "Figure Stage Operating Prompt" in skill_text
+    assert "medical-figure-design" in skill_text
+    assert "figure purpose and supported claim" in skill_text
+    assert "renderer/template selection" in skill_text
     assert "Visual QA" in skill_text
-    assert "Polish" in skill_text
-    assert "Reviewer Handoff" in skill_text
-    assert "AI-first" in skill_text
-    assert "Scripts are render and check tools" in skill_text
-    assert "Tool/Fabric execution" in skill_text
-    assert "Domain Owner Gate" in skill_text
-    assert "Nature Figure-style" in skill_text
-    assert "K-Dense-style" in skill_text
-    assert "figure manifest" in skill_text
-    assert "opl connect pubmed search --query <query> --limit <n> --json" in skill_text
-    assert "medical-research-lit" in skill_text
-    assert "Do not introduce a parallel `opl-scholar-display` main entry" in skill_text
+    assert "MAS remains the owner" in skill_text
 
 
 def test_figure_polish_overlay_remains_installable_as_figure_phase_entry(tmp_path: Path) -> None:
@@ -411,25 +399,27 @@ def test_figure_polish_overlay_remains_installable_as_figure_phase_entry(tmp_pat
     assert [item["skill_id"] for item in result["targets"]] == ["figure-polish"]
     assert Path(result["targets"][0]["target_root"]).name == f"{OVERLAY_PREFIX}-figure-polish"
     assert "name: figure-polish" in skill_text
-    assert "polish/review phase of `medical-research-figure`" in skill_text
+    assert "polish/review phase of the MAS `figure` stage prompt" in skill_text
     assert "not an independent authority source" in skill_text
 
 
-def test_write_template_routes_figures_through_primary_figure_skill() -> None:
+def test_write_stage_prompt_routes_professional_work_without_owning_truth() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
     skill_text = module.load_overlay_skill_text("write")
 
-    assert "open `figure/skill.md` first" in skill_text.lower()
-    assert "figure-polish/skill.md" in skill_text.lower()
-    assert "only after" in skill_text.lower()
+    assert "Write Stage Operating Prompt" in skill_text
+    assert "medical-manuscript-writing" in skill_text
+    assert "medical-research-lit" in skill_text
+    assert "owner_gate_handoff_ref" in skill_text
+    assert "Do not turn a specialist skill output into accepted manuscript truth" in skill_text
 
 
-def test_owner_skill_templates_route_literature_candidates_through_opl_connect_or_lit_specialist() -> None:
+def test_stage_prompts_route_literature_candidates_through_opl_connect_or_lit_specialist() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
-    for skill_id in ("scout", "figure", "write", "review"):
-        if skill_id in {"figure", "write", "review"}:
+    for skill_id in ("scout", "write", "review"):
+        if skill_id in {"write", "review"}:
             skill_text = module.load_overlay_skill_text(skill_id)
         else:
             skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
