@@ -219,7 +219,7 @@ def scholarskills_module_metadata(
         "display": {
             "capability_family": "scholarskills_display",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Display",
                 "MAS Display Pack",
             ],
@@ -258,7 +258,7 @@ def scholarskills_module_metadata(
         "tables": {
             "capability_family": "scholarskills_tables",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Tables",
                 "Tables / Reporting",
             ],
@@ -293,7 +293,7 @@ def scholarskills_module_metadata(
         "stats": {
             "capability_family": "scholarskills_stats",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Stats",
                 "Biostatistics / Clinical Analysis",
             ],
@@ -332,7 +332,7 @@ def scholarskills_module_metadata(
         "omics": {
             "capability_family": "scholarskills_omics",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Omics",
                 "Omics / Bioinformatics",
             ],
@@ -373,7 +373,7 @@ def scholarskills_module_metadata(
         "lit": {
             "capability_family": "scholarskills_lit",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Literature",
                 "Literature Management",
             ],
@@ -411,7 +411,7 @@ def scholarskills_module_metadata(
         "write": {
             "capability_family": "scholarskills_write",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Write",
                 "Manuscript Writing",
             ],
@@ -448,7 +448,7 @@ def scholarskills_module_metadata(
         "review": {
             "capability_family": "scholarskills_review",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Review",
                 "Quality Review / AI Reviewer",
             ],
@@ -485,7 +485,7 @@ def scholarskills_module_metadata(
         "submit": {
             "capability_family": "scholarskills_submit",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Submit",
                 "Submission Packaging",
             ],
@@ -523,7 +523,7 @@ def scholarskills_module_metadata(
         "data": {
             "capability_family": "scholarskills_data",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Data",
                 "Data Management",
             ],
@@ -561,7 +561,7 @@ def scholarskills_module_metadata(
         "intake": {
             "capability_family": "scholarskills_intake",
             "source_frameworks": [
-                "OPL ScholarSkills",
+                "MAS Scholar Skills",
                 "Scholar Intake",
                 "External Method Skill Intake",
             ],
@@ -816,7 +816,7 @@ def _non_display_migration_guard(module_name: str) -> dict[str, Any]:
         "surface_kind": "mas_scholarskills_non_display_migration_guard",
         "schema_version": 1,
         "module_name": module_name,
-        "migration_target": "opl-scholarskills",
+        "migration_target": "mas-scholar-skills",
         "migration_priority": audit["migration_priority"],
         "source_of_truth_repo": SCHOLARSKILLS_SOURCE_REPO_REF,
         "mas_role": "refs_only_descriptor_and_owner_gate_consumer",

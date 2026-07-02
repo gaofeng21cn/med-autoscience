@@ -80,7 +80,7 @@ def build_scholarskills_materialized_package_input(
     ]
     if mismatched_module_ids:
         raise ValueError(
-            "OPL ScholarSkills materialized package module_id mismatch: "
+            "MAS Scholar Skills materialized package module_id mismatch: "
             + ", ".join(mismatched_module_ids)
         )
 
@@ -100,7 +100,7 @@ def build_scholarskills_materialized_package_input(
     authority_flags.update(_top_level_authority_claims(receipt))
     _raise_for_truthy_authority_flags(
         authority_flags,
-        label="OPL ScholarSkills materialized package authority flags",
+        label="MAS Scholar Skills materialized package authority flags",
     )
 
     written_files = _dedupe_texts(
@@ -112,7 +112,7 @@ def build_scholarskills_materialized_package_input(
     forbidden_collisions = _forbidden_materialized_package_written_refs(written_files)
     if forbidden_collisions:
         raise ValueError(
-            "OPL ScholarSkills materialized package reports forbidden authority writes: "
+            "MAS Scholar Skills materialized package reports forbidden authority writes: "
             + ", ".join(forbidden_collisions)
         )
     candidate_artifacts = _candidate_artifacts(
@@ -275,16 +275,16 @@ def _normalize_candidate_artifact(
     )
     kind = _text(value.get("kind")) or _text(value.get("artifact_kind")) or default_kind
     if not kind:
-        raise ValueError("OPL ScholarSkills candidate artifact missing kind")
+        raise ValueError("MAS Scholar Skills candidate artifact missing kind")
     _raise_for_truthy_authority_flags(
         authority_flags,
-        label=f"OPL ScholarSkills candidate artifact authority flags ({kind})",
+        label=f"MAS Scholar Skills candidate artifact authority flags ({kind})",
     )
     written_files = _text_list(value.get("written_files"))
     forbidden_collisions = _forbidden_materialized_package_written_refs(written_files)
     if forbidden_collisions:
         raise ValueError(
-            "OPL ScholarSkills candidate artifact reports forbidden authority writes "
+            "MAS Scholar Skills candidate artifact reports forbidden authority writes "
             f"({kind}): " + ", ".join(forbidden_collisions)
         )
     body = value.get("body")
@@ -303,7 +303,7 @@ def _normalize_candidate_artifact(
         sha256 = f"sha256:{sha256}"
     if not (ref or sha256):
         raise ValueError(
-            f"OPL ScholarSkills candidate artifact missing ref or sha256: {kind}"
+            f"MAS Scholar Skills candidate artifact missing ref or sha256: {kind}"
         )
     return {
         "kind": kind,

@@ -423,7 +423,7 @@ pack_id = "fenggaolab.org.medical-display-core"
 path = "../missing-display-core-git"
 pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
-source_owner = "OPL ScholarSkills Display"
+source_owner = "MAS Scholar Skills Display"
 source_role = "generic_template_renderer_pack"
 source_authority = false
 
@@ -476,7 +476,7 @@ pack_id = "fenggaolab.org.medical-display-core"
 path = "../display-core-git"
 pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
-source_owner = "OPL ScholarSkills Display"
+source_owner = "MAS Scholar Skills Display"
 source_role = "generic_template_renderer_pack"
 source_authority = false
 
@@ -524,7 +524,7 @@ def test_display_pack_source_resolves_workspace_sibling_from_repo_local_worktree
     workspace_root = tmp_path / "workspace"
     repo_root = workspace_root / "med-autoscience"
     lane_root = repo_root / ".worktrees" / "display-lane"
-    scholarskills_root = workspace_root / "opl-scholarskills"
+    scholarskills_root = workspace_root / "mas-scholar-skills"
     lane_root.mkdir(parents=True)
     scholarskills_root.mkdir(parents=True)
     config_dir = lane_root / "config"
@@ -536,10 +536,10 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "git_repo"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "../opl-scholarskills"
+path = "../mas-scholar-skills"
 pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
-source_ref = "opl-scholarskills:packs/medical-display-core"
+source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_role = "generic_template_renderer_pack"
 source_authority = false
 
@@ -576,19 +576,19 @@ source_authority = false
 
 
 def test_repo_default_consumes_sibling_scholarskills_core_pack_when_available() -> None:
-    sibling_root = (REPO_ROOT / ".." / "opl-scholarskills").resolve()
+    sibling_root = (REPO_ROOT / ".." / "mas-scholar-skills").resolve()
     sibling_pack_root = sibling_root / "packs" / "medical-display-core"
     if not (sibling_root / ".git").exists() or not (sibling_pack_root / "display_pack.toml").is_file():
-        pytest.skip("sibling opl-scholarskills medical-display-core pack is not checked out")
+        pytest.skip("sibling mas-scholar-skills medical-display-core pack is not checked out")
 
     selection = resolve_display_pack_selection(REPO_ROOT)
     records = load_enabled_local_display_pack_records(REPO_ROOT)
 
-    assert selection.source_configs[0].path == "../opl-scholarskills"
+    assert selection.source_configs[0].path == "../mas-scholar-skills"
     assert selection.source_configs[0].pack_subdir == "packs/medical-display-core"
     assert records[0].pack_root == sibling_pack_root
-    assert records[0].source_config.source_ref == "opl-scholarskills:packs/medical-display-core"
+    assert records[0].source_config.source_ref == "mas-scholar-skills:packs/medical-display-core"
     assert records[0].source_config.source_role == "generic_template_renderer_pack"
     assert records[0].source_config.fallback is False
     assert records[0].source_config.source_authority is False
-    assert records[0].source_config.source_owner == "OPL ScholarSkills Display"
+    assert records[0].source_config.source_owner == "MAS Scholar Skills Display"

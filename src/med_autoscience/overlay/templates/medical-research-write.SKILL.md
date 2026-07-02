@@ -266,6 +266,15 @@ Use these as the canonical evidence base:
 Do not rely on memory alone for numbers.
 Always prefer direct artifact paths for claims.
 
+## Literature Candidate Strategy
+
+When writing needs PubMed or literature-library candidates, get candidate refs through:
+
+- `opl connect pubmed search --query <query> --limit <n> --json`
+- an external `medical-research-lit` specialist
+
+Treat those outputs as reference candidates or citation-repair inputs. The MAS owner skill still owns source screening, evidence mapping, citation placement, claim strength, and final writing judgment.
+
 ## Required durable outputs
 
 The write stage should usually produce most of the following:

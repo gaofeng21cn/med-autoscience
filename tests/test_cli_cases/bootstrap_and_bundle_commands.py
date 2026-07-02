@@ -116,14 +116,14 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]
     assert workspace_install["target_skill_path"] == str(
-        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+        workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert workspace_install["sync_command"]["argv"] == [
         "opl",
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "workspace",
         "--target-workspace",
@@ -131,7 +131,7 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         "--json",
     ]
     assert quest_install["target_skill_path_template"] == str(
-        workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills"
+        workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert payload["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
     assert not install_service.exists()

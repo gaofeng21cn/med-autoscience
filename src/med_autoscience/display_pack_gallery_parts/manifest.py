@@ -262,7 +262,7 @@ def build_manifest(
         "quality_audit_path": str(paths.QUALITY_AUDIT_PATH),
         "docs_template_catalog_path": str(paths.DOCS_TEMPLATE_CATALOG_PATH) if publish_docs else "",
         "docs_gallery_review_package_owner": "ScholarSkills",
-        "docs_gallery_review_package_ref": "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/",
+        "docs_gallery_review_package_ref": "/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/",
         "docs_gallery_review_package_status": "externalized_compact_review_refs",
         "template_count": len(all_gallery_visual_records),
         "active_template_count": len(visual_records),

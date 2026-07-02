@@ -393,6 +393,14 @@ def test_install_medical_overlay_materializes_primary_figure_skill(tmp_path: Pat
     assert "Reviewer Handoff" in skill_text
     assert "AI-first" in skill_text
     assert "Scripts are render and check tools" in skill_text
+    assert "Tool/Fabric execution" in skill_text
+    assert "Domain Owner Gate" in skill_text
+    assert "Nature Figure-style" in skill_text
+    assert "K-Dense-style" in skill_text
+    assert "figure manifest" in skill_text
+    assert "opl connect pubmed search --query <query> --limit <n> --json" in skill_text
+    assert "medical-research-lit" in skill_text
+    assert "Do not introduce a parallel `opl-scholar-display` main entry" in skill_text
 
 
 def test_figure_polish_overlay_remains_installable_as_figure_phase_entry(tmp_path: Path) -> None:
@@ -417,6 +425,18 @@ def test_write_template_routes_figures_through_primary_figure_skill() -> None:
 
     assert "open `figure/SKILL.md` first" in skill_text
     assert "Use `figure-polish/SKILL.md` only for the polish/review phase" in skill_text
+
+
+def test_owner_skill_templates_route_literature_candidates_through_opl_connect_or_lit_specialist() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    for skill_id in ("scout", "figure", "write", "review"):
+        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
+
+        assert "opl connect pubmed search --query <query> --limit <n> --json" in skill_text
+        assert "medical-research-lit" in skill_text
+        assert "candidate" in skill_text
+        assert "MAS" in skill_text
 
 
 def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skills(tmp_path: Path) -> None:

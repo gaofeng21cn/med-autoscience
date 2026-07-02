@@ -663,6 +663,6 @@ def test_mas_docs_gallery_review_package_is_externalized_to_scholarskills() -> N
     assert not docs_asset_root.exists()
     assert readme_path.is_file()
     readme = readme_path.read_text(encoding="utf-8")
-    assert "/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/" in readme
+    assert "/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/" in readme
     assert "MAS 不在本目录维护 Display Pack gallery 发布包" in readme
     assert "gallery PDF / status / quality-audit mirror" in readme

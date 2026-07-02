@@ -13,7 +13,7 @@ A display counts as current implemented inventory only when it is present in the
 
 Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
-- current counts and human visual Gallery: ScholarSkills compact review package at `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/`;
+- current counts and human visual Gallery: ScholarSkills compact review package at `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`;
 - full descriptor inventory: [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
 - compact capability index: [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md).
 
@@ -21,14 +21,14 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 
 ## Source Of Truth
 
-- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/templates/*/template.toml`
-- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/canonical_template_catalog.json`
-- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/renderer_migration_ledger.json`
+- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/templates/*/template.toml`
+- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`
+- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/renderer_migration_ledger.json`
 - `src/med_autoscience/display_registry.py`
 - `src/med_autoscience/display_schema_contract.py`
 - `src/med_autoscience/controllers/display_surface_materialization/`
 - `src/med_autoscience/display_layout_qc/`
-- ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/`
+- ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
 
 The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
@@ -36,8 +36,8 @@ The generated catalog is [medical_display_template_catalog.md](../catalogs/medic
 
 Medical display maintenance uses three separate surfaces:
 
-- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
-- `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/` is the compact human review package. MAS no longer commits gallery build output or single-figure gallery assets under `docs/delivery/medical-display/examples/`.
+- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
+- `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/` is the compact human review package. MAS no longer commits gallery build output or single-figure gallery assets under `docs/delivery/medical-display/examples/`.
 - OPL Runtime Environment Substrate owns dependency preparation. MAS consumes dependency run-context refs and fails closed when a required prepared receipt, profile, binary, or managed R library is missing.
 
 `--package-only` is valid for document packaging, title/index changes, and PDF regeneration from existing assets. It is not evidence that renderer source, dependency environment, or real paper payloads were freshly rendered. Fresh rendering evidence requires render cache readback, layout sidecars, dependency run-context readback, and artifact inspection.

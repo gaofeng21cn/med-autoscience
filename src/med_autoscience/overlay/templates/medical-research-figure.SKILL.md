@@ -9,6 +9,18 @@ Use this skill when a paper-facing figure needs to be created or materially repa
 
 This is the MAS-owned main figure skill. `medical-research-figure-polish` is only the polish/review phase entry for an already scoped figure; it is not an independent authority source.
 
+## Skill-First Operating Model
+
+Use `medical-research-figure` as the owner skill for zero-to-one figure work. External design systems, including Nature Figure-style figure planning and K-Dense-style manifest and QA ideas, are reference material only.
+
+The operating path is skill-first + Tool/Fabric execution + Domain Owner Gate:
+
+- the MAS owner skill decides figure intent, claim scope, evidence fit, panel structure, renderer choice, and route outcome
+- tools, scripts, OPL Connect, Fabric, or ScholarSkills display material execute bounded searches, renders, manifest checks, or QA tasks
+- MAS owner surfaces decide whether the candidate is accepted, routed back, blocked, or sent to a human gate
+
+Do not introduce a parallel `opl-scholar-display` main entry. Use ScholarSkills display refs only as enhancement or reference material inside the MAS owner path.
+
 ## Core Principle
 
 Medical figures are evidence surfaces. This is an AI-first workflow: the AI executor owns the scientific figure reasoning first, including what claim the figure should support, which evidence refs are allowed, what each panel means, and whether the rendered result can survive reviewer scrutiny.
@@ -54,9 +66,12 @@ Bind the figure to concrete refs before choosing a visual form:
 
 Missing refs are blockers, not styling issues. Do not fill missing evidence with template defaults, synthetic labels, or caption prose.
 
-If a figure needs background, guideline, reporting-methods, primary-source, PMID, DOI, or citation support for its caption, methods note, or reviewer handoff, trigger lookup from the MAS `figure` skill through the read-only OPL Connect PubMed connector:
-`opl connect pubmed search --query <query> --limit <n> --json`
-Use the returned normalized refs only as inputs to MAS evidence, citation, and review workflows. Do not turn figure work into a literature platform, and do not treat connector output as figure acceptance or publication authority. If the connector is unavailable, record a route-back or `connector_gap`; do not invent citations.
+If the figure needs background, guideline, reporting-methods, primary-source, PMID, DOI, or citation support for its caption, methods note, or reviewer handoff, get candidate refs through one of these paths:
+
+- `opl connect pubmed search --query <query> --limit <n> --json`
+- an external `medical-research-lit` specialist
+
+Use the returned normalized refs only as inputs to MAS evidence, citation, and review workflows. This skill still owns screening, figure relevance, claim-evidence mapping, and the final MAS route decision. If the connector is unavailable, record a route-back or `connector_gap`; do not invent citations, PMIDs, DOIs, guidelines, or source metadata.
 
 ### Panel Plan
 
@@ -71,6 +86,8 @@ Plan panels as scientific units, not decorations. For every panel, name:
 
 Keep in-figure text limited to panel labels, axis labels, legend labels, necessary statistical annotations, and minimal cohort or group notes.
 
+Use progressive disclosure in the reviewer packet: keep the visible figure minimal, put panel intent and statistical decisions in the manifest, and leave longer caveats to the caption, review ledger, or route-back note.
+
 ### Template And Backend Selection
 
 Choose the figure grammar after intent and refs are clear.
@@ -82,6 +99,8 @@ Choose the figure grammar after intent and refs are clear.
 - If the selected backend cannot run, stop and fix the environment or route a blocker. Do not silently fallback to a different renderer family.
 
 Template selection should explain why the template fits the claim, panel semantics, evidence shape, and journal-facing readability.
+
+Record the selected grammar in a figure manifest before polishing. The manifest should name the figure intent, panel ids, evidence refs, statistics and annotations, renderer family, exports, QA checks, and owner-gate status.
 
 ### Draft Render
 
@@ -113,6 +132,8 @@ Check:
 - whether every visible claim is supported by the evidence refs
 
 If the figure fails evidence integrity, route back. If it fails presentation, continue to polish.
+
+The QA pass should be manifest-backed: every failed check must either be fixed, downgraded to a named caveat, routed back to the correct owner, or carried as a human gate.
 
 ### Polish
 

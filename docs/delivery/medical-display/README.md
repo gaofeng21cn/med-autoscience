@@ -30,7 +30,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 - [Platform mainline](./contracts/medical_display_platform_mainline.md)
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Template catalog](./catalogs/medical_display_template_catalog.md)
-- [ScholarSkills Display gallery](/Users/gaofeng/workspace/opl-scholarskills/docs/gallery/display-gallery.md)
+- [ScholarSkills Display gallery](/Users/gaofeng/workspace/mas-scholar-skills/docs/gallery/display-gallery.md)
 - [MAS examples boundary](./examples/README.md)
 - [Display Pack v2 E2E skeleton](./examples/display_pack_v2_e2e_skeleton.md)
 
@@ -44,7 +44,7 @@ Medical Display 文档和 template pack 可以定义 renderer family、input sch
 
 ## MAS / ScholarSkills 分工
 
-`opl-scholarskills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认优先消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 只保留为 temporary deprecated bundled migration fallback，用来保证旧论文和离线验证仍可运行。薄消费面的验收口径是 `config/display_packs.toml` 默认解析到 ScholarSkills source，`display_pack_lock.json` 保留 source/ref/role/fallback/authority provenance，且 fallback 不被写成 MAS publication authority。
+`mas-scholar-skills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认优先消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 只保留为 temporary deprecated bundled migration fallback，用来保证旧论文和离线验证仍可运行。薄消费面的验收口径是 `config/display_packs.toml` 默认解析到 ScholarSkills source，`display_pack_lock.json` 保留 source/ref/role/fallback/authority provenance，且 fallback 不被写成 MAS publication authority。
 
 必须留在 MAS 内的是 paper-local authority：figure purpose、claim/data/statistics refs、medical figure grammar、visual-audit consumption、publication gate、owner receipt、typed blocker、human gate、submission manifest refs preservation 和 current package 验收。ScholarSkills/OPL Display 可以生产或运输模板/renderer/generic visual-QA refs，但不能写 MAS publication truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 submission-ready verdict。
 

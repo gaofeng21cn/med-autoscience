@@ -68,7 +68,7 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
             assert guard["surface_kind"] == (
                 "mas_scholarskills_non_display_migration_guard"
             )
-            assert guard["migration_target"] == "opl-scholarskills"
+            assert guard["migration_target"] == "mas-scholar-skills"
             assert guard["migration_priority"] == NON_DISPLAY_MIGRATION_PRIORITIES[
                 module_name
             ]

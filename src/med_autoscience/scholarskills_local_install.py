@@ -5,11 +5,11 @@ import shlex
 from typing import Any
 
 
-SCHOLARSKILLS_DOMAIN = "scholarskills"
-SCHOLARSKILLS_SKILL_ID = "opl-scholarskills"
-SCHOLARSKILLS_SOURCE_REPO_REF = "external:opl-scholarskills"
+SCHOLARSKILLS_DOMAIN = "mas-scholar-skills"
+SCHOLARSKILLS_SKILL_ID = "mas-scholar-skills"
+SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"
-SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH = "plugins/opl-scholarskills"
+SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH = "plugins/mas-scholar-skills"
 SCHEMA_VERSION = 1
 
 

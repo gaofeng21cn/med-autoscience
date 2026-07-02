@@ -9,8 +9,8 @@ Machine boundary: 人读导航。MAS 不在本目录维护 Display Pack gallery 
 
 当前通用模板源码、R renderer、dependency profile、canonical catalog 和 compact gallery review refs 在：
 
-- `/Users/gaofeng/workspace/opl-scholarskills/packs/medical-display-core/`
-- `/Users/gaofeng/workspace/opl-scholarskills/gallery/medical-display/`
+- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/`
+- `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
 
 MAS 继续保留 paper-local authority：figure purpose、claim/data/statistics refs、medical figure grammar、visual-audit consumption、publication gate、owner receipt、typed blocker、human gate、submission manifest refs preservation 和 current package / PDF 验收。
 

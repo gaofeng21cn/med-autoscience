@@ -78,7 +78,7 @@ def render_workspace_profile_entries(
             ("medical_overlay_scope", 'medical_overlay_scope = "workspace"'),
             (
                 "medical_overlay_skills",
-                'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure-polish", "write", "review", "rebuttal", "finalize"]',
+                'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure", "write", "review", "rebuttal", "finalize"]',
             ),
             ("medical_overlay_bootstrap_mode", 'medical_overlay_bootstrap_mode = "ensure_ready"'),
             ("research_route_bias_policy", 'research_route_bias_policy = "high_plasticity_medical"'),

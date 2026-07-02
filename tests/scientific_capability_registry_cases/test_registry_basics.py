@@ -117,7 +117,7 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "workspace",
         "--target-workspace",
@@ -125,14 +125,14 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "--json",
     ]
     assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_template"] == (
-        "<workspace_root>/.codex/skills/opl-scholarskills"
+        "<workspace_root>/.codex/skills/mas-scholar-skills"
     )
     assert registry["scholarskills_local_install"]["quest"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "quest",
         "--target-quest",
@@ -140,19 +140,19 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "--json",
     ]
     assert registry["scholarskills_local_install"]["quest"]["target_skill_path_template"] == (
-        "<quest_root>/.codex/skills/opl-scholarskills"
+        "<quest_root>/.codex/skills/mas-scholar-skills"
     )
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
-    assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:opl-scholarskills"
+    assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
 
-    assert candidate["source_repo_ref"] == "external:opl-scholarskills"
+    assert candidate["source_repo_ref"] == "external:mas-scholar-skills"
     assert candidate["local_install"]["install_scopes"] == ["workspace", "quest"]
     assert candidate["local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert candidate["local_install"]["workspace"]["target_skill_path_template"] == (
-        "<workspace_root>/.codex/skills/opl-scholarskills"
+        "<workspace_root>/.codex/skills/mas-scholar-skills"
     )
     assert "readback:mas_scholarskills_local_install" in candidate["descriptor_refs"]
-    assert "external:opl-scholarskills" in candidate["source_frameworks"]
+    assert "external:mas-scholar-skills" in candidate["source_frameworks"]
     assert candidate["owner_consumption_boundary"]["owner_gated_refs_consumption"] is True
     assert candidate["owner_consumption_boundary"]["counts_as_paper_truth"] is False
 

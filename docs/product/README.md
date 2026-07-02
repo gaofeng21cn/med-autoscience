@@ -39,7 +39,11 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 写作、审稿和图件的主入口分别是 MAS overlay skill：`medical-research-write`、`medical-research-review` 和 `medical-research-figure`。这些 skill 持有 MAS paper-facing owner path、claim/evidence/display 读法和 route-back 边界。`medical-research-figure-polish` 只保留为 `medical-research-figure` 的 polish/review 阶段兼容入口，不是独立权威源。
 
-OPL ScholarSkills 的 `write`、`review`、`display` 等模块只能作为增强 pack、refs-only candidate、gallery/reference 或 owner-gate input。它们不取代 MAS owner skill，不写 MAS paper truth、publication eval、controller decision、owner receipt、typed blocker、human gate、`current_package` 或 submission-ready verdict。
+当前策略是 `Skill-first + Tool/Fabric execution + Domain Owner Gate`：MAS owner skill 先判断写作、审稿和图件意图；OPL Connect、Fabric、脚本、renderer 或外置 specialist 只执行检索、渲染、检查和候选包生成；最终是否接受、退回、阻塞或交给 human gate，由 MAS owner surface 决定。
+
+文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或外置 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` owner skill 负责筛选、证据映射、claim/citation/display 归位和最终判断。
+
+MAS Scholar Skills 的 `write`、`review`、`display` 等模块只能作为增强 pack、refs-only candidate、gallery/reference 或 owner-gate input。它们不取代 MAS owner skill，不写 MAS paper truth、publication eval、controller decision、owner receipt、typed blocker、human gate、`current_package` 或 submission-ready verdict。
 
 ## 当前文档职责
 

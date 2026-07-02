@@ -190,6 +190,13 @@ Do not let a downgraded claim remain contradicted by figure titles, captions, ab
 
 Review must treat citation quality as part of medical rigor.
 
+When a review finding needs PubMed or literature-library candidates, get candidate refs through:
+
+- `opl connect pubmed search --query <query> --limit <n> --json`
+- an external `medical-research-lit` specialist
+
+These outputs support citation repair only. Review still owns source screening, contradiction handling, claim downgrade, evidence mapping, blocker severity, and route-back judgment.
+
 Open a citation repair request when:
 
 - a claim has no citation or only a weak background citation

@@ -79,14 +79,14 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert str(workspace_root / "studies") not in layout["body_plane"]["root"]
     scholarskills_install = result["scholarskills_local_install"]
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
-        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+        workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert scholarskills_install["workspace"]["sync_command"]["argv"] == [
         "opl",
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "workspace",
         "--target-workspace",
@@ -94,7 +94,7 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
         "--json",
     ]
     assert scholarskills_install["quest"]["target_skill_path_template"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills")
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
     )
     assert scholarskills_install["authority_boundary"]["writes_yang_authority"] is False
     assert scholarskills_install["authority_boundary"]["writes_runtime_authority"] is False
@@ -143,7 +143,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert not (workspace_root / "runtime" / "artifacts" / "progress_portal").exists()
     assert not (workspace_root / "ops" / "mas" / "progress").exists()
     assert not (workspace_root / "ops" / "med-deepscientist").exists()
-    assert not (workspace_root / ".codex" / "skills" / "opl-scholarskills").exists()
+    assert not (workspace_root / ".codex" / "skills" / "mas-scholar-skills").exists()
 
     assert not (workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml").exists()
 
@@ -160,11 +160,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
     assert 'public_data_discovery_policy = "required_for_scout_route_selection"' in profile_text
     assert 'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]' in profile_text
-    assert '"analysis-campaign", "figure-polish", "write"' in profile_text
+    assert '"analysis-campaign", "figure", "write"' in profile_text
+    assert "figure-polish" not in profile_text
     assert "enable_autofigure_edit" not in profile_text
     assert "autofigure_edit_bootstrap_mode" not in profile_text
     assert "autofigure_edit_service_url" not in profile_text
-    assert "plugins/opl-scholarskills" not in profile_text
+    assert "plugins/mas-scholar-skills" not in profile_text
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
     med_shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
@@ -293,10 +294,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
         if path.is_file()
     )
     assert result["scholarskills_local_install"]["workspace"]["target_skill_path"] == str(
-        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+        workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert result["scholarskills_local_install"]["quest"]["target_skill_path_template"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills")
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
     )
     assert result["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text

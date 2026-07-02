@@ -388,14 +388,14 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
 
     profile_readback = contract["scholarskills_local_install"]
     assert profile_readback["workspace"]["target_skill_path"] == str(
-        workspace_root / ".codex" / "skills" / "opl-scholarskills"
+        workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert profile_readback["workspace"]["sync_command"]["argv"] == [
         "opl",
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "workspace",
         "--target-workspace",
@@ -404,7 +404,7 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     ]
     assert profile_readback["quest"]["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
     assert profile_readback["quest"]["target_skill_path_template"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "opl-scholarskills")
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
     )
     assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
     assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
@@ -415,14 +415,14 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
     assert quest_readback["quest"]["target_quest_root"] == str(quest_root)
     assert quest_readback["quest"]["target_skill_path"] == str(
-        quest_root / ".codex" / "skills" / "opl-scholarskills"
+        quest_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert quest_readback["quest"]["sync_command"]["argv"] == [
         "opl",
         "connect",
         "sync-skills",
         "--domain",
-        "scholarskills",
+        "mas-scholar-skills",
         "--scope",
         "quest",
         "--target-quest",

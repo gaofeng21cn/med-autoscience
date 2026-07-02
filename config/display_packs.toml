@@ -4,11 +4,11 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "git_repo"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "../opl-scholarskills"
+path = "../mas-scholar-skills"
 pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
-source_owner = "OPL ScholarSkills Display"
-source_ref = "opl-scholarskills:packs/medical-display-core"
+source_owner = "MAS Scholar Skills Display"
+source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_version = "0.1.0"
 source_role = "generic_template_renderer_pack"
 source_authority = false

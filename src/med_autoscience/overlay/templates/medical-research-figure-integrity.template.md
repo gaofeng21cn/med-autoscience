@@ -1,8 +1,25 @@
-# Figure Integrity Audit
+# AI-First Figure Design And Integrity Companion
 
-Purpose: verify that manuscript figures and tables honestly support their bound claims before write, review, analysis-campaign, or finalize work closes. This is MAS-owned companion content, not a runtime graphics linter, router, database, or display authority.
+Purpose: guide AI-first manuscript figure design and verify that manuscript figures and tables honestly support their bound claims before figure, write, review, analysis-campaign, or finalize work closes. This is MAS-owned companion content, not a runtime graphics linter, router, database, or display authority.
 
 MAS authority remains in `paper/display_registry.json`, `paper/figure_semantics_manifest.json`, display-to-claim maps, evidence ledgers, review ledgers, and publication evaluation. Use this template progress-first: inspect figures that affect active claims, repair or route them, and record blockers instead of polishing around unsupported displays. Do not use local image presence, chat notes, or exported previews as publication authority.
+
+Use Nature Figure-style progressive disclosure and K-Dense-style manifest and QA ideas only as references inside the MAS owner path. Do not create a parallel display owner or `opl-scholar-display` entry.
+
+## Design companion
+
+- Figure intent:
+- Supported claim or reviewer concern:
+- What the figure must not claim:
+- Panel structure and order:
+- Required statistics, uncertainty, and annotations:
+- Visible text kept in the figure:
+- Details moved to caption, manifest, review ledger, or route-back note:
+- Renderer family selected: `python` / `r_ggplot2` / `html_svg`
+- Renderer selection rationale:
+- Render command or script ref:
+- Render-inspect-revise evidence:
+- Owner gate status: accepted / route-back / typed blocker / human gate
 
 ## Audit header
 

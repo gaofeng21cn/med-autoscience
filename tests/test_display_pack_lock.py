@@ -70,7 +70,7 @@ pack_id = "fenggaolab.org.medical-display-core"
 path = "{primary_relative_repo_path}"
 pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
-source_ref = "opl-scholarskills:packs/medical-display-core"
+source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_role = "generic_template_renderer_pack"
 source_authority = false
 
@@ -312,28 +312,28 @@ def test_build_display_pack_lock_payload_captures_git_repo_source_provenance(tmp
 
 def test_build_display_pack_lock_payload_preserves_scholarskills_consumer_boundary() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    sibling_root = (repo_root / ".." / "opl-scholarskills").resolve()
+    sibling_root = (repo_root / ".." / "mas-scholar-skills").resolve()
     if not (sibling_root / ".git").exists():
-        pytest.skip("sibling opl-scholarskills checkout is not available")
+        pytest.skip("sibling mas-scholar-skills checkout is not available")
 
     payload = build_display_pack_lock_payload(repo_root=repo_root)
     pack_entry = payload["enabled_packs"][0]
 
     assert pack_entry["pack_id"] == "fenggaolab.org.medical-display-core"
     assert pack_entry["source_kind"] == "git_repo"
-    assert pack_entry["source_path"] == "../opl-scholarskills"
+    assert pack_entry["source_path"] == "../mas-scholar-skills"
     assert pack_entry["pack_subdir"] == "packs/medical-display-core"
-    assert pack_entry["source_ref"] == "opl-scholarskills:packs/medical-display-core"
+    assert pack_entry["source_ref"] == "mas-scholar-skills:packs/medical-display-core"
     assert pack_entry["source_role"] == "generic_template_renderer_pack"
     assert pack_entry["source_authority"] is False
     assert pack_entry["fallback"] is False
-    assert "/opl-scholarskills/" in pack_entry["resolved_pack_root"]
+    assert "/mas-scholar-skills/" in pack_entry["resolved_pack_root"]
 
 
 def test_build_display_pack_lock_payload_marks_bundled_fallback_non_authority(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    _write_primary_with_fallback_pack_config(repo_root, primary_relative_repo_path="../missing-opl-scholarskills")
+    _write_primary_with_fallback_pack_config(repo_root, primary_relative_repo_path="../missing-mas-scholar-skills")
     fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
     _write_pack_manifest(fallback_pack_root, version="0.1.0")
     _write_template_manifest(fallback_pack_root / "templates" / "roc_curve_binary")
