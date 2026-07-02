@@ -1,0 +1,216 @@
+{
+  "surface_kind": "research_integrity_layer_contract",
+  "schema_version": 1,
+  "state": "active_contract",
+  "owner": "MedAutoScience",
+  "purpose": "Bind reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
+  "entry_surfaces": [
+    {
+      "surface_kind": "reference_verification_attestation",
+      "producer": "MAS research_integrity.reference_authenticity pure builder",
+      "inputs": [
+        "reference metadata supplied by manuscript or reference manager",
+        "provider evidence payloads from OPL-managed connectors",
+        "optional full-text or publisher provenance refs"
+      ],
+      "required_output_fields": [
+        "surface_kind",
+        "schema_version",
+        "reference_id",
+        "status",
+        "source_crosschecks",
+        "identifier_conflicts",
+        "metadata_mismatches",
+        "retraction_or_update_flags",
+        "authority_boundary"
+      ],
+      "status_values": [
+        "verified",
+        "needs_review",
+        "unresolved",
+        "contradicted",
+        "retracted"
+      ],
+      "hard_gate_status_values": [
+        "contradicted",
+        "retracted"
+      ],
+      "review_status_values": [
+        "needs_review",
+        "unresolved"
+      ]
+    },
+    {
+      "surface_kind": "claim_citation_support_matrix_v2",
+      "producer": "MAS research_integrity.claim_citation_support_v2 pure builder",
+      "inputs": [
+        "claim spans",
+        "citation refs",
+        "evidence refs",
+        "reference verification attestation refs and statuses"
+      ],
+      "required_output_fields": [
+        "surface_kind",
+        "schema_version",
+        "claims",
+        "citation_links",
+        "blocker_candidates",
+        "authority_boundary"
+      ],
+      "support_grade_values": [
+        "direct_support",
+        "partial_support",
+        "background_only",
+        "unsupported",
+        "contradicted"
+      ],
+      "hard_gate_grade_values": [
+        "unsupported",
+        "contradicted"
+      ],
+      "hard_gate_reference_status_values": [
+        "unresolved",
+        "contradicted",
+        "retracted"
+      ]
+    },
+    {
+      "surface_kind": "manuscript_consistency_meta_review",
+      "producer": "MAS research_integrity.manuscript_consistency pure builder",
+      "inputs": [
+        "manuscript section facts",
+        "numeric facts from abstract, results, tables, and figures",
+        "display-to-claim fact refs",
+        "reporting guideline checklist expectations"
+      ],
+      "required_output_fields": [
+        "surface_kind",
+        "schema_version",
+        "status",
+        "findings",
+        "blocker_candidates",
+        "authority_boundary"
+      ],
+      "status_values": [
+        "clear",
+        "needs_review",
+        "blocked"
+      ],
+      "finding_families": [
+        "numeric_fact_inconsistency",
+        "unit_population_window_mismatch",
+        "display_to_claim_mismatch",
+        "section_logic_contradiction",
+        "reporting_guideline_gap"
+      ]
+    }
+  ],
+  "provider_crosscheck_catalog": [
+    {
+      "provider": "crossref",
+      "opl_owned_responsibility": "DOI metadata lookup, Crossmark update/retraction signal transport, cache, rate limit, and connector receipt",
+      "mas_owned_responsibility": "metadata comparison policy, medical relevance interpretation, publication gate consumption"
+    },
+    {
+      "provider": "pubmed",
+      "opl_owned_responsibility": "NCBI E-utilities transport, PMID/PMCID lookup, retry, cache, and connector receipt",
+      "mas_owned_responsibility": "clinical citation suitability, source tier interpretation, claim support consumption"
+    },
+    {
+      "provider": "openalex",
+      "opl_owned_responsibility": "works lookup, identifier graph transport, cache, and connector receipt",
+      "mas_owned_responsibility": "bibliographic conflict interpretation and review routing"
+    },
+    {
+      "provider": "semantic_scholar",
+      "opl_owned_responsibility": "paper graph lookup, citation graph transport, cache, and connector receipt",
+      "mas_owned_responsibility": "support relevance interpretation and claim restraint routing"
+    },
+    {
+      "provider": "publisher",
+      "opl_owned_responsibility": "publisher page/full-text locator transport and availability receipt",
+      "mas_owned_responsibility": "full-text evidence eligibility and publication gate use"
+    },
+    {
+      "provider": "crossmark",
+      "opl_owned_responsibility": "update/retraction signal transport and cache",
+      "mas_owned_responsibility": "retraction/update severity and owner route decision"
+    }
+  ],
+  "gate_trigger_policy": {
+    "default_trigger_points": [
+      "before AI reviewer-backed publication_eval materialization",
+      "before submission package closeout",
+      "when manuscript or reference manager refs change",
+      "when display-to-claim map changes",
+      "when reviewer route-back requests claim, citation, or numeric consistency proof"
+    ],
+    "hard_gate_candidate_conditions": [
+      "reference status is contradicted or retracted",
+      "claim support grade is unsupported or contradicted",
+      "citation support depends on unresolved, contradicted, or retracted reference attestation",
+      "manuscript meta review status is blocked"
+    ],
+    "review_candidate_conditions": [
+      "reference status is needs_review or unresolved",
+      "claim support grade is partial_support or background_only",
+      "manuscript meta review status is needs_review"
+    ],
+    "forbidden_closeout_claims": [
+      "publication_ready",
+      "submission_ready",
+      "owner_receipt_signed",
+      "typed_blocker_materialized",
+      "human_gate_materialized",
+      "current_package_updated"
+    ]
+  },
+  "authority_boundary": {
+    "outputs_are_gate_inputs": true,
+    "can_write_mas_study_truth": false,
+    "can_write_publication_eval_latest": false,
+    "can_write_controller_decisions": false,
+    "can_mutate_current_package": false,
+    "can_sign_owner_receipt": false,
+    "can_materialize_typed_blocker": false,
+    "can_materialize_human_gate": false,
+    "can_write_runtime_queue_or_provider_attempt": false,
+    "can_authorize_publication_readiness": false,
+    "can_authorize_submission_readiness": false
+  },
+  "owner_split": {
+    "opl_owns": [
+      "external connector execution",
+      "provider cache and rate limit",
+      "attestation storage substrate",
+      "generic gate runner scheduling",
+      "generated or hosted workbench projection",
+      "transport receipts and retry/dead-letter mechanics"
+    ],
+    "mas_owns": [
+      "medical reference interpretation",
+      "claim support policy",
+      "manuscript consistency policy",
+      "publication quality consumption",
+      "artifact authority and package freshness interpretation",
+      "owner receipt or typed blocker materialization after owner surface consumption"
+    ]
+  },
+  "implementation_contract": {
+    "pure_builder_modules": [
+      "src/med_autoscience/research_integrity/reference_authenticity.py",
+      "src/med_autoscience/research_integrity/claim_citation_support_v2.py",
+      "src/med_autoscience/research_integrity/manuscript_consistency.py"
+    ],
+    "expected_tests": [
+      "tests/test_research_integrity_reference_authenticity.py",
+      "tests/test_research_integrity_claim_citation_support_v2.py",
+      "tests/test_research_integrity_manuscript_consistency.py"
+    ],
+    "standard_verification": [
+      "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py",
+      "rtk make test-meta",
+      "rtk scripts/verify.sh"
+    ]
+  }
+}
