@@ -100,9 +100,27 @@ SERVICE_SAFE_DISPLAY_PACK_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ("repo_root", "figure_request", "visual_audit_review"),
     ),
 }
+SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS: dict[str, DomainEntryCommandSpec] = {
+    "research-integrity-gate-input": DomainEntryCommandSpec(
+        (),
+        (
+            "payload",
+            "reference",
+            "references",
+            "claim",
+            "claims",
+            "manuscript",
+            "provider_evidence",
+            "reference_attestations",
+            "display_to_claim_map",
+            "reporting_guideline_expectations",
+        ),
+    ),
+}
 SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | AuthorityOperationCommand] = {
     **SERVICE_SAFE_OPERATOR_COMMANDS,
     **SERVICE_SAFE_DISPLAY_PACK_COMMANDS,
+    **SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS,
     **{item.command: item for item in AUTHORITY_OPERATION_COMMANDS},
 }
 

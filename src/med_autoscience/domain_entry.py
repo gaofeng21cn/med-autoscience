@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -26,6 +27,7 @@ DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
         "display-pack-render",
     }
 )
+RESEARCH_INTEGRITY_DOMAIN_COMMANDS = frozenset({"research-integrity-gate-input"})
 
 
 class MedAutoScienceDomainEntry:
@@ -76,6 +78,10 @@ class MedAutoScienceDomainEntry:
 
         if command in DISPLAY_PACK_DOMAIN_COMMANDS:
             payload = _dispatch_display_pack_command(command, request)
+            return _with_command(command, payload)
+
+        if command in RESEARCH_INTEGRITY_DOMAIN_COMMANDS:
+            payload = _dispatch_research_integrity_command(command, request)
             return _with_command(command, payload)
 
         profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
@@ -302,6 +308,39 @@ def _dispatch_display_pack_command(command: str, request: Mapping[str, Any]) -> 
             ),
         )
     raise ValueError(f"不支持的 display pack domain entry command: {command}")
+
+
+def _dispatch_research_integrity_command(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+    if command != "research-integrity-gate-input":
+        raise ValueError(f"不支持的 research integrity domain entry command: {command}")
+    gate_bundle = import_module("med_autoscience.research_integrity.gate_bundle")
+    return gate_bundle.build_research_integrity_gate_input_bundle(
+        payload=_research_integrity_gate_input_payload(request),
+    )
+
+
+def _research_integrity_gate_input_payload(request: Mapping[str, Any]) -> dict[str, Any]:
+    raw_payload = request.get("payload")
+    if raw_payload is None:
+        payload: dict[str, Any] = {}
+    elif isinstance(raw_payload, Mapping):
+        payload = dict(raw_payload)
+    else:
+        raise ValueError("research integrity domain entry `payload` 必须是 mapping。")
+    for field_name in (
+        "reference",
+        "references",
+        "claim",
+        "claims",
+        "manuscript",
+        "provider_evidence",
+        "reference_attestations",
+        "display_to_claim_map",
+        "reporting_guideline_expectations",
+    ):
+        if field_name in request:
+            payload[field_name] = request[field_name]
+    return payload
 
 
 def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
