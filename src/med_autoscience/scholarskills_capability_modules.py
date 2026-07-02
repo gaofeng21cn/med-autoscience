@@ -30,6 +30,20 @@ SCHOLARSKILLS_MODULE_NAMES = (
 SCHOLARSKILLS_CAPABILITY_IDS = tuple(
     f"opl.scholarskills.{name}" for name in SCHOLARSKILLS_MODULE_NAMES
 )
+SCHOLARSKILLS_REAL_SKILL_BACKED_MODULES = {
+    "display": "medical-figure-design",
+    "lit": "medical-research-lit",
+    "write": "medical-manuscript-writing",
+    "review": "medical-manuscript-review",
+}
+SCHOLARSKILLS_CONTRACT_LAYER_MODULES = (
+    "tables",
+    "stats",
+    "omics",
+    "submit",
+    "data",
+    "intake",
+)
 SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT = {
     "lit": {
         "migration_priority": "P0",
@@ -706,6 +720,7 @@ def build_scholarskills_capabilities(
                 bridged_capability_refs=list(
                     metadata.get("bridged_capability_refs") or []
                 ),
+                module_classification=_module_classification(module_name),
                 role=_require_text(metadata.get("role"), f"{module_id}.role"),
             )
         )
@@ -750,6 +765,7 @@ def _capability_payload(
     owner_consumption_boundary: Mapping[str, Any] | None = None,
     externalization_guard: Mapping[str, Any] | None = None,
     bridged_capability_refs: list[str] | None = None,
+    module_classification: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "capability_id": capability_id,
@@ -803,6 +819,8 @@ def _capability_payload(
         payload["externalization_guard"] = dict(externalization_guard)
     if bridged_capability_refs:
         payload["bridged_capability_refs"] = list(bridged_capability_refs)
+    if module_classification:
+        payload["module_classification"] = dict(module_classification)
     payload["descriptor_only"] = True
     payload["external_runner_invocation_allowed"] = False
     return payload
@@ -812,18 +830,51 @@ def _non_display_migration_guard(module_name: str) -> dict[str, Any]:
     audit = SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT.get(module_name)
     if not audit:
         return {}
+    classification = _module_classification(module_name)
     return {
         "surface_kind": "mas_scholarskills_non_display_migration_guard",
         "schema_version": 1,
         "module_name": module_name,
         "migration_target": "mas-scholar-skills",
         "migration_priority": audit["migration_priority"],
+        "module_classification": classification["classification"],
+        "specialist_skill_id": classification.get("specialist_skill_id"),
+        "contract_layer_module": bool(classification["contract_layer_module"]),
         "source_of_truth_repo": SCHOLARSKILLS_SOURCE_REPO_REF,
         "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
         "mas_module_authority_owner": False,
         "mas_second_truth_allowed": False,
         "mas_may_write_scholarskills_authority": False,
         "mas_retained_authority": list(audit["mas_retained_authority"]),
+    }
+
+
+def _module_classification(module_name: str) -> dict[str, Any]:
+    specialist_skill_id = SCHOLARSKILLS_REAL_SKILL_BACKED_MODULES.get(module_name)
+    contract_layer_module = module_name in SCHOLARSKILLS_CONTRACT_LAYER_MODULES
+    return {
+        "surface_kind": "mas_scholarskills_module_classification",
+        "schema_version": 1,
+        "module_name": module_name,
+        "classification": (
+            "real_specialist_skill_backed_module"
+            if specialist_skill_id
+            else "contract_layer_module"
+        ),
+        "specialist_skill_id": specialist_skill_id,
+        "contract_layer_module": contract_layer_module,
+        "codex_discovery_sync_required": bool(specialist_skill_id),
+        "source_policy": (
+            "real_skill_source_in_external_mas_scholar_skills_repo"
+            if specialist_skill_id
+            else "module_contract_refs_checklist_candidate_handoff_only"
+        ),
+        "promotion_policy": (
+            "promote_to_real_codex_skill_only_when_stable_active_specialist_workflow_is_needed"
+        ),
+        "mas_private_implementation": False,
+        "stage_prompt_source": False,
+        "authority_owner": False,
     }
 
 

@@ -22,6 +22,13 @@ NON_DISPLAY_MIGRATION_PRIORITIES = {
     "intake": "P1",
     "omics": "P2",
 }
+REAL_SKILL_BACKED_MODULES = {
+    "display": "medical-figure-design",
+    "lit": "medical-research-lit",
+    "write": "medical-manuscript-writing",
+    "review": "medical-manuscript-review",
+}
+CONTRACT_LAYER_MODULES = {"tables", "stats", "omics", "submit", "data", "intake"}
 
 
 def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholarskills_modules(
@@ -61,6 +68,16 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
         assert capability["owner_consumption_boundary"]["counts_as_paper_truth"] is False
         assert capability["authority_boundary"]["can_write_publication_eval"] is False
         assert capability["authority_boundary"]["can_write_owner_receipt"] is False
+        classification = capability["module_classification"]
+        assert classification["module_name"] == module_name
+        assert classification["specialist_skill_id"] == REAL_SKILL_BACKED_MODULES.get(
+            module_name
+        )
+        assert classification["contract_layer_module"] is (
+            module_name in CONTRACT_LAYER_MODULES
+        )
+        assert classification["stage_prompt_source"] is False
+        assert classification["authority_owner"] is False
         if module_name == "display":
             assert "externalization_guard" not in capability
         else:
@@ -71,6 +88,11 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
             assert guard["migration_target"] == "mas-scholar-skills"
             assert guard["migration_priority"] == NON_DISPLAY_MIGRATION_PRIORITIES[
                 module_name
+            ]
+            assert guard["module_classification"] == classification["classification"]
+            assert guard["specialist_skill_id"] == classification["specialist_skill_id"]
+            assert guard["contract_layer_module"] is classification[
+                "contract_layer_module"
             ]
             assert guard["mas_role"] == (
                 "refs_only_descriptor_and_owner_gate_consumer"
