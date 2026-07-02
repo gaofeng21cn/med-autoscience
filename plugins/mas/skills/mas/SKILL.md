@@ -39,7 +39,10 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 - `medautosci doctor backend-audit --profile <profile> --refresh`
 - `medautosci paper-mission inspect --profile <profile> --study-id <study_id> --format json`
 - `medautosci paper-mission drive --profile <profile> --study-id <study_id>`
-- `medautosci paper-mission terminalize-stage --profile <profile> --study-id <study_id> --stage-packet <stage_packet.json>`
+- `medautosci paper-mission terminalize-stage --profile <profile> --study-id <study_id> --format json`
+- `medautosci paper-mission inspect --profile <profile> --study-id <study_id> --request-opl-runtime-readback --format json`
+- `medautosci paper-mission receipt-owner-consumption --profile <profile> --study-id <study_id> --paper-mission-readback-file <inspect-readback.json> --apply-typed-blocker --format json`
+- `medautosci paper-mission typed-blocker-resolution --profile <profile> --study-id <study_id> --paper-mission-readback-file <inspect-readback.json> --apply-route-redesign --format json`
 - `medautosci study progress --profile <profile> --study-id <study_id> --format json`
 - `medautosci domain-handler export --profile <profile> --format json`
 - `medautosci domain-handler dispatch --task <task.json> --format json`
@@ -83,10 +86,44 @@ Stage 已有 terminal packet / closeout 时，走 StageOutcome 消费入口：
 medautosci paper-mission terminalize-stage \
   --profile <profile> \
   --study-id <study_id> \
-  --stage-packet <stage_packet.json>
+  --format json
 ```
 
-执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 确认 canonical `StageOutcome` / `NextActionEnvelope` 消费结果、`current_stage`、typed blocker 和 next owner。旧 `current_work_unit` / `current_executable_owner_action` 只能作为 legacy diagnostic-only / retired drilldown，不得当成正常 readback 或第二权威。`runtime domain-health-diagnostic`、`owner-route-reconcile` 与旧 default-executor dispatch 只允许作为显式 diagnostic / tombstone / migration provenance；默认监督、automation 或不确定 current fingerprint 时不得把它们作为推进入口。
+如果 terminalizer 产出 `route_back_candidate_checkpoint`，不要同义 redrive 同一个 OPL route。先生成包含 OPL terminal receipt 的 inspect readback，再按 owner-consumption 给出的 expected apply mode 收束：
+
+```bash
+medautosci paper-mission inspect \
+  --profile <profile> \
+  --study-id <study_id> \
+  --request-opl-runtime-readback \
+  --format json > /tmp/mas-paper-mission-readback.json
+
+medautosci paper-mission receipt-owner-consumption \
+  --profile <profile> \
+  --study-id <study_id> \
+  --paper-mission-readback-file /tmp/mas-paper-mission-readback.json \
+  --apply-typed-blocker \
+  --format json
+```
+
+当缺失的是投稿/来源硬事实，但仍需要给用户审计 `current_package` 或 TODO/human-gate 包时，继续走 typed-blocker resolution，而不是阻断在旧 route-back：
+
+```bash
+medautosci paper-mission inspect \
+  --profile <profile> \
+  --study-id <study_id> \
+  --request-opl-runtime-readback \
+  --format json > /tmp/mas-paper-mission-readback.json
+
+medautosci paper-mission typed-blocker-resolution \
+  --profile <profile> \
+  --study-id <study_id> \
+  --paper-mission-readback-file /tmp/mas-paper-mission-readback.json \
+  --apply-route-redesign \
+  --format json
+```
+
+执行后再用 `medautosci study progress --profile <profile> --study-id <study_id> --format json` 确认 canonical `StageOutcome` / `NextActionEnvelope` 消费结果、`current_stage`、typed blocker、typed-blocker resolution successor 和 next owner。旧 `current_work_unit` / `current_executable_owner_action` 只能作为 legacy diagnostic-only / retired drilldown，不得当成正常 readback 或第二权威。`runtime domain-health-diagnostic`、`owner-route-reconcile` 与旧 default-executor dispatch 只允许作为显式 diagnostic / tombstone / migration provenance；默认监督、automation 或不确定 current fingerprint 时不得把它们作为推进入口。
 
 ## Domain runtime 护栏
 

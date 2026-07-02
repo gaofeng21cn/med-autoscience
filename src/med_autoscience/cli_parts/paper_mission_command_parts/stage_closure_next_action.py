@@ -188,6 +188,62 @@ def next_action_for_stage_closure_decision(
                 transaction_readback=transaction_readback,
             ),
         )
+    if (
+        outcome.get("kind") == "next_stage_transition"
+        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    ):
+        transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+        action_type = _first_text(
+            outcome.get("next_action"),
+            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+        )
+        return compile_next_action_envelope(
+            stage_outcome={
+                **outcome,
+                "study_id": _first_text(decision.get("study_id"), transaction.get("study_id")),
+                "stage_id": _first_text(decision.get("stage_id"), transaction.get("stage_id")),
+                "work_unit_id": _first_text(
+                    decision.get("work_unit_id"),
+                    outcome.get("transition_kind"),
+                ),
+                "work_unit_fingerprint": _first_text(
+                    decision.get("work_unit_fingerprint"),
+                    decision.get("decision_signature"),
+                ),
+                "stage_closure_decision_ref": decision.get("decision_ref"),
+                "action_family": "paper.stage_closure.owner_consumption",
+                "next_action": action_type,
+                "required_input_refs": _route_back_checkpoint_input_refs(
+                    stage_closure_decision=decision,
+                    transaction_readback=transaction_readback,
+                ),
+            },
+            study_id=_first_text(decision.get("study_id"), transaction.get("study_id")),
+            stage_id=_first_text(decision.get("stage_id"), transaction.get("stage_id")),
+            outcome_ref=decision.get("decision_ref"),
+            owner_route={
+                "next_owner": _first_text(outcome.get("next_owner"), "MedAutoScience"),
+                "allowed_actions": [action_type],
+                "action_type": action_type,
+                "idempotency_key": _first_text(
+                    decision.get("decision_signature"),
+                    decision.get("work_unit_fingerprint"),
+                ),
+                "action_family": "paper.stage_closure.owner_consumption",
+                "accepted_answer_shape": "owner_receipt_typed_blocker_human_gate_or_next_stage_transition",
+                "route_back": True,
+            },
+            authority_boundary={
+                "projection_only": True,
+                "can_claim_stage_complete": False,
+                "can_claim_submission_ready": False,
+                "can_claim_publication_ready": False,
+            },
+            diagnostic_refs=stage_closure_next_action_diagnostic_refs(
+                stage_closure_decision=decision,
+                transaction_readback=transaction_readback,
+            ),
+        )
     if outcome.get("kind") != "owner_receipt":
         return None
     if outcome.get("package_kind") != "submission_ready_package":
@@ -253,6 +309,34 @@ def stage_closure_next_action_diagnostic_refs(
         _mapping(stage_closure_decision.get("semantic_delta")).get("delivery_delta_refs")
     ):
         refs.append({"role": "delivery_delta_ref", "ref": ref})
+    return refs
+
+
+def _route_back_checkpoint_input_refs(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    for item in stage_closure_next_action_diagnostic_refs(
+        stage_closure_decision=stage_closure_decision,
+        transaction_readback=transaction_readback,
+    ):
+        ref = _optional_text(item.get("ref"))
+        if ref is not None:
+            refs.append(ref)
+    decision = _mapping(stage_closure_decision)
+    transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
+    terminal = _mapping(transaction.get("stage_terminal_decision"))
+    for ref in (
+        terminal.get("route_back_evidence_ref"),
+        _mapping(transaction_readback.get("stage_terminal_decision")).get(
+            "route_back_evidence_ref"
+        ),
+    ):
+        text = _optional_text(ref)
+        if text is not None and text not in refs:
+            refs.append(text)
     return refs
 
 

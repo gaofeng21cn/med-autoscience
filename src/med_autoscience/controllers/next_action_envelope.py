@@ -14,6 +14,7 @@ FAMILY_PAPER_REVIEW_AI_REVIEWER = "paper.review.ai_reviewer"
 FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY = "paper.gate.publishability_replay"
 FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL = "paper.package.submission_minimal"
 FAMILY_PAPER_DELIVERY_SYNC = "paper.delivery.sync"
+FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION = "paper.stage_closure.owner_consumption"
 FAMILY_HUMAN_APPROVAL = "human.approval"
 FAMILY_BLOCKED_TYPED = "blocked.typed"
 FAMILY_RUNTIME_WAIT_RECEIPT = "runtime.wait_receipt"
@@ -27,6 +28,7 @@ ACTION_FAMILIES = frozenset(
         FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
         FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
         FAMILY_PAPER_DELIVERY_SYNC,
+        FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION,
         FAMILY_HUMAN_APPROVAL,
         FAMILY_BLOCKED_TYPED,
         FAMILY_RUNTIME_WAIT_RECEIPT,
@@ -41,6 +43,7 @@ FAMILY_OWNER = {
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY: "publication_gate",
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL: "mission_executor",
     FAMILY_PAPER_DELIVERY_SYNC: "delivery",
+    FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION: "MedAutoScience",
     FAMILY_HUMAN_APPROVAL: "human",
     FAMILY_BLOCKED_TYPED: "mas_authority_kernel",
     FAMILY_RUNTIME_WAIT_RECEIPT: "one-person-lab",
@@ -54,6 +57,7 @@ FAMILY_KIND = {
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY: "quality_gate_replay",
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL: "package_materialization",
     FAMILY_PAPER_DELIVERY_SYNC: "delivery_sync",
+    FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION: "owner_consumption",
     FAMILY_HUMAN_APPROVAL: "wait_for_human",
     FAMILY_BLOCKED_TYPED: "stop_with_typed_blocker",
     FAMILY_RUNTIME_WAIT_RECEIPT: "wait_for_runtime_receipt",
@@ -67,6 +71,7 @@ FAMILY_EXECUTOR_TARGET = {
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY: "mas_owner_callable",
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL: "mas_owner_callable",
     FAMILY_PAPER_DELIVERY_SYNC: "mas_owner_callable",
+    FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION: "mas_owner_callable",
     FAMILY_HUMAN_APPROVAL: "human_gate",
     FAMILY_BLOCKED_TYPED: "mas_authority_kernel",
     FAMILY_RUNTIME_WAIT_RECEIPT: "opl_runtime_readback",
@@ -356,6 +361,16 @@ def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:
         return {
             "output_kind": "delivery_sync_receipt",
             "accepted_refs": ["delivery_sync_receipt_ref", "delivery_inspect_ref"],
+        }
+    if action_family == FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION:
+        return {
+            "output_kind": "stage_closure_owner_consumption",
+            "accepted_refs": [
+                "domain_owner_receipt_ref",
+                "typed_blocker_ref",
+                "human_gate_ref",
+                "next_stage_transition_ref",
+            ],
         }
     if action_family == FAMILY_RUNTIME_OPL_ROUTE:
         return {

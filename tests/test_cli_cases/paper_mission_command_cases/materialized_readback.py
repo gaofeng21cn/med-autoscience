@@ -502,7 +502,17 @@ def test_paper_mission_materialized_readback_keeps_governed_consumption_current_
     assert inspect_payload["next_action"]["authority_source"] == (
         "mas_next_action_compiler"
     )
-    assert inspect_payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert inspect_payload["next_action"]["action_family"] == (
+        "paper.stage_closure.owner_consumption"
+    )
+    assert inspect_payload["next_action"]["action_kind"] == "owner_consumption"
+    assert inspect_payload["next_action"]["action_type"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert inspect_payload["next_action"]["owner"] == "MedAutoScience"
+    assert inspect_payload["next_action"]["authority_boundary"][
+        "can_submit_to_opl_runtime"
+    ] is False
     assert inspect_payload["next_action"]["legacy_fields_are_diagnostic"] is True
     assert inspect_payload["next_action"]["legacy_field_diagnostic_roles"][
         "work_unit_id"

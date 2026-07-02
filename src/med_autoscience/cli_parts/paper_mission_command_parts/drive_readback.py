@@ -16,6 +16,8 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _load_json_object,
     _mapping,
     _optional_text,
+    _slug,
+    _stable_sha256,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers import (
     DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT,
@@ -53,6 +55,11 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
 )
+from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_opl_readback import (
+    paper_mission_opl_runtime_carrier_readback,
+)
+from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
 
 
 def build_paper_mission_drive_readback(
@@ -87,12 +94,40 @@ def build_paper_mission_drive_readback(
         ledger_ref=route_back_budget_ledger_ref,
         study_id=study_id,
     )
-    source_readback_override = _drive_canonical_next_action_source_readback(
+    next_action_source_readback = _drive_next_action_source_readback(
         profile=profile,
         profile_ref=profile_ref,
         study_id=study_id,
         source=source,
         consume_candidate_readback_builder=consume_candidate_readback_builder,
+    )
+    owner_action_stop = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        output_root=root,
+        source=source,
+        inspect_readback=next_action_source_readback,
+        forbidden_authority_claims=forbidden_authority_claims,
+    )
+    if owner_action_stop is not None:
+        return owner_action_stop
+    if _drive_should_submit_direct_next_action(next_action_source_readback):
+        return _drive_direct_next_action_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            output_root=root,
+            submit_opl_runtime=submit_opl_runtime,
+            opl_bin=opl_bin,
+            source=source,
+            inspect_readback=next_action_source_readback,
+            forbidden_authority_claims=forbidden_authority_claims,
+        )
+    source_readback_override = (
+        next_action_source_readback
+        if _drive_can_package_from_next_action(next_action_source_readback)
+        else None
     )
     try:
         package_readback = _build_materialized_candidate_package_readback(
@@ -377,7 +412,349 @@ def build_paper_mission_drive_readback(
     }
 
 
-def _drive_canonical_next_action_source_readback(
+def _drive_should_submit_direct_next_action(
+    inspect_readback: Mapping[str, Any] | None,
+) -> bool:
+    readback = _mapping(inspect_readback)
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("action_type")) != "request_opl_stage_attempt":
+        return False
+    return _optional_text(next_action.get("action_family")) not in {
+        "paper.package.submission_minimal",
+        "paper.stage_closure.owner_consumption",
+    }
+
+
+def _drive_direct_next_action_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    output_root: Path,
+    submit_opl_runtime: bool | None,
+    opl_bin: str | Path | None,
+    source: str,
+    inspect_readback: Mapping[str, Any] | None,
+    forbidden_authority_claims: tuple[str, ...],
+) -> dict[str, Any]:
+    readback = _mapping(inspect_readback)
+    next_action = _mapping(readback.get("next_action"))
+    handoff = _drive_direct_next_action_handoff(
+        profile=profile,
+        study_id=study_id,
+        inspect_readback=readback,
+        next_action=next_action,
+    )
+    runtime_submit_requested = submit_opl_runtime is not False
+    opl_runtime_submission = _opl_runtime_submission_readback(
+        handoff=handoff,
+        submit_opl_runtime=runtime_submit_requested,
+        opl_bin=opl_bin,
+    )
+    carrier = _mapping(handoff.get("opl_runtime_carrier"))
+    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=Path(profile.studies_root) / study_id,
+        enable_opl_live_probe=runtime_submit_requested,
+        opl_bin=opl_bin,
+    )
+    drive_result = _drive_direct_next_action_result(
+        handoff=handoff,
+        opl_runtime_submission=opl_runtime_submission,
+        carrier_readback=carrier_readback,
+    )
+    followthrough = _paper_mission_drive_followthrough_empty(
+        route_back_budget_ledger={},
+        route_back_budget_ledger_ref=output_root / "route_back_budget.json",
+        progress_guard={},
+        stage_closure_decision={},
+        stop_reason="domain_transition_direct_stage_attempt",
+    )
+    writes_runtime = bool(opl_runtime_submission.get("writes_runtime"))
+    return {
+        "surface_kind": "paper_mission_drive_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": "drive",
+        "action_intent": _action_intent("drive"),
+        "source": source,
+        "drive_mode": "domain_transition_direct_stage_attempt",
+        "dry_run": False,
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "requested_study_id": study_id,
+        "study_id": study_id,
+        "study_root": str(Path(profile.studies_root) / study_id),
+        "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
+        "mission_id": handoff["mission_id"],
+        "objective": _optional_text(readback.get("objective"))
+        or _optional_text(next_action.get("action_family"))
+        or "MAS domain transition direct stage attempt",
+        "output_root": str(output_root),
+        "inspect_readback": dict(readback),
+        "next_action": dict(next_action),
+        "paper_mission_transaction": handoff["paper_mission_transaction"],
+        "stage_terminal_decision": handoff["stage_terminal_decision"],
+        "opl_route_command": handoff["opl_route_command"],
+        "opl_runtime_carrier": carrier,
+        "opl_runtime_carrier_readback": carrier_readback,
+        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "opl_route_handoff": handoff,
+        "opl_runtime_submission": opl_runtime_submission,
+        "followthrough": followthrough,
+        "transaction_state": "domain_transition_direct_stage_attempt",
+        "consume_candidate_status": "not_applicable_domain_transition_direct",
+        "next_owner_or_human_decision": {
+            "kind": "owner_or_route",
+            "next_owner": _optional_text(next_action.get("owner"))
+            or _optional_text(next_action.get("stage_id")),
+            "human_decision_required": False,
+            "summary": "MAS domain transition selected a concrete OPL stage attempt.",
+            "can_execute": False,
+            "can_authorize_provider_admission": False,
+        },
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": writes_runtime,
+            "writes_yang_authority": False,
+            "writes_yang_ops_candidate_package": False,
+            "writes_yang_ops_consumption_ledger": False,
+            "writes_paper_body": False,
+            "writes_candidate_workspace": False,
+            "dry_run_only": False,
+        },
+        "output_manifest": {
+            "mode": "paper_mission_drive_domain_transition_direct_stage_attempt",
+            "output_root": str(output_root),
+            "writes_authority": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "writes_runtime": writes_runtime,
+            "candidate_package": None,
+            "consumption_ledger": None,
+            "followthrough_round_count": 0,
+        },
+        "forbidden_authority_claims": list(forbidden_authority_claims),
+        "drive_result": drive_result,
+    }
+
+
+def _drive_direct_next_action_handoff(
+    *,
+    profile: Any,
+    study_id: str,
+    inspect_readback: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    transaction = _drive_direct_next_action_transaction(
+        study_id=study_id,
+        inspect_readback=inspect_readback,
+        next_action=next_action,
+    )
+    carrier = paper_mission_opl_runtime_carrier(transaction)
+    route = _mapping(transaction.get("opl_route_command"))
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    route_target = _optional_text(route.get("target"))
+    return {
+        "surface_kind": "mas_paper_mission_opl_route_handoff_record",
+        "schema_version": 1,
+        "handoff_status": "ready_for_opl_route_command",
+        "study_id": study_id,
+        "mission_id": transaction["mission_id"],
+        "paper_mission_transaction_ref": transaction["transaction_id"],
+        "stage_terminal_decision_ref": f"{transaction['transaction_id']}#stage_terminal_decision",
+        "opl_route_command_ref": f"{transaction['transaction_id']}#opl_route_command",
+        "stage_run_ref": transaction["stage_run_ref"],
+        "stage_id": transaction["stage_id"],
+        "work_unit_id": carrier["work_unit_id"],
+        "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+        "route_command_kind": _optional_text(route.get("command_kind")),
+        "route_target": route_target,
+        "next_owner": _optional_text(decision.get("next_owner")),
+        "can_submit_to_opl_runtime": True,
+        "transaction_materialized": True,
+        "paper_mission_transaction": transaction,
+        "stage_terminal_decision": decision,
+        "opl_route_command": route,
+        "opl_runtime_carrier": carrier,
+        "route_identity_key": carrier["route_identity_key"],
+        "attempt_idempotency_key": carrier["attempt_idempotency_key"],
+        "request_idempotency_key": carrier["request_idempotency_key"],
+        "idempotency_key": carrier["idempotency_key"],
+        "workspace_root": str(Path(profile.workspace_root).expanduser().resolve()),
+        "domain_workspace_root": str(Path(profile.workspace_root).expanduser().resolve()),
+        "source_surface_kind": "mas_domain_transition_next_action",
+        "source_ref": _optional_text(next_action.get("outcome_ref"))
+        or _optional_text(next_action.get("action_id")),
+        "route_back_evidence_ref": _optional_text(next_action.get("outcome_ref")),
+        "can_claim_opl_runtime_enqueued": False,
+        "can_claim_opl_stage_run_created": False,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_boundary": {
+            "surface_role": "domain_transition_direct_opl_route_handoff",
+            "mas_authority_owner": "MedAutoScience",
+            "runtime_owner": "one-person-lab",
+            "writes_authority_surface": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_current_package": False,
+            "writes_runtime_queue": False,
+            "writes_provider_attempt": False,
+            "writes_yang_authority": False,
+            "writes_paper_body": False,
+            "can_write_opl_outbox": False,
+            "can_write_opl_event": False,
+            "can_write_opl_stage_run": False,
+            "can_authorize_provider_admission": False,
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
+
+
+def _drive_direct_next_action_transaction(
+    *,
+    study_id: str,
+    inspect_readback: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    stage_id = (
+        _optional_text(next_action.get("stage_id"))
+        or _optional_text(next_action.get("owner"))
+        or "write"
+    )
+    work_unit_id = _optional_text(next_action.get("work_unit_id"))
+    if work_unit_id is None:
+        raise ValueError("domain transition next_action requires work_unit_id")
+    work_unit_fingerprint = (
+        _optional_text(next_action.get("work_unit_fingerprint"))
+        or _optional_text(next_action.get("action_fingerprint"))
+        or _optional_text(next_action.get("outcome_ref"))
+        or _optional_text(next_action.get("action_id"))
+        or work_unit_id
+    )
+    mission_id = (
+        _optional_text(inspect_readback.get("mission_id"))
+        or f"paper-mission::{study_id}::domain-transition::{_slug(work_unit_id)}"
+    )
+    terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "domain_transition_next_action_ready",
+        "reason": (
+            "MAS domain transition selected a concrete OPL stage attempt for "
+            "the current paper repair work unit."
+        ),
+        "next_owner": _optional_text(next_action.get("owner")) or stage_id,
+        "target_stage_id": stage_id,
+        "next_work_unit": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "recommended_next_action": _optional_text(next_action.get("action_family"))
+        or _optional_text(next_action.get("action_type")),
+        "domain_transition_next_action_ref": _optional_text(
+            next_action.get("outcome_ref")
+        )
+        or _optional_text(next_action.get("action_id")),
+    }
+    stage_run_ref = (
+        f"paper-mission-domain-transition://{study_id}/"
+        f"{_slug(stage_id)}/{_slug(work_unit_id)}"
+    )
+    return build_paper_mission_transaction(
+        mission_id=mission_id,
+        study_id=study_id,
+        stage_id=stage_id,
+        stage_run_ref=stage_run_ref,
+        terminal_decision=terminal_decision,
+        artifact_delta_refs=_drive_direct_next_action_refs(next_action),
+        paper_audit_pack_refs=_drive_direct_next_action_audit_pack_refs(next_action),
+        idempotency_basis=(
+            "domain-transition-direct-stage-attempt::"
+            f"{_slug(stage_id)}::{_slug(work_unit_id)}::"
+            f"{_stable_sha256(work_unit_fingerprint)[:12]}"
+        ),
+    )
+
+
+def _drive_direct_next_action_refs(
+    next_action: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    uri = (
+        _optional_text(next_action.get("outcome_ref"))
+        or _optional_text(next_action.get("action_id"))
+        or _optional_text(next_action.get("work_unit_id"))
+        or "domain-transition-next-action"
+    )
+    return [
+        {
+            "ref_id": "domain_transition_next_action::1",
+            "ref_kind": "domain_transition_next_action_ref",
+            "uri": uri,
+        }
+    ]
+
+
+def _drive_direct_next_action_audit_pack_refs(
+    next_action: Mapping[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    refs = _drive_direct_next_action_refs(next_action)
+    return {
+        family: list(refs)
+        for family in (
+            "analysis_rationale_log",
+            "decision_trace",
+            "evidence_ledger_delta",
+            "review_ledger_delta",
+            "revision_log_delta",
+            "failed_path_ledger",
+            "artifact_lineage",
+            "reproducibility_refs",
+        )
+    }
+
+
+def _drive_direct_next_action_result(
+    *,
+    handoff: Mapping[str, Any],
+    opl_runtime_submission: Mapping[str, Any],
+    carrier_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    carrier_status = _optional_text(carrier_readback.get("carrier_status"))
+    submission_status = _optional_text(opl_runtime_submission.get("status"))
+    status = (
+        "opl_stage_route_running"
+        if carrier_status == "opl_runtime_attempt_running_observed"
+        else "opl_terminal_closeout_observed"
+        if carrier_status == "opl_runtime_terminal_readback_observed"
+        else "submitted_to_opl_runtime"
+        if submission_status in {"submitted", "idempotent_noop"}
+        else "opl_runtime_submission_pending"
+        if submission_status == "not_requested"
+        else "opl_runtime_submission_failed"
+    )
+    return {
+        "surface_kind": "paper_mission_drive_result",
+        "status": status,
+        "reason": "domain_transition_direct_stage_attempt",
+        "route_target": _optional_text(handoff.get("route_target")),
+        "work_unit_id": _optional_text(handoff.get("work_unit_id")),
+        "work_unit_fingerprint": _optional_text(handoff.get("work_unit_fingerprint")),
+        "can_submit_to_opl_runtime": handoff.get("can_submit_to_opl_runtime") is True,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_materialized": False,
+    }
+
+
+def _drive_next_action_source_readback(
     *,
     profile: Any,
     profile_ref: str | Path,
@@ -396,11 +773,184 @@ def _drive_canonical_next_action_source_readback(
     next_action = _mapping(inspect_readback.get("next_action"))
     if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
-    if _optional_text(next_action.get("action_type")) != "request_opl_stage_attempt":
-        return None
     if _optional_text(next_action.get("work_unit_id")) is None:
         return None
     return inspect_readback
+
+
+def _drive_canonical_next_action_source_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    source: str,
+    consume_candidate_readback_builder: Callable[..., dict[str, Any]],
+) -> dict[str, Any] | None:
+    inspect_readback = _drive_next_action_source_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        source=source,
+        consume_candidate_readback_builder=consume_candidate_readback_builder,
+    )
+    if not _drive_can_package_from_next_action(inspect_readback):
+        return None
+    return dict(inspect_readback)
+
+
+def _drive_can_package_from_next_action(
+    inspect_readback: Mapping[str, Any] | None,
+) -> bool:
+    next_action = _mapping(_mapping(inspect_readback).get("next_action"))
+    return _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt"
+
+
+def _drive_owner_action_stop_readback(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    output_root: Path,
+    source: str,
+    inspect_readback: Mapping[str, Any] | None,
+    forbidden_authority_claims: tuple[str, ...],
+) -> dict[str, Any] | None:
+    readback = _mapping(inspect_readback)
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+        return None
+    can_package_from_next_action = _drive_can_package_from_next_action(readback)
+    has_owner_stop = _drive_has_terminal_owner_consumption_action(readback) or (
+        bool(_mapping(readback.get("typed_blocker_resolution_readback")))
+        and not can_package_from_next_action
+    )
+    if can_package_from_next_action and not has_owner_stop:
+        return None
+    if not has_owner_stop:
+        return None
+    current_action = _mapping(readback.get("current_executable_owner_action"))
+    reason = _drive_owner_action_stop_reason(readback)
+    drive_result = {
+        "surface_kind": "paper_mission_drive_result",
+        "status": "owner_action_ready_no_redrive",
+        "reason": reason,
+        "next_legal_action": _optional_text(next_action.get("action_type")),
+        "forbidden_next_action": "synonymous_route_back_redrive",
+        "can_submit_to_opl_runtime": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_materialized": False,
+    }
+    return {
+        "surface_kind": "paper_mission_drive_readback",
+        "schema_version": 1,
+        "contract_ref": PAPER_MISSION_CONTRACT_REF,
+        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
+        "paper_mission_command": "drive",
+        "action_intent": _action_intent("drive"),
+        "source": source,
+        "drive_mode": "owner_action_ready_no_redrive",
+        "dry_run": False,
+        "profile": {
+            "profile_name": str(getattr(profile, "name", "")),
+            "profile_ref": str(profile_ref),
+        },
+        "requested_study_id": study_id,
+        "study_id": study_id,
+        "study_root": str(Path(profile.studies_root) / study_id),
+        "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
+        "mission_id": readback.get("mission_id"),
+        "objective": readback.get("objective"),
+        "output_root": str(output_root),
+        "inspect_readback": dict(readback),
+        "next_action": dict(next_action),
+        "stage_closure_decision": _mapping(readback.get("stage_closure_decision"))
+        or None,
+        "terminal_owner_gate_authority_readback": _mapping(
+            readback.get("terminal_owner_gate_authority_readback")
+        )
+        or None,
+        "terminal_owner_gate_owner_answer_readback": _mapping(
+            readback.get("terminal_owner_gate_owner_answer_readback")
+        )
+        or None,
+        **(
+            {"current_executable_owner_action": dict(current_action)}
+            if current_action
+            else {}
+        ),
+        "typed_blocker_resolution_readback": dict(
+            _mapping(readback.get("typed_blocker_resolution_readback"))
+        ),
+        "drive_result": drive_result,
+        "mutation_policy": {
+            "writes_authority": False,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "writes_yang_ops_candidate_package": False,
+            "writes_yang_ops_consumption_ledger": False,
+            "writes_paper_body": False,
+            "writes_candidate_workspace": False,
+            "dry_run_only": True,
+        },
+        "output_manifest": {
+            "mode": "paper_mission_drive_owner_action_ready_no_redrive",
+            "output_root": str(output_root),
+            "writes_authority": False,
+            "writes_yang_authority": False,
+            "writes_runtime": False,
+            "writes_candidate_workspace": False,
+        },
+        "forbidden_authority_claims": list(forbidden_authority_claims),
+    }
+
+
+def _drive_has_terminal_owner_consumption_action(
+    readback: Mapping[str, Any],
+) -> bool:
+    from_consumption_ledger = _optional_text(
+        readback.get("paper_mission_current_transaction_source")
+    ) == "paper_mission_consumption_ledger"
+    owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
+    consume_result = _mapping(owner_answer.get("consume_result"))
+    owner_answer_route_back = (
+        _optional_text(consume_result.get("outcome")) == "route_back_evidence_ref"
+    )
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("action_family")) == (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return from_consumption_ledger or owner_answer_route_back
+    if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
+        return False
+    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
+    if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
+        return from_consumption_ledger or owner_answer_route_back
+    if owner_answer_route_back:
+        return True
+    authority = _mapping(readback.get("terminal_owner_gate_authority_readback"))
+    if _optional_text(authority.get("status")) in {
+        "owner_answer_required",
+        "typed_blocker_required",
+        "owner_gate_required",
+    }:
+        return from_consumption_ledger
+    return bool(_mapping(readback.get("typed_blocker_resolution_readback")))
+
+
+def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
+    if _mapping(readback.get("typed_blocker_resolution_readback")):
+        return "typed_blocker_resolution_successor_requires_owner_action"
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("action_family")) == (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return "stage_closure_route_back_checkpoint_requires_owner_consumption"
+    owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
+    consume_result = _mapping(owner_answer.get("consume_result"))
+    if _optional_text(consume_result.get("outcome")) == "route_back_evidence_ref":
+        return "terminal_owner_gate_route_back_evidence_requires_owner_consumption"
+    return "terminal_owner_gate_requires_owner_action"
 
 
 def _existing_consumption_handoff_drive_readback(

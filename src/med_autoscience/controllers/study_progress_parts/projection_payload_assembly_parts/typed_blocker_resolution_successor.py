@@ -54,6 +54,10 @@ def attach_typed_blocker_resolution_successor_projection(
 
 
 def _domain_transition_redrive_supersedes_resolution(payload: Mapping[str, Any]) -> bool:
+    stage_closure = _mapping_copy(payload.get("stage_closure"))
+    stage_outcome = _mapping_copy(stage_closure.get("outcome"))
+    if _non_empty_text(stage_outcome.get("kind")) == "typed_blocker":
+        return False
     transition = _mapping_copy(payload.get("domain_transition"))
     if study_domain_transition_guard.runtime_redrive_decision_type(
         {"domain_transition": transition}
@@ -72,6 +76,9 @@ def _current_consumption_route_supersedes_resolution(
     payload: Mapping[str, Any],
     typed_blocker_resolution_readback: Mapping[str, Any] | None,
 ) -> bool:
+    resolution = _mapping_copy(typed_blocker_resolution_readback)
+    if _mapping_copy(resolution.get("next_owner_action")):
+        return False
     next_action = _mapping_copy(payload.get("next_action"))
     if _non_empty_text(next_action.get("action_family")) != "runtime.opl_route":
         return False
@@ -83,7 +90,6 @@ def _current_consumption_route_supersedes_resolution(
     ):
         return False
     consumption_ref = _non_empty_text(read_model_source.get("consumption_ledger_ref"))
-    resolution = _mapping_copy(typed_blocker_resolution_readback)
     resolution_ref = _non_empty_text(resolution.get("source_ref")) or _non_empty_text(
         resolution.get("decision_ref")
     )

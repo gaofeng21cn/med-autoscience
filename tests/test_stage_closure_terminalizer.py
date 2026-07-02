@@ -11,6 +11,9 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
     terminalize_stage_closure,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
+    next_action_for_stage_closure_decision,
+)
 
 
 pytestmark = [pytest.mark.contract]
@@ -209,6 +212,58 @@ def test_route_back_checkpoint_blockers_do_not_become_unclassified() -> None:
     assert outcome["next_action"] == (
         "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
     )
+
+
+def test_route_back_checkpoint_projects_owner_consumption_next_action() -> None:
+    decision = terminalize_stage_closure(
+        study_id="obesity_multicenter_phenotype_atlas",
+        stage_id="write",
+        work_unit_id="write",
+        work_unit_fingerprint="paper-mission::obesity::write::route-back",
+        identity={
+            "paper_mission_transaction_ref": (
+                "paper-mission-transaction::obesity::write"
+            ),
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "transaction_state": "route_back",
+        },
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "accepted_submission_milestone_candidate",
+                "paper_mission_stage_route_domain_gate_pending",
+            ],
+        },
+        semantic_delta={
+            "paper_delta_refs": ["route-back:paper-mission-terminal-owner-gate:obesity:1"],
+        },
+    )
+
+    action = next_action_for_stage_closure_decision(
+        stage_closure_decision=decision,
+        transaction_readback={
+            "paper_mission_transaction": {
+                "transaction_id": "paper-mission-transaction::obesity::write",
+                "study_id": "obesity_multicenter_phenotype_atlas",
+                "stage_id": "write",
+                "stage_terminal_decision": {
+                    "route_back_evidence_ref": (
+                        "route-back:paper-mission-terminal-owner-gate:obesity:1"
+                    )
+                },
+            }
+        },
+    )
+
+    assert action is not None
+    assert action["surface_kind"] == "mas_next_action_envelope"
+    assert action["action_family"] == "paper.stage_closure.owner_consumption"
+    assert action["action_type"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert action["owner"] == "MedAutoScience"
+    assert action["work_unit_id"] == "write"
+    assert action["authority_boundary"]["can_claim_publication_ready"] is False
 
 
 def test_repeated_route_back_checkpoint_stops_same_stage_redrive() -> None:

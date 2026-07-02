@@ -377,6 +377,12 @@ def _opl_stage_route_runtime_request_from_handoff(
     attempt_idempotency_key = _optional_text(handoff.get("attempt_idempotency_key"))
     request_idempotency_key = _optional_text(handoff.get("request_idempotency_key"))
     candidate_ref = _optional_text(handoff.get("candidate_ref"))
+    carrier = _mapping(handoff.get("opl_runtime_carrier"))
+    work_unit_id = _first_text(handoff.get("work_unit_id"), carrier.get("work_unit_id"))
+    work_unit_fingerprint = _first_text(
+        handoff.get("work_unit_fingerprint"),
+        carrier.get("work_unit_fingerprint"),
+    )
     if request_idempotency_key is None:
         return None
     identity_basis = request_idempotency_key
@@ -419,6 +425,9 @@ def _opl_stage_route_runtime_request_from_handoff(
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
         "request_idempotency_key": request_idempotency_key,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
         "idempotency_key": request_idempotency_key,
         "command_kind": command_kind,
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
@@ -439,6 +448,8 @@ def _opl_stage_route_runtime_request_from_handoff(
             "runtime_owner": "one-person-lab",
             "command_kind": command_kind,
             "route_target": _first_text(handoff.get("route_target"), route.get("target")),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
             "stage_run_created": False,
             "provider_attempt_requested": False,
         },

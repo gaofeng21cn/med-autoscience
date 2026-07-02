@@ -81,6 +81,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.submission_gate_readb
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _load_optional_json_object,
     _mapping,
+    _optional_text,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer import (
     FORBIDDEN_AUTHORITY_CLAIMS as STAGE_CLOSURE_FORBIDDEN_AUTHORITY_CLAIMS,
@@ -476,7 +477,18 @@ def build_paper_mission_readback(
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     canonical_next_action_source = None
-    if domain_transition_next_action:
+    if (
+        domain_transition_next_action
+        and not _typed_blocker_resolution_should_own_next_action(
+            stage_closure_decision=stage_closure_decision,
+            typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+        )
+        and not _stage_closure_next_action_should_own_next_action(
+            stage_closure_decision=stage_closure_decision,
+            next_action=next_action_override,
+            domain_transition_next_action=domain_transition_next_action,
+        )
+    ):
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
         typed_blocker_resolution_readback = None
@@ -939,6 +951,51 @@ def _build_terminalizer_source_readback(
         dry_run=False,
         source=source,
         enable_opl_live_probe=True,
+    )
+
+
+def _typed_blocker_resolution_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+) -> bool:
+    if not typed_blocker_resolution_readback:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if outcome.get("kind") != "typed_blocker":
+        return False
+    return bool(_mapping(typed_blocker_resolution_readback.get("next_owner_action")))
+
+
+def _stage_closure_next_action_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None = None,
+) -> bool:
+    action = _mapping(next_action)
+    if not action:
+        return False
+    if _optional_text(action.get("action_family")) == (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return True
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if _domain_transition_next_action_requests_stage_attempt(domain_transition_next_action):
+        return False
+    return (
+        outcome.get("kind") == "next_stage_transition"
+        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    )
+
+
+def _domain_transition_next_action_requests_stage_attempt(
+    next_action: Mapping[str, Any] | None,
+) -> bool:
+    action = _mapping(next_action)
+    return (
+        _optional_text(action.get("surface_kind")) == "mas_next_action_envelope"
+        and _optional_text(action.get("action_type")) == "request_opl_stage_attempt"
     )
 
 

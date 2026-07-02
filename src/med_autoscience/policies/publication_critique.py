@@ -36,6 +36,14 @@ FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS = (
     "required_future_analysis_data_or_design",
     "current_manuscript_wording_must_be_restrained",
 )
+REVISION_DELTA_AUDIT_REQUIRED_FIELDS = (
+    "previous_manuscript_ref",
+    "revised_manuscript_ref",
+    "prior_blocker_refs",
+    "blocker_dispositions",
+    "substantive_delta_summary",
+    "unresolved_items_route",
+)
 SCI_CLINICAL_REGISTRY_REVIEW_REQUIRED_FIELDS = (
     "concern_id",
     "domain",
@@ -151,7 +159,20 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "route_back_decision",
             "sci_clinical_registry_review",
             "future_facing_limitations_plan",
+            "revision_delta_audit",
         ],
+        "revision_delta_audit": {
+            "surface": "revision_delta_audit",
+            "role": "reviewer_revision_effectiveness_check",
+            "mechanical_projection_can_authorize_quality": False,
+            "required_fields": list(REVISION_DELTA_AUDIT_REQUIRED_FIELDS),
+            "discipline": {
+                "requires_previous_vs_revised_manuscript_comparison": True,
+                "requires_prior_blocker_disposition": True,
+                "non_substantive_revision_keeps_publication_quality_blocked": True,
+                "unresolved_hard_items_must_route_to_owner_or_human_gate": True,
+            },
+        },
         "sci_clinical_registry_review": {
             "surface": "sci_clinical_registry_review",
             "role": "high_quality_medical_sci_adversarial_review",
@@ -205,6 +226,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         {"field": "top_priority_issue", "description": "the single issue that should be repaired first"},
         {"field": "style_diagnosis", "description": "diagnosis of whether the manuscript voice reads as a medical journal article rather than a work report"},
         {"field": "sci_clinical_registry_review", "description": "adversarial SCI registry review matrix for clinical contribution, reporting metadata, population applicability, variable ascertainment, source heterogeneity, and display-to-claim risks"},
+        {"field": "revision_delta_audit", "description": "previous-vs-revised manuscript audit showing whether reviewer blockers were materially closed or routed"},
         {"field": "revision_items", "description": "ordered revision items with explicit done criteria"},
         {"field": "future_facing_limitations_plan", "description": "limitations mapped to claim impact, required future analysis/data/design, and current wording restraint"},
         {"field": "next_review_focus", "description": "what the next re-review pass must verify"},
@@ -251,12 +273,14 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         "route_back_decision",
         "sci_clinical_registry_review",
         "future_facing_limitations_plan",
+        "revision_delta_audit",
         "currentness_checks",
     ):
         if required_field not in normalized_trace_fields:
             raise ValueError(f"AI reviewer operating system 缺少 trace 字段: {required_field}")
     _require_future_facing_limitations_output(policy)
     _require_sci_clinical_registry_review_output(policy)
+    _require_revision_delta_audit_output(policy)
 
     provenance = contract.get("required_provenance")
     if not isinstance(provenance, dict):
@@ -270,6 +294,7 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
     if contract.get("mechanical_projection_can_authorize_quality") is not False:
         raise ValueError("AI reviewer operating system 必须禁止 mechanical projection 授权质量。")
     _require_ai_native_expert_judgment(contract)
+    revision_delta_audit = _normalize_revision_delta_audit_contract(contract)
 
     writing_layer = contract.get("target_journal_writing_layer")
     if not isinstance(writing_layer, dict):
@@ -382,6 +407,7 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         "rubric_dimensions": list(normalized_dimensions),
         "required_trace_fields": list(normalized_trace_fields),
         "required_provenance": dict(provenance),
+        "revision_delta_audit": revision_delta_audit,
         "target_journal_writing_layer": {
             **writing_layer,
             "required_fields": list(normalized_writing_layer_fields),
@@ -428,6 +454,53 @@ def _require_sci_clinical_registry_review_output(policy: dict[str, Any]) -> None
         output_fields.append(_require_non_empty_text(item.get("field"), "required_outputs.field"))
     if "sci_clinical_registry_review" not in output_fields:
         raise ValueError("publication critique policy 缺少 required output: sci_clinical_registry_review。")
+
+
+def _require_revision_delta_audit_output(policy: dict[str, Any]) -> None:
+    required_outputs = policy.get("required_outputs")
+    if not isinstance(required_outputs, list):
+        raise ValueError("publication critique policy required_outputs 必须是列表。")
+    output_fields: list[str] = []
+    for item in required_outputs:
+        if not isinstance(item, dict):
+            raise ValueError("publication critique policy required_outputs 必须是 object 列表。")
+        output_fields.append(_require_non_empty_text(item.get("field"), "required_outputs.field"))
+    if "revision_delta_audit" not in output_fields:
+        raise ValueError("publication critique policy 缺少 required output: revision_delta_audit。")
+
+
+def _normalize_revision_delta_audit_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    revision_delta_audit = contract.get("revision_delta_audit")
+    if not isinstance(revision_delta_audit, dict):
+        raise ValueError("AI reviewer operating system 缺少 revision_delta_audit。")
+    if revision_delta_audit.get("mechanical_projection_can_authorize_quality") is not False:
+        raise ValueError("revision_delta_audit 必须禁止 mechanical projection 授权质量。")
+    audit_fields = revision_delta_audit.get("required_fields")
+    if not isinstance(audit_fields, list):
+        raise ValueError("revision_delta_audit required_fields 必须是列表。")
+    normalized_audit_fields = tuple(
+        _require_non_empty_text(item, "revision_delta_audit.required_fields")
+        for item in audit_fields
+    )
+    missing_audit_fields = sorted(set(REVISION_DELTA_AUDIT_REQUIRED_FIELDS) - set(normalized_audit_fields))
+    if missing_audit_fields:
+        raise ValueError("revision_delta_audit 缺少字段: " + ", ".join(missing_audit_fields))
+    discipline = revision_delta_audit.get("discipline")
+    if not isinstance(discipline, dict):
+        raise ValueError("revision_delta_audit discipline 必须是 object。")
+    for discipline_field in (
+        "requires_previous_vs_revised_manuscript_comparison",
+        "requires_prior_blocker_disposition",
+        "non_substantive_revision_keeps_publication_quality_blocked",
+        "unresolved_hard_items_must_route_to_owner_or_human_gate",
+    ):
+        if discipline.get(discipline_field) is not True:
+            raise ValueError(f"revision_delta_audit discipline 必须启用 {discipline_field}。")
+    return {
+        **revision_delta_audit,
+        "required_fields": list(normalized_audit_fields),
+        "discipline": dict(discipline),
+    }
 
 
 def _require_non_empty_text(value: Any, field_name: str) -> str:

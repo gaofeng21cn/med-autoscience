@@ -238,6 +238,52 @@ def test_sync_study_delivery_route_gate_blockers_do_not_block_current_package_pr
     assert module.describe_submission_delivery(paper_root=paper_root)["status"] == "current"
 
 
+def test_current_package_reproducibility_signature_uses_delivery_sync_signature(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
+    source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    source_manifest["source_signature"] = "stale-source-package-signature"
+    dump_json(source_manifest_path, source_manifest)
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context={
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
+                "dispatch_gate": {
+                    "state": "open",
+                    "dispatch_allowed": True,
+                    "blocking_reasons": [],
+                },
+                "route_authorization": {
+                    "authorized": True,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": False,
+                    "runtime_recovery_allowed": True,
+                },
+            }
+        },
+    )
+
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_manifest = json.loads(
+        (current_package_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8")
+    )
+    current_package_signature = json.loads(
+        (current_package_root / "reproducibility" / "source_signature.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert result["source_signature"] != "stale-source-package-signature"
+    assert current_package_manifest["source_signature"] == result["source_signature"]
+    assert current_package_signature["source_signature"] == result["source_signature"]
+
+
 def test_submission_delivery_manifest_and_status_expose_authority_handshake_signatures(
     tmp_path: Path,
 ) -> None:
@@ -269,7 +315,7 @@ def test_submission_delivery_manifest_and_status_expose_authority_handshake_sign
     assert delivery_manifest["authority_source_signature"] == manifest["source_signature"]
 
 
-def test_describe_submission_delivery_marks_current_package_stale_when_source_authority_changed(
+def test_describe_submission_delivery_keeps_current_package_current_when_only_source_authority_needs_replay(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -314,15 +360,67 @@ def test_describe_submission_delivery_marks_current_package_stale_when_source_au
     )
 
     stale_status = module.describe_submission_delivery(paper_root=paper_root)
-    assert stale_status["status"] == "stale_source_changed"
-    assert stale_status["stale_reason"] == "submission_source_signature_mismatch"
+    assert stale_status["status"] == "current"
+    assert stale_status["stale_reason"] is None
     assert stale_status["submission_minimal_authority"]["status"] == "stale_source_changed"
-    assert stale_status["gate_freshness_handshake"]["status"] == "stale_source_changed"
-    assert stale_status["gate_freshness_handshake"]["replay_after_repair"] is True
-    assert any(
-        ref["blocker"] == "stale_submission_minimal_authority"
-        for ref in stale_status["blocking_artifact_refs"]
+    assert stale_status["gate_freshness_handshake"]["status"] == "current"
+    assert stale_status["gate_freshness_handshake"]["replay_after_repair"] is False
+    assert stale_status["blocking_artifact_refs"] == []
+
+
+def test_resync_current_package_closes_delivery_stale_even_when_source_authority_needs_replay(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    submission_module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.package_builder"
     )
+    paper_root, _study_root = make_delivery_workspace(tmp_path)
+
+    def write_placeholder_export(
+        *,
+        output_docx_path: Path | None = None,
+        output_pdf_path: Path | None = None,
+        **_: object,
+    ) -> None:
+        output_path = output_docx_path or output_pdf_path
+        assert output_path is not None
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"test export placeholder")
+
+    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
+
+    submission_module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_route_context(),
+    )
+    dump_json(paper_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+    write_text(paper_root / "submission_minimal" / "manuscript.docx", "updated source package docx")
+
+    stale_status = module.describe_submission_delivery(paper_root=paper_root)
+    assert stale_status["status"] == "stale_source_changed"
+    assert stale_status["stale_reason"] == "delivery_manifest_source_changed"
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+    resynced_status = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert resynced_status["status"] == "current"
+    assert resynced_status["stale_reason"] is None
+    assert resynced_status["gate_freshness_handshake"]["replay_after_repair"] is False
+
 
 def test_sync_study_delivery_for_submission_minimal_mirrors_review_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")

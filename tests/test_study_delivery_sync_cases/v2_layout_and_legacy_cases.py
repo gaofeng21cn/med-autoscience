@@ -190,7 +190,8 @@ def test_describe_submission_delivery_treats_role_specific_reproducibility_docs_
     )
     assert source_signature_doc["package_role"] == "controller_authorized_package_source"
     assert mirror_signature_doc["package_role"] == "human_facing_mirror"
-    assert source_signature_doc["source_signature"] == mirror_signature_doc["source_signature"]
+    assert source_signature_doc["source_signature"] == source_contract["source_signature"]
+    assert mirror_signature_doc["source_signature"] == manifest["source_signature"]
     assert status["status"] == "current"
     assert status["stale_reason"] is None
     assert status["delivery_source_signature"] == manifest["source_signature"]

@@ -37,6 +37,14 @@ def paper_mission_opl_runtime_carrier(
         idempotency,
         "transaction_fingerprint",
     )
+    work_unit_id = _transaction_work_unit_id(
+        stage_id=stage_id,
+        decision=decision,
+    )
+    work_unit_fingerprint = _transaction_work_unit_fingerprint(
+        fallback=transaction_fingerprint,
+        decision=decision,
+    )
     route_identity_key = f"{transaction_id}::route"
     attempt_idempotency_key = f"{idempotency_key}::opl-attempt"
     request_idempotency_key = f"{idempotency_key}::opl-request"
@@ -56,8 +64,8 @@ def paper_mission_opl_runtime_carrier(
         "stage_run_ref": stage_run_ref,
         "study_id": study_id,
         "action_type": _required_text(decision, "decision_kind"),
-        "work_unit_id": stage_id,
-        "work_unit_fingerprint": transaction_fingerprint,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
         "route_identity_key": route_identity_key,
         "attempt_idempotency_key": attempt_idempotency_key,
         "idempotency_key": idempotency_key,
@@ -69,8 +77,8 @@ def paper_mission_opl_runtime_carrier(
             "aggregate_id": transaction_id,
             "mission_id": mission_id,
             "study_id": study_id,
-            "work_unit_id": stage_id,
-            "work_unit_fingerprint": transaction_fingerprint,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
         },
         "required_postcondition": transition_contract.runtime_postcondition(),
         "required_readback_shape": transition_contract.required_readback_shape(),
@@ -228,6 +236,21 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _transaction_work_unit_id(*, stage_id: str, decision: Mapping[str, Any]) -> str:
+    decision_kind = _required_text(decision, "decision_kind")
+    if decision_kind == "continue_same_stage":
+        return _required_text(decision, "next_work_unit")
+    return stage_id
+
+
+def _transaction_work_unit_fingerprint(
+    *,
+    fallback: str,
+    decision: Mapping[str, Any],
+) -> str:
+    return _optional_text(decision.get("work_unit_fingerprint")) or fallback
+
+
 def _required_text(payload: Mapping[str, Any], field: str) -> str:
     value = payload.get(field)
     text = value.strip() if isinstance(value, str) else None
@@ -236,6 +259,11 @@ def _required_text(payload: Mapping[str, Any], field: str) -> str:
             f"paper mission OPL carrier {field} must be a non-empty string"
         )
     return text
+
+
+def _optional_text(value: object) -> str | None:
+    text = value.strip() if isinstance(value, str) else None
+    return text or None
 
 
 __all__ = [

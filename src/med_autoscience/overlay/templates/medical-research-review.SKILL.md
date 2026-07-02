@@ -95,6 +95,12 @@ For registry initial drafts, treat these as red flags that need a `major` or `bl
 
 Restrained wording can reduce claim risk, but it cannot clear these red flags by itself. Route to analysis-campaign, write, decision, or human gate.
 
+## Revision Delta Audit
+
+When the review follows user, mentor, or reviewer feedback, include a `revision_delta_audit` before clearing any publication or submission readiness label. Compare the revised manuscript against the previous reviewable manuscript/package and the prior blocker list. The audit must name `previous_manuscript_ref`, `revised_manuscript_ref`, `prior_blocker_refs`, `blocker_dispositions`, `substantive_delta_summary`, and `unresolved_items_route`.
+
+If the revised version does not materially close the requested hard items, say so directly. Do not treat cleaner prose, refreshed packaging, repeated cautious caveats, or route-back bookkeeping as substantive revision. Unresolved hard items must stay blocked and route to the correct write, analysis-campaign, decision, typed blocker, TODO, or human gate owner.
+
 ## Knowledge Obligations
 
 Before reviewing, recover the stage knowledge packet and make these inputs explicit:

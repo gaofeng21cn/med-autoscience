@@ -604,10 +604,34 @@ def test_typed_blocker_resolution_successor_supersedes_stale_wakeup_top_level(
         ),
         encoding="utf-8",
     )
+    newer_consumption_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "paper_mission_drive"
+        / study_id
+        / "opl_route_handoff.json"
+    )
+    newer_consumption_ref.parent.mkdir(parents=True)
+    newer_consumption_ref.write_text("{}", encoding="utf-8")
 
     payload = module._attach_typed_blocker_resolution_successor_projection(
         payload={
             "study_id": study_id,
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "runtime.opl_route",
+                "action_type": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": "old-runtime-route",
+            },
+            "artifact_first_mission_summary": {
+                "read_model_source": {
+                    "source_kind": "paper_mission_consumption_ledger",
+                    "consumption_ledger_ref": str(newer_consumption_ref),
+                }
+            },
             "current_stage": "queued",
             "current_stage_summary": "旧 queued/wakeup 投影",
             "runtime_decision": "blocked",

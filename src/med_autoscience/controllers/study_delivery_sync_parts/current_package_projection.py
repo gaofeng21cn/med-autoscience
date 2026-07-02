@@ -161,7 +161,7 @@ def _source_signature_payload_with_fallback(
     source_signature: str | None,
 ) -> dict[str, Any]:
     normalized_signature = str(source_signature or "").strip()
-    if source_signature_payload.get("source_signature") or not normalized_signature:
+    if not normalized_signature:
         return source_signature_payload
     payload = dict(source_signature_payload)
     source_contract = dict(payload.get("source_contract") or {})

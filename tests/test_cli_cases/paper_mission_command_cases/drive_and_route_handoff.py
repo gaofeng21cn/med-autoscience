@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import importlib
 import json
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
 
 from med_autoscience.cli_parts import paper_mission_commands as commands
+from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import (
+    build_paper_mission_drive_readback,
+    _drive_owner_action_stop_readback,
+)
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
 
@@ -423,6 +428,340 @@ def test_paper_mission_drive_reuses_existing_reviewer_revision_handoff_without_o
     assert payload["output_manifest"]["writes_authority"] is False
     assert payload["output_manifest"]["writes_runtime"] is False
     assert payload["output_manifest"]["writes_yang_authority"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_drive_stops_when_typed_blocker_resolution_owner_action_ready(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "typed-blocker-readback.json"
+    readback_file.write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "next_action": {
+                    "action_family": "paper.package.submission_minimal",
+                    "action_kind": "package_materialization",
+                    "action_type": (
+                        "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+                    ),
+                    "owner": "mas_authority_kernel",
+                    "work_unit_id": (
+                        "submission_blocker_degraded_handoff_or_quality_repair"
+                    ),
+                    "work_unit_fingerprint": "obesity-quality-repair",
+                },
+                "stage_closure_decision": {
+                    "outcome": {
+                        "kind": "typed_blocker",
+                        "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+                        "typed_blocker_evidence_ref": str(tmp_path / "typed.json"),
+                    }
+                },
+                "current_package": {
+                    "status": "current",
+                    "package_kind": "current_package",
+                    "can_submit": False,
+                    "quality_gate_status": "blocked",
+                    "known_blockers": ["submission_metadata_pending"],
+                    "root": str(tmp_path / "current_package"),
+                    "zip_path": str(tmp_path / "current_package.zip"),
+                    "zip_exists": True,
+                    "generated_from_current_source": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolution_output_root = (
+        tmp_path
+        / "workspace"
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_typed_blocker_resolution"
+    )
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "typed-blocker-resolution",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(resolution_output_root),
+            "--apply-route-redesign",
+            "--format",
+            "json",
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+
+    drive_output_root = tmp_path / "workspace" / "ops" / "medautoscience" / "drive"
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "drive",
+            "--output-root",
+            str(drive_output_root),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
+    assert payload["drive_result"]["status"] == "owner_action_ready_no_redrive"
+    assert payload["drive_result"]["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+    assert payload["next_action"]["action_type"] == (
+        "classify_quality_blockers_or_materialize_degraded_handoff_gate"
+    )
+    assert payload["mutation_policy"]["writes_yang_ops_candidate_package"] is False
+    assert payload["mutation_policy"]["writes_yang_ops_consumption_ledger"] is False
+    assert not (drive_output_root / "candidate_package").exists()
+    assert not (drive_output_root / "consumption_ledger").exists()
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_paper_mission_drive_stops_when_route_back_checkpoint_owner_action_ready(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile = SimpleNamespace(
+        name="Obesity",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    (Path(profile.studies_root) / study_id).mkdir(parents=True)
+    output_root = tmp_path / "workspace" / "ops" / "medautoscience" / "drive"
+
+    payload = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+        output_root=output_root,
+        source="test",
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+        inspect_readback={
+            "mission_id": "paper-mission::obesity::one-shot",
+            "objective": "Consume route-back checkpoint.",
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "paper.stage_closure.owner_consumption",
+                "action_kind": "owner_consumption",
+                "action_type": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "owner": "MedAutoScience",
+                "work_unit_id": "write",
+            },
+            "stage_closure_decision": {
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                }
+            },
+            "terminal_owner_gate_authority_readback": {
+                "status": "owner_answer_required",
+                "authority_boundary": {"can_claim_paper_progress": False},
+            },
+            "terminal_owner_gate_owner_answer_readback": {
+                "owner_answer_shape": "route_back_evidence_ref",
+                "consume_result": {"outcome": "route_back_evidence_ref"},
+            },
+        },
+    )
+
+    assert payload is not None
+    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
+    assert payload["drive_result"]["reason"] == (
+        "stage_closure_route_back_checkpoint_requires_owner_consumption"
+    )
+    assert payload["drive_result"]["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+    assert payload["next_action"]["action_family"] == (
+        "paper.stage_closure.owner_consumption"
+    )
+    assert payload["mutation_policy"]["writes_yang_ops_candidate_package"] is False
+    assert payload["mutation_policy"]["writes_yang_ops_consumption_ledger"] is False
+    assert not output_root.exists()
+
+
+def test_paper_mission_drive_submits_domain_transition_next_action_without_candidate_package(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    output_root = workspace_root / "ops" / "medautoscience" / "drive"
+    capture_path = tmp_path / "opl-capture.json"
+    fake_opl = tmp_path / "fake-opl-direct.py"
+    fake_opl.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json, sys",
+                f"capture_path = {str(capture_path)!r}",
+                "args = sys.argv[1:]",
+                "try:",
+                "    records = json.loads(open(capture_path, encoding='utf-8').read())",
+                "except Exception:",
+                "    records = []",
+                "def persist(record):",
+                "    records.append(record)",
+                "    open(capture_path, 'w', encoding='utf-8').write(json.dumps(records))",
+                "def payloads():",
+                "    return [r['payload'] for r in records if 'payload' in r]",
+                "def current_payload():",
+                "    ps = payloads()",
+                "    return ps[-1] if ps else {}",
+                "def running_attempt(payload):",
+                "    return {",
+                "        'surface_kind': 'opl_stage_attempt_running_readback',",
+                "        'status': 'running',",
+                "        'stage_id': payload.get('route_target'),",
+                "        'stage_attempt_id': 'sat_write_repair',",
+                "        'work_unit_id': payload.get('work_unit_id'),",
+                "        'work_unit_fingerprint': payload.get('work_unit_fingerprint'),",
+                "        'provider_status': 'running',",
+                "        'workspace_locator': {",
+                "            'study_id': payload.get('study_id'),",
+                "            'paper_mission_transaction_ref': payload.get('paper_mission_transaction_ref'),",
+                "            'opl_route_command_ref': payload.get('opl_route_command_ref'),",
+                "            'command_kind': payload.get('command_kind'),",
+                "            'route_target': payload.get('route_target'),",
+                "            'work_unit_id': payload.get('work_unit_id'),",
+                "            'work_unit_fingerprint': payload.get('work_unit_fingerprint'),",
+                "        },",
+                "    }",
+                "if args[:2] == ['family-runtime', 'enqueue']:",
+                "    payload = json.loads(args[args.index('--payload') + 1])",
+                "    persist({'argv': args, 'payload': payload})",
+                "    print(json.dumps({'version':'g2','family_runtime_enqueue':{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{'task_id':'frt_write_repair','status':'queued','payload':payload}}}))",
+                "elif args[:2] == ['family-runtime', 'tick']:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'family_runtime_tick':{'selected_count':1,'dispatches':[{'status':'running','stage_run_request':{'stage_run_created':True,'provider_attempt_requested':True,'provider_running':True}}]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'list']:",
+                "    payload = current_payload()",
+                "    task = {'task_id':'frt_write_repair','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_queue':{'tasks':[task], 'queue': {'total': 1}, 'stage_attempts':[running_attempt(payload)]}}))",
+                "elif args[:3] == ['family-runtime', 'queue', 'inspect']:",
+                "    payload = current_payload()",
+                "    task = {'task_id':'frt_write_repair','domain_id':'medautoscience','task_kind':'paper_mission/stage-route','status':'running','payload':payload}",
+                "    print(json.dumps({'family_runtime_task':{'task':task,'stage_attempts':[running_attempt(payload)]}}))",
+                "else:",
+                "    persist({'argv': args})",
+                "    print(json.dumps({'error':'unexpected_args','args':args}))",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_opl.chmod(0o755)
+    builder_calls: list[str] = []
+
+    def fake_readback_builder(**kwargs):
+        command = kwargs["paper_mission_command"]
+        builder_calls.append(command)
+        assert command == "inspect"
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Route medical methods and registry reporting repair.",
+            "study_id": study_id,
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-write-repair",
+                "study_id": study_id,
+                "stage_id": "write",
+                "outcome_ref": (
+                    "domain-transition::route_back_same_line::"
+                    "medical_methods_and_registry_reporting_repair"
+                ),
+                "action_family": "paper.write.prose_repair",
+                "action_kind": "paper_write",
+                "action_type": "request_opl_stage_attempt",
+                "owner": "write",
+                "executor_target": "mas_owner_callable",
+                "work_unit_id": "medical_methods_and_registry_reporting_repair",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::"
+                    "medical_methods_and_registry_reporting_repair"
+                ),
+            },
+            "canonical_next_action_source": "domain_transition.next_action",
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "obesity.local.toml",
+        study_id=study_id,
+        output_root=output_root,
+        run_id=None,
+        submit_opl_runtime=True,
+        opl_bin=fake_opl,
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert builder_calls == ["inspect"]
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["output_manifest"]["candidate_package"] is None
+    assert payload["output_manifest"]["consumption_ledger"] is None
+    assert not (output_root / "candidate_package").exists()
+    assert not (output_root / "consumption_ledger").exists()
+    assert payload["opl_route_handoff"]["route_target"] == "write"
+    assert payload["opl_route_handoff"]["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert payload["opl_runtime_carrier"]["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert payload["opl_runtime_carrier_readback"]["running_attempt"]["stage_id"] == (
+        "write"
+    )
+    assert payload["opl_runtime_carrier_readback"]["running_attempt"]["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert payload["drive_result"]["status"] == "opl_stage_route_running"
+    captured = json.loads(capture_path.read_text(encoding="utf-8"))
+    enqueue_payload = next(item["payload"] for item in captured if "payload" in item)
+    assert enqueue_payload["route_target"] == "write"
+    assert enqueue_payload["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
+    assert enqueue_payload["stage_run_request"]["route_target"] == "write"
+    assert enqueue_payload["authority_boundary"]["writes_paper_body"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

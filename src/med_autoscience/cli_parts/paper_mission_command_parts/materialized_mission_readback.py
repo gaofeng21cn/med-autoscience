@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.cli_parts.paper_mission_command_parts.command_metadata import (
@@ -276,7 +277,18 @@ def build_materialized_mission_readback_if_available(
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     canonical_next_action_source = None
-    if domain_transition_next_action:
+    if (
+        domain_transition_next_action
+        and not _typed_blocker_resolution_should_own_next_action(
+            stage_closure_decision=stage_closure_decision,
+            typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+        )
+        and not _stage_closure_next_action_should_own_next_action(
+            stage_closure_decision=stage_closure_decision,
+            next_action=next_action_override,
+            domain_transition_next_action=domain_transition_next_action,
+        )
+    ):
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
         typed_blocker_resolution_readback = None
@@ -484,6 +496,51 @@ def _receipt_superseded_by_consumption(
     return (
         _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command"
         and handoff.get("can_submit_to_opl_runtime") is True
+    )
+
+
+def _typed_blocker_resolution_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+) -> bool:
+    if not typed_blocker_resolution_readback:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if outcome.get("kind") != "typed_blocker":
+        return False
+    return bool(_mapping(typed_blocker_resolution_readback.get("next_owner_action")))
+
+
+def _stage_closure_next_action_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None = None,
+) -> bool:
+    action = _mapping(next_action)
+    if not action:
+        return False
+    if _optional_text(action.get("action_family")) == (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return True
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if _domain_transition_next_action_requests_stage_attempt(domain_transition_next_action):
+        return False
+    return (
+        outcome.get("kind") == "next_stage_transition"
+        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    )
+
+
+def _domain_transition_next_action_requests_stage_attempt(
+    next_action: Mapping[str, Any] | None,
+) -> bool:
+    action = _mapping(next_action)
+    return (
+        _optional_text(action.get("surface_kind")) == "mas_next_action_envelope"
+        and _optional_text(action.get("action_type")) == "request_opl_stage_attempt"
     )
 
 

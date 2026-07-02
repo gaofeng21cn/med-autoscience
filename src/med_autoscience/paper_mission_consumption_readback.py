@@ -326,13 +326,15 @@ def _valid_carrier_identity(
     if carrier.get("projection_only") is not True:
         return False
     transaction_id = _text(transaction.get("transaction_id"))
-    stage_id = _text(transaction.get("stage_id"))
     idempotency_key = _text(
         _mapping(transaction.get("idempotency")).get("idempotency_key")
     )
     fingerprint = _text(
         _mapping(transaction.get("idempotency")).get("transaction_fingerprint")
     )
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    work_unit_id = _transaction_work_unit_id(transaction=transaction)
+    work_unit_fingerprint = _text(decision.get("work_unit_fingerprint")) or fingerprint
     aggregate = _mapping(carrier.get("aggregate_identity"))
     if _text(carrier.get("paper_mission_transaction_ref")) != transaction_id:
         return False
@@ -344,9 +346,9 @@ def _valid_carrier_identity(
         return False
     if _text(carrier.get("stage_run_ref")) != _text(transaction.get("stage_run_ref")):
         return False
-    if _text(carrier.get("work_unit_id")) != stage_id:
+    if _text(carrier.get("work_unit_id")) != work_unit_id:
         return False
-    if _text(carrier.get("work_unit_fingerprint")) != fingerprint:
+    if _text(carrier.get("work_unit_fingerprint")) != work_unit_fingerprint:
         return False
     if _text(carrier.get("route_identity_key")) != f"{transaction_id}::route":
         return False
@@ -364,9 +366,9 @@ def _valid_carrier_identity(
         return False
     if _text(aggregate.get("study_id")) != _text(transaction.get("study_id")):
         return False
-    if _text(aggregate.get("work_unit_id")) != stage_id:
+    if _text(aggregate.get("work_unit_id")) != work_unit_id:
         return False
-    if _text(aggregate.get("work_unit_fingerprint")) != fingerprint:
+    if _text(aggregate.get("work_unit_fingerprint")) != work_unit_fingerprint:
         return False
     if _mapping(carrier.get("opl_route_command")) != _mapping(
         transaction.get("opl_route_command")
@@ -375,6 +377,14 @@ def _valid_carrier_identity(
     if _has_forbidden_write_claim(carrier, _mapping(carrier.get("authority_boundary"))):
         return False
     return True
+
+
+def _transaction_work_unit_id(*, transaction: Mapping[str, Any]) -> str | None:
+    stage_id = _text(transaction.get("stage_id"))
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    if _text(decision.get("decision_kind")) == "continue_same_stage":
+        return _text(decision.get("next_work_unit")) or stage_id
+    return stage_id
 
 
 def _stage_ref(transaction: Mapping[str, Any]) -> str | None:

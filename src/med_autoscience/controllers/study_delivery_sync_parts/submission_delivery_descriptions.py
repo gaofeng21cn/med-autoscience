@@ -327,9 +327,7 @@ def _submission_authority_status_overrides_delivery(
 ) -> bool:
     if authority_status in {"missing", "invalid"}:
         return True
-    if not str(submission_authority.get("recorded_source_signature") or "").strip():
-        return False
-    return _submission_manifest_is_generated_authority_source(source_root)
+    return False
 
 
 def _submission_delivery_handshake(

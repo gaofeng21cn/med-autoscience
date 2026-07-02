@@ -160,6 +160,50 @@ def test_ai_reviewer_contract_exposes_registry_initial_draft_quality_floor() -> 
         assert expected in red_flags
 
 
+def test_ai_reviewer_contract_requires_revision_delta_audit() -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+
+    assert "revision_delta_audit" in contract["required_trace_fields"]
+    assert contract["revision_delta_audit"] == {
+        "surface": "revision_delta_audit",
+        "role": "reviewer_revision_effectiveness_check",
+        "mechanical_projection_can_authorize_quality": False,
+        "required_fields": [
+            "previous_manuscript_ref",
+            "revised_manuscript_ref",
+            "prior_blocker_refs",
+            "blocker_dispositions",
+            "substantive_delta_summary",
+            "unresolved_items_route",
+        ],
+        "discipline": {
+            "requires_previous_vs_revised_manuscript_comparison": True,
+            "requires_prior_blocker_disposition": True,
+            "non_substantive_revision_keeps_publication_quality_blocked": True,
+            "unresolved_hard_items_must_route_to_owner_or_human_gate": True,
+        },
+    }
+    assert "revision_delta_audit" in [
+        item["field"]
+        for item in DEFAULT_PUBLICATION_CRITIQUE_POLICY["required_outputs"]
+    ]
+
+    policy = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    ai_reviewer_os = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY["ai_reviewer_operating_system"])
+    ai_reviewer_os.pop("revision_delta_audit", None)
+    policy["ai_reviewer_operating_system"] = ai_reviewer_os
+
+    with pytest.raises(ValueError, match="revision_delta_audit"):
+        build_ai_reviewer_operating_system_contract(policy)
+
+
 def test_ai_reviewer_contract_fails_closed_without_registry_initial_draft_quality_floor() -> None:
     import pytest
 
