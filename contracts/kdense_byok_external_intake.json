@@ -260,6 +260,74 @@
       "completion_gate": "search_inspect_sync_receipt_and_no_bulk_load_guard"
     }
   ],
+  "repo_native_projection_builders": {
+    "closeout_status": "repo_projection_landed",
+    "authority_boundary": {
+      "refs_only": true,
+      "advisory_only": true,
+      "nonblocking": true,
+      "fail_open": true,
+      "allowed_writes": [],
+      "writes_mas_truth": false,
+      "writes_runtime": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_sign_owner_receipt": false,
+      "can_create_typed_blocker": false,
+      "can_create_human_gate": false,
+      "can_claim_publication_ready": false,
+      "can_claim_paper_progress": false
+    },
+    "catalog_surfaces": {
+      "status": "repo_native_projection_landed",
+      "builder_ref": "src/med_autoscience/kdense_byok_catalog_surfaces.py",
+      "test_ref": "tests/test_kdense_byok_catalog_surfaces.py",
+      "projected_surfaces": [
+        "stagecraft_recipe_catalog",
+        "atlas_source_ref_catalog",
+        "codex_specialist_roster",
+        "workspace_artifact_preview"
+      ],
+      "evidence": [
+        "builder projects source pins, counts, allowlist roles, preview refs, and no-authority/fail-open flags",
+        "focused tests cover source pinning, projected surface ids, authority boundary, and fail-open behavior"
+      ],
+      "not_claimed": [
+        "runtime_ready",
+        "owner_gate_accepted",
+        "paper_progress",
+        "publication_readiness",
+        "current_package_authority"
+      ]
+    },
+    "runtime_surfaces": {
+      "status": "repo_native_projection_landed",
+      "builder_ref": "src/med_autoscience/kdense_byok_runtime_surfaces.py",
+      "test_ref": "tests/test_kdense_byok_runtime_surfaces.py",
+      "projected_surfaces": [
+        "attempt_replay_lab_notebook_export",
+        "cost_ledger_budget_cap",
+        "mcp_connector_doctor_test",
+        "remote_compute_execution_receipt",
+        "human_gate_form_schema",
+        "console_workbench_activity_selector_timeline",
+        "openrouter_fusion_watch_only_briefing"
+      ],
+      "evidence": [
+        "builder projects runtime candidate surfaces with K-Dense and Scientific Agent Skills source pins",
+        "focused tests cover source pinning, seven emitted surfaces, no-authority/fail-open behavior, no file writes, and Fusion watch-only classification"
+      ],
+      "not_claimed": [
+        "real_remote_execution",
+        "real_connector_credentials",
+        "real_opl_app_ui",
+        "owner_receipt",
+        "paper_progress",
+        "publication_readiness",
+        "current_package_authority"
+      ]
+    }
+  },
   "planned_learning_items": [
     {
       "item_id": "source_pin_license_authority_boundary",
