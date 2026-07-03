@@ -121,7 +121,9 @@ MAS Scholar Skills 的 source of truth 在外部 `mas-scholar-skills` repo：聚
 
 ### K-Dense BYOK 可复用模式
 
-K-Dense BYOK 对 MAS / OPL 的价值是产品和运行模式参考，不是 runtime 迁移目标。MAS 不接入 Pi SDK backend、不依赖 K-Dense app、不复制它的 skill / workflow / database catalog，也不把它的 OpenRouter Fusion panel 当成 reviewer gate。Codex CLI 仍是 OPL harness；K-Dense 相关输出通过 `build_kdense_byok_pattern_advisory` 进入 refs-only / no-authority candidate、recipe、catalog 或 briefing。
+K-Dense BYOK 对 MAS / OPL 的价值是产品和运行模式参考，不是 runtime 迁移目标。MAS 不接入 Pi SDK backend、不依赖 K-Dense app、不复制它的 skill / workflow / database catalog，也不把它的 OpenRouter Fusion panel 当成 reviewer gate。Codex CLI 仍是 OPL harness；K-Dense 相关输出通过 `build_kdense_byok_pattern_advisory`、`build_kdense_byok_catalog_surfaces` 和 `build_kdense_byok_runtime_surfaces` 进入 refs-only / no-authority candidate、recipe、catalog 或 briefing。
+
+`contracts/kdense_byok_external_intake.json#/repo_native_projection_builders` 固定当前 repo-native builder 边界。Catalog projection builder 覆盖 Stagecraft recipe catalog、Atlas source-ref catalog、Codex specialist roster 和 workspace artifact preview；runtime projection builder 覆盖 attempt replay / lab notebook、cost ledger、connector doctor、remote compute receipt schema、human-gate form schema、Console activity / timeline 和 Fusion watch-only briefing。两者都是 MAS 可消费的 projection surface，不是 K-Dense runtime、本地 web app、外部 connector credential、OPL App UI、owner receipt、paper progress、publication readiness 或 `current_package` authority。
 
 | K-Dense source pattern | OPL landing owner | MAS 使用方式 |
 | --- | --- | --- |
