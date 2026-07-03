@@ -1,6 +1,6 @@
 {
-  "surface_kind": "mas_agent_lab_capability_map",
-  "schema_version": 1,
+  "surface_kind": "opl_standard_agent_capability_map",
+  "schema_version": "standard-agent-capability-map.v1",
   "domain_id": "med-autoscience",
   "owner": "MedAutoScience",
   "state": "active_refs_only_external_capability_map",
@@ -186,5 +186,832 @@
     "runtime_queues",
     "provider_attempts",
     "paper_bodies"
+  ],
+  "domain_capability_map_kind": "mas_agent_lab_capability_map",
+  "schema_ref": "contracts/opl-framework/standard-agent-capability-map.schema.json",
+  "resolver_policy": "resolver_index_only_no_domain_truth",
+  "domain_label": "MedAutoScience",
+  "capability_pack": {
+    "pack_id": "med-autoscience.agent-capability-pack",
+    "pack_root_ref": "agent/",
+    "map_ref": "contracts/capability_map.json",
+    "pack_role": "declarative_domain_capability_pack",
+    "capability_pack_can_claim_domain_ready": false,
+    "external_professional_skill_pack_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json"
+  },
+  "authority_boundary": {
+    "can_write_domain_truth": false,
+    "can_write_memory_body": false,
+    "can_mutate_artifact_body": false,
+    "can_sign_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_authorize_quality_or_export": false,
+    "can_claim_domain_ready": false,
+    "can_claim_production_ready": false,
+    "refs_only_external_pack_router": true,
+    "forbidden_surfaces": [
+      "Yang authority/current_package/publication_eval/controller_decisions",
+      "owner_receipts",
+      "typed_blockers",
+      "human_gates",
+      "runtime_queues",
+      "provider_attempts",
+      "paper_bodies"
+    ]
+  },
+  "capabilities": [
+    {
+      "capability_id": "medical-figure-design",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "figure_quality",
+        "display_quality",
+        "medical-figure-design",
+        "mas-scholar-skills.display"
+      ],
+      "failure_tokens": [
+        "figure_quality",
+        "display_quality",
+        "medical-figure-design",
+        "mas-scholar-skills.display"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "figure_quality",
+      "module_id": "mas-scholar-skills.display"
+    },
+    {
+      "capability_id": "medical-manuscript-writing",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "medical-manuscript-writing",
+        "mas-scholar-skills.write"
+      ],
+      "failure_tokens": [
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "medical-manuscript-writing",
+        "mas-scholar-skills.write"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "manuscript_quality",
+      "module_id": "mas-scholar-skills.write"
+    },
+    {
+      "capability_id": "medical-manuscript-review",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "review_quality",
+        "quality_review",
+        "medical-manuscript-review",
+        "mas-scholar-skills.review"
+      ],
+      "failure_tokens": [
+        "review_quality",
+        "quality_review",
+        "medical-manuscript-review",
+        "mas-scholar-skills.review"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "review_quality",
+      "module_id": "mas-scholar-skills.review"
+    },
+    {
+      "capability_id": "medical-research-lit",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "citation_literature",
+        "citation",
+        "literature",
+        "citation_quality",
+        "literature_quality",
+        "medical-research-lit",
+        "mas-scholar-skills.lit"
+      ],
+      "failure_tokens": [
+        "citation_literature",
+        "citation",
+        "literature",
+        "citation_quality",
+        "literature_quality",
+        "medical-research-lit",
+        "mas-scholar-skills.lit"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "citation_literature",
+      "module_id": "mas-scholar-skills.lit"
+    },
+    {
+      "capability_id": "medical-statistical-review",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "stats",
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality",
+        "medical-statistical-review",
+        "mas-scholar-skills.stats"
+      ],
+      "failure_tokens": [
+        "stats",
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality",
+        "medical-statistical-review",
+        "mas-scholar-skills.stats"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "stats",
+      "module_id": "mas-scholar-skills.stats"
+    },
+    {
+      "capability_id": "medical-table-design",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "table",
+        "tables",
+        "table_quality",
+        "reporting_table_quality",
+        "medical-table-design",
+        "mas-scholar-skills.tables"
+      ],
+      "failure_tokens": [
+        "table",
+        "tables",
+        "table_quality",
+        "reporting_table_quality",
+        "medical-table-design",
+        "mas-scholar-skills.tables"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "table",
+      "module_id": "mas-scholar-skills.tables"
+    },
+    {
+      "capability_id": "medical-submission-prep",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "submission",
+        "submission_quality",
+        "submission_package",
+        "journal_package",
+        "medical-submission-prep",
+        "mas-scholar-skills.submit"
+      ],
+      "failure_tokens": [
+        "submission",
+        "submission_quality",
+        "submission_package",
+        "journal_package",
+        "medical-submission-prep",
+        "mas-scholar-skills.submit"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "submission",
+      "module_id": "mas-scholar-skills.submit"
+    },
+    {
+      "capability_id": "medical-data-governance",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+        "role": "external_professional_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "role": "mas_feedback_target_mapping"
+        }
+      ],
+      "sync_policy": "external_pack_default_or_on_demand",
+      "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "improvement_tokens": [
+        "data_governance",
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance",
+        "medical-data-governance",
+        "mas-scholar-skills.data"
+      ],
+      "failure_tokens": [
+        "data_governance",
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance",
+        "medical-data-governance",
+        "mas-scholar-skills.data"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false
+      },
+      "feedback_target": "data_governance",
+      "module_id": "mas-scholar-skills.data"
+    },
+    {
+      "capability_id": "mas-stage-prompts",
+      "surface_role": "stage_prompt",
+      "capability_kind": "stage_prompt",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "repo_path",
+        "ref": "agent/prompts/",
+        "role": "stage_operating_prompt_sources"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/prompts/",
+          "role": "stage_prompt_pack"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/stage_control_plane.json",
+          "role": "stage_control_plane"
+        }
+      ],
+      "sync_policy": "repo_local_default",
+      "externalization_reason": "MAS stage prompts are domain-agent operating surfaces and stay in the MAS repo.",
+      "improvement_tokens": [
+        "stage_prompt",
+        "medical_stage_prompt",
+        "stage_route"
+      ],
+      "failure_tokens": [
+        "stage_prompt",
+        "medical_stage_prompt",
+        "stage_route"
+      ],
+      "canonical_paths": [
+        "agent/prompts/",
+        "contracts/stage_control_plane.json"
+      ],
+      "target_repo_file_hints": [
+        "agent/prompts/",
+        "contracts/stage_control_plane.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
+    },
+    {
+      "capability_id": "mas-tool-connector-catalog",
+      "surface_role": "tool_connector",
+      "capability_kind": "tool_connector",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "contract_ref",
+        "ref": "contracts/agent_tool_arsenal.json",
+        "role": "domain_tool_connector_catalog"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/action_catalog.json",
+          "role": "action_catalog"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/agent_tool_arsenal.json",
+          "role": "agent_tool_arsenal"
+        }
+      ],
+      "sync_policy": "repo_local_default",
+      "externalization_reason": "Tool access remains a MAS/Fabric connector boundary; professional skills may reference tools but do not become tools.",
+      "improvement_tokens": [
+        "tool_connector",
+        "agent_tool_arsenal",
+        "action_catalog"
+      ],
+      "failure_tokens": [
+        "tool_connector",
+        "agent_tool_arsenal",
+        "action_catalog"
+      ],
+      "canonical_paths": [
+        "contracts/agent_tool_arsenal.json",
+        "contracts/action_catalog.json"
+      ],
+      "target_repo_file_hints": [
+        "contracts/agent_tool_arsenal.json",
+        "contracts/action_catalog.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
+    },
+    {
+      "capability_id": "mas-medical-knowledge-pack",
+      "surface_role": "knowledge_pack",
+      "capability_kind": "reference_pack",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "repo_path",
+        "ref": "agent/knowledge/",
+        "role": "medical_knowledge_pack"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/knowledge/",
+          "role": "knowledge_pack"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/domain_descriptor.json",
+          "role": "domain_descriptor"
+        }
+      ],
+      "sync_policy": "repo_local_default",
+      "externalization_reason": "Medical research truth, source readiness, hypothesis portfolio, and publication memory are MAS knowledge refs.",
+      "improvement_tokens": [
+        "knowledge_pack",
+        "medical_research_truth",
+        "source_readiness"
+      ],
+      "failure_tokens": [
+        "knowledge_pack",
+        "medical_research_truth",
+        "source_readiness"
+      ],
+      "canonical_paths": [
+        "agent/knowledge/",
+        "contracts/domain_descriptor.json"
+      ],
+      "target_repo_file_hints": [
+        "agent/knowledge/",
+        "contracts/domain_descriptor.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
+    },
+    {
+      "capability_id": "mas-quality-gates",
+      "surface_role": "quality_gate",
+      "capability_kind": "contract_module",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "repo_path",
+        "ref": "agent/quality_gates/",
+        "role": "quality_gate_pack"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/quality_gates/",
+          "role": "quality_gate_pack"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/research-integrity-layer.json",
+          "role": "research_integrity_layer"
+        }
+      ],
+      "sync_policy": "repo_local_default",
+      "externalization_reason": "MAS quality gates audit evidence and route repair targets without signing owner receipts or publication readiness.",
+      "improvement_tokens": [
+        "quality_gate",
+        "ai_reviewer",
+        "artifact_source_authority"
+      ],
+      "failure_tokens": [
+        "quality_gate",
+        "ai_reviewer",
+        "artifact_source_authority"
+      ],
+      "canonical_paths": [
+        "agent/quality_gates/",
+        "contracts/research-integrity-layer.json"
+      ],
+      "target_repo_file_hints": [
+        "agent/quality_gates/",
+        "contracts/research-integrity-layer.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
+    },
+    {
+      "capability_id": "mas-agent-lab-eval-suite",
+      "surface_role": "eval_suite",
+      "capability_kind": "contract_module",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "contract_ref",
+        "ref": "contracts/agent_lab_handoff.json",
+        "role": "agent_lab_external_suite_handoff"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/agent_lab_handoff.json",
+          "role": "agent_lab_handoff"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+          "role": "production_acceptance_suite"
+        }
+      ],
+      "sync_policy": "repo_local_default",
+      "externalization_reason": "Agent Lab receives refs-only suite and feedback targets; it does not own MAS domain truth.",
+      "improvement_tokens": [
+        "agent_lab",
+        "eval_suite",
+        "external_suite",
+        "medical_manuscript_quality"
+      ],
+      "failure_tokens": [
+        "agent_lab",
+        "eval_suite",
+        "external_suite",
+        "medical_manuscript_quality"
+      ],
+      "canonical_paths": [
+        "contracts/agent_lab_handoff.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+      ],
+      "target_repo_file_hints": [
+        "contracts/agent_lab_handoff.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
+    }
   ]
 }
