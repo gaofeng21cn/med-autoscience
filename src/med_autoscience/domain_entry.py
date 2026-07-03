@@ -29,7 +29,11 @@ DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
     }
 )
 RESEARCH_INTEGRITY_DOMAIN_COMMANDS = frozenset(
-    {"research-integrity-gate-input", "research-integrity-reference-verification"}
+    {
+        "research-integrity-gate-input",
+        "research-integrity-reference-verification",
+        "research-integrity-review-publication-gate-stage-hook",
+    }
 )
 RESEARCH_INTEGRITY_FORBIDDEN_AUTHORITY_FLAGS = (
     "can_write_mas_study_truth",
@@ -339,7 +343,13 @@ def _dispatch_research_integrity_command(command: str, request: Mapping[str, Any
     if command == "research-integrity-reference-verification":
         builder = _load_research_integrity_reference_verification_builder()
         payload = builder(payload=_research_integrity_reference_verification_payload(request))
-        return _with_research_integrity_reference_verification_boundary(command, payload)
+        return _with_research_integrity_forbidden_authority_boundary(command, payload)
+    if command == "research-integrity-review-publication-gate-stage-hook":
+        stage_hooks = import_module("med_autoscience.research_integrity.stage_hooks")
+        payload = stage_hooks.build_review_publication_gate_stage_hook_payload(
+            payload=_research_integrity_reference_verification_payload(request),
+        )
+        return _with_research_integrity_forbidden_authority_boundary(command, payload)
     raise ValueError(f"不支持的 research integrity domain entry command: {command}")
 
 
@@ -365,7 +375,7 @@ def _research_integrity_reference_verification_payload(request: Mapping[str, Any
     return payload
 
 
-def _with_research_integrity_reference_verification_boundary(
+def _with_research_integrity_forbidden_authority_boundary(
     command: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:

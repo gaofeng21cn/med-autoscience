@@ -17,6 +17,9 @@ from med_autoscience.research_integrity.provider_lookup import (
 from med_autoscience.research_integrity.reference_verification import (
     build_reference_verification_payload,
 )
+from med_autoscience.research_integrity.stage_hooks import (
+    build_review_publication_gate_stage_hook_payload,
+)
 from med_autoscience.research_integrity.reference_authenticity import (
     ReferenceVerificationAttestation,
     ReferenceVerificationStatus,
@@ -32,6 +35,7 @@ __all__ = [
     "build_manuscript_consistency_meta_review",
     "build_reference_provider_lookup_bundle",
     "build_reference_verification_payload",
+    "build_review_publication_gate_stage_hook_payload",
     "build_reference_verification_attestation",
     "build_reference_verification_attestation_dict",
     "build_research_integrity_gate_input_bundle",
