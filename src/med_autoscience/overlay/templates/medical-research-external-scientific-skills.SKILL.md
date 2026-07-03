@@ -26,8 +26,8 @@ Run only a single-skill discovery sequence:
 
 ```bash
 opl connect external-skills search --query <specialist-gap> --json
-opl connect external-skills inspect --skill-id <skill-id> --json
-opl connect external-skills sync --skill-id <skill-id> --scope workspace --target-workspace <workspace_root> --json
+opl connect external-skills inspect --skill <skill-id> --json
+opl connect external-skills sync --skill <skill-id> --scope workspace --target-workspace <workspace_root> --json
 ```
 
 Use quest scope when the current MAS owner route names a runtime quest target.

@@ -468,8 +468,9 @@ def test_external_scientific_skills_overlay_materializes_thin_discovery_entry(tm
     assert "name: external-scientific-skills" in skill_text
     assert "eight core `mas-scholar-skills` modules" in skill_text
     assert "opl connect external-skills search" in skill_text
-    assert "opl connect external-skills inspect" in skill_text
-    assert "opl connect external-skills sync" in skill_text
+    assert "opl connect external-skills inspect --skill <skill-id>" in skill_text
+    assert "opl connect external-skills sync --skill <skill-id>" in skill_text
+    assert "--skill-id" not in skill_text
     assert "candidate refs" in skill_text
     assert "Do not bulk load external skill libraries" in skill_text
 
