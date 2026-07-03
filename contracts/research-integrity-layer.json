@@ -308,7 +308,7 @@
   "implementation_contract": {
     "provider_lookup_target": {
       "owner": "OPL connector substrate",
-      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher-connector-required evidence and pass it as provider_evidence",
+      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher-connector-required fallback evidence and pass it as provider_evidence; formal publisher evidence is expected from OPL Connect DOI landing-page provider_receipts",
       "provider_receipt_consumption": "research-integrity-reference-verification accepts OPL Connect provider_receipts, normalizes provider_evidence from receipt root, receipt references[], and opl_connect_reference_verification into existing gate input evidence, preserves provider_receipt_refs and source_refs, and falls back to MAS thin provider lookup only when no evidence is present",
       "stage_hook": "review/publication gate can call research-integrity-review-publication-gate-stage-hook, which triggers research-integrity-reference-verification before returning research-integrity-gate-input",
       "forbidden_side_effects": [
