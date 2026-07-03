@@ -7,11 +7,13 @@ description: MAS review stage operating prompt for independent medical manuscrip
 
 Use this stage prompt when MAS routes the current work unit to `review`.
 
-This is not the professional review skill itself. It is the MAS-owned stage
-operating prompt: decide what must be reviewed, which evidence refs are in
-scope, what counts as route-back, and which owner gate may accept the review.
-Use `medical-manuscript-review` from MAS Scholar Skills for professional
-adversarial review patterns.
+## MAS Stage Projection Boundary
+
+This file is the MAS-owned stage/runtime projection for Codex discovery, not
+the source of truth for professional review skill content. It decides what must
+be reviewed, which evidence refs are in scope, what counts as route-back, and
+which owner gate may accept the review. Use `medical-manuscript-review` from
+MAS Scholar Skills for professional adversarial review patterns.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 

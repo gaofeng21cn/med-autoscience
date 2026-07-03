@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-03：Stage 主提示词 / runtime projection 与专业 Skill 分工固定
+
+- 决策：标准 OPL Agent 长期不再把 `stage-bound skill` 作为独立概念维护。Stage 的 canonical source 是 MAS-owned `agent/stages/`、`agent/prompts/`、route / knowledge / quality contracts 和 owner surface；Codex `SKILL.md`、overlay template 与 workspace / quest `.codex/skills/medical-research-*` 只作为 Codex runtime discovery / compatibility projection。
+- 决策：professional specialist skill 必须单源维护。默认优先保留在 owning domain / MAS pack 内置；只有当专业能力具备独立依赖、gallery / fixture / receipt、跨 agent 复用和独立发布节奏时，才外置为专业 skill pack。当前医学论文八个专业 Skill 已满足外置条件，source of truth 归外部 `mas-scholar-skills`，但作为 MAS 默认同步能力进入 workspace / quest 本地 `.codex/skills` 后由 Codex discovery 使用。
+- 决策：MAS 初始化 / OPL Connect 同步链路固定为 `MAS profile / doctor / bootstrap readback -> opl connect sync-skills --domain mas-scholar-skills --scope workspace|quest -> <workspace|quest>/.codex/skills/<skill_id> -> Codex discovery -> specialist candidate refs -> MAS owner gate`。该链路不新增 MAS loader / registry，不复制 `mas-scholar-skills` 的专业正文，也不把同步 readback 写成 owner acceptance。
+- 决策：`intake`、source readiness、external-learning intake、provider source discovery、source refs 与 source truth consumption 属于 MAS / OPL source surface、stage policy 或 quality pack，不因“不是真 skill”而外置进 ScholarSkills 专业 Skill 库；`omics` 等更窄专业流程等 MAS 形成稳定 workflow、依赖/fixture/gallery/receipt 和跨 agent 复用需求后，再评估是否进入专业 skill pack。
+- 影响：后续 overlay / docs 更新必须把 `write`、`review`、`figure`、`figure-polish`、`journal-resolution` 等读成 MAS stage/runtime projection，而不是专业 specialist skill 的 source of truth。专业 Skill 可产出 candidate、refs、review notes 或 route-back；MAS owner surface 才能接受为 paper truth、owner receipt、typed blocker、human gate、current package 或 publication / submission readiness。
+
 ## 2026-07-02：Reviewer revision 质量反馈默认触发 OPL Agent Lab / OMA 自进化
 
 - 决策：`reviewer_revision` intake 不再只登记同线稿件返修；当反馈超过 text-only fast lane，涉及科学性、引用、正文体量、表图、结果临床价值、figure skill 一致性、claim-evidence 或文风质量时，MAS 必须输出 `mas_reviewer_revision_self_evolution_trigger`，并通过 `agent-lab-medical-manuscript-quality-suite` 生成 refs-only external suite，交给 OPL Agent Lab 与 OMA developer work-order 路由。MAS 仍持有 study truth、publication quality、artifact authority、owner receipt 和 gate readback。

@@ -7,11 +7,14 @@ description: MAS write stage operating prompt for evidence-bound medical manuscr
 
 Use this stage prompt when MAS routes the current work unit to `write`.
 
-This is not the professional writing skill itself. It is the MAS-owned stage
-operating prompt: decide whether the evidence is enough to write, what may be
-changed, what must route back, and which owner surface must accept the result.
-Use `medical-manuscript-writing` from MAS Scholar Skills for professional
-medical authorship patterns when the stage is ready for prose work.
+## MAS Stage Projection Boundary
+
+This file is the MAS-owned stage/runtime projection for Codex discovery, not
+the source of truth for professional writing skill content. It decides whether
+the evidence is enough to write, what may be changed, what must route back, and
+which owner surface must accept the result. Use `medical-manuscript-writing`
+from MAS Scholar Skills for professional medical authorship patterns when the
+stage is ready for prose work.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 

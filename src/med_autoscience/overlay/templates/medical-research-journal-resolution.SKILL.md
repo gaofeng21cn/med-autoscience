@@ -7,6 +7,14 @@ description: Use when a submission target does not already map to a supported ex
 
 Use this skill to convert an unresolved journal target into a controlled, evidence-backed submission profile.
 
+## MAS Stage Projection Boundary
+
+This file is the MAS-owned submission-stage/runtime projection for Codex
+discovery, not the source of truth for professional submission-prep skill
+content. It resolves official venue requirements into MAS-owned durable refs;
+use `medical-submission-prep` from MAS Scholar Skills only for professional
+submission package patterns after the target requirements are resolved.
+
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
 {{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
