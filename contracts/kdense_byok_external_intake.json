@@ -1,0 +1,431 @@
+{
+  "surface_kind": "mas_kdense_byok_external_intake",
+  "schema_version": "kdense-byok-external-intake.v1",
+  "external_source_id": "K-Dense-AI/k-dense-byok",
+  "owner": "MedAutoScience",
+  "resolver_owner": "one-person-lab",
+  "state": "active_refs_only_pattern_projection",
+  "updated_at": "2026-07-03",
+  "purpose": "Pin the K-Dense BYOK / Scientific Agent Skills external-learning evidence and map reusable patterns into MAS/OPL-owned contract, catalog, stage, workspace, connector, budget, human-gate, and display surfaces without importing Pi or K-Dense runtime authority.",
+  "source_evidence": {
+    "kdense_byok": {
+      "repo": "https://github.com/K-Dense-AI/k-dense-byok",
+      "default_branch": "main",
+      "inspected_head_commit": "dccc7ec4d034a00d7662eaabb3f5916bc3d00602",
+      "latest_release_tag": "v0.6.0",
+      "latest_release_published_at": "2026-06-30T21:57:14Z",
+      "release_tag_commit": "b5b6b832ad6eaa266ca27924331041435b834bd4",
+      "license": "MIT",
+      "workflow_template_count": 326,
+      "database_ref_count": 229,
+      "scientific_specialist_count": 21,
+      "inspected_refs": [
+        "README.md",
+        "docs/architecture.md",
+        "docs/basic-usage.md",
+        "docs/sub-agents.md",
+        "docs/mcp-servers.md",
+        "docs/openrouter-fusion.md",
+        "web/src/data/workflows.json",
+        "web/src/data/databases.json",
+        "server/src/agent/interview.ts",
+        "server/src/agent/modal-tool.ts",
+        "server/src/agent/mcp.ts",
+        "server/src/agent/session-export.ts",
+        "server/src/cost/ledger.ts",
+        "web/src/components/file-preview-panel.tsx",
+        "web/src/components/latex-editor.tsx",
+        "web/src/components/tool-activity.tsx"
+      ]
+    },
+    "scientific_agent_skills": {
+      "repo": "https://github.com/K-Dense-AI/scientific-agent-skills",
+      "default_branch": "main",
+      "inspected_head_commit": "1e024ea8547ada12039edbe8197aaa959d97763f",
+      "license": "MIT",
+      "skill_dir_count": 149,
+      "inspected_refs": [
+        "README.md",
+        "docs/skills.md",
+        "skills"
+      ]
+    }
+  },
+  "runtime_boundary": {
+    "opl_base": "Codex CLI harness",
+    "codex_cli_as_opl_harness": true,
+    "kdense_runtime_dependency": false,
+    "pi_runtime_dependency": false,
+    "pi_subagent_engine_dependency": false,
+    "kdense_app_dependency": false,
+    "openrouter_fusion_dependency": false,
+    "modal_dependency": false,
+    "mcp_server_dependency": false,
+    "external_runner_invocation_allowed_by_default": false,
+    "external_library_bulk_load_allowed": false,
+    "default_skill_source": "mas-scholar-skills",
+    "no_second_catalog": true,
+    "no_second_selector": true
+  },
+  "authority_boundary": {
+    "refs_only": true,
+    "body_included": false,
+    "can_write_study_truth": false,
+    "can_write_source_truth": false,
+    "can_write_paper_body": false,
+    "can_write_artifact_body": false,
+    "can_write_publication_eval": false,
+    "can_write_controller_decisions": false,
+    "can_write_current_package": false,
+    "can_sign_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_create_human_gate": false,
+    "can_authorize_source_readiness": false,
+    "can_authorize_quality_verdict": false,
+    "can_authorize_publication_readiness": false,
+    "can_authorize_submission_readiness": false,
+    "can_authorize_provider_admission": false,
+    "can_close_stage": false
+  },
+  "external_skill_library_policy": {
+    "surface": "opl_connect_external_skills",
+    "default_behavior": "core_mas_scholar_skills_first",
+    "bulk_load_allowed": false,
+    "sequence": [
+      "search",
+      "inspect",
+      "sync"
+    ],
+    "sync_requires_one_of": [
+      "user_explicitly_names_tool_database_or_runtime",
+      "core_scholar_skill_route_back_names_uncovered_specialist_gap",
+      "stage_policy_determines_core_eight_cannot_cover_current_delta",
+      "network_cloud_compute_or_sensitive_data_path_requires_policy_approval"
+    ],
+    "outputs_are_refs_only_candidates": true,
+    "selected_allowlist": [
+      {
+        "skill_id": "scanpy",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/scanpy/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "single_cell_anndata_analysis_gap_named_by_owner_delta",
+        "completion_gate": "synced_skill_receipt_ref_and_mas_owner_gate_request_ref"
+      },
+      {
+        "skill_id": "anndata",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/anndata/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "anndata_file_structure_or_h5ad_interop_gap",
+        "completion_gate": "data_asset_manifest_ref_and_no_forbidden_write_proof_ref"
+      },
+      {
+        "skill_id": "bulk-rnaseq",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/bulk-rnaseq/SKILL.md",
+        "module_id": "mas-scholar-skills.stats",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "bulk_rnaseq_differential_expression_gap_named_by_stage_policy",
+        "completion_gate": "analysis_manifest_ref_and_reproducibility_check_ref"
+      },
+      {
+        "skill_id": "pydeseq2",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/pydeseq2/SKILL.md",
+        "module_id": "mas-scholar-skills.stats",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "deseq2_style_modeling_needed_and_core_stats_skill_routes_back",
+        "completion_gate": "analysis_manifest_ref_and_owner_gate_handoff_ref"
+      },
+      {
+        "skill_id": "pathway-enrichment",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/pathway-enrichment/SKILL.md",
+        "module_id": "mas-scholar-skills.lit",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "gene_set_or_pathway_interpretation_gap_requires_named_database",
+        "completion_gate": "evidence_map_ref_and_database_endpoint_provenance_ref"
+      },
+      {
+        "skill_id": "rdkit",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/rdkit/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "cheminformatics_or_molecular_feature_gap_named_by_user_or_stage",
+        "completion_gate": "data_asset_manifest_ref_and_method_ref"
+      },
+      {
+        "skill_id": "deepchem",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/deepchem/SKILL.md",
+        "module_id": "mas-scholar-skills.stats",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "drug_discovery_modeling_gap_requires_specialist_runtime",
+        "completion_gate": "model_validation_ref_and_no_publication_readiness_claim"
+      },
+      {
+        "skill_id": "pyhealth",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/pyhealth/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "ehr_or_clinical_ml_gap_requires_named_library",
+        "completion_gate": "privacy_access_tier_ref_and_source_readiness_receipt_candidate_ref"
+      },
+      {
+        "skill_id": "pydicom",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/pydicom/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "dicom_metadata_or_medical_imaging_file_gap",
+        "completion_gate": "data_asset_manifest_ref_and_privacy_access_tier_ref"
+      },
+      {
+        "skill_id": "imaging-data-commons",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/imaging-data-commons/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "public_cancer_imaging_source_discovery_gap",
+        "completion_gate": "source_lineage_ref_and_data_access_policy_ref"
+      },
+      {
+        "skill_id": "nextflow",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/nextflow/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "workflow_or_pipeline_reproducibility_gap_requires_nextflow",
+        "completion_gate": "pipeline_receipt_ref_and_run_context_ref"
+      },
+      {
+        "skill_id": "dask",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/dask/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "large_data_out_of_core_compute_gap",
+        "completion_gate": "resource_budget_ref_and_remote_or_local_execution_receipt_ref"
+      },
+      {
+        "skill_id": "paper-lookup",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/paper-lookup/SKILL.md",
+        "module_id": "mas-scholar-skills.lit",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "literature_lookup_gap_not_covered_by_medical_research_lit",
+        "completion_gate": "citation_manifest_ref_and_claim_support_map_ref"
+      },
+      {
+        "skill_id": "citation-management",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/citation-management/SKILL.md",
+        "module_id": "mas-scholar-skills.lit",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "reference_metadata_or_bibtex_cleanup_gap",
+        "completion_gate": "citation_manifest_ref_and_duplicate_check_ref"
+      },
+      {
+        "skill_id": "pyzotero",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/pyzotero/SKILL.md",
+        "module_id": "mas-scholar-skills.lit",
+        "owner_surface": "OPL Connect external-skills",
+        "use_when": "zotero_library_integration_explicitly_requested",
+        "completion_gate": "credential_scope_ref_and_library_export_receipt_ref"
+      },
+      {
+        "skill_id": "database-lookup",
+        "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills/database-lookup/SKILL.md",
+        "module_id": "mas-scholar-skills.data",
+        "owner_surface": "OPL Atlas / OPL Connect",
+        "use_when": "named_public_database_lookup_gap",
+        "completion_gate": "database_retrieval_contract_ref_and_endpoint_provenance_ref"
+      }
+    ]
+  },
+  "direct_reuse_candidates": [
+    {
+      "source_ref": "external_repo:K-Dense-AI/k-dense-byok@dccc7ec4d034a00d7662eaabb3f5916bc3d00602/web/src/data/workflows.json",
+      "reuse_mode": "parse_as_stagecraft_recipe_seed",
+      "local_owner_surface": "OPL Stagecraft recipe catalog",
+      "copy_body_into_mas": false,
+      "completion_gate": "recipe_schema_importer_and_stage_policy_tests"
+    },
+    {
+      "source_ref": "external_repo:K-Dense-AI/k-dense-byok@dccc7ec4d034a00d7662eaabb3f5916bc3d00602/web/src/data/databases.json",
+      "reuse_mode": "parse_as_atlas_source_ref_seed",
+      "local_owner_surface": "OPL Atlas source catalog",
+      "copy_body_into_mas": false,
+      "completion_gate": "source_ref_schema_importer_and_policy_approval_tests"
+    },
+    {
+      "source_ref": "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f/skills",
+      "reuse_mode": "selective_external_skill_sync",
+      "local_owner_surface": "OPL Connect external-skills",
+      "copy_body_into_mas": false,
+      "completion_gate": "search_inspect_sync_receipt_and_no_bulk_load_guard"
+    }
+  ],
+  "planned_learning_items": [
+    {
+      "item_id": "source_pin_license_authority_boundary",
+      "plan_order": 1,
+      "pattern": "upstream source pin plus license and no-authority boundary",
+      "classification": "adopt_contract",
+      "local_owner_surface": "contracts/kdense_byok_external_intake.json",
+      "target_landing": "source evidence contract",
+      "landing_status": "contract_projection_landed",
+      "completion_gate": "tests/test_kdense_byok_external_intake.py::test_kdense_byok_intake_contract_pins_sources_and_counts",
+      "why_worth_learning": "prevents future K-Dense references from drifting into unpinned or authority-bearing claims"
+    },
+    {
+      "item_id": "scientific_agent_skills_subset_allowlist",
+      "plan_order": 2,
+      "pattern": "selective scientific-agent-skills allowlist",
+      "classification": "adopt_contract",
+      "local_owner_surface": "OPL Connect external-skills",
+      "target_landing": "search-inspect-sync allowlist",
+      "landing_status": "contract_projection_landed",
+      "completion_gate": "selected_allowlist entries have source_ref, module_id, owner_surface, and completion_gate",
+      "why_worth_learning": "reuses high-signal specialist skill docs without bulk-loading a 149-skill library"
+    },
+    {
+      "item_id": "skill_to_module_mapping",
+      "plan_order": 3,
+      "pattern": "map external specialist gaps to eight MAS ScholarSkills modules",
+      "classification": "adopt_contract",
+      "local_owner_surface": "contracts/capability_map.json",
+      "target_landing": "module-routed external specialist policy",
+      "landing_status": "contract_projection_landed",
+      "completion_gate": "allowlist module_id values are limited to mas-scholar-skills.* active modules",
+      "why_worth_learning": "keeps rare specialists under existing MAS owner gates instead of creating a second module catalog"
+    },
+    {
+      "item_id": "workflow_templates_to_stagecraft",
+      "plan_order": 4,
+      "pattern": "326 K-Dense workflow templates as recipe seeds",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Stagecraft",
+      "target_landing": "stagecraft recipe catalog candidate",
+      "landing_status": "read_model_landed",
+      "completion_gate": "workflow recipe importer plus stage policy tests before execution",
+      "why_worth_learning": "gives MAS repeatable workflow shapes while leaving stage judgment with Codex CLI and MAS owner surfaces"
+    },
+    {
+      "item_id": "database_catalog_to_atlas",
+      "plan_order": 5,
+      "pattern": "229 database refs as source-ref catalog seeds",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Atlas / MAS source readiness owner",
+      "target_landing": "source-ref candidate catalog",
+      "landing_status": "read_model_landed",
+      "completion_gate": "database source refs require endpoint provenance and MAS source readiness verdict",
+      "why_worth_learning": "avoids hand-curating common scientific database lists while preserving source-readiness authority"
+    },
+    {
+      "item_id": "codex_specialist_roster",
+      "plan_order": 6,
+      "pattern": "21 scientific specialists",
+      "classification": "adapt",
+      "local_owner_surface": "Codex specialist roster / independent reviewer lanes",
+      "target_landing": "specialist role mapping",
+      "landing_status": "read_model_landed",
+      "completion_gate": "independent invocation, context, task record, and reviewer/auditor receipt",
+      "why_worth_learning": "reuses specialist role decomposition while keeping Codex CLI as the executor harness"
+    },
+    {
+      "item_id": "artifact_workspace_preview_file_tree",
+      "plan_order": 7,
+      "pattern": "project file tree, preview panel, LaTeX editor, PDF viewer",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Workspace / Vault / Console",
+      "target_landing": "artifact refs and preview pattern",
+      "landing_status": "read_model_landed",
+      "completion_gate": "manifest, checksum, preview refs, and no artifact-authority claim",
+      "why_worth_learning": "improves result inspection and file management without treating previews as publication authority"
+    },
+    {
+      "item_id": "session_replay_lab_notebook",
+      "plan_order": 8,
+      "pattern": "session export to shell script or markdown lab notebook",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Vault attempt ledger",
+      "target_landing": "attempt replay export pattern",
+      "landing_status": "read_model_landed",
+      "completion_gate": "attempt ledger export has commands, outputs, refs, and sandbox path normalization",
+      "why_worth_learning": "turns agent work into reproducible lab notes instead of opaque chat history"
+    },
+    {
+      "item_id": "cost_ledger_budget_cap",
+      "plan_order": 9,
+      "pattern": "per-session agent/subagent/compute cost ledger with spend cap",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Vault / Console",
+      "target_landing": "budget receipt pattern",
+      "landing_status": "read_model_landed",
+      "completion_gate": "budget receipt separates model, specialist, and compute spend",
+      "why_worth_learning": "gives fully automatic research a visible spend guard without confusing spend with progress"
+    },
+    {
+      "item_id": "mcp_connector_test_surface",
+      "plan_order": 10,
+      "pattern": "per-project MCP config and connection test",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Connect",
+      "target_landing": "connector trust and health contract",
+      "landing_status": "read_model_landed",
+      "completion_gate": "connector server health, secret scope, tool schema, timeout, and no-authority tests",
+      "why_worth_learning": "makes external tools discoverable and testable instead of ad-hoc per-agent wiring"
+    },
+    {
+      "item_id": "remote_compute_adapter",
+      "plan_order": 11,
+      "pattern": "Modal remote compute with file-in/out, timeout, and compute cost",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Runway",
+      "target_landing": "remote execution receipt pattern",
+      "landing_status": "read_model_landed",
+      "completion_gate": "remote receipt declares inputs, outputs, timeout, cost, and forbidden authority",
+      "why_worth_learning": "lets MAS offload heavy jobs while keeping local workspace and MAS owner gate canonical"
+    },
+    {
+      "item_id": "human_gate_form_schema",
+      "plan_order": 12,
+      "pattern": "inline structured interview form",
+      "classification": "adapt",
+      "local_owner_surface": "MAS human gate / OPL Console",
+      "target_landing": "human-gate schema candidate",
+      "landing_status": "read_model_landed",
+      "completion_gate": "human answer must be consumed by MAS owner route before truth changes",
+      "why_worth_learning": "turns ambiguity into typed decisions without letting arbitrary form answers mutate truth"
+    },
+    {
+      "item_id": "workbench_ux_selector_tool_activity",
+      "plan_order": 13,
+      "pattern": "workflow/database/model/compute selectors and tool activity display",
+      "classification": "adapt",
+      "local_owner_surface": "OPL Console",
+      "target_landing": "operator workbench display pattern",
+      "landing_status": "read_model_landed",
+      "completion_gate": "UI readback remains projection-only and never writes MAS authority",
+      "why_worth_learning": "improves operator supervision of automatic research without adding a second runtime truth source"
+    },
+    {
+      "item_id": "openrouter_fusion_watch_only",
+      "plan_order": 14,
+      "pattern": "OpenRouter Fusion multi-model panel and judge",
+      "classification": "watch_only",
+      "local_owner_surface": "reviewer briefing only",
+      "target_landing": "watch-only briefing pattern",
+      "landing_status": "watch_only",
+      "completion_gate": "cannot close independent reviewer gate, quality verdict, publication readiness, owner receipt, typed blocker, or human gate",
+      "why_worth_learning": "may help generate critique prompts, but current reproducibility/tool-access limits make it unsuitable as an authority gate"
+    }
+  ],
+  "completion_policy": {
+    "contract_projection_complete_when_tests_pass": true,
+    "runtime_execution_complete": false,
+    "owner_acceptance_complete": false,
+    "final_full_learning_claim_allowed_only_for_contract_projection": true,
+    "must_not_claim": [
+      "K-Dense runtime installed",
+      "Pi adopted as OPL base",
+      "external skills bulk-loaded",
+      "owner gate accepted",
+      "publication readiness improved",
+      "paper progress changed",
+      "current_package updated"
+    ]
+  }
+}

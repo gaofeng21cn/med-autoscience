@@ -8,6 +8,9 @@
   "purpose": "Route OMA and Agent Lab feedback targets to the MAS Scholar Skills professional skill source of truth without externalizing MAS stage prompts or owner authority.",
   "source_of_truth": [
     "user_request:2026-07-03",
+    "external_repo:K-Dense-AI/k-dense-byok@dccc7ec4d034a00d7662eaabb3f5916bc3d00602",
+    "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f",
+    "contracts/kdense_byok_external_intake.json",
     "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
     "external_repo:mas-scholar-skills/contracts/capability_map.json"
   ],
@@ -43,7 +46,14 @@
     ],
     "external_specialist_library_policy": {
       "surface": "opl_connect_external_skills",
+      "external_learning_intake_ref": "contracts/kdense_byok_external_intake.json#/external_skill_library_policy",
       "default_behavior": "do_not_bulk_load_external_libraries",
+      "bulk_load_allowed": false,
+      "sync_sequence": [
+        "search",
+        "inspect",
+        "sync"
+      ],
       "search_inspect_sync_only_for": [
         "user_explicitly_names_tool_database_or_runtime",
         "core_scholar_skill_route_back_names_uncovered_specialist_gap",
@@ -52,12 +62,21 @@
       ],
       "example_specialist_gaps": [
         "scanpy",
+        "anndata",
+        "bulk-rnaseq",
         "pydeseq2",
         "pathway_enrichment",
+        "database-lookup",
+        "paper-lookup",
         "Nextflow",
+        "Dask",
         "RDKit",
+        "DeepChem",
+        "pydicom",
+        "imaging-data-commons",
         "PyHealth"
       ],
+      "selected_allowlist_ref": "contracts/kdense_byok_external_intake.json#/external_skill_library_policy/selected_allowlist",
       "kdense_authority": false,
       "external_skill_outputs_are_refs_only_candidates": true
     }
