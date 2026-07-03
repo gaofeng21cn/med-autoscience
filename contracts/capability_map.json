@@ -46,6 +46,8 @@
     ],
     "external_specialist_library_policy": {
       "surface": "opl_connect_external_skills",
+      "codex_discovery_entry_skill_id": "external-scientific-skills",
+      "codex_discovery_entry_ref": "src/med_autoscience/overlay/templates/medical-research-external-scientific-skills.SKILL.md",
       "external_learning_intake_ref": "contracts/kdense_byok_external_intake.json#/external_skill_library_policy",
       "default_behavior": "do_not_bulk_load_external_libraries",
       "bulk_load_allowed": false,

@@ -64,6 +64,7 @@ FULL_TEMPLATE_MAP = {
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
     "review": "medical-research-review.SKILL.md",
     "write": "medical-research-write.SKILL.md",
+    "external-scientific-skills": "medical-research-external-scientific-skills.SKILL.md",
 }
 APPEND_BLOCK_TEMPLATE_MAP = {
     "intake-audit": "medical-research-intake-audit.block.md",

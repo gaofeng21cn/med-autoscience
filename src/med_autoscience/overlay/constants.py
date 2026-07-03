@@ -12,6 +12,7 @@ DEFAULT_MEDICAL_OVERLAY_SKILL_IDS = (
     "figure",
     "write",
     "review",
+    "external-scientific-skills",
     "rebuttal",
     "finalize",
 )

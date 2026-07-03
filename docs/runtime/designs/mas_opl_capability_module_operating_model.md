@@ -113,7 +113,7 @@ MAS Scholar Skills 的 source of truth 在外部 `mas-scholar-skills` repo：聚
 
 ### 罕见专科外部技能库策略
 
-八个核心专业 Skill 是 MAS 的默认科学技能面。OPL Connect external-skills 只作为专科缺口补充层，不能被 bulk load 成 MAS 的第二技能库，也不能让 K-Dense、外部 README 或同步目录成为 MAS source of truth。
+八个核心专业 Skill 是 MAS 的默认科学技能面。Codex discovery helper `external-scientific-skills` 只把罕见专科缺口路由到 OPL Connect external-skills；它是薄入口，不承载 K-Dense 全量能力或第二技能库，也不能让 K-Dense、外部 README 或同步目录成为 MAS source of truth。
 
 允许触发 external-skills 的条件必须可追溯到当前 work unit：用户显式命名工具/数据库，核心 Skill route-back 指出缺口，stage policy 判断八个核心 Skill 无法覆盖，或联网、云计算、敏感数据、外部凭据路径需要 policy / approval。典型缺口包括 `scanpy` 单细胞分析、`pydeseq2` 差异表达、pathway enrichment、Nextflow 工作流、RDKit 化学信息学、PyHealth 医疗 ML 等。
 

@@ -44,7 +44,8 @@ outputs as refs-only candidates until MAS owner gate accepts them:
 ## External Specialist Skill Policy
 
 Default to the eight `mas-scholar-skills` professional Skills for ordinary
-medical-paper work. Use OPL Connect external-skills only through
+medical-paper work. When that is insufficient, use the Codex discovery helper
+`external-scientific-skills` and OPL Connect external-skills only through
 `search -> inspect -> sync` when the user explicitly names a tool/database, a
 core Skill route-back names an uncovered specialist gap, stage policy judges the
 core eight insufficient for the current delta, or network/cloud/sensitive data

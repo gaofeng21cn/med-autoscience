@@ -456,6 +456,42 @@ def test_stage_prompts_route_literature_candidates_through_opl_connect_or_lit_sp
         assert "MAS" in skill_text
 
 
+def test_external_scientific_skills_overlay_materializes_thin_discovery_entry(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+
+    result = module.install_medical_overlay(quest_root=quest_root, skill_ids=("external-scientific-skills",))
+    skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-external-scientific-skills" / "SKILL.md"
+    skill_text = skill_path.read_text(encoding="utf-8")
+
+    assert [item["skill_id"] for item in result["targets"]] == ["external-scientific-skills"]
+    assert "name: external-scientific-skills" in skill_text
+    assert "eight core `mas-scholar-skills` modules" in skill_text
+    assert "opl connect external-skills search" in skill_text
+    assert "opl connect external-skills inspect" in skill_text
+    assert "opl connect external-skills sync" in skill_text
+    assert "candidate refs" in skill_text
+    assert "Do not bulk load external skill libraries" in skill_text
+
+
+def test_capability_map_external_specialist_policy_matches_overlay_entry() -> None:
+    payload = json.loads(Path("contracts/capability_map.json").read_text(encoding="utf-8"))
+
+    policy = payload["consumer_policy"]["external_specialist_library_policy"]
+
+    assert policy["codex_discovery_entry_skill_id"] == "external-scientific-skills"
+    assert policy["default_behavior"] == "do_not_bulk_load_external_libraries"
+    assert policy["bulk_load_allowed"] is False
+    assert policy["sync_sequence"] == ["search", "inspect", "sync"]
+    assert policy["search_inspect_sync_only_for"] == [
+        "user_explicitly_names_tool_database_or_runtime",
+        "core_scholar_skill_route_back_names_uncovered_specialist_gap",
+        "stage_policy_determines_core_eight_cannot_cover_current_delta",
+        "network_cloud_compute_or_sensitive_data_path_requires_policy_approval",
+    ]
+    assert policy["external_skill_outputs_are_refs_only_candidates"] is True
+
+
 def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skills(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     runtime_repo_root = tmp_path / "med-deepscientist"
