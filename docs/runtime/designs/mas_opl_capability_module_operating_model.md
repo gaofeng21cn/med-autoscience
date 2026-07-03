@@ -111,6 +111,14 @@ opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest
 
 MAS Scholar Skills 的 source of truth 在外部 `mas-scholar-skills` repo：聚合入口是 `skills/mas-scholar-skills/SKILL.md`，真实专业 Skill 是 `skills/medical-research-lit/SKILL.md`、`skills/medical-manuscript-writing/SKILL.md`、`skills/medical-manuscript-review/SKILL.md`、`skills/medical-figure-design/SKILL.md`、`skills/medical-statistical-review/SKILL.md`、`skills/medical-table-design/SKILL.md`、`skills/medical-submission-prep/SKILL.md` 和 `skills/medical-data-governance/SKILL.md`，模块 catalog snapshot 是 `contracts/scholar-skills-capability-modules.json`。MAS 的 `write`、`review`、`figure`、`data/cohort` 等 stage 主提示词留在 MAS overlay / stage owner surface，只消费外部专业 skill 和 refs-only catalog；不得在 MAS 侧手工维护第二套模块列表、专业 skill 正文、gallery inventory、dependency truth 或 runtime readiness 结论。若外部 contract 更新，MAS 侧只更新消费边界、链接和不越权读法，不能把同步后的 descriptor/readback 写成 owner acceptance。
 
+### 罕见专科外部技能库策略
+
+八个核心专业 Skill 是 MAS 的默认科学技能面。OPL Connect external-skills 只作为专科缺口补充层，不能被 bulk load 成 MAS 的第二技能库，也不能让 K-Dense、外部 README 或同步目录成为 MAS source of truth。
+
+允许触发 external-skills 的条件必须可追溯到当前 work unit：用户显式命名工具/数据库，核心 Skill route-back 指出缺口，stage policy 判断八个核心 Skill 无法覆盖，或联网、云计算、敏感数据、外部凭据路径需要 policy / approval。典型缺口包括 `scanpy` 单细胞分析、`pydeseq2` 差异表达、pathway enrichment、Nextflow 工作流、RDKit 化学信息学、PyHealth 医疗 ML 等。
+
+调用链只允许 `search -> inspect -> sync`：先搜索候选外部 Skill，检查 descriptor、依赖、权限、数据路径、输出 refs 和 authority false flags，再把选中的 specialist 同步到 workspace / quest。同步后的 specialist 只能产生 refs-only candidate、execution receipt candidate、owner-gate request 或 route-back hint；MAS owner gate 仍决定是否接受为论文 truth、artifact authority、quality verdict、typed blocker、human gate 或 `current_package` 变化。
+
 Display gallery 在 ScholarSkills 中只作为 compact human review package。允许进入 workspace / quest local install 或对外 review 索引的 refs 是：
 
 - `gallery/medical-display/medical_display_gallery.pdf`

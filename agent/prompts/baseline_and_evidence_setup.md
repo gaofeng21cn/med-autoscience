@@ -32,6 +32,16 @@ If baseline work changes the scientific question, endpoint, cohort, or intended 
 - Use native source-readiness and artifact-ref helpers only to produce refs, receipts, or typed blockers; they cannot mark ready without the required MAS records.
 - Use `owner_receipt_and_route_control` to return evidence-ready, source blocker, route-back, no-op with currentness proof, or human gate.
 
+## External Specialist Skill Policy
+
+Default to the eight `mas-scholar-skills` professional Skills for ordinary
+medical-paper work. Use OPL Connect external-skills only through
+`search -> inspect -> sync` when the user explicitly names a tool/database, a
+core Skill route-back names an uncovered specialist gap, stage policy judges the
+core eight insufficient for the current delta, or network/cloud/sensitive data
+access needs policy or approval. External specialist outputs are refs-only
+candidates; K-Dense or any external library cannot become MAS authority.
+
 ## Required Reasoning
 
 - Confirm cohort, inclusion/exclusion, endpoint, exposure/model target, comparator, measurement window, missingness, censoring, and reproducibility assumptions.

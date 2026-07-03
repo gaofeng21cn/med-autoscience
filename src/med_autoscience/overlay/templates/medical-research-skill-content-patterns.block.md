@@ -13,3 +13,20 @@ Use local companion files as quest-local working aids:
 - Generated evidence, manuscript, display, and review outputs remain in MAS-owned paper/artifact surfaces, not in the skill directory.
 
 Do not import external scripts, runtime state, memory databases, score sheets, checklist verdicts, or tool routers into this layout. If a helper needs executable behavior, implement it through MAS owner code, contracts, and tests first.
+
+## External scientific specialist policy
+
+Default to the eight `mas-scholar-skills` professional Skills: `display`,
+`tables`, `stats`, `lit`, `write`, `review`, `submit`, and `data`.
+
+Use OPL Connect external-skills only for uncommon specialist gaps. The allowed
+flow is `search -> inspect -> sync`, and only when the user names a tool or
+database, a core Skill route-back names an uncovered gap, stage policy decides
+the eight core Skills cannot cover the current delta, or network/cloud/sensitive
+data access requires policy or approval.
+
+Examples include `scanpy`, `pydeseq2`, pathway enrichment, Nextflow, RDKit, and
+PyHealth. Do not bulk-load an external library, do not treat K-Dense as MAS
+authority, and do not let an external specialist write study truth, paper body,
+artifact authority, owner receipt, typed blocker, human gate, publication eval,
+controller decisions, submission package, or `current_package`.

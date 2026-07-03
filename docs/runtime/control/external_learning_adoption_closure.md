@@ -87,6 +87,19 @@ External-learning 后续优化不再作为 MAS standalone selector / backlog 推
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned stage prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；canonical stage prompt source 仍是 `agent/stages/` + `agent/prompts/`，不能把 Nature-skills manifest、overlay template 或 Codex `.codex/skills` 投影当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 
+## OPL Connect external-skills gap policy
+
+MAS 默认使用外部 `mas-scholar-skills` 单源维护的八个核心专业 Skill：`display`、`tables`、`stats`、`lit`、`write`、`review`、`submit` 和 `data`。这些 Skill 覆盖常规医学论文写作、审稿、图件、文献、统计审阅、表格、投稿准备与临床数据治理；MAS stage 主提示词仍留在 `agent/stages/` 和 `agent/prompts/`，不迁入外部库。
+
+OPL Connect external-skills 只处理罕见、重型或专科科学能力缺口，不作为默认加载层、第二 catalog 或 MAS authority。调用顺序固定为 `search -> inspect -> sync`，并且只在以下触发条件之一成立时使用：
+
+- 用户显式点名工具、数据库、运行时或 specialist，例如 `scanpy`、`pydeseq2`、pathway enrichment、Nextflow、RDKit、PyHealth。
+- 八个核心 ScholarSkills 中的某个 Skill 返回 route-back，明确说明当前 work unit 需要核心 Skill 之外的专科能力。
+- MAS stage policy 在 current owner delta 上判断八个核心 Skill 无法覆盖所需 ref family、方法学执行或专业审查。
+- 需要联网、云计算、外部凭据、第三方数据库、敏感数据路径或组织策略审批时，先走 policy / approval，再决定是否 sync。
+
+external-skills 的输出仍是 refs-only candidate、execution receipt candidate、owner-gate request 或 route-back hint。MAS 不因外部 skill 被 sync、K-Dense 命中、工具 README 存在或 candidate package 生成而写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。K-Dense 可以作为外部能力发现/学习线索，但不能成为 MAS 技能库、stage prompt、currentness 或 authority source。
+
 ## Scientific Capability Registry landing
 
 External-learning 的当前统一落地面是 `scientific_capability_registry` + ScholarSkills owner-consumption，而不是 MAS 私有 selector、第二 backlog 或外部 runtime。外部框架可以进入三类 capability surface：

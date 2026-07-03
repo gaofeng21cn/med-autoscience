@@ -29,7 +29,38 @@
     "oma_may_create_typed_blocker": false,
     "oma_may_write_publication_verdict": false,
     "scholar_skills_may_write_mas_truth": false,
-    "scholar_skills_may_write_current_package": false
+    "scholar_skills_may_write_current_package": false,
+    "default_core_skill_source": "mas-scholar-skills",
+    "default_core_skill_modules": [
+      "mas-scholar-skills.display",
+      "mas-scholar-skills.tables",
+      "mas-scholar-skills.stats",
+      "mas-scholar-skills.lit",
+      "mas-scholar-skills.write",
+      "mas-scholar-skills.review",
+      "mas-scholar-skills.submit",
+      "mas-scholar-skills.data"
+    ],
+    "external_specialist_library_policy": {
+      "surface": "opl_connect_external_skills",
+      "default_behavior": "do_not_bulk_load_external_libraries",
+      "search_inspect_sync_only_for": [
+        "user_explicitly_names_tool_database_or_runtime",
+        "core_scholar_skill_route_back_names_uncovered_specialist_gap",
+        "stage_policy_determines_core_eight_cannot_cover_current_delta",
+        "network_cloud_compute_or_sensitive_data_path_requires_policy_approval"
+      ],
+      "example_specialist_gaps": [
+        "scanpy",
+        "pydeseq2",
+        "pathway_enrichment",
+        "Nextflow",
+        "RDKit",
+        "PyHealth"
+      ],
+      "kdense_authority": false,
+      "external_skill_outputs_are_refs_only_candidates": true
+    }
   },
   "owner_closeout_boundary": {
     "boundary_kind": "no_authority_owner_closeout",

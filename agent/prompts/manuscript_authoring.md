@@ -43,6 +43,16 @@ outputs as refs-only candidates until MAS owner gate accepts them:
 - `medical-submission-prep`: journal-specific prose or response-material
   candidates only after journal target refs exist.
 
+## External Specialist Skill Policy
+
+Default to the eight `mas-scholar-skills` professional Skills for ordinary
+medical-paper work. Use OPL Connect external-skills only through
+`search -> inspect -> sync` when the user explicitly names a tool/database, a
+core Skill route-back names an uncovered specialist gap, stage policy judges the
+core eight insufficient for the current delta, or network/cloud/sensitive data
+access needs policy or approval. External specialist outputs are refs-only
+candidates; K-Dense or any external library cannot become MAS authority.
+
 ## MAS Stage Responsibilities
 
 - Bind every substantive manuscript claim to current evidence, citation/source,

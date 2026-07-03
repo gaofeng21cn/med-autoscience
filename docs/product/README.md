@@ -45,6 +45,8 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成。前三段默认都是 no-authority surface；最终是否接受、退回、阻塞或交给 human gate，只由 MAS owner surface 决定。
 
+默认调用顺序是先用 `mas-scholar-skills` 八个核心专业 Skill 覆盖常规医学论文需求。只有出现罕见、重型或专科科学能力缺口时，才通过 OPL Connect 的 external-skills 面执行 `search -> inspect -> sync`，例如显式需要 `scanpy`、`pydeseq2`、pathway enrichment、Nextflow、RDKit、PyHealth 或同等级专科工具/数据库。触发条件必须是用户显式点名工具/数据库、核心 Skill route-back 明确要求、stage policy 判断八个核心 Skill 不足，或涉及联网、云计算、敏感数据而需要 policy/approval。MAS 不全量加载外部技能库，也不把 K-Dense 或其他外部目录写成 MAS 权威源。
+
 文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
 `medical-research-figure-polish` 只保留为 `figure` stage 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `figure` stage 主提示词和 `medical-figure-design` 专业 skill，保持一个 MAS-owned 图件流程入口。

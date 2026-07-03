@@ -43,6 +43,16 @@ outputs as refs-only candidates until MAS owner gate accepts them:
 - `medical-data-governance`: Data Availability, FAIR metadata, access route,
   privacy/access, and source-readiness candidates.
 
+## External Specialist Skill Policy
+
+Default to the eight `mas-scholar-skills` professional Skills for ordinary
+medical-paper work. Use OPL Connect external-skills only through
+`search -> inspect -> sync` when the user explicitly names a tool/database, a
+core Skill route-back names an uncovered specialist gap, stage policy judges the
+core eight insufficient for the current delta, or network/cloud/sensitive data
+access needs policy or approval. External specialist outputs are refs-only
+candidates; K-Dense or any external library cannot become MAS authority.
+
 ## MAS Stage Responsibilities
 
 - Confirm the handoff depends on current independent review, current source

@@ -155,6 +155,49 @@ stage_native_semantic_pack:
       - failed_path_refs
       - testability_refs
       - required_reviewer_or_human_gate_refs
+  external_science_skill_policy:
+    state: core_scholar_skills_first_selective_external_gap_fill
+    default_core_skill_source: mas-scholar-skills
+    default_core_skill_modules:
+      - mas-scholar-skills.display
+      - mas-scholar-skills.tables
+      - mas-scholar-skills.stats
+      - mas-scholar-skills.lit
+      - mas-scholar-skills.write
+      - mas-scholar-skills.review
+      - mas-scholar-skills.submit
+      - mas-scholar-skills.data
+    external_library_surface: opl_connect_external_skills
+    default_external_library_loading: none
+    invocation_ladder:
+      - use_core_scholar_skill_when_current_delta_matches_core_module
+      - ask_core_skill_to_route_back_if_specialist_gap_is_discovered
+      - search_external_skills_only_for_named_or_policy_detected_gap
+      - inspect_descriptor_dependencies_data_path_and_authority_flags
+      - sync_only_the_selected_specialist_to_workspace_or_quest
+      - return_refs_only_candidate_or_owner_gate_request_to_mas
+    external_trigger_conditions:
+      - user_explicitly_names_tool_database_runtime_or_specialist
+      - core_scholar_skill_route_back_names_uncovered_specialist_gap
+      - stage_policy_judges_core_eight_cannot_cover_current_delta
+      - network_cloud_compute_sensitive_data_or_external_credential_requires_policy_approval
+    example_specialist_gaps:
+      - scanpy
+      - pydeseq2
+      - pathway_enrichment
+      - Nextflow
+      - RDKit
+      - PyHealth
+    forbidden_authority_effects:
+      - bulk_load_external_skill_library
+      - treat_kdense_as_mas_authority_source
+      - mutate_study_truth
+      - mutate_artifact_body
+      - write_publication_eval
+      - write_controller_decisions
+      - sign_owner_receipt
+      - create_typed_blocker_or_human_gate
+      - mutate_current_package
   progress_enhancement:
     state: current_owner_native_jit_affordance
     purpose: keep Co-Scientist-style affordances available to the current owner and auto-invoke them only when the current owner action or current delta shape explicitly declares or implicitly requires the needed ref family, repair context, briefing, or arbitration

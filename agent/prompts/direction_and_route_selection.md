@@ -32,6 +32,16 @@ Work from current MAS-owned refs. If the available refs do not establish the stu
 - Use `owner_receipt_and_route_control` to form the owner route recommendation, route-back, typed blocker, or human gate request.
 - Use sidecar/export refs only as locator and dispatch metadata; MAS remains the truth owner.
 
+## External Specialist Skill Policy
+
+Default to the eight `mas-scholar-skills` professional Skills for ordinary
+medical-paper work. Use OPL Connect external-skills only through
+`search -> inspect -> sync` when the user explicitly names a tool/database, a
+core Skill route-back names an uncovered specialist gap, stage policy judges the
+core eight insufficient for the current delta, or network/cloud/sensitive data
+access needs policy or approval. External specialist outputs are refs-only
+candidates; K-Dense or any external library cannot become MAS authority.
+
 ## Required Reasoning
 
 - State the candidate clinical question, population, exposure or model target, outcome, source boundary, and intended contribution.
