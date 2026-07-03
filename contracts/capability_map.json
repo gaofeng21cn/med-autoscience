@@ -738,7 +738,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/figure"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-manuscript-writing",
@@ -811,7 +839,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-manuscript-review",
@@ -884,7 +940,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/review"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-research-lit",
@@ -961,7 +1045,35 @@
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/citation",
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/literature"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-statistical-review",
@@ -1036,7 +1148,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/statistics"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-table-design",
@@ -1109,7 +1249,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/table"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-submission-prep",
@@ -1182,7 +1350,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/submission"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-data-governance",
@@ -1255,7 +1451,35 @@
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/data_governance"
       ],
-      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "mas-stage-prompts",
@@ -1308,6 +1532,39 @@
         "can_authorize_quality_or_export": false,
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "agent/prompts/",
+        "contracts/stage_control_plane.json"
+      ],
+      "verification_refs": [
+        "tests/test_stage_prompt_specialist_routes.py",
+        "tests/test_overlay_installer.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
       }
     },
     {
@@ -1361,6 +1618,39 @@
         "can_authorize_quality_or_export": false,
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "contracts/agent_tool_arsenal.json",
+        "contracts/action_catalog.json"
+      ],
+      "verification_refs": [
+        "tests/test_domain_entry_contract.py",
+        "tests/test_research_integrity_domain_entry.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
       }
     },
     {
@@ -1414,6 +1704,38 @@
         "can_authorize_quality_or_export": false,
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "agent/knowledge/",
+        "contracts/domain_descriptor.json"
+      ],
+      "verification_refs": [
+        "tests/test_opl_standard_pack.py",
+        "tests/test_agent_lab_medical_manuscript_quality.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
       }
     },
     {
@@ -1467,6 +1789,39 @@
         "can_authorize_quality_or_export": false,
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "agent/quality_gates/",
+        "contracts/research-integrity-layer.json"
+      ],
+      "verification_refs": [
+        "tests/test_research_integrity_stage_hooks.py",
+        "tests/test_research_integrity_reference_verification.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
       }
     },
     {
@@ -1522,6 +1877,38 @@
         "can_authorize_quality_or_export": false,
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "contracts/agent_lab_handoff.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+      ],
+      "verification_refs": [
+        "tests/test_agent_lab_medical_manuscript_quality.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
       }
     }
   ],
