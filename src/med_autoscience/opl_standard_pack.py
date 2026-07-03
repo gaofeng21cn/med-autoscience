@@ -60,6 +60,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DOMAIN_LABEL = "Med Auto Science"
 DOMAIN_OWNER = "MedAutoScience"
 GENERATED_SURFACE_OWNER = "one-person-lab"
+STANDARD_STAGE_PACK_CONFORMANCE_VERSION = "standard-stage-pack.v2"
+STANDARD_STAGE_PACK_L4_REQUIRED_GATES = [
+    "repo_layout_declared",
+    "stage_pack_v2_required",
+    "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+    "tool_affordance_boundary_declared",
+    "receipt_schema_declared",
+    "minimal_authority_functions_declared",
+    "generated_surface_handoff_declared",
+    "no_forbidden_write_contract_declared",
+]
+STANDARD_AGENT_PACK_L5_EVIDENCE_REQUIRED = [
+    "real_user_path",
+    "long_soak_recovery",
+    "release_install_evidence",
+    "owner_acceptance",
+    "direct_and_opl_hosted_parity_at_scale",
+]
 
 def _json_ready(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False))
@@ -444,13 +462,6 @@ def _pack_compiler_input() -> dict[str, Any]:
             "stage_control_plane": (
                 "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane"
             ),
-            "memory_descriptor": (
-                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor"
-            ),
-            "functional_audit": (
-                "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
-                "consumer_migration.py::build_functional_consumer_boundary"
-            ),
             "stage_graph_source_ref": "contracts/stage_control_plane.json",
             "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
             "executor_policy_source_ref": "contracts/stage_control_plane.json#/stages/0/selected_executor",
@@ -459,12 +470,15 @@ def _pack_compiler_input() -> dict[str, Any]:
             "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
             "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
             "capability_map_source_ref": "contracts/capability_map.json",
+            "memory_descriptor": (
+                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor"
+            ),
+            "functional_audit": (
+                "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
+                "consumer_migration.py::build_functional_consumer_boundary"
+            ),
         },
-        "standard_stage_pack_conformance": {
-            "version": "standard-stage-pack.v2",
-            "required": True,
-            "enforcement_ref": "contracts/stage_control_plane.json#stage_pack_conformance_version",
-        },
+        "standard_stage_pack_conformance": _standard_stage_pack_conformance(),
         "standard_agent_pack_abi": _standard_agent_pack_abi(),
         "authority_boundary": {
             "opl_can_write_domain_truth": False,
@@ -474,6 +488,14 @@ def _pack_compiler_input() -> dict[str, Any]:
             "agent_pack_owner": DOMAIN_OWNER,
             "src_role": "domain_handler_minimal_authority_native_helper",
         },
+    }
+
+
+def _standard_stage_pack_conformance() -> dict[str, Any]:
+    return {
+        "version": STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
+        "required": True,
+        "enforcement_ref": "contracts/stage_control_plane.json#stage_pack_conformance_version",
     }
 
 
@@ -538,28 +560,13 @@ def _standard_agent_pack_abi() -> dict[str, Any]:
         },
         "l4_entry_gate": {
             "entry_level": "L4_structural_baseline",
-            "required_gates": [
-                "repo_layout_declared",
-                "stage_pack_v2_required",
-                "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
-                "tool_affordance_boundary_declared",
-                "receipt_schema_declared",
-                "minimal_authority_functions_declared",
-                "generated_surface_handoff_declared",
-                "no_forbidden_write_contract_declared",
-            ],
+            "required_gates": list(STANDARD_STAGE_PACK_L4_REQUIRED_GATES),
             "can_claim_l5": False,
             "can_claim_domain_ready": False,
         },
         "l5_entry_gate": {
             "entry_level": "L5_production_operating_maturity",
-            "evidence_required": [
-                "real_user_path",
-                "long_soak_recovery",
-                "release_install_evidence",
-                "owner_acceptance",
-                "direct_and_opl_hosted_parity_at_scale",
-            ],
+            "evidence_required": list(STANDARD_AGENT_PACK_L5_EVIDENCE_REQUIRED),
             "conformance_pass_counts_as_l5": False,
             "contract_validation_counts_as_l5": False,
             "provider_completion_counts_as_l5": False,

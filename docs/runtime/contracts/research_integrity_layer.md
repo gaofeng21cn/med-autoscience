@@ -47,6 +47,30 @@ MAS 同时暴露聚合消费面：
 
 `needs_review`、`unresolved`、`partial_support`、`background_only` 默认只进入 review candidate，除非被 MAS policy 升级。Research Integrity Layer 自身不能把 candidate 写成 typed blocker，也不能阻断 current owner action。
 
+## 理想触发链
+
+稳定目标链路是：
+
+1. OPL Connect / provider lookup 根据 stage hook 请求拉取 Crossref、PubMed、OpenAlex、Semantic Scholar、publisher 或 Crossmark evidence，并返回 provider receipt / evidence payload。
+2. MAS Research Integrity Gate 消费 provider evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`。
+3. AI reviewer 或 publication gate consumer 把该 bundle 当作 quality input，在 MAS owner surface 内决定 receipt、typed blocker、route-back 或 human gate。
+
+该链路的 stage hook 目标是 `review_and_quality_gate` 与 `finalize_and_publication_handoff`。当前合同只固定 trigger chain、payload shape 和 forbidden-write boundary；provider lookup runtime、stage hook 执行、provider receipt 存储和 live owner consumption 仍必须由 OPL Connect / MAS owner surface 的新鲜 readback 证明。
+
+## 完成度边界
+
+本层允许声明：
+
+- RI gate-input callable / descriptor / contract 已同步。
+- RI payload 可作为 AI reviewer / publication gate 的输入证据。
+- forbidden writes 已被合同、action catalog 和 domain entry 边界声明。
+
+本层不能声明：
+
+- live provider truth、provider receipt 已产生或 OPL Connect 已消费。
+- `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package` 已更新。
+- owner receipt、typed blocker、human gate、publication-ready 或 submission-ready 已成立。
+
 ## OPL / MAS 边界
 
 OPL 持有通用基座：

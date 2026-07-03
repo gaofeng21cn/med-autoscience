@@ -23,6 +23,51 @@
       "crossmark"
     ]
   },
+  "ideal_trigger_chain": {
+    "surface_kind": "research_integrity_ideal_trigger_chain",
+    "version": "research-integrity-trigger-chain.v1",
+    "chain": [
+      "OPL Connect provider lookup resolves external citation evidence and provider receipts",
+      "MAS Research Integrity Gate consumes provider evidence with manuscript, claim, citation, and display refs",
+      "AI reviewer or publication gate consumer reads the RI gate input as evidence before MAS owner surface consumption"
+    ],
+    "stage_hook_target": "review_and_quality_gate or finalize_and_publication_handoff stage hook",
+    "provider_lookup_owner": "OPL connector substrate",
+    "mas_gate_owner": "MedAutoScience",
+    "consumer_owner": "MAS AI reviewer or publication gate owner surface",
+    "forbidden_writes": [
+      "publication_eval/latest.json",
+      "controller_decisions/latest.json",
+      "current_package",
+      "owner receipts",
+      "typed blockers",
+      "human gates",
+      "runtime queues",
+      "provider attempts",
+      "provider lookup cache or receipt"
+    ],
+    "completion_boundary": {
+      "contract_docs_or_meta_green_can_claim": [
+        "descriptor and contract sync",
+        "Research Integrity gate-input shape available",
+        "forbidden-write boundary documented and test-covered"
+      ],
+      "contract_docs_or_meta_green_cannot_claim": [
+        "live provider truth",
+        "owner receipt",
+        "publication-ready",
+        "submission-ready",
+        "typed blocker materialized",
+        "current_package freshness"
+      ],
+      "live_truth_requires": [
+        "OPL Connect provider readback or receipt",
+        "MAS owner surface consumption",
+        "AI reviewer or publication gate receipt",
+        "runtime or artifact readback for the exact study work unit"
+      ]
+    }
+  },
   "entry_surfaces": [
     {
       "surface_kind": "reference_verification_attestation",

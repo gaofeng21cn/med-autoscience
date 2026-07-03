@@ -82,6 +82,25 @@ STAGE_ROUTE_OBLIGATIONS_DESCRIPTOR_REF = (
     "med_autoscience.stage_route_contract.route_obligations_descriptor"
 )
 ORDINARY_DEFAULT_STAGE_ID = "direction_and_route_selection"
+STANDARD_STAGE_PACK_CONFORMANCE_VERSION = "standard-stage-pack.v2"
+DOMAIN_TOOL_AFFORDANCE_CATALOG_REF = "agent/tools/domain_affordances.md"
+STANDARD_STAGE_PACK_L4_REQUIRED_GATES = [
+    "repo_layout_declared",
+    "stage_pack_v2_required",
+    "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+    "tool_affordance_boundary_declared",
+    "receipt_schema_declared",
+    "minimal_authority_functions_declared",
+    "generated_surface_handoff_declared",
+    "no_forbidden_write_contract_declared",
+]
+STANDARD_STAGE_PACK_L5_EVIDENCE_REQUIRED = [
+    "real_user_path",
+    "long_soak_recovery",
+    "release_install_evidence",
+    "owner_acceptance",
+    "direct_and_opl_hosted_parity_at_scale",
+]
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -408,6 +427,7 @@ def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]
             "family_action_catalog_ref": "/product_entry_manifest/family_action_catalog",
             "missing_action_refs": [],
         },
+        "stage_pack_conformance_version": STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
         "authority_boundary": {
             "domain_truth_owner": "MedAutoScience",
             "route_contract_owner": "MedAutoScience",
@@ -420,7 +440,6 @@ def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]
             "can_authorize_submission_readiness": False,
         },
         "stages": stages,
-        "stage_pack_conformance_version": "standard-stage-pack.v2",
         "notes": [
             "Descriptor-only projection over existing MAS Stage-Led Autonomy routes.",
             "OPL may index, inspect, display and dispatch MAS-exported guarded tasks only.",
@@ -551,17 +570,11 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "hypothesis_portfolio_evidence_pack": (
             hypothesis_portfolio_pack.stage_hypothesis_portfolio_evidence_pack_contract()
         ),
+        "expected_receipt_refs": _stage_expected_receipt_refs(stage_id),
+        "receipt_schema_refs": _stage_receipt_schema_refs(),
         "authority_function_refs": _stage_authority_function_refs(),
-        "expected_receipt_refs": _expected_receipt_refs(stage_id),
-        "receipt_schema_refs": [
-            {
-                "ref_kind": "repo_path",
-                "ref": "contracts/owner_receipt_contract.json",
-                "role": "owner_receipt_or_typed_blocker_schema",
-            }
-        ],
-        "l4_entry_gate": _l4_entry_gate(),
-        "l5_entry_gate": _l5_entry_gate(),
+        "l4_entry_gate": _stage_l4_entry_gate(),
+        "l5_entry_gate": _stage_l5_entry_gate(),
     }
     progress_sprint_contract = _stage_progress_sprint_contract(stage, descriptor=descriptor)
     if progress_sprint_contract is not None:
@@ -584,6 +597,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "stage_kind": stage["stage_kind"],
         "title": stage["title"],
         "summary": f"{stage['title']} projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+        "stage_pack_conformance_version": STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
         "goal": _stage_goal(stage, descriptor=descriptor),
         "owner": "MedAutoScience",
         "domain_stage_refs": domain_stage_refs,
@@ -606,7 +620,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         ),
         "skills": skill_refs,
         "tool_refs": _stage_tool_refs(),
-        "tool_affordance_boundary": _tool_affordance_boundary(stage_id),
+        "tool_affordance_boundary": _stage_tool_affordance_boundary(stage_id),
         "prompt_refs": [prompt_ref],
         "policy_refs": [
             {"ref_kind": "repo_path", "ref": STAGE_ROUTE_CONTRACT_REF, "role": "route_contract"},
@@ -649,10 +663,9 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "handler_target_ref": "/domain_entry",
         },
         "stage_contract": stage_contract,
-        "stage_pack_conformance_version": "standard-stage-pack.v2",
-        "independent_gate_policy": _independent_gate_policy(stage_id),
-        "execution_review_separation_required": True,
         "trust_boundary": trust_boundary,
+        "independent_gate_policy": _stage_independent_gate_policy(stage_id),
+        "execution_review_separation_required": True,
         "source_refs": source_refs,
         "freshness": {
             "freshness_kind": "product_entry_manifest_projection",
@@ -682,211 +695,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
     return stage_descriptor
 
 
-def _selected_executor(stage_id: str) -> dict[str, Any] | None:
-    payload = {
-        "executor_kind": "codex_cli",
-        "owner_callable_adapter": True,
-        "default_executor": True,
-        "executor_binding_ref": "default_codex_cli",
-        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
-        "required_capabilities": [
-            "repo_context_reading",
-            "domain_skill_invocation",
-            "receipt_or_typed_blocker_return",
-            "no_forbidden_write_guard",
-        ],
-    }
-    if stage_id != ORDINARY_DEFAULT_STAGE_ID:
-        payload["required_capabilities"] = [
-            "repo_context_reading",
-            "domain_skill_invocation",
-            "tool_affordance_boundary_compliance",
-            "receipt_or_typed_blocker_return",
-            "no_forbidden_write_guard",
-        ]
-        payload["lane_kind"] = "variant"
-    return payload
-
-
-def _stage_tool_refs() -> list[dict[str, Any]]:
-    return [
-        {
-            "ref_kind": "repo_path",
-            "ref": "agent/tools/domain_affordances.md",
-            "role": "stage_tool_affordance_catalog",
-            "catalog_role": "available_affordance_catalog_not_workflow_script",
-        }
-    ]
-
-
-def _tool_affordance_boundary(stage_id: str) -> dict[str, Any]:
-    return {
-        "surface_kind": "opl_tool_affordance_boundary",
-        "version": "tool-affordance-boundary.v1",
-        "catalog_role": "available_affordance_catalog_not_workflow_script",
-        "policy": (
-            "MAS tool refs declare available medical research affordances and safety "
-            "boundaries only; they do not prescribe executor order, stage strategy, "
-            "stage goal, or forbidden writes."
-        ),
-        "capability_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": "medical_source_literature_and_dataset_context_reading",
-                "role": "capability_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
-                "role": "capability_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "publication_quality_and_integrity_review_support",
-                "role": "capability_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "refs_only_receipt_and_stage_artifact_materialization",
-                "role": "capability_boundary",
-            },
-        ],
-        "permission_scope_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": "repo_context_read",
-                "role": "permission_scope_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "declared_medical_research_workspace_read",
-                "role": "permission_scope_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "bounded_stage_output_write_when_owner_authorized",
-                "role": "permission_scope_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "receipt_or_typed_blocker_return",
-                "role": "permission_scope_boundary",
-            },
-        ],
-        "credential_boundary_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": "no_secret_material_in_stage_pack",
-                "role": "credential_boundary_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "executor_must_request_human_gate_for_missing_credentials",
-                "role": "credential_boundary_boundary",
-            },
-        ],
-        "write_scope_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": f"medical_research_stage_workspace_refs_only:{stage_id}",
-                "role": "write_scope_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
-                "role": "write_scope_boundary",
-            },
-        ],
-        "side_effect_risk_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
-                "role": "side_effect_risk_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
-                "role": "side_effect_risk_boundary",
-            },
-        ],
-        "forbidden_authority_refs": [
-            {
-                "ref_kind": "policy_ref",
-                "ref": "publication_readiness_verdict_without_mas_owner_receipt",
-                "role": "forbidden_authority_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "medical_quality_verdict_without_mas_owner_receipt",
-                "role": "forbidden_authority_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "clinical_or_research_truth_write_by_opl",
-                "role": "forbidden_authority_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "artifact_body_mutation_by_opl",
-                "role": "forbidden_authority_boundary",
-            },
-            {
-                "ref_kind": "policy_ref",
-                "ref": "memory_body_write_by_opl",
-                "role": "forbidden_authority_boundary",
-            },
-        ],
-        "executor_autonomy": {
-            "executor_can_choose_tools": True,
-            "executor_can_skip_tools": True,
-            "executor_can_substitute_tools_within_boundary": True,
-            "executor_can_choose_order_and_parallelism": True,
-            "executor_can_request_missing_context_or_human_gate": True,
-            "tool_catalog_can_prescribe_tool_sequence": False,
-            "tool_catalog_can_define_cognitive_strategy": False,
-            "tool_catalog_can_override_stage_goal": False,
-            "tool_catalog_can_authorize_forbidden_write": False,
-        },
-    }
-
-
-def _independent_gate_policy(stage_id: str) -> dict[str, Any]:
-    gate_ref = "agent/quality_gates/artifact_source_authority_gate.md"
-    if stage_id in {"manuscript_authoring", "review_and_quality_gate"}:
-        gate_ref = "agent/quality_gates/ai_reviewer_auditor_gate.md"
-    return {
-        "surface_kind": "mas_independent_quality_gate_policy",
-        "version": "independent-quality-gate-policy.v1",
-        "stage_id": stage_id,
-        "gate_owner": "med-autoscience",
-        "gate_ref": gate_ref,
-        "execution_review_separation_required": True,
-        "same_attempt_self_review_can_close_quality_gate": False,
-        "mechanical_completion_can_close_stage": False,
-        "provider_completion_can_claim_domain_ready": False,
-        "generated_surface_readiness_can_claim_quality_or_export": False,
-        "owner_receipt_or_typed_blocker_required": True,
-        "human_gate_allowed": True,
-        "route_back_allowed": True,
-    }
-
-
-def _stage_authority_function_refs() -> list[dict[str, Any]]:
-    return [
-        {
-            "ref_kind": "repo_path",
-            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
-            "role": "medical_research_owner_receipt_signer",
-        },
-        {
-            "ref_kind": "repo_path",
-            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
-            "role": "publication_quality_gate",
-        },
-    ]
-
-
-def _expected_receipt_refs(stage_id: str) -> list[dict[str, Any]]:
+def _stage_expected_receipt_refs(stage_id: str) -> list[dict[str, str]]:
     return [
         {
             "ref_kind": "stage_attempt_receipt_ref",
@@ -921,39 +730,181 @@ def _expected_receipt_refs(stage_id: str) -> list[dict[str, Any]]:
     ]
 
 
-def _l4_entry_gate() -> dict[str, Any]:
+def _stage_receipt_schema_refs() -> list[dict[str, str]]:
+    return [
+        {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema",
+        }
+    ]
+
+
+def _stage_authority_function_refs() -> list[dict[str, str]]:
+    return [
+        {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer",
+        },
+        {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate",
+        },
+    ]
+
+
+def _stage_l4_entry_gate() -> dict[str, Any]:
     return {
         "entry_level": "L4_structural_baseline",
-        "required_gates": [
-            "repo_layout_declared",
-            "stage_pack_v2_required",
-            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
-            "tool_affordance_boundary_declared",
-            "receipt_schema_declared",
-            "minimal_authority_functions_declared",
-            "generated_surface_handoff_declared",
-            "no_forbidden_write_contract_declared",
-        ],
+        "required_gates": list(STANDARD_STAGE_PACK_L4_REQUIRED_GATES),
         "can_claim_l5": False,
         "can_claim_domain_ready": False,
     }
 
 
-def _l5_entry_gate() -> dict[str, Any]:
+def _stage_l5_entry_gate() -> dict[str, Any]:
     return {
         "entry_level": "L5_production_operating_maturity",
-        "evidence_required": [
-            "real_user_path",
-            "long_soak_recovery",
-            "release_install_evidence",
-            "owner_acceptance",
-            "direct_and_opl_hosted_parity_at_scale",
-        ],
+        "evidence_required": list(STANDARD_STAGE_PACK_L5_EVIDENCE_REQUIRED),
         "conformance_pass_counts_as_l5": False,
         "contract_validation_counts_as_l5": False,
         "provider_completion_counts_as_l5": False,
         "app_projection_counts_as_l5": False,
     }
+
+
+def _stage_tool_refs() -> list[dict[str, str]]:
+    return [
+        {
+            "ref_kind": "repo_path",
+            "ref": DOMAIN_TOOL_AFFORDANCE_CATALOG_REF,
+            "role": "stage_tool_affordance_catalog",
+            "catalog_role": "available_affordance_catalog_not_workflow_script",
+        }
+    ]
+
+
+def _stage_tool_affordance_boundary(stage_id: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": (
+            "MAS tool refs declare available medical research affordances and safety "
+            "boundaries only; they do not prescribe executor order, stage strategy, "
+            "stage goal, or forbidden writes."
+        ),
+        "capability_refs": _policy_refs(
+            "capability_boundary",
+            [
+                "medical_source_literature_and_dataset_context_reading",
+                "medical_analysis_manuscript_figure_and_review_workspace_operation",
+                "publication_quality_and_integrity_review_support",
+                "refs_only_receipt_and_stage_artifact_materialization",
+            ],
+        ),
+        "permission_scope_refs": _policy_refs(
+            "permission_scope_boundary",
+            [
+                "repo_context_read",
+                "declared_medical_research_workspace_read",
+                "bounded_stage_output_write_when_owner_authorized",
+                "receipt_or_typed_blocker_return",
+            ],
+        ),
+        "credential_boundary_refs": _policy_refs(
+            "credential_boundary_boundary",
+            [
+                "no_secret_material_in_stage_pack",
+                "executor_must_request_human_gate_for_missing_credentials",
+            ],
+        ),
+        "write_scope_refs": _policy_refs(
+            "write_scope_boundary",
+            [
+                f"medical_research_stage_workspace_refs_only:{stage_id}",
+                "publication_artifact_refs_only_until_mas_owner_receipt",
+            ],
+        ),
+        "side_effect_risk_refs": _policy_refs(
+            "side_effect_risk_boundary",
+            [
+                "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+                "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            ],
+        ),
+        "forbidden_authority_refs": _policy_refs(
+            "forbidden_authority_boundary",
+            [
+                "publication_readiness_verdict_without_mas_owner_receipt",
+                "medical_quality_verdict_without_mas_owner_receipt",
+                "clinical_or_research_truth_write_by_opl",
+                "artifact_body_mutation_by_opl",
+                "memory_body_write_by_opl",
+            ],
+        ),
+        "executor_autonomy": {
+            "executor_can_choose_tools": True,
+            "executor_can_choose_order_and_parallelism": True,
+            "executor_can_skip_tools": True,
+            "executor_can_substitute_tools_within_boundary": True,
+            "executor_can_request_missing_context_or_human_gate": True,
+            "tool_catalog_can_prescribe_tool_sequence": False,
+            "tool_catalog_can_define_cognitive_strategy": False,
+            "tool_catalog_can_override_stage_goal": False,
+            "tool_catalog_can_authorize_forbidden_write": False,
+        },
+    }
+
+
+def _stage_independent_gate_policy(stage_id: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": stage_id,
+        "gate_owner": "med-autoscience",
+        "gate_ref": _stage_quality_gate_ref(stage_id),
+        "execution_review_separation_required": True,
+        "same_attempt_self_review_can_close_quality_gate": False,
+        "mechanical_completion_can_close_stage": False,
+        "provider_completion_can_claim_domain_ready": False,
+        "generated_surface_readiness_can_claim_quality_or_export": False,
+        "owner_receipt_or_typed_blocker_required": True,
+        "human_gate_allowed": True,
+        "route_back_allowed": True,
+    }
+
+
+def _stage_quality_gate_ref(stage_id: str) -> str:
+    if stage_id in {"manuscript_authoring", "review_and_quality_gate"}:
+        return "agent/quality_gates/ai_reviewer_auditor_gate.md"
+    return "agent/quality_gates/artifact_source_authority_gate.md"
+
+
+def _policy_refs(role: str, refs: list[str]) -> list[dict[str, str]]:
+    return [{"ref_kind": "policy_ref", "ref": ref, "role": role} for ref in refs]
+
+
+def _selected_executor(stage_id: str) -> dict[str, Any] | None:
+    selected = {
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": True,
+        "default_executor": True,
+        "executor_binding_ref": "default_codex_cli",
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "required_capabilities": [
+            "repo_context_reading",
+            "domain_skill_invocation",
+            "receipt_or_typed_blocker_return",
+            "no_forbidden_write_guard",
+        ],
+    }
+    if stage_id != ORDINARY_DEFAULT_STAGE_ID:
+        selected["required_capabilities"].insert(2, "tool_affordance_boundary_compliance")
+        selected["lane_kind"] = "variant"
+    return selected
 
 
 def _stage_progress_sprint_contract(
