@@ -1,0 +1,167 @@
+{
+  "surface_kind": "opl_standard_agent_principles_adoption",
+  "version": "standard-agent-principles-adoption.v1",
+  "owner": "MedAutoScience",
+  "domain_id": "med-autoscience",
+  "domain_label": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable MAS adoption of OPL Standard Agent AI-first principles while preserving MAS medical research domain authority and mapping OPL domain_intake to MAS-native study intake surfaces.",
+  "adopted_principle_pack_ref": "contracts/opl-framework/standard-agent-principles.json",
+  "adopted_principle_ids": [
+    "ai_first_execution",
+    "contract_backed_boundary",
+    "domain_truth_authority",
+    "stage_prompt_skill_tool_separation",
+    "domain_intake_mapping",
+    "workspace_source_intake_shell",
+    "owner_delta_progress",
+    "parallel_executor_autonomy",
+    "module_organization"
+  ],
+  "source_refs": {
+    "opl_projection_ref": "agent/principles/opl-standard-agent-principles.md",
+    "domain_specialization_ref": "agent/principles/domain-specialization.md",
+    "legacy_mas_projection_ref": "agent/principles/standard_agent_principles.md",
+    "stage_control_plane_ref": "contracts/stage_control_plane.json",
+    "mas_paper_study_stage_pack_ref": "contracts/mas-paper-study-stage-pack.json",
+    "pack_compiler_input_ref": "contracts/pack_compiler_input.json",
+    "action_catalog_ref": "contracts/action_catalog.json",
+    "domain_descriptor_ref": "contracts/domain_descriptor.json"
+  },
+  "domain_mapping": {
+    "domain_intake": {
+      "principle_id": "domain_intake_mapping",
+      "domain_stage_ref": "contracts/mas-paper-study-stage-pack.json#/stages/0",
+      "stage_id": "01-study_intake",
+      "prompt_ref": "agent/principles/domain-specialization.md#mas-study-intake",
+      "is_standalone_skill": false,
+      "owner_receipt_or_typed_blocker_required": true,
+      "accepted_outputs": [
+        "study_truth_snapshot_ref",
+        "source_readiness_assessment_ref",
+        "study_intake_owner_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref",
+        "handoff_packet_ref"
+      ],
+      "source_surfaces": [
+        "src/med_autoscience/study_task_intake*.py",
+        "src/med_autoscience/study_task_intake.py",
+        "src/med_autoscience/study_task_intake_surfaces.py",
+        "src/med_autoscience/study_task_intake_direct_completion.py",
+        "src/med_autoscience/study_task_intake_revision.py",
+        "src/med_autoscience/study_task_intake_fast_lane.py",
+        "src/med_autoscience/study_task_intake_fast_lane_closeout.py",
+        "src/med_autoscience/study_task_intake_manual_hold.py",
+        "src/med_autoscience/study_task_intake_stop_loss.py",
+        "src/med_autoscience/study_task_intake_delivery_closeout.py",
+        "src/med_autoscience/study_task_intake_rebuttal_closeout.py",
+        "src/med_autoscience/study_task_intake_reviewer_quality.py"
+      ]
+    },
+    "workspace_source_intake_shell": {
+      "principle_id": "workspace_source_intake_shell",
+      "opl_owned_shell_ref": "contracts/opl-framework/standard-agent-principles.json#principles/workspace_source_intake_shell",
+      "domain_source_truth_owner": "MedAutoScience",
+      "domain_source_refs": [
+        "contracts/domain_descriptor.json",
+        "contracts/pack_compiler_input.json",
+        "contracts/stage_control_plane.json",
+        "contracts/mas-paper-study-stage-pack.json",
+        "contracts/action_catalog.json",
+        "contracts/artifact_locator_contract.json",
+        "contracts/memory_descriptor.json"
+      ]
+    }
+  },
+  "module_organization": {
+    "framework_module_registry_ref": "contracts/opl-framework/brand-module-registry.json",
+    "domain_pack_root": "agent/",
+    "domain_pack_role": "declarative_domain_pack",
+    "minimal_authority_functions_ref": "contracts/domain_descriptor.json#/authority_boundary",
+    "generated_surface_handoff_ref": "contracts/generated_surface_handoff.json",
+    "capability_pack_is_not_domain_intake": true,
+    "stage_surfaces": [
+      "agent/stages/direction_and_route_selection.policy.md",
+      "agent/stages/baseline_and_evidence_setup.policy.md",
+      "agent/stages/bounded_analysis_campaign.policy.md",
+      "agent/stages/manuscript_authoring.policy.md",
+      "agent/stages/review_and_quality_gate.policy.md",
+      "agent/stages/finalize_and_publication_handoff.policy.md"
+    ],
+    "prompt_surfaces": [
+      "agent/prompts/direction_and_route_selection.md",
+      "agent/prompts/baseline_and_evidence_setup.md",
+      "agent/prompts/bounded_analysis_campaign.md",
+      "agent/prompts/manuscript_authoring.md",
+      "agent/prompts/review_and_quality_gate.md",
+      "agent/prompts/finalize_and_publication_handoff.md"
+    ],
+    "skill_surfaces": [
+      "agent/skills/medical_research_execution.md",
+      "agent/skills/owner_receipt_and_route_control.md"
+    ],
+    "quality_surfaces": [
+      "agent/quality_gates/ai_reviewer_auditor_gate.md",
+      "agent/quality_gates/artifact_source_authority_gate.md"
+    ]
+  },
+  "mas_domain_authority": {
+    "truth_and_verdict_owner": "MedAutoScience",
+    "authority_stays_in_mas": [
+      "study_truth",
+      "source_readiness",
+      "publication_quality_verdict",
+      "artifact_package_authority",
+      "current_package_authority",
+      "memory_accept_reject",
+      "owner_receipt_signing",
+      "typed_blocker_creation",
+      "human_gate_creation",
+      "controller_decision"
+    ],
+    "must_not_be_externalized_to": [
+      "OPL Framework",
+      "MAS ScholarSkills",
+      "OPL domain_intake",
+      "generated descriptors",
+      "read models",
+      "provider completion"
+    ]
+  },
+  "scholarskills_boundary": {
+    "source_repo": "external_repo:mas-scholar-skills",
+    "active_modules": [
+      "display",
+      "tables",
+      "stats",
+      "lit",
+      "write",
+      "review",
+      "submit",
+      "data"
+    ],
+    "non_active_or_deferred": {
+      "intake": "OPL Framework or MAS stage/source surface, not an active MAS ScholarSkills module.",
+      "omics": "Deferred/reference until MAS has a stable real omics professional workflow."
+    },
+    "outputs_are_refs_only_candidates": true,
+    "can_claim_owner_acceptance": false,
+    "can_claim_publication_readiness": false,
+    "can_create_typed_blocker": false
+  },
+  "authority_boundary": {
+    "adoption_can_claim_domain_ready": false,
+    "adoption_can_claim_production_ready": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_create_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "mas_can_externalize_study_truth_to_scholarskills": false,
+    "generated_surface_or_conformance_can_claim_domain_ready": false,
+    "provider_completion_can_claim_paper_progress": false,
+    "intake_skill_is_independent_authority": false
+  }
+}

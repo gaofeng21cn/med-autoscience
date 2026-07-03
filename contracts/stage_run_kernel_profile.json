@@ -138,7 +138,7 @@
     "advisory_refs_can_block_launch": false
   },
   "default_read_surface": {
-    "root": "stage_run_next_action_envelope",
+    "root": "stage_run_current_owner_delta",
     "raw_worklist_default": false,
     "readiness_default": false,
     "replay_packet_default": false
