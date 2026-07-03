@@ -7,11 +7,14 @@ description: Use when a quest needs a polished milestone chart, paper-facing fig
 
 Use this skill when a figure matters beyond transient debugging.
 
-## MAS Stage Projection Boundary
+## MAS Stage Projection Boundary (not Professional Skill source)
 
 This file is the MAS-owned figure-stage polish/runtime projection for Codex
-discovery, not the source of truth for professional figure-design skill content.
-It remains the polish/review phase of the MAS `figure` stage prompt and is not an independent authority source. For new or materially reworked paper-facing figures, start with the `figure` stage prompt and use `medical-figure-design` for professional design and visual QA patterns.
+discovery. It is not the Professional Skill source for figure-design content.
+It remains the polish/review phase of the MAS `figure` stage prompt and is not an independent authority source.
+For new or materially reworked paper-facing figures, start with the `figure`
+stage prompt and route professional design and visual QA through
+`contracts/capability_map.json` to `medical-figure-design`.
 
 ## Stage Contract
 

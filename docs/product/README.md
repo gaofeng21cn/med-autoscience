@@ -37,19 +37,15 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 ## MAS Stage 主提示词与专业 Skill 单源
 
-医学论文写作、审稿和图件的流程主入口是 MAS 本仓维护的 stage 主提示词/策略。canonical repo source 是 `agent/stages/` + `agent/prompts/`；产品语义中的 `write`、`review` 和 `figure` 负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。
+MAS 只维护 stage 主提示词/策略和 stage projection：canonical repo source 是 `agent/stages/` + `agent/prompts/`；`write`、`review`、`figure` 等 stage 负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。`src/med_autoscience/overlay/templates/*.SKILL.md` 与运行时 `.codex/skills/medical-research-*` 只是 Codex discovery 兼容投影，不是 stage source，也不是 professional specialist skill source。
 
-`src/med_autoscience/overlay/templates/*.SKILL.md` 与运行时 `.codex/skills/medical-research-*` 是 Codex 自动发现兼容投影，不是 stage 主提示词源头，也不是 professional specialist skill 源头。
+professional specialist skill 单源在外部 `mas-scholar-skills` 仓库。MAS 侧只在 `contracts/capability_map.json` 保留消费边界和 route index，指向八个核心专业 Skill：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`。这些 Skill 通过 OPL Connect 同步到 workspace 或 quest，产物默认只是 candidate refs、execution receipts、route-back hints 或 owner-gate requests。
 
-医学论文写作、审稿、图件设计、文献检索、统计审阅、表格设计、投稿准备和临床数据治理的专业正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`。
+当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 决定当前工作能不能推进和交给谁；专业 Skill 做专业候选产物；工具/Fabric 做检索、渲染、检查和候选包生成。前三者都不写 MAS truth；最终接受、退回、阻塞或 human gate 只由 MAS owner surface 决定。
 
-当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成。前三段默认都是 no-authority surface；最终是否接受、退回、阻塞或交给 human gate，只由 MAS owner surface 决定。
+默认先用 `mas-scholar-skills` 八个核心专业 Skill 覆盖常规医学论文需求。罕见重型专科工具缺口才通过 `external-scientific-skills` 走 OPL Connect `external-skills search -> inspect -> sync`，触发条件限于用户显式点名工具/数据库、核心 Skill route-back 命名缺口、stage policy 判定八个核心 Skill 不足，或联网/云计算/敏感数据路径需要 policy/approval。K-Dense 和其他外部目录只作为 refs-only pattern/advisory，不是 MAS 权威源。
 
-默认调用顺序是先用 `mas-scholar-skills` 八个核心专业 Skill 覆盖常规医学论文需求。只有出现罕见、重型或专科科学能力缺口时，才通过 Codex discovery helper `external-scientific-skills` 指向 OPL Connect 的 external-skills 面执行 `search -> inspect -> sync`，例如显式需要 `scanpy`、`pydeseq2`、pathway enrichment、Nextflow、RDKit、PyHealth 或同等级专科工具/数据库。触发条件必须是用户显式点名工具/数据库、核心 Skill route-back 明确要求、stage policy 判断八个核心 Skill 不足，或涉及联网、云计算、敏感数据而需要 policy/approval。MAS 不全量加载外部技能库，也不把 K-Dense 或其他外部目录写成 MAS 权威源。
-
-K-Dense BYOK 只作为 OPL product pattern 参考，并已折到 `build_kdense_byok_pattern_advisory` 的 refs-only worker：workflow templates 对应 Stagecraft recipe catalog，database list 对应 Atlas/source-ref candidate catalog，scientific specialists 对应 Codex specialist roster 与独立 reviewer lanes，file preview / LaTeX / PDF / file tree 对应 Workspace / Vault / Console display pattern，cost ledger 对应 Vault budget receipt，interview form 对应 MAS human-gate schema，MCP / Modal 对应 Connect / Runway policy，OpenRouter Fusion 只对应 watch-only reviewer briefing。MAS product surface 不依赖 K-Dense/Pi runtime，不把 K-Dense app、workflow、database、specialist、Fusion panel 或 UI preview 写成 study truth、paper progress、quality verdict、owner receipt、typed blocker、human gate、publication-ready 或 `current_package` authority；Codex CLI 仍是 OPL harness，所有这类输入默认 refs-only / no-authority。
-
-文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` specialist 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
+文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
 `medical-research-figure-polish` 只保留为 `figure` stage 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `figure` stage 主提示词和 `medical-figure-design` 专业 skill，保持一个 MAS-owned 图件流程入口。
 

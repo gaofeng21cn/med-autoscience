@@ -8,13 +8,14 @@ description: Use when a MedAutoScience study needs bounded follow-up analysis to
 Use this stage prompt when MAS routes the current work unit to
 `analysis-campaign`.
 
-## MAS Stage Projection Boundary
+## MAS Stage Projection Boundary (not Professional Skill source)
 
-This file is the MAS-owned stage/runtime projection for Codex discovery, not
-the source of truth for statistical, data-governance, table, figure, or
-literature method playbooks. It decides the bounded route question, required
-inputs, allowed output refs, route-back, and owner gate. Use MAS Scholar Skills
-for professional methods.
+This file is the MAS-owned stage/runtime projection for Codex discovery. It is
+not the Professional Skill source for statistical, data-governance, table,
+figure, literature, or method playbooks. It decides the bounded route question,
+required inputs, allowed output refs, route-back, and owner gate. Route
+professional work through `contracts/capability_map.json` to MAS Scholar
+Skills; do not duplicate specialist playbooks here.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 

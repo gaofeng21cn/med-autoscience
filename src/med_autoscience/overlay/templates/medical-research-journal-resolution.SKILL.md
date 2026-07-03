@@ -8,13 +8,13 @@ description: Use when a submission target does not already map to a supported ex
 Use this stage prompt when MAS routes an unresolved journal target to
 `journal-resolution`.
 
-## MAS Stage Projection Boundary
+## MAS Stage Projection Boundary (not Professional Skill source)
 
 This file is the MAS-owned submission-stage/runtime projection for Codex
-discovery, not the source of truth for professional submission-prep skill
-content. It resolves official venue requirements into MAS-owned durable refs.
-Use `medical-submission-prep` for professional submission package patterns only
-after the target requirements are resolved.
+discovery. It is not the Professional Skill source for submission-prep content.
+It resolves official venue requirements into MAS-owned durable refs. Route
+professional package patterns through `contracts/capability_map.json` to
+`medical-submission-prep` only after the target requirements are resolved.
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 

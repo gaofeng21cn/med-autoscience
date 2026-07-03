@@ -7,14 +7,14 @@ description: MAS figure stage operating prompt for claim-bound medical figure pl
 
 Use this stage prompt when MAS routes the current work unit to `figure`.
 
-## MAS Stage Projection Boundary
+## MAS Stage Projection Boundary (not Professional Skill source)
 
-This file is the MAS-owned stage/runtime projection for Codex discovery, not
-the source of truth for professional figure-design skill content. It decides
-whether a figure should exist, what claim and evidence it must carry, which
-artifact surfaces may change, and which owner gate must accept the result. Use
-`medical-figure-design` from MAS Scholar Skills for professional figure design
-and visual QA patterns.
+This file is the MAS-owned stage/runtime projection for Codex discovery. It is
+not the Professional Skill source for figure-design content. It decides whether
+a figure should exist, what claim and evidence it must carry, which artifact
+surfaces may change, and which owner gate must accept the result. Route
+professional design and visual QA through `contracts/capability_map.json` to
+`medical-figure-design` from MAS Scholar Skills.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 

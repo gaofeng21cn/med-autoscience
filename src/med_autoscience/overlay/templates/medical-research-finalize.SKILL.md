@@ -7,14 +7,14 @@ description: Use when the quest is ready to consolidate final claims, limitation
 
 Use this stage prompt when MAS routes the current work unit to `finalize`.
 
-## MAS Stage Projection Boundary
+## MAS Stage Projection Boundary (not Professional Skill source)
 
-This file is the MAS-owned finalize/runtime projection for Codex discovery, not
-the source of truth for professional submission, writing, review, figure, table,
-statistics, literature, or data-governance skill content. It decides whether the
-line can close, pause, hand off, or route back; professional methods route to
-MAS Scholar Skills and remain refs-only candidates until MAS owner gate accepts
-them.
+This file is the MAS-owned finalize/runtime projection for Codex discovery. It
+is not the Professional Skill source for submission, writing, review, figure,
+table, statistics, literature, or data-governance content. It decides whether
+the line can close, pause, hand off, or route back; professional methods route
+through `contracts/capability_map.json` to MAS Scholar Skills and remain
+refs-only candidates until MAS owner gate accepts them.
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
