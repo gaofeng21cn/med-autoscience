@@ -12,6 +12,10 @@ SURFACE_KIND = "research_integrity_review_publication_gate_stage_hook"
 SCHEMA_VERSION = 1
 HOOK_ID = "research-integrity-review-publication-gate-stage-hook"
 TRIGGERED_ACTION = "research-integrity-reference-verification"
+TARGET_STAGE_IDS = (
+    "review_and_quality_gate",
+    "finalize_and_publication_handoff",
+)
 TRIGGER_POINTS = (
     "reference_list_entered",
     "manuscript_closeout_entered",
@@ -22,6 +26,14 @@ REQUIRED_GATE_INPUT_SURFACES = (
     "reference_verification_attestations",
     "claim_citation_support_matrix_v2",
     "manuscript_consistency_meta_review",
+)
+LOOKUP_PROVIDERS = (
+    "crossref",
+    "pubmed",
+    "openalex",
+    "semantic_scholar",
+    "publisher",
+    "crossmark",
 )
 FORBIDDEN_AUTHORITY_FLAGS = (
     "can_write_mas_study_truth",
@@ -56,9 +68,14 @@ def build_review_publication_gate_stage_hook_payload(
         "schema_version": SCHEMA_VERSION,
         "hook_id": HOOK_ID,
         "hook_role": "mandatory_review_publication_gate_input",
+        "target_stage_ids": list(TARGET_STAGE_IDS),
+        "stage_obligation": stage_obligation(),
         "stage_hook_consumers": ["review_gate", "publication_gate"],
         "trigger_points": list(TRIGGER_POINTS),
         "triggered_action": TRIGGERED_ACTION,
+        "triggered_opl_connect_provider_lookup_contract": (
+            triggered_opl_connect_provider_lookup_contract()
+        ),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
         "status": reference_verification["status"],
         "stage_context": _stage_context(payload),
@@ -70,6 +87,44 @@ def build_review_publication_gate_stage_hook_payload(
         "blocker_candidates": reference_verification["blocker_candidates"],
         "review_candidates": reference_verification["review_candidates"],
         "authority_boundary": authority_boundary(),
+    }
+
+
+def stage_obligation() -> dict[str, Any]:
+    return {
+        "surface_kind": "research_integrity_stage_hook_obligation",
+        "schema_version": SCHEMA_VERSION,
+        "hook_id": HOOK_ID,
+        "command": HOOK_ID,
+        "obligation_level": "mandatory",
+        "hook_role": "mandatory_review_publication_gate_input",
+        "target_stage_ids": list(TARGET_STAGE_IDS),
+        "trigger_points": list(TRIGGER_POINTS),
+        "triggered_action": TRIGGERED_ACTION,
+        "triggered_opl_connect_provider_lookup_contract": (
+            triggered_opl_connect_provider_lookup_contract()
+        ),
+        "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
+        "mandatory_gate_input": True,
+        "live_owner_consumption_claimed": False,
+        "authority_boundary": authority_boundary(),
+        "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
+    }
+
+
+def triggered_opl_connect_provider_lookup_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_connect_provider_lookup_contract",
+        "schema_version": SCHEMA_VERSION,
+        "owner": "OPL connector substrate",
+        "triggered_by_hook_id": HOOK_ID,
+        "triggered_action": TRIGGERED_ACTION,
+        "lookup_providers": list(LOOKUP_PROVIDERS),
+        "provider_receipt_consumed_by": TRIGGERED_ACTION,
+        "mandatory_gate_input_only": True,
+        "live_owner_consumption_claimed": False,
+        "can_write_provider_attempt": False,
+        "can_write_runtime_queue": False,
     }
 
 
@@ -110,11 +165,15 @@ def _stage_context(payload: Mapping[str, Any]) -> dict[str, str]:
 __all__ = [
     "FORBIDDEN_AUTHORITY_FLAGS",
     "HOOK_ID",
+    "LOOKUP_PROVIDERS",
     "REQUIRED_GATE_INPUT_SURFACES",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
+    "TARGET_STAGE_IDS",
     "TRIGGERED_ACTION",
     "TRIGGER_POINTS",
     "authority_boundary",
     "build_review_publication_gate_stage_hook_payload",
+    "stage_obligation",
+    "triggered_opl_connect_provider_lookup_contract",
 ]

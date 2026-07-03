@@ -68,6 +68,82 @@
       ]
     }
   },
+  "stage_hook_obligation": {
+    "surface_kind": "research_integrity_stage_hook_obligation",
+    "schema_version": 1,
+    "hook_id": "research-integrity-review-publication-gate-stage-hook",
+    "command": "research-integrity-review-publication-gate-stage-hook",
+    "obligation_level": "mandatory",
+    "hook_role": "mandatory_review_publication_gate_input",
+    "target_stage_ids": [
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
+    "trigger_points": [
+      "reference_list_entered",
+      "manuscript_closeout_entered",
+      "review_gate_entered",
+      "publication_gate_entered"
+    ],
+    "triggered_action": "research-integrity-reference-verification",
+    "triggered_opl_connect_provider_lookup_contract": {
+      "surface_kind": "opl_connect_provider_lookup_contract",
+      "schema_version": 1,
+      "owner": "OPL connector substrate",
+      "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
+      "triggered_action": "research-integrity-reference-verification",
+      "lookup_providers": [
+        "crossref",
+        "pubmed",
+        "openalex",
+        "semantic_scholar",
+        "publisher",
+        "crossmark"
+      ],
+      "provider_receipt_consumed_by": "research-integrity-reference-verification",
+      "mandatory_gate_input_only": true,
+      "live_owner_consumption_claimed": false,
+      "can_write_provider_attempt": false,
+      "can_write_runtime_queue": false
+    },
+    "required_gate_input_surfaces": [
+      "reference_verification_attestations",
+      "claim_citation_support_matrix_v2",
+      "manuscript_consistency_meta_review"
+    ],
+    "mandatory_gate_input": true,
+    "live_owner_consumption_claimed": false,
+    "authority_boundary": {
+      "outputs_are_gate_inputs": true,
+      "surface_authority": "mandatory_stage_hook_gate_input_only",
+      "can_request_provider_lookup": true,
+      "can_write_mas_study_truth": false,
+      "can_write_publication_eval_latest": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_mutate_current_package": false,
+      "can_write_current_package": false,
+      "can_sign_owner_receipt": false,
+      "can_write_owner_receipt": false,
+      "can_materialize_typed_blocker": false,
+      "can_write_typed_blocker": false,
+      "can_materialize_human_gate": false,
+      "can_write_runtime_queue_or_provider_attempt": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_publication_readiness": false,
+      "can_authorize_submission_readiness": false
+    },
+    "completion_boundary": {
+      "non_live_callable_stage_obligation_can_claim": true,
+      "live_owner_consumption_claimed": false,
+      "live_truth_requires": [
+        "OPL Connect provider readback or receipt",
+        "MAS owner surface consumption",
+        "AI reviewer or publication gate receipt",
+        "runtime or artifact readback for the exact study work unit"
+      ]
+    }
+  },
   "entry_surfaces": [
     {
       "surface_kind": "reference_verification_attestation",

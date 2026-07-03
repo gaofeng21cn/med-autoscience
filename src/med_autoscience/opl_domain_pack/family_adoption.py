@@ -692,7 +692,21 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
     selected_executor = _selected_executor(stage_id)
     if selected_executor is not None:
         stage_descriptor["selected_executor"] = selected_executor
+    mandatory_stage_hook_obligations = _mandatory_stage_hook_obligations(stage_id)
+    if mandatory_stage_hook_obligations:
+        stage_descriptor["mandatory_stage_hook_obligations"] = mandatory_stage_hook_obligations
     return stage_descriptor
+
+
+def _mandatory_stage_hook_obligations(stage_id: str) -> list[dict[str, Any]]:
+    from med_autoscience.research_integrity.stage_hooks import (
+        TARGET_STAGE_IDS as RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS,
+        stage_obligation as research_integrity_stage_obligation,
+    )
+
+    if stage_id not in RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS:
+        return []
+    return [research_integrity_stage_obligation()]
 
 
 def _stage_expected_receipt_refs(stage_id: str) -> list[dict[str, str]]:
