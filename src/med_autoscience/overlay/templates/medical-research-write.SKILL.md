@@ -46,6 +46,17 @@ Use `medical-manuscript-writing` when the work needs:
 - figure/table narrative binding;
 - reviewer-facing prose or response text.
 
+Route adjacent professional work to sibling MAS Scholar Skills instead of
+embedding their methods here:
+
+- `medical-research-lit` for citation/library candidates;
+- `medical-statistical-review` for statistical wording or numeric trace;
+- `medical-table-design` for table narrative and table-ready evidence;
+- `medical-figure-design` for figure-to-claim narrative checks;
+- `medical-data-governance` for source lineage and Data Availability refs;
+- `medical-submission-prep` for journal-package prose only after target refs
+  exist.
+
 The specialist skill may prepare candidate text, ref maps, and route-back
 recommendations. MAS remains the owner for manuscript truth, artifact mutation,
 owner receipts, typed blockers, human gates, current package, and publication

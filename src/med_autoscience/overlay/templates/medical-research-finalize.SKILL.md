@@ -5,461 +5,93 @@ description: Use when the quest is ready to consolidate final claims, limitation
 
 # Finalize
 
-Use this skill to close or pause a quest responsibly.
+Use this stage prompt when MAS routes the current work unit to `finalize`.
 
-## Interaction discipline
+## MAS Stage Projection Boundary
 
-- Follow the shared interaction contract injected by the system prompt.
-- For ordinary active work, prefer a concise progress update once work has crossed roughly 6 tool calls with a human-meaningful delta, and do not drift beyond roughly 12 tool calls or about 8 minutes without a user-visible update.
-- If the runtime starts an auto-continue turn with no new user message, keep finalizing from the durable quest state and active requirements instead of replaying the previous user turn.
-- If a threaded user reply arrives, interpret it relative to the latest finalize progress update before assuming the task changed completely.
-- When finalize reaches a real closure state, pause-ready packet, or route-back decision, send one threaded `artifact.interact(kind='milestone', ...)` update that names the recommendation, why it is the right call, and any reopen condition that still matters.
-- In MAS-managed autonomous mode, do not open runtime completion approval. Finalize should materialize closure evidence and completion handoff is decided by MAS outer loop.
-- If the startup contract explicitly requires program-level human confirmation, stop at a MAS-visible blocker instead of emitting a direct runtime approval request.
-- New user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone reopens the same study line. Do not close by polishing `manuscript/current_package/`; route back through durable revision intake and OPL provider attempt hydration/resume from MAS owner refs.
-
-Before final package readiness, apply [medical stage packet discipline](./medical-research-stage-packet.block.md): verify submission-facing truth, artifact freshness, declarations, unresolved human gates, and the exact resume or delivery point.
-
-
-## Stage purpose
-
-The finalize stage should not pretend every line succeeded.
-It should produce the most accurate final state of the quest:
-
-- what is supported
-- what is only partially supported
-- what failed
-- what remains open
-- whether the right move is stop, archive, publish, or continue later
-
-Finalize is not just a short summary.
-It is the durable closure protocol that turns a long-running research graph into a recoverable stopping point, a publishable handoff, or an honest continue-later checkpoint.
-
-In this runtime, `human-auditable` does not mean the human should manually reconstruct quest state from raw artifacts.
-Finalize should leave a clean durable closure surface that a human can inspect directly through summary, report, claim ledger, and final delivery outputs.
-
-## Stage contract
-
-- Purpose: materialize an honest closure, publish, or continue-later surface.
-- Minimum credible work: refresh the final claim ledger, record the closure recommendation, and leave a resume or handoff surface that a reviewer can inspect directly.
-- Stop when: the closure surface is auditable, or a reopen blocker is explicit enough to name the route back.
-- Route back: if package adequacy, submission readiness, or evidence strength is still unresolved, record the blocker and route through `decision`, then continue to `write` or the named upstream stage.
-
-## Medical closure owner boundary
-
-Finalize reads `study_charter`, the current claim-evidence surfaces, and the latest `review_ledger` as one contract before making a closure recommendation.
-
-Use the readiness labels with strict scope:
-
-- `draft-ready`: an internal writing checkpoint that is strong enough for skeptical review
-- `paper-ready`: writing and review surfaces agree on claim wording, route-back debt is explicit, and the package is stable enough for final closure audit
-- `submission-ready`: the line is `paper-ready`, submission gates and submission hygiene are passed, and the package is ready for the human pre-submission audit
-
-MedAutoScience owns the final medical manuscript recommendation, downgrade history, submission hygiene summary, runtime evidence, and artifact provenance.
-Historical MedDeepScientist material can only contribute as source provenance, historical fixture, or explicit archive import reference evidence when it is directly cited by a MAS-owned surface.
-
-## Use when
-
-- the evidence base is stable enough for a final recommendation
-- the writing line is sufficiently complete
-- the user asked for a final summary or closure
-- the quest should be paused or archived with a clean state
-
-## Do not use when
-
-- major evidence gaps are still unresolved
-- the current line obviously needs another experiment or analysis pass
-- the quest is still in exploratory ideation
-
-## Preconditions and gate
-
-Before finalizing, gather:
-
-- latest baseline state
-- latest accepted run and analysis state
-- latest writing state
-- latest decisions and open blockers
-- latest quest documents
-- latest review / proofing / submission state when a paper bundle exists
-- active writing contract fields (`writing_profile`, `submission_minimal_required`) when the line entered `write` or `finalize`
-- latest `submission_minimal` status when any closure path may be interpreted as submission-ready
-- the paper bundle manifest and its referenced paths when the quest has a paper-like deliverable
-
-If finalization reveals that the quest is still too uncertain, route back through `decision` rather than forcing closure.
-
-## Truth sources
-
-Use:
-
-- `SUMMARY.md`
-- latest decisions
-- baseline artifacts
-- run artifacts
-- analysis reports
-- writing outputs
-- review, proofing, and submission outputs when they exist
-- Git history and graph
-- durable literature notes already produced during the quest
-- outputs or notes gathered through `artifact.arxiv(...)` when final claim checks require rereading an arXiv paper
-
-Do not finalize from chat memory alone.
+This file is the MAS-owned finalize/runtime projection for Codex discovery, not
+the source of truth for professional submission, writing, review, figure, table,
+statistics, literature, or data-governance skill content. It decides whether the
+line can close, pause, hand off, or route back; professional methods route to
+MAS Scholar Skills and remain refs-only candidates until MAS owner gate accepts
+them.
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 
-## Research Harness clean-room boundary
-
-Research Harness is only a clean-room template lesson for this skill.
-It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
-Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
-
-## Closure blocker semantics
-
-Finalize must name blockers instead of converting an incomplete paper surface into a closure label:
-
-- `numeric_trace_blocker`: any final claim, table, figure, abstract number, cohort count, event count, interval, p-value, model metric, or threshold without a durable numeric trace blocks paper-bundle closure for that claim.
-- `claim_evidence_blocker`: if `paper/claim_evidence_map.json` or the equivalent final claim ledger is missing, stale, or still contains unsupported active main-text claims, finalize records a blocked closure and routes back through `decision` or `write`.
-- `display_to_claim_blocker`: if main-text displays and active claims are not mutually bound through current figure/table catalogs and claim ids, finalize cannot label the bundle paper-ready or submission-ready.
-- `reporting_guideline_gate`: if the required reporting checklist is absent or failed, finalize records the failed guideline gate and does not recommend submission-ready closure.
-
-## Required durable outputs
-
-The finalize stage should usually leave behind:
-
-- refreshed `SUMMARY.md`
-- refreshed `status.md`
-- final report artifact
-- final decision artifact
-- refreshed Git graph
-- explicit limitations and next-step recommendation
-- a final claim ledger or equivalent claim-status summary
-- a compact resume packet or handoff packet when later continuation is plausible
-- a `submission_minimal` verification result when the recommendation is submission-ready
-
-Do not treat raw file presence as sufficient closure.
-If the human would still need to infer the quest state by opening many intermediate artifacts manually, finalize is not done yet.
-
-If the quest produced a paper-style bundle, finalization should also check that the writing stage left behind enough closure evidence, such as:
-
-- selected outline and outline selection records
-- review output
-- proofing output
-- submission or packaging checklist
-- final draft or bundle manifest
-
-## Workflow
-
-### 1. Consolidate the accepted evidence and package inventory
-
-State clearly:
-
-- accepted baseline
-- strongest supported claims
-- weaker or partial claims
-- important negative results
-- unresolved risks
-- key deliverables that exist and where they live
-
-Do not only say that evidence exists.
-Say clearly what exists and why it matters. Name concrete paths or artifact ids only when the user asks for them or needs them to act.
-When a paper bundle exists, verify the manifest inventory explicitly, including:
-
-- `paper/paper_bundle_manifest.json`
-- the recorded `paper_branch` and source evidence branch / run fields in that manifest
-- referenced `outline_path`
-- referenced `draft_path`
-- referenced `writing_plan_path`
-- referenced `references_path`
-- referenced `claim_evidence_map_path`
-- referenced `baseline_inventory_path`
-- referenced `compile_report_path`
-- referenced `pdf_path`
-- referenced `latex_root_path`
-- referenced `submission_minimal_path` when `submission_minimal_required = true`
-- `release/open_source/manifest.json` when open-source preparation has started
-- `release/open_source/cleanup_plan.md` when the paper line is being prepared for a public code release
-
-### 2. Build the final claim ledger
-
-For every important outcome, classify it as one of:
-
-- supported
-- partially supported
-- unsupported
-- deferred
-
-For each claim, record:
-
-- claim text or claim id
-- evidence paths
-- key caveats
-- whether it is safe to surface in summaries or papers
-
-If a claim was once believed and later weakened, preserve that downgrade history rather than silently deleting it.
-
-Also build a compact belief-change log for the most important claim transitions, such as:
-
-- supported -> partial
-- partial -> unsupported
-- promising route -> abandoned
-- draft-ready -> evidence-gap
-
-For each transition, record:
-
-- what changed
-- which evidence caused the change
-- what the new recommendation is
-
-### 3. Produce a final limitations and failure section
-
-Limitations should include:
-
-- data or split limitations
-- metric limitations
-- implementation limitations
-- robustness limitations
-- reproducibility risks
-- claims intentionally not made
-
-Also preserve:
-
-- failed branches that meaningfully changed the research direction
-- blocked items that remain unresolved
-- confounders or comparability issues that weaken confidence
-- handoff cautions for anyone resuming the quest later
-
-### 4. Produce the final recommendation
-
-Choose the most honest next recommendation, such as:
-
-- stop and archive
-- stop and publish
-- continue later with a targeted experiment
-- continue later with a targeted analysis campaign
-- reset the current line and revisit ideation
-
-The recommendation should include:
-
-- the chosen action
-- why that action is appropriate now
-- what evidence most strongly supports it
-- what would have to become true to justify a different recommendation
-
-When deciding whether the quest is publish-ready or only archive-ready, be explicit about which writing or validation gates have actually passed.
-
-### 4.1 Submission-ready hard gate
-
-If the recommendation is submission-ready (including stop-and-publish), require all of:
-
-- `submission_minimal_required = true` is durably recorded in the active writing contract
-- `citation_style = AMA` is durably recorded in the active writing contract unless an explicit override exists
-- `submission_minimal` exists and has `status = passed`
-- terminology-redline checks passed for manuscript body text, figure titles, and captions
-
-If any item above is missing or failed, do not label the quest submission-ready.
-Record a blocked finalize state and route through `decision` with the missing gate clearly named.
-
-### 4.2 Manuscript-adequacy hard gate
-
-If the recommendation would ask for explicit quest-completion approval, require all of:
-
-- `paper/claim_evidence_map.json` exists and every non-deferred main-text claim's `display_bindings` are materialized in the current figure/table catalogs
-- `paper/results_narrative_map.json` and `paper/figure_semantics_manifest.json` remain aligned with the materialized display package; do not accept a bundle that silently drops a still-bound main-text figure
-- appendix-only displays do not compensate for missing main-text claim surfaces
-- a frozen bundle is described as `package complete` only when that is all you know; do not translate package completeness into manuscript adequacy without the checks above
-
-If any item above fails, do not request completion approval.
-Route back to `write` or `decision` with the manuscript-adequacy blocker named explicitly.
-
-### 5. Build a resume or handoff packet
-
-If the quest may continue later, leave behind a compact restart packet that answers:
-
-- where the strongest evidence is
-- what the current accepted baseline is
-- what the current preferred route is
-- what the top blockers are
-- what should be read first on resume
-- what should not be repeated
-
-This packet should be short, high-signal, and directly usable by a future agent turn.
-
-### 6. Refresh the durable quest view
-
-Refresh:
-
-- `SUMMARY.md`
-- `status.md`
-- Git graph export
-
-If the summary changes materially, make it clear why the quest is now considered final or paused.
-
-When summarizing long histories, prefer the highest-impact findings and decisions rather than a full chronological replay.
-
-### 7. Record the final decision
-
-The final stage should end with an explicit durable decision or report rather than an implied stopping point.
-If multiple closure options were available, record why the chosen one beat the alternatives.
-
-## Finalization-quality rules
-
-Good finalization:
-
-- distinguishes supported findings from hopes
-- preserves negative evidence
-- names open questions honestly
-- leaves a clean state for later resumption
-- exposes whether writing/proofing/submission gates passed or failed
-- makes reopen conditions explicit
-
-Weak finalization:
-
-- overclaims unresolved work
-- hides failed branches
-- skips limitations
-- leaves no clear recommendation
-- claims “done” without showing what is actually done
-- drops the package or file inventory needed for resumption
-
-## Memory rules
-
-Stage-start requirement:
-
-- begin every finalize pass with `memory.list_recent(scope='quest', limit=5)`
-- then run at least one finalize-relevant `memory.search(...)` before closure writing
-- if several idea, run, or campaign lines exist, retrieve only the memory tied to the line being finalized unless the final report is explicitly comparing lines
-
-Finalize should read memory before writing closure, especially:
-
-- quest `decisions`
-- quest `knowledge`
-- quest `episodes`
-- quest `papers` when the final story depends on citation or literature context
-
-If final closure depends on rereading a paper, keep the same split:
-
-- use web search only to relocate or verify the paper reference
-- use `artifact.arxiv(paper_id=..., full_text=False)` for the actual paper reading or refresh
-- switch to `full_text=True` only when the shorter view is insufficient
-
-Write to memory only when the lesson is reusable across quests, such as:
-
-- general methodological pitfalls
-- robust baseline lessons
-- durable writing or evaluation lessons
-
-Stage-end requirement:
-
-- if finalize produced a durable cross-quest lesson worth reusing later, write at least one `memory.write(...)` before leaving the stage
-
-Quest-specific closure state belongs in files and artifacts first, not only memory.
-
-## Artifact rules
-
-Typical final artifacts:
-
-- report artifact summarizing final state
-- decision artifact indicating stop, archive, or continue-later recommendation
-- graph artifact via `artifact.render_git_graph()`
-
-Good final artifacts often include:
-
-- a final report focused on supported findings, limitations, and packaging state
-- a final decision with action, reasons, and reopen conditions
-- a graph export when the path through the quest matters for later resumption
-- a milestone only when a human-facing checkpoint helps
-
-## MedAutoScience study delivery contract
-
-For study-backed medical quests with a paper-bundle closure, finalize is not complete when the closure files exist only inside the paper worktree.
-
-Before treating a paper-style closure as archive-with-bundle or submission-ready, promote the finalized package into the study shallow delivery path.
-
-Trigger this contract when finalize has already produced or refreshed all of:
-
-- `SUMMARY.md`
-- `status.md`
-- `paper/final_claim_ledger.md`
-- `paper/finalize_resume_packet.md`
-- `paper/paper_bundle_manifest.json`
-- `paper/build/compile_report.json`
-- `paper/submission_minimal/audit/submission_manifest.json`
-
-Required action:
-
-1. Let `paper_root` be the active paper directory and `worktree_root = paper_root.parent`.
-2. Resolve `quest_root = worktree_root.parents[2]` and `workspace_root = quest_root.parents[4]`.
-3. Require the workspace wrapper `${workspace_root}/ops/medautoscience/bin/sync-delivery` to exist.
-4. Execute:
-
-```bash
-"${workspace_root}/ops/medautoscience/bin/sync-delivery" --paper-root "${paper_root}" --stage finalize
-```
-
-5. Verify the shallow delivery path now contains at least:
-   - `studies/<study-id>/manuscript/delivery_manifest.json`
-   - `studies/<study-id>/manuscript/SUMMARY.md`
-   - `studies/<study-id>/manuscript/status.md`
-   - `studies/<study-id>/manuscript_claim_ledger.md`
-   - `studies/<study-id>/manuscriptize_resume_packet.md`
-   - `studies/<study-id>/artifacts/final/paper_bundle_manifest.json`
-   - `studies/<study-id>/artifacts/final/compile_report.json`
-6. Treat the formal paper delivery as incomplete until that sync has succeeded and the copied files are verifiably present.
-
-Blocked handling for this contract:
-
-- if the wrapper is missing, record `missing_study_delivery_wrapper`
-- if the sync command fails, record `final_delivery_sync_failed`
-- if the delivery manifest or copied shallow-path files are missing after the command, record `final_delivery_manifest_missing`
-
-Do not silently skip this promotion step when the finalized line includes a paper bundle plus `paper/submission_minimal/audit/submission_manifest.json`.
-Manual repair is allowed only by rerunning the same workspace wrapper; a human reminder or prose note is not a substitute for the actual sync.
-
-## Failure and blocked handling
-
-If finalization is premature, record that explicitly.
-
-Common blocked finalize states:
-
-- unresolved_major_claim
-- unresolved_write_gate
-- missing_proofing_or_submission_checks
-- missing_submission_minimal
-- submission_minimal_failed
-- unclear_final_recommendation
-- missing_handoff_packet
-- stale_summary_or_graph
-- unresolved_package_inventory
-- missing_study_delivery_wrapper
-- final_delivery_sync_failed
-- final_delivery_manifest_missing
-
-In that case, route back to the proper stage through `decision`.
-
-## Extra references
-
-Use these references when you need a denser closure checklist:
-
-- `references/finalization-checklist.md`
-- `references/resume-packet-template.md`
-
-## Exit criteria
-
-Exit the finalize stage once one of the following is durably true:
-
-- a final or pause-ready summary exists
-- the graph is refreshed
-- the limitations and recommendation are explicit
-- the stopping point is recorded through artifact
-- the claim ledger and package inventory are clear enough for later resumption or publication handoff
-
-For any submission-ready recommendation, also require:
-
-- `submission_minimal_required = true` is durably recorded
-- `submission_minimal` is present and `passed`
-- terminology-redline compliance is explicitly marked as passed
-
-For any study-backed paper closure that already has `paper/submission_minimal/audit/submission_manifest.json`, also require:
-
-- shallow-path study delivery sync has passed for `--stage finalize`
+## Stage Contract
+
+Before finalizing, confirm:
+
+- active study/work-unit identity and controller route;
+- current claim-evidence ledger, review ledger, publication eval, controller
+  decision, artifact rebuild proof, and human gate state;
+- canonical manuscript, figure, table, supplement, response, delivery manifest,
+  package freshness, and source-readiness refs when present;
+- whether the result is stop/archive, continue-later, paper handoff, or
+  submission-prep route-back.
+
+## Professional Skill Routes
+
+Route professional detail to MAS Scholar Skills:
+
+- `medical-submission-prep` for package, checklist, cover letter, highlight,
+  graphical abstract, response material, and portal handoff candidates.
+- `medical-manuscript-review` for final adversarial critique and route-back
+  candidates.
+- `medical-manuscript-writing` for last-mile candidate prose repair.
+- `medical-research-lit` for citation/export and source-support candidates.
+- `medical-statistical-review` for final numeric trace and statistical reporting
+  candidates.
+- `medical-table-design` and `medical-figure-design` for table/figure export,
+  display-to-claim, and visual QA candidates.
+- `medical-data-governance` for Data Availability, FAIR metadata, access,
+  privacy, source-lineage, and source-readiness candidates.
+
+## MAS Stage Responsibilities
+
+- Keep closure labels scoped: `draft-ready`, `paper-ready`, and
+  `submission-ready` require the matching MAS owner evidence.
+- Preserve supported, partially supported, unsupported, deferred, weakened, and
+  failed-path claims in a final claim or closure surface.
+- Name blockers instead of converting incomplete paper/package state into a
+  closure label.
+- Keep external submission, PI strategy, portal credentials, claim expansion, and
+  journal strategy human-gated.
+- When a study-backed paper closure already includes
+  `paper/submission_minimal/audit/submission_manifest.json`, require the
+  workspace `sync-delivery --stage finalize` path or return the named delivery
+  sync blocker.
+
+## Forbidden Shortcuts
+
+- Do not finalize from chat memory, package/file presence, provider completion,
+  specialist output, or checklist pass alone.
+- Do not label a line `submission-ready` without current submission-minimal,
+  terminology-redline, independent-review, source, artifact, and package
+  authority refs required by MAS.
+- Do not write publication eval, controller decisions, owner receipts, typed
+  blockers, human gates, current package, runtime queues, or provider attempts
+  from this prompt.
+
+## Closeout Shape
+
+Return one of:
+
+- `final_or_pause_ready_summary_ref`;
+- `final_claim_ledger_ref`;
+- `publication_handoff_candidate_ref`;
+- `continue_later_resume_packet_ref`;
+- `submission_package_route_back_ref`;
+- `missing_study_delivery_wrapper_ref`;
+- `final_delivery_sync_failed_ref`;
+- `final_delivery_manifest_missing_ref`;
+- `owner_gate_handoff_ref`;
+- `human_gate_request_ref` when a real human decision is required.
+
+## Exit Criteria
+
+Exit only when closure/handoff refs are current and auditable, or the receipt
+names the exact blocker, route-back owner, required refs, validation method, and
+resume surface.

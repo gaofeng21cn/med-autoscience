@@ -39,6 +39,15 @@ Use `medical-figure-design` when the work needs:
 - figure-to-claim consistency checks;
 - reviewer handoff for display issues.
 
+Route adjacent professional checks to sibling MAS Scholar Skills instead of
+embedding their methods here:
+
+- `medical-statistical-review` for statistical annotation and uncertainty
+  checks;
+- `medical-table-design` when a table is the better display surface;
+- `medical-research-lit` when a display claim needs citation support;
+- `medical-manuscript-review` for adversarial display-to-claim critique.
+
 The specialist skill may prepare design candidates, figure refs, QA notes, and
 route-back recommendations. MAS remains the owner for figure artifact mutation,
 visual-audit receipts, owner receipts, typed blockers, human gates, current

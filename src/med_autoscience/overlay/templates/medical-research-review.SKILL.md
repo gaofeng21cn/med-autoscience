@@ -43,6 +43,19 @@ Use `medical-manuscript-review` when the work needs:
 - revision-delta audit;
 - stop/continue recommendation.
 
+Route adjacent professional checks to sibling MAS Scholar Skills instead of
+embedding their methods here:
+
+- `medical-research-lit` for citation and source-support checks;
+- `medical-statistical-review` for estimand, model/test, uncertainty, and
+  reporting-risk checks;
+- `medical-table-design` and `medical-figure-design` for display-to-claim,
+  table/figure consistency, and visual evidence checks;
+- `medical-data-governance` for source lineage, access, privacy, and data
+  readiness checks;
+- `medical-submission-prep` for submission-package or response-material checks
+  when the review scope includes handoff readiness.
+
 The specialist skill may produce review hints, a reviewer action matrix, and
 route-back candidates. MAS remains the owner for quality verdicts, reviewer
 receipts, typed blockers, owner acceptance, current package, and publication
