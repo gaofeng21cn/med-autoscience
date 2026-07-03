@@ -217,7 +217,9 @@
       "runtime_queues",
       "provider_attempts",
       "paper_bodies"
-    ]
+    ],
+    "map_is_resolver_index_only": true,
+    "map_can_be_used_as_domain_truth": false
   },
   "capabilities": [
     {
@@ -1013,5 +1015,25 @@
         "can_claim_production_ready": false
       }
     }
-  ]
+  ],
+  "resolver_index": {
+    "stage_prompt_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=stage_prompt"
+    ],
+    "professional_skill_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=professional_skill"
+    ],
+    "tool_connector_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=tool_connector"
+    ],
+    "knowledge_pack_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=knowledge_pack"
+    ],
+    "quality_gate_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=quality_gate"
+    ],
+    "eval_suite_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=eval_suite"
+    ]
+  }
 }
