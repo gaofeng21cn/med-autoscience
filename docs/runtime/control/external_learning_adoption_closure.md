@@ -64,7 +64,7 @@ MAS 当前吸收的不是 Docker / OpenHands sandbox runtime，而是 lightweigh
 | PaperSpine | `sidecar_or_worker_landed` for refs-only manuscript authoring advisory worker | `build_paperspine_manuscript_advisory` 只读取 motivation-spine、writing-rationale、evidence-blueprint 和 LaTeX-safe audit ref family，缺 ref 时 fail-open advisory gap。 | 保持 manuscript-authoring advisory refs，不能成为 paper-writing authority、LaTeX build authority 或 publication owner。 |
 | PaperOrchestra | `sidecar_or_worker_landed` for refs-only authoring DAG advisory worker | `build_paperorchestra_authoring_advisory` 只读取 authoring DAG、outline plot、literature section 和 autorater ref family，缺 ref 时 fail-open advisory gap。 | 保持 authoring DAG / evaluator advisory refs，不能成为 PaperOrchestra runtime、paper generator、autorater gate 或 publication owner。 |
 | Open Auto Research | `read_model_landed` / `controller_authorized_soak`，publication owner receipt 仍是 gap | read-model / controller-authorized soak 可作 readiness accelerator。 | 保持 read-only / refs-only，加 owner receipts 前不能声明 publication readiness。 |
-| K-Dense BYOK | `contract_projection_landed` for reusable OPL patterns；OpenRouter Fusion 只 `watch_only` | `/tmp/kdense-byok` 的 326 workflows、229 database refs、21 specialists、file preview / LaTeX / PDF UI、cost ledger、interview form、MCP / Modal hooks 和 Fusion preset 只作为 OPL Stagecraft / Atlas / Workspace / Vault / Console / Connect / Runway 的读法参考。 | 不引入 Pi runtime，不依赖 K-Dense app，不复制 skill catalog，不把 Fusion panel 当 reviewer gate；Codex CLI 仍是 OPL harness，全部输出保持 refs-only / no-authority。 |
+| K-Dense BYOK | `sidecar_or_worker_landed` for refs-only pattern advisory worker；OpenRouter Fusion 只 `watch_only` | `/tmp/kdense-byok` 的 326 workflows、229 database refs、21 specialists、file preview / LaTeX / PDF UI、cost ledger、interview form、MCP / Modal hooks 和 Fusion preset 已折回 `build_kdense_byok_pattern_advisory`，只发 OPL Stagecraft / Atlas / Workspace / Vault / Console / Connect / Runway 候选 refs。 | 不引入 Pi runtime，不依赖 K-Dense app，不复制 skill catalog，不把 Fusion panel 当 reviewer gate；Codex CLI 仍是 OPL harness，全部输出保持 refs-only / no-authority。 |
 | Light | `sidecar_or_worker_landed` for MAS materializer refs only | `light-advisory-materialize` 生成基础 verified / collision / refusal / fresh-evidence advisory refs；source / data / citation / PRISMA / figure / experiment / statistics / overclaim / argument / style 等 skill-content refs 只在 payload present 或 route-required 时物化。不引入 Light runtime。 | 继续保持 refs-only、budgeted、fail-open；缺 advisory 或 content template 不阻断 owner action。 |
 
 ## Progress-first Friction Guard
@@ -103,7 +103,7 @@ external-skills 的输出仍是 refs-only candidate、execution receipt candidat
 
 ## K-Dense BYOK 折回 OPL 的读法
 
-K-Dense BYOK 的可复用点不是它的 Pi SDK backend、local web app 或 BYOK runtime，而是它把研究任务组织成“workflow / database / specialist / workspace / cost / human clarification / tool connector / multi-model judgment”的产品形态。MAS 只吸收这些 shape，落到 OPL-owned substrate，保持 `Codex CLI as OPL harness`、`no Pi runtime dependency`、`refs-only`、`no-authority`：
+K-Dense BYOK 的可复用点不是它的 Pi SDK backend、local web app 或 BYOK runtime，而是它把研究任务组织成“workflow / database / specialist / workspace / cost / human clarification / tool connector / multi-model judgment”的产品形态。MAS 只吸收这些 shape，落到 OPL-owned substrate，并通过 `med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory` 发 refs-only 候选，保持 `Codex CLI as OPL harness`、`no Pi runtime dependency`、`refs-only`、`no-authority`：
 
 | K-Dense pattern | MAS / OPL foldback | Authority boundary |
 | --- | --- | --- |

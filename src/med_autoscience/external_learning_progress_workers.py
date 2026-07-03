@@ -6,8 +6,10 @@ from typing import Any, Mapping
 SCHEMA_VERSION = 1
 ARK_SURFACE_KIND = "mas_ark_progress_worker_advisory"
 AUTOSCI_SURFACE_KIND = "mas_autosci_source_experiment_advisory"
+KDENSE_SURFACE_KIND = "mas_kdense_byok_pattern_advisory"
 ARK_FRAMEWORK_ID = "ark_progress_first"
 AUTOSCI_FRAMEWORK_ID = "autosci_omegawiki"
+KDENSE_FRAMEWORK_ID = "kdense_byok"
 ARK_SOURCE_CONTRACT_REF = (
     "med_autoscience.progress_first_external_learning_contract."
     "build_ark_progress_first_learning_contract"
@@ -15,6 +17,8 @@ ARK_SOURCE_CONTRACT_REF = (
 AUTOSCI_SOURCE_PROJECTION_REF = (
     "med_autoscience.autosci_learning_projection.build_autosci_learning_projection"
 )
+KDENSE_SOURCE_CONTRACT_REF = "contracts/kdense_byok_external_intake.json"
+KDENSE_CAPABILITY_MAP_REF = "contracts/capability_map.json#/consumer_policy/external_specialist_library_policy"
 
 ARK_REF_FAMILIES = (
     "micro_canary_ref",
@@ -30,6 +34,17 @@ AUTOSCI_REF_FAMILIES = (
     "negative_route_memory_refs",
     "artifact_render_qa_refs",
 )
+KDENSE_REF_FAMILIES = (
+    "stagecraft_recipe_seed_refs",
+    "atlas_source_ref_seed_refs",
+    "specialist_allowlist_refs",
+    "workspace_preview_pattern_refs",
+    "attempt_replay_budget_receipt_refs",
+    "connector_compute_policy_refs",
+    "human_gate_schema_refs",
+    "workbench_activity_display_refs",
+    "fusion_watch_only_briefing_refs",
+)
 
 _ARK_REF_SUFFIXES = {
     "micro_canary_ref": "micro_canary",
@@ -44,6 +59,17 @@ _AUTOSCI_REF_SUFFIXES = {
     "experiment_lifecycle_receipt_refs": "experiment_lifecycle_receipt",
     "negative_route_memory_refs": "negative_route_memory",
     "artifact_render_qa_refs": "artifact_render_qa",
+}
+_KDENSE_REF_SUFFIXES = {
+    "stagecraft_recipe_seed_refs": "stagecraft_recipe_seed",
+    "atlas_source_ref_seed_refs": "atlas_source_ref_seed",
+    "specialist_allowlist_refs": "specialist_allowlist",
+    "workspace_preview_pattern_refs": "workspace_preview_pattern",
+    "attempt_replay_budget_receipt_refs": "attempt_replay_budget_receipt",
+    "connector_compute_policy_refs": "connector_compute_policy",
+    "human_gate_schema_refs": "human_gate_schema",
+    "workbench_activity_display_refs": "workbench_activity_display",
+    "fusion_watch_only_briefing_refs": "fusion_watch_only_briefing",
 }
 
 FORBIDDEN_WRITES = (
@@ -92,6 +118,32 @@ def build_autosci_source_experiment_advisory(
                 framework_id=AUTOSCI_FRAMEWORK_ID,
                 dispatch_id=context["candidate_dispatch_id"],
                 suffix=_AUTOSCI_REF_SUFFIXES[family],
+            )
+        ]
+    return payload
+
+
+def build_kdense_byok_pattern_advisory(dispatch: Mapping[str, Any] | None) -> dict[str, Any]:
+    context = _dispatch_context(dispatch)
+    payload = _base_advisory(
+        surface_kind=KDENSE_SURFACE_KIND,
+        framework_id=KDENSE_FRAMEWORK_ID,
+        dispatch=context,
+    )
+    payload["source_contract_ref"] = KDENSE_SOURCE_CONTRACT_REF
+    payload["capability_map_ref"] = KDENSE_CAPABILITY_MAP_REF
+    payload["source_project_role"] = "external_pattern_source_only"
+    payload["runtime_dependency"] = False
+    payload["pi_runtime_dependency"] = False
+    payload["external_library_bulk_load_allowed"] = False
+    payload["openrouter_fusion_authority"] = False
+    payload["candidate_ref_families"] = list(KDENSE_REF_FAMILIES)
+    for family in KDENSE_REF_FAMILIES:
+        payload[family] = [
+            _candidate_ref(
+                framework_id=KDENSE_FRAMEWORK_ID,
+                dispatch_id=context["candidate_dispatch_id"],
+                suffix=_KDENSE_REF_SUFFIXES[family],
             )
         ]
     return payload
@@ -209,7 +261,13 @@ __all__ = [
     "AUTOSCI_SOURCE_PROJECTION_REF",
     "AUTOSCI_SURFACE_KIND",
     "FORBIDDEN_WRITES",
+    "KDENSE_CAPABILITY_MAP_REF",
+    "KDENSE_FRAMEWORK_ID",
+    "KDENSE_REF_FAMILIES",
+    "KDENSE_SOURCE_CONTRACT_REF",
+    "KDENSE_SURFACE_KIND",
     "SCHEMA_VERSION",
     "build_ark_progress_worker_advisory",
     "build_autosci_source_experiment_advisory",
+    "build_kdense_byok_pattern_advisory",
 ]

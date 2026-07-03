@@ -79,11 +79,21 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         "aris",
         "paperspine",
         "paperorchestra",
+        "kdense_byok",
     ):
         assert frameworks[framework_id]["closure_status"] == "sidecar_or_worker_landed"
         assert "sidecar" in frameworks[framework_id]["owner_surface"]
-    assert closure["counts"]["framework_count"] == 10
-    assert closure["counts"]["sidecar_execution_slot_count"] == 7
+    assert frameworks["kdense_byok"]["dependency_introduced"] is False
+    assert "K-Dense-AI/k-dense-byok" in frameworks["kdense_byok"]["source_project"]
+    assert "workflow_templates_to_stagecraft" in frameworks["kdense_byok"][
+        "absorbed_pattern_ids"
+    ]
+    assert "build_kdense_byok_pattern_advisory" in frameworks["kdense_byok"][
+        "worker_or_executor_landing"
+    ]
+    assert "Pi" in frameworks["kdense_byok"]["worker_or_executor_landing"]
+    assert closure["counts"]["framework_count"] == 11
+    assert closure["counts"]["sidecar_execution_slot_count"] == 8
     assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
     assert closure["counts"]["not_landed_gap_count"] == 0
     for framework in frameworks.values():
@@ -133,9 +143,22 @@ def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(t
         "paperorchestra",
         "co_scientist",
         "academic_research_skills",
+        "kdense_byok",
     } <= candidate_ids
     worker_ids = {item["framework_id"] for item in result["advisory_worker_results"]}
-    assert {"paperspine", "paperorchestra", "academic_research_skills"} <= worker_ids
+    assert {"paperspine", "paperorchestra", "academic_research_skills", "kdense_byok"} <= worker_ids
+    kdense = {
+        item["framework_id"]: item for item in result["advisory_worker_results"]
+    }["kdense_byok"]
+    assert kdense["runtime_dependency"] is False
+    assert kdense["pi_runtime_dependency"] is False
+    assert kdense["external_library_bulk_load_allowed"] is False
+    assert kdense["stagecraft_recipe_seed_refs"] == [
+        "external-learning:kdense_byok:dispatch-001:stagecraft_recipe_seed"
+    ]
+    assert kdense["fusion_watch_only_briefing_refs"] == [
+        "external-learning:kdense_byok:dispatch-001:fusion_watch_only_briefing"
+    ]
     assert all(item["refs_only"] is True for item in result["advisory_worker_results"])
     assert all(item["body_included"] is False for item in result["advisory_worker_results"])
     assert all(
@@ -170,7 +193,9 @@ def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path
     )
 
     worker_results = {item["framework_id"]: item for item in result["advisory_worker_results"]}
-    assert {"aris", "ark_progress_first", "autosci_omegawiki"} <= set(worker_results)
+    assert {"aris", "ark_progress_first", "autosci_omegawiki", "kdense_byok"} <= set(
+        worker_results
+    )
     assert worker_results["ark_progress_first"]["micro_canary_ref"] == (
         "external-learning:ark_progress_first:dispatch-001:micro_canary"
     )
@@ -180,6 +205,9 @@ def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path
     assert worker_results["aris"]["typed_input_contract_ref"] == (
         "external-learning:aris:fingerprint-001:typed-input-contract"
     )
+    assert worker_results["kdense_byok"]["atlas_source_ref_seed_refs"] == [
+        "external-learning:kdense_byok:dispatch-001:atlas_source_ref_seed"
+    ]
     for item in worker_results.values():
         assert item["refs_only"] is True
         assert item["body_included"] is False
@@ -216,6 +244,7 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     aris = review.build_aris_review_import_advisory(dispatch)
     ark = progress.build_ark_progress_worker_advisory(dispatch)
     autosci = progress.build_autosci_source_experiment_advisory(dispatch)
+    kdense = progress.build_kdense_byok_pattern_advisory(dispatch)
 
     assert paperspine["status"] == "advisory_ready"
     assert paperorchestra["status"] == "advisory_ready"
@@ -223,7 +252,10 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     assert aris["status"] == "ready"
     assert ark["status"] == "candidate_refs_emitted"
     assert autosci["status"] == "candidate_refs_emitted"
-    for item in (paperspine, paperorchestra, ars, aris, ark, autosci):
+    assert kdense["status"] == "candidate_refs_emitted"
+    assert kdense["source_contract_ref"] == "contracts/kdense_byok_external_intake.json"
+    assert kdense["openrouter_fusion_authority"] is False
+    for item in (paperspine, paperorchestra, ars, aris, ark, autosci, kdense):
         assert item["allowed_writes"] == []
         assert item["refs_only"] is True
         assert item["body_included"] is False

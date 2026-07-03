@@ -131,6 +131,7 @@ def test_kdense_planned_learning_items_have_owner_surface_and_gates() -> None:
         assert item["landing_status"] in {
             "contract_projection_landed",
             "read_model_landed",
+            "sidecar_or_worker_landed",
             "watch_only",
         }
         assert item["completion_gate"]

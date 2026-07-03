@@ -66,6 +66,10 @@ SIDECAR_WORKER_REGISTRY: Mapping[str, tuple[str, str]] = {
         "med_autoscience.external_learning_progress_workers",
         "build_autosci_source_experiment_advisory",
     ),
+    "kdense_byok": (
+        "med_autoscience.external_learning_progress_workers",
+        "build_kdense_byok_pattern_advisory",
+    ),
 }
 
 
@@ -75,6 +79,54 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
     evo = build_evo_scientist_learning_projection()
     ark = build_ark_progress_first_learning_contract()
     frameworks = [
+        _framework(
+            framework_id="kdense_byok",
+            source_project="K-Dense-AI/k-dense-byok and K-Dense-AI/scientific-agent-skills",
+            source_refs=[
+                "contracts/kdense_byok_external_intake.json",
+                "contracts/capability_map.json#/consumer_policy/external_specialist_library_policy",
+                "external_repo:K-Dense-AI/k-dense-byok@dccc7ec4d034a00d7662eaabb3f5916bc3d00602",
+                "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f",
+                "med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory",
+            ],
+            absorbed_pattern_ids=[
+                "source_pin_license_authority_boundary",
+                "scientific_agent_skills_subset_allowlist",
+                "skill_to_module_mapping",
+                "workflow_templates_to_stagecraft",
+                "database_catalog_to_atlas",
+                "codex_specialist_roster",
+                "artifact_workspace_preview_file_tree",
+                "session_replay_lab_notebook",
+                "cost_ledger_budget_cap",
+                "mcp_connector_test_surface",
+                "remote_compute_adapter",
+                "human_gate_form_schema",
+                "workbench_ux_selector_tool_activity",
+                "openrouter_fusion_watch_only",
+            ],
+            local_execution_state="refs_only_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="kdense_byok_external_intake_contract_capability_map_and_sidecar_advisory",
+            worker_or_executor_landing=(
+                "refs-only K-Dense pattern advisory worker is "
+                "med_autoscience.external_learning_progress_workers."
+                "build_kdense_byok_pattern_advisory; it emits Stagecraft recipe seed, "
+                "Atlas source-ref seed, specialist allowlist, workspace preview, "
+                "attempt replay, budget, connector, compute, human-gate schema, "
+                "workbench activity, and Fusion watch-only briefing refs without "
+                "introducing Pi, K-Dense runtime, Modal, MCP, OpenRouter Fusion, or "
+                "external skill bulk-load authority"
+            ),
+            missing_landing_work=[
+                "OPL Stagecraft importer, Atlas source catalog, Connect sync, Runway remote execution, and Console UI must consume these refs through their own owner surfaces before runtime behavior can be claimed",
+                "MAS source readiness, artifact mutation, human gate, owner receipt, typed blocker, and publication quality remain MAS owner actions",
+            ],
+            next_landing_path=(
+                "emit refs-only K-Dense pattern candidates through run_external_learning_sidecar; "
+                "promote individual refs only when the matching OPL owner surface consumes them"
+            ),
+        ),
         _framework(
             framework_id="co_scientist",
             source_project="Google / Nature Co-Scientist",
@@ -608,19 +660,41 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
         if isinstance(item, Mapping) and _text(item.get("framework_id")) is not None
     }
     framework_ids = {
-        "return_to_ai_reviewer_workflow": ["co_scientist", "nature_skills", "autosci_omegawiki", "aris"],
+        "return_to_ai_reviewer_workflow": [
+            "co_scientist",
+            "nature_skills",
+            "autosci_omegawiki",
+            "aris",
+            "kdense_byok",
+        ],
         "run_quality_repair_batch": [
             "nature_skills",
             "paperspine",
             "paperorchestra",
             "co_scientist",
             "academic_research_skills",
+            "kdense_byok",
         ],
-        "unit_harmonized_external_validation_rerun": ["aris", "ark_progress_first", "autosci_omegawiki"],
-        "run_gate_clearing_batch": ["nature_skills", "ark_progress_first", "open_auto_research"],
+        "unit_harmonized_external_validation_rerun": [
+            "aris",
+            "ark_progress_first",
+            "autosci_omegawiki",
+            "kdense_byok",
+        ],
+        "run_gate_clearing_batch": [
+            "nature_skills",
+            "ark_progress_first",
+            "open_auto_research",
+            "kdense_byok",
+        ],
     }.get(
         action_type,
-        ["evo_scientist_evoskills", "co_scientist", "academic_research_skills"],
+        [
+            "evo_scientist_evoskills",
+            "co_scientist",
+            "academic_research_skills",
+            "kdense_byok",
+        ],
     )
     candidates: list[dict[str, Any]] = []
     for framework_id in framework_ids:
@@ -788,6 +862,8 @@ def _candidate_role(*, framework_id: str, action_type: str) -> str:
         return "real_run_closeout_or_citation_queue_hint"
     if framework_id == "open_auto_research":
         return "read_only_open_auto_research_projection_hint"
+    if framework_id == "kdense_byok":
+        return "stagecraft_atlas_connect_workspace_budget_and_human_gate_pattern_hint"
     return "progress_accelerator_hint"
 
 
