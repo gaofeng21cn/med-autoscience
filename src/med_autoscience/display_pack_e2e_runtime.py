@@ -17,6 +17,10 @@ from med_autoscience.display_pack_agent_parts.figure_workflow import (
     build_rendered_figure_workflow_packet,
 )
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
+from med_autoscience.display_pack_provenance_bundle import (
+    PROVENANCE_INDEX_REF,
+    materialize_figure_provenance_bundles,
+)
 from med_autoscience.display_pack_runtime import resolve_display_template_runtime
 from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 from med_autoscience.medical_figure_spec_contract import (
@@ -808,6 +812,7 @@ def materialize_display_pack_publication_manifest(
             "ai_visual_audit_can_mutate_data_or_statistics": False,
         },
         "publication_figure_quality_refs": quality_refs,
+        "figure_provenance_index_ref": PROVENANCE_INDEX_REF,
         "figure_polish_lifecycle": {
             "path": str(normalized_paper_root / "figure_polish_lifecycle.json"),
             "ref": FIGURE_POLISH_LIFECYCLE_REF,
@@ -840,7 +845,20 @@ def materialize_display_pack_publication_manifest(
         "figures": figure_entries,
     }
     _write_json(manifest_path, manifest)
-    return manifest
+    provenance_index = materialize_figure_provenance_bundles(
+        repo_root=normalized_repo_root,
+        paper_root=normalized_paper_root,
+    )
+    return {
+        **manifest,
+        "figure_provenance_index": {
+            "path": provenance_index["path"],
+            "ref": provenance_index["ref"],
+            "sha256": provenance_index["sha256"],
+            "bundle_count": provenance_index["bundle_count"],
+            "bundles": provenance_index["bundles"],
+        },
+    }
 
 
 def render_display_pack_candidate_asset(

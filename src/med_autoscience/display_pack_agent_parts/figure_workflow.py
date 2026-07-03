@@ -55,6 +55,7 @@ DISPLAY_PACK_AGENT_RECEIPT_REFS = {
     "figure_render_receipt": "paper/figure_render_receipt.json",
     "polish_lifecycle": "paper/figure_polish_lifecycle.json",
     "figure_workflow_packet": "paper/figure_workflow_packet.json",
+    "figure_provenance_index": "paper/build/provenance/figure_provenance_index.json",
 }
 
 

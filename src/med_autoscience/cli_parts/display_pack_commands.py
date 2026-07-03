@@ -199,6 +199,14 @@ def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | No
             output_dir=Path(args.output_dir),
         )
 
+    if args.command == "display-pack-provenance-bundles":
+        from med_autoscience.display_pack_provenance_bundle import materialize_figure_provenance_bundles
+
+        return materialize_figure_provenance_bundles(
+            repo_root=Path(args.repo_root),
+            paper_root=Path(args.paper_root),
+        )
+
     if args.command != "display-pack-e2e":
         return None
 

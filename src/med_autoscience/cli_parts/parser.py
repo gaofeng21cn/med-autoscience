@@ -604,6 +604,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_e2e_review.add_argument("--visual-audit-review-json")
     display_pack_e2e_review.add_argument("--visual-audit-review-file")
 
+    display_pack_provenance_parser = subparsers.add_parser("display-pack-provenance-bundles")
+    display_pack_provenance_parser.add_argument("--repo-root", required=True)
+    display_pack_provenance_parser.add_argument("--paper-root", required=True)
+
     display_pack_candidate_parser = subparsers.add_parser("display-pack-render-candidate")
     display_pack_candidate_parser.add_argument("--repo-root", required=True)
     display_pack_candidate_parser.add_argument("--template-id", required=True)

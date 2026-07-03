@@ -695,19 +695,42 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
 
     manifest_path = paper_root / "build" / "display_pack_publication_manifest.json"
     lock_path = paper_root / "build" / "display_pack_lock.json"
+    provenance_index_path = paper_root / "build" / "provenance" / "figure_provenance_index.json"
+    provenance_bundle_path = paper_root / "build" / "provenance" / "figures" / "F1" / "bundle.json"
     artifact_manifest_path = paper_root / "build" / "display_artifact_manifest.F1.json"
     qc_path = paper_root / "qc" / "F1.layout_qc.json"
     assert manifest_path.exists()
     assert lock_path.exists()
+    assert provenance_index_path.exists()
+    assert provenance_bundle_path.exists()
     assert artifact_manifest_path.exists()
     assert qc_path.exists()
     manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    provenance_index = json.loads(provenance_index_path.read_text(encoding="utf-8"))
+    provenance_bundle = json.loads(provenance_bundle_path.read_text(encoding="utf-8"))
     lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
     style_lock = lock_payload["publication_style_profile"]
     assert style_lock["status"] == "present"
     assert style_lock["style_profile_id"] == "paper_neutral_clinical_v1"
     assert style_lock["sha256"] == result["publication_style_profile"]["sha256"]
     assert manifest_payload["publication_style_profile"]["sha256"] == style_lock["sha256"]
+    assert manifest_payload["figure_provenance_index_ref"] == "paper/build/provenance/figure_provenance_index.json"
+    assert result["figure_provenance_index"]["bundle_count"] == 1
+    assert provenance_index["bundles"][0]["figure_id"] == "F1"
+    assert provenance_index["bundles"][0]["provenance_bundle_ref"] == (
+        "paper/build/provenance/figures/F1/bundle.json"
+    )
+    assert provenance_bundle["schema_version"] == "artifact-provenance-bundle.v1"
+    assert provenance_bundle["bundle_id"] == "medautoscience:display-pack-figure:F1"
+    assert provenance_bundle["domain_id"] == "medautoscience"
+    assert provenance_bundle["metadata"]["figure_id"] == "F1"
+    assert provenance_bundle["metadata"]["code"]["template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
+    assert provenance_bundle["metadata"]["input"]["data_refs"] == ["paper/data/frozen/primary_curve.json"]
+    assert provenance_bundle["metadata"]["output"]["rendered_artifacts"]["png_ref"] == "paper/figures/generated/F1.png"
+    assert provenance_bundle["metadata"]["replay"]["mode"] == "refs_only_no_rerun"
+    assert provenance_bundle["missing_refs"] == []
+    assert provenance_bundle["authority_boundary"]["ledger_refs_only"] is True
+    assert provenance_bundle["metadata"]["authority_boundary"]["does_not_rerun_or_rewrite_figures"] is True
     assert figure["publication_style_profile"]["sha256"] == style_lock["sha256"]
     assert figure["publication_style_profile"]["typography"]["font_family"] == "sans"
     assert figure["publication_style_profile"]["grid"]["color"] == "#D9E2EC"
@@ -826,6 +849,58 @@ def test_cli_publication_display_pack_e2e_emits_manifest_json(tmp_path: Path, ca
     assert exit_code == 0
     assert payload["status"] == "publication_manifested"
     assert payload["manifest_path"].endswith("paper/build/display_pack_publication_manifest.json")
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "display-pack-provenance-bundles",
+            "--repo-root",
+            str(repo_root),
+            "--paper-root",
+            str(paper_root),
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["status"] == "materialized"
+    assert payload["bundles"][0]["provenance_bundle_ref"] == "paper/build/provenance/figures/F1/bundle.json"
+
+
+def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Path) -> None:
+    from med_autoscience.display_pack_provenance_bundle import materialize_figure_provenance_bundles
+
+    repo_root, paper_root = _build_workspace(tmp_path)
+    _write_json(
+        paper_root / "build" / "display_pack_publication_manifest.json",
+        {
+            "schema_version": 1,
+            "status": "publication_manifested",
+            "figures": [
+                {
+                    "figure_id": "F_missing",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "rendered_artifacts": {
+                        "png_ref": "paper/figures/generated/F_missing.png",
+                        "pdf_ref": "paper/figures/generated/F_missing.pdf",
+                        "layout_sidecar_ref": "paper/figures/generated/F_missing.layout.json",
+                    },
+                }
+            ],
+        },
+    )
+
+    result = materialize_figure_provenance_bundles(repo_root=repo_root, paper_root=paper_root)
+
+    bundle_path = paper_root / "build" / "provenance" / "figures" / "F_missing" / "bundle.json"
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    missing_labels = {item["label"] for item in bundle["missing_refs"]}
+    assert result["status"] == "materialized"
+    assert "figure_render_receipt" in missing_labels
+    assert "figure_visual_audit_receipt" in missing_labels
+    assert "figure_polish_lifecycle" in missing_labels
+    assert "rendered_output_0" in missing_labels
+    assert bundle["metadata"]["agent_trace"]["codex_transcript"]["status"] == "restricted"
 
 
 def test_materialize_display_pack_publication_manifest_runs_subprocess_renderer(tmp_path: Path) -> None:
