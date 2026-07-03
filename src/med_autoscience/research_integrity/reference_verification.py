@@ -41,7 +41,15 @@ def build_reference_verification_payload(
             _first_present(payload, "reporting_checklist_expectations", "reporting_guideline_expectations") or ()
         ),
     }
-    provider_evidence = _mapping_sequence(payload.get("provider_evidence"))
+    provider_receipts = _mapping_sequence(payload.get("provider_receipts"))
+    provider_evidence = _mapping_sequence(payload.get("provider_evidence")) + _provider_evidence_from_receipts(
+        provider_receipts,
+    )
+    provider_receipt_refs = _provider_receipt_refs(provider_receipts)
+    source_refs = _merge_ref_sequences(
+        _ref_sequence(payload.get("source_refs")),
+        _provider_receipt_source_refs(provider_receipts),
+    )
     if provider_evidence:
         reference_checks = [
             {"reference": reference, "provider_evidence": list(_evidence_for_reference(reference, provider_evidence))}
@@ -71,7 +79,8 @@ def build_reference_verification_payload(
         "schema_version": SCHEMA_VERSION,
         "status": status,
         "reference_count": len(references),
-        "source_refs": _ref_sequence(payload.get("source_refs")),
+        "source_refs": source_refs,
+        "provider_receipt_refs": provider_receipt_refs,
         "reference_manager_ref": _text(payload.get("reference_manager_ref")),
         "manuscript_ref": _text(payload.get("manuscript_ref")),
         "provider_summary": provider_summary,
@@ -90,6 +99,9 @@ def _authority_boundary(*, external_provider_called: bool) -> dict[str, Any]:
     boundary["surface_role"] = "reference_verification_gate_input_only"
     boundary["can_call_external_provider"] = external_provider_called
     boundary["can_write_provider_lookup_cache_or_receipt"] = False
+    boundary["can_write_provider_attempt"] = False
+    boundary["can_write_owner_receipt"] = False
+    boundary["can_sign_owner_receipt"] = False
     boundary["can_run_independent_professional_skill"] = False
     return boundary
 
@@ -119,6 +131,96 @@ def _evidence_for_reference(
         if not evidence_ref_id or not reference_id or evidence_ref_id == reference_id:
             selected.append(evidence)
     return tuple(selected)
+
+
+def _provider_evidence_from_receipts(
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any], ...]:
+    evidence: list[Mapping[str, Any]] = []
+    for receipt in provider_receipts:
+        receipt_ref = _provider_receipt_ref(receipt)
+        source_refs = _receipt_source_refs(receipt)
+        evidence.extend(
+            _evidence_with_receipt_context(item, receipt_ref=receipt_ref, source_refs=source_refs)
+            for item in _mapping_sequence(receipt.get("provider_evidence"))
+        )
+        for reference in _mapping_sequence(receipt.get("references")):
+            reference_id = _reference_id(reference)
+            evidence.extend(
+                _evidence_with_receipt_context(
+                    item,
+                    receipt_ref=receipt_ref,
+                    source_refs=source_refs,
+                    reference_id=reference_id,
+                )
+                for item in _mapping_sequence(reference.get("provider_evidence"))
+            )
+        opl_connect = _optional_mapping(receipt.get("opl_connect_reference_verification")) or {}
+        opl_source_refs = _merge_ref_sequences(source_refs, _ref_sequence(opl_connect.get("source_refs")))
+        evidence.extend(
+            _evidence_with_receipt_context(item, receipt_ref=receipt_ref, source_refs=opl_source_refs)
+            for item in _mapping_sequence(opl_connect.get("provider_evidence"))
+        )
+    return tuple(evidence)
+
+
+def _evidence_with_receipt_context(
+    evidence: Mapping[str, Any],
+    *,
+    receipt_ref: str | None,
+    source_refs: Sequence[Mapping[str, Any] | str],
+    reference_id: str | None = None,
+) -> Mapping[str, Any]:
+    normalized = dict(evidence)
+    if reference_id and not _reference_id(normalized):
+        normalized["reference_id"] = reference_id
+    if receipt_ref and not _text(normalized.get("receipt_ref")):
+        normalized["receipt_ref"] = receipt_ref
+    if source_refs:
+        normalized["source_refs"] = list(
+            _merge_ref_sequences(_ref_sequence(normalized.get("source_refs")), source_refs)
+        )
+    return normalized
+
+
+def _provider_receipt_refs(provider_receipts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    return tuple(ref for receipt in provider_receipts if (ref := _provider_receipt_ref(receipt)))
+
+
+def _provider_receipt_source_refs(
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[Mapping[str, Any] | str, ...]:
+    refs: list[Mapping[str, Any] | str] = []
+    for receipt in provider_receipts:
+        refs.extend(_receipt_source_refs(receipt))
+        opl_connect = _optional_mapping(receipt.get("opl_connect_reference_verification")) or {}
+        refs.extend(_ref_sequence(opl_connect.get("source_refs")))
+    return _merge_ref_sequences(refs)
+
+
+def _receipt_source_refs(receipt: Mapping[str, Any]) -> tuple[Mapping[str, Any] | str, ...]:
+    return _merge_ref_sequences(_ref_sequence(receipt.get("source_refs")), _ref_sequence(receipt.get("source_ref")))
+
+
+def _provider_receipt_ref(receipt: Mapping[str, Any]) -> str | None:
+    return _text(
+        receipt.get("receipt_ref")
+        or receipt.get("provider_receipt_ref")
+        or receipt.get("ref")
+        or receipt.get("uri")
+        or receipt.get("path")
+    )
+
+
+def _reference_id(reference: Mapping[str, Any]) -> str | None:
+    return _text(
+        reference.get("reference_id")
+        or reference.get("ref_id")
+        or reference.get("id")
+        or reference.get("ID")
+        or reference.get("citation_key")
+        or reference.get("key")
+    )
 
 
 def _provider_summary_from_evidence(reference_checks: Sequence[Mapping[str, Any]]) -> dict[str, int]:
@@ -164,6 +266,20 @@ def _ref_sequence(value: Any) -> tuple[Mapping[str, Any] | str, ...]:
         if len(result) == len(value):
             return result
     raise ValueError("reference verification ref field must contain strings or mappings.")
+
+
+def _merge_ref_sequences(
+    *sequences: Sequence[Mapping[str, Any] | str],
+) -> tuple[Mapping[str, Any] | str, ...]:
+    refs: list[Mapping[str, Any] | str] = []
+    seen: set[str] = set()
+    for sequence in sequences:
+        for ref in sequence:
+            key = repr(ref)
+            if key not in seen:
+                refs.append(ref)
+                seen.add(key)
+    return tuple(refs)
 
 
 def _optional_mapping(value: Any) -> Mapping[str, Any] | None:

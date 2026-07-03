@@ -41,7 +41,7 @@ MAS 同时暴露聚合消费面：
 
 - `build_research_integrity_gate_input_bundle(...)` 把上述三类 surface 聚合为 `research_integrity_gate_input_bundle`。
 - `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-gate-input", ...})` 是当前 service-safe callable entry；它接受 builder-native 字段，也接受 `reference` / `references`、`claim` / `claims`、`manuscript`、`provider_evidence` 等易用别名。
-- `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-reference-verification", ...})` 在缺少 `provider_evidence` 时调用 MAS thin provider client，拉取 Crossref、PubMed、OpenAlex、Semantic Scholar first-slice evidence；Crossmark 使用 Crossref metadata signal；publisher lookup 只返回 `publisher_connector_required` evidence，不伪造 publisher truth。
+- `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-reference-verification", ...})` 接受顶层 `provider_evidence`，也接受 OPL Connect 风格 `provider_receipts`，并把 receipt root 的 `provider_evidence`、`references[].provider_evidence`、`opl_connect_reference_verification.provider_evidence` 归一化为同一 gate input evidence；仅在没有 evidence 时调用 MAS thin provider client，拉取 Crossref、PubMed、OpenAlex、Semantic Scholar first-slice evidence；Crossmark 使用 Crossref metadata signal；publisher lookup 只返回 `publisher_connector_required` evidence，不伪造 publisher truth。
 - `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-review-publication-gate-stage-hook", ...})` 是 Review / Publication Gate 的 mandatory hook 输入面；它触发 `research-integrity-reference-verification` 并返回包含 `manuscript_consistency_meta_review` 的 `research_integrity_gate_input_bundle`。
 - `family_action_catalog` 暴露 `research_integrity_gate_input` read-only descriptor，供 OPL generated / product-entry / MCP descriptor 消费；该 action 的 `mcp_public_runtime=false`，不声明公开 runtime 执行器。
 
@@ -54,7 +54,7 @@ MAS 同时暴露聚合消费面：
 稳定目标链路是：
 
 1. OPL Connect / provider lookup 根据 stage hook 请求拉取 Crossref、PubMed、OpenAlex、Semantic Scholar、publisher 或 Crossmark evidence，并返回 provider receipt / evidence payload。
-2. MAS Research Integrity Gate 消费 provider evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`。
+2. MAS Research Integrity Gate 消费 provider evidence / provider receipt evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`，并在输出中保留 provider receipt refs 与 source refs 供 owner surface 追溯。
 3. AI reviewer 或 publication gate consumer 把该 bundle 当作 quality input，在 MAS owner surface 内决定 receipt、typed blocker、route-back 或 human gate。
 
 该链路的 stage hook 目标是 `review_and_quality_gate` 与 `finalize_and_publication_handoff`。当前合同只固定 trigger chain、payload shape 和 forbidden-write boundary；provider lookup runtime、stage hook 执行、provider receipt 存储和 live owner consumption 仍必须由 OPL Connect / MAS owner surface 的新鲜 readback 证明。
