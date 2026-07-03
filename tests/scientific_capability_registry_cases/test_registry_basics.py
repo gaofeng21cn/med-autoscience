@@ -109,7 +109,7 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
 
     registry = module.build_scientific_capability_registry()
     capabilities = {item["capability_id"]: item for item in registry["capabilities"]}
-    candidate = capabilities["opl.scholarskills.write"]
+    candidate = capabilities["mas-scholar-skills.write"]
 
     assert registry["scholarskills_local_install"]["install_owner"] == "one-person-lab"
     assert registry["scholarskills_local_install"]["synced_skill_ids"] == [
@@ -172,6 +172,16 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert "external:mas-scholar-skills" in candidate["source_frameworks"]
     assert candidate["owner_consumption_boundary"]["owner_gated_refs_consumption"] is True
     assert candidate["owner_consumption_boundary"]["counts_as_paper_truth"] is False
+
+
+def test_scholarskills_registry_summary_uses_active_mas_scholar_skill_ids() -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+
+    summary = module.build_scientific_capability_registry_summary()
+
+    assert set(SCHOLARSKILLS_MODULE_IDS) <= set(summary["capability_ids"])
+    assert "mas-scholar-skills.data" in summary["capability_ids"]
+    assert "opl.scholarskills.data" not in summary["capability_ids"]
 
 
 def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request() -> None:

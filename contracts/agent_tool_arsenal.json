@@ -9170,13 +9170,13 @@
           "scientific-capability:display_pack_visual_capability",
           "display-pack-contract.v2"
         ],
-        "callable_surface": "descriptor_only:opl.scholarskills.display",
+        "callable_surface": "descriptor_only:mas-scholar-skills.display",
         "capability_family": "scholarskills_display",
-        "capability_id": "opl.scholarskills.display",
-        "capability_ref": "scientific-capability:opl.scholarskills.display",
+        "capability_id": "mas-scholar-skills.display",
+        "capability_ref": "scientific-capability:mas-scholar-skills.display",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.display",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install",
           "scientific-capability:display_pack_visual_capability",
@@ -9208,7 +9208,7 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.display",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.display",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install",
           "scientific-capability:display_pack_visual_capability",
@@ -9222,7 +9222,7 @@
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.display",
+          "module_id": "mas-scholar-skills.display",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_display_execution_receipt",
           "required_ref_families": [
@@ -9240,6 +9240,11 @@
         "external_runtime_dependency": false,
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.display",
+          "module_id": "opl.scholarskills.display"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -9330,7 +9335,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.display",
+        "module_id": "mas-scholar-skills.display",
         "output_refs": [
           "display_pack_agent_orchestration",
           "paper/build/display_pack_lock.json",
@@ -9396,13 +9401,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.tables",
+        "callable_surface": "descriptor_only:mas-scholar-skills.tables",
         "capability_family": "scholarskills_tables",
-        "capability_id": "opl.scholarskills.tables",
-        "capability_ref": "scientific-capability:opl.scholarskills.tables",
+        "capability_id": "mas-scholar-skills.tables",
+        "capability_ref": "scientific-capability:mas-scholar-skills.tables",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.tables",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -9424,14 +9429,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.tables",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.tables",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.tables",
+          "module_id": "mas-scholar-skills.tables",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -9468,6 +9473,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.tables",
+          "module_id": "opl.scholarskills.tables"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -9558,7 +9568,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.tables",
+        "module_id": "mas-scholar-skills.tables",
         "output_refs": [
           "opl:scholarskills.tables:table_manifest",
           "opl:scholarskills.tables:table_qc"
@@ -9569,7 +9579,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.tables",
+          "module_id": "mas-scholar-skills.tables",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -9622,13 +9632,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.stats",
+        "callable_surface": "descriptor_only:mas-scholar-skills.stats",
         "capability_family": "scholarskills_stats",
-        "capability_id": "opl.scholarskills.stats",
-        "capability_ref": "scientific-capability:opl.scholarskills.stats",
+        "capability_id": "mas-scholar-skills.stats",
+        "capability_ref": "scientific-capability:mas-scholar-skills.stats",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.stats",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -9654,14 +9664,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.stats",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.stats",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.stats",
+          "module_id": "mas-scholar-skills.stats",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -9698,6 +9708,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.stats",
+          "module_id": "opl.scholarskills.stats"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -9788,7 +9803,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.stats",
+        "module_id": "mas-scholar-skills.stats",
         "output_refs": [
           "opl:scholarskills.stats:analysis_manifest",
           "opl:scholarskills.stats:reproducibility_check"
@@ -9799,7 +9814,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.stats",
+          "module_id": "mas-scholar-skills.stats",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -9852,13 +9867,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.lit",
+        "callable_surface": "descriptor_only:mas-scholar-skills.lit",
         "capability_family": "scholarskills_lit",
-        "capability_id": "opl.scholarskills.lit",
-        "capability_ref": "scientific-capability:opl.scholarskills.lit",
+        "capability_id": "mas-scholar-skills.lit",
+        "capability_ref": "scientific-capability:mas-scholar-skills.lit",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.lit",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -9883,14 +9898,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.lit",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.lit",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.lit",
+          "module_id": "mas-scholar-skills.lit",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -9927,6 +9942,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.lit",
+          "module_id": "opl.scholarskills.lit"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -10017,7 +10037,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.lit",
+        "module_id": "mas-scholar-skills.lit",
         "output_refs": [
           "opl:scholarskills.lit:evidence_map",
           "opl:scholarskills.lit:citation_manifest"
@@ -10028,7 +10048,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.lit",
+          "module_id": "mas-scholar-skills.lit",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -10081,13 +10101,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.write",
+        "callable_surface": "descriptor_only:mas-scholar-skills.write",
         "capability_family": "scholarskills_write",
-        "capability_id": "opl.scholarskills.write",
-        "capability_ref": "scientific-capability:opl.scholarskills.write",
+        "capability_id": "mas-scholar-skills.write",
+        "capability_ref": "scientific-capability:mas-scholar-skills.write",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.write",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -10111,14 +10131,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.write",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.write",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.write",
+          "module_id": "mas-scholar-skills.write",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -10155,6 +10175,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.write",
+          "module_id": "opl.scholarskills.write"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -10245,7 +10270,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.write",
+        "module_id": "mas-scholar-skills.write",
         "output_refs": [
           "opl:scholarskills.write:draft_section_manifest",
           "opl:scholarskills.write:source_trace"
@@ -10256,7 +10281,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.write",
+          "module_id": "mas-scholar-skills.write",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -10309,13 +10334,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.review",
+        "callable_surface": "descriptor_only:mas-scholar-skills.review",
         "capability_family": "scholarskills_review",
-        "capability_id": "opl.scholarskills.review",
-        "capability_ref": "scientific-capability:opl.scholarskills.review",
+        "capability_id": "mas-scholar-skills.review",
+        "capability_ref": "scientific-capability:mas-scholar-skills.review",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.review",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -10339,14 +10364,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.review",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.review",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.review",
+          "module_id": "mas-scholar-skills.review",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -10383,6 +10408,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.review",
+          "module_id": "opl.scholarskills.review"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -10473,7 +10503,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.review",
+        "module_id": "mas-scholar-skills.review",
         "output_refs": [
           "opl:scholarskills.review:reviewer_report",
           "opl:scholarskills.review:route_back"
@@ -10484,7 +10514,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.review",
+          "module_id": "mas-scholar-skills.review",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -10537,13 +10567,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.submit",
+        "callable_surface": "descriptor_only:mas-scholar-skills.submit",
         "capability_family": "scholarskills_submit",
-        "capability_id": "opl.scholarskills.submit",
-        "capability_ref": "scientific-capability:opl.scholarskills.submit",
+        "capability_id": "mas-scholar-skills.submit",
+        "capability_ref": "scientific-capability:mas-scholar-skills.submit",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.submit",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -10568,14 +10598,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.submit",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.submit",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.submit",
+          "module_id": "mas-scholar-skills.submit",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -10612,6 +10642,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.submit",
+          "module_id": "opl.scholarskills.submit"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -10702,7 +10737,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.submit",
+        "module_id": "mas-scholar-skills.submit",
         "output_refs": [
           "opl:scholarskills.submit:package_manifest",
           "opl:scholarskills.submit:submission_checklist"
@@ -10713,7 +10748,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.submit",
+          "module_id": "mas-scholar-skills.submit",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -10773,13 +10808,13 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.data",
+        "callable_surface": "descriptor_only:mas-scholar-skills.data",
         "capability_family": "scholarskills_data",
-        "capability_id": "opl.scholarskills.data",
-        "capability_ref": "scientific-capability:opl.scholarskills.data",
+        "capability_id": "mas-scholar-skills.data",
+        "capability_ref": "scientific-capability:mas-scholar-skills.data",
         "contract_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.data",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
@@ -10812,14 +10847,14 @@
         "descriptor_only": true,
         "descriptor_refs": [
           "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.data",
+          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.mas-scholar-skills.data",
           "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
           "readback:mas_scholarskills_local_install"
         ],
         "execution_receipt_expectation": {
           "execution_receipt_can_authorize_publication_readiness": false,
           "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.data",
+          "module_id": "mas-scholar-skills.data",
           "receipt_owner": "one-person-lab",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
@@ -10870,6 +10905,11 @@
         },
         "fail_open": true,
         "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "legacy_id_aliases": {
+          "capability_id": "opl.scholarskills.data",
+          "module_id": "opl.scholarskills.data"
+        },
+        "legacy_id_provenance": "renamed_from_opl_scholarskills_namespace_20260703",
         "local_install": {
           "install_owner": "one-person-lab",
           "install_scopes": [
@@ -10960,7 +11000,7 @@
           "stage_prompt_source": false,
           "surface_kind": "mas_scholarskills_module_classification"
         },
-        "module_id": "opl.scholarskills.data",
+        "module_id": "mas-scholar-skills.data",
         "output_refs": [
           "opl:scholarskills.data:data_asset_manifest",
           "opl:scholarskills.data:dataset_manifest",
@@ -10976,7 +11016,7 @@
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
           "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.data",
+          "module_id": "mas-scholar-skills.data",
           "owner_consumption_evidence": "refs_only",
           "owner_gated_refs_consumption": true,
           "schema_version": 1,
@@ -11050,7 +11090,7 @@
         "can_authorize_publication_readiness": false,
         "counts_as_owner_receipt": false,
         "counts_as_paper_truth": false,
-        "module_id": "opl.scholarskills.display",
+        "module_id": "mas-scholar-skills.display",
         "receipt_role": "candidate_display_execution_receipt",
         "required_ref_families": [
           "input_fingerprint_ref",
@@ -11066,7 +11106,7 @@
         ]
       },
       "scholarskills_execution_receipts": {
-        "opl.scholarskills.data": {
+        "mas-scholar-skills.data": {
           "accepted_ref_aliases": {
             "cleaning_normalization_readiness_ref": [
               "cleaning_normalization_readiness_ref"
@@ -11134,7 +11174,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.data",
+          "module_id": "mas-scholar-skills.data",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11162,7 +11202,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.display": {
+        "mas-scholar-skills.display": {
           "accepted_ref_aliases": {
             "artifact_manifest_ref": [
               "artifact_manifest_ref",
@@ -11195,7 +11235,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.display",
+          "module_id": "mas-scholar-skills.display",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11210,7 +11250,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.lit": {
+        "mas-scholar-skills.lit": {
           "accepted_ref_aliases": {
             "citation_manifest_ref": [
               "citation_manifest_ref"
@@ -11236,7 +11276,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.lit",
+          "module_id": "mas-scholar-skills.lit",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11250,7 +11290,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.review": {
+        "mas-scholar-skills.review": {
           "accepted_ref_aliases": {
             "dependency_profile_ref": [
               "dependency_profile_ref",
@@ -11276,7 +11316,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.review",
+          "module_id": "mas-scholar-skills.review",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11290,7 +11330,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.stats": {
+        "mas-scholar-skills.stats": {
           "accepted_ref_aliases": {
             "analysis_manifest_ref": [
               "analysis_manifest_ref"
@@ -11316,7 +11356,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.stats",
+          "module_id": "mas-scholar-skills.stats",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11330,7 +11370,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.submit": {
+        "mas-scholar-skills.submit": {
           "accepted_ref_aliases": {
             "dependency_profile_ref": [
               "dependency_profile_ref",
@@ -11356,7 +11396,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.submit",
+          "module_id": "mas-scholar-skills.submit",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11370,7 +11410,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.tables": {
+        "mas-scholar-skills.tables": {
           "accepted_ref_aliases": {
             "dependency_profile_ref": [
               "dependency_profile_ref",
@@ -11396,7 +11436,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.tables",
+          "module_id": "mas-scholar-skills.tables",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",
@@ -11410,7 +11450,7 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.write": {
+        "mas-scholar-skills.write": {
           "accepted_ref_aliases": {
             "dependency_profile_ref": [
               "dependency_profile_ref",
@@ -11436,7 +11476,7 @@
           "can_authorize_publication_readiness": false,
           "counts_as_owner_receipt": false,
           "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.write",
+          "module_id": "mas-scholar-skills.write",
           "receipt_role": "candidate_scholarskills_execution_receipt",
           "required_ref_families": [
             "input_fingerprint_ref",

@@ -25,7 +25,7 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
             "--mode",
             "owner-consumption",
             "--capability-id",
-            "opl.scholarskills.tables",
+            "mas-scholar-skills.tables",
             "--study-root",
             str(study_root),
             "--current-owner-delta-json",
@@ -48,7 +48,7 @@ def test_scientific_capability_registry_cli_consumes_materialized_scholarskills_
         "mas_scientific_capability_owner_consumption_evidence"
     )
     assert evidence["refs_only"] is True
-    assert evidence["capability_id"] == "opl.scholarskills.tables"
+    assert evidence["capability_id"] == "mas-scholar-skills.tables"
     assert evidence["execution_receipt_status"] == "complete"
     assert evidence["missing_execution_receipt_ref_families"] == []
     assert evidence["execution_receipt_refs"]["table_manifest_ref"] == str(
@@ -180,7 +180,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_module_
     study_root = tmp_path / "studies" / "001-risk"
     package = _write_tables_materialized_package(
         tmp_path / "opl-package",
-        manifest_overrides={"module_id": "opl.scholarskills.review"},
+        manifest_overrides={"module_id": "mas-scholar-skills.review"},
     )
 
     try:
@@ -190,7 +190,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_module_
                 "--mode",
                 "owner-consumption",
                 "--capability-id",
-                "opl.scholarskills.tables",
+                "mas-scholar-skills.tables",
                 "--study-root",
                 str(study_root),
                 "--materialized-package-manifest-path",
@@ -199,7 +199,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_module_
         )
     except SystemExit as exc:
         assert "module_id mismatch" in str(exc)
-        assert "opl.scholarskills.review" in str(exc)
+        assert "mas-scholar-skills.review" in str(exc)
     else:
         raise AssertionError("mismatched module_id should fail closed")
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
@@ -230,7 +230,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_authori
                 "--mode",
                 "owner-consumption",
                 "--capability-id",
-                "opl.scholarskills.tables",
+                "mas-scholar-skills.tables",
                 "--study-root",
                 str(study_root),
                 "--materialized-package-manifest-path",
@@ -270,7 +270,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_forbidd
                 "--mode",
                 "owner-consumption",
                 "--capability-id",
-                "opl.scholarskills.tables",
+                "mas-scholar-skills.tables",
                 "--study-root",
                 str(study_root),
                 "--materialized-package-manifest-path",
@@ -312,7 +312,7 @@ def test_scientific_capability_registry_cli_rejects_materialized_package_candida
                 "--mode",
                 "owner-consumption",
                 "--capability-id",
-                "opl.scholarskills.tables",
+                "mas-scholar-skills.tables",
                 "--study-root",
                 str(study_root),
                 "--materialized-package-manifest-path",
@@ -339,7 +339,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
     receipt_path.write_text(
         json.dumps(
             {
-                "module_id": "opl.scholarskills.tables",
+                "module_id": "mas-scholar-skills.tables",
                 "execution_receipt_refs": {
                     "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
                     "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
@@ -363,7 +363,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
         "capability_families": ["scholarskills_tables"],
     }
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.tables",
+        capability_id="mas-scholar-skills.tables",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -394,7 +394,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
     receipt_path.write_text(
         json.dumps(
             {
-                "module_id": "opl.scholarskills.review",
+                "module_id": "mas-scholar-skills.review",
                 "execution_receipt_refs": {
                     "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
                     "dependency_profile_ref": "opl-vault:prepare/tables-env.json",
@@ -411,7 +411,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
         encoding="utf-8",
     )
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.tables",
+        capability_id="mas-scholar-skills.tables",
         study_root=study_root,
         current_owner_delta={
             "action_type": "prepare_table_package",
@@ -428,7 +428,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
         )
     except ValueError as exc:
         assert "module_id mismatch" in str(exc)
-        assert "opl.scholarskills.review" in str(exc)
+        assert "mas-scholar-skills.review" in str(exc)
     else:
         raise AssertionError("mismatched module_id should fail closed")
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
@@ -446,7 +446,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
     receipt_path.write_text(
         json.dumps(
             {
-                "module_id": "opl.scholarskills.tables",
+                "module_id": "mas-scholar-skills.tables",
                 "counts_as_paper_truth": True,
                 "execution_receipt_refs": {
                     "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
@@ -464,7 +464,7 @@ def test_scientific_capability_registry_rejects_file_materialized_scholarskills_
         encoding="utf-8",
     )
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.tables",
+        capability_id="mas-scholar-skills.tables",
         study_root=study_root,
         current_owner_delta={
             "action_type": "prepare_table_package",

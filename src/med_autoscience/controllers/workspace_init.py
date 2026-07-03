@@ -833,7 +833,7 @@ def init_workspace(
             f"review {profile_path}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'show-profile'}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'bootstrap'}",
-            "run opl connect sync-skills --domain scholarskills --scope workspace "
+            "run opl connect sync-skills --domain mas-scholar-skills --scope workspace "
             f"--target-workspace {workspace_root} --json",
             "open OPL App/workbench for hosted MAS progress drilldown",
         ],

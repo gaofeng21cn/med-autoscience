@@ -6,18 +6,18 @@ from pathlib import Path
 
 
 SCHOLARSKILLS_MODULE_IDS = [
-    "opl.scholarskills.display",
-    "opl.scholarskills.tables",
-    "opl.scholarskills.stats",
-    "opl.scholarskills.lit",
-    "opl.scholarskills.write",
-    "opl.scholarskills.review",
-    "opl.scholarskills.submit",
-    "opl.scholarskills.data",
+    "mas-scholar-skills.display",
+    "mas-scholar-skills.tables",
+    "mas-scholar-skills.stats",
+    "mas-scholar-skills.lit",
+    "mas-scholar-skills.write",
+    "mas-scholar-skills.review",
+    "mas-scholar-skills.submit",
+    "mas-scholar-skills.data",
 ]
 
 SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE = {
-    "opl.scholarskills.display": [
+    "mas-scholar-skills.display": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
@@ -25,49 +25,49 @@ SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE = {
         "artifact_manifest_ref",
         "visual_audit_or_gallery_preview_ref",
     ],
-    "opl.scholarskills.tables": [
+    "mas-scholar-skills.tables": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "table_manifest_ref",
         "table_qc_ref",
     ],
-    "opl.scholarskills.stats": [
+    "mas-scholar-skills.stats": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "analysis_manifest_ref",
         "reproducibility_check_ref",
     ],
-    "opl.scholarskills.lit": [
+    "mas-scholar-skills.lit": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "evidence_map_ref",
         "citation_manifest_ref",
     ],
-    "opl.scholarskills.write": [
+    "mas-scholar-skills.write": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "draft_section_manifest_ref",
         "source_trace_ref",
     ],
-    "opl.scholarskills.review": [
+    "mas-scholar-skills.review": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "reviewer_report_ref",
         "route_back_ref",
     ],
-    "opl.scholarskills.submit": [
+    "mas-scholar-skills.submit": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
         "package_manifest_ref",
         "submission_checklist_ref",
     ],
-    "opl.scholarskills.data": [
+    "mas-scholar-skills.data": [
         "input_fingerprint_ref",
         "dependency_profile_ref",
         "prepared_run_context_ref",
@@ -115,7 +115,7 @@ def _write_tables_materialized_package(
     }
     receipt = {
         "surface_kind": "opl_scholarskills_execution_receipt_candidate",
-        "module_id": "opl.scholarskills.tables",
+        "module_id": "mas-scholar-skills.tables",
         "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
         "artifact_manifest_path": str(artifact_manifest_path),
         "candidate_artifacts": [
@@ -151,7 +151,7 @@ def _write_tables_materialized_package(
         receipt.update(receipt_overrides)
     manifest = {
         "surface_kind": "opl_scholarskills_materialized_package_manifest",
-        "module_id": "opl.scholarskills.tables",
+        "module_id": "mas-scholar-skills.tables",
         "execution_receipt_candidate_path": receipt_path.name,
         "artifact_manifest_path": str(artifact_manifest_path),
         "written_files": [str(artifact_manifest_path)],

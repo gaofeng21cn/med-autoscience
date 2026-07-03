@@ -47,9 +47,17 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
     assert set(SCHOLARSKILLS_MODULE_IDS) <= set(capabilities)
     for module_id in SCHOLARSKILLS_MODULE_IDS:
         capability = capabilities[module_id]
-        module_name = module_id.removeprefix("opl.scholarskills.")
+        module_name = module_id.removeprefix("mas-scholar-skills.")
+        legacy_module_id = f"opl.scholarskills.{module_name}"
 
         assert capability["module_id"] == module_id
+        assert capability["legacy_id_aliases"] == {
+            "capability_id": legacy_module_id,
+            "module_id": legacy_module_id,
+        }
+        assert capability["legacy_id_provenance"] == (
+            "renamed_from_opl_scholarskills_namespace_20260703"
+        )
         assert capability["capability_family"] == f"scholarskills_{module_name}"
         assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
         assert capability["descriptor_only"] is True
@@ -164,9 +172,9 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
         item["capability_id"]: item
         for item in registry["capabilities"]
     }
-    capability = capabilities["opl.scholarskills.display"]
+    capability = capabilities["mas-scholar-skills.display"]
 
-    assert capability["module_id"] == "opl.scholarskills.display"
+    assert capability["module_id"] == "mas-scholar-skills.display"
     assert capability["capability_family"] == "scholarskills_display"
     assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
     assert capability["descriptor_only"] is True
@@ -197,7 +205,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     assert capability["execution_receipt_expectation"] == {
         "surface_kind": "mas_scholar_display_execution_receipt_expectation",
         "schema_version": 1,
-        "module_id": "opl.scholarskills.display",
+        "module_id": "mas-scholar-skills.display",
         "receipt_owner": "one-person-lab",
         "receipt_role": "candidate_display_execution_receipt",
         "required_ref_families": [
@@ -232,9 +240,9 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
         item["capability_id"]: item
         for item in resolution["selected_capabilities"]
     }
-    candidate = selected["opl.scholarskills.display"]
+    candidate = selected["mas-scholar-skills.display"]
 
-    assert candidate["module_id"] == "opl.scholarskills.display"
+    assert candidate["module_id"] == "mas-scholar-skills.display"
     assert candidate["trigger_reason"] == "current_delta_requested_capability_family"
     assert candidate["descriptor_only"] is True
     assert candidate["refs_only"] is True
@@ -250,7 +258,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     assert candidate["owner_consumption_boundary"] == capability[
         "owner_consumption_boundary"
     ]
-    assert candidate["readback"]["module_id"] == "opl.scholarskills.display"
+    assert candidate["readback"]["module_id"] == "mas-scholar-skills.display"
     assert candidate["readback"]["authority_false_flags"] == {
         "can_write_domain_truth": False,
         "can_write_publication_eval": False,
@@ -268,7 +276,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
     }
 
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.display",
+        capability_id="mas-scholar-skills.display",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -302,7 +310,7 @@ def test_scientific_capability_registry_indexes_and_resolves_scholar_display_des
         invocation_result=invocation,
         current_owner_delta=current_owner_delta,
     )
-    assert evidence["capability_id"] == "opl.scholarskills.display"
+    assert evidence["capability_id"] == "mas-scholar-skills.display"
     assert evidence["refs_only"] is True
     assert evidence["owner_consumption_status"] == "no_owner_response_refs"
     assert evidence["consumption_evidence_only"] is True
@@ -340,7 +348,7 @@ def test_scientific_capability_registry_consumes_opl_scholar_display_receipt_can
         "capability_families": ["scholarskills_display"],
     }
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.display",
+        capability_id="mas-scholar-skills.display",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -349,7 +357,7 @@ def test_scientific_capability_registry_consumes_opl_scholar_display_receipt_can
     opl_receipt_candidate = {
         "surface_kind": "opl_scholarskills_execution_receipt_candidate",
         "status": "receipt_candidate_unsigned",
-        "module_id": "opl.scholarskills.display",
+        "module_id": "mas-scholar-skills.display",
         "execution_receipt_ref": "opl-vault:receipts/scholar-display/receipt.json",
         "execution_receipt_refs": {
             "input_fingerprint_ref": "opl-vault:inputs/fingerprint.sha256",
@@ -424,7 +432,7 @@ def test_scientific_capability_registry_scholar_display_missing_receipt_refs_and
         "capability_families": ["scholarskills_display"],
     }
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.display",
+        capability_id="mas-scholar-skills.display",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -491,7 +499,7 @@ def test_scientific_capability_registry_consumes_non_display_scholarskills_recei
         "capability_families": ["scholarskills_tables"],
     }
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.tables",
+        capability_id="mas-scholar-skills.tables",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -500,7 +508,7 @@ def test_scientific_capability_registry_consumes_non_display_scholarskills_recei
     complete_receipt = {
         "surface_kind": "opl_scholarskills_execution_receipt_candidate",
         "status": "receipt_candidate_unsigned",
-        "module_id": "opl.scholarskills.tables",
+        "module_id": "mas-scholar-skills.tables",
         "execution_receipt_ref": "opl-vault:receipts/scholar-tables/receipt.json",
         "execution_receipt_refs": {
             "input_fingerprint_ref": "opl-vault:inputs/tables.sha256",
@@ -519,7 +527,7 @@ def test_scientific_capability_registry_consumes_non_display_scholarskills_recei
         execution_receipt=complete_receipt,
     )
 
-    assert evidence["capability_id"] == "opl.scholarskills.tables"
+    assert evidence["capability_id"] == "mas-scholar-skills.tables"
     assert evidence["execution_receipt_status"] == "complete"
     assert evidence["missing_execution_receipt_ref_families"] == []
     assert evidence["observed_execution_receipt_ref_families"] == [
@@ -571,7 +579,7 @@ def test_scientific_capability_registry_consumes_opl_shaped_receipts_for_every_s
     study_root = tmp_path / "studies" / "001-risk"
 
     for module_id, expected_ref_keys in SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE.items():
-        module_name = module_id.removeprefix("opl.scholarskills.")
+        module_name = module_id.removeprefix("mas-scholar-skills.")
         current_owner_delta = {
             "action_type": f"prepare_{module_name}_candidate",
             "action_id": f"{module_name}-receipt-001",
@@ -635,7 +643,7 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
         json.dumps(
             {
                 "surface_kind": "opl_scholarskills_execution_receipt_candidate",
-                "module_id": "opl.scholarskills.tables",
+                "module_id": "mas-scholar-skills.tables",
                 "execution_receipt_ref": "opl-vault:receipts/tables/receipt.json",
                 "artifact_manifest_path": str(artifact_manifest_path),
                 "candidate_artifacts": [
@@ -687,7 +695,7 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
         json.dumps(
             {
                 "surface_kind": "opl_scholarskills_materialized_package_manifest",
-                "module_id": "opl.scholarskills.tables",
+                "module_id": "mas-scholar-skills.tables",
                 "execution_receipt_candidate_path": receipt_path.name,
                 "artifact_manifest_path": str(artifact_manifest_path),
                 "written_files": [str(artifact_manifest_path)],
@@ -714,7 +722,7 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
         "capability_families": ["scholarskills_tables"],
     }
     invocation = module.invoke_scientific_capability(
-        capability_id="opl.scholarskills.tables",
+        capability_id="mas-scholar-skills.tables",
         study_root=study_root,
         current_owner_delta=current_owner_delta,
         apply=True,
@@ -803,8 +811,8 @@ def test_scientific_capability_registry_consumes_file_materialized_scholarskills
     assert owner_gate_request["surface_kind"] == "mas_scholarskills_owner_gate_request"
     assert owner_gate_request["request_status"] == "ready_for_owner_gate_review"
     assert owner_gate_request["non_authoritative_request"] is True
-    assert owner_gate_request["capability_id"] == "opl.scholarskills.tables"
-    assert owner_gate_request["module_id"] == "opl.scholarskills.tables"
+    assert owner_gate_request["capability_id"] == "mas-scholar-skills.tables"
+    assert owner_gate_request["module_id"] == "mas-scholar-skills.tables"
     assert owner_gate_request["execution_receipt_status"] == "complete"
     assert owner_gate_request["materialized_package_manifest_path"] == str(
         manifest_path.resolve()

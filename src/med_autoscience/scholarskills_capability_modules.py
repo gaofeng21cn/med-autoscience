@@ -14,7 +14,7 @@ from med_autoscience.scholarskills_local_install import (
 )
 
 
-SCHOLAR_DISPLAY_MODULE_ID = "opl.scholarskills.display"
+SCHOLAR_DISPLAY_MODULE_ID = "mas-scholar-skills.display"
 SCHOLARSKILLS_MODULE_NAMES = (
     "display",
     "tables",
@@ -26,6 +26,9 @@ SCHOLARSKILLS_MODULE_NAMES = (
     "data",
 )
 SCHOLARSKILLS_CAPABILITY_IDS = tuple(
+    f"mas-scholar-skills.{name}" for name in SCHOLARSKILLS_MODULE_NAMES
+)
+SCHOLARSKILLS_LEGACY_CAPABILITY_IDS = tuple(
     f"opl.scholarskills.{name}" for name in SCHOLARSKILLS_MODULE_NAMES
 )
 SCHOLARSKILLS_REAL_SKILL_BACKED_MODULES = {
@@ -554,7 +557,8 @@ def build_scholarskills_capabilities(
     )
     for module_name in SCHOLARSKILLS_MODULE_NAMES:
         metadata = metadata_by_module[module_name]
-        module_id = f"opl.scholarskills.{module_name}"
+        module_id = f"mas-scholar-skills.{module_name}"
+        legacy_module_id = f"opl.scholarskills.{module_name}"
         descriptor_refs = _dedupe_texts(
             [
                 "contracts/opl-framework/scholar-skills-capability-modules.json",
@@ -611,48 +615,54 @@ def build_scholarskills_capabilities(
         if module_id == SCHOLAR_DISPLAY_MODULE_ID:
             owner_consumption_boundary = dict(SCHOLAR_DISPLAY_OWNER_CONSUMPTION_BOUNDARY)
             owner_consumption_boundary["schema_version"] = schema_version
-        capabilities.append(
-            _capability_payload(
-                capability_id=module_id,
-                capability_family=_require_text(
-                    metadata.get("capability_family"),
-                    f"{module_id}.capability_family",
-                ),
-                module_id=module_id,
-                source_frameworks=_dedupe_texts(
-                    [
-                        SCHOLARSKILLS_SOURCE_REPO_REF,
-                        *list(metadata.get("source_frameworks") or []),
-                    ]
-                ),
-                action_triggers=list(metadata.get("action_triggers") or []),
-                current_delta_trigger_terms=list(
-                    metadata.get("current_delta_trigger_terms") or []
-                ),
-                current_delta_trigger_reason=_text(
-                    metadata.get("current_delta_trigger_reason")
-                )
-                or None,
-                default_trigger=default_trigger,
-                authority_boundary=authority_boundary,
-                invocation_kind="descriptor_only_current_owner_input_refs",
-                callable_surface=f"descriptor_only:{module_id}",
-                output_refs=artifact_refs,
-                contract_refs=descriptor_refs,
-                descriptor_refs=descriptor_refs,
-                dependency_profile_refs=dependency_profile_refs,
-                run_context_refs=run_context_refs,
-                artifact_refs=artifact_refs,
-                execution_receipt_expectation=execution_receipt_expectation,
-                owner_consumption_boundary=owner_consumption_boundary,
-                externalization_guard=_non_display_migration_guard(module_name),
-                bridged_capability_refs=list(
-                    metadata.get("bridged_capability_refs") or []
-                ),
-                module_classification=_module_classification(module_name),
-                role=_require_text(metadata.get("role"), f"{module_id}.role"),
+        payload = _capability_payload(
+            capability_id=module_id,
+            capability_family=_require_text(
+                metadata.get("capability_family"),
+                f"{module_id}.capability_family",
+            ),
+            module_id=module_id,
+            source_frameworks=_dedupe_texts(
+                [
+                    SCHOLARSKILLS_SOURCE_REPO_REF,
+                    *list(metadata.get("source_frameworks") or []),
+                ]
+            ),
+            action_triggers=list(metadata.get("action_triggers") or []),
+            current_delta_trigger_terms=list(
+                metadata.get("current_delta_trigger_terms") or []
+            ),
+            current_delta_trigger_reason=_text(
+                metadata.get("current_delta_trigger_reason")
             )
+            or None,
+            default_trigger=default_trigger,
+            authority_boundary=authority_boundary,
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface=f"descriptor_only:{module_id}",
+            output_refs=artifact_refs,
+            contract_refs=descriptor_refs,
+            descriptor_refs=descriptor_refs,
+            dependency_profile_refs=dependency_profile_refs,
+            run_context_refs=run_context_refs,
+            artifact_refs=artifact_refs,
+            execution_receipt_expectation=execution_receipt_expectation,
+            owner_consumption_boundary=owner_consumption_boundary,
+            externalization_guard=_non_display_migration_guard(module_name),
+            bridged_capability_refs=list(
+                metadata.get("bridged_capability_refs") or []
+            ),
+            module_classification=_module_classification(module_name),
+            role=_require_text(metadata.get("role"), f"{module_id}.role"),
         )
+        payload["legacy_id_aliases"] = {
+            "capability_id": legacy_module_id,
+            "module_id": legacy_module_id,
+        }
+        payload["legacy_id_provenance"] = (
+            "renamed_from_opl_scholarskills_namespace_20260703"
+        )
+        capabilities.append(payload)
     return capabilities
 
 

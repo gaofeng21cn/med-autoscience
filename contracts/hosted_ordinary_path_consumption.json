@@ -211,18 +211,18 @@
         },
         {
           "can_block_current_owner_action": false,
-          "candidate_ref": "scientific-capability:opl.scholarskills.lit:run_quality_repair_batch",
+          "candidate_ref": "scientific-capability:mas-scholar-skills.lit:run_quality_repair_batch",
           "capability_family": "scholarskills_lit",
-          "capability_id": "opl.scholarskills.lit",
+          "capability_id": "mas-scholar-skills.lit",
           "invocation_kind": "descriptor_only_current_owner_input_refs",
           "refs_only": true,
           "requires_explicit_invoke": true
         },
         {
           "can_block_current_owner_action": false,
-          "candidate_ref": "scientific-capability:opl.scholarskills.review:run_quality_repair_batch",
+          "candidate_ref": "scientific-capability:mas-scholar-skills.review:run_quality_repair_batch",
           "capability_family": "scholarskills_review",
-          "capability_id": "opl.scholarskills.review",
+          "capability_id": "mas-scholar-skills.review",
           "invocation_kind": "descriptor_only_current_owner_input_refs",
           "refs_only": true,
           "requires_explicit_invoke": true
