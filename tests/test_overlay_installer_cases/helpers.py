@@ -72,10 +72,8 @@ EXISTING_FULL_STAGE_SKILL_IDS = (
     "scout",
     "idea",
     "decision",
-    "finalize",
-    "journal-resolution",
 )
-NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment", "analysis-campaign")
+NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment")
 FULL_STAGE_IDS = tuple(STAGE_SKILL_TEMPLATE_FILES)
 APPEND_STAGE_IDS = ("intake-audit", "rebuttal")
 

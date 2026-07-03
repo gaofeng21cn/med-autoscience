@@ -49,6 +49,10 @@ Route professional detail to MAS Scholar Skills:
 - `medical-data-governance` for Data Availability, FAIR metadata, access,
   privacy, source-lineage, and source-readiness candidates.
 
+Specialist outputs are candidate refs only. MAS remains owner for final claim
+closure, publication handoff, submission readiness, owner receipts, typed
+blockers, human gates, current package, and publication readiness.
+
 ## MAS Stage Responsibilities
 
 - Keep closure labels scoped: `draft-ready`, `paper-ready`, and

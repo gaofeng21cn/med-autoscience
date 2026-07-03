@@ -34,6 +34,8 @@ Before resolving a target, confirm:
 
 ## Professional Skill Routes
 
+Route professional method work to MAS Scholar Skills:
+
 - Use `medical-submission-prep` for package-pattern candidates, checklist
   candidates, cover-letter/highlight/response-material candidates, and unresolved
   submission-package route-backs.

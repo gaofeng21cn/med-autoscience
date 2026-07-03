@@ -108,10 +108,24 @@ def test_analysis_campaign_full_skill_template_is_stage_surface() -> None:
     assert MEDICAL_RUNTIME_CONTRACT_TOKEN in analysis_text
     assert ROUTE_BIAS_TOKEN in analysis_text
     assert STUDY_ARCHETYPES_TOKEN in analysis_text
-    assert "Bounded Analysis Candidate Board" in analysis_text
-    assert "Statistical Discipline" in analysis_text
-    assert "Claim-Evidence And Display Repair" in analysis_text
-    assert "Route-Back Discipline" in analysis_text
+    assert "MAS Stage Projection Boundary" in analysis_text
+    assert "Professional Skill Routes" in analysis_text
+    assert "medical-statistical-review" in analysis_text
+    assert "medical-data-governance" in analysis_text
+    assert "medical-figure-design" in analysis_text
+    assert "Specialist outputs are candidate refs only" in analysis_text
+    assert "bounded_analysis_evidence_ready_ref" in analysis_text
+
+
+@pytest.mark.parametrize("skill_id", ("analysis-campaign", "finalize", "journal-resolution"))
+def test_stage_projection_templates_route_professional_work_to_scholar_skills(skill_id: str) -> None:
+    skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]).read_text(encoding="utf-8")
+
+    assert "MAS Stage Projection Boundary" in skill_text
+    assert "Professional Skill Routes" in skill_text
+    assert "MAS Scholar Skills" in skill_text
+    assert "candidate" in skill_text.lower()
+    assert "MAS remains owner" in skill_text
 
 
 def test_review_stage_prompt_routes_professional_review_to_mas_scholar_skills() -> None:
@@ -154,17 +168,29 @@ def test_existing_full_stage_skill_templates_include_stage_specific_blocker_term
         "scout": ("source_readiness", "provider_provenance", "citation_readiness"),
         "idea": ("candidate path", "gap ranking", "Controller decisions and human gates"),
         "decision": ("stop-loss", "human checkpoints", "does not produce a `paper-ready` verdict"),
+    }
+
+    for skill_id, expected_terms in expected_terms_by_skill.items():
+        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
+
+        for term in expected_terms:
+            assert term in skill_text
+
+
+def test_finalize_and_journal_resolution_projection_templates_keep_route_back_blockers() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    expected_terms_by_skill = {
         "finalize": (
-            "numeric_trace_blocker",
-            "claim_evidence_blocker",
-            "display_to_claim_blocker",
-            "reporting_guideline_gate",
+            "submission_package_route_back_ref",
+            "missing_study_delivery_wrapper_ref",
+            "final_delivery_sync_failed_ref",
+            "final_delivery_manifest_missing_ref",
         ),
         "journal-resolution": (
-            "numeric_trace_blocker",
-            "claim_evidence_blocker",
-            "display_to_claim_blocker",
-            "reporting_guideline_gate",
+            "submission_target_resolved_ref",
+            "unsupported_exporter_profile_blocker_ref",
+            "official_requirement_conflict_ref",
         ),
     }
 
