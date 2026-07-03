@@ -674,6 +674,30 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     )
 
     repo_root, paper_root = _build_workspace(tmp_path)
+    trace_history_ref = "paper/provenance/agent_session_history.json"
+    _write_json(
+        paper_root / "provenance" / "agent_session_history.json",
+        {
+            "schema_version": 1,
+            "messages": [
+                {"role": "user", "content": "render figure F1"},
+                {"role": "assistant", "content": "rendered F1 and reviewed visual receipt"},
+            ],
+        },
+    )
+    _write_json(
+        paper_root / "build" / "provenance" / "agent_trace_refs.json",
+        {
+            "schema_version": 1,
+            "refs": [
+                {
+                    "label": "codex_session_history",
+                    "ref": trace_history_ref,
+                    "required": True,
+                }
+            ],
+        },
+    )
 
     result = materialize_display_pack_publication_manifest(
         repo_root=repo_root,
@@ -723,6 +747,10 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert provenance_bundle["schema_version"] == "artifact-provenance-bundle.v1"
     assert provenance_bundle["bundle_id"] == "medautoscience:display-pack-figure:F1"
     assert provenance_bundle["domain_id"] == "medautoscience"
+    assert trace_history_ref in provenance_bundle["refs"]["agent_trace"]
+    assert provenance_bundle["metadata"]["agent_trace"]["codex_transcript"]["status"] == "ref_available"
+    assert provenance_bundle["metadata"]["agent_trace"]["external_trace_refs"][0]["status"] == "present"
+    assert provenance_bundle["missing_refs"] == []
     assert provenance_bundle["metadata"]["figure_id"] == "F1"
     assert provenance_bundle["metadata"]["code"]["template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
     assert provenance_bundle["metadata"]["input"]["data_refs"] == ["paper/data/frozen/primary_curve.json"]

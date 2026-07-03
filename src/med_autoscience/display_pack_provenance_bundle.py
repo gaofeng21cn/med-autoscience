@@ -16,6 +16,7 @@ FIGURE_RENDER_RECEIPT_REF = "paper/figure_render_receipt.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_REF = "paper/figure_visual_audit_receipt.json"
 FIGURE_POLISH_LIFECYCLE_REF = "paper/figure_polish_lifecycle.json"
 FIGURE_WORKFLOW_PACKET_REF = "paper/figure_workflow_packet.json"
+AGENT_TRACE_REFS_REF = "paper/build/provenance/agent_trace_refs.json"
 
 
 def _utc_now() -> str:
@@ -242,7 +243,7 @@ def _renderer_code_ref(
 
 def _bundle_missing_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
     missing: list[dict[str, Any]] = []
-    for section_name in ("source_surfaces", "code", "input", "output", "environment", "reviews", "replay"):
+    for section_name in ("source_surfaces", "code", "input", "output", "environment", "agent_trace", "reviews", "replay"):
         section = bundle.get(section_name)
         if not isinstance(section, Mapping):
             continue
@@ -259,7 +260,7 @@ def _bundle_missing_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 def _bundle_restricted_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
     restricted: list[dict[str, Any]] = []
-    for section_name in ("source_surfaces", "code", "input", "output", "environment", "reviews", "replay"):
+    for section_name in ("source_surfaces", "code", "input", "output", "environment", "agent_trace", "reviews", "replay"):
         section = bundle.get(section_name)
         if not isinstance(section, Mapping):
             continue
@@ -296,6 +297,32 @@ def _hashes_from_refs(*sections: list[dict[str, Any]]) -> dict[str, dict[str, st
     return hashes
 
 
+def _agent_trace_ref_specs(payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    raw_refs = payload.get("refs") or payload.get("agent_trace_refs") or []
+    if not isinstance(raw_refs, list):
+        return []
+    refs: list[dict[str, Any]] = []
+    for index, item in enumerate(raw_refs):
+        if isinstance(item, str):
+            refs.append({"label": f"agent_trace_{index}", "ref": item, "required": False})
+            continue
+        if not isinstance(item, Mapping):
+            continue
+        ref = str(item.get("ref") or "").strip()
+        if not ref:
+            continue
+        refs.append(
+            {
+                "label": str(item.get("label") or f"agent_trace_{index}").strip() or f"agent_trace_{index}",
+                "ref": ref,
+                "required": bool(item.get("required", False)),
+            }
+        )
+    return refs
+
+
 def _build_bundle(
     *,
     figure_id: str,
@@ -307,6 +334,7 @@ def _build_bundle(
     visual_audit_receipt: Mapping[str, Any] | None,
     polish_lifecycle: Mapping[str, Any] | None,
     workflow_packet: Mapping[str, Any] | None,
+    agent_trace_refs: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     manifest_figures = _figures_by_id(publication_manifest)
     render_figures = _figures_by_id(render_receipt)
@@ -400,6 +428,16 @@ def _build_bundle(
             )
         )
 
+    agent_trace_external_refs = [
+        _file_ref(
+            str(item["ref"]),
+            paper_root=paper_root,
+            repo_root=repo_root,
+            label=str(item["label"]),
+            required=bool(item["required"]),
+        )
+        for item in _agent_trace_ref_specs(agent_trace_refs)
+    ]
     review_refs = [
         _file_ref(FIGURE_VISUAL_AUDIT_RECEIPT_REF, paper_root=paper_root, repo_root=repo_root, label="visual_audit")
     ]
@@ -467,15 +505,18 @@ def _build_bundle(
             "refs": environment_refs,
         },
         "agent_trace": {
-            "summary": "refs_only_agent_trace; full Codex transcript is not captured by Display Pack outputs",
+            "summary": "refs_only_agent_trace; attach full transcript or message-history files through agent_trace_refs when available",
             "workflow_status": str((workflow_packet or {}).get("workflow_status") or ""),
             "workflow_figure": workflow_figures[0] if workflow_figures else {},
             "polish_lifecycle_events": lifecycle_events,
+            "agent_trace_refs_ref": AGENT_TRACE_REFS_REF if agent_trace_refs is not None else "",
+            "external_trace_refs": agent_trace_external_refs,
             "codex_transcript": {
-                "status": "restricted",
-                "reason": "not_part_of_display_pack_receipts",
-                "locator": "external_agent_session_history",
+                "status": "ref_available" if agent_trace_external_refs else "restricted",
+                "reason": "external_agent_session_history_ref" if agent_trace_external_refs else "not_part_of_display_pack_receipts",
+                "locator": "agent_trace_refs" if agent_trace_external_refs else "external_agent_session_history",
             },
+            "refs": agent_trace_external_refs,
         },
         "reviews": {
             "visual_audit_final_status": str((visual_audit_receipt or {}).get("final_status") or ""),
@@ -518,6 +559,7 @@ def _build_bundle(
         input_refs,
         output_refs,
         environment_refs,
+        agent_trace_external_refs,
         review_refs,
         replay_refs,
     )
@@ -535,7 +577,7 @@ def _build_bundle(
             "inputs": _ref_values(source_surface_refs + input_refs),
             "outputs": _ref_values(output_refs),
             "environment": _ref_values(environment_refs),
-            "agent_trace": [FIGURE_WORKFLOW_PACKET_REF, FIGURE_POLISH_LIFECYCLE_REF],
+            "agent_trace": [FIGURE_WORKFLOW_PACKET_REF, FIGURE_POLISH_LIFECYCLE_REF, *_ref_values(agent_trace_external_refs)],
             "reviews": _ref_values(review_refs),
             "replay": _ref_values(replay_refs),
         },
@@ -580,6 +622,7 @@ def materialize_figure_provenance_bundles(
     visual_audit_receipt = _read_json_object(normalized_paper_root / "figure_visual_audit_receipt.json")
     polish_lifecycle = _read_json_object(normalized_paper_root / "figure_polish_lifecycle.json")
     workflow_packet = _read_json_object(normalized_paper_root / "figure_workflow_packet.json")
+    agent_trace_refs = _read_json_object(normalized_paper_root / "build" / "provenance" / "agent_trace_refs.json")
 
     figure_ids = sorted({
         *_figures_by_id(publication_manifest).keys(),
@@ -597,6 +640,7 @@ def materialize_figure_provenance_bundles(
             visual_audit_receipt=visual_audit_receipt,
             polish_lifecycle=polish_lifecycle,
             workflow_packet=workflow_packet,
+            agent_trace_refs=agent_trace_refs,
         )
         bundle_ref = f"{PROVENANCE_BUNDLE_REF_PREFIX}/{_safe_figure_dir(figure_id)}/bundle.json"
         bundle_path = _resolve_ref_path(bundle_ref, paper_root=normalized_paper_root)
