@@ -26,7 +26,10 @@
     "mas_paper_study_stage_pack_ref": "contracts/mas-paper-study-stage-pack.json",
     "pack_compiler_input_ref": "contracts/pack_compiler_input.json",
     "action_catalog_ref": "contracts/action_catalog.json",
-    "domain_descriptor_ref": "contracts/domain_descriptor.json"
+    "domain_descriptor_ref": "contracts/domain_descriptor.json",
+    "mas_capability_map_ref": "contracts/capability_map.json",
+    "scholarskills_target_descriptor_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
+    "scholarskills_capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json"
   },
   "domain_mapping": {
     "domain_intake": {
@@ -132,6 +135,9 @@
   },
   "scholarskills_boundary": {
     "source_repo": "external_repo:mas-scholar-skills",
+    "target_descriptor_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
+    "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json",
+    "mas_consumption_map_ref": "contracts/capability_map.json",
     "active_modules": [
       "display",
       "tables",

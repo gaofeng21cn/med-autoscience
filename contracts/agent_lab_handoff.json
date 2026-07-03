@@ -31,6 +31,17 @@
       "role": "domain_agent_lab_production_evidence_handoff",
       "body_included": false
     },
+    "capability_map_ref": {
+      "ref": "contracts/capability_map.json",
+      "role": "oma_feedback_target_to_external_capability_pack_map",
+      "body_included": false
+    },
+    "external_capability_pack_refs": {
+      "target_descriptor_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json",
+      "role": "mas_scholar_skills_professional_skill_single_source",
+      "body_included": false
+    },
     "generated_surface_handoff_ref": {
       "ref": "contracts/generated_surface_handoff.json",
       "role": "opl_generated_surface_handoff",
@@ -87,6 +98,11 @@
       {
         "ref": "contracts/agent_lab_handoff.json",
         "role": "agent_evidence_suite_seed_surface",
+        "body_included": false
+      },
+      {
+        "ref": "contracts/capability_map.json",
+        "role": "agent_lab_feedback_target_capability_map_surface",
         "body_included": false
       },
       {
@@ -314,11 +330,68 @@
   "meta_agent_work_order_contract": {
     "target_script_ref": "npm run agent:evidence -- --agent-repo <agent_repo> --output-dir <dir> --opl-bin <opl>",
     "external_suite_improvement_policy": {
+      "capability_target_mappings": {
+        "figure_quality": {
+          "target_capability_id": "medical-figure-design",
+          "module_id": "mas-scholar-skills.display",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "manuscript_quality": {
+          "target_capability_id": "medical-manuscript-writing",
+          "module_id": "mas-scholar-skills.write",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "review_quality": {
+          "target_capability_id": "medical-manuscript-review",
+          "module_id": "mas-scholar-skills.review",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "citation_literature": {
+          "target_capability_id": "medical-research-lit",
+          "module_id": "mas-scholar-skills.lit",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+          "aliases": [
+            "citation",
+            "literature"
+          ],
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "stats": {
+          "target_capability_id": "medical-statistical-review",
+          "module_id": "mas-scholar-skills.stats",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "table": {
+          "target_capability_id": "medical-table-design",
+          "module_id": "mas-scholar-skills.tables",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+          "aliases": [
+            "tables"
+          ],
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "submission": {
+          "target_capability_id": "medical-submission-prep",
+          "module_id": "mas-scholar-skills.submit",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        },
+        "data_governance": {
+          "target_capability_id": "medical-data-governance",
+          "module_id": "mas-scholar-skills.data",
+          "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+        }
+      },
       "medical_manuscript_quality": {
         "default_change_refs": [
           "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
           "prompt_ref:ai_reviewer_medical_prose_quality_review",
-          "skill_ref:medical-research-write",
+          "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
           "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution"
         ],
         "change_ref_mappings": [
@@ -413,7 +486,7 @@
           "src/med_autoscience/controllers/pre_draft_quality_runtime.py",
           "src/med_autoscience/policies/medical_reporting_contract.py",
           "src/med_autoscience/policies/medical_reporting_checklist.py",
-          "src/med_autoscience/overlay/templates/medical-research-write.SKILL.md",
+          "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
           "tests/test_agent_lab_medical_manuscript_quality.py",
           "tests/test_pre_draft_quality_runtime.py",
           "tests/test_medical_reporting_checklist_quality_gates.py",
@@ -438,6 +511,7 @@
       "agent/quality_gates",
       "contracts/production_acceptance/mas-production-acceptance.json",
       "contracts/agent_lab_handoff.json",
+      "contracts/capability_map.json",
       "tests",
       "docs"
     ],

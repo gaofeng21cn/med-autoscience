@@ -4,12 +4,58 @@ import json
 from pathlib import Path
 
 
-def _medical_quality_mappings() -> list[dict[str, object]]:
+def _agent_lab_handoff_contract() -> dict[str, object]:
     contract_path = Path(__file__).resolve().parents[2] / "contracts" / "agent_lab_handoff.json"
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    return json.loads(contract_path.read_text(encoding="utf-8"))
+
+
+def _medical_quality_mappings() -> list[dict[str, object]]:
+    contract = _agent_lab_handoff_contract()
     return contract["meta_agent_work_order_contract"]["external_suite_improvement_policy"][
         "medical_manuscript_quality"
     ]["change_ref_mappings"]
+
+
+def test_agent_lab_handoff_routes_feedback_targets_to_scholar_skills_single_source() -> None:
+    handoff = _agent_lab_handoff_contract()
+    contract_text = json.dumps(handoff, ensure_ascii=False)
+    policy = handoff["meta_agent_work_order_contract"]["external_suite_improvement_policy"]
+    mappings = policy["capability_target_mappings"]
+
+    assert "skill_ref:medical-research-write" not in contract_text
+    assert "src/med_autoscience/overlay/templates/medical-research-write.SKILL.md" not in contract_text
+    assert mappings["figure_quality"]["target_skill_ref"] == (
+        "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md"
+    )
+    assert mappings["manuscript_quality"]["target_capability_id"] == "medical-manuscript-writing"
+    assert mappings["review_quality"]["target_capability_id"] == "medical-manuscript-review"
+    assert mappings["citation_literature"]["target_capability_id"] == "medical-research-lit"
+    assert mappings["stats"]["target_capability_id"] == "medical-statistical-review"
+    assert mappings["table"]["target_capability_id"] == "medical-table-design"
+    assert mappings["submission"]["target_capability_id"] == "medical-submission-prep"
+    assert mappings["data_governance"]["target_capability_id"] == "medical-data-governance"
+    assert "contracts/capability_map.json" in handoff["meta_agent_work_order_contract"]["editable_surface_refs"]
+
+
+def test_mas_capability_map_keeps_scholar_skills_refs_only_boundary() -> None:
+    capability_map_path = Path(__file__).resolve().parents[2] / "contracts" / "capability_map.json"
+    capability_map = json.loads(capability_map_path.read_text(encoding="utf-8"))
+    policy = capability_map["consumer_policy"]
+    mappings = {
+        item["feedback_target"]: item
+        for item in capability_map["feedback_target_mappings"]
+    }
+
+    assert capability_map["external_capability_pack_target"]["domain_id"] == "mas-scholar-skills"
+    assert capability_map["external_capability_pack_target"]["delivery_domain"] == "capability_pack"
+    assert policy["mas_stage_prompts_remain_in_mas"] is True
+    assert policy["mas_owner_authority_remains_in_mas"] is True
+    assert policy["scholar_skills_outputs_are_refs_only_candidates"] is True
+    assert policy["scholar_skills_may_write_mas_truth"] is False
+    assert mappings["figure_quality"]["target_skill_ref"] == (
+        "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md"
+    )
+    assert mappings["manuscript_quality"]["target_capability_id"] == "medical-manuscript-writing"
 
 
 def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs() -> None:

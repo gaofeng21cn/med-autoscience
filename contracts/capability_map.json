@@ -1,0 +1,190 @@
+{
+  "surface_kind": "mas_agent_lab_capability_map",
+  "schema_version": 1,
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "state": "active_refs_only_external_capability_map",
+  "updated_at": "2026-07-03",
+  "purpose": "Route OMA and Agent Lab feedback targets to the MAS Scholar Skills professional skill source of truth without externalizing MAS stage prompts or owner authority.",
+  "source_of_truth": [
+    "user_request:2026-07-03",
+    "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
+    "external_repo:mas-scholar-skills/contracts/capability_map.json"
+  ],
+  "external_capability_pack_target": {
+    "domain_id": "mas-scholar-skills",
+    "delivery_domain": "capability_pack",
+    "target_descriptor_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
+    "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json",
+    "aggregate_skill_ref": "external_repo:mas-scholar-skills/skills/mas-scholar-skills/SKILL.md"
+  },
+  "consumer_policy": {
+    "mas_stage_prompts_remain_in_mas": true,
+    "mas_owner_authority_remains_in_mas": true,
+    "scholar_skills_outputs_are_refs_only_candidates": true,
+    "oma_may_route_feedback_to_external_professional_skill": true,
+    "oma_may_emit_candidate_patch_or_handoff_refs": true,
+    "oma_may_sign_owner_receipt": false,
+    "oma_may_create_typed_blocker": false,
+    "oma_may_write_publication_verdict": false,
+    "scholar_skills_may_write_mas_truth": false,
+    "scholar_skills_may_write_current_package": false
+  },
+  "feedback_target_mappings": [
+    {
+      "feedback_target": "figure_quality",
+      "module_id": "mas-scholar-skills.display",
+      "target_capability_id": "medical-figure-design",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+      "tokens": [
+        "figure_quality",
+        "display_quality",
+        "medical-figure-design"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "manuscript_quality",
+      "module_id": "mas-scholar-skills.write",
+      "target_capability_id": "medical-manuscript-writing",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+      "tokens": [
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "medical-manuscript-writing"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "review_quality",
+      "module_id": "mas-scholar-skills.review",
+      "target_capability_id": "medical-manuscript-review",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+      "tokens": [
+        "review_quality",
+        "quality_review",
+        "medical-manuscript-review"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "citation_literature",
+      "aliases": [
+        "citation",
+        "literature",
+        "citation_quality",
+        "literature_quality"
+      ],
+      "module_id": "mas-scholar-skills.lit",
+      "target_capability_id": "medical-research-lit",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+      "tokens": [
+        "citation",
+        "literature",
+        "medical-research-lit"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "stats",
+      "aliases": [
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality"
+      ],
+      "module_id": "mas-scholar-skills.stats",
+      "target_capability_id": "medical-statistical-review",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+      "tokens": [
+        "stats",
+        "statistical_review",
+        "medical-statistical-review"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "table",
+      "aliases": [
+        "tables",
+        "table_quality",
+        "reporting_table_quality"
+      ],
+      "module_id": "mas-scholar-skills.tables",
+      "target_capability_id": "medical-table-design",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+      "tokens": [
+        "table",
+        "tables",
+        "medical-table-design"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "submission",
+      "aliases": [
+        "submission_quality",
+        "submission_package",
+        "journal_package"
+      ],
+      "module_id": "mas-scholar-skills.submit",
+      "target_capability_id": "medical-submission-prep",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+      "tokens": [
+        "submission",
+        "submission_quality",
+        "medical-submission-prep"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    },
+    {
+      "feedback_target": "data_governance",
+      "aliases": [
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance"
+      ],
+      "module_id": "mas-scholar-skills.data",
+      "target_capability_id": "medical-data-governance",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+      "tokens": [
+        "data_governance",
+        "source_data_governance",
+        "medical-data-governance"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh"
+      ]
+    }
+  ],
+  "forbidden_write_targets": [
+    "Yang authority/current_package/publication_eval/controller_decisions",
+    "owner_receipts",
+    "typed_blockers",
+    "human_gates",
+    "runtime_queues",
+    "provider_attempts",
+    "paper_bodies"
+  ]
+}
