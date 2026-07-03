@@ -40,7 +40,10 @@
       "target_descriptor_ref": "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
       "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json",
       "role": "mas_scholar_skills_professional_skill_single_source",
-      "body_included": false
+      "body_included": false,
+      "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
+      "medical_failure_type_mappings_ref": "contracts/capability_map.json#/medical_failure_type_mappings",
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     "generated_surface_handoff_ref": {
       "ref": "contracts/generated_surface_handoff.json",
@@ -335,19 +338,96 @@
           "target_capability_id": "medical-figure-design",
           "module_id": "mas-scholar-skills.display",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-figure-design",
+            "mas-scholar-skills.display",
+            "figure_quality",
+            "display_quality",
+            "visual_quality",
+            "figure",
+            "figures"
+          ],
+          "failure_tokens": [
+            "medical_failure:figure",
+            "figure_quality",
+            "display_quality",
+            "visual_quality",
+            "figure",
+            "figures"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/figure"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "manuscript_quality": {
           "target_capability_id": "medical-manuscript-writing",
           "module_id": "mas-scholar-skills.write",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-manuscript-writing",
+            "mas-scholar-skills.write",
+            "manuscript_quality",
+            "medical_manuscript_quality",
+            "writing_quality",
+            "writing"
+          ],
+          "failure_tokens": [
+            "medical_failure:writing",
+            "manuscript_quality",
+            "medical_manuscript_quality",
+            "writing_quality",
+            "writing"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "review_quality": {
           "target_capability_id": "medical-manuscript-review",
           "module_id": "mas-scholar-skills.review",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-manuscript-review",
+            "mas-scholar-skills.review",
+            "review_quality",
+            "manuscript_review",
+            "quality_review",
+            "review"
+          ],
+          "failure_tokens": [
+            "medical_failure:review",
+            "review_quality",
+            "manuscript_review",
+            "quality_review",
+            "review"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/review"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "citation_literature": {
           "target_capability_id": "medical-research-lit",
@@ -357,13 +437,69 @@
             "citation",
             "literature"
           ],
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-research-lit",
+            "mas-scholar-skills.lit",
+            "citation",
+            "literature",
+            "citation_quality",
+            "literature_quality",
+            "pubmed",
+            "evidence_map"
+          ],
+          "failure_tokens": [
+            "medical_failure:citation",
+            "medical_failure:literature",
+            "citation",
+            "literature",
+            "citation_quality",
+            "literature_quality"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/citation",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/literature"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "stats": {
           "target_capability_id": "medical-statistical-review",
           "module_id": "mas-scholar-skills.stats",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-statistical-review",
+            "mas-scholar-skills.stats",
+            "stats",
+            "statistical_review",
+            "stats_quality",
+            "analysis_quality",
+            "statistics"
+          ],
+          "failure_tokens": [
+            "medical_failure:statistics",
+            "stats",
+            "statistical_review",
+            "stats_quality",
+            "analysis_quality",
+            "statistics"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/statistics"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "table": {
           "target_capability_id": "medical-table-design",
@@ -372,19 +508,94 @@
           "aliases": [
             "tables"
           ],
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-table-design",
+            "mas-scholar-skills.tables",
+            "table",
+            "tables",
+            "table_quality",
+            "reporting_table_quality"
+          ],
+          "failure_tokens": [
+            "medical_failure:table",
+            "table",
+            "tables",
+            "table_quality",
+            "reporting_table_quality"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/table"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "submission": {
           "target_capability_id": "medical-submission-prep",
           "module_id": "mas-scholar-skills.submit",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-submission-prep",
+            "mas-scholar-skills.submit",
+            "submission",
+            "submission_quality",
+            "submission_package",
+            "journal_package"
+          ],
+          "failure_tokens": [
+            "medical_failure:submission",
+            "submission",
+            "submission_quality",
+            "submission_package",
+            "journal_package"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/submission"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         },
         "data_governance": {
           "target_capability_id": "medical-data-governance",
           "module_id": "mas-scholar-skills.data",
           "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
-          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings"
+          "capability_map_ref": "contracts/capability_map.json#/feedback_target_mappings",
+          "improvement_tokens": [
+            "medical-data-governance",
+            "mas-scholar-skills.data",
+            "data_governance",
+            "data_quality",
+            "source_data_governance",
+            "clinical_data_governance"
+          ],
+          "failure_tokens": [
+            "medical_failure:data_governance",
+            "data_governance",
+            "data_quality",
+            "source_data_governance",
+            "clinical_data_governance"
+          ],
+          "failure_token_refs": [
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/data_governance"
+          ],
+          "verification_refs": [
+            "contracts/capability_map.json#/medical_failure_type_mappings",
+            "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+            "external_repo:mas-scholar-skills/scripts/verify.sh",
+            "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+          ],
+          "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
         }
       },
       "medical_manuscript_quality": {
@@ -400,87 +611,87 @@
             "target_surface_refs": [
               "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
               "quality_contract_ref:prediction_model_first_draft_quality",
-        "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
-        "mechanism-edit-ref:mas/source-provenance-owner-recovery",
-        "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
-        "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
-        "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
-        "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
-        "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
-        "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
-        "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
-        "mechanism-edit-ref:mas/macro-state-no-stale-live",
-        "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
-        "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
-        "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
-        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
-      ],
-      "quality_target_refs": [
+              "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
+              "mechanism-edit-ref:mas/source-provenance-owner-recovery",
+              "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
+              "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
+              "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
+              "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
+              "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+              "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
+              "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
+              "mechanism-edit-ref:mas/macro-state-no-stale-live",
+              "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
+              "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+              "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
+              "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+            ],
+            "quality_target_refs": [
               "hdl_harmonization_and_sensitivity",
               "model_reproducibility_and_baseline_survival",
               "visible_baseline_and_performance_tables",
               "methods_reproducibility_complete_case_external_validation",
               "numeric_abstract_results_with_uncertainty",
               "uncertainty_intervals_and_validation_metrics",
-        "nhanes_weighting_or_unweighted_framing",
-        "calibration_risk_collapse_figure_quality",
-        "grouped_calibration_with_observed_rate_intervals",
-        "structured_evidence_text_table_consistency",
-        "claim_evidence_display_alignment_without_runtime_language",
-        "owner_chain_authority_monotonicity",
-        "quality_repair_writer_handoff_currentness",
-        "publication_work_unit_registry_consistency",
-        "story_surface_delta_or_typed_blocker",
-        "stale_ai_reviewer_current_eval_drift",
-        "dead_letter_stabilizes_to_owner_blocker",
-        "macro_state_no_stale_live",
-        "medical_manuscript_no_runtime_language",
-        "methods_results_numeric_reproducibility_floor",
-        "ai_reviewer_record_current_manuscript_binding"
-      ]
-    },
+              "nhanes_weighting_or_unweighted_framing",
+              "calibration_risk_collapse_figure_quality",
+              "grouped_calibration_with_observed_rate_intervals",
+              "structured_evidence_text_table_consistency",
+              "claim_evidence_display_alignment_without_runtime_language",
+              "owner_chain_authority_monotonicity",
+              "quality_repair_writer_handoff_currentness",
+              "publication_work_unit_registry_consistency",
+              "story_surface_delta_or_typed_blocker",
+              "stale_ai_reviewer_current_eval_drift",
+              "dead_letter_stabilizes_to_owner_blocker",
+              "macro_state_no_stale_live",
+              "medical_manuscript_no_runtime_language",
+              "methods_results_numeric_reproducibility_floor",
+              "ai_reviewer_record_current_manuscript_binding"
+            ]
+          },
           {
             "study_quality_target_family": "observational_phenotype_treatment_gap",
             "target_surface_refs": [
               "stage_policy_ref:mas/write/pre_draft_observational_phenotype_reporting",
-        "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
-        "mechanism-edit-ref:mas/clinical-phenotype-derivation-reporting",
-        "mechanism-edit-ref:mas/recorded-treatment-gap-reporting",
-        "mechanism-edit-ref:mas/data-quality-assessment-reporting",
-        "mechanism-edit-ref:mas/baseline-characteristics-table-reporting",
-        "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
-        "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
-        "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
-        "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
-        "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
-        "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
-        "mechanism-edit-ref:mas/macro-state-no-stale-live",
-        "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
-        "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor"
-      ],
-      "quality_target_refs": [
-        "phenotype_derivation_transparency",
+              "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
+              "mechanism-edit-ref:mas/clinical-phenotype-derivation-reporting",
+              "mechanism-edit-ref:mas/recorded-treatment-gap-reporting",
+              "mechanism-edit-ref:mas/data-quality-assessment-reporting",
+              "mechanism-edit-ref:mas/baseline-characteristics-table-reporting",
+              "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
+              "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
+              "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
+              "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+              "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
+              "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
+              "mechanism-edit-ref:mas/macro-state-no-stale-live",
+              "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
+              "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor"
+            ],
+            "quality_target_refs": [
+              "phenotype_derivation_transparency",
               "recorded_treatment_gap_terminology",
               "bp_and_data_quality_assessment",
               "baseline_characteristics_table",
               "formal_figures_and_tables",
               "numeric_abstract_results_with_uncertainty",
               "restrained_discussion_and_prose",
-        "reference_and_journal_style",
-        "claim_evidence_alignment_without_runtime_language",
-        "route_back_for_method_or_data_errors",
-        "owner_chain_authority_monotonicity",
-        "quality_repair_writer_handoff_currentness",
-        "publication_work_unit_registry_consistency",
-        "story_surface_delta_or_typed_blocker",
-        "stale_ai_reviewer_current_eval_drift",
-        "dead_letter_stabilizes_to_owner_blocker",
-        "macro_state_no_stale_live",
-        "medical_manuscript_no_runtime_language",
-        "methods_results_numeric_reproducibility_floor"
-      ]
-    }
-  ],
+              "reference_and_journal_style",
+              "claim_evidence_alignment_without_runtime_language",
+              "route_back_for_method_or_data_errors",
+              "owner_chain_authority_monotonicity",
+              "quality_repair_writer_handoff_currentness",
+              "publication_work_unit_registry_consistency",
+              "story_surface_delta_or_typed_blocker",
+              "stale_ai_reviewer_current_eval_drift",
+              "dead_letter_stabilizes_to_owner_blocker",
+              "macro_state_no_stale_live",
+              "medical_manuscript_no_runtime_language",
+              "methods_results_numeric_reproducibility_floor"
+            ]
+          }
+        ],
         "patch_surface_hints": [
           "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py",
           "src/med_autoscience/controllers/pre_draft_quality_runtime.py",
@@ -502,6 +713,27 @@
         ],
         "can_authorize_quality_verdict": false,
         "can_write_study_truth": false
+      },
+      "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
+      "medical_failure_type_mappings_ref": "contracts/capability_map.json#/medical_failure_type_mappings",
+      "owner_closeout_boundary": {
+        "boundary_kind": "no_authority_owner_closeout",
+        "scholar_skills_or_oma_may_close_out_owner_loop": false,
+        "closeout_authority_owner": "MedAutoScience owner surface",
+        "closeout_requires_one_of": [
+          "mas_owner_receipt_ref",
+          "stable_typed_blocker_ref",
+          "reviewer_receipt_ref",
+          "route_back_evidence_ref",
+          "human_gate_ref"
+        ],
+        "forbidden_closeout_claims": [
+          "publication_ready",
+          "owner_accepted",
+          "typed_blocker_created_by_scholar_skills_or_oma",
+          "current_package_authority",
+          "domain_truth_written"
+        ]
       }
     },
     "editable_surface_refs": [

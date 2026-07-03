@@ -21,9 +21,15 @@ def test_agent_lab_handoff_routes_feedback_targets_to_scholar_skills_single_sour
     contract_text = json.dumps(handoff, ensure_ascii=False)
     policy = handoff["meta_agent_work_order_contract"]["external_suite_improvement_policy"]
     mappings = policy["capability_target_mappings"]
+    registry_ref = "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
 
     assert "skill_ref:medical-research-write" not in contract_text
     assert "src/med_autoscience/overlay/templates/medical-research-write.SKILL.md" not in contract_text
+    assert policy["failure_token_registry_ref"] == registry_ref
+    assert policy["medical_failure_type_mappings_ref"] == (
+        "contracts/capability_map.json#/medical_failure_type_mappings"
+    )
+    assert policy["owner_closeout_boundary"]["scholar_skills_or_oma_may_close_out_owner_loop"] is False
     assert mappings["figure_quality"]["target_skill_ref"] == (
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md"
     )
@@ -34,6 +40,13 @@ def test_agent_lab_handoff_routes_feedback_targets_to_scholar_skills_single_sour
     assert mappings["table"]["target_capability_id"] == "medical-table-design"
     assert mappings["submission"]["target_capability_id"] == "medical-submission-prep"
     assert mappings["data_governance"]["target_capability_id"] == "medical-data-governance"
+    assert f"{registry_ref}#/medical_failure_types/figure" in mappings["figure_quality"]["failure_token_refs"]
+    assert f"{registry_ref}#/medical_failure_types/citation" in mappings["citation_literature"]["failure_token_refs"]
+    assert f"{registry_ref}#/medical_failure_types/literature" in mappings["citation_literature"]["failure_token_refs"]
+    assert all(
+        mapping["owner_closeout_boundary_ref"] == "contracts/capability_map.json#/owner_closeout_boundary"
+        for mapping in mappings.values()
+    )
     assert "contracts/capability_map.json" in handoff["meta_agent_work_order_contract"]["editable_surface_refs"]
 
 
@@ -45,17 +58,46 @@ def test_mas_capability_map_keeps_scholar_skills_refs_only_boundary() -> None:
         item["feedback_target"]: item
         for item in capability_map["feedback_target_mappings"]
     }
+    failure_mappings = {
+        item["failure_type"]: item
+        for item in capability_map["medical_failure_type_mappings"]
+    }
+    registry_ref = "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
 
     assert capability_map["external_capability_pack_target"]["domain_id"] == "mas-scholar-skills"
     assert capability_map["external_capability_pack_target"]["delivery_domain"] == "capability_pack"
+    assert capability_map["failure_token_registry_ref"] == registry_ref
+    assert set(failure_mappings) == {
+        "literature",
+        "citation",
+        "writing",
+        "review",
+        "figure",
+        "statistics",
+        "table",
+        "submission",
+        "data_governance",
+    }
     assert policy["mas_stage_prompts_remain_in_mas"] is True
     assert policy["mas_owner_authority_remains_in_mas"] is True
     assert policy["scholar_skills_outputs_are_refs_only_candidates"] is True
     assert policy["scholar_skills_may_write_mas_truth"] is False
+    owner_closeout = capability_map["owner_closeout_boundary"]
+    assert owner_closeout["scholar_skills_or_oma_may_close_out_owner_loop"] is False
+    assert "mas_owner_receipt_ref" in owner_closeout["closeout_requires_one_of"]
+    assert "stable_typed_blocker_ref" in owner_closeout["closeout_requires_one_of"]
     assert mappings["figure_quality"]["target_skill_ref"] == (
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md"
     )
     assert mappings["manuscript_quality"]["target_capability_id"] == "medical-manuscript-writing"
+    assert failure_mappings["literature"]["target_capability_id"] == "medical-research-lit"
+    assert failure_mappings["citation"]["target_capability_id"] == "medical-research-lit"
+    assert failure_mappings["writing"]["target_skill_ref"] == (
+        "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md"
+    )
+    assert all(registry_ref in item["verification_refs"] for item in failure_mappings.values())
+    assert all(item["target_capability_id"] != "omics" for item in failure_mappings.values())
+    assert all(item["target_capability_id"] != "intake" for item in failure_mappings.values())
 
 
 def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs() -> None:

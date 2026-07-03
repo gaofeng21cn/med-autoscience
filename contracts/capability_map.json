@@ -11,6 +11,7 @@
     "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
     "external_repo:mas-scholar-skills/contracts/capability_map.json"
   ],
+  "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
   "external_capability_pack_target": {
     "domain_id": "mas-scholar-skills",
     "delivery_domain": "capability_pack",
@@ -30,6 +31,25 @@
     "scholar_skills_may_write_mas_truth": false,
     "scholar_skills_may_write_current_package": false
   },
+  "owner_closeout_boundary": {
+    "boundary_kind": "no_authority_owner_closeout",
+    "scholar_skills_or_oma_may_close_out_owner_loop": false,
+    "closeout_authority_owner": "MedAutoScience owner surface",
+    "closeout_requires_one_of": [
+      "mas_owner_receipt_ref",
+      "stable_typed_blocker_ref",
+      "reviewer_receipt_ref",
+      "route_back_evidence_ref",
+      "human_gate_ref"
+    ],
+    "forbidden_closeout_claims": [
+      "publication_ready",
+      "owner_accepted",
+      "typed_blocker_created_by_scholar_skills_or_oma",
+      "current_package_authority",
+      "domain_truth_written"
+    ]
+  },
   "feedback_target_mappings": [
     {
       "feedback_target": "figure_quality",
@@ -43,8 +63,30 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-figure-design",
+        "mas-scholar-skills.display",
+        "figure_quality",
+        "display_quality",
+        "visual_quality",
+        "figure",
+        "figures"
+      ],
+      "failure_tokens": [
+        "medical_failure:figure",
+        "figure_quality",
+        "display_quality",
+        "visual_quality",
+        "figure",
+        "figures"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/figure"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "manuscript_quality",
@@ -58,8 +100,28 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-manuscript-writing",
+        "mas-scholar-skills.write",
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "writing_quality",
+        "writing"
+      ],
+      "failure_tokens": [
+        "medical_failure:writing",
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "writing_quality",
+        "writing"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "review_quality",
@@ -73,8 +135,28 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-manuscript-review",
+        "mas-scholar-skills.review",
+        "review_quality",
+        "manuscript_review",
+        "quality_review",
+        "review"
+      ],
+      "failure_tokens": [
+        "medical_failure:review",
+        "review_quality",
+        "manuscript_review",
+        "quality_review",
+        "review"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/review"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "citation_literature",
@@ -94,8 +176,32 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-research-lit",
+        "mas-scholar-skills.lit",
+        "citation",
+        "literature",
+        "citation_quality",
+        "literature_quality",
+        "pubmed",
+        "evidence_map"
+      ],
+      "failure_tokens": [
+        "medical_failure:citation",
+        "medical_failure:literature",
+        "citation",
+        "literature",
+        "citation_quality",
+        "literature_quality"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/citation",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/literature"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "stats",
@@ -114,8 +220,30 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-statistical-review",
+        "mas-scholar-skills.stats",
+        "stats",
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality",
+        "statistics"
+      ],
+      "failure_tokens": [
+        "medical_failure:statistics",
+        "stats",
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality",
+        "statistics"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/statistics"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "table",
@@ -134,8 +262,28 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-table-design",
+        "mas-scholar-skills.tables",
+        "table",
+        "tables",
+        "table_quality",
+        "reporting_table_quality"
+      ],
+      "failure_tokens": [
+        "medical_failure:table",
+        "table",
+        "tables",
+        "table_quality",
+        "reporting_table_quality"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/table"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "submission",
@@ -154,8 +302,28 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-submission-prep",
+        "mas-scholar-skills.submit",
+        "submission",
+        "submission_quality",
+        "submission_package",
+        "journal_package"
+      ],
+      "failure_tokens": [
+        "medical_failure:submission",
+        "submission",
+        "submission_quality",
+        "submission_package",
+        "journal_package"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/submission"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "feedback_target": "data_governance",
@@ -174,8 +342,231 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
-      ]
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "improvement_tokens": [
+        "medical-data-governance",
+        "mas-scholar-skills.data",
+        "data_governance",
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance"
+      ],
+      "failure_tokens": [
+        "medical_failure:data_governance",
+        "data_governance",
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/data_governance"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    }
+  ],
+  "medical_failure_type_mappings": [
+    {
+      "failure_type": "literature",
+      "feedback_target": "citation_literature",
+      "aliases": [
+        "literature",
+        "literature_quality"
+      ],
+      "module_id": "mas-scholar-skills.lit",
+      "target_capability_id": "medical-research-lit",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/literature"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "citation",
+      "feedback_target": "citation_literature",
+      "aliases": [
+        "citation",
+        "citation_quality"
+      ],
+      "module_id": "mas-scholar-skills.lit",
+      "target_capability_id": "medical-research-lit",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/citation"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "writing",
+      "feedback_target": "manuscript_quality",
+      "aliases": [
+        "manuscript_quality",
+        "medical_manuscript_quality",
+        "writing_quality"
+      ],
+      "module_id": "mas-scholar-skills.write",
+      "target_capability_id": "medical-manuscript-writing",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "review",
+      "feedback_target": "review_quality",
+      "aliases": [
+        "review_quality",
+        "manuscript_review",
+        "quality_review"
+      ],
+      "module_id": "mas-scholar-skills.review",
+      "target_capability_id": "medical-manuscript-review",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/review"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "figure",
+      "feedback_target": "figure_quality",
+      "aliases": [
+        "figure_quality",
+        "display_quality",
+        "visual_quality",
+        "figures"
+      ],
+      "module_id": "mas-scholar-skills.display",
+      "target_capability_id": "medical-figure-design",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/figure"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "statistics",
+      "feedback_target": "stats",
+      "aliases": [
+        "stats",
+        "statistical_review",
+        "stats_quality",
+        "analysis_quality"
+      ],
+      "module_id": "mas-scholar-skills.stats",
+      "target_capability_id": "medical-statistical-review",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/statistics"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "table",
+      "feedback_target": "table",
+      "aliases": [
+        "table",
+        "tables",
+        "table_quality",
+        "reporting_table_quality"
+      ],
+      "module_id": "mas-scholar-skills.tables",
+      "target_capability_id": "medical-table-design",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/table"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "submission",
+      "feedback_target": "submission",
+      "aliases": [
+        "submission",
+        "submission_quality",
+        "submission_package",
+        "journal_package"
+      ],
+      "module_id": "mas-scholar-skills.submit",
+      "target_capability_id": "medical-submission-prep",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/submission"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "data_governance",
+      "feedback_target": "data_governance",
+      "aliases": [
+        "data_governance",
+        "data_quality",
+        "source_data_governance",
+        "clinical_data_governance"
+      ],
+      "module_id": "mas-scholar-skills.data",
+      "target_capability_id": "medical-data-governance",
+      "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/data_governance"
+      ],
+      "capability_map_ref": "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     }
   ],
   "forbidden_write_targets": [
@@ -247,16 +638,21 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-figure-design",
+        "mas-scholar-skills.display",
         "figure_quality",
         "display_quality",
-        "medical-figure-design",
-        "mas-scholar-skills.display"
+        "visual_quality",
+        "figure",
+        "figures"
       ],
       "failure_tokens": [
+        "medical_failure:figure",
         "figure_quality",
         "display_quality",
-        "medical-figure-design",
-        "mas-scholar-skills.display"
+        "visual_quality",
+        "figure",
+        "figures"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
@@ -268,7 +664,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -280,10 +677,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "figure_quality",
-      "module_id": "mas-scholar-skills.display"
+      "module_id": "mas-scholar-skills.display",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/figure"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-manuscript-writing",
@@ -310,16 +713,19 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-manuscript-writing",
+        "mas-scholar-skills.write",
         "manuscript_quality",
         "medical_manuscript_quality",
-        "medical-manuscript-writing",
-        "mas-scholar-skills.write"
+        "writing_quality",
+        "writing"
       ],
       "failure_tokens": [
+        "medical_failure:writing",
         "manuscript_quality",
         "medical_manuscript_quality",
-        "medical-manuscript-writing",
-        "mas-scholar-skills.write"
+        "writing_quality",
+        "writing"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
@@ -331,7 +737,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -343,10 +750,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "manuscript_quality",
-      "module_id": "mas-scholar-skills.write"
+      "module_id": "mas-scholar-skills.write",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-manuscript-review",
@@ -373,16 +786,19 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
-        "review_quality",
-        "quality_review",
         "medical-manuscript-review",
-        "mas-scholar-skills.review"
+        "mas-scholar-skills.review",
+        "review_quality",
+        "manuscript_review",
+        "quality_review",
+        "review"
       ],
       "failure_tokens": [
+        "medical_failure:review",
         "review_quality",
+        "manuscript_review",
         "quality_review",
-        "medical-manuscript-review",
-        "mas-scholar-skills.review"
+        "review"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
@@ -394,7 +810,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -406,10 +823,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "review_quality",
-      "module_id": "mas-scholar-skills.review"
+      "module_id": "mas-scholar-skills.review",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/review"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-research-lit",
@@ -436,22 +859,22 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
-        "citation_literature",
+        "medical-research-lit",
+        "mas-scholar-skills.lit",
         "citation",
         "literature",
         "citation_quality",
         "literature_quality",
-        "medical-research-lit",
-        "mas-scholar-skills.lit"
+        "pubmed",
+        "evidence_map"
       ],
       "failure_tokens": [
-        "citation_literature",
+        "medical_failure:citation",
+        "medical_failure:literature",
         "citation",
         "literature",
         "citation_quality",
-        "literature_quality",
-        "medical-research-lit",
-        "mas-scholar-skills.lit"
+        "literature_quality"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
@@ -463,7 +886,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -475,10 +899,17 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "citation_literature",
-      "module_id": "mas-scholar-skills.lit"
+      "module_id": "mas-scholar-skills.lit",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/citation",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/literature"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-statistical-review",
@@ -505,20 +936,21 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-statistical-review",
+        "mas-scholar-skills.stats",
         "stats",
         "statistical_review",
         "stats_quality",
         "analysis_quality",
-        "medical-statistical-review",
-        "mas-scholar-skills.stats"
+        "statistics"
       ],
       "failure_tokens": [
+        "medical_failure:statistics",
         "stats",
         "statistical_review",
         "stats_quality",
         "analysis_quality",
-        "medical-statistical-review",
-        "mas-scholar-skills.stats"
+        "statistics"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-statistical-review/SKILL.md",
@@ -530,7 +962,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -542,10 +975,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "stats",
-      "module_id": "mas-scholar-skills.stats"
+      "module_id": "mas-scholar-skills.stats",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/statistics"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-table-design",
@@ -572,20 +1011,19 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-table-design",
+        "mas-scholar-skills.tables",
         "table",
         "tables",
         "table_quality",
-        "reporting_table_quality",
-        "medical-table-design",
-        "mas-scholar-skills.tables"
+        "reporting_table_quality"
       ],
       "failure_tokens": [
+        "medical_failure:table",
         "table",
         "tables",
         "table_quality",
-        "reporting_table_quality",
-        "medical-table-design",
-        "mas-scholar-skills.tables"
+        "reporting_table_quality"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-table-design/SKILL.md",
@@ -597,7 +1035,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -609,10 +1048,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "table",
-      "module_id": "mas-scholar-skills.tables"
+      "module_id": "mas-scholar-skills.tables",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/table"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-submission-prep",
@@ -639,20 +1084,19 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-submission-prep",
+        "mas-scholar-skills.submit",
         "submission",
         "submission_quality",
         "submission_package",
-        "journal_package",
-        "medical-submission-prep",
-        "mas-scholar-skills.submit"
+        "journal_package"
       ],
       "failure_tokens": [
+        "medical_failure:submission",
         "submission",
         "submission_quality",
         "submission_package",
-        "journal_package",
-        "medical-submission-prep",
-        "mas-scholar-skills.submit"
+        "journal_package"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
@@ -664,7 +1108,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -676,10 +1121,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "submission",
-      "module_id": "mas-scholar-skills.submit"
+      "module_id": "mas-scholar-skills.submit",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/submission"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "medical-data-governance",
@@ -706,20 +1157,19 @@
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
       "improvement_tokens": [
+        "medical-data-governance",
+        "mas-scholar-skills.data",
         "data_governance",
         "data_quality",
         "source_data_governance",
-        "clinical_data_governance",
-        "medical-data-governance",
-        "mas-scholar-skills.data"
+        "clinical_data_governance"
       ],
       "failure_tokens": [
+        "medical_failure:data_governance",
         "data_governance",
         "data_quality",
         "source_data_governance",
-        "clinical_data_governance",
-        "medical-data-governance",
-        "mas-scholar-skills.data"
+        "clinical_data_governance"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-data-governance/SKILL.md",
@@ -731,7 +1181,8 @@
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
-        "external_repo:mas-scholar-skills/scripts/verify.sh"
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -743,10 +1194,16 @@
         "can_claim_domain_ready": false,
         "can_claim_production_ready": false,
         "can_write_mas_truth": false,
-        "can_write_current_package": false
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
       },
       "feedback_target": "data_governance",
-      "module_id": "mas-scholar-skills.data"
+      "module_id": "mas-scholar-skills.data",
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/data_governance"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     },
     {
       "capability_id": "mas-stage-prompts",
