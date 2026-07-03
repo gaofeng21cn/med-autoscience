@@ -163,6 +163,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
         "figure",
         "write",
         "review",
+        "external-scientific-skills",
         "rebuttal",
         "finalize",
     )
@@ -191,6 +192,7 @@ def test_workspace_profile_template_defaults_to_primary_figure_overlay_skill() -
     payload = tomllib.loads(template_path.read_text(encoding="utf-8"))
 
     assert "figure" in payload["medical_overlay_skills"]
+    assert "external-scientific-skills" in payload["medical_overlay_skills"]
     assert "figure-polish" not in payload["medical_overlay_skills"]
 
 
