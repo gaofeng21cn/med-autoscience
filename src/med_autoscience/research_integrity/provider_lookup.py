@@ -21,8 +21,8 @@ from med_autoscience.research_integrity.reference_authenticity import (
 
 SURFACE_KIND = "reference_provider_lookup_bundle"
 SCHEMA_VERSION = "mas-reference-provider-lookup.v1"
-DEFAULT_PROVIDERS = ("crossref", "pubmed", "openalex")
-SUPPORTED_LOOKUP_PROVIDERS = frozenset(DEFAULT_PROVIDERS)
+DEFAULT_PROVIDERS = ("crossref", "pubmed", "openalex", "semantic_scholar")
+SUPPORTED_LOOKUP_PROVIDERS = frozenset(DEFAULT_PROVIDERS + ("crossmark", "publisher"))
 
 JsonHttpClient = Callable[[str, Mapping[str, str], float], Mapping[str, Any]]
 
@@ -37,6 +37,7 @@ class ProviderLookupConfig:
     ncbi_email: str | None = None
     ncbi_api_key: str | None = None
     openalex_api_key: str | None = None
+    semantic_scholar_api_key: str | None = None
 
     @classmethod
     def from_mapping(cls, payload: Mapping[str, Any] | None = None) -> ProviderLookupConfig:
@@ -65,6 +66,12 @@ class ProviderLookupConfig:
             ),
             ncbi_api_key=_text(payload.get("ncbi_api_key")) or _text(os.getenv("NCBI_API_KEY")),
             openalex_api_key=_text(payload.get("openalex_api_key")) or _text(os.getenv("OPENALEX_API_KEY")),
+            semantic_scholar_api_key=(
+                _text(payload.get("semantic_scholar_api_key"))
+                or _text(payload.get("s2_api_key"))
+                or _text(os.getenv("SEMANTIC_SCHOLAR_API_KEY"))
+                or _text(os.getenv("S2_API_KEY"))
+            ),
         )
 
 
@@ -167,6 +174,7 @@ def provider_lookup_authority_boundary() -> dict[str, Any]:
             "can_write_provider_attempt": False,
             "can_write_provider_cache": False,
             "can_materialize_provider_receipt": False,
+            "can_assert_publisher_or_crossmark_status_without_provider_receipt": False,
         }
     )
     return boundary
@@ -183,6 +191,9 @@ def _lookup_provider(
         "crossref": _lookup_crossref,
         "pubmed": _lookup_pubmed,
         "openalex": _lookup_openalex,
+        "semantic_scholar": _lookup_semantic_scholar,
+        "crossmark": _lookup_crossmark,
+        "publisher": _lookup_publisher,
     }
     return handlers[provider](reference, config=config, client=client)
 
@@ -306,6 +317,114 @@ def _lookup_openalex(
     }
 
 
+def _lookup_semantic_scholar(
+    reference: Mapping[str, Any],
+    *,
+    config: ProviderLookupConfig,
+    client: JsonHttpClient,
+) -> dict[str, Any]:
+    doi = _doi(reference)
+    title = _title(reference)
+    fields = "paperId,externalIds,title,year,venue,publicationVenue"
+    if doi:
+        url = _url(
+            "https://api.semanticscholar.org/graph/v1/paper/" + quote("DOI:" + doi, safe=""),
+            {"fields": fields},
+        )
+    elif title:
+        url = _url(
+            "https://api.semanticscholar.org/graph/v1/paper/search",
+            {"query": title, "limit": "1", "fields": fields},
+        )
+    else:
+        return _provider_error("semantic_scholar", "insufficient_reference_query", "doi or title is required")
+    payload = client(url, _headers(config, provider="semantic_scholar"), config.timeout_seconds)
+    if isinstance(payload.get("data"), Sequence):
+        item = _first_mapping(payload.get("data"))
+    else:
+        item = payload
+    if item is None or not _text(item.get("paperId")):
+        return _provider_not_found("semantic_scholar", url)
+    return {
+        "provider": "semantic_scholar",
+        "lookup_status": "found",
+        "request_url": _redacted_url(url),
+        "matched_identifiers": _semantic_scholar_identifiers(item),
+        "metadata": _semantic_scholar_metadata(item),
+        "retraction_or_update_flags": {},
+        "provider_limitations": {
+            "does_not_assert_retraction_status": True,
+            "retraction_status_requires_crossmark_publisher_or_retraction_watch_evidence": True,
+        },
+    }
+
+
+def _lookup_crossmark(
+    reference: Mapping[str, Any],
+    *,
+    config: ProviderLookupConfig,
+    client: JsonHttpClient,
+) -> dict[str, Any]:
+    doi = _doi(reference)
+    if not doi:
+        return _provider_error("crossmark", "insufficient_reference_query", "doi is required")
+    url = _url("https://api.crossref.org/works/" + quote(doi, safe=""), _optional_params({"mailto": config.mailto}))
+    payload = client(url, _headers(config), config.timeout_seconds)
+    message = payload.get("message")
+    if not isinstance(message, Mapping):
+        return _provider_not_found("crossmark", url)
+    return {
+        "provider": "crossmark",
+        "lookup_status": "found",
+        "request_url": _redacted_url(url),
+        "matched_identifiers": _crossref_identifiers(message),
+        "metadata": _crossref_metadata(message),
+        "retraction_or_update_flags": _crossmark_flags(message),
+        "provider_limitations": {
+            "source": "crossref_rest_api_crossmark_metadata",
+            "publisher_update_policy_presence_is_not_publication_readiness": True,
+        },
+    }
+
+
+def _lookup_publisher(
+    reference: Mapping[str, Any],
+    *,
+    config: ProviderLookupConfig,
+    client: JsonHttpClient,
+) -> dict[str, Any]:
+    del config, client
+    doi = _doi(reference)
+    landing_page = _text(
+        reference.get("publisher_url")
+        or reference.get("publisher_landing_page_url")
+        or reference.get("url")
+        or reference.get("URL")
+    )
+    if not (doi or landing_page):
+        return _provider_error(
+            "publisher",
+            "publisher_connector_required",
+            "publisher lookup requires DOI or publisher landing page and an OPL connector receipt",
+        )
+    return {
+        "provider": "publisher",
+        "lookup_status": "error",
+        "error": {
+            "code": "publisher_connector_required",
+            "message": "MAS thin lookup does not assert publisher status without an OPL connector receipt.",
+        },
+        "matched_identifiers": {},
+        "metadata": _metadata(title=_title(reference), year=_text(reference.get("year")), journal=None),
+        "provider_receipt_required": True,
+        "provider_limitations": {
+            "does_not_call_publisher_site": True,
+            "does_not_assert_retraction_status": True,
+            "expected_owner": "OPL Connect publisher connector",
+        },
+    }
+
+
 def _crossref_identifiers(item: Mapping[str, Any]) -> dict[str, str]:
     identifiers: dict[str, str] = {}
     doi = _text(item.get("DOI") or item.get("doi"))
@@ -416,6 +535,51 @@ def _openalex_flags(item: Mapping[str, Any]) -> dict[str, Any]:
     return flags
 
 
+def _semantic_scholar_identifiers(item: Mapping[str, Any]) -> dict[str, str]:
+    identifiers: dict[str, str] = {}
+    paper_id = _text(item.get("paperId"))
+    if paper_id:
+        identifiers["semantic_scholar"] = paper_id
+    external_ids = item.get("externalIds")
+    if isinstance(external_ids, Mapping):
+        doi = _text(external_ids.get("DOI") or external_ids.get("doi"))
+        pmid = _text(external_ids.get("PubMed") or external_ids.get("PMID") or external_ids.get("pubmed"))
+        if doi:
+            identifiers["doi"] = _normalize_doi(doi)
+        if pmid:
+            identifiers["pmid"] = pmid
+    return identifiers
+
+
+def _semantic_scholar_metadata(item: Mapping[str, Any]) -> dict[str, Any]:
+    publication_venue = item.get("publicationVenue")
+    venue = publication_venue.get("name") if isinstance(publication_venue, Mapping) else None
+    return _metadata(
+        title=_text(item.get("title")),
+        year=_text(item.get("year")),
+        journal=_text(venue) or _text(item.get("venue")),
+    )
+
+
+def _crossmark_flags(item: Mapping[str, Any]) -> dict[str, Any]:
+    flags = _crossref_flags(item)
+    update_policy = item.get("update-policy")
+    if _text(update_policy):
+        flags["crossmark_update_policy"] = True
+    assertions = item.get("assertion")
+    if isinstance(assertions, Sequence) and not isinstance(assertions, (str, bytes, bytearray)):
+        assertion_names = [
+            _text(assertion.get("name") or assertion.get("label"))
+            for assertion in assertions
+            if isinstance(assertion, Mapping)
+        ]
+        if any(name and "retract" in name.lower() for name in assertion_names):
+            flags["retracted"] = True
+        if assertion_names:
+            flags["crossmark_assertions_present"] = True
+    return flags
+
+
 def _provider_summary(results: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     summary = {"found": 0, "not_found": 0, "error": 0}
     for result in results:
@@ -498,11 +662,14 @@ def _metadata(*, title: str | None, year: str | None, journal: str | None) -> di
     return metadata
 
 
-def _headers(config: ProviderLookupConfig) -> dict[str, str]:
+def _headers(config: ProviderLookupConfig, *, provider: str | None = None) -> dict[str, str]:
     user_agent = config.user_agent
     if config.mailto and "mailto:" not in user_agent:
         user_agent = f"{user_agent} (mailto:{config.mailto})"
-    return {"Accept": "application/json", "User-Agent": user_agent}
+    headers = {"Accept": "application/json", "User-Agent": user_agent}
+    if provider == "semantic_scholar" and config.semantic_scholar_api_key:
+        headers["x-api-key"] = config.semantic_scholar_api_key
+    return headers
 
 
 def _ncbi_params(config: ProviderLookupConfig, params: Mapping[str, str]) -> dict[str, str]:

@@ -167,6 +167,95 @@ def test_provider_lookup_openalex_uses_key_but_redacts_surface_url() -> None:
     assert bundle["references"][0]["attestation"]["status"] == "verified"
 
 
+def test_provider_lookup_semantic_scholar_uses_graph_api_and_api_key_header() -> None:
+    client = FakeJsonClient(
+        {
+            "api.semanticscholar.org/graph/v1/paper/DOI%3A10.4000%2Fs2": {
+                "paperId": "S2P123",
+                "externalIds": {"DOI": "10.4000/S2", "PubMed": "987654"},
+                "title": "Semantic Scholar Indexed Paper",
+                "year": 2025,
+                "publicationVenue": {"name": "Evidence Graphs"},
+            }
+        }
+    )
+
+    bundle = build_reference_provider_lookup_bundle(
+        references={"id": "s2-2025", "doi": "10.4000/s2", "title": "Semantic Scholar Indexed Paper"},
+        provider_config={"providers": ["semantic-scholar"], "semantic_scholar_api_key": "s2-secret"},
+        http_get_json=client,
+    )
+
+    evidence = bundle["references"][0]["provider_evidence"][0]
+
+    assert client.calls[0][1]["x-api-key"] == "s2-secret"
+    assert evidence["provider"] == "semantic_scholar"
+    assert evidence["lookup_status"] == "found"
+    assert evidence["matched_identifiers"] == {
+        "semantic_scholar": "S2P123",
+        "doi": "10.4000/s2",
+        "pmid": "987654",
+    }
+    assert evidence["metadata"] == {
+        "title": "Semantic Scholar Indexed Paper",
+        "year": "2025",
+        "journal": "Evidence Graphs",
+    }
+    assert evidence["provider_limitations"]["does_not_assert_retraction_status"] is True
+    assert bundle["references"][0]["attestation"]["status"] == "verified"
+
+
+def test_provider_lookup_crossmark_reads_crossref_update_metadata_without_publication_authority() -> None:
+    client = FakeJsonClient(
+        {
+            "api.crossref.org/works/10.5000%2Fcrossmark": {
+                "message": {
+                    "DOI": "10.5000/crossmark",
+                    "title": ["Crossmark Indexed Paper"],
+                    "container-title": ["Journal Updates"],
+                    "published-online": {"date-parts": [[2024, 3, 4]]},
+                    "relation": {"is-retracted-by": [{"id": "10.5000/retraction"}]},
+                    "update-policy": "https://doi.org/10.5555/crossmark-policy",
+                }
+            }
+        }
+    )
+
+    bundle = build_reference_provider_lookup_bundle(
+        references={"id": "crossmark2024", "doi": "10.5000/crossmark"},
+        provider_config={"providers": ["crossmark"], "mailto": "ops@example.org"},
+        http_get_json=client,
+    )
+
+    evidence = bundle["references"][0]["provider_evidence"][0]
+
+    assert evidence["provider"] == "crossmark"
+    assert evidence["lookup_status"] == "found"
+    assert evidence["matched_identifiers"] == {"doi": "10.5000/crossmark"}
+    assert evidence["retraction_or_update_flags"]["retracted"] is True
+    assert evidence["provider_limitations"]["publisher_update_policy_presence_is_not_publication_readiness"] is True
+    assert bundle["references"][0]["attestation"]["status"] == "retracted"
+    assert bundle["authority_boundary"]["can_assert_publisher_or_crossmark_status_without_provider_receipt"] is False
+
+
+def test_provider_lookup_publisher_requires_opl_connector_receipt_instead_of_faking_status() -> None:
+    bundle = build_reference_provider_lookup_bundle(
+        references={"id": "publisher2025", "doi": "10.6000/publisher", "title": "Publisher Landing Page"},
+        provider_config={"providers": ["publisher"]},
+        http_get_json=FakeJsonClient({}),
+    )
+
+    evidence = bundle["references"][0]["provider_evidence"][0]
+
+    assert evidence["provider"] == "publisher"
+    assert evidence["lookup_status"] == "error"
+    assert evidence["error"]["code"] == "publisher_connector_required"
+    assert evidence["provider_receipt_required"] is True
+    assert evidence["provider_limitations"]["expected_owner"] == "OPL Connect publisher connector"
+    assert bundle["status"] == "needs_review"
+    assert bundle["provider_summary"] == {"found": 0, "not_found": 0, "error": 1}
+
+
 def test_provider_lookup_rejects_unsupported_provider() -> None:
     with pytest.raises(ValueError, match="unsupported provider lookup provider"):
         build_reference_provider_lookup_bundle(
