@@ -13,6 +13,10 @@ SCHOLARSKILLS_DEFAULT_SKILL_IDS = (
     "medical-manuscript-writing",
     "medical-manuscript-review",
     "medical-figure-design",
+    "medical-statistical-review",
+    "medical-table-design",
+    "medical-submission-prep",
+    "medical-data-governance",
 )
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"

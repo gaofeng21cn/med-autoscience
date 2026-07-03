@@ -19,13 +19,11 @@ SCHOLARSKILLS_MODULE_NAMES = (
     "display",
     "tables",
     "stats",
-    "omics",
     "lit",
     "write",
     "review",
     "submit",
     "data",
-    "intake",
 )
 SCHOLARSKILLS_CAPABILITY_IDS = tuple(
     f"opl.scholarskills.{name}" for name in SCHOLARSKILLS_MODULE_NAMES
@@ -35,15 +33,11 @@ SCHOLARSKILLS_REAL_SKILL_BACKED_MODULES = {
     "lit": "medical-research-lit",
     "write": "medical-manuscript-writing",
     "review": "medical-manuscript-review",
+    "stats": "medical-statistical-review",
+    "tables": "medical-table-design",
+    "submit": "medical-submission-prep",
+    "data": "medical-data-governance",
 }
-SCHOLARSKILLS_CONTRACT_LAYER_MODULES = (
-    "tables",
-    "stats",
-    "omics",
-    "submit",
-    "data",
-    "intake",
-)
 SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT = {
     "lit": {
         "migration_priority": "P0",
@@ -99,22 +93,6 @@ SCHOLARSKILLS_NON_DISPLAY_MIGRATION_AUDIT = {
             "source_readiness_verdict",
             "study_binding",
             "irreversible_data_mutation_authorization",
-        ],
-    },
-    "intake": {
-        "migration_priority": "P1",
-        "mas_retained_authority": [
-            "ordinary_path_admission",
-            "default_capability_decision",
-            "authority_false_flag_acceptance",
-        ],
-    },
-    "omics": {
-        "migration_priority": "P2",
-        "mas_retained_authority": [
-            "biological_interpretation",
-            "source_readiness",
-            "result_to_figure_or_text_gate",
         ],
     },
 }
@@ -343,47 +321,6 @@ def scholarskills_module_metadata(
             ],
             "role": "clinical_analysis_result_manifest_and_reproducibility_refs_only_candidate",
         },
-        "omics": {
-            "capability_family": "scholarskills_omics",
-            "source_frameworks": [
-                "MAS Scholar Skills",
-                "Scholar Omics",
-                "Omics / Bioinformatics",
-            ],
-            "action_triggers": [
-                "omics_bioinformatics_analysis_required",
-                "run_omics_workflow",
-                "result_to_figure_gate",
-            ],
-            "current_delta_trigger_terms": [
-                "omics",
-                "bioinformatics",
-                "single-cell",
-                "single cell",
-                "bulk rna",
-                "cnv",
-                "mutation",
-                "pathway",
-                "enrichment",
-                "dimensionality reduction",
-                "marker",
-                "landscape",
-                "omics_workflow_manifest_ref",
-            ],
-            "current_delta_trigger_reason": "current_delta_declared_scholar_omics_need",
-            "artifact_refs": [
-                "opl:scholarskills.omics:omics_pipeline_manifest",
-                "opl:scholarskills.omics:feature_matrix_qc",
-            ],
-            "required_ref_families": [
-                "input_fingerprint_ref",
-                "dependency_profile_ref",
-                "prepared_run_context_ref",
-                "omics_pipeline_manifest_ref",
-                "feature_matrix_qc_ref",
-            ],
-            "role": "omics_workflow_analysis_manifest_and_result_refs_only_candidate",
-        },
         "lit": {
             "capability_family": "scholarskills_lit",
             "source_frameworks": [
@@ -538,17 +475,20 @@ def scholarskills_module_metadata(
             "capability_family": "scholarskills_data",
             "source_frameworks": [
                 "MAS Scholar Skills",
-                "Scholar Data",
-                "Data Management",
+                "Medical Data Governance",
+                "Clinical Data Governance",
             ],
             "action_triggers": [
                 "source_readiness_required",
                 "data_lineage_required",
                 "data_manifest_release",
+                "clinical_data_governance_required",
+                "data_asset_version_impact_review",
             ],
             "current_delta_trigger_terms": [
                 "data",
-                "data management",
+                "medical data governance",
+                "clinical data governance",
                 "data asset release",
                 "manifest",
                 "schema",
@@ -556,58 +496,47 @@ def scholarskills_module_metadata(
                 "de-identification",
                 "deidentification",
                 "source readiness",
+                "data dictionary",
+                "codebook",
+                "derived variable",
+                "study binding",
+                "privacy tier",
+                "access tier",
+                "retention guardrail",
                 "data_lineage_manifest_ref",
             ],
             "current_delta_trigger_reason": "current_delta_declared_scholar_data_need",
             "artifact_refs": [
-                "opl:scholarskills.data:data_manifest",
-                "opl:scholarskills.data:lineage_readiness",
+                "opl:scholarskills.data:data_asset_manifest",
+                "opl:scholarskills.data:dataset_manifest",
+                "opl:scholarskills.data:data_dictionary",
+                "opl:scholarskills.data:version_diff_impact",
+                "opl:scholarskills.data:lifecycle_catalog",
+                "opl:scholarskills.data:owner_gate_handoff",
+                "mas-scholar-skills:medical-data-governance",
             ],
             "required_ref_families": [
                 "input_fingerprint_ref",
                 "dependency_profile_ref",
                 "prepared_run_context_ref",
-                "data_manifest_ref",
-                "lineage_readiness_ref",
+                "data_asset_manifest_ref",
+                "dataset_manifest_ref",
+                "data_dictionary_ref",
+                "codebook_ref",
+                "cleaning_normalization_readiness_ref",
+                "derived_variable_registry_ref",
+                "source_lineage_ref",
+                "source_readiness_receipt_ref",
+                "cohort_definition_lock_ref",
+                "version_diff_impact_ref",
+                "study_binding_ref",
+                "privacy_access_tier_ref",
+                "retention_guardrail_ref",
+                "storage_tier_ref",
+                "lifecycle_catalog_ref",
+                "owner_gate_handoff_ref",
             ],
-            "role": "data_manifest_schema_lineage_and_source_readiness_refs_only_candidate",
-        },
-        "intake": {
-            "capability_family": "scholarskills_intake",
-            "source_frameworks": [
-                "MAS Scholar Skills",
-                "Scholar Intake",
-                "External Method Skill Intake",
-            ],
-            "action_triggers": [
-                "external_method_skill_intake",
-                "capability_adoption_contract_required",
-                "external_learning_adoption",
-            ],
-            "current_delta_trigger_terms": [
-                "intake",
-                "external method",
-                "open-source project",
-                "paper method",
-                "codebase",
-                "manual template",
-                "adoption contract",
-                "default capability",
-                "intake_adoption_contract_ref",
-            ],
-            "current_delta_trigger_reason": "current_delta_declared_scholar_intake_need",
-            "artifact_refs": [
-                "opl:scholarskills.intake:source_snapshot",
-                "opl:scholarskills.intake:adoption_contract",
-            ],
-            "required_ref_families": [
-                "input_fingerprint_ref",
-                "dependency_profile_ref",
-                "prepared_run_context_ref",
-                "source_snapshot_ref",
-                "adoption_contract_ref",
-            ],
-            "role": "external_method_skill_adoption_contract_and_descriptor_refs_only_candidate",
+            "role": "medical_data_governance_manifest_dictionary_lineage_version_study_binding_and_lifecycle_refs_only_candidate",
         },
     }
 
@@ -851,7 +780,6 @@ def _non_display_migration_guard(module_name: str) -> dict[str, Any]:
 
 def _module_classification(module_name: str) -> dict[str, Any]:
     specialist_skill_id = SCHOLARSKILLS_REAL_SKILL_BACKED_MODULES.get(module_name)
-    contract_layer_module = module_name in SCHOLARSKILLS_CONTRACT_LAYER_MODULES
     return {
         "surface_kind": "mas_scholarskills_module_classification",
         "schema_version": 1,
@@ -859,19 +787,17 @@ def _module_classification(module_name: str) -> dict[str, Any]:
         "classification": (
             "real_specialist_skill_backed_module"
             if specialist_skill_id
-            else "contract_layer_module"
+            else "unsupported_or_deferred_module_without_active_specialist_skill"
         ),
         "specialist_skill_id": specialist_skill_id,
-        "contract_layer_module": contract_layer_module,
+        "contract_layer_module": False,
         "codex_discovery_sync_required": bool(specialist_skill_id),
         "source_policy": (
             "real_skill_source_in_external_mas_scholar_skills_repo"
             if specialist_skill_id
-            else "module_contract_refs_checklist_candidate_handoff_only"
+            else "not_active_in_mas_scholar_skills"
         ),
-        "promotion_policy": (
-            "promote_to_real_codex_skill_only_when_stable_active_specialist_workflow_is_needed"
-        ),
+        "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
         "mas_private_implementation": False,
         "stage_prompt_source": False,
         "authority_owner": False,

@@ -119,6 +119,10 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance",
     ]
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]
@@ -127,6 +131,9 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     assert workspace_install["target_skill_paths"]["medical-figure-design"] == str(
         workspace_root / ".codex" / "skills" / "medical-figure-design"
+    )
+    assert workspace_install["target_skill_paths"]["medical-data-governance"] == str(
+        workspace_root / ".codex" / "skills" / "medical-data-governance"
     )
     assert workspace_install["sync_command"]["argv"] == [
         "opl",
@@ -145,6 +152,9 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     assert quest_install["target_skill_path_templates"]["medical-research-lit"] == str(
         workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-research-lit"
+    )
+    assert quest_install["target_skill_path_templates"]["medical-table-design"] == str(
+        workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-table-design"
     )
     assert payload["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
     assert not install_service.exists()

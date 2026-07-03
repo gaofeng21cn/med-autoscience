@@ -84,12 +84,19 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance",
     ]
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
     assert scholarskills_install["workspace"]["target_skill_paths"]["medical-manuscript-writing"] == str(
         workspace_root / ".codex" / "skills" / "medical-manuscript-writing"
+    )
+    assert scholarskills_install["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
+        workspace_root / ".codex" / "skills" / "medical-data-governance"
     )
     assert scholarskills_install["workspace"]["sync_command"]["argv"] == [
         "opl",
@@ -108,6 +115,9 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     )
     assert scholarskills_install["quest"]["target_skill_path_templates"]["medical-manuscript-review"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-manuscript-review")
+    )
+    assert scholarskills_install["quest"]["target_skill_path_templates"]["medical-submission-prep"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-submission-prep")
     )
     assert scholarskills_install["authority_boundary"]["writes_yang_authority"] is False
     assert scholarskills_install["authority_boundary"]["writes_runtime_authority"] is False

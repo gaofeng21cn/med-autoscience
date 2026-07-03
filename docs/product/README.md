@@ -41,7 +41,7 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 `src/med_autoscience/overlay/templates/*.SKILL.md` 与运行时 `.codex/skills/medical-research-*` 是 Codex 自动发现兼容投影，不是 stage 主提示词源头，也不是 professional specialist skill 源头。
 
-医学论文写作、审稿、图件设计和文献检索的专业正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design` 和 `medical-research-lit`。
+医学论文写作、审稿、图件设计、文献检索、统计审阅、表格设计、投稿准备和临床数据治理的专业正文由外部 `mas-scholar-skills` 仓库单源维护，通过 OPL Connect 同步到 workspace 或 quest：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`。
 
 当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 主提示词负责判断当前阶段怎么推进；专业 skill 负责把已分配的写作、审稿、图件和文献任务做得足够专业；OPL Connect、Fabric、脚本、renderer 和文献/工具 specialist 负责检索、渲染、检查和候选包生成。前三段默认都是 no-authority surface；最终是否接受、退回、阻塞或交给 human gate，只由 MAS owner surface 决定。
 

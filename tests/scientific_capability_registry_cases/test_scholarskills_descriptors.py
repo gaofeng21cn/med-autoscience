@@ -19,16 +19,17 @@ NON_DISPLAY_MIGRATION_PRIORITIES = {
     "write": "P1",
     "review": "P1",
     "data": "P1",
-    "intake": "P1",
-    "omics": "P2",
 }
 REAL_SKILL_BACKED_MODULES = {
     "display": "medical-figure-design",
     "lit": "medical-research-lit",
     "write": "medical-manuscript-writing",
     "review": "medical-manuscript-review",
+    "stats": "medical-statistical-review",
+    "tables": "medical-table-design",
+    "submit": "medical-submission-prep",
+    "data": "medical-data-governance",
 }
-CONTRACT_LAYER_MODULES = {"tables", "stats", "omics", "submit", "data", "intake"}
 
 
 def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholarskills_modules(
@@ -73,9 +74,7 @@ def test_scientific_capability_registry_indexes_resolves_and_invokes_all_scholar
         assert classification["specialist_skill_id"] == REAL_SKILL_BACKED_MODULES.get(
             module_name
         )
-        assert classification["contract_layer_module"] is (
-            module_name in CONTRACT_LAYER_MODULES
-        )
+        assert classification["contract_layer_module"] is False
         assert classification["stage_prompt_source"] is False
         assert classification["authority_owner"] is False
         if module_name == "display":

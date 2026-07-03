@@ -9246,7 +9246,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -9257,20 +9257,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -9279,21 +9290,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "display",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-figure-design",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.display",
         "output_refs": [
           "display_pack_agent_orchestration",
@@ -9320,12 +9356,12 @@
           "opl:scholarskills.display:render-cache"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Display",
           "MAS Display Pack"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9411,6 +9447,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -9421,10 +9458,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P0",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "tables",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-table-design",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -9435,7 +9474,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -9446,20 +9485,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -9468,21 +9518,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "tables",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-table-design",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.tables",
         "output_refs": [
           "opl:scholarskills.tables:table_manifest",
@@ -9507,12 +9582,12 @@
           "opl:scholarskills.tables:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Tables",
           "Tables / Reporting"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9602,6 +9677,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -9612,10 +9688,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P0",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "stats",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-statistical-review",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -9626,7 +9704,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -9637,20 +9715,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -9659,21 +9748,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "stats",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-statistical-review",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.stats",
         "output_refs": [
           "opl:scholarskills.stats:analysis_manifest",
@@ -9698,205 +9812,12 @@
           "opl:scholarskills.stats:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Stats",
           "Biostatistics / Clinical Analysis"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
-        "trigger": "current_delta_declares_or_implies_affordance_need"
-      },
-      {
-        "action_triggers": [
-          "omics_bioinformatics_analysis_required",
-          "run_omics_workflow",
-          "result_to_figure_gate"
-        ],
-        "artifact_refs": [
-          "opl:scholarskills.omics:omics_pipeline_manifest",
-          "opl:scholarskills.omics:feature_matrix_qc"
-        ],
-        "authority_boundary": {
-          "can_authorize_artifact_authority": false,
-          "can_authorize_owner_action": false,
-          "can_authorize_provider_admission": false,
-          "can_authorize_publication_readiness": false,
-          "can_authorize_quality_verdict": false,
-          "can_close_stage": false,
-          "can_write_controller_decisions": false,
-          "can_write_domain_truth": false,
-          "can_write_memory_body": false,
-          "can_write_owner_receipt": false,
-          "can_write_paper_or_package": false,
-          "can_write_publication_eval": false,
-          "can_write_typed_blocker": false,
-          "capability_or_sidecar_can_be_admission_gate": false,
-          "failed_capability_blocks_owner_action": false,
-          "low_confidence_capability_blocks_owner_action": false,
-          "missing_capability_blocks_owner_action": false,
-          "sidecar_completion_required_for_stage_closeout": false,
-          "surface_role": "current_delta_bound_capability_resolver"
-        },
-        "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.omics",
-        "capability_family": "scholarskills_omics",
-        "capability_id": "opl.scholarskills.omics",
-        "capability_ref": "scientific-capability:opl.scholarskills.omics",
-        "contract_refs": [
-          "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
-          "readback:mas_scholarskills_local_install"
-        ],
-        "current_delta_trigger_reason": "current_delta_declared_scholar_omics_need",
-        "current_delta_trigger_terms": [
-          "omics",
-          "bioinformatics",
-          "single-cell",
-          "single cell",
-          "bulk rna",
-          "cnv",
-          "mutation",
-          "pathway",
-          "enrichment",
-          "dimensionality reduction",
-          "marker",
-          "landscape",
-          "omics_workflow_manifest_ref"
-        ],
-        "dependency_profile_refs": [
-          "opl:runtime-env:prepare",
-          "opl:scholarskills.omics:dependency-profile",
-          "opl:scholarskills.omics:doctor"
-        ],
-        "descriptor_only": true,
-        "descriptor_refs": [
-          "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.omics",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
-          "readback:mas_scholarskills_local_install"
-        ],
-        "execution_receipt_expectation": {
-          "execution_receipt_can_authorize_publication_readiness": false,
-          "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.omics",
-          "receipt_owner": "one-person-lab",
-          "receipt_role": "candidate_scholarskills_execution_receipt",
-          "required_ref_families": [
-            "input_fingerprint_ref",
-            "dependency_profile_ref",
-            "prepared_run_context_ref",
-            "omics_pipeline_manifest_ref",
-            "feature_matrix_qc_ref"
-          ],
-          "schema_version": 1,
-          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
-        },
-        "external_runner_invocation_allowed": false,
-        "external_runtime_dependency": false,
-        "externalization_guard": {
-          "mas_may_write_scholarskills_authority": false,
-          "mas_module_authority_owner": false,
-          "mas_retained_authority": [
-            "biological_interpretation",
-            "source_readiness",
-            "result_to_figure_or_text_gate"
-          ],
-          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
-          "mas_second_truth_allowed": false,
-          "migration_priority": "P2",
-          "migration_target": "opl-scholarskills",
-          "module_name": "omics",
-          "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
-          "surface_kind": "mas_scholarskills_non_display_migration_guard"
-        },
-        "fail_open": true,
-        "invocation_kind": "descriptor_only_current_owner_input_refs",
-        "local_install": {
-          "install_owner": "one-person-lab",
-          "install_scopes": [
-            "workspace",
-            "quest"
-          ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
-          "mas_program_repo_plugin_is_execution_source": false,
-          "owner_gated_refs_consumption": true,
-          "quest": {
-            "scope": "quest",
-            "sync_command_template": {
-              "argv": [
-                "opl",
-                "connect",
-                "sync-skills",
-                "--domain",
-                "scholarskills",
-                "--scope",
-                "quest",
-                "--target-quest",
-                "<quest_root>",
-                "--json"
-              ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
-              "effect": "install_codex_skill_to_local_workspace_or_quest",
-              "writes_authority": false
-            },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
-          },
-          "source_repo_ref": "external:opl-scholarskills",
-          "workspace": {
-            "scope": "workspace",
-            "sync_command_template": {
-              "argv": [
-                "opl",
-                "connect",
-                "sync-skills",
-                "--domain",
-                "scholarskills",
-                "--scope",
-                "workspace",
-                "--target-workspace",
-                "<workspace_root>",
-                "--json"
-              ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
-              "effect": "install_codex_skill_to_local_workspace_or_quest",
-              "writes_authority": false
-            },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
-          }
-        },
-        "mainline_waits_for_capability": false,
-        "module_id": "opl.scholarskills.omics",
-        "output_refs": [
-          "opl:scholarskills.omics:omics_pipeline_manifest",
-          "opl:scholarskills.omics:feature_matrix_qc"
-        ],
-        "owner_consumption_boundary": {
-          "candidate_output_only": true,
-          "counts_as_current_package_authority": false,
-          "counts_as_owner_receipt": false,
-          "counts_as_paper_truth": false,
-          "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.omics",
-          "owner_consumption_evidence": "refs_only",
-          "owner_gated_refs_consumption": true,
-          "schema_version": 1,
-          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
-        },
-        "refs_only": true,
-        "role": "omics_workflow_analysis_manifest_and_result_refs_only_candidate",
-        "run_context_refs": [
-          "opl:run-context:prepared-runtime-env",
-          "opl:scholarskills.omics:run-context"
-        ],
-        "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
-          "Scholar Omics",
-          "Omics / Bioinformatics"
-        ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -9985,6 +9906,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -9995,10 +9917,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P0",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "lit",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-research-lit",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -10009,7 +9933,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10020,20 +9944,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -10042,21 +9977,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "lit",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-research-lit",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.lit",
         "output_refs": [
           "opl:scholarskills.lit:evidence_map",
@@ -10081,12 +10041,12 @@
           "opl:scholarskills.lit:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Literature",
           "Literature Management"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -10174,6 +10134,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -10184,10 +10145,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P1",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "write",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-manuscript-writing",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -10198,7 +10161,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10209,20 +10172,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -10231,21 +10205,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "write",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-manuscript-writing",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.write",
         "output_refs": [
           "opl:scholarskills.write:draft_section_manifest",
@@ -10270,12 +10269,12 @@
           "opl:scholarskills.write:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Write",
           "Manuscript Writing"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -10363,6 +10362,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -10373,10 +10373,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P1",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "review",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-manuscript-review",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -10387,7 +10389,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10398,20 +10400,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -10420,21 +10433,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "review",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-manuscript-review",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.review",
         "output_refs": [
           "opl:scholarskills.review:reviewer_report",
@@ -10459,12 +10497,12 @@
           "opl:scholarskills.review:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Review",
           "Quality Review / AI Reviewer"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
@@ -10553,6 +10591,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -10563,10 +10602,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P0",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "submit",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-submission-prep",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -10577,7 +10618,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10588,20 +10629,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -10610,21 +10662,46 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "submit",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-submission-prep",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.submit",
         "output_refs": [
           "opl:scholarskills.submit:package_manifest",
@@ -10649,23 +10726,30 @@
           "opl:scholarskills.submit:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
           "Scholar Submit",
           "Submission Packaging"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       },
       {
         "action_triggers": [
           "source_readiness_required",
           "data_lineage_required",
-          "data_manifest_release"
+          "data_manifest_release",
+          "clinical_data_governance_required",
+          "data_asset_version_impact_review"
         ],
         "artifact_refs": [
-          "opl:scholarskills.data:data_manifest",
-          "opl:scholarskills.data:lineage_readiness"
+          "opl:scholarskills.data:data_asset_manifest",
+          "opl:scholarskills.data:dataset_manifest",
+          "opl:scholarskills.data:data_dictionary",
+          "opl:scholarskills.data:version_diff_impact",
+          "opl:scholarskills.data:lifecycle_catalog",
+          "opl:scholarskills.data:owner_gate_handoff",
+          "mas-scholar-skills:medical-data-governance"
         ],
         "authority_boundary": {
           "can_authorize_artifact_authority": false,
@@ -10702,7 +10786,8 @@
         "current_delta_trigger_reason": "current_delta_declared_scholar_data_need",
         "current_delta_trigger_terms": [
           "data",
-          "data management",
+          "medical data governance",
+          "clinical data governance",
           "data asset release",
           "manifest",
           "schema",
@@ -10710,6 +10795,13 @@
           "de-identification",
           "deidentification",
           "source readiness",
+          "data dictionary",
+          "codebook",
+          "derived variable",
+          "study binding",
+          "privacy tier",
+          "access tier",
+          "retention guardrail",
           "data_lineage_manifest_ref"
         ],
         "dependency_profile_refs": [
@@ -10734,8 +10826,22 @@
             "input_fingerprint_ref",
             "dependency_profile_ref",
             "prepared_run_context_ref",
-            "data_manifest_ref",
-            "lineage_readiness_ref"
+            "data_asset_manifest_ref",
+            "dataset_manifest_ref",
+            "data_dictionary_ref",
+            "codebook_ref",
+            "cleaning_normalization_readiness_ref",
+            "derived_variable_registry_ref",
+            "source_lineage_ref",
+            "source_readiness_receipt_ref",
+            "cohort_definition_lock_ref",
+            "version_diff_impact_ref",
+            "study_binding_ref",
+            "privacy_access_tier_ref",
+            "retention_guardrail_ref",
+            "storage_tier_ref",
+            "lifecycle_catalog_ref",
+            "owner_gate_handoff_ref"
           ],
           "schema_version": 1,
           "surface_kind": "mas_scholarskills_execution_receipt_expectation"
@@ -10743,6 +10849,7 @@
         "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "externalization_guard": {
+          "contract_layer_module": false,
           "mas_may_write_scholarskills_authority": false,
           "mas_module_authority_owner": false,
           "mas_retained_authority": [
@@ -10753,10 +10860,12 @@
           "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
           "mas_second_truth_allowed": false,
           "migration_priority": "P1",
-          "migration_target": "opl-scholarskills",
+          "migration_target": "mas-scholar-skills",
+          "module_classification": "real_specialist_skill_backed_module",
           "module_name": "data",
           "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
+          "source_of_truth_repo": "external:mas-scholar-skills",
+          "specialist_skill_id": "medical-data-governance",
           "surface_kind": "mas_scholarskills_non_display_migration_guard"
         },
         "fail_open": true,
@@ -10767,7 +10876,7 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
+          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10778,20 +10887,31 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "quest",
                 "--target-quest",
                 "<quest_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+            }
           },
-          "source_repo_ref": "external:opl-scholarskills",
+          "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
             "scope": "workspace",
             "sync_command_template": {
@@ -10800,25 +10920,55 @@
                 "connect",
                 "sync-skills",
                 "--domain",
-                "scholarskills",
+                "mas-scholar-skills",
                 "--scope",
                 "workspace",
                 "--target-workspace",
                 "<workspace_root>",
                 "--json"
               ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+              "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
               "effect": "install_codex_skill_to_local_workspace_or_quest",
               "writes_authority": false
             },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+            "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+            "target_skill_path_templates": {
+              "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+              "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+              "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+              "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+              "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+              "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+              "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+              "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+              "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+            }
           }
         },
         "mainline_waits_for_capability": false,
+        "module_classification": {
+          "authority_owner": false,
+          "classification": "real_specialist_skill_backed_module",
+          "codex_discovery_sync_required": true,
+          "contract_layer_module": false,
+          "mas_private_implementation": false,
+          "module_name": "data",
+          "promotion_policy": "add_active_professional_skill_only_when_stable_MAS_specialist_workflow_exists",
+          "schema_version": 1,
+          "source_policy": "real_skill_source_in_external_mas_scholar_skills_repo",
+          "specialist_skill_id": "medical-data-governance",
+          "stage_prompt_source": false,
+          "surface_kind": "mas_scholarskills_module_classification"
+        },
         "module_id": "opl.scholarskills.data",
         "output_refs": [
-          "opl:scholarskills.data:data_manifest",
-          "opl:scholarskills.data:lineage_readiness"
+          "opl:scholarskills.data:data_asset_manifest",
+          "opl:scholarskills.data:dataset_manifest",
+          "opl:scholarskills.data:data_dictionary",
+          "opl:scholarskills.data:version_diff_impact",
+          "opl:scholarskills.data:lifecycle_catalog",
+          "opl:scholarskills.data:owner_gate_handoff",
+          "mas-scholar-skills:medical-data-governance"
         ],
         "owner_consumption_boundary": {
           "candidate_output_only": true,
@@ -10833,211 +10983,22 @@
           "surface_kind": "mas_scholarskills_owner_consumption_boundary"
         },
         "refs_only": true,
-        "role": "data_manifest_schema_lineage_and_source_readiness_refs_only_candidate",
+        "role": "medical_data_governance_manifest_dictionary_lineage_version_study_binding_and_lifecycle_refs_only_candidate",
         "run_context_refs": [
           "opl:run-context:prepared-runtime-env",
           "opl:scholarskills.data:run-context"
         ],
         "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
-          "Scholar Data",
-          "Data Management"
+          "external:mas-scholar-skills",
+          "MAS Scholar Skills",
+          "Medical Data Governance",
+          "Clinical Data Governance"
         ],
-        "source_repo_ref": "external:opl-scholarskills",
-        "trigger": "current_delta_declares_or_implies_affordance_need"
-      },
-      {
-        "action_triggers": [
-          "external_method_skill_intake",
-          "capability_adoption_contract_required",
-          "external_learning_adoption"
-        ],
-        "artifact_refs": [
-          "opl:scholarskills.intake:source_snapshot",
-          "opl:scholarskills.intake:adoption_contract"
-        ],
-        "authority_boundary": {
-          "can_authorize_artifact_authority": false,
-          "can_authorize_owner_action": false,
-          "can_authorize_provider_admission": false,
-          "can_authorize_publication_readiness": false,
-          "can_authorize_quality_verdict": false,
-          "can_close_stage": false,
-          "can_write_controller_decisions": false,
-          "can_write_domain_truth": false,
-          "can_write_memory_body": false,
-          "can_write_owner_receipt": false,
-          "can_write_paper_or_package": false,
-          "can_write_publication_eval": false,
-          "can_write_typed_blocker": false,
-          "capability_or_sidecar_can_be_admission_gate": false,
-          "failed_capability_blocks_owner_action": false,
-          "low_confidence_capability_blocks_owner_action": false,
-          "missing_capability_blocks_owner_action": false,
-          "sidecar_completion_required_for_stage_closeout": false,
-          "surface_role": "current_delta_bound_capability_resolver"
-        },
-        "body_included": false,
-        "callable_surface": "descriptor_only:opl.scholarskills.intake",
-        "capability_family": "scholarskills_intake",
-        "capability_id": "opl.scholarskills.intake",
-        "capability_ref": "scientific-capability:opl.scholarskills.intake",
-        "contract_refs": [
-          "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
-          "readback:mas_scholarskills_local_install"
-        ],
-        "current_delta_trigger_reason": "current_delta_declared_scholar_intake_need",
-        "current_delta_trigger_terms": [
-          "intake",
-          "external method",
-          "open-source project",
-          "paper method",
-          "codebase",
-          "manual template",
-          "adoption contract",
-          "default capability",
-          "intake_adoption_contract_ref"
-        ],
-        "dependency_profile_refs": [
-          "opl:runtime-env:prepare",
-          "opl:scholarskills.intake:dependency-profile",
-          "opl:scholarskills.intake:doctor"
-        ],
-        "descriptor_only": true,
-        "descriptor_refs": [
-          "contracts/opl-framework/scholar-skills-capability-modules.json",
-          "contracts/opl-framework/scholar-skills-capability-modules.json#modules.opl.scholarskills.intake",
-          "docs/runtime/designs/mas_opl_capability_module_operating_model.md",
-          "readback:mas_scholarskills_local_install"
-        ],
-        "execution_receipt_expectation": {
-          "execution_receipt_can_authorize_publication_readiness": false,
-          "mas_owner_receipt_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.intake",
-          "receipt_owner": "one-person-lab",
-          "receipt_role": "candidate_scholarskills_execution_receipt",
-          "required_ref_families": [
-            "input_fingerprint_ref",
-            "dependency_profile_ref",
-            "prepared_run_context_ref",
-            "source_snapshot_ref",
-            "adoption_contract_ref"
-          ],
-          "schema_version": 1,
-          "surface_kind": "mas_scholarskills_execution_receipt_expectation"
-        },
-        "external_runner_invocation_allowed": false,
-        "external_runtime_dependency": false,
-        "externalization_guard": {
-          "mas_may_write_scholarskills_authority": false,
-          "mas_module_authority_owner": false,
-          "mas_retained_authority": [
-            "ordinary_path_admission",
-            "default_capability_decision",
-            "authority_false_flag_acceptance"
-          ],
-          "mas_role": "refs_only_descriptor_and_owner_gate_consumer",
-          "mas_second_truth_allowed": false,
-          "migration_priority": "P1",
-          "migration_target": "opl-scholarskills",
-          "module_name": "intake",
-          "schema_version": 1,
-          "source_of_truth_repo": "external:opl-scholarskills",
-          "surface_kind": "mas_scholarskills_non_display_migration_guard"
-        },
-        "fail_open": true,
-        "invocation_kind": "descriptor_only_current_owner_input_refs",
-        "local_install": {
-          "install_owner": "one-person-lab",
-          "install_scopes": [
-            "workspace",
-            "quest"
-          ],
-          "mas_program_repo_mirror_path": "plugins/opl-scholarskills",
-          "mas_program_repo_plugin_is_execution_source": false,
-          "owner_gated_refs_consumption": true,
-          "quest": {
-            "scope": "quest",
-            "sync_command_template": {
-              "argv": [
-                "opl",
-                "connect",
-                "sync-skills",
-                "--domain",
-                "scholarskills",
-                "--scope",
-                "quest",
-                "--target-quest",
-                "<quest_root>",
-                "--json"
-              ],
-              "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
-              "effect": "install_codex_skill_to_local_workspace_or_quest",
-              "writes_authority": false
-            },
-            "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
-          },
-          "source_repo_ref": "external:opl-scholarskills",
-          "workspace": {
-            "scope": "workspace",
-            "sync_command_template": {
-              "argv": [
-                "opl",
-                "connect",
-                "sync-skills",
-                "--domain",
-                "scholarskills",
-                "--scope",
-                "workspace",
-                "--target-workspace",
-                "<workspace_root>",
-                "--json"
-              ],
-              "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
-              "effect": "install_codex_skill_to_local_workspace_or_quest",
-              "writes_authority": false
-            },
-            "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
-          }
-        },
-        "mainline_waits_for_capability": false,
-        "module_id": "opl.scholarskills.intake",
-        "output_refs": [
-          "opl:scholarskills.intake:source_snapshot",
-          "opl:scholarskills.intake:adoption_contract"
-        ],
-        "owner_consumption_boundary": {
-          "candidate_output_only": true,
-          "counts_as_current_package_authority": false,
-          "counts_as_owner_receipt": false,
-          "counts_as_paper_truth": false,
-          "mas_owner_gate_required_for_paper_truth": true,
-          "module_id": "opl.scholarskills.intake",
-          "owner_consumption_evidence": "refs_only",
-          "owner_gated_refs_consumption": true,
-          "schema_version": 1,
-          "surface_kind": "mas_scholarskills_owner_consumption_boundary"
-        },
-        "refs_only": true,
-        "role": "external_method_skill_adoption_contract_and_descriptor_refs_only_candidate",
-        "run_context_refs": [
-          "opl:run-context:prepared-runtime-env",
-          "opl:scholarskills.intake:run-context"
-        ],
-        "source_frameworks": [
-          "external:opl-scholarskills",
-          "OPL ScholarSkills",
-          "Scholar Intake",
-          "External Method Skill Intake"
-        ],
-        "source_repo_ref": "external:opl-scholarskills",
+        "source_repo_ref": "external:mas-scholar-skills",
         "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 20,
+    "capability_count": 18,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,
@@ -11107,25 +11068,67 @@
       "scholarskills_execution_receipts": {
         "opl.scholarskills.data": {
           "accepted_ref_aliases": {
-            "data_manifest_ref": [
-              "data_manifest_ref"
+            "cleaning_normalization_readiness_ref": [
+              "cleaning_normalization_readiness_ref"
+            ],
+            "codebook_ref": [
+              "codebook_ref"
+            ],
+            "cohort_definition_lock_ref": [
+              "cohort_definition_lock_ref"
+            ],
+            "data_asset_manifest_ref": [
+              "data_asset_manifest_ref"
+            ],
+            "data_dictionary_ref": [
+              "data_dictionary_ref"
+            ],
+            "dataset_manifest_ref": [
+              "dataset_manifest_ref"
             ],
             "dependency_profile_ref": [
               "dependency_profile_ref",
               "dependency_prepared_receipt_ref",
               "dependency_receipt_ref"
             ],
+            "derived_variable_registry_ref": [
+              "derived_variable_registry_ref"
+            ],
             "input_fingerprint_ref": [
               "input_fingerprint_ref",
               "source_input_fingerprint_ref"
             ],
-            "lineage_readiness_ref": [
-              "lineage_readiness_ref"
+            "lifecycle_catalog_ref": [
+              "lifecycle_catalog_ref"
+            ],
+            "owner_gate_handoff_ref": [
+              "owner_gate_handoff_ref"
             ],
             "prepared_run_context_ref": [
               "prepared_run_context_ref",
               "run_context_ref",
               "prepared_runtime_env_ref"
+            ],
+            "privacy_access_tier_ref": [
+              "privacy_access_tier_ref"
+            ],
+            "retention_guardrail_ref": [
+              "retention_guardrail_ref"
+            ],
+            "source_lineage_ref": [
+              "source_lineage_ref"
+            ],
+            "source_readiness_receipt_ref": [
+              "source_readiness_receipt_ref"
+            ],
+            "storage_tier_ref": [
+              "storage_tier_ref"
+            ],
+            "study_binding_ref": [
+              "study_binding_ref"
+            ],
+            "version_diff_impact_ref": [
+              "version_diff_impact_ref"
             ]
           },
           "can_authorize_publication_readiness": false,
@@ -11137,8 +11140,22 @@
             "input_fingerprint_ref",
             "dependency_profile_ref",
             "prepared_run_context_ref",
-            "data_manifest_ref",
-            "lineage_readiness_ref"
+            "data_asset_manifest_ref",
+            "dataset_manifest_ref",
+            "data_dictionary_ref",
+            "codebook_ref",
+            "cleaning_normalization_readiness_ref",
+            "derived_variable_registry_ref",
+            "source_lineage_ref",
+            "source_readiness_receipt_ref",
+            "cohort_definition_lock_ref",
+            "version_diff_impact_ref",
+            "study_binding_ref",
+            "privacy_access_tier_ref",
+            "retention_guardrail_ref",
+            "storage_tier_ref",
+            "lifecycle_catalog_ref",
+            "owner_gate_handoff_ref"
           ],
           "status_values": [
             "complete",
@@ -11193,46 +11210,6 @@
             "missing_required_refs"
           ]
         },
-        "opl.scholarskills.intake": {
-          "accepted_ref_aliases": {
-            "adoption_contract_ref": [
-              "adoption_contract_ref"
-            ],
-            "dependency_profile_ref": [
-              "dependency_profile_ref",
-              "dependency_prepared_receipt_ref",
-              "dependency_receipt_ref"
-            ],
-            "input_fingerprint_ref": [
-              "input_fingerprint_ref",
-              "source_input_fingerprint_ref"
-            ],
-            "prepared_run_context_ref": [
-              "prepared_run_context_ref",
-              "run_context_ref",
-              "prepared_runtime_env_ref"
-            ],
-            "source_snapshot_ref": [
-              "source_snapshot_ref"
-            ]
-          },
-          "can_authorize_publication_readiness": false,
-          "counts_as_owner_receipt": false,
-          "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.intake",
-          "receipt_role": "candidate_scholarskills_execution_receipt",
-          "required_ref_families": [
-            "input_fingerprint_ref",
-            "dependency_profile_ref",
-            "prepared_run_context_ref",
-            "source_snapshot_ref",
-            "adoption_contract_ref"
-          ],
-          "status_values": [
-            "complete",
-            "missing_required_refs"
-          ]
-        },
         "opl.scholarskills.lit": {
           "accepted_ref_aliases": {
             "citation_manifest_ref": [
@@ -11267,46 +11244,6 @@
             "prepared_run_context_ref",
             "evidence_map_ref",
             "citation_manifest_ref"
-          ],
-          "status_values": [
-            "complete",
-            "missing_required_refs"
-          ]
-        },
-        "opl.scholarskills.omics": {
-          "accepted_ref_aliases": {
-            "dependency_profile_ref": [
-              "dependency_profile_ref",
-              "dependency_prepared_receipt_ref",
-              "dependency_receipt_ref"
-            ],
-            "feature_matrix_qc_ref": [
-              "feature_matrix_qc_ref"
-            ],
-            "input_fingerprint_ref": [
-              "input_fingerprint_ref",
-              "source_input_fingerprint_ref"
-            ],
-            "omics_pipeline_manifest_ref": [
-              "omics_pipeline_manifest_ref"
-            ],
-            "prepared_run_context_ref": [
-              "prepared_run_context_ref",
-              "run_context_ref",
-              "prepared_runtime_env_ref"
-            ]
-          },
-          "can_authorize_publication_readiness": false,
-          "counts_as_owner_receipt": false,
-          "counts_as_paper_truth": false,
-          "module_id": "opl.scholarskills.omics",
-          "receipt_role": "candidate_scholarskills_execution_receipt",
-          "required_ref_families": [
-            "input_fingerprint_ref",
-            "dependency_profile_ref",
-            "prepared_run_context_ref",
-            "omics_pipeline_manifest_ref",
-            "feature_matrix_qc_ref"
           ],
           "status_values": [
             "complete",
@@ -11548,12 +11485,12 @@
         "writes_typed_blocker": false,
         "writes_yang_authority": false
       },
-      "domain": "scholarskills",
+      "domain": "mas-scholar-skills",
       "install_owner": "one-person-lab",
       "mas_program_repo_mirror": {
         "default_execution_source": false,
         "paper_execution_available": false,
-        "path": "plugins/opl-scholarskills",
+        "path": "plugins/mas-scholar-skills",
         "role": "dev_review_only_or_retired"
       },
       "mas_program_repo_plugin_is_execution_source": false,
@@ -11565,23 +11502,45 @@
             "connect",
             "sync-skills",
             "--domain",
-            "scholarskills",
+            "mas-scholar-skills",
             "--scope",
             "quest",
             "--target-quest",
             "<quest_root>",
             "--json"
           ],
-          "command": "opl connect sync-skills --domain scholarskills --scope quest --target-quest '<quest_root>' --json",
+          "command": "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest '<quest_root>' --json",
           "effect": "install_codex_skill_to_local_workspace_or_quest",
           "writes_authority": false
         },
-        "target_skill_path_template": "<quest_root>/.codex/skills/opl-scholarskills"
+        "target_skill_path_template": "<quest_root>/.codex/skills/mas-scholar-skills",
+        "target_skill_path_templates": {
+          "mas-scholar-skills": "<quest_root>/.codex/skills/mas-scholar-skills",
+          "medical-data-governance": "<quest_root>/.codex/skills/medical-data-governance",
+          "medical-figure-design": "<quest_root>/.codex/skills/medical-figure-design",
+          "medical-manuscript-review": "<quest_root>/.codex/skills/medical-manuscript-review",
+          "medical-manuscript-writing": "<quest_root>/.codex/skills/medical-manuscript-writing",
+          "medical-research-lit": "<quest_root>/.codex/skills/medical-research-lit",
+          "medical-statistical-review": "<quest_root>/.codex/skills/medical-statistical-review",
+          "medical-submission-prep": "<quest_root>/.codex/skills/medical-submission-prep",
+          "medical-table-design": "<quest_root>/.codex/skills/medical-table-design"
+        }
       },
       "schema_version": 1,
-      "skill_id": "opl-scholarskills",
-      "source_repo_ref": "external:opl-scholarskills",
+      "skill_id": "mas-scholar-skills",
+      "source_repo_ref": "external:mas-scholar-skills",
       "surface_kind": "mas_scholarskills_local_install_template",
+      "synced_skill_ids": [
+        "mas-scholar-skills",
+        "medical-research-lit",
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-figure-design",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance"
+      ],
       "workspace": {
         "scope": "workspace",
         "sync_command_template": {
@@ -11590,18 +11549,29 @@
             "connect",
             "sync-skills",
             "--domain",
-            "scholarskills",
+            "mas-scholar-skills",
             "--scope",
             "workspace",
             "--target-workspace",
             "<workspace_root>",
             "--json"
           ],
-          "command": "opl connect sync-skills --domain scholarskills --scope workspace --target-workspace '<workspace_root>' --json",
+          "command": "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace '<workspace_root>' --json",
           "effect": "install_codex_skill_to_local_workspace_or_quest",
           "writes_authority": false
         },
-        "target_skill_path_template": "<workspace_root>/.codex/skills/opl-scholarskills"
+        "target_skill_path_template": "<workspace_root>/.codex/skills/mas-scholar-skills",
+        "target_skill_path_templates": {
+          "mas-scholar-skills": "<workspace_root>/.codex/skills/mas-scholar-skills",
+          "medical-data-governance": "<workspace_root>/.codex/skills/medical-data-governance",
+          "medical-figure-design": "<workspace_root>/.codex/skills/medical-figure-design",
+          "medical-manuscript-review": "<workspace_root>/.codex/skills/medical-manuscript-review",
+          "medical-manuscript-writing": "<workspace_root>/.codex/skills/medical-manuscript-writing",
+          "medical-research-lit": "<workspace_root>/.codex/skills/medical-research-lit",
+          "medical-statistical-review": "<workspace_root>/.codex/skills/medical-statistical-review",
+          "medical-submission-prep": "<workspace_root>/.codex/skills/medical-submission-prep",
+          "medical-table-design": "<workspace_root>/.codex/skills/medical-table-design"
+        }
       }
     },
     "surface_kind": "mas_scientific_capability_registry"

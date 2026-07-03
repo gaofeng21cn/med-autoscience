@@ -118,6 +118,10 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance",
     ]
     assert registry["scholarskills_local_install"]["workspace"]["sync_command_template"]["argv"] == [
         "opl",
@@ -135,8 +139,8 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "<workspace_root>/.codex/skills/mas-scholar-skills"
     )
     assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
-        "medical-manuscript-writing"
-    ] == "<workspace_root>/.codex/skills/medical-manuscript-writing"
+        "medical-data-governance"
+    ] == "<workspace_root>/.codex/skills/medical-data-governance"
     assert registry["scholarskills_local_install"]["quest"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
@@ -153,8 +157,8 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "<quest_root>/.codex/skills/mas-scholar-skills"
     )
     assert registry["scholarskills_local_install"]["quest"]["target_skill_path_templates"][
-        "medical-figure-design"
-    ] == "<quest_root>/.codex/skills/medical-figure-design"
+        "medical-statistical-review"
+    ] == "<quest_root>/.codex/skills/medical-statistical-review"
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
 
