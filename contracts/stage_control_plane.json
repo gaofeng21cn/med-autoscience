@@ -907,6 +907,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/direction_and_route_selection/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/direction_and_route_selection/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/direction_and_route_selection/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/direction_and_route_selection/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/direction_and_route_selection/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/direction_and_route_selection/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "direction_and_route_selection",
@@ -983,7 +1063,156 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:direction_and_route_selection",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "direction_and_route_selection",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/artifact_source_authority_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     },
     {
       "allowed_action_refs": [
@@ -1774,6 +2003,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/baseline_and_evidence_setup/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/baseline_and_evidence_setup/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/baseline_and_evidence_setup/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/baseline_and_evidence_setup/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/baseline_and_evidence_setup/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/baseline_and_evidence_setup/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "baseline_and_evidence_setup",
@@ -1850,7 +2159,171 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "tool_affordance_boundary_compliance",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ],
+        "lane_kind": "variant"
+      },
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:baseline_and_evidence_setup",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "baseline_and_evidence_setup",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/artifact_source_authority_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     },
     {
       "allowed_action_refs": [
@@ -2657,6 +3130,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/bounded_analysis_campaign/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/bounded_analysis_campaign/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/bounded_analysis_campaign/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/bounded_analysis_campaign/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/bounded_analysis_campaign/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/bounded_analysis_campaign/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "bounded_analysis_campaign",
@@ -2733,7 +3286,171 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "tool_affordance_boundary_compliance",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ],
+        "lane_kind": "variant"
+      },
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:bounded_analysis_campaign",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "bounded_analysis_campaign",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/artifact_source_authority_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     },
     {
       "allowed_action_refs": [
@@ -3568,6 +4285,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/manuscript_authoring/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/manuscript_authoring/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/manuscript_authoring/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/manuscript_authoring/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/manuscript_authoring/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/manuscript_authoring/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "manuscript_authoring",
@@ -3644,7 +4441,171 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "tool_affordance_boundary_compliance",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ],
+        "lane_kind": "variant"
+      },
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:manuscript_authoring",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "manuscript_authoring",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     },
     {
       "allowed_action_refs": [
@@ -4507,6 +5468,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/review_and_quality_gate/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/review_and_quality_gate/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/review_and_quality_gate/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/review_and_quality_gate/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/review_and_quality_gate/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/review_and_quality_gate/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "review_and_quality_gate",
@@ -4583,7 +5624,171 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "tool_affordance_boundary_compliance",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ],
+        "lane_kind": "variant"
+      },
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:review_and_quality_gate",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "review_and_quality_gate",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     },
     {
       "allowed_action_refs": [
@@ -5450,6 +6655,86 @@
           "surface_kind": "opl_standard_agent_user_stage_log_contract",
           "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
           "version": "standard-user-stage-log.v1"
+        },
+        "expected_receipt_refs": [
+          {
+            "ref_kind": "stage_attempt_receipt_ref",
+            "ref": "stage-attempt-receipt-ref:mas/finalize_and_publication_handoff/{stage_attempt_id}",
+            "role": "stage_attempt_receipt"
+          },
+          {
+            "ref_kind": "executor_receipt_ref",
+            "ref": "executor-receipt-ref:mas/finalize_and_publication_handoff/codex-cli/{stage_attempt_id}",
+            "role": "codex_executor_receipt"
+          },
+          {
+            "ref_kind": "boundary_receipt_ref",
+            "ref": "boundary-receipt-ref:mas/finalize_and_publication_handoff/refs-only/{stage_attempt_id}",
+            "role": "refs_only_boundary_receipt"
+          },
+          {
+            "ref_kind": "owner_receipt_ref",
+            "ref": "owner-receipt-ref:mas/finalize_and_publication_handoff/{stage_attempt_id}",
+            "role": "mas_owner_receipt"
+          },
+          {
+            "ref_kind": "independent_gate_receipt_ref",
+            "ref": "independent-gate-receipt-ref:mas/finalize_and_publication_handoff/{stage_attempt_id}",
+            "role": "independent_gate_receipt"
+          },
+          {
+            "ref_kind": "typed_blocker_ref",
+            "ref": "typed-blocker-ref:mas/finalize_and_publication_handoff/{stage_attempt_id}",
+            "role": "typed_blocker"
+          }
+        ],
+        "receipt_schema_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_or_typed_blocker_schema"
+          }
+        ],
+        "authority_function_refs": [
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#medical_research_owner_receipt_signer",
+            "role": "medical_research_owner_receipt_signer"
+          },
+          {
+            "ref_kind": "repo_path",
+            "ref": "runtime/authority_functions/README.md#publication_quality_gate",
+            "role": "publication_quality_gate"
+          }
+        ],
+        "l4_entry_gate": {
+          "entry_level": "L4_structural_baseline",
+          "required_gates": [
+            "repo_layout_declared",
+            "stage_pack_v2_required",
+            "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+            "tool_affordance_boundary_declared",
+            "receipt_schema_declared",
+            "minimal_authority_functions_declared",
+            "generated_surface_handoff_declared",
+            "no_forbidden_write_contract_declared"
+          ],
+          "can_claim_l5": false,
+          "can_claim_domain_ready": false
+        },
+        "l5_entry_gate": {
+          "entry_level": "L5_production_operating_maturity",
+          "evidence_required": [
+            "real_user_path",
+            "long_soak_recovery",
+            "release_install_evidence",
+            "owner_acceptance",
+            "direct_and_opl_hosted_parity_at_scale"
+          ],
+          "conformance_pass_counts_as_l5": false,
+          "contract_validation_counts_as_l5": false,
+          "provider_completion_counts_as_l5": false,
+          "app_projection_counts_as_l5": false
         }
       },
       "stage_id": "finalize_and_publication_handoff",
@@ -5526,10 +6811,175 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
-      }
+      },
+      "stage_pack_conformance_version": "standard-stage-pack.v2",
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "owner_callable_adapter": true,
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "tool_affordance_boundary_compliance",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ],
+        "lane_kind": "variant"
+      },
+      "tool_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "stage_tool_affordance_catalog",
+          "catalog_role": "available_affordance_catalog_not_workflow_script"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "capability_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_quality_and_integrity_review_support",
+            "role": "capability_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "role": "capability_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "repo_context_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "declared_medical_research_workspace_read",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "receipt_or_typed_blocker_return",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "credential_boundary_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "no_secret_material_in_stage_pack",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "write_scope_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_research_stage_workspace_refs_only:finalize_and_publication_handoff",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "role": "write_scope_boundary"
+          }
+        ],
+        "side_effect_risk_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "forbidden_authority_refs": [
+          {
+            "ref_kind": "policy_ref",
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "artifact_body_mutation_by_opl",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref_kind": "policy_ref",
+            "ref": "memory_body_write_by_opl",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_tools": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "tool_catalog_can_prescribe_tool_sequence": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_authorize_forbidden_write": false
+        }
+      },
+      "independent_gate_policy": {
+        "surface_kind": "mas_independent_quality_gate_policy",
+        "version": "independent-quality-gate-policy.v1",
+        "stage_id": "finalize_and_publication_handoff",
+        "gate_owner": "med-autoscience",
+        "gate_ref": "agent/quality_gates/artifact_source_authority_gate.md",
+        "execution_review_separation_required": true,
+        "same_attempt_self_review_can_close_quality_gate": false,
+        "mechanical_completion_can_close_stage": false,
+        "provider_completion_can_claim_domain_ready": false,
+        "generated_surface_readiness_can_claim_quality_or_export": false,
+        "owner_receipt_or_typed_blocker_required": true,
+        "human_gate_allowed": true,
+        "route_back_allowed": true
+      },
+      "execution_review_separation_required": true
     }
   ],
   "surface_kind": "family_stage_control_plane",
   "target_domain_id": "med-autoscience",
-  "version": "family-stage-control-plane.v1"
+  "version": "family-stage-control-plane.v1",
+  "stage_pack_conformance_version": "standard-stage-pack.v2"
 }
