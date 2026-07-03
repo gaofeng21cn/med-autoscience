@@ -849,6 +849,18 @@ def materialize_display_pack_publication_manifest(
         repo_root=normalized_repo_root,
         paper_root=normalized_paper_root,
     )
+    provenance_entries_by_id = {
+        str(item["figure_id"]): item
+        for item in provenance_index["bundles"]
+    }
+    for figure in manifest["figures"]:
+        entry = provenance_entries_by_id.get(str(figure.get("figure_id") or ""))
+        if entry is None:
+            continue
+        figure["provenance_bundle_ref"] = str(entry["provenance_bundle_ref"])
+        figure["provenance_bundle_hash"] = str(entry["provenance_bundle_hash"])
+        figure["provenance_readback_ref"] = str(entry["provenance_readback_ref"])
+        figure["provenance_typed_issue_codes"] = list(entry.get("typed_issue_codes") or [])
     return {
         **manifest,
         "figure_provenance_index": {

@@ -721,6 +721,7 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     lock_path = paper_root / "build" / "display_pack_lock.json"
     provenance_index_path = paper_root / "build" / "provenance" / "figure_provenance_index.json"
     provenance_bundle_path = paper_root / "build" / "provenance" / "figures" / "F1" / "bundle.json"
+    provenance_bundle_dir = provenance_bundle_path.parent
     artifact_manifest_path = paper_root / "build" / "display_artifact_manifest.F1.json"
     qc_path = paper_root / "qc" / "F1.layout_qc.json"
     assert manifest_path.exists()
@@ -744,6 +745,23 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert provenance_index["bundles"][0]["provenance_bundle_ref"] == (
         "paper/build/provenance/figures/F1/bundle.json"
     )
+    assert provenance_index["bundles"][0]["provenance_readback_ref"] == (
+        "paper/build/provenance/figures/F1/replay/manifest.json"
+    )
+    assert provenance_index["bundles"][0]["typed_issue_codes"] == []
+    assert provenance_index["bundles"][0]["replay_status"] == "pass"
+    for relative_path in (
+        "README.md",
+        "ro-crate-metadata.json",
+        "code_refs.json",
+        "inputs/manifest.json",
+        "outputs/manifest.json",
+        "environment/manifest.json",
+        "agent_trace/manifest.json",
+        "reviews/manifest.json",
+        "replay/manifest.json",
+    ):
+        assert (provenance_bundle_dir / relative_path).exists()
     assert provenance_bundle["schema_version"] == "artifact-provenance-bundle.v1"
     assert provenance_bundle["bundle_id"] == "medautoscience:display-pack-figure:F1"
     assert provenance_bundle["domain_id"] == "medautoscience"
@@ -756,9 +774,17 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert provenance_bundle["metadata"]["input"]["data_refs"] == ["paper/data/frozen/primary_curve.json"]
     assert provenance_bundle["metadata"]["output"]["rendered_artifacts"]["png_ref"] == "paper/figures/generated/F1.png"
     assert provenance_bundle["metadata"]["replay"]["mode"] == "refs_only_no_rerun"
+    assert provenance_bundle["metadata"]["replay"]["status"] == "pass"
+    assert provenance_bundle["metadata"]["replay"]["dry_run_readback"]["mode"] == "refs_only_dry_run"
+    assert provenance_bundle["metadata"]["replay"]["dry_run_readback"]["issue_codes"] == []
+    assert provenance_bundle["typed_issues"] == []
     assert provenance_bundle["missing_refs"] == []
     assert provenance_bundle["authority_boundary"]["ledger_refs_only"] is True
     assert provenance_bundle["metadata"]["authority_boundary"]["does_not_rerun_or_rewrite_figures"] is True
+    manifest_figure = manifest_payload["figures"][0]
+    assert manifest_figure["provenance_bundle_ref"] == "paper/build/provenance/figures/F1/bundle.json"
+    assert manifest_figure["provenance_bundle_hash"] == provenance_index["bundles"][0]["provenance_bundle_hash"]
+    assert manifest_figure["provenance_readback_ref"] == "paper/build/provenance/figures/F1/replay/manifest.json"
     assert figure["publication_style_profile"]["sha256"] == style_lock["sha256"]
     assert figure["publication_style_profile"]["typography"]["font_family"] == "sans"
     assert figure["publication_style_profile"]["grid"]["color"] == "#D9E2EC"
@@ -790,6 +816,9 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert render_figure["source_data_digests"]["paper/data/frozen/primary_curve.json"] == "data-digest-primary"
     assert render_figure["statistics_refs"] == ["analysis/statistics/auc_primary"]
     assert render_figure["visual_qa_ref"] == "paper/figure_visual_audit_receipt.json"
+    assert render_figure["provenance_bundle_ref"] == "paper/build/provenance/figures/F1/bundle.json"
+    assert render_figure["provenance_bundle_hash"] == provenance_index["bundles"][0]["provenance_bundle_hash"]
+    assert render_figure["provenance_readback_ref"] == "paper/build/provenance/figures/F1/replay/manifest.json"
     assert render_receipt["authority_boundary"]["can_authorize_publication_readiness"] is False
 
     lifecycle = load_figure_polish_lifecycle(paper_root / "figure_polish_lifecycle.json")
@@ -899,6 +928,8 @@ def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Pa
     from med_autoscience.display_pack_provenance_bundle import materialize_figure_provenance_bundles
 
     repo_root, paper_root = _build_workspace(tmp_path)
+    restricted_output = tmp_path / "restricted-output.png"
+    restricted_output.write_text("restricted", encoding="utf-8")
     _write_json(
         paper_root / "build" / "display_pack_publication_manifest.json",
         {
@@ -910,7 +941,7 @@ def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Pa
                     "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
                     "rendered_artifacts": {
                         "png_ref": "paper/figures/generated/F_missing.png",
-                        "pdf_ref": "paper/figures/generated/F_missing.pdf",
+                        "pdf_ref": str(restricted_output),
                         "layout_sidecar_ref": "paper/figures/generated/F_missing.layout.json",
                     },
                 }
@@ -923,11 +954,32 @@ def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Pa
     bundle_path = paper_root / "build" / "provenance" / "figures" / "F_missing" / "bundle.json"
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     missing_labels = {item["label"] for item in bundle["missing_refs"]}
+    typed_issue_codes = {item["code"] for item in bundle["typed_issues"]}
     assert result["status"] == "materialized"
     assert "figure_render_receipt" in missing_labels
     assert "figure_visual_audit_receipt" in missing_labels
     assert "figure_polish_lifecycle" in missing_labels
     assert "rendered_output_0" in missing_labels
+    assert result["bundles"][0]["typed_issue_count"] == len(bundle["typed_issues"])
+    assert "missing_agent_trace" in typed_issue_codes
+    assert "missing_review" in typed_issue_codes
+    assert "missing_replay_command" in typed_issue_codes
+    assert "missing_replay_request" in typed_issue_codes
+    assert "missing_output_ref" in typed_issue_codes
+    assert "restricted_ref" in typed_issue_codes
+    assert result["bundles"][0]["provenance_readback_ref"] == (
+        "paper/build/provenance/figures/F_missing/replay/manifest.json"
+    )
+    assert (bundle_path.parent / "README.md").exists()
+    assert (bundle_path.parent / "ro-crate-metadata.json").exists()
+    assert (bundle_path.parent / "replay" / "manifest.json").exists()
+    replay_manifest = json.loads((bundle_path.parent / "replay" / "manifest.json").read_text(encoding="utf-8"))
+    assert replay_manifest["metadata"]["dry_run_readback"]["status"] == "blocked"
+    assert "missing_replay_request" in replay_manifest["metadata"]["dry_run_readback"]["issue_codes"]
+    manifest_payload = json.loads((paper_root / "build" / "display_pack_publication_manifest.json").read_text(encoding="utf-8"))
+    assert manifest_payload["figures"][0]["provenance_bundle_ref"] == (
+        "paper/build/provenance/figures/F_missing/bundle.json"
+    )
     assert bundle["metadata"]["agent_trace"]["codex_transcript"]["status"] == "restricted"
 
 

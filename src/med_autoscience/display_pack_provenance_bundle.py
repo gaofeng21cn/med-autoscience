@@ -17,6 +17,16 @@ FIGURE_VISUAL_AUDIT_RECEIPT_REF = "paper/figure_visual_audit_receipt.json"
 FIGURE_POLISH_LIFECYCLE_REF = "paper/figure_polish_lifecycle.json"
 FIGURE_WORKFLOW_PACKET_REF = "paper/figure_workflow_packet.json"
 AGENT_TRACE_REFS_REF = "paper/build/provenance/agent_trace_refs.json"
+_REF_SECTION_NAMES = (
+    "source_surfaces",
+    "code",
+    "input",
+    "output",
+    "environment",
+    "agent_trace",
+    "reviews",
+    "replay",
+)
 
 
 def _utc_now() -> str:
@@ -100,6 +110,8 @@ def _file_ref(
     repo_root: Path,
     label: str,
     required: bool = True,
+    include_sha256: bool = True,
+    sha256_omitted_reason: str = "",
 ) -> dict[str, Any]:
     path_ref, pointer = _split_ref_pointer(ref)
     resolved = _resolve_existing_ref_path(path_ref, paper_root=paper_root, repo_root=repo_root)
@@ -125,6 +137,14 @@ def _file_ref(
                 "basename": resolved.name,
                 "path_sha256": _sha256_text(str(resolved)),
             },
+        }
+    if not include_sha256:
+        return {
+            **payload,
+            "status": "present",
+            "path": str(resolved),
+            "sha256_status": "omitted",
+            "sha256_omitted_reason": sha256_omitted_reason or "hash_not_required_for_this_ref",
         }
     return {
         **payload,
@@ -176,14 +196,14 @@ def _figures_by_id(payload: Mapping[str, Any] | None) -> dict[str, dict[str, Any
     }
 
 
-def _global_surface_refs() -> list[tuple[str, str]]:
+def _global_surface_refs() -> list[tuple[str, str, bool]]:
     return [
-        ("publication_manifest", PUBLICATION_MANIFEST_REF),
-        ("display_pack_lock", DISPLAY_PACK_LOCK_REF),
-        ("figure_render_receipt", FIGURE_RENDER_RECEIPT_REF),
-        ("figure_visual_audit_receipt", FIGURE_VISUAL_AUDIT_RECEIPT_REF),
-        ("figure_polish_lifecycle", FIGURE_POLISH_LIFECYCLE_REF),
-        ("figure_workflow_packet", FIGURE_WORKFLOW_PACKET_REF),
+        ("publication_manifest", PUBLICATION_MANIFEST_REF, False),
+        ("display_pack_lock", DISPLAY_PACK_LOCK_REF, True),
+        ("figure_render_receipt", FIGURE_RENDER_RECEIPT_REF, False),
+        ("figure_visual_audit_receipt", FIGURE_VISUAL_AUDIT_RECEIPT_REF, True),
+        ("figure_polish_lifecycle", FIGURE_POLISH_LIFECYCLE_REF, True),
+        ("figure_workflow_packet", FIGURE_WORKFLOW_PACKET_REF, True),
     ]
 
 
@@ -243,7 +263,7 @@ def _renderer_code_ref(
 
 def _bundle_missing_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
     missing: list[dict[str, Any]] = []
-    for section_name in ("source_surfaces", "code", "input", "output", "environment", "agent_trace", "reviews", "replay"):
+    for section_name in _REF_SECTION_NAMES:
         section = bundle.get(section_name)
         if not isinstance(section, Mapping):
             continue
@@ -260,7 +280,7 @@ def _bundle_missing_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 def _bundle_restricted_refs(bundle: Mapping[str, Any]) -> list[dict[str, Any]]:
     restricted: list[dict[str, Any]] = []
-    for section_name in ("source_surfaces", "code", "input", "output", "environment", "agent_trace", "reviews", "replay"):
+    for section_name in _REF_SECTION_NAMES:
         section = bundle.get(section_name)
         if not isinstance(section, Mapping):
             continue
@@ -295,6 +315,293 @@ def _hashes_from_refs(*sections: list[dict[str, Any]]) -> dict[str, dict[str, st
             key = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in ref)[:160]
             hashes[key or f"ref_{len(hashes)}"] = {"algorithm": "sha256", "value": digest}
     return hashes
+
+
+def _issue(
+    *,
+    code: str,
+    section: str,
+    message: str,
+    severity: str = "error",
+    label: str = "",
+    ref: str = "",
+) -> dict[str, str]:
+    payload = {
+        "code": code,
+        "severity": severity,
+        "section": section,
+        "message": message,
+    }
+    if label:
+        payload["label"] = label
+    if ref:
+        payload["ref"] = ref
+    return payload
+
+
+def _dedupe_issues(issues: list[dict[str, str]]) -> list[dict[str, str]]:
+    deduped: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for issue in issues:
+        key = (
+            str(issue.get("code") or ""),
+            str(issue.get("section") or ""),
+            str(issue.get("label") or ""),
+            str(issue.get("ref") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(issue)
+    return deduped
+
+
+def _expected_output_entries(
+    rendered: Mapping[str, Any],
+    *,
+    paper_root: Path,
+    repo_root: Path,
+) -> list[dict[str, Any]]:
+    expected: list[dict[str, Any]] = []
+    for artifact_kind, ref_key, hash_key in (
+        ("png", "png_ref", "png_sha256"),
+        ("pdf", "pdf_ref", "pdf_sha256"),
+        ("layout_sidecar", "layout_sidecar_ref", "layout_sidecar_sha256"),
+    ):
+        ref = str(rendered.get(ref_key) or "").strip()
+        expected_sha256 = str(rendered.get(hash_key) or "").strip()
+        if not ref:
+            expected.append(
+                {
+                    "artifact_kind": artifact_kind,
+                    "label": f"expected_{artifact_kind}",
+                    "ref": "",
+                    "status": "missing",
+                    "reason": "output_ref_missing",
+                    "expected_sha256": expected_sha256,
+                }
+            )
+            continue
+        entry = _file_ref(
+            ref,
+            paper_root=paper_root,
+            repo_root=repo_root,
+            label=f"expected_{artifact_kind}",
+        )
+        observed_sha256 = str(entry.get("sha256") or "")
+        status = str(entry.get("status") or "")
+        if status == "present" and expected_sha256:
+            status = "present" if observed_sha256 == expected_sha256 else "hash_mismatch"
+        elif status == "present" and not expected_sha256:
+            status = "missing_expected_hash"
+        expected.append(
+            {
+                **entry,
+                "artifact_kind": artifact_kind,
+                "status": status,
+                "expected_sha256": expected_sha256,
+                "observed_sha256": observed_sha256,
+            }
+        )
+    return expected
+
+
+def _replay_status(
+    *,
+    render_result: Mapping[str, Any],
+    replay_refs: list[dict[str, Any]],
+    expected_outputs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    issues: list[dict[str, str]] = []
+    argv = render_result.get("argv")
+    cwd_text = str(render_result.get("cwd") or "").strip()
+    entrypoint = str(render_result.get("entrypoint") or "").strip()
+    request_ref = str(render_result.get("request_ref") or "").strip()
+    if not isinstance(argv, list) or not argv:
+        issues.append(
+            _issue(
+                code="missing_replay_command",
+                section="replay",
+                message="render_result.argv is missing; replay can only report a blocker",
+            )
+        )
+    if not entrypoint:
+        issues.append(
+            _issue(
+                code="missing_replay_command",
+                section="replay",
+                message="render_result.entrypoint is missing",
+                severity="warning",
+            )
+        )
+    if not cwd_text:
+        issues.append(
+            _issue(
+                code="missing_replay_cwd",
+                section="replay",
+                message="render_result.cwd is missing",
+            )
+        )
+    elif not Path(cwd_text).expanduser().exists():
+        issues.append(
+            _issue(
+                code="missing_replay_cwd",
+                section="replay",
+                message="render_result.cwd does not exist",
+                ref=cwd_text,
+            )
+        )
+    request_ref_entries = [item for item in replay_refs if item.get("label") == "render_request"]
+    if not request_ref:
+        issues.append(
+            _issue(
+                code="missing_replay_request",
+                section="replay",
+                message="render_result.request_ref is missing",
+            )
+        )
+    elif not request_ref_entries or any(item.get("status") != "present" for item in request_ref_entries):
+        issues.append(
+            _issue(
+                code="missing_replay_request",
+                section="replay",
+                label="render_request",
+                ref=request_ref,
+                message="render request ref is not present",
+            )
+        )
+    if not expected_outputs:
+        issues.append(
+            _issue(
+                code="missing_output_ref",
+                section="output",
+                message="replay expected output refs are missing",
+            )
+        )
+    for entry in expected_outputs:
+        label = str(entry.get("label") or "")
+        ref = str(entry.get("ref") or "")
+        status = str(entry.get("status") or "")
+        if status in {"missing", "restricted"}:
+            issues.append(
+                _issue(
+                    code="missing_output_ref" if status == "missing" else "restricted_ref",
+                    section="output",
+                    label=label,
+                    ref=ref,
+                    message=f"expected output ref status is {status}",
+                )
+            )
+        elif status == "missing_expected_hash":
+            issues.append(
+                _issue(
+                    code="missing_output_hash",
+                    section="output",
+                    label=label,
+                    ref=ref,
+                    message="expected output hash is missing",
+                )
+            )
+        elif status == "hash_mismatch":
+            issues.append(
+                _issue(
+                    code="output_hash_mismatch",
+                    section="output",
+                    label=label,
+                    ref=ref,
+                    message="expected output hash does not match current ref",
+                )
+            )
+    deduped = _dedupe_issues(issues)
+    return {
+        "mode": "refs_only_dry_run",
+        "status": "pass" if not deduped else "blocked",
+        "checked_at": _utc_now(),
+        "checks": {
+            "argv_present": isinstance(argv, list) and bool(argv),
+            "cwd_present": bool(cwd_text),
+            "cwd_exists": bool(cwd_text and Path(cwd_text).expanduser().exists()),
+            "request_ref_present": bool(request_ref),
+            "request_ref_exists": bool(request_ref_entries and all(item.get("status") == "present" for item in request_ref_entries)),
+            "expected_output_count": len(expected_outputs),
+            "expected_outputs_present": all(item.get("status") == "present" for item in expected_outputs),
+        },
+        "issue_codes": sorted({issue["code"] for issue in deduped}),
+        "typed_issues": deduped,
+    }
+
+
+def _bundle_typed_issues(
+    *,
+    metadata: Mapping[str, Any],
+    missing_refs: list[dict[str, Any]],
+    restricted_refs: list[dict[str, Any]],
+    replay_status: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = [
+        dict(item)
+        for item in replay_status.get("typed_issues", [])
+        if isinstance(item, Mapping)
+    ]
+    agent_trace = metadata.get("agent_trace")
+    if isinstance(agent_trace, Mapping) and not agent_trace.get("external_trace_refs"):
+        issues.append(
+            _issue(
+                code="missing_agent_trace",
+                section="agent_trace",
+                message="no transcript or agent trace ref was declared",
+                severity="warning",
+            )
+        )
+    reviews = metadata.get("reviews")
+    if isinstance(reviews, Mapping):
+        visual_status = str(reviews.get("visual_audit_final_status") or "").strip()
+        review_refs = reviews.get("refs") if isinstance(reviews.get("refs"), list) else []
+        if not visual_status or any(isinstance(item, Mapping) and item.get("status") == "missing" for item in review_refs):
+            issues.append(
+                _issue(
+                    code="missing_review",
+                    section="reviews",
+                    label="visual_audit",
+                    ref=FIGURE_VISUAL_AUDIT_RECEIPT_REF,
+                    message="visual review receipt is missing or lacks final status",
+                )
+            )
+    for item in missing_refs:
+        label = str(item.get("label") or "")
+        ref = str(item.get("ref") or "")
+        section = "source_surfaces"
+        for section_name in _REF_SECTION_NAMES:
+            section_payload = metadata.get(section_name)
+            refs = section_payload.get("refs") if isinstance(section_payload, Mapping) else []
+            if isinstance(refs, list) and item in refs:
+                section = section_name
+                break
+        code = "missing_output_ref" if section == "output" else "missing_ref"
+        if section == "replay" and label == "render_request":
+            code = "missing_replay_request"
+        if section == "reviews":
+            code = "missing_review"
+        issues.append(
+            _issue(
+                code=code,
+                section=section,
+                label=label,
+                ref=ref,
+                message="required ref is missing",
+            )
+        )
+    for item in restricted_refs:
+        issues.append(
+            _issue(
+                code="restricted_ref",
+                section="restricted_refs",
+                label=str(item.get("label") or ""),
+                ref=str(item.get("ref") or ""),
+                message="ref resolves outside the paper workspace or repo root",
+            )
+        )
+    return _dedupe_issues(issues)
 
 
 def _agent_trace_ref_specs(payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
@@ -347,8 +654,16 @@ def _build_bundle(
     template_entry = _template_lock_entry(display_pack_lock=display_pack_lock, template_id=template_id)
 
     source_surface_refs = [
-        _file_ref(ref, paper_root=paper_root, repo_root=repo_root, label=label, required=True)
-        for label, ref in _global_surface_refs()
+        _file_ref(
+            ref,
+            paper_root=paper_root,
+            repo_root=repo_root,
+            label=label,
+            required=True,
+            include_sha256=include_sha256,
+            sha256_omitted_reason="omitted_to_avoid_reverse_provenance_hash_cycle",
+        )
+        for label, ref, include_sha256 in _global_surface_refs()
     ]
     code_refs = [
         _file_ref(
@@ -451,6 +766,16 @@ def _build_bundle(
                 label="render_request",
             )
         )
+    expected_outputs = _expected_output_entries(
+        rendered,
+        paper_root=paper_root,
+        repo_root=repo_root,
+    )
+    replay_status = _replay_status(
+        render_result=render_result,
+        replay_refs=replay_refs,
+        expected_outputs=expected_outputs,
+    )
 
     lifecycle_events = [
         dict(event)
@@ -526,6 +851,7 @@ def _build_bundle(
         },
         "replay": {
             "mode": "refs_only_no_rerun",
+            "status": replay_status["status"],
             "entrypoint": str(render_result.get("entrypoint") or template_entry.get("entrypoint") or ""),
             "argv": list(render_result.get("argv") or []),
             "cwd": str(render_result.get("cwd") or ""),
@@ -539,6 +865,8 @@ def _build_bundle(
                 )
                 if ref
             ],
+            "expected_outputs": expected_outputs,
+            "dry_run_readback": replay_status,
             "refs": replay_refs,
         },
         "authority_boundary": {
@@ -553,6 +881,13 @@ def _build_bundle(
     }
     missing_refs = _bundle_missing_refs(metadata)
     restricted_refs = _bundle_restricted_refs(metadata)
+    typed_issues = _bundle_typed_issues(
+        metadata=metadata,
+        missing_refs=missing_refs,
+        restricted_refs=restricted_refs,
+        replay_status=replay_status,
+    )
+    metadata["typed_issues"] = typed_issues
     hashes = _hashes_from_refs(
         source_surface_refs,
         code_refs,
@@ -605,8 +940,172 @@ def _build_bundle(
         "metadata": metadata,
         "missing_refs": missing_refs,
         "restricted_refs": restricted_refs,
+        "typed_issues": typed_issues,
     }
     return bundle
+
+
+def _issues_for_section(bundle: Mapping[str, Any], section_name: str) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in bundle.get("typed_issues", [])
+        if isinstance(item, Mapping) and str(item.get("section") or "") in {section_name, "restricted_refs"}
+    ]
+
+
+def _section_manifest(bundle: Mapping[str, Any], *, section_name: str) -> dict[str, Any]:
+    metadata = bundle.get("metadata")
+    section_payload = metadata.get(section_name) if isinstance(metadata, Mapping) else {}
+    if not isinstance(section_payload, Mapping):
+        section_payload = {}
+    return {
+        "schema_version": 1,
+        "bundle_id": str(bundle.get("bundle_id") or ""),
+        "figure_id": str(metadata.get("figure_id") or "") if isinstance(metadata, Mapping) else "",
+        "section": section_name,
+        "refs_only": True,
+        "body_embedded": False,
+        "status": "pass" if not _issues_for_section(bundle, section_name) else "issues_present",
+        "refs": list(section_payload.get("refs") or []),
+        "typed_issues": _issues_for_section(bundle, section_name),
+        "metadata": {
+            key: value
+            for key, value in section_payload.items()
+            if key not in {"refs", "polish_lifecycle_events", "workflow_figure"}
+        },
+    }
+
+
+def _bundle_physical_refs(*, figure_id: str) -> dict[str, str]:
+    base = f"{PROVENANCE_BUNDLE_REF_PREFIX}/{_safe_figure_dir(figure_id)}"
+    return {
+        "bundle": f"{base}/bundle.json",
+        "readme": f"{base}/README.md",
+        "ro_crate": f"{base}/ro-crate-metadata.json",
+        "code_refs": f"{base}/code_refs.json",
+        "inputs_manifest": f"{base}/inputs/manifest.json",
+        "outputs_manifest": f"{base}/outputs/manifest.json",
+        "environment_manifest": f"{base}/environment/manifest.json",
+        "agent_trace_manifest": f"{base}/agent_trace/manifest.json",
+        "reviews_manifest": f"{base}/reviews/manifest.json",
+        "replay_manifest": f"{base}/replay/manifest.json",
+    }
+
+
+def _write_bundle_sidecars(*, bundle_dir: Path, bundle: Mapping[str, Any]) -> dict[str, str]:
+    metadata = bundle.get("metadata")
+    figure_id = str(metadata.get("figure_id") or "") if isinstance(metadata, Mapping) else ""
+    physical_refs = _bundle_physical_refs(figure_id=figure_id)
+    replay = metadata.get("replay") if isinstance(metadata, Mapping) else {}
+    issue_codes = sorted(
+        {
+            str(item.get("code") or "")
+            for item in bundle.get("typed_issues", [])
+            if isinstance(item, Mapping) and item.get("code")
+        }
+    )
+    readme = "\n".join(
+        (
+            f"# Display Pack figure provenance bundle: {figure_id}",
+            "",
+            "This directory is a refs-only provenance bundle for one MAS Display Pack figure.",
+            "It records locators, hashes, replay readback status, and typed issue codes.",
+            "It does not embed figure, input, transcript, or review artifact bodies.",
+            "",
+            f"- bundle_id: {bundle.get('bundle_id')}",
+            f"- artifact_ref: {bundle.get('artifact_ref')}",
+            f"- replay_status: {replay.get('status') if isinstance(replay, Mapping) else ''}",
+            f"- typed_issue_codes: {', '.join(issue_codes) if issue_codes else 'none'}",
+            "",
+        )
+    )
+    (bundle_dir / "README.md").write_text(readme, encoding="utf-8")
+    _write_json(
+        bundle_dir / "ro-crate-metadata.json",
+        {
+            "@context": "https://w3id.org/ro/crate/1.1/context",
+            "@graph": [
+                {
+                    "@id": "./",
+                    "@type": "Dataset",
+                    "name": f"MAS Display Pack figure provenance bundle {figure_id}",
+                    "hasPart": [{"@id": Path(ref).name} for ref in physical_refs.values()],
+                },
+                {
+                    "@id": "bundle.json",
+                    "@type": "File",
+                    "encodingFormat": "application/json",
+                    "about": {"@id": str(bundle.get("artifact_ref") or "")},
+                },
+            ],
+            "refs_only": True,
+            "authority_boundary": dict(bundle.get("authority_boundary") or {}),
+        },
+    )
+    _write_json(bundle_dir / "code_refs.json", _section_manifest(bundle, section_name="code"))
+    for directory_name, section_name in (
+        ("inputs", "input"),
+        ("outputs", "output"),
+        ("environment", "environment"),
+        ("agent_trace", "agent_trace"),
+        ("reviews", "reviews"),
+        ("replay", "replay"),
+    ):
+        _write_json(
+            bundle_dir / directory_name / "manifest.json",
+            _section_manifest(bundle, section_name=section_name),
+        )
+    return physical_refs
+
+
+def _with_provenance_backrefs(
+    payload: Mapping[str, Any] | None,
+    *,
+    bundle_entries: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if payload is None:
+        return None
+    updated = dict(payload)
+    figures = updated.get("figures")
+    if not isinstance(figures, list):
+        return updated
+    entries_by_id = {str(item.get("figure_id") or ""): item for item in bundle_entries}
+    updated_figures: list[Any] = []
+    for figure in figures:
+        if not isinstance(figure, Mapping):
+            updated_figures.append(figure)
+            continue
+        figure_id = str(figure.get("figure_id") or "")
+        bundle_entry = entries_by_id.get(figure_id)
+        if bundle_entry is None:
+            updated_figures.append(dict(figure))
+            continue
+        updated_figures.append(
+            {
+                **dict(figure),
+                "provenance_bundle_ref": str(bundle_entry["provenance_bundle_ref"]),
+                "provenance_bundle_hash": str(bundle_entry["provenance_bundle_hash"]),
+                "provenance_readback_ref": str(bundle_entry["provenance_readback_ref"]),
+                "provenance_typed_issue_codes": list(bundle_entry.get("typed_issue_codes") or []),
+            }
+        )
+    updated["figures"] = updated_figures
+    return updated
+
+
+def _write_backref_payloads(
+    *,
+    paper_root: Path,
+    publication_manifest: Mapping[str, Any] | None,
+    render_receipt: Mapping[str, Any] | None,
+    bundle_entries: list[dict[str, Any]],
+) -> None:
+    patched_manifest = _with_provenance_backrefs(publication_manifest, bundle_entries=bundle_entries)
+    if patched_manifest is not None:
+        _write_json(paper_root / "build" / "display_pack_publication_manifest.json", patched_manifest)
+    patched_receipt = _with_provenance_backrefs(render_receipt, bundle_entries=bundle_entries)
+    if patched_receipt is not None:
+        _write_json(paper_root / "figure_render_receipt.json", patched_receipt)
 
 
 def materialize_figure_provenance_bundles(
@@ -645,13 +1144,28 @@ def materialize_figure_provenance_bundles(
         bundle_ref = f"{PROVENANCE_BUNDLE_REF_PREFIX}/{_safe_figure_dir(figure_id)}/bundle.json"
         bundle_path = _resolve_ref_path(bundle_ref, paper_root=normalized_paper_root)
         _write_json(bundle_path, bundle)
+        physical_refs = _write_bundle_sidecars(bundle_dir=bundle_path.parent, bundle=bundle)
+        typed_issue_codes = sorted(
+            {
+                str(item.get("code") or "")
+                for item in bundle.get("typed_issues", [])
+                if isinstance(item, Mapping) and item.get("code")
+            }
+        )
+        replay_status = str(bundle.get("metadata", {}).get("replay", {}).get("status") or "")
         bundles.append(
             {
                 "figure_id": figure_id,
                 "provenance_bundle_ref": bundle_ref,
                 "provenance_bundle_hash": _sha256_file(bundle_path),
+                "provenance_readback_ref": physical_refs["replay_manifest"],
+                "physical_bundle_refs": physical_refs,
+                "replay_status": replay_status,
                 "missing_ref_count": len(bundle["missing_refs"]),
                 "restricted_ref_count": len(bundle["restricted_refs"]),
+                "typed_issue_count": len(bundle["typed_issues"]),
+                "typed_issue_codes": typed_issue_codes,
+                "typed_issues": list(bundle["typed_issues"]),
             }
         )
 
@@ -675,6 +1189,12 @@ def materialize_figure_provenance_bundles(
     }
     index_path = _resolve_ref_path(PROVENANCE_INDEX_REF, paper_root=normalized_paper_root)
     _write_json(index_path, index)
+    _write_backref_payloads(
+        paper_root=normalized_paper_root,
+        publication_manifest=publication_manifest,
+        render_receipt=render_receipt,
+        bundle_entries=bundles,
+    )
     return {
         **index,
         "path": str(index_path),
