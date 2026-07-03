@@ -138,6 +138,55 @@ stage_native_semantic_pack:
         may_mutate_artifacts: false
         may_admit_route: false
         may_create_or_replace_stage_router: false
+      kdense_byok_external_pattern_intake:
+        source_project: K-Dense-AI/k-dense-byok local_snapshot
+        source_paths:
+          - /tmp/kdense-byok/README.md
+          - /tmp/kdense-byok/docs/basic-usage.md
+          - /tmp/kdense-byok/docs/architecture.md
+          - /tmp/kdense-byok/docs/sub-agents.md
+          - /tmp/kdense-byok/docs/mcp-servers.md
+          - /tmp/kdense-byok/docs/openrouter-fusion.md
+          - /tmp/kdense-byok/web/src/data/workflows.json
+          - /tmp/kdense-byok/web/src/data/databases.json
+          - /tmp/kdense-byok/server/src/agent/interview.ts
+          - /tmp/kdense-byok/server/src/agent/modal-tool.ts
+          - /tmp/kdense-byok/server/src/agent/mcp.ts
+          - /tmp/kdense-byok/server/src/cost/ledger.ts
+          - /tmp/kdense-byok/web/src/components/file-preview-panel.tsx
+          - /tmp/kdense-byok/web/src/components/latex-editor.tsx
+        absorbed_as: opl_stagecraft_atlas_workspace_vault_connect_pattern_refs
+        useful_patterns:
+          - workflows_json_to_stagecraft_recipe_catalog_candidates
+          - databases_json_to_atlas_source_ref_candidate_catalog
+          - specialist_roster_to_codex_specialist_and_independent_reviewer_lanes
+          - file_tree_preview_latex_pdf_to_workspace_vault_console_display_pattern
+          - cost_ledger_to_vault_budget_receipts
+          - interview_form_to_mas_human_gate_schema_candidate
+          - mcp_and_modal_to_connect_runway_policy
+          - openrouter_fusion_to_watch_only_reviewer_briefing
+        codex_cli_as_opl_harness: true
+        vendor_dependency: false
+        runtime_dependency: false
+        pi_runtime_dependency: false
+        kdense_app_dependency: false
+        modal_dependency: false
+        mcp_server_dependency: false
+        fusion_dependency: false
+        default_skill_source: false
+        copy_external_workflow_catalog: false
+        copy_external_database_catalog: false
+        copy_external_specialist_roster_as_authority: false
+        may_authorize_publication_readiness: false
+        may_authorize_quality_verdict: false
+        may_authorize_source_readiness: false
+        may_sign_owner_receipt: false
+        may_create_typed_blocker_or_human_gate: false
+        may_mutate_artifacts: false
+        may_admit_route: false
+        may_create_or_replace_stage_router: false
+        refs_only: true
+        no_authority: true
     forbidden_authority_uses:
       - source_readiness
       - medical_quality_verdict
@@ -188,6 +237,19 @@ stage_native_semantic_pack:
       - Nextflow
       - RDKit
       - PyHealth
+    kdense_byok_reusable_reading:
+      workflows_become: opl_stagecraft_recipe_catalog_candidates
+      databases_become: opl_atlas_source_ref_candidate_catalog
+      specialists_become: codex_specialist_roster_and_independent_reviewer_lanes
+      workspace_preview_becomes: opl_workspace_vault_console_display_pattern
+      cost_ledger_becomes: opl_vault_budget_receipts
+      interview_form_becomes: mas_human_gate_schema_candidate
+      mcp_modal_become: opl_connect_runway_policy
+      openrouter_fusion_becomes: watch_only_reviewer_briefing
+      codex_cli_as_opl_harness: true
+      pi_runtime_dependency: false
+      refs_only: true
+      no_authority: true
     forbidden_authority_effects:
       - bulk_load_external_skill_library
       - treat_kdense_as_mas_authority_source

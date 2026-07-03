@@ -119,6 +119,21 @@ MAS Scholar Skills 的 source of truth 在外部 `mas-scholar-skills` repo：聚
 
 调用链只允许 `search -> inspect -> sync`：先搜索候选外部 Skill，检查 descriptor、依赖、权限、数据路径、输出 refs 和 authority false flags，再把选中的 specialist 同步到 workspace / quest。同步后的 specialist 只能产生 refs-only candidate、execution receipt candidate、owner-gate request 或 route-back hint；MAS owner gate 仍决定是否接受为论文 truth、artifact authority、quality verdict、typed blocker、human gate 或 `current_package` 变化。
 
+### K-Dense BYOK 可复用模式
+
+K-Dense BYOK 对 MAS / OPL 的价值是产品和运行模式参考，不是 runtime 迁移目标。MAS 不接入 Pi SDK backend、不依赖 K-Dense app、不复制它的 skill / workflow / database catalog，也不把它的 OpenRouter Fusion panel 当成 reviewer gate。Codex CLI 仍是 OPL harness；K-Dense 相关输出只能进入 refs-only / no-authority candidate、recipe、catalog 或 briefing。
+
+| K-Dense source pattern | OPL landing owner | MAS 使用方式 |
+| --- | --- | --- |
+| 326 workflow templates | OPL Stagecraft | 抽象成 recipe catalog 候选：stage goal、required inputs、placeholder schema、suggested capability hints、expected artifact refs 和 stop condition。Stagecraft 只把 recipe 作为当前 owner delta 的 JIT route context，不新增 MAS selector 或 workflow truth。 |
+| 229 database refs | OPL Atlas / Source | 抽象成 source-ref candidate catalog：数据库 id、领域、类别、URL、credential / policy notes 和 source readiness precheck。MAS 只把它作为 source discovery 输入，source readiness verdict 仍由 MAS owner surface 产出。 |
+| 21 scientific specialists | Codex specialist roster / reviewer lanes | 映射为可命名的 specialist lane，例如 citation、statistics、methodology、reproducibility、peer-review。执行与审阅必须保持独立 invocation / context / receipt；specialist report 只是 reviewer/auditor candidate。 |
+| file tree、file preview、bioinformatics preview、LaTeX editor、PDF viewer | OPL Workspace / Vault / Console | Workspace 管文件拓扑和 upload/download，Vault 管 artifact refs、manifest、checksum、compile log，Console 管 preview 和 operator drilldown。文件存在、PDF render 或 LaTeX compile 不等于 artifact authority。 |
+| cost ledger / spend cap | OPL Vault / Console | agent、specialist、compute 成本分账为 budget receipt，Console 只展示预算和风险；预算信息不能替代研究质量、paper progress 或 owner gate。 |
+| interview form | MAS human-gate schema / OPL Console | 结构化问题、推荐选项、自由文本和附件可作为 human-gate 输入 shape；只有 MAS human gate / owner route 消费后才改变 truth 或 route。 |
+| MCP / Modal hooks | OPL Connect / Runway | Connect 管 MCP trust、secret scope、tool health；Runway 管 remote execution receipt、file-in/out、timeout、cost 和 fail-open / fail-closed policy。MAS 不把这些 connector 写成 domain authority。 |
+| OpenRouter Fusion | watch-only reviewer briefing | 仅用于多模型 judgment 的提示形态参考；因为无本地工具、不可复现且 panel source 不完整，不能关闭 independent reviewer gate、quality verdict 或 publication readiness。 |
+
 Display gallery 在 ScholarSkills 中只作为 compact human review package。允许进入 workspace / quest local install 或对外 review 索引的 refs 是：
 
 - `gallery/medical-display/medical_display_gallery.pdf`
