@@ -130,6 +130,19 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
             "reporting_guideline_expectations": {"type": "object"},
         },
     },
+    "research_integrity_reference_verification": {
+        "type": "object",
+        "properties": {
+            "payload": {"type": "object"},
+            "reference": {"type": "object"},
+            "references": {"type": "array"},
+            "provider_evidence": {"type": "array"},
+            "provider_receipts": {"type": "array"},
+            "source_refs": {"type": "array"},
+            "reference_manager_ref": {"type": "string"},
+            "manuscript_ref": {"type": "string"},
+        },
+    },
 }
 AUTHORITATIVE_TRUTH_REFS = [
     "/progress_projection",
@@ -606,6 +619,53 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "helper_owner": MAS_TRUTH_OWNER,
                 "helper_write_policy": "no_domain_truth_writes",
                 "surface_authority": "research_integrity_gate_input_only",
+                "outputs_are_gate_inputs": True,
+                "can_write_mas_study_truth": False,
+                "can_write_publication_eval_latest": False,
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_mutate_current_package": False,
+                "can_write_current_package": False,
+                "can_sign_owner_receipt": False,
+                "can_write_owner_receipt": False,
+                "can_materialize_typed_blocker": False,
+                "can_write_typed_blocker": False,
+                "can_materialize_human_gate": False,
+                "can_write_runtime_queue_or_provider_attempt": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_publication_readiness": False,
+                "can_authorize_submission_readiness": False,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "research_integrity_reference_verification",
+            "title": "Build Research Integrity reference verification payload",
+            "summary": (
+                "Trigger the complete-reference verification lane for supplied manuscript or reference "
+                "manager refs. It only returns a Research Integrity gate input or evidence bundle; it "
+                "does not write publication authority, owner receipts, typed blockers, human gates, "
+                "runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+            ),
+            "effect": "read_only",
+            "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+            "surface_kind": "research_integrity_reference_verification_gate_input_bundle",
+            "workspace_locator_fields": [
+                "payload",
+                "reference",
+                "references",
+                "provider_evidence",
+                "provider_receipts",
+                "source_refs",
+                "reference_manager_ref",
+                "manuscript_ref",
+            ],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "research_integrity_reference_verification_gate_input_only",
                 "outputs_are_gate_inputs": True,
                 "can_write_mas_study_truth": False,
                 "can_write_publication_eval_latest": False,

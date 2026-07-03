@@ -3,14 +3,33 @@
   "schema_version": 1,
   "state": "active_contract",
   "owner": "MedAutoScience",
-  "purpose": "Bind reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
+  "purpose": "Bind OPL/provider lookup, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
+  "target_state": {
+    "summary": "Review and publication gate stage hooks request OPL/provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
+    "is_independent_professional_skill": false,
+    "provider_lookup_owner": "OPL connector substrate",
+    "mas_thin_provider_client_first_slice_allowed": true,
+    "mas_thin_provider_client_boundary": "synchronous provider-evidence fetcher only; no independent skill route, durable provider runtime, runtime queue, provider attempt, or authority receipt",
+    "stage_hook_consumers": [
+      "review gate",
+      "publication gate"
+    ],
+    "lookup_providers": [
+      "crossref",
+      "pubmed",
+      "openalex",
+      "semantic_scholar",
+      "publisher",
+      "crossmark"
+    ]
+  },
   "entry_surfaces": [
     {
       "surface_kind": "reference_verification_attestation",
       "producer": "MAS research_integrity.reference_authenticity pure builder",
       "inputs": [
         "reference metadata supplied by manuscript or reference manager",
-        "provider evidence payloads from OPL-managed connectors",
+        "provider evidence payloads pulled by OPL/provider lookup or a MAS thin provider client first slice",
         "optional full-text or publisher provenance refs"
       ],
       "required_output_fields": [
@@ -110,7 +129,7 @@
       "callable_entry": "MedAutoScienceDomainEntry.dispatch command research-integrity-gate-input",
       "action_catalog_descriptor": "research_integrity_gate_input",
       "inputs": [
-        "reference_checks or reference/references with provider_evidence",
+        "reference_checks or reference/references with provider_evidence from OPL/provider lookup",
         "claim_spans or claim/claims with citation and evidence refs",
         "citation_refs, evidence_refs, and reference_attestation_refs",
         "manuscript_sections or manuscript payload",
@@ -165,10 +184,23 @@
       "mas_owned_responsibility": "retraction/update severity and owner route decision"
     }
   ],
+  "reference_resolution_policy": {
+    "minimum_current_capability": "every reference has at least one provider verified crosscheck or an explicit non-verified status",
+    "verified_requires_at_least_one_provider_crosscheck": true,
+    "allowed_explicit_non_verified_status_values": [
+      "unresolved",
+      "needs_review",
+      "contradicted",
+      "retracted"
+    ],
+    "lookup_absence_can_pass_silently": false,
+    "missing_lookup_result_route": "review_candidate_or_hard_gate_candidate_before MAS owner consumption"
+  },
   "gate_trigger_policy": {
     "default_trigger_points": [
       "before AI reviewer-backed publication_eval materialization",
       "before submission package closeout",
+      "when review or publication gate stage hook needs online citation proof",
       "when manuscript or reference manager refs change",
       "when display-to-claim map changes",
       "when reviewer route-back requests claim, citation, or numeric consistency proof"
@@ -203,12 +235,14 @@
     "can_materialize_typed_blocker": false,
     "can_materialize_human_gate": false,
     "can_write_runtime_queue_or_provider_attempt": false,
+    "can_write_provider_lookup_cache_or_receipt": false,
+    "can_run_independent_professional_skill": false,
     "can_authorize_publication_readiness": false,
     "can_authorize_submission_readiness": false
   },
   "owner_split": {
     "opl_owns": [
-      "external connector execution",
+      "external connector execution and provider lookup orchestration",
       "provider cache and rate limit",
       "attestation storage substrate",
       "generic gate runner scheduling",
@@ -216,6 +250,7 @@
       "transport receipts and retry/dead-letter mechanics"
     ],
     "mas_owns": [
+      "thin provider client first slice only until OPL connector substrate owns lookup",
       "medical reference interpretation",
       "claim support policy",
       "manuscript consistency policy",
@@ -225,6 +260,21 @@
     ]
   },
   "implementation_contract": {
+    "provider_lookup_target": {
+      "owner": "OPL connector substrate",
+      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex-style evidence and pass it as provider_evidence",
+      "stage_hook": "review/publication gate consumes provider lookup output before calling research-integrity-gate-input",
+      "forbidden_side_effects": [
+        "publication_eval/latest.json write",
+        "controller_decisions/latest.json write",
+        "current_package mutation",
+        "owner receipt materialization",
+        "typed blocker materialization",
+        "human gate materialization",
+        "runtime queue write",
+        "provider attempt write"
+      ]
+    },
     "pure_builder_modules": [
       "src/med_autoscience/research_integrity/reference_authenticity.py",
       "src/med_autoscience/research_integrity/claim_citation_support_v2.py",

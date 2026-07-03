@@ -2479,6 +2479,169 @@
         "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
       },
       {
+        "action_id": "research_integrity_reference_verification",
+        "adaptation_policy": {
+          "adaptable_baseline_policy_ref": "",
+          "adaptation_boundary_ref": "",
+          "can_authorize_publication_readiness": false,
+          "can_replace_owner_receipt": false,
+          "can_replace_visual_audit": false,
+          "policy": "exact_contract_match",
+          "quality_floor_only": false,
+          "surface_kind": "mas_tool_adaptation_policy"
+        },
+        "authority_boundary": {
+          "capability_plan_can_authorize_publication_quality": false,
+          "capability_plan_can_authorize_submission_readiness": false,
+          "capability_plan_can_replace_owner_receipt": false,
+          "capability_plan_can_replace_typed_blocker": false,
+          "capability_plan_can_write_domain_truth": false,
+          "capability_runtime_kind": "OPL Capability Runtime",
+          "capability_runtime_owner": "one-person-lab",
+          "hosted_opl_capability_runtime_required": true,
+          "mas_plan_mode_is_invocation_authority": false,
+          "mas_resolve_mode_is_selector_authority": false,
+          "mas_selector_authority": false,
+          "mas_tool_invocation_runtime_authority": false,
+          "missing_refs_trigger_mutating_invocation": false,
+          "opl_capability_runtime_readback_requirement": {
+            "mas_readback_consumer_only": true,
+            "missing_readback_blocks_mutating_invocation": true,
+            "missing_readback_can_authorize_provider_admission": false,
+            "missing_readback_can_replace_owner_receipt_or_typed_blocker": false,
+            "missing_readback_can_write_domain_truth": false,
+            "required_for_modes": [
+              "resolve",
+              "plan",
+              "hosted_consumption"
+            ],
+            "required_readback_fields": [
+              "capability_runtime_owner",
+              "capability_runtime_identity",
+              "capability_selection_receipt_ref",
+              "capability_invocation_receipt_ref",
+              "current_owner_delta_ref",
+              "exactly_one_outcome"
+            ],
+            "requirement_id": "opl_capability_runtime_hosted_readback",
+            "runtime_kind": "OPL Capability Runtime",
+            "runtime_owner": "one-person-lab"
+          },
+          "opl_owns_capability_invocation_runtime": true,
+          "opl_owns_capability_selection_runtime": true,
+          "resolve_or_plan_can_authorize_provider_admission": false,
+          "resolve_or_plan_can_invoke_tool": false,
+          "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
+          "resolve_or_plan_can_write_domain_truth": false,
+          "selection_runtime_owner": "one-person-lab",
+          "support_or_diagnostic_tools_auto_selected": false
+        },
+        "callability": "descriptor_only",
+        "discovery_hint": {
+          "aliases": [
+            "research_integrity_reference_verification",
+            "authority_operation"
+          ],
+          "capability_tags": [
+            "authority_operation"
+          ],
+          "current_delta_fields": [
+            "action_type",
+            "action_id",
+            "capability_families",
+            "display_intent",
+            "figure_request"
+          ],
+          "examples": [
+            {
+              "current_owner_delta_field": "action_type",
+              "value": "research_integrity_reference_verification"
+            }
+          ],
+          "planning_root": "current_owner_delta",
+          "surface_kind": "mas_tool_discovery_hint",
+          "task_intents": [
+            "research integrity reference verification",
+            "authority_operation"
+          ],
+          "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        },
+        "fit_signal": {
+          "capability_tags": [
+            "authority_operation"
+          ],
+          "fit_policy_candidates": [
+            "exact_contract_match",
+            "soft_discovery_match",
+            "adaptable_baseline_not_exact_contract",
+            "insufficient_fit"
+          ],
+          "match_fields": [
+            "current_owner_delta.action_type",
+            "current_owner_delta.action_id",
+            "task_intent",
+            "capability_tags",
+            "aliases",
+            "when_to_use",
+            "examples"
+          ],
+          "missing_refs_reduce_readiness_not_discovery": true,
+          "required_refs_are_selection_blockers": false,
+          "soft_match_min_score": 10,
+          "surface_kind": "mas_tool_fit_signal"
+        },
+        "invocation_gate": {
+          "allowed_writes": [],
+          "fail_closed": true,
+          "forbidden_authority": [
+            "study_truth",
+            "publication_quality",
+            "submission_readiness",
+            "artifact_authority",
+            "memory_accept_reject",
+            "current_package"
+          ],
+          "owner_receipt_or_typed_blocker_required": false,
+          "preflight_checks": [
+            "confirm_current_owner_delta_matches_card_applicability",
+            "verify_required_refs_available",
+            "check_allowed_writes_and_forbidden_authority"
+          ],
+          "required_refs": [
+            "payload",
+            "reference",
+            "references",
+            "provider_evidence",
+            "provider_receipts",
+            "source_refs",
+            "reference_manager_ref",
+            "manuscript_ref"
+          ],
+          "requires_human_gate": false,
+          "requires_opl_stage_attempt_or_lease": false,
+          "surface_kind": "mas_tool_invocation_gate"
+        },
+        "missing_refs_do_not_remove_candidate": true,
+        "next_step_hint": "resolve_descriptor_surface",
+        "required_refs": [
+          "payload",
+          "reference",
+          "references",
+          "provider_evidence",
+          "provider_receipts",
+          "source_refs",
+          "reference_manager_ref",
+          "manuscript_ref"
+        ],
+        "risk": {
+          "read_only": true,
+          "requires_human_gate": false,
+          "requires_stage_attempt": false
+        },
+        "tool_id": "research_integrity_reference_verification",
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      },
+      {
         "action_id": "mainline_status",
         "adaptation_policy": {
           "adaptable_baseline_policy_ref": "",
@@ -17956,6 +18119,452 @@
       "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
     },
     {
+      "action_id": "research_integrity_reference_verification",
+      "action_surface_kind": "research_integrity_reference_verification_gate_input_bundle",
+      "adaptation_policy": {
+        "adaptable_baseline_policy_ref": "",
+        "adaptation_boundary_ref": "",
+        "can_authorize_publication_readiness": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "policy": "exact_contract_match",
+        "quality_floor_only": false,
+        "surface_kind": "mas_tool_adaptation_policy"
+      },
+      "allowed_writes": [],
+      "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_publication_readiness": false,
+        "can_authorize_submission_readiness": false,
+        "can_materialize_human_gate": false,
+        "can_materialize_typed_blocker": false,
+        "can_mutate_current_package": false,
+        "can_sign_owner_receipt": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_mas_study_truth": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_publication_eval_latest": false,
+        "can_write_runtime_queue_or_provider_attempt": false,
+        "can_write_typed_blocker": false,
+        "capability_plan_can_authorize_publication_quality": false,
+        "capability_plan_can_authorize_submission_readiness": false,
+        "capability_plan_can_replace_owner_receipt": false,
+        "capability_plan_can_replace_typed_blocker": false,
+        "capability_plan_can_write_domain_truth": false,
+        "capability_runtime_kind": "OPL Capability Runtime",
+        "capability_runtime_owner": "one-person-lab",
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "hosted_opl_capability_runtime_required": true,
+        "mas_plan_mode_is_invocation_authority": false,
+        "mas_resolve_mode_is_selector_authority": false,
+        "mas_selector_authority": false,
+        "mas_tool_invocation_runtime_authority": false,
+        "missing_refs_trigger_mutating_invocation": false,
+        "opl_capability_runtime_readback_requirement": {
+          "mas_readback_consumer_only": true,
+          "missing_readback_blocks_mutating_invocation": true,
+          "missing_readback_can_authorize_provider_admission": false,
+          "missing_readback_can_replace_owner_receipt_or_typed_blocker": false,
+          "missing_readback_can_write_domain_truth": false,
+          "required_for_modes": [
+            "resolve",
+            "plan",
+            "hosted_consumption"
+          ],
+          "required_readback_fields": [
+            "capability_runtime_owner",
+            "capability_runtime_identity",
+            "capability_selection_receipt_ref",
+            "capability_invocation_receipt_ref",
+            "current_owner_delta_ref",
+            "exactly_one_outcome"
+          ],
+          "requirement_id": "opl_capability_runtime_hosted_readback",
+          "runtime_kind": "OPL Capability Runtime",
+          "runtime_owner": "one-person-lab"
+        },
+        "opl_owns_capability_invocation_runtime": true,
+        "opl_owns_capability_selection_runtime": true,
+        "outputs_are_gate_inputs": true,
+        "resolve_or_plan_can_authorize_provider_admission": false,
+        "resolve_or_plan_can_invoke_tool": false,
+        "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
+        "resolve_or_plan_can_write_domain_truth": false,
+        "selection_runtime_owner": "one-person-lab",
+        "support_or_diagnostic_tools_auto_selected": false,
+        "surface_authority": "research_integrity_reference_verification_gate_input_only"
+      },
+      "authority_effects": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_return_owner_receipt": false,
+        "can_return_typed_blocker": false,
+        "can_write_domain_truth": false
+      },
+      "callability": "descriptor_only",
+      "card_kind": "action_catalog",
+      "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "default_invocation": {
+        "arguments": {
+          "current_owner_delta": "<current_owner_delta>"
+        },
+        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+        "surface": "descriptor_only",
+        "tool_name": "research_integrity_reference_verification"
+      },
+      "discovery_hint": {
+        "aliases": [
+          "research_integrity_reference_verification",
+          "authority_operation"
+        ],
+        "capability_tags": [
+          "authority_operation"
+        ],
+        "current_delta_fields": [
+          "action_type",
+          "action_id",
+          "capability_families",
+          "display_intent",
+          "figure_request"
+        ],
+        "examples": [
+          {
+            "current_owner_delta_field": "action_type",
+            "value": "research_integrity_reference_verification"
+          }
+        ],
+        "planning_root": "current_owner_delta",
+        "surface_kind": "mas_tool_discovery_hint",
+        "task_intents": [
+          "research integrity reference verification",
+          "authority_operation"
+        ],
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      },
+      "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
+      "failure_classes": {
+        "forbidden_authority": {
+          "next_safe_action": "surface_owner_needed",
+          "retryability": "no_retry"
+        },
+        "missing_refs": {
+          "next_safe_action": "collect_missing_refs",
+          "retryability": "retry_after_refs"
+        },
+        "tool_execution_error": {
+          "next_safe_action": "inspect_diagnostic_refs",
+          "retryability": "retry_safe"
+        }
+      },
+      "fit_signal": {
+        "capability_tags": [
+          "authority_operation"
+        ],
+        "fit_policy_candidates": [
+          "exact_contract_match",
+          "soft_discovery_match",
+          "adaptable_baseline_not_exact_contract",
+          "insufficient_fit"
+        ],
+        "match_fields": [
+          "current_owner_delta.action_type",
+          "current_owner_delta.action_id",
+          "task_intent",
+          "capability_tags",
+          "aliases",
+          "when_to_use",
+          "examples"
+        ],
+        "missing_refs_reduce_readiness_not_discovery": true,
+        "required_refs_are_selection_blockers": false,
+        "soft_match_min_score": 10,
+        "surface_kind": "mas_tool_fit_signal"
+      },
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "human_gate_ids": [],
+      "idempotency_policy": "read_only_no_side_effects",
+      "input_refs": [
+        "payload",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "invocation_gate": {
+        "allowed_writes": [],
+        "fail_closed": true,
+        "forbidden_authority": [
+          "study_truth",
+          "publication_quality",
+          "submission_readiness",
+          "artifact_authority",
+          "memory_accept_reject",
+          "current_package"
+        ],
+        "owner_receipt_or_typed_blocker_required": false,
+        "preflight_checks": [
+          "confirm_current_owner_delta_matches_card_applicability",
+          "verify_required_refs_available",
+          "check_allowed_writes_and_forbidden_authority"
+        ],
+        "required_refs": [
+          "payload",
+          "reference",
+          "references",
+          "provider_evidence",
+          "provider_receipts",
+          "source_refs",
+          "reference_manager_ref",
+          "manuscript_ref"
+        ],
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false,
+        "surface_kind": "mas_tool_invocation_gate"
+      },
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "research_integrity_reference_verification"
+      },
+      "next_safe_actions": [
+        {
+          "action": "resolve_descriptor_surface",
+          "requires": [
+            "payload",
+            "reference",
+            "references",
+            "provider_evidence",
+            "provider_receipts",
+            "source_refs",
+            "reference_manager_ref",
+            "manuscript_ref"
+          ],
+          "tool_name": "research_integrity_reference_verification"
+        },
+        {
+          "action": "collect_missing_refs",
+          "when": "required_refs_missing"
+        }
+      ],
+      "operational": {
+        "authority_boundary": {
+          "authoritative_truth_refs": [
+            "/progress_projection",
+            "/owner_route/latest.json",
+            "/publication_eval/latest.json",
+            "/controller_decisions/latest.json"
+          ],
+          "can_authorize_publication_quality": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_submission_readiness": false,
+          "can_materialize_human_gate": false,
+          "can_materialize_typed_blocker": false,
+          "can_mutate_current_package": false,
+          "can_sign_owner_receipt": false,
+          "can_write_controller_decisions": false,
+          "can_write_current_package": false,
+          "can_write_mas_study_truth": false,
+          "can_write_owner_receipt": false,
+          "can_write_publication_eval": false,
+          "can_write_publication_eval_latest": false,
+          "can_write_runtime_queue_or_provider_attempt": false,
+          "can_write_typed_blocker": false,
+          "capability_plan_can_authorize_publication_quality": false,
+          "capability_plan_can_authorize_submission_readiness": false,
+          "capability_plan_can_replace_owner_receipt": false,
+          "capability_plan_can_replace_typed_blocker": false,
+          "capability_plan_can_write_domain_truth": false,
+          "capability_runtime_kind": "OPL Capability Runtime",
+          "capability_runtime_owner": "one-person-lab",
+          "domain_truth_owner": "MedAutoScience",
+          "helper_owner": "MedAutoScience",
+          "helper_write_policy": "no_domain_truth_writes",
+          "hosted_opl_capability_runtime_required": true,
+          "mas_plan_mode_is_invocation_authority": false,
+          "mas_resolve_mode_is_selector_authority": false,
+          "mas_selector_authority": false,
+          "mas_tool_invocation_runtime_authority": false,
+          "missing_refs_trigger_mutating_invocation": false,
+          "opl_capability_runtime_readback_requirement": {
+            "mas_readback_consumer_only": true,
+            "missing_readback_blocks_mutating_invocation": true,
+            "missing_readback_can_authorize_provider_admission": false,
+            "missing_readback_can_replace_owner_receipt_or_typed_blocker": false,
+            "missing_readback_can_write_domain_truth": false,
+            "required_for_modes": [
+              "resolve",
+              "plan",
+              "hosted_consumption"
+            ],
+            "required_readback_fields": [
+              "capability_runtime_owner",
+              "capability_runtime_identity",
+              "capability_selection_receipt_ref",
+              "capability_invocation_receipt_ref",
+              "current_owner_delta_ref",
+              "exactly_one_outcome"
+            ],
+            "requirement_id": "opl_capability_runtime_hosted_readback",
+            "runtime_kind": "OPL Capability Runtime",
+            "runtime_owner": "one-person-lab"
+          },
+          "opl_owns_capability_invocation_runtime": true,
+          "opl_owns_capability_selection_runtime": true,
+          "outputs_are_gate_inputs": true,
+          "resolve_or_plan_can_authorize_provider_admission": false,
+          "resolve_or_plan_can_invoke_tool": false,
+          "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
+          "resolve_or_plan_can_write_domain_truth": false,
+          "selection_runtime_owner": "one-person-lab",
+          "support_or_diagnostic_tools_auto_selected": false,
+          "surface_authority": "research_integrity_reference_verification_gate_input_only"
+        },
+        "default_invocation": {
+          "arguments": {
+            "current_owner_delta": "<current_owner_delta>"
+          },
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+          "surface": "descriptor_only",
+          "tool_name": "research_integrity_reference_verification"
+        },
+        "failure_classes": {
+          "forbidden_authority": {
+            "next_safe_action": "surface_owner_needed",
+            "retryability": "no_retry"
+          },
+          "missing_refs": {
+            "next_safe_action": "collect_missing_refs",
+            "retryability": "retry_after_refs"
+          },
+          "tool_execution_error": {
+            "next_safe_action": "inspect_diagnostic_refs",
+            "retryability": "retry_safe"
+          }
+        },
+        "next_safe_actions": [
+          {
+            "action": "resolve_descriptor_surface",
+            "requires": [
+              "payload",
+              "reference",
+              "references",
+              "provider_evidence",
+              "provider_receipts",
+              "source_refs",
+              "reference_manager_ref",
+              "manuscript_ref"
+            ],
+            "tool_name": "research_integrity_reference_verification"
+          },
+          {
+            "action": "collect_missing_refs",
+            "when": "required_refs_missing"
+          }
+        ],
+        "optional_refs": [],
+        "preflight_checks": [
+          "confirm_current_owner_delta_matches_card_applicability",
+          "verify_required_refs_available",
+          "check_allowed_writes_and_forbidden_authority"
+        ],
+        "required_refs": [
+          "payload",
+          "reference",
+          "references",
+          "provider_evidence",
+          "provider_receipts",
+          "source_refs",
+          "reference_manager_ref",
+          "manuscript_ref"
+        ],
+        "success_signals": [
+          "mas_tool_result_envelope_returned",
+          "structured_payload_matches_output_schema",
+          "no_forbidden_authority_claim"
+        ],
+        "surface_kind": "mas_operational_tool_card"
+      },
+      "operational_surface_kind": "mas_operational_tool_card",
+      "optional_refs": [],
+      "output_schema": {
+        "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
+      },
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "preflight_checks": [
+        "confirm_current_owner_delta_matches_card_applicability",
+        "verify_required_refs_available",
+        "check_allowed_writes_and_forbidden_authority"
+      ],
+      "required_refs": [
+        "payload",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref"
+      ],
+      "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
+      "risk_annotations": {
+        "destructiveHint": false,
+        "domain_truth_write": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false
+      },
+      "success_signals": [
+        "mas_tool_result_envelope_returned",
+        "structured_payload_matches_output_schema",
+        "no_forbidden_authority_claim"
+      ],
+      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "supported_surfaces": [
+        "ai_sdk",
+        "cli",
+        "mcp",
+        "openai",
+        "product_entry",
+        "skill"
+      ],
+      "surface_kind": "mas_tool_use_card",
+      "title": "Build Research Integrity reference verification payload",
+      "tool_id": "research_integrity_reference_verification",
+      "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
+      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+    },
+    {
       "action_id": "mainline_status",
       "action_surface_kind": "mainline_status",
       "adaptation_policy": {
@@ -21510,6 +22119,120 @@
       ],
       "tool_id": "research_integrity_gate_input",
       "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+    },
+    {
+      "action_id": "research_integrity_reference_verification",
+      "adaptation_policy": {
+        "adaptable_baseline_policy_ref": "",
+        "adaptation_boundary_ref": "",
+        "can_authorize_publication_readiness": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "policy": "exact_contract_match",
+        "quality_floor_only": false,
+        "surface_kind": "mas_tool_adaptation_policy"
+      },
+      "callability": "descriptor_only",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "discovery_hint": {
+        "aliases": [
+          "research_integrity_reference_verification",
+          "authority_operation"
+        ],
+        "capability_tags": [
+          "authority_operation"
+        ],
+        "current_delta_fields": [
+          "action_type",
+          "action_id",
+          "capability_families",
+          "display_intent",
+          "figure_request"
+        ],
+        "examples": [
+          {
+            "current_owner_delta_field": "action_type",
+            "value": "research_integrity_reference_verification"
+          }
+        ],
+        "planning_root": "current_owner_delta",
+        "surface_kind": "mas_tool_discovery_hint",
+        "task_intents": [
+          "research integrity reference verification",
+          "authority_operation"
+        ],
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      },
+      "effect": "read_only",
+      "fit_signal": {
+        "capability_tags": [
+          "authority_operation"
+        ],
+        "fit_policy_candidates": [
+          "exact_contract_match",
+          "soft_discovery_match",
+          "adaptable_baseline_not_exact_contract",
+          "insufficient_fit"
+        ],
+        "match_fields": [
+          "current_owner_delta.action_type",
+          "current_owner_delta.action_id",
+          "task_intent",
+          "capability_tags",
+          "aliases",
+          "when_to_use",
+          "examples"
+        ],
+        "missing_refs_reduce_readiness_not_discovery": true,
+        "required_refs_are_selection_blockers": false,
+        "soft_match_min_score": 10,
+        "surface_kind": "mas_tool_fit_signal"
+      },
+      "invocation_gate": {
+        "allowed_writes": [],
+        "fail_closed": true,
+        "forbidden_authority": [
+          "study_truth",
+          "publication_quality",
+          "submission_readiness",
+          "artifact_authority",
+          "memory_accept_reject",
+          "current_package"
+        ],
+        "owner_receipt_or_typed_blocker_required": false,
+        "preflight_checks": [
+          "confirm_current_owner_delta_matches_card_applicability",
+          "verify_required_refs_available",
+          "check_allowed_writes_and_forbidden_authority"
+        ],
+        "required_refs": [
+          "payload",
+          "reference",
+          "references",
+          "provider_evidence",
+          "provider_receipts",
+          "source_refs",
+          "reference_manager_ref",
+          "manuscript_ref"
+        ],
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false,
+        "surface_kind": "mas_tool_invocation_gate"
+      },
+      "next_step_hint": "resolve_descriptor_surface",
+      "read_only": true,
+      "required_refs": [
+        "payload",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref"
+      ],
+      "tool_id": "research_integrity_reference_verification",
+      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
     },
     {
       "action_id": "mainline_status",

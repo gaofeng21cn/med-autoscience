@@ -124,6 +124,19 @@ SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS: dict[str, DomainEntryCommandSpec] = {
             "reporting_guideline_expectations",
         ),
     ),
+    "research-integrity-reference-verification": DomainEntryCommandSpec(
+        (),
+        (
+            "payload",
+            "reference",
+            "references",
+            "provider_evidence",
+            "provider_receipts",
+            "source_refs",
+            "reference_manager_ref",
+            "manuscript_ref",
+        ),
+    ),
 }
 SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | AuthorityOperationCommand] = {
     **SERVICE_SAFE_OPERATOR_COMMANDS,

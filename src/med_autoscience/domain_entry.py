@@ -28,7 +28,26 @@ DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
         "display-pack-render",
     }
 )
-RESEARCH_INTEGRITY_DOMAIN_COMMANDS = frozenset({"research-integrity-gate-input"})
+RESEARCH_INTEGRITY_DOMAIN_COMMANDS = frozenset(
+    {"research-integrity-gate-input", "research-integrity-reference-verification"}
+)
+RESEARCH_INTEGRITY_FORBIDDEN_AUTHORITY_FLAGS = (
+    "can_write_mas_study_truth",
+    "can_write_publication_eval_latest",
+    "can_write_publication_eval",
+    "can_write_controller_decisions",
+    "can_mutate_current_package",
+    "can_write_current_package",
+    "can_sign_owner_receipt",
+    "can_write_owner_receipt",
+    "can_materialize_typed_blocker",
+    "can_write_typed_blocker",
+    "can_materialize_human_gate",
+    "can_write_runtime_queue_or_provider_attempt",
+    "can_authorize_publication_quality",
+    "can_authorize_publication_readiness",
+    "can_authorize_submission_readiness",
+)
 
 
 class MedAutoScienceDomainEntry:
@@ -312,12 +331,53 @@ def _dispatch_display_pack_command(command: str, request: Mapping[str, Any]) -> 
 
 
 def _dispatch_research_integrity_command(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
-    if command != "research-integrity-gate-input":
-        raise ValueError(f"不支持的 research integrity domain entry command: {command}")
-    gate_bundle = import_module("med_autoscience.research_integrity.gate_bundle")
-    return gate_bundle.build_research_integrity_gate_input_bundle(
-        **_research_integrity_gate_input_kwargs(request),
-    )
+    if command == "research-integrity-gate-input":
+        gate_bundle = import_module("med_autoscience.research_integrity.gate_bundle")
+        return gate_bundle.build_research_integrity_gate_input_bundle(
+            **_research_integrity_gate_input_kwargs(request),
+        )
+    if command == "research-integrity-reference-verification":
+        builder = _load_research_integrity_reference_verification_builder()
+        payload = builder(payload=_research_integrity_reference_verification_payload(request))
+        return _with_research_integrity_reference_verification_boundary(command, payload)
+    raise ValueError(f"不支持的 research integrity domain entry command: {command}")
+
+
+def _load_research_integrity_reference_verification_builder() -> Callable[..., dict[str, Any]]:
+    module = import_module("med_autoscience.research_integrity.reference_verification")
+    builder = getattr(module, "build_reference_verification_payload")
+    if not callable(builder):
+        raise TypeError("research integrity reference verification builder 必须可调用。")
+    return builder
+
+
+def _research_integrity_reference_verification_payload(request: Mapping[str, Any]) -> dict[str, Any]:
+    raw_payload = request.get("payload")
+    if raw_payload is None:
+        payload: dict[str, Any] = {}
+    elif isinstance(raw_payload, Mapping):
+        payload = dict(raw_payload)
+    else:
+        raise ValueError("research integrity reference verification `payload` 必须是 mapping。")
+    for field_name, value in request.items():
+        if field_name not in {"command", "payload"}:
+            payload[field_name] = value
+    return payload
+
+
+def _with_research_integrity_reference_verification_boundary(
+    command: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise TypeError(f"domain entry `{command}` 返回值必须是 mapping。")
+    boundary = dict(payload.get("authority_boundary") or {})
+    for flag in RESEARCH_INTEGRITY_FORBIDDEN_AUTHORITY_FLAGS:
+        value = boundary.get(flag, False)
+        if value is not False:
+            raise ValueError(f"domain entry `{command}` cannot set authority flag `{flag}`.")
+        boundary[flag] = False
+    return {**payload, "authority_boundary": boundary}
 
 
 def _research_integrity_gate_input_payload(request: Mapping[str, Any]) -> dict[str, Any]:
