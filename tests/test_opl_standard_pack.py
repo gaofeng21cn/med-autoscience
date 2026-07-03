@@ -631,6 +631,7 @@ def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
         stage["stage_id"]
         for stage in generated["stage_control_plane"]["stages"]
         if stage.get("selected_executor", {}).get("default_executor") is True
+        and stage.get("selected_executor", {}).get("lane_kind") is None
     ]
 
     assert default_stage_ids == profile["ordinary_path"]["stage_refs"] == [

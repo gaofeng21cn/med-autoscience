@@ -451,7 +451,21 @@ def _pack_compiler_input() -> dict[str, Any]:
                 "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
                 "consumer_migration.py::build_functional_consumer_boundary"
             ),
+            "stage_graph_source_ref": "contracts/stage_control_plane.json",
+            "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "executor_policy_source_ref": "contracts/stage_control_plane.json#/stages/0/selected_executor",
+            "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
+            "authority_functions_source_ref": "runtime/authority_functions/README.md",
+            "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
+            "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
+            "capability_map_source_ref": "contracts/capability_map.json",
         },
+        "standard_stage_pack_conformance": {
+            "version": "standard-stage-pack.v2",
+            "required": True,
+            "enforcement_ref": "contracts/stage_control_plane.json#stage_pack_conformance_version",
+        },
+        "standard_agent_pack_abi": _standard_agent_pack_abi(),
         "authority_boundary": {
             "opl_can_write_domain_truth": False,
             "opl_can_write_memory_body": False,
@@ -459,6 +473,105 @@ def _pack_compiler_input() -> dict[str, Any]:
             "domain_can_claim_generated_surface_owner": False,
             "agent_pack_owner": DOMAIN_OWNER,
             "src_role": "domain_handler_minimal_authority_native_helper",
+        },
+    }
+
+
+def _standard_agent_pack_abi() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_standard_agent_pack_abi",
+        "version": "standard-agent-pack-abi.v1",
+        "owner": "one-person-lab",
+        "baseline_status": "frozen_machine_verifiable_baseline",
+        "required_repo_layout": [
+            {
+                "path": "agent/",
+                "role": "declarative_domain_pack",
+                "required": True,
+            },
+            {
+                "path": "contracts/",
+                "role": "machine_readable_contracts",
+                "required": True,
+            },
+            {
+                "path": "runtime/authority_functions/",
+                "role": "minimal_authority_functions",
+                "required": True,
+            },
+        ],
+        "required_stage_pack_shape": {
+            "prompt_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/prompts/"],
+            },
+            "skill_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/skills/"],
+                "accepted_ref_kinds": ["repo_path", "skill_id"],
+            },
+            "knowledge_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/knowledge/"],
+            },
+            "quality_gate_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/quality_gates/"],
+            },
+            "tool_affordance_boundary": {
+                "required": True,
+                "role": "available_affordance_catalog_not_workflow_script",
+                "required_ref_fields": [
+                    "capability_refs",
+                    "permission_scope_refs",
+                    "credential_boundary_refs",
+                    "write_scope_refs",
+                    "side_effect_risk_refs",
+                    "forbidden_authority_refs",
+                ],
+            },
+            "receipt_schema": {
+                "required": True,
+                "accepted_ref_prefixes": ["contracts/"],
+                "default_source_ref": "contracts/owner_receipt_contract.json",
+            },
+        },
+        "l4_entry_gate": {
+            "entry_level": "L4_structural_baseline",
+            "required_gates": [
+                "repo_layout_declared",
+                "stage_pack_v2_required",
+                "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+                "tool_affordance_boundary_declared",
+                "receipt_schema_declared",
+                "minimal_authority_functions_declared",
+                "generated_surface_handoff_declared",
+                "no_forbidden_write_contract_declared",
+            ],
+            "can_claim_l5": False,
+            "can_claim_domain_ready": False,
+        },
+        "l5_entry_gate": {
+            "entry_level": "L5_production_operating_maturity",
+            "evidence_required": [
+                "real_user_path",
+                "long_soak_recovery",
+                "release_install_evidence",
+                "owner_acceptance",
+                "direct_and_opl_hosted_parity_at_scale",
+            ],
+            "conformance_pass_counts_as_l5": False,
+            "contract_validation_counts_as_l5": False,
+            "provider_completion_counts_as_l5": False,
+            "app_projection_counts_as_l5": False,
+        },
+        "authority_boundary": {
+            "abi_can_claim_domain_ready": False,
+            "abi_can_claim_quality_or_export": False,
+            "abi_can_claim_l5_complete": False,
+            "opl_can_write_domain_truth": False,
+            "opl_can_write_memory_body": False,
+            "opl_can_mutate_domain_artifact_body": False,
         },
     }
 
