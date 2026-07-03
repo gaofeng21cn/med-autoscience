@@ -94,7 +94,13 @@ def _research_integrity_gate_input(reference_verification: Mapping[str, Any]) ->
 
 def _stage_context(payload: Mapping[str, Any]) -> dict[str, str]:
     context: dict[str, str] = {}
-    for field_name in ("stage_id", "stage_event", "stage_hook_ref", "manuscript_ref", "reference_manager_ref"):
+    for field_name in (
+        "stage_id",
+        "stage_event",
+        "stage_hook_ref",
+        "manuscript_ref",
+        "reference_manager_ref",
+    ):
         text = str(payload.get(field_name) or "").strip()
         if text:
             context[field_name] = text

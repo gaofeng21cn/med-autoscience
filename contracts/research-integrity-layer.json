@@ -307,8 +307,8 @@
   "implementation_contract": {
     "provider_lookup_target": {
       "owner": "OPL connector substrate",
-      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex-style evidence and pass it as provider_evidence",
-      "stage_hook": "review/publication gate consumes provider lookup output before calling research-integrity-gate-input",
+      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher-connector-required evidence and pass it as provider_evidence",
+      "stage_hook": "review/publication gate can call research-integrity-review-publication-gate-stage-hook, which triggers research-integrity-reference-verification before returning research-integrity-gate-input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
         "controller_decisions/latest.json write",
@@ -324,19 +324,31 @@
       "src/med_autoscience/research_integrity/reference_authenticity.py",
       "src/med_autoscience/research_integrity/claim_citation_support_v2.py",
       "src/med_autoscience/research_integrity/manuscript_consistency.py",
-      "src/med_autoscience/research_integrity/gate_bundle.py"
+      "src/med_autoscience/research_integrity/gate_bundle.py",
+      "src/med_autoscience/research_integrity/provider_lookup.py",
+      "src/med_autoscience/research_integrity/stage_hooks.py"
     ],
     "callable_surfaces": [
       "src/med_autoscience/domain_entry.py::research-integrity-gate-input",
+      "src/med_autoscience/domain_entry.py::research-integrity-reference-verification",
+      "src/med_autoscience/domain_entry.py::research-integrity-review-publication-gate-stage-hook",
       "src/med_autoscience/action_catalog.py::research_integrity_gate_input",
-      "src/med_autoscience/domain_entry_contract.py::research-integrity-gate-input"
+      "src/med_autoscience/action_catalog.py::research_integrity_reference_verification",
+      "src/med_autoscience/action_catalog.py::research_integrity_review_publication_gate_stage_hook",
+      "src/med_autoscience/domain_entry_contract.py::research-integrity-gate-input",
+      "src/med_autoscience/domain_entry_contract.py::research-integrity-reference-verification",
+      "src/med_autoscience/domain_entry_contract.py::research-integrity-review-publication-gate-stage-hook"
     ],
     "expected_tests": [
       "tests/test_research_integrity_gate_bundle.py",
       "tests/test_research_integrity_domain_entry.py",
       "tests/test_research_integrity_reference_authenticity.py",
       "tests/test_research_integrity_claim_citation_support_v2.py",
-      "tests/test_research_integrity_manuscript_consistency.py"
+      "tests/test_research_integrity_manuscript_consistency.py",
+      "tests/test_research_integrity_provider_lookup.py",
+      "tests/test_research_integrity_reference_verification.py",
+      "tests/test_research_integrity_stage_hooks.py",
+      "tests/test_domain_entry_contract.py"
     ],
     "standard_verification": [
       "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py",

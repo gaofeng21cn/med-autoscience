@@ -1097,6 +1097,109 @@
       ]
     },
     {
+      "action_id": "research_integrity_review_publication_gate_stage_hook",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_publication_readiness": false,
+        "can_authorize_submission_readiness": false,
+        "can_materialize_human_gate": false,
+        "can_materialize_typed_blocker": false,
+        "can_mutate_current_package": false,
+        "can_request_provider_lookup": true,
+        "can_sign_owner_receipt": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_mas_study_truth": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_publication_eval_latest": false,
+        "can_write_runtime_queue_or_provider_attempt": false,
+        "can_write_typed_blocker": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "outputs_are_gate_inputs": true,
+        "stage_hook_consumers": [
+          "review_gate",
+          "publication_gate"
+        ],
+        "surface_authority": "mandatory_stage_hook_gate_input_only",
+        "triggered_action": "research-integrity-reference-verification"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+        "surface_kind": "research_integrity_review_publication_gate_stage_hook"
+      },
+      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "research_integrity_review_publication_gate_stage_hook"
+        },
+        "cli": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
+        },
+        "mcp": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "research_integrity_review_publication_gate_stage_hook",
+          "tool_name": "research_integrity_review_publication_gate_stage_hook"
+        },
+        "openai": {
+          "tool_name": "research_integrity_review_publication_gate_stage_hook"
+        },
+        "product_entry": {
+          "action_key": "research_integrity_review_publication_gate_stage_hook",
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
+        },
+        "skill": {
+          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "command_contract_id": "research_integrity_review_publication_gate_stage_hook",
+          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
+        }
+      },
+      "title": "Trigger Research Integrity review/publication gate hook",
+      "workspace_locator_fields": [
+        "payload",
+        "stage_id",
+        "stage_event",
+        "stage_hook_ref",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref",
+        "claim_spans",
+        "claim",
+        "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
+        "manuscript",
+        "numeric_facts",
+        "display_facts",
+        "reference_attestations",
+        "display_to_claim_map",
+        "reporting_guideline_expectations"
+      ]
+    },
+    {
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [
