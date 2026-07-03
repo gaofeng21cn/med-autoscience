@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-03：K-Dense BYOK 只作为 OPL pattern refs，落到 refs-only sidecar worker
+
+- 决策：K-Dense BYOK / Scientific Agent Skills 的学习结果不迁移 Pi runtime、不依赖 K-Dense app、不 bulk-load 外部 skill / workflow / database catalog，也不让 OpenRouter Fusion 成为 reviewer gate。OPL 基座继续是 Codex CLI harness。
+- 决策：可复用形态固定为 `contracts/kdense_byok_external_intake.json`、`contracts/capability_map.json#/consumer_policy/external_specialist_library_policy` 与 `med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory`。该 worker 只输出 Stagecraft recipe seed、Atlas source-ref seed、specialist allowlist、workspace preview、attempt replay / budget、connector / compute、human-gate schema、workbench activity 和 Fusion watch-only briefing refs。
+- 影响：K-Dense refs 只能作为 OPL Stagecraft / Atlas / Workspace / Vault / Console / Connect / Runway 候选输入；MAS study truth、source readiness verdict、paper body、artifact authority、publication eval、controller decisions、owner receipt、typed blocker、human gate、provider attempt、submission package 与 `current_package` 仍归 MAS owner surface。
+
 ## 2026-07-03：Stage 主提示词 / runtime projection 与专业 Skill 分工固定
 
 - 决策：标准 OPL Agent 长期不再把 `stage-bound skill` 作为独立概念维护。Stage 的 canonical source 是 MAS-owned `agent/stages/`、`agent/prompts/`、route / knowledge / quality contracts 和 owner surface；Codex `SKILL.md`、overlay template 与 workspace / quest `.codex/skills/medical-research-*` 只作为 Codex runtime discovery / compatibility projection。

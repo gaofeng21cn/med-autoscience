@@ -156,6 +156,8 @@ stage_native_semantic_pack:
           - /tmp/kdense-byok/web/src/components/file-preview-panel.tsx
           - /tmp/kdense-byok/web/src/components/latex-editor.tsx
         absorbed_as: opl_stagecraft_atlas_workspace_vault_connect_pattern_refs
+        sidecar_worker_landing: med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory
+        sidecar_worker_status: refs_only_candidate_refs_emitted
         useful_patterns:
           - workflows_json_to_stagecraft_recipe_catalog_candidates
           - databases_json_to_atlas_source_ref_candidate_catalog
@@ -238,6 +240,7 @@ stage_native_semantic_pack:
       - RDKit
       - PyHealth
     kdense_byok_reusable_reading:
+      sidecar_worker_landing: med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory
       workflows_become: opl_stagecraft_recipe_catalog_candidates
       databases_become: opl_atlas_source_ref_candidate_catalog
       specialists_become: codex_specialist_roster_and_independent_reviewer_lanes
