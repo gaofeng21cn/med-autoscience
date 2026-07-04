@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 from med_autoscience.research_integrity import build_reference_provider_lookup_bundle
+from med_autoscience.research_integrity.provider_lookup import PROVIDER_LOOKUP_MODE
 
 
 class FakeJsonClient:
@@ -47,6 +50,11 @@ def test_provider_lookup_verifies_reference_through_crossref_doi() -> None:
     evidence = reference["provider_evidence"][0]
 
     assert bundle["surface_kind"] == "reference_provider_lookup_bundle"
+    assert bundle["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
+    assert bundle["receipt_first"] is True
+    assert bundle["transition_only"] is True
+    assert bundle["live_provider_authority_claimed"] is False
+    assert bundle["authoritative_provider_truth_owner"] == "OPL Connect provider receipts"
     assert bundle["status"] == "clear"
     assert bundle["provider_summary"] == {"found": 1, "not_found": 0, "error": 0}
     assert reference["attestation"]["status"] == "verified"
@@ -61,9 +69,40 @@ def test_provider_lookup_verifies_reference_through_crossref_doi() -> None:
     assert "mailto=ops%40example.org" in client.calls[0][0]
     assert client.calls[0][1]["User-Agent"].endswith("(mailto:ops@example.org)")
     assert bundle["authority_boundary"]["can_call_external_provider"] is True
+    assert bundle["authority_boundary"]["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
+    assert bundle["authority_boundary"]["receipt_first"] is True
+    assert bundle["authority_boundary"]["transition_only"] is True
+    assert bundle["authority_boundary"]["live_provider_authority_claimed"] is False
+    assert bundle["authority_boundary"]["can_claim_live_provider_truth"] is False
+    assert (
+        bundle["authority_boundary"]["can_be_used_as_authoritative_provider_truth_without_opl_receipt"]
+        is False
+    )
     assert bundle["authority_boundary"]["can_write_mas_study_truth"] is False
     assert bundle["authority_boundary"]["can_write_runtime_queue_or_provider_attempt"] is False
     assert bundle["authority_boundary"]["can_write_provider_attempt"] is False
+
+
+def test_provider_lookup_contract_declares_receipt_first_transition_only_boundary() -> None:
+    contract = json.loads(
+        (Path(__file__).resolve().parents[1] / "contracts/research-integrity-layer.json").read_text()
+    )
+
+    boundary = contract["provider_lookup_boundary"]
+    target = contract["implementation_contract"]["provider_lookup_target"]
+
+    assert boundary["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
+    assert boundary["receipt_first"] is True
+    assert boundary["transition_only"] is True
+    assert boundary["live_provider_authority_claimed"] is False
+    assert boundary["authoritative_provider_truth_owner"] == "OPL Connect provider receipts"
+    assert boundary["can_claim_live_provider_truth"] is False
+    assert boundary["can_be_used_as_authoritative_provider_truth_without_opl_receipt"] is False
+    assert boundary["can_materialize_provider_receipt"] is False
+    assert "Claude Science equivalent online verification" in boundary["forbidden_claims"]
+    assert target["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
+    assert target["receipt_first"] is True
+    assert target["live_provider_authority_claimed"] is False
 
 
 def test_provider_lookup_resolves_pubmed_from_doi_then_builds_gate_input() -> None:

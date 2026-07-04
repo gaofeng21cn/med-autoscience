@@ -23,6 +23,8 @@ SURFACE_KIND = "reference_provider_lookup_bundle"
 SCHEMA_VERSION = "mas-reference-provider-lookup.v1"
 DEFAULT_PROVIDERS = ("crossref", "pubmed", "openalex", "semantic_scholar")
 SUPPORTED_LOOKUP_PROVIDERS = frozenset(DEFAULT_PROVIDERS + ("crossmark", "publisher"))
+PROVIDER_LOOKUP_MODE = "transition_only_receipt_first"
+AUTHORITATIVE_PROVIDER_TRUTH_OWNER = "OPL Connect provider receipts"
 
 JsonHttpClient = Callable[[str, Mapping[str, str], float], Mapping[str, Any]]
 
@@ -128,6 +130,11 @@ def build_reference_provider_lookup_bundle(
     return {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
+        "provider_lookup_mode": PROVIDER_LOOKUP_MODE,
+        "receipt_first": True,
+        "transition_only": True,
+        "live_provider_authority_claimed": False,
+        "authoritative_provider_truth_owner": AUTHORITATIVE_PROVIDER_TRUTH_OWNER,
         "status": gate_input["status"],
         "providers": list(config.providers),
         "references": attestations,
@@ -169,8 +176,15 @@ def provider_lookup_authority_boundary() -> dict[str, Any]:
     boundary = gate_authority_boundary()
     boundary.update(
         {
-            "surface_role": "external_provider_evidence_and_gate_input_only",
+            "surface_role": "transition_only_provider_evidence_fetcher",
+            "provider_lookup_mode": PROVIDER_LOOKUP_MODE,
+            "receipt_first": True,
+            "transition_only": True,
+            "live_provider_authority_claimed": False,
+            "authoritative_provider_truth_owner": AUTHORITATIVE_PROVIDER_TRUTH_OWNER,
             "can_call_external_provider": True,
+            "can_claim_live_provider_truth": False,
+            "can_be_used_as_authoritative_provider_truth_without_opl_receipt": False,
             "can_write_provider_attempt": False,
             "can_write_provider_cache": False,
             "can_materialize_provider_receipt": False,
@@ -788,6 +802,8 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "DEFAULT_PROVIDERS",
+    "AUTHORITATIVE_PROVIDER_TRUTH_OWNER",
+    "PROVIDER_LOOKUP_MODE",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "ProviderLookupConfig",

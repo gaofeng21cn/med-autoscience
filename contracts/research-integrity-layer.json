@@ -8,8 +8,12 @@
     "summary": "Review and publication gate stage hooks request OPL/provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
     "is_independent_professional_skill": false,
     "provider_lookup_owner": "OPL connector substrate",
+    "provider_lookup_mode": "transition_only_receipt_first",
+    "receipt_first": true,
+    "live_provider_authority_claimed": false,
+    "authoritative_provider_truth_owner": "OPL Connect provider receipts",
     "mas_thin_provider_client_first_slice_allowed": true,
-    "mas_thin_provider_client_boundary": "synchronous provider-evidence fetcher only; no independent skill route, durable provider runtime, runtime queue, provider attempt, or authority receipt",
+    "mas_thin_provider_client_boundary": "transition-only synchronous provider-evidence fetcher for dev/test or first-slice fallback only; receipt-first by default; no independent skill route, durable provider runtime, runtime queue, provider attempt, authority receipt, or live provider truth claim",
     "stage_hook_consumers": [
       "review gate",
       "publication gate"
@@ -22,6 +26,35 @@
       "publisher",
       "crossmark"
     ]
+  },
+  "provider_lookup_boundary": {
+    "surface_kind": "mas_thin_provider_lookup_boundary",
+    "schema_version": 1,
+    "provider_lookup_mode": "transition_only_receipt_first",
+    "receipt_first": true,
+    "transition_only": true,
+    "live_provider_authority_claimed": false,
+    "authoritative_provider_truth_owner": "OPL Connect provider receipts",
+    "mas_thin_provider_client_allowed_contexts": [
+      "dev_test_first_slice",
+      "transition_fallback_when_no_opl_receipt_evidence_present"
+    ],
+    "fallback_output_role": "provider_evidence_gate_input_only",
+    "forbidden_claims": [
+      "authoritative_live_citation_verification",
+      "Claude Science equivalent online verification",
+      "provider receipt materialized",
+      "live provider truth",
+      "publication_ready",
+      "submission_ready"
+    ],
+    "can_call_external_provider": true,
+    "can_claim_live_provider_truth": false,
+    "can_be_used_as_authoritative_provider_truth_without_opl_receipt": false,
+    "can_materialize_provider_receipt": false,
+    "can_write_provider_attempt": false,
+    "can_write_runtime_queue": false,
+    "can_write_provider_lookup_cache_or_receipt": false
   },
   "ideal_trigger_chain": {
     "surface_kind": "research_integrity_ideal_trigger_chain",
@@ -384,8 +417,12 @@
   "implementation_contract": {
     "provider_lookup_target": {
       "owner": "OPL connector substrate",
-      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher-connector-required fallback evidence and pass it as provider_evidence; formal publisher evidence is expected from OPL Connect DOI landing-page provider_receipts",
-      "provider_receipt_consumption": "research-integrity-reference-verification accepts OPL Connect provider_receipts, normalizes provider_evidence from receipt root, receipt references[], and opl_connect_reference_verification into existing gate input evidence, preserves provider_receipt_refs and source_refs, and falls back to MAS thin provider lookup only when no evidence is present",
+      "provider_lookup_mode": "transition_only_receipt_first",
+      "receipt_first": true,
+      "live_provider_authority_claimed": false,
+      "authoritative_provider_truth_owner": "OPL Connect provider receipts",
+      "mas_first_slice": "thin provider client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher-connector-required fallback evidence and pass it as provider_evidence only as a transition/dev/test first slice; it is not authoritative live citation verification",
+      "provider_receipt_consumption": "research-integrity-reference-verification accepts OPL Connect provider_receipts, normalizes provider_evidence from receipt root, receipt references[], and opl_connect_reference_verification into existing gate input evidence, preserves provider_receipt_refs and source_refs, and falls back to MAS thin provider lookup only when no evidence is present; OPL receipts remain the provider truth owner",
       "stage_hook": "review/publication gate can call research-integrity-review-publication-gate-stage-hook, which triggers research-integrity-reference-verification before returning research-integrity-gate-input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
