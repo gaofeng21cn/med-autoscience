@@ -518,6 +518,55 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
     assert next_transition["next_action"]["idempotency_key"] != transition["next_action"]["idempotency_key"]
 
 
+def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    current_eval = _current_ai_reviewer_route_back_eval(study_root)
+    current_eval["eval_id"] = "publication-eval::dm003::bounded-prose-routeback"
+    current_eval["recommended_actions"][0] = {
+        "action_id": "dm003-route-back-bounded-prose-repair",
+        "action_type": "route_back_same_line",
+        "requires_controller_decision": True,
+        "route_target": "write",
+        "next_work_unit": {
+            "unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            "lane": "write",
+            "summary": "Repair DM003 manuscript prose around bounded evidence and service-review claims.",
+        },
+    }
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, current_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm003::20260704T050334Z",
+            "emitted_at": "2026-07-04T05:03:34+00:00",
+            "study_id": "dm003",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "Upgrade DM003 into a high-quality SCI medical manuscript.",
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm003",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["controller_action"] == "request_opl_stage_attempt"
+    assert transition["next_work_unit"]["unit_id"] == (
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    )
+    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
+    assert transition["next_action"]["owner"] == "write"
+
+
 def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(
     tmp_path: Path,
 ) -> None:

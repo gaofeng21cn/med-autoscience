@@ -102,6 +102,11 @@ def project_stale_reviewer_revision_transition(
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if (
+        not requires_owner_authorized_publication_gate_recheck_only(publication_eval)
+        and current_ai_reviewer_route_back_action(publication_eval) is not None
+    ):
+        return None
     if stale_after_reviewer_revision(
         study_root=study_root,
         publication_eval=publication_eval,
