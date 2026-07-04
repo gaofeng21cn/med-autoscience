@@ -289,6 +289,13 @@ def build_materialized_mission_readback_if_available(
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     canonical_next_action_source = None
+    stage_closure_suppresses_domain_transition = (
+        _stage_closure_suppresses_domain_transition_next_action(
+            stage_closure_decision=stage_closure_decision,
+            next_action=next_action_override,
+            domain_transition_next_action=domain_transition_next_action,
+        )
+    )
     if (
         domain_transition_next_action
         and not _typed_blocker_resolution_should_own_next_action(
@@ -301,14 +308,13 @@ def build_materialized_mission_readback_if_available(
             next_action=next_action_override,
             domain_transition_next_action=domain_transition_next_action,
         )
-        and not _stage_closure_suppresses_domain_transition_next_action(
-            stage_closure_decision=stage_closure_decision,
-            next_action=next_action_override,
-            domain_transition_next_action=domain_transition_next_action,
-        )
+        and not stage_closure_suppresses_domain_transition
     ):
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
+        typed_blocker_resolution_readback = None
+    elif stage_closure_suppresses_domain_transition:
+        next_action_override = None
         typed_blocker_resolution_readback = None
     elif next_action_override is not None:
         canonical_next_action_source = "stage_closure.next_action"
@@ -705,7 +711,12 @@ def _stage_closure_suppresses_domain_transition_next_action(
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None,
 ) -> bool:
-    if _mapping(next_action):
+    action_override = _mapping(next_action)
+    if _stage_closure_next_action_should_own_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action=action_override,
+        domain_transition_next_action=domain_transition_next_action,
+    ):
         return False
     action = _mapping(domain_transition_next_action)
     if not action:

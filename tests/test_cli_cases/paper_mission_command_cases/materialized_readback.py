@@ -1115,6 +1115,24 @@ def test_stage_closure_owner_receipt_suppresses_same_work_unit_domain_transition
         next_action=None,
         domain_transition_next_action=same_work_unit_next_action,
     )
+    assert materialized_readback._stage_closure_suppresses_domain_transition_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action={
+            "surface_kind": SURFACE_KIND,
+            "action_family": "paper.package.submission_minimal",
+            "work_unit_id": "submission_authority_owner_verdict",
+        },
+        domain_transition_next_action=same_work_unit_next_action,
+    )
+    assert not materialized_readback._stage_closure_suppresses_domain_transition_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action={
+            "surface_kind": SURFACE_KIND,
+            "action_family": "paper.stage_closure.owner_consumption",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        },
+        domain_transition_next_action=same_work_unit_next_action,
+    )
     assert not materialized_readback._stage_closure_suppresses_domain_transition_next_action(
         stage_closure_decision=stage_closure_decision,
         next_action=None,
