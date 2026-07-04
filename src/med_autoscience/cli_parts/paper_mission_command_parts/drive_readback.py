@@ -857,7 +857,10 @@ def _drive_receipt_owner_consumption_already_applied(
         "consume_route_back_checkpoint_or_materialize_terminalizer_outcome": {
             "owner_consumed_route_checkpoint"
         },
-        "record_typed_blocker": {"owner_consumed_typed_blocker"},
+        "record_typed_blocker": {
+            "owner_consumed_typed_blocker",
+            "owner_consumed_route_checkpoint",
+        },
         "consume_opl_transition_receipt": {"owner_consumed_opl_transition_receipt"},
     }
     allowed_statuses = status_by_action.get(next_legal_action or "", set())
