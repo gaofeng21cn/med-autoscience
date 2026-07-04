@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
+from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
 
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
@@ -58,11 +59,23 @@ def _story_surface_ai_reviewer_recheck_transition(
         repair_evidence_path=study_root / REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH,
     ):
         return None
-    return story_surface_delta.ai_reviewer_recheck_action_from_story_delta(
+    transition = story_surface_delta.ai_reviewer_recheck_action_from_story_delta(
         study_id=study_id,
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
     )
+    guard_boundary = dict(transition.get("guard_boundary") or {})
+    guard_boundary["opl_generic_runner_may_resume"] = True
+    transition["guard_boundary"] = guard_boundary
+    transition["next_action"] = ai_reviewer_transitions.build_ai_reviewer_next_action(
+        study_id=study_id,
+        next_work_unit=transition["next_work_unit"],
+        controller_action=transition["controller_action"],
+        owner=transition["owner"],
+        guard_boundary=guard_boundary,
+        source_refs=transition["source_refs"],
+    )
+    return transition
 
 
 __all__ = ["REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH", "project_transition"]
