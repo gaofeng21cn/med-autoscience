@@ -354,6 +354,36 @@ def build_materialized_mission_readback_if_available(
             transaction_output_fields["current_opl_runtime_readback_status"] = (
                 direct_next_action_runtime["opl_runtime_readback_status"]
             )
+    if (
+        "domain_transition_direct_stage_attempt" not in transaction_output_fields
+        and stage_closure_suppresses_domain_transition
+        and domain_transition_next_action
+    ):
+        direct_next_action_runtime = (
+            _domain_transition_direct_next_action_runtime_readback(
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                inspect_readback={**mission, **transaction_output_fields},
+                next_action=domain_transition_next_action,
+                canonical_next_action_source="domain_transition.next_action",
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
+        )
+        if direct_next_action_runtime:
+            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
+                direct_next_action_runtime
+            )
+            transaction_output_fields["current_opl_runtime_carrier"] = (
+                direct_next_action_runtime["opl_runtime_carrier"]
+            )
+            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            transaction_output_fields["current_opl_runtime_readback_status"] = (
+                direct_next_action_runtime["opl_runtime_readback_status"]
+            )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,

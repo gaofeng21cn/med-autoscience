@@ -1102,6 +1102,22 @@ def _closeout_candidate_refs(closeout: Mapping[str, Any]) -> set[str]:
     )
     return refs
 
+def _closeout_has_route_back_evidence(closeout: Mapping[str, Any]) -> bool:
+    route_impact = _mapping(closeout.get("route_impact"))
+    if _text(route_impact.get("owner_answer_kind")) == "route_back_evidence_ref":
+        return _text(route_impact.get("route_back_evidence_ref")) is not None
+    for item in closeout.get("closeout_refs") or ():
+        ref = _mapping(item)
+        if not ref:
+            continue
+        if _text(ref.get("ref_kind")) == "route_back_evidence_packet":
+            return bool(
+                _text(ref.get("workspace_relative_ref"))
+                or _text(ref.get("uri"))
+                or _text(ref.get("ref"))
+            )
+    return False
+
 def _looks_like_candidate_package_ref(value: str) -> bool:
     return (
         "paper_mission_candidate_package" in value
@@ -1127,6 +1143,11 @@ def _closeout_binds_exact_route_identity(
         return False
     closeout_transaction_ref = _text(closeout.get("paper_mission_transaction_ref"))
     if closeout_transaction_ref == expected_transaction_ref:
+        return True
+    if (
+        _text(closeout.get("stage_packet_ref")) == expected_transaction_ref
+        and _closeout_has_route_back_evidence(closeout)
+    ):
         return True
     expected_stage_ref = _text(carrier.get("stage_terminal_decision_ref"))
     if expected_stage_ref is not None and _text(closeout.get("stage_packet_ref")) == expected_stage_ref:

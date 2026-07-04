@@ -300,6 +300,15 @@ def _paper_mission_transaction_readback(
             )
             readback["transaction_state"] = _transaction_state(owner_answer_transaction)
             readback["consume_candidate_status_override"] = "route_back"
+            if not _carrier_readback_has_consumable_receipt(
+                _mapping(readback.get("opl_runtime_carrier_readback"))
+            ):
+                readback = attach_runtime_readback(
+                    readback=readback,
+                    study_root=study_root,
+                    enable_opl_live_probe=enable_opl_live_probe,
+                    opl_bin=opl_bin,
+                )
             readback = attach_next_action(readback)
     readback["terminal_owner_gate_authority_readback"] = (
         terminal_gate_authority_readback or None
@@ -635,6 +644,14 @@ def _next_stage_id_for_materialized(stage_id: str) -> str:
     if stage_id == "medical_prose_write_repair_publication_gate_replay":
         return "publication_quality_recheck"
     return f"{stage_id}::next"
+
+
+def _carrier_readback_has_consumable_receipt(payload: Mapping[str, Any]) -> bool:
+    return bool(
+        _mapping(payload.get("opl_transition_receipt"))
+        and _mapping(payload.get("receipt_evidence"))
+        and _mapping(payload.get("mas_receipt_consumption"))
+    )
 
 
 def _transaction_state(transaction: dict[str, Any]) -> str:

@@ -380,6 +380,71 @@ def test_opl_terminal_closeout_readback_rejects_no_idempotency_stale_candidate_r
     assert "terminal_closeout" not in readback
 
 
+def test_opl_terminal_closeout_readback_accepts_transaction_bound_route_back_evidence(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "status": "non_advancing_route_back_evidence_candidate",
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-route-back",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "work_unit_id": None,
+            "work_unit_fingerprint": None,
+            "route_impact": {
+                "owner_answer_kind": "route_back_evidence_ref",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-route-back/study/route_back_evidence_packet.json"
+                ),
+                "can_claim_paper_progress": False,
+            },
+            "closeout_refs": [
+                {
+                    "ref_kind": "route_back_evidence_packet",
+                    "workspace_relative_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-route-back/study/route_back_evidence_packet.json"
+                    ),
+                }
+            ],
+            "authority_boundary": {
+                "candidate_is_authority": False,
+                "writes_authority_surface": False,
+                "writes_publication_eval": False,
+                "writes_controller_decision": False,
+                "writes_owner_receipt": False,
+                "writes_typed_blocker": False,
+                "writes_human_gate": False,
+                "writes_current_package": False,
+                "writes_runtime_queue": False,
+                "writes_provider_attempt": False,
+                "writes_yang_authority": False,
+            },
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-route-back"
+    assert readback["terminal_closeout"]["status"] == (
+        "non_advancing_route_back_evidence_candidate"
+    )
+
+
 def test_opl_terminal_closeout_readback_accepts_matching_candidate_idempotency(
     tmp_path: Path,
 ) -> None:

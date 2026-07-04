@@ -339,6 +339,74 @@ def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
     assert consumption["can_claim_paper_progress"] is False
 
 
+def test_transaction_readback_reattaches_runtime_receipt_after_owner_answer_route(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+        _paper_mission_transaction_readback,
+    )
+
+    study_id = "obesity_multicenter_phenotype_atlas"
+    mission_id = f"paper-mission::{study_id}::route-back"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    calls: list[str] = []
+
+    def attach_runtime_readback(
+        *,
+        readback: dict,
+        study_root: Path,
+        enable_opl_live_probe: bool = False,
+        opl_bin: str | Path | None = None,
+    ) -> dict:
+        payload = dict(readback)
+        carrier = payload["opl_runtime_carrier"]
+        calls.append(carrier["work_unit_id"])
+        payload["opl_runtime_carrier_readback"] = {
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "schema_version": 1,
+            "carrier_status": "opl_runtime_terminal_readback_observed",
+            "runtime_readback_status": "terminal_closeout_observed",
+            "domain_ready_verdict": "domain_gate_pending",
+            "can_claim_paper_progress": False,
+            "can_claim_runtime_ready": False,
+            "authority_materialized": False,
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "closeout_ref": f"closeout://{carrier['work_unit_id']}",
+                "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+                "stage_attempt_id": f"sat-{len(calls)}",
+                "work_unit_id": carrier["work_unit_id"],
+            },
+        }
+        payload["opl_runtime_readback_status"] = (
+            "opl_runtime_terminal_readback_observed"
+        )
+        return payload
+
+    readback = _paper_mission_transaction_readback(
+        mission_id=mission_id,
+        study_id=study_id,
+        objective="Ensure owner-answer carrier gets its own live readback.",
+        paper_mission_command="inspect",
+        study_root=tmp_path / "workspace" / "studies" / study_id,
+        mission={"paper_mission_transaction": transaction},
+        enable_opl_live_probe=True,
+        attach_runtime_readback=attach_runtime_readback,
+    )
+
+    assert len(calls) == 2
+    assert calls[0] == "continue paper-facing submission milestone work"
+    assert calls[1] == readback["opl_runtime_carrier"]["work_unit_id"]
+    assert readback["source"] == "terminal_owner_gate_owner_answer"
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "work_unit_id"
+    ] == calls[1]
+
+
 def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(
     tmp_path: Path,
     capsys,
