@@ -318,6 +318,13 @@ def _matching_opl_runtime_live_probe(
             list_args,
             timeout_seconds=remaining_seconds(deadline),
         )
+        matched_running = _matching_opl_runtime_payload_running_attempt(
+            carrier=carrier,
+            payload=list_payload,
+        )
+        if matched_running is not None:
+            attempt, attempt_ref = matched_running
+            return "running", attempt, attempt_ref
         terminal_match = _matching_opl_runtime_payload_closeout(
             carrier=carrier,
             payload=list_payload,
@@ -325,10 +332,6 @@ def _matching_opl_runtime_live_probe(
         if terminal_match is not None:
             closeout, closeout_ref = terminal_match
             return "terminal", closeout, closeout_ref
-        matched_running = _matching_opl_runtime_payload_running_attempt(
-            carrier=carrier,
-            payload=list_payload,
-        )
         for task in _ranked_opl_probe_tasks(
             _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload),
             carrier=carrier,
@@ -361,6 +364,9 @@ def _matching_opl_runtime_live_probe(
         if matched_running is not None:
             attempt, attempt_ref = matched_running
             return "running", attempt, attempt_ref
+        if terminal_match is not None:
+            closeout, closeout_ref = terminal_match
+            return "terminal", closeout, closeout_ref
     return None
 
 def _matching_opl_runtime_running_attempt(

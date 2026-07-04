@@ -281,7 +281,7 @@ def test_opl_runtime_list_payload_running_successor_does_not_require_heavy_inspe
     assert "terminal_closeout" not in readback
 
 
-def test_opl_runtime_live_probe_prefers_queue_list_terminal_closeout_over_liveness(
+def test_opl_runtime_live_probe_prefers_running_successor_over_old_closeout(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -312,10 +312,10 @@ def test_opl_runtime_live_probe_prefers_queue_list_terminal_closeout_over_livene
         enable_opl_live_probe=True,
     )
 
-    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert readback["runtime_readback_status"] == "terminal_closeout_observed"
-    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-terminal"
-    assert "running_attempt" not in readback
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-successor"
+    assert "terminal_closeout" not in readback
 
 
 def test_opl_runtime_default_readback_does_not_probe_live_queue(

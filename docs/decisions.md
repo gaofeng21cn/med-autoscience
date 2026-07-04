@@ -9,6 +9,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 - 决策：`paper_mission/stage-route` 提交到 OPL queue 时，dedupe identity 不得只由 study、PaperMission transaction / request idempotency key 和 command kind 构成。MAS 必须把本轮可推进 delta 纳入 runtime request：`candidate_hash`、candidate ref、work-unit id/fingerprint、owner receipt、typed blocker、human gate、route-back evidence 或 paper-facing delta refs，并用该 advancing-delta fingerprint 参与 OPL dedupe key。
 - 决策：同一 candidate 内容和同一 owner delta 继续保持 idempotent；candidate 文件内容、owner/human/blocker/route-back/paper-facing delta 变化时必须生成新的 queue identity。`candidate_hash` 是内容 sha256，不使用 mtime、随机数或时间戳。
+- 决策：live probe 看到同一 route 下既有旧 terminal closeout 又有当前 running successor 时，必须优先投影 running successor。旧 terminal closeout 不能抢先被 MAS owner consumption 读成当前 typed blocker。
 - 理由：Obesity paper line 暴露出旧 stage-route task 已 `dead_letter` 后，后续已刷新 `current_package` 和 human-facing candidate 仍因同一 dedupe key 返回 `idempotent_noop`，OPL redrive 又正确拒绝 `non_advancing_route_back`。根因不是缺自动运行能力，而是 MAS runtime request identity 没表达“这次有新的 paper-facing candidate / owner delta”，让新任务撞到旧 dead-letter task。
 - 影响：该修复只改变 MAS->OPL transport request 的去重身份和只读 payload 字段；不手写 OPL queue/provider attempt，不写 Yang authority、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 paper body。论文进展仍以 MAS owner consumption、AI reviewer / publication gate、stable typed blocker、human gate 或 current package authority readback 为准。
 
