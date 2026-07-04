@@ -1098,8 +1098,16 @@ def test_paper_mission_drive_stops_on_current_opl_route_back_consumption_before_
     assert payload["mutation_policy"]["writes_runtime"] is False
 
 
+@pytest.mark.parametrize(
+    "stale_next_legal_action",
+    [
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+        "record_typed_blocker",
+    ],
+)
 def test_paper_mission_drive_ignores_stale_current_opl_consumption_after_owner_consumed_route_checkpoint(
     tmp_path: Path,
+    stale_next_legal_action: str,
 ) -> None:
     study_id = "obesity_multicenter_phenotype_atlas"
     workspace_root = tmp_path / "workspace"
@@ -1142,11 +1150,13 @@ def test_paper_mission_drive_ignores_stale_current_opl_consumption_after_owner_c
                 "mas_receipt_consumption": {
                     "surface_kind": "mas_receipt_consumption_projection",
                     "status": "requires_mas_owner_consumption",
-                    "next_legal_action": (
-                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-                    ),
+                    "next_legal_action": stale_next_legal_action,
                     "receipt_evidence_ref": receipt_ref,
                     "route_back_evidence_ref": route_back_ref,
+                    "typed_runtime_blocker_ref": (
+                        "opl://stage-attempts/sat-review/runtime-blockers/"
+                        "closeout-not-materialized"
+                    ),
                     "forbidden_next_action": "synonymous_route_back_redrive",
                     "can_claim_paper_progress": False,
                 }
@@ -1164,6 +1174,10 @@ def test_paper_mission_drive_ignores_stale_current_opl_consumption_after_owner_c
                     "route_checkpoint_evidence_ref": (
                         "ops/medautoscience/paper_mission_stage_attempts/"
                         "sat-review/stage_attempt_closeout_packet.json"
+                    ),
+                    "typed_runtime_blocker_ref": (
+                        "opl://stage-attempts/sat-review/runtime-blockers/"
+                        "closeout-not-materialized"
                     ),
                     "forbidden_next_action": "synonymous_route_back_redrive",
                     "can_claim_paper_progress": False,
