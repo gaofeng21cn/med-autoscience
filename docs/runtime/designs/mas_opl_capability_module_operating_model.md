@@ -161,6 +161,21 @@ medautosci scientific-capability-registry \
 
 文件化消费路径必须 fail closed：`authority_flags` 中任何 MAS authority 写入能力为 `true`，或 `written_files` 声称写入 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper/package truth、owner receipt、typed blocker 或 human gate，均不能被包装成 owner-consumption evidence。该消费路径只输出 `execution_receipt_status`、observed / missing ref families 和 refs-only owner-consumption evidence；即使 refs 齐全，也只表示候选 artifact evidence 可被 MAS owner gate 后续审查，不能写成 full runtime ready、paper progress、publication readiness、current package authority 或 owner receipt。候选图、表、统计结果、文献证据图谱、文稿段落、review 报告、投稿包和数据清单只有经过 MAS owner gate 消费后，才可能进入论文 truth。
 
+### OpenScience local-first workspace 可复用模式
+
+OpenScience main `f120290` 对 MAS / OPL 的价值是 local-first research workspace pattern，不是 runtime 迁移目标。当前已落地 contract policy、runbook 和 `build_openscience_artifact_provenance_advisory` refs-only sidecar worker；MAS 不接入 OpenScience Electron / WebUI runtime，不复制它的 skill catalog，不把 `science_artifact` MCP 当作 MAS truth、artifact authority、owner receipt、typed blocker、publication gate 或 source readiness verdict。可学习内容必须落在基座 / Stage / 专业 Skill / 工具的明确 owner 上：
+
+| OpenScience pattern | OPL substrate owner | MAS / ScholarSkills owner | 边界 |
+| --- | --- | --- | --- |
+| project-local artifact graph | Vault / Workspace / Ledger | Stage / Display / Reviewer 消费 artifact/source refs | graph 只给 refs、lineage、hash 和 provenance；不能写 artifact body、paper body 或 artifact authority。 |
+| `claimType` + `graphWarnings` | Pack / Stagecraft 负责 check descriptor 与 invocation policy | Quality / Reviewer / ScholarSkills review 负责 refs-only claim-warning check | 推荐第一落点：claimType + graphWarnings refs-only check；warning 只能生成 reviewer briefing、route-back candidate 或 evidence gap，不直接生成 quality verdict。 |
+| annotation-to-source regeneration | Workspace / Ledger 持 annotation refs、source locator 和 regeneration receipt | Stage / Source / Quality 把 annotation 还原成 source/data/evidence repair hint | 推荐第一落点：annotation-to-source-regeneration；只有当前 delta route-required ref 涉及 source / data / evidence 时才可能升级 blocker candidate。 |
+| project-local ledger pointer / hash | Vault / Ledger / Console | Stage / Reviewer 只读取 pointer/hash provenance | 推荐第一落点：project-local ledger pointer/hash；hash 证明 candidate provenance，不证明 owner acceptance、paper progress 或 current package freshness。 |
+| skill pack governance | Pack / Connect / Stagecraft | ScholarSkills 只消费专业 skill descriptor / no-authority flags | 不复制 OpenScience skill catalog；Pack / Connect 只吸收 dependency、permission、allowed scope 和 stage use policy。 |
+| native viewer / workspace affordance | Console / Workspace | Display / Reviewer 可读取 watch-only preview refs | viewer 只是 operator display pattern；不接入 Electron / WebUI，不把 preview 当 publication readiness、source readiness 或 visual quality owner gate。 |
+
+Progress-first 读法固定为：OpenScience advisory、worker、projection 或 native viewer 缺失 / 失败，不阻断 ordinary MAS owner action。只有当前 delta 的 route-required ref 涉及 source / data / evidence，或 candidate 指向 forbidden write、independent reviewer、publication gate、human gate，才允许形成 typed blocker candidate；正式 typed blocker 仍由 MAS owner surface、OPL Stage Transition Authority、independent reviewer / auditor、human gate 或 typed blocker materializer 签出。
+
 ### ScholarSkills acceptance matrix
 
 | Acceptance item | Capability-surface status | Evidence surface | Remaining live / authority tail |

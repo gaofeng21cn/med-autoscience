@@ -30,6 +30,9 @@ SCHEMA_VERSION = 1
 FORBIDDEN_WRITES = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
+    "artifacts/owner_receipts/**",
+    "artifacts/typed_blockers/**",
+    "artifacts/artifact_authority/**",
     "paper/**",
     "paper/submission_minimal/**",
     "manuscript/current_package/**",
@@ -69,6 +72,10 @@ SIDECAR_WORKER_REGISTRY: Mapping[str, tuple[str, str]] = {
     "kdense_byok": (
         "med_autoscience.external_learning_progress_workers",
         "build_kdense_byok_pattern_advisory",
+    ),
+    "openscience_artifact_provenance": (
+        "med_autoscience.external_learning_progress_workers",
+        "build_openscience_artifact_provenance_advisory",
     ),
 }
 
@@ -125,6 +132,43 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             next_landing_path=(
                 "emit refs-only K-Dense pattern candidates through run_external_learning_sidecar; "
                 "promote individual refs only when the matching OPL owner surface consumes them"
+            ),
+        ),
+        _framework(
+            framework_id="openscience_artifact_provenance",
+            source_project="OpenScience artifact/provenance patterns",
+            source_refs=[
+                "external_repo:OpenScience@f120290",
+                "med_autoscience.external_learning_progress_workers."
+                "build_openscience_artifact_provenance_advisory",
+            ],
+            absorbed_pattern_ids=[
+                "artifact_graph",
+                "claim_warning",
+                "annotation_to_regeneration",
+                "project_local_provenance_ledger",
+                "skill_pack_governance",
+                "native_viewer_watch",
+            ],
+            local_execution_state="refs_only_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="openscience_artifact_provenance_sidecar_advisory",
+            worker_or_executor_landing=(
+                "refs-only OpenScience artifact/provenance advisory worker is "
+                "med_autoscience.external_learning_progress_workers."
+                "build_openscience_artifact_provenance_advisory; it emits artifact graph, "
+                "claim warning, annotation-to-regeneration, project-local provenance ledger, "
+                "skill-pack governance, and native viewer watch refs without introducing "
+                "OpenScience runtime, Electron, MCP, or AGPL code"
+            ),
+            missing_landing_work=[
+                "MAS artifact mutation, claim verdicts, owner receipts, typed blockers, and publication quality remain MAS owner actions",
+                "native viewer or regeneration behavior requires a MAS-owned consumer before runtime behavior can be claimed",
+            ],
+            next_landing_path=(
+                "emit refs-only OpenScience artifact/provenance candidates through "
+                "run_external_learning_sidecar; promote individual refs only when a MAS "
+                "owner surface consumes them"
             ),
         ),
         _framework(
@@ -478,6 +522,9 @@ def _sidecar_payload(*, study_root: Path, dispatch: Mapping[str, Any], apply: bo
         "refs_only": True,
         "body_included": False,
         "advisory_only": True,
+        "nonblocking": True,
+        "fail_open": True,
+        "mainline_waits": False,
         "mainline_waits_for_sidecar": False,
         "can_block_current_owner_action": False,
         "current_owner_action": _current_owner_action(dispatch),
@@ -571,7 +618,10 @@ def _framework(
             "can_write_domain_truth": False,
             "can_write_publication_eval": False,
             "can_write_controller_decisions": False,
+            "can_write_owner_receipt": False,
+            "can_write_typed_blocker": False,
             "can_write_paper_or_package": False,
+            "can_write_artifact_authority": False,
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
             "can_authorize_artifact_authority": False,
@@ -598,9 +648,12 @@ def _sidecar_execution_contract() -> dict[str, Any]:
             "refs-only advisory worker results",
         ],
         "mainline_waits_for_sidecar": False,
+        "mainline_waits": False,
         "missing_sidecar_blocks_dispatch": False,
         "failure_policy": "record diagnostic if possible and continue current owner action",
         "authority_boundary": _sidecar_authority_boundary(),
+        "advisory_worker_registry": _advisory_worker_registry_refs(),
+        "refs_only_advisory": True,
     }
 
 
@@ -612,7 +665,10 @@ def _closure_authority_boundary() -> dict[str, Any]:
         "can_write_domain_truth": False,
         "can_write_publication_eval": False,
         "can_write_controller_decisions": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
         "can_write_paper_or_package": False,
+        "can_write_artifact_authority": False,
         "can_authorize_publication_quality": False,
         "can_authorize_submission_readiness": False,
         "can_authorize_artifact_authority": False,
@@ -626,8 +682,11 @@ def _sidecar_authority_boundary() -> dict[str, Any]:
         "can_write_domain_truth": False,
         "can_write_publication_eval": False,
         "can_write_controller_decisions": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
         "can_write_paper_or_package": False,
         "can_write_memory_body": False,
+        "can_write_artifact_authority": False,
         "can_authorize_owner_action": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_quality": False,
@@ -666,6 +725,7 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
             "autosci_omegawiki",
             "aris",
             "kdense_byok",
+            "openscience_artifact_provenance",
         ],
         "run_quality_repair_batch": [
             "nature_skills",
@@ -674,18 +734,21 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
             "co_scientist",
             "academic_research_skills",
             "kdense_byok",
+            "openscience_artifact_provenance",
         ],
         "unit_harmonized_external_validation_rerun": [
             "aris",
             "ark_progress_first",
             "autosci_omegawiki",
             "kdense_byok",
+            "openscience_artifact_provenance",
         ],
         "run_gate_clearing_batch": [
             "nature_skills",
             "ark_progress_first",
             "open_auto_research",
             "kdense_byok",
+            "openscience_artifact_provenance",
         ],
     }.get(
         action_type,
@@ -694,6 +757,7 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
             "co_scientist",
             "academic_research_skills",
             "kdense_byok",
+            "openscience_artifact_provenance",
         ],
     )
     candidates: list[dict[str, Any]] = []
@@ -812,6 +876,9 @@ def _worker_unavailable_result(
         "refs_only": True,
         "body_included": False,
         "advisory_only": True,
+        "nonblocking": True,
+        "fail_open": True,
+        "mainline_waits": False,
         "can_block_current_owner_action": False,
         "allowed_writes": [],
         "forbidden_writes": list(FORBIDDEN_WRITES),
@@ -838,6 +905,9 @@ def _normalize_advisory_worker_result(
     normalized["refs_only"] = True
     normalized["body_included"] = False
     normalized["advisory_only"] = True
+    normalized["nonblocking"] = True
+    normalized["fail_open"] = True
+    normalized["mainline_waits"] = False
     normalized["can_block_current_owner_action"] = False
     normalized["allowed_writes"] = []
     normalized["forbidden_writes"] = list(FORBIDDEN_WRITES)
@@ -864,7 +934,16 @@ def _candidate_role(*, framework_id: str, action_type: str) -> str:
         return "read_only_open_auto_research_projection_hint"
     if framework_id == "kdense_byok":
         return "stagecraft_atlas_connect_workspace_budget_and_human_gate_pattern_hint"
+    if framework_id == "openscience_artifact_provenance":
+        return "artifact_graph_claim_warning_annotation_regeneration_and_provenance_ledger_hint"
     return "progress_accelerator_hint"
+
+
+def _advisory_worker_registry_refs() -> dict[str, str]:
+    return {
+        framework_id: f"{module_name}.{builder_name}"
+        for framework_id, (module_name, builder_name) in SIDECAR_WORKER_REGISTRY.items()
+    }
 
 
 def _counts(frameworks: list[Mapping[str, Any]]) -> dict[str, int]:

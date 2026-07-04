@@ -7,9 +7,11 @@ SCHEMA_VERSION = 1
 ARK_SURFACE_KIND = "mas_ark_progress_worker_advisory"
 AUTOSCI_SURFACE_KIND = "mas_autosci_source_experiment_advisory"
 KDENSE_SURFACE_KIND = "mas_kdense_byok_pattern_advisory"
+OPENSCIENCE_SURFACE_KIND = "mas_openscience_artifact_provenance_advisory"
 ARK_FRAMEWORK_ID = "ark_progress_first"
 AUTOSCI_FRAMEWORK_ID = "autosci_omegawiki"
 KDENSE_FRAMEWORK_ID = "kdense_byok"
+OPENSCIENCE_FRAMEWORK_ID = "openscience_artifact_provenance"
 ARK_SOURCE_CONTRACT_REF = (
     "med_autoscience.progress_first_external_learning_contract."
     "build_ark_progress_first_learning_contract"
@@ -19,6 +21,7 @@ AUTOSCI_SOURCE_PROJECTION_REF = (
 )
 KDENSE_SOURCE_CONTRACT_REF = "contracts/kdense_byok_external_intake.json"
 KDENSE_CAPABILITY_MAP_REF = "contracts/capability_map.json#/consumer_policy/external_specialist_library_policy"
+OPENSCIENCE_SOURCE_REF = "external_repo:OpenScience@f120290"
 
 ARK_REF_FAMILIES = (
     "micro_canary_ref",
@@ -44,6 +47,14 @@ KDENSE_REF_FAMILIES = (
     "human_gate_schema_refs",
     "workbench_activity_display_refs",
     "fusion_watch_only_briefing_refs",
+)
+OPENSCIENCE_REF_FAMILIES = (
+    "artifact_graph_ref",
+    "claim_warning_ref",
+    "annotation_regeneration_ref",
+    "project_ledger_ref",
+    "skill_pack_governance_ref",
+    "native_viewer_watch_ref",
 )
 
 _ARK_REF_SUFFIXES = {
@@ -71,10 +82,21 @@ _KDENSE_REF_SUFFIXES = {
     "workbench_activity_display_refs": "workbench_activity_display",
     "fusion_watch_only_briefing_refs": "fusion_watch_only_briefing",
 }
+_OPENSCIENCE_REF_SUFFIXES = {
+    "artifact_graph_ref": "artifact_graph",
+    "claim_warning_ref": "claim_warning",
+    "annotation_regeneration_ref": "annotation_regeneration",
+    "project_ledger_ref": "project_ledger",
+    "skill_pack_governance_ref": "skill_pack_governance",
+    "native_viewer_watch_ref": "native_viewer_watch",
+}
 
 FORBIDDEN_WRITES = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
+    "artifacts/owner_receipts/**",
+    "artifacts/typed_blockers/**",
+    "artifacts/artifact_authority/**",
     "paper/**",
     "manuscript/current_package/**",
     "submission_package/**",
@@ -149,6 +171,31 @@ def build_kdense_byok_pattern_advisory(dispatch: Mapping[str, Any] | None) -> di
     return payload
 
 
+def build_openscience_artifact_provenance_advisory(
+    dispatch: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    context = _dispatch_context(dispatch)
+    payload = _base_advisory(
+        surface_kind=OPENSCIENCE_SURFACE_KIND,
+        framework_id=OPENSCIENCE_FRAMEWORK_ID,
+        dispatch=context,
+    )
+    payload["source_ref"] = OPENSCIENCE_SOURCE_REF
+    payload["source_project_role"] = "external_pattern_source_only"
+    payload["runtime_dependency"] = False
+    payload["electron_dependency"] = False
+    payload["mcp_dependency"] = False
+    payload["agpl_code_imported"] = False
+    payload["candidate_ref_families"] = list(OPENSCIENCE_REF_FAMILIES)
+    for family in OPENSCIENCE_REF_FAMILIES:
+        payload[family] = _candidate_ref(
+            framework_id=OPENSCIENCE_FRAMEWORK_ID,
+            dispatch_id=context["candidate_dispatch_id"],
+            suffix=_OPENSCIENCE_REF_SUFFIXES[family],
+        )
+    return payload
+
+
 def _base_advisory(
     *,
     surface_kind: str,
@@ -165,6 +212,7 @@ def _base_advisory(
         "advisory_only": True,
         "nonblocking": True,
         "fail_open": True,
+        "mainline_waits": False,
         "mainline_waits_for_worker": False,
         "can_block_current_owner_action": False,
         "current_owner_action": dispatch["current_owner_action"],
@@ -211,8 +259,11 @@ def _authority_boundary() -> dict[str, Any]:
         "can_write_domain_truth": False,
         "can_write_publication_eval": False,
         "can_write_controller_decisions": False,
+        "can_write_owner_receipt": False,
+        "can_write_typed_blocker": False,
         "can_write_paper_or_package": False,
         "can_write_memory_body": False,
+        "can_write_artifact_authority": False,
         "can_authorize_owner_action": False,
         "can_authorize_source_readiness": False,
         "can_authorize_artifact_mutation": False,
@@ -266,8 +317,13 @@ __all__ = [
     "KDENSE_REF_FAMILIES",
     "KDENSE_SOURCE_CONTRACT_REF",
     "KDENSE_SURFACE_KIND",
+    "OPENSCIENCE_FRAMEWORK_ID",
+    "OPENSCIENCE_REF_FAMILIES",
+    "OPENSCIENCE_SOURCE_REF",
+    "OPENSCIENCE_SURFACE_KIND",
     "SCHEMA_VERSION",
     "build_ark_progress_worker_advisory",
     "build_autosci_source_experiment_advisory",
     "build_kdense_byok_pattern_advisory",
+    "build_openscience_artifact_provenance_advisory",
 ]

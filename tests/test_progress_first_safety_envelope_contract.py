@@ -95,6 +95,7 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "PaperSpine",
         "PaperOrchestra",
         "Open Auto Research",
+        "OpenScience",
         "Light0305/Light",
     } <= set(policy["applies_to_source_families"])
     assert policy["accepted_landing_statuses"] == [
@@ -180,6 +181,7 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "ARK",
         "AutoSci/OmegaWiki",
         "PaperOrchestra",
+        "OpenScience",
     }
     assert candidate_sources["PaperSpine"]["source_status"] == (
         "sidecar_or_worker_landed_refs_only_authoring_worker"
@@ -241,6 +243,40 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
     assert "publication_authority" in candidate_sources["PaperOrchestra"][
         "forbidden_claims"
     ]
+    openscience = candidate_sources["OpenScience"]
+    assert openscience["source_status"] == (
+        "pattern_source_only_refs_allowed_no_runtime_or_authority"
+    )
+    assert openscience["source_ref"] == "OpenScience main f120290"
+    assert openscience["allowed_landing_surfaces"] == [
+        "opl_mas_refs_only_surface",
+        "external_learning_sidecar_candidate_ref",
+        "project_local_ledger_ref",
+        "watch_only_native_viewer_ref",
+    ]
+    assert openscience["pattern_reading"] == [
+        "artifact_graph",
+        "claim_warning",
+        "annotation_regeneration",
+        "project_local_ledger",
+        "skill_pack_governance",
+        "native_viewer_watch_only",
+    ]
+    assert openscience["candidate_ref_families"] == openscience["pattern_reading"]
+    assert {
+        "openscience_runtime",
+        "electron_app",
+        "science_artifact_mcp_runtime",
+        "artifact_authority",
+        "publication_readiness",
+        "owner_receipt",
+        "typed_blocker",
+    } == set(openscience["forbidden_claims"])
+    assert openscience["mainline_waits_for_advisory"] is False
+    assert openscience["missing_advisory_blocks_current_owner_action"] is False
+    assert (
+        openscience["missing_worker_or_projection_blocks_current_owner_action"] is False
+    )
 
     ordinary = policy["ordinary_progress_policy"]
     assert ordinary["external_learning_is_admission_layer"] is False

@@ -6856,6 +6856,9 @@
       "forbidden_writes": [
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
+        "artifacts/owner_receipts/**",
+        "artifacts/typed_blockers/**",
+        "artifacts/artifact_authority/**",
         "paper/**",
         "paper/submission_minimal/**",
         "manuscript/current_package/**",

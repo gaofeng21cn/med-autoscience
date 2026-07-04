@@ -46,6 +46,7 @@
       "PaperSpine",
       "PaperOrchestra",
       "Open Auto Research",
+      "OpenScience",
       "Light0305/Light"
     ],
     "accepted_landing_statuses": [
@@ -207,6 +208,45 @@
             "paper_generator",
             "publication_authority"
           ]
+        },
+        {
+          "source_id": "OpenScience",
+          "source_status": "pattern_source_only_refs_allowed_no_runtime_or_authority",
+          "source_ref": "OpenScience main f120290",
+          "allowed_landing_surfaces": [
+            "opl_mas_refs_only_surface",
+            "external_learning_sidecar_candidate_ref",
+            "project_local_ledger_ref",
+            "watch_only_native_viewer_ref"
+          ],
+          "pattern_reading": [
+            "artifact_graph",
+            "claim_warning",
+            "annotation_regeneration",
+            "project_local_ledger",
+            "skill_pack_governance",
+            "native_viewer_watch_only"
+          ],
+          "candidate_ref_families": [
+            "artifact_graph",
+            "claim_warning",
+            "annotation_regeneration",
+            "project_local_ledger",
+            "skill_pack_governance",
+            "native_viewer_watch_only"
+          ],
+          "forbidden_claims": [
+            "openscience_runtime",
+            "electron_app",
+            "science_artifact_mcp_runtime",
+            "artifact_authority",
+            "publication_readiness",
+            "owner_receipt",
+            "typed_blocker"
+          ],
+          "mainline_waits_for_advisory": false,
+          "missing_advisory_blocks_current_owner_action": false,
+          "missing_worker_or_projection_blocks_current_owner_action": false
         }
       ]
     },

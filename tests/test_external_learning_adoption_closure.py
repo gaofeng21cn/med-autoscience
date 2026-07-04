@@ -80,6 +80,7 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         "paperspine",
         "paperorchestra",
         "kdense_byok",
+        "openscience_artifact_provenance",
     ):
         assert frameworks[framework_id]["closure_status"] == "sidecar_or_worker_landed"
         assert "sidecar" in frameworks[framework_id]["owner_surface"]
@@ -92,8 +93,8 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         "worker_or_executor_landing"
     ]
     assert "Pi" in frameworks["kdense_byok"]["worker_or_executor_landing"]
-    assert closure["counts"]["framework_count"] == 11
-    assert closure["counts"]["sidecar_execution_slot_count"] == 8
+    assert closure["counts"]["framework_count"] == 12
+    assert closure["counts"]["sidecar_execution_slot_count"] == 9
     assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
     assert closure["counts"]["not_landed_gap_count"] == 0
     for framework in frameworks.values():
@@ -144,9 +145,16 @@ def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(t
         "co_scientist",
         "academic_research_skills",
         "kdense_byok",
+        "openscience_artifact_provenance",
     } <= candidate_ids
     worker_ids = {item["framework_id"] for item in result["advisory_worker_results"]}
-    assert {"paperspine", "paperorchestra", "academic_research_skills", "kdense_byok"} <= worker_ids
+    assert {
+        "paperspine",
+        "paperorchestra",
+        "academic_research_skills",
+        "kdense_byok",
+        "openscience_artifact_provenance",
+    } <= worker_ids
     kdense = {
         item["framework_id"]: item for item in result["advisory_worker_results"]
     }["kdense_byok"]
@@ -193,9 +201,13 @@ def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path
     )
 
     worker_results = {item["framework_id"]: item for item in result["advisory_worker_results"]}
-    assert {"aris", "ark_progress_first", "autosci_omegawiki", "kdense_byok"} <= set(
-        worker_results
-    )
+    assert {
+        "aris",
+        "ark_progress_first",
+        "autosci_omegawiki",
+        "kdense_byok",
+        "openscience_artifact_provenance",
+    } <= set(worker_results)
     assert worker_results["ark_progress_first"]["micro_canary_ref"] == (
         "external-learning:ark_progress_first:dispatch-001:micro_canary"
     )
@@ -208,6 +220,9 @@ def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path
     assert worker_results["kdense_byok"]["atlas_source_ref_seed_refs"] == [
         "external-learning:kdense_byok:dispatch-001:atlas_source_ref_seed"
     ]
+    assert worker_results["openscience_artifact_provenance"]["artifact_graph_ref"] == (
+        "external-learning:openscience_artifact_provenance:dispatch-001:artifact_graph"
+    )
     for item in worker_results.values():
         assert item["refs_only"] is True
         assert item["body_included"] is False
@@ -245,6 +260,7 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     ark = progress.build_ark_progress_worker_advisory(dispatch)
     autosci = progress.build_autosci_source_experiment_advisory(dispatch)
     kdense = progress.build_kdense_byok_pattern_advisory(dispatch)
+    openscience = progress.build_openscience_artifact_provenance_advisory(dispatch)
 
     assert paperspine["status"] == "advisory_ready"
     assert paperorchestra["status"] == "advisory_ready"
@@ -253,9 +269,10 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     assert ark["status"] == "candidate_refs_emitted"
     assert autosci["status"] == "candidate_refs_emitted"
     assert kdense["status"] == "candidate_refs_emitted"
+    assert openscience["status"] == "candidate_refs_emitted"
     assert kdense["source_contract_ref"] == "contracts/kdense_byok_external_intake.json"
     assert kdense["openrouter_fusion_authority"] is False
-    for item in (paperspine, paperorchestra, ars, aris, ark, autosci, kdense):
+    for item in (paperspine, paperorchestra, ars, aris, ark, autosci, kdense, openscience):
         assert item["allowed_writes"] == []
         assert item["refs_only"] is True
         assert item["body_included"] is False
