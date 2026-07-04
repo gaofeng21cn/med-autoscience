@@ -23,7 +23,10 @@ AUTOSCI_SOURCE_PROJECTION_REF = (
 )
 KDENSE_SOURCE_CONTRACT_REF = "contracts/kdense_byok_external_intake.json"
 KDENSE_CAPABILITY_MAP_REF = "contracts/capability_map.json#/consumer_policy/external_specialist_library_policy"
-OPENSCIENCE_SOURCE_REF = "external_repo:OpenScience@f120290"
+OPENSCIENCE_SOURCE_REF = (
+    "external_repo:ai4s-research/open-science@"
+    "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+)
 
 ARK_REF_FAMILIES = (
     "micro_canary_ref",
@@ -57,6 +60,11 @@ OPENSCIENCE_REF_FAMILIES = (
     "project_ledger_ref",
     "skill_pack_governance_ref",
     "native_viewer_watch_ref",
+    "environment_capture_ref",
+    "rerun_reproducibility_ref",
+    "interactive_approval_or_permission_ref",
+    "data_flow_disclosure_ref",
+    "connector_provisioning_ref",
 )
 OPENSCIENCE_CLAIM_TYPES = ("computed", "parsed", "digitized", "hypothesis")
 
@@ -92,6 +100,11 @@ _OPENSCIENCE_REF_SUFFIXES = {
     "project_ledger_ref": "project_ledger",
     "skill_pack_governance_ref": "skill_pack_governance",
     "native_viewer_watch_ref": "native_viewer_watch",
+    "environment_capture_ref": "environment_capture",
+    "rerun_reproducibility_ref": "rerun_reproducibility",
+    "interactive_approval_or_permission_ref": "interactive_approval_or_permission",
+    "data_flow_disclosure_ref": "data_flow_disclosure",
+    "connector_provisioning_ref": "connector_provisioning",
 }
 
 FORBIDDEN_WRITES = (
@@ -225,6 +238,32 @@ def build_openscience_artifact_provenance_advisory(
         "can_authorize_source_readiness": False,
         "can_authorize_publication_readiness": False,
     }
+    payload["environment_capture_briefing"] = _environment_capture_briefing(
+        dispatch_mapping=dispatch_mapping,
+        artifacts=artifacts,
+        candidate_ref=payload["environment_capture_ref"],
+    )
+    payload["rerun_reproducibility_route_back_hint"] = (
+        _rerun_reproducibility_route_back_hint(
+            dispatch_mapping=dispatch_mapping,
+            artifacts=artifacts,
+            candidate_ref=payload["rerun_reproducibility_ref"],
+        )
+    )
+    payload["interactive_approval_or_permission_hint"] = (
+        _interactive_approval_or_permission_hint(
+            dispatch_mapping=dispatch_mapping,
+            candidate_ref=payload["interactive_approval_or_permission_ref"],
+        )
+    )
+    payload["data_flow_disclosure_briefing"] = _data_flow_disclosure_briefing(
+        dispatch_mapping=dispatch_mapping,
+        candidate_ref=payload["data_flow_disclosure_ref"],
+    )
+    payload["connector_provisioning_hint"] = _connector_provisioning_hint(
+        dispatch_mapping=dispatch_mapping,
+        candidate_ref=payload["connector_provisioning_ref"],
+    )
     return payload
 
 
@@ -298,6 +337,7 @@ def _authority_boundary() -> dict[str, Any]:
         "can_write_artifact_authority": False,
         "can_authorize_owner_action": False,
         "can_authorize_source_readiness": False,
+        "can_authorize_artifact_authority": False,
         "can_authorize_artifact_mutation": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
@@ -342,6 +382,8 @@ def _openscience_artifacts(dispatch: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "source_refs": _text_list(candidate.get("source_refs")),
                 "log_refs": _text_list(candidate.get("log_refs")),
                 "annotation_refs": _text_list(candidate.get("annotation_refs")),
+                "environment_refs": _text_refs(candidate.get("environment_refs"))
+                or _text_refs(candidate.get("environment_ref")),
                 "source_locator_ref": _text(candidate.get("source_locator_ref"))
                 or _text(candidate.get("source_locator")),
                 "content_hash": _text(candidate.get("content_hash"))
@@ -359,6 +401,7 @@ def _artifact_graph_projection(artifacts: list[dict[str, Any]]) -> dict[str, Any
             "artifact_ref": artifact.get("artifact_ref"),
             "claim_type": artifact.get("claim_type"),
             "content_hash": artifact.get("content_hash"),
+            "environment_refs": artifact["environment_refs"],
         }
         for artifact in artifacts
     ]
@@ -419,6 +462,8 @@ def _claim_warning_checks(artifacts: list[dict[str, Any]]) -> list[dict[str, Any
             warnings.append(
                 _warning(artifact_id, "missing_source_locator_for_regeneration")
             )
+        if not artifact["environment_refs"]:
+            warnings.append(_warning(artifact_id, "missing_environment_capture"))
     return warnings
 
 
@@ -459,6 +504,7 @@ def _project_ledger_pointer(
             "source_refs": artifact["source_refs"],
             "log_refs": artifact["log_refs"],
             "annotation_refs": artifact["annotation_refs"],
+            "environment_refs": artifact["environment_refs"],
             "content_hash": artifact.get("content_hash"),
         }
         for artifact in artifacts
@@ -481,6 +527,110 @@ def _project_ledger_pointer(
     }
 
 
+def _environment_capture_briefing(
+    *,
+    dispatch_mapping: Mapping[str, Any],
+    artifacts: list[dict[str, Any]],
+    candidate_ref: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "openscience_environment_capture_briefing",
+        "candidate_ref": candidate_ref,
+        "environment_refs": _dispatch_refs(dispatch_mapping, "environment_refs")
+        + [
+            ref
+            for artifact in artifacts
+            for ref in artifact["environment_refs"]
+        ],
+        "refs_only": True,
+        "body_included": False,
+        "can_authorize_reproducibility": False,
+    }
+
+
+def _rerun_reproducibility_route_back_hint(
+    *,
+    dispatch_mapping: Mapping[str, Any],
+    artifacts: list[dict[str, Any]],
+    candidate_ref: str,
+) -> dict[str, Any]:
+    missing = []
+    for artifact in artifacts:
+        missing_fields = [
+            field
+            for field in ("source_refs", "log_refs", "content_hash", "environment_refs")
+            if not artifact.get(field)
+        ]
+        if missing_fields:
+            missing.append(
+                {
+                    "artifact_id": artifact["artifact_id"],
+                    "missing_ref_families": missing_fields,
+                }
+            )
+    return {
+        "surface_kind": "openscience_rerun_reproducibility_route_back_hint",
+        "candidate_ref": candidate_ref,
+        "rerun_recipe_refs": _dispatch_refs(dispatch_mapping, "rerun_recipe_refs"),
+        "missing_ref_hints": missing,
+        "refs_only": True,
+        "can_block_current_owner_action": False,
+        "can_write_typed_blocker": False,
+        "can_authorize_artifact_authority": False,
+    }
+
+
+def _interactive_approval_or_permission_hint(
+    *, dispatch_mapping: Mapping[str, Any], candidate_ref: str
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "openscience_interactive_approval_or_permission_hint",
+        "candidate_ref": candidate_ref,
+        "permission_request_refs": _dispatch_refs(
+            dispatch_mapping,
+            "permission_request_refs",
+            "approval_request_refs",
+        ),
+        "refs_only": True,
+        "can_create_human_gate": False,
+        "can_authorize_owner_action": False,
+    }
+
+
+def _data_flow_disclosure_briefing(
+    *, dispatch_mapping: Mapping[str, Any], candidate_ref: str
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "openscience_data_flow_disclosure_briefing",
+        "candidate_ref": candidate_ref,
+        "data_flow_refs": _dispatch_refs(
+            dispatch_mapping,
+            "data_flow_disclosure_refs",
+            "data_flow_refs",
+        ),
+        "refs_only": True,
+        "body_included": False,
+        "can_authorize_privacy_or_source_readiness": False,
+    }
+
+
+def _connector_provisioning_hint(
+    *, dispatch_mapping: Mapping[str, Any], candidate_ref: str
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "openscience_connector_provisioning_hint",
+        "candidate_ref": candidate_ref,
+        "connector_refs": _dispatch_refs(
+            dispatch_mapping,
+            "connector_provisioning_refs",
+            "connector_refs",
+        ),
+        "refs_only": True,
+        "can_install_connector": False,
+        "can_claim_runtime_landed": False,
+    }
+
+
 def _warning(artifact_id: str, warning_type: str) -> dict[str, Any]:
     return {
         "surface_kind": "openscience_graph_warning",
@@ -491,7 +641,11 @@ def _warning(artifact_id: str, warning_type: str) -> dict[str, Any]:
         "can_block_current_owner_action": False,
         "can_authorize_quality_verdict": False,
         "may_route_back_candidate": warning_type
-        in {"unsupported_claim", "missing_source_locator_for_regeneration"},
+        in {
+            "unsupported_claim",
+            "missing_source_locator_for_regeneration",
+            "missing_environment_capture",
+        },
     }
 
 
@@ -507,6 +661,22 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [text for item in value if (text := _text(item))]
+
+
+def _text_refs(value: object) -> list[str]:
+    if isinstance(value, list):
+        return _text_list(value)
+    text = _text(value)
+    return [text] if text else []
+
+
+def _dispatch_refs(dispatch: Mapping[str, Any], *keys: str) -> list[str]:
+    refs = _mapping(dispatch.get("refs"))
+    values: list[str] = []
+    for key in keys:
+        values.extend(_text_refs(dispatch.get(key)))
+        values.extend(_text_refs(refs.get(key)))
+    return values
 
 
 def _text(value: object) -> str | None:

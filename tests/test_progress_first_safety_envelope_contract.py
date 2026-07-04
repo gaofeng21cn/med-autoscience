@@ -247,12 +247,20 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
     assert openscience["source_status"] == (
         "pattern_source_only_refs_allowed_no_runtime_or_authority"
     )
-    assert openscience["source_ref"] == "OpenScience main f120290"
+    assert openscience["source_ref"] == (
+        "ai4s-research/open-science master "
+        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+    )
     assert openscience["allowed_landing_surfaces"] == [
         "opl_mas_refs_only_surface",
         "external_learning_sidecar_candidate_ref",
         "project_local_ledger_ref",
         "watch_only_native_viewer_ref",
+        "environment_capture_briefing_ref",
+        "rerun_reproducibility_route_back_hint",
+        "interactive_permission_hint_ref",
+        "data_flow_disclosure_briefing_ref",
+        "connector_provisioning_hint_ref",
     ]
     assert openscience["pattern_reading"] == [
         "artifact_graph",
@@ -261,6 +269,11 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "project_local_ledger",
         "skill_pack_governance",
         "native_viewer_watch_only",
+        "environment_capture",
+        "rerun_reproducibility",
+        "interactive_approval_or_permission",
+        "data_flow_disclosure",
+        "connector_provisioning",
     ]
     assert openscience["candidate_ref_families"] == openscience["pattern_reading"]
     assert {
@@ -271,6 +284,9 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "publication_readiness",
         "owner_receipt",
         "typed_blocker",
+        "permission_prompt_as_human_gate",
+        "data_flow_disclosure_as_privacy_authority",
+        "connector_provisioning_as_runtime_landed",
     } == set(openscience["forbidden_claims"])
     assert openscience["mainline_waits_for_advisory"] is False
     assert openscience["missing_advisory_blocks_current_owner_action"] is False

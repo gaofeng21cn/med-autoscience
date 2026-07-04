@@ -223,6 +223,19 @@ def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path
     assert worker_results["openscience_artifact_provenance"]["artifact_graph_ref"] == (
         "external-learning:openscience_artifact_provenance:dispatch-001:artifact_graph"
     )
+    assert worker_results["openscience_artifact_provenance"]["source_ref"] == (
+        "external_repo:ai4s-research/open-science@"
+        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+    )
+    assert worker_results["openscience_artifact_provenance"][
+        "interactive_approval_or_permission_hint"
+    ]["can_create_human_gate"] is False
+    assert worker_results["openscience_artifact_provenance"][
+        "data_flow_disclosure_briefing"
+    ]["can_authorize_privacy_or_source_readiness"] is False
+    assert worker_results["openscience_artifact_provenance"][
+        "connector_provisioning_hint"
+    ]["can_claim_runtime_landed"] is False
     for item in worker_results.values():
         assert item["refs_only"] is True
         assert item["body_included"] is False
@@ -270,6 +283,13 @@ def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_p
     assert autosci["status"] == "candidate_refs_emitted"
     assert kdense["status"] == "candidate_refs_emitted"
     assert openscience["status"] == "candidate_refs_emitted"
+    assert openscience["environment_capture_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-authoring:environment_capture"
+    )
+    assert openscience["rerun_reproducibility_route_back_hint"][
+        "can_block_current_owner_action"
+    ] is False
     assert kdense["source_contract_ref"] == "contracts/kdense_byok_external_intake.json"
     assert kdense["openrouter_fusion_authority"] is False
     for item in (paperspine, paperorchestra, ars, aris, ark, autosci, kdense, openscience):

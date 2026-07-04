@@ -30,7 +30,13 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
                 "work_unit_id": "figure-regeneration",
                 "work_unit_fingerprint": "fp-openscience",
             },
-            "refs": {"dispatch_path": "artifacts/supervision/openscience.json"},
+            "refs": {
+                "dispatch_path": "artifacts/supervision/openscience.json",
+                "rerun_recipe_refs": ["artifacts/rerun/figure-1.json"],
+                "permission_request_refs": ["artifacts/approvals/write-once.json"],
+                "data_flow_disclosure_refs": ["artifacts/privacy/data-flow.json"],
+                "connector_provisioning_refs": ["artifacts/connectors/pubmed.json"],
+            },
             "artifact_candidates": [
                 {
                     "artifact_id": "figure-1",
@@ -39,6 +45,7 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
                     "source_refs": ["sources/analysis.py"],
                     "log_refs": ["artifacts/logs/figure-1.json"],
                     "annotation_refs": ["annotations/reviewer-1.json"],
+                    "environment_ref": "artifacts/env/python-lock.json",
                     "source_locator_ref": "src/figures/figure_1.py",
                     "content_hash": "sha256:figure1",
                 },
@@ -59,7 +66,10 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
 
     assert advisory["surface_kind"] == "mas_openscience_artifact_provenance_advisory"
     assert advisory["framework_id"] == "openscience_artifact_provenance"
-    assert advisory["source_ref"] == "external_repo:OpenScience@f120290"
+    assert advisory["source_ref"] == (
+        "external_repo:ai4s-research/open-science@"
+        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+    )
     assert advisory["refs_only"] is True
     assert advisory["advisory_only"] is True
     assert advisory["nonblocking"] is True
@@ -80,6 +90,11 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
         "project_ledger_ref",
         "skill_pack_governance_ref",
         "native_viewer_watch_ref",
+        "environment_capture_ref",
+        "rerun_reproducibility_ref",
+        "interactive_approval_or_permission_ref",
+        "data_flow_disclosure_ref",
+        "connector_provisioning_ref",
     ]
     assert advisory["artifact_graph_ref"] == (
         "external-learning:openscience_artifact_provenance:"
@@ -105,6 +120,26 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
         "external-learning:openscience_artifact_provenance:"
         "dispatch-openscience-001:native_viewer_watch"
     )
+    assert advisory["environment_capture_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:environment_capture"
+    )
+    assert advisory["rerun_reproducibility_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:rerun_reproducibility"
+    )
+    assert advisory["interactive_approval_or_permission_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:interactive_approval_or_permission"
+    )
+    assert advisory["data_flow_disclosure_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:data_flow_disclosure"
+    )
+    assert advisory["connector_provisioning_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:connector_provisioning"
+    )
     assert advisory["claim_type_policy"] == {
         "allowed_claim_types": ["computed", "parsed", "digitized", "hypothesis"],
         "unknown_claim_type_warning": "missing_or_invalid_claim_type",
@@ -125,7 +160,9 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
         ("table-1", "untraced_artifact"),
         ("table-1", "unsupported_claim"),
         ("table-1", "missing_log"),
+        ("table-1", "missing_environment_capture"),
         ("figure-2", "missing_source_locator_for_regeneration"),
+        ("figure-2", "missing_environment_capture"),
     }
     assert advisory["annotation_regeneration_requests"] == [
         {
@@ -171,6 +208,62 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
         "can_authorize_source_readiness": False,
         "can_authorize_publication_readiness": False,
     }
+    assert advisory["environment_capture_briefing"] == {
+        "surface_kind": "openscience_environment_capture_briefing",
+        "candidate_ref": advisory["environment_capture_ref"],
+        "environment_refs": ["artifacts/env/python-lock.json"],
+        "refs_only": True,
+        "body_included": False,
+        "can_authorize_reproducibility": False,
+    }
+    assert advisory["rerun_reproducibility_route_back_hint"] == {
+        "surface_kind": "openscience_rerun_reproducibility_route_back_hint",
+        "candidate_ref": advisory["rerun_reproducibility_ref"],
+        "rerun_recipe_refs": ["artifacts/rerun/figure-1.json"],
+        "missing_ref_hints": [
+            {
+                "artifact_id": "table-1",
+                "missing_ref_families": [
+                    "source_refs",
+                    "log_refs",
+                    "content_hash",
+                    "environment_refs",
+                ],
+            },
+            {
+                "artifact_id": "figure-2",
+                "missing_ref_families": ["content_hash", "environment_refs"],
+            },
+        ],
+        "refs_only": True,
+        "can_block_current_owner_action": False,
+        "can_write_typed_blocker": False,
+        "can_authorize_artifact_authority": False,
+    }
+    assert advisory["interactive_approval_or_permission_hint"] == {
+        "surface_kind": "openscience_interactive_approval_or_permission_hint",
+        "candidate_ref": advisory["interactive_approval_or_permission_ref"],
+        "permission_request_refs": ["artifacts/approvals/write-once.json"],
+        "refs_only": True,
+        "can_create_human_gate": False,
+        "can_authorize_owner_action": False,
+    }
+    assert advisory["data_flow_disclosure_briefing"] == {
+        "surface_kind": "openscience_data_flow_disclosure_briefing",
+        "candidate_ref": advisory["data_flow_disclosure_ref"],
+        "data_flow_refs": ["artifacts/privacy/data-flow.json"],
+        "refs_only": True,
+        "body_included": False,
+        "can_authorize_privacy_or_source_readiness": False,
+    }
+    assert advisory["connector_provisioning_hint"] == {
+        "surface_kind": "openscience_connector_provisioning_hint",
+        "candidate_ref": advisory["connector_provisioning_ref"],
+        "connector_refs": ["artifacts/connectors/pubmed.json"],
+        "refs_only": True,
+        "can_install_connector": False,
+        "can_claim_runtime_landed": False,
+    }
 
 
 def test_openscience_sidecar_dry_run_is_fail_open_without_dispatch(tmp_path: Path) -> None:
@@ -199,6 +292,9 @@ def test_openscience_sidecar_dry_run_is_fail_open_without_dispatch(tmp_path: Pat
     assert openscience["diagnostic"] == {"reason": "missing_or_invalid_dispatch"}
     assert openscience["artifact_graph_ref"] == (
         "external-learning:openscience_artifact_provenance:unknown_dispatch:artifact_graph"
+    )
+    assert openscience["connector_provisioning_ref"] == (
+        "external-learning:openscience_artifact_provenance:unknown_dispatch:connector_provisioning"
     )
     assert openscience["allowed_writes"] == []
     assert openscience["mainline_waits"] is False
