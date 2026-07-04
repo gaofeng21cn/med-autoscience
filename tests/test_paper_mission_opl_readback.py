@@ -654,6 +654,114 @@ def test_opl_terminal_closeout_readback_prefers_latest_alias_bound_route_back_ev
     assert readback["terminal_closeout"]["stage_packet_ref"] == alias_transaction_ref
 
 
+def test_opl_terminal_closeout_readback_keeps_live_runtime_terminal_over_stale_route_back(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    _write_closeout(
+        study_root,
+        {
+            "status": "owner_answer_candidate_materialized",
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-old-route-back",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "work_unit_id": None,
+            "work_unit_fingerprint": None,
+            "route_impact": {
+                "owner_answer_kind": "route_back_evidence_ref",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-old-route-back/study/route_back_evidence_packet.json"
+                ),
+                "can_claim_paper_progress": False,
+            },
+            "closeout_refs": [
+                {
+                    "ref_kind": "route_back_evidence_packet",
+                    "workspace_relative_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-old-route-back/study/route_back_evidence_packet.json"
+                    ),
+                }
+            ],
+            "authority_boundary": {
+                "candidate_is_authority": False,
+                "writes_authority_surface": False,
+                "writes_publication_eval": False,
+                "writes_controller_decision": False,
+                "writes_owner_receipt": False,
+                "writes_typed_blocker": False,
+                "writes_human_gate": False,
+                "writes_current_package": False,
+                "writes_runtime_queue": False,
+                "writes_provider_attempt": False,
+                "writes_yang_authority": False,
+            },
+        },
+    )
+    live_closeout = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "status": "completed",
+        "study_id": carrier["study_id"],
+        "stage_id": "publication_gate_replay",
+        "stage_attempt_id": "sat-current-live",
+        "work_unit_id": carrier["work_unit_id"],
+        "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+        "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "domain_completion_claimed": False,
+        "domain_ready_claimed": False,
+        "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "task_id": "frt-current-live",
+        "task_status": "blocked",
+        "closeout_refs": [
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            "sat-current-live/study/stage_attempt_closeout_packet.json"
+        ],
+        "opl_transition_receipt": _opl_transition_receipt(
+            stage_attempt_id="sat-current-live",
+            task_id="frt-current-live",
+        ),
+        "authority_boundary": {
+            "record_only_surface": True,
+            "provider_completion_is_domain_completion": False,
+            "artifact_mutation_authorized": False,
+            "publication_eval_latest_write_authorized": False,
+            "controller_decision_write_authorized": False,
+        },
+    }
+    monkeypatch.setattr(
+        readback_module,
+        "_matching_opl_runtime_live_probe",
+        lambda **_kwargs: (
+            "terminal",
+            live_closeout,
+            "opl://family-runtime/tasks/frt-current-live/terminal-closeout-readback",
+        ),
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-current-live"
+    assert readback["terminal_closeout"]["runtime_readback_source"] == (
+        "opl_family_runtime_queue_inspect"
+    )
+    assert readback["terminal_closeout"]["closeout_ref"] == (
+        "opl://family-runtime/tasks/frt-current-live/terminal-closeout-readback"
+    )
+
+
 def test_opl_terminal_closeout_readback_accepts_matching_candidate_idempotency(
     tmp_path: Path,
 ) -> None:

@@ -289,7 +289,25 @@ def _local_route_back_closeout_supersedes_live_terminal(
         live_closeout.get("stage_attempt_id")
     ):
         return False
+    if _closeout_is_live_runtime_terminal(
+        closeout=live_closeout,
+        closeout_ref=live_ref,
+    ):
+        return False
     return _closeout_has_route_back_evidence(local_closeout)
+
+
+def _closeout_is_live_runtime_terminal(
+    *,
+    closeout: Mapping[str, Any],
+    closeout_ref: str,
+) -> bool:
+    if _text(closeout.get("runtime_readback_source")) in {
+        "opl_family_runtime_queue_inspect",
+        "opl_family_runtime_queue_list",
+    }:
+        return True
+    return closeout_ref.startswith("opl://family-runtime/tasks/")
 
 
 def _matches_running_attempt_closeout(
