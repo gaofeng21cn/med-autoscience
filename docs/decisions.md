@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-04：Live running projection 不能覆盖同一 StageAttempt 的本地 terminal closeout
+
+- 决策：`paper-mission inspect --request-opl-runtime-readback` 使用 OPL live probe 时，如果队列仍把某个 stage attempt 投影为 running，但 workspace 已存在同一 `stage_attempt_id`、同一 route identity 的 `stage_attempt_closeout_packet.json`，MAS 必须按 terminal closeout 读取，而不是继续投影 running。
+- 理由：Obesity paper line 的 `ai_reviewer_medical_prose_quality_review` 已写出 `sat_8d118f3d6f1aae8a7d20492a/stage_attempt_closeout_packet.json`，但 live queue list 仍返回同一 stage attempt running，导致 inspect 持续显示 running，后续 AI review route 无法被 owner consumption 正常接住。根因是 currentness 选择顺序缺少“同一 attempt 的本地 terminal closeout 优先”规则。
+- 影响：该规则只适用于同一 running attempt id 已有匹配 terminal closeout 的情况。不同 attempt 的旧 terminal closeout 仍不能覆盖新的 running successor；running successor over old closeout 的保护继续有效。不得手写 runtime queue/provider attempt、owner receipt、typed blocker、human gate、current package 或论文正文。
+
 ## 2026-07-04：Receipt owner consumption 必须选择可消费 terminal receipt
 
 - 决策：`paper-mission receipt-owner-consumption` 在读取 `paper-mission inspect --request-opl-runtime-readback` 时，不能无条件优先使用 `current_opl_runtime_carrier_readback`。如果该 projection 只是 running/stale attempt 且缺少 `opl_transition_receipt`、`receipt_evidence` 或 `mas_receipt_consumption`，而同一 readback 的 `opl_runtime_carrier_readback` 已包含可消费 terminal closeout receipt，则必须消费 terminal carrier。

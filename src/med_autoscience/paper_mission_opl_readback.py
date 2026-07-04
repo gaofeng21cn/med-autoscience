@@ -91,26 +91,33 @@ def paper_mission_opl_runtime_carrier_readback(
         )
     if running is not None:
         attempt, attempt_ref = running
-        return {
-            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
-            "schema_version": 1,
-            "carrier_status": RUNNING_READBACK_STATUS,
-            "runtime_readback_status": "running_attempt_observed",
-            "dispatch_status": "provider_attempt_running",
-            "domain_ready_verdict": "opl_runtime_attempt_running",
-            "provider_completion_is_domain_completion": False,
-            "provider_completion_is_domain_ready": False,
-            "can_claim_provider_running": True,
-            "can_claim_paper_progress": False,
-            "can_claim_runtime_ready": False,
-            "authority_materialized": False,
-            "request_carrier_preserved": True,
-            "running_attempt": _running_attempt_readback(
-                attempt=attempt,
-                attempt_ref=attempt_ref,
-            ),
-        }
-    matched = None
+        matched = _matching_terminal_closeout_for_running_attempt(
+            carrier=carrier,
+            study_root=study_root,
+            attempt=attempt,
+        )
+        if matched is None:
+            return {
+                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+                "schema_version": 1,
+                "carrier_status": RUNNING_READBACK_STATUS,
+                "runtime_readback_status": "running_attempt_observed",
+                "dispatch_status": "provider_attempt_running",
+                "domain_ready_verdict": "opl_runtime_attempt_running",
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "can_claim_provider_running": True,
+                "can_claim_paper_progress": False,
+                "can_claim_runtime_ready": False,
+                "authority_materialized": False,
+                "request_carrier_preserved": True,
+                "running_attempt": _running_attempt_readback(
+                    attempt=attempt,
+                    attempt_ref=attempt_ref,
+                ),
+            }
+    else:
+        matched = None
     if live_probe is not None and live_probe[0] == "terminal":
         matched = (live_probe[1], live_probe[2])
     if matched is None:
@@ -218,6 +225,68 @@ def _matching_terminal_closeout(
         workspace_closeout_relative_roots=WORKSPACE_CLOSEOUT_RELATIVE_ROOTS,
         matches_carrier=_matches_carrier,
     )
+
+
+def _matching_terminal_closeout_for_running_attempt(
+    *,
+    carrier: Mapping[str, Any],
+    study_root: Path,
+    attempt: Mapping[str, Any],
+) -> tuple[dict[str, Any], str] | None:
+    stage_attempt_id = _first_text(
+        attempt.get("stage_attempt_id"),
+        attempt.get("active_stage_attempt_id"),
+        _mapping(attempt.get("linked_stage_attempt_liveness")).get("stage_attempt_id"),
+    )
+    if stage_attempt_id is None:
+        return None
+    return _discover_matching_terminal_closeout(
+        carrier=carrier,
+        study_root=study_root,
+        closeout_relative_roots=CLOSEOUT_RELATIVE_ROOTS,
+        workspace_closeout_relative_roots=WORKSPACE_CLOSEOUT_RELATIVE_ROOTS,
+        matches_carrier=lambda closeout, carrier: (
+            _matches_running_attempt_closeout(
+                closeout=closeout,
+                carrier=carrier,
+                stage_attempt_id=stage_attempt_id,
+            )
+        ),
+    )
+
+
+def _matches_running_attempt_closeout(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    stage_attempt_id: str,
+) -> bool:
+    if _text(closeout.get("surface_kind")) != "stage_attempt_closeout_packet":
+        return False
+    if _text(closeout.get("stage_attempt_id")) != stage_attempt_id:
+        return False
+    if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
+        return False
+    if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
+        return False
+    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
+    if closeout_fingerprint is not None and closeout_fingerprint != _text(
+        carrier.get("work_unit_fingerprint")
+    ):
+        return False
+    route_target = _carrier_route_target(carrier)
+    if route_target is not None and _text(closeout.get("stage_id")) != route_target:
+        return False
+    if closeout.get("provider_completion_is_domain_completion") is True:
+        return False
+    if closeout.get("provider_completion_is_domain_ready") is True:
+        return False
+    if closeout.get("domain_completion_claimed") is True:
+        return False
+    if closeout.get("domain_ready_claimed") is True:
+        return False
+    return _closeout_is_record_only(closeout)
+
 
 def _matching_opl_runtime_terminal_closeout(
     *,

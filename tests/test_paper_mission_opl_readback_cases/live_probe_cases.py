@@ -318,6 +318,57 @@ def test_opl_runtime_live_probe_prefers_running_successor_over_old_closeout(
     assert "terminal_closeout" not in readback
 
 
+def test_opl_runtime_live_probe_consumes_local_closeout_for_same_running_attempt(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    _write_closeout(
+        study_root,
+        {
+            "study_id": carrier["study_id"],
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-successor",
+            "work_unit_id": carrier["work_unit_id"],
+            "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+            "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+            "closeout_refs": [carrier["opl_route_command_ref"]],
+            "blocked_reason": "domain_gate_pending",
+        },
+    )
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_terminal_and_running_successor_payload()
+        raise AssertionError("local same-attempt closeout should avoid heavy inspect")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "terminal_closeout_observed"
+    assert readback["can_claim_provider_running"] is False
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-successor"
+    assert "running_attempt" not in readback
+
+
 def test_opl_runtime_default_readback_does_not_probe_live_queue(
     tmp_path: Path,
     monkeypatch,
