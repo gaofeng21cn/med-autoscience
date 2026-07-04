@@ -60,6 +60,28 @@ def first_text(*values: object) -> str | None:
     return None
 
 
+def idempotency_refs(payload: Mapping[str, Any]) -> set[str]:
+    return {
+        text
+        for field in (
+            "idempotency_key",
+            "request_idempotency_key",
+            "attempt_idempotency_key",
+        )
+        if (text := text_value(payload.get(field))) is not None
+    }
+
+
+def idempotency_refs_mismatch(
+    *,
+    expected_payload: Mapping[str, Any],
+    observed_payload: Mapping[str, Any],
+) -> bool:
+    expected = idempotency_refs(expected_payload)
+    observed = idempotency_refs(observed_payload)
+    return bool(expected and observed and not expected.intersection(observed))
+
+
 def text_value(value: object) -> str | None:
     if value is None:
         return None

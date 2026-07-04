@@ -23,6 +23,8 @@ from med_autoscience.paper_mission_opl_readback_parts.opl_cli_probe import (
 )
 from med_autoscience.paper_mission_opl_readback_parts.primitives import (
     first_text as _first_text,
+    idempotency_refs as _idempotency_refs,
+    idempotency_refs_mismatch as _idempotency_refs_mismatch,
     mapping as _mapping,
     text_list as _text_list,
     text_value as _text,
@@ -569,6 +571,11 @@ def _matches_opl_task(
         return False
     if _text(payload.get("study_id")) != _text(carrier.get("study_id")):
         return False
+    if _idempotency_refs_mismatch(
+        expected_payload=carrier,
+        observed_payload=payload,
+    ):
+        return False
     if _text(payload.get("paper_mission_transaction_ref")) != _text(
         carrier.get("paper_mission_transaction_ref")
     ):
@@ -825,6 +832,11 @@ def _matches_opl_stage_attempt(
         return True
     if _text(locator.get("study_id")) != _text(carrier.get("study_id")):
         return False
+    if _idempotency_refs_mismatch(
+        expected_payload=carrier,
+        observed_payload=locator,
+    ):
+        return False
     for field in ("paper_mission_transaction_ref", "opl_route_command_ref"):
         carrier_value = _text(carrier.get(field))
         if carrier_value is not None and _text(locator.get(field)) != carrier_value:
@@ -892,6 +904,7 @@ def _matches_carrier(
     if has_route_identity and (
         _non_current_closeout_reason(closeout.get("blocked_reason"))
         or not _closeout_binds_route_identity(closeout=closeout, carrier=carrier)
+        or _closeout_idempotency_mismatches_carrier(closeout=closeout, carrier=carrier)
     ):
         return False
     if closeout.get("provider_completion_is_domain_completion") is True:
@@ -959,6 +972,16 @@ def _closeout_binds_route_identity(
         if ref is not None
     }
     return bool(refs.intersection(expected_refs))
+
+def _closeout_idempotency_mismatches_carrier(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    expected = _idempotency_refs(carrier)
+    observed = _idempotency_refs(closeout)
+    observed.update(_idempotency_refs(_mapping(closeout.get("opl_transition_receipt"))))
+    return bool(expected and observed and not expected.intersection(observed))
 
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)

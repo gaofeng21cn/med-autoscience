@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.paper_mission_opl_readback_parts.primitives import (
+    idempotency_refs_mismatch,
     mapping,
     text_list,
     text_value,
@@ -80,6 +81,11 @@ def matches_opl_transition_receipt(
     carrier: Mapping[str, Any],
 ) -> bool:
     if text_value(receipt.get("surface_kind")) != "opl_transition_receipt":
+        return False
+    if idempotency_refs_mismatch(
+        expected_payload=carrier,
+        observed_payload=receipt,
+    ):
         return False
     for field in (
         "study_id",

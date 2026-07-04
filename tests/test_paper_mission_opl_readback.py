@@ -304,6 +304,105 @@ def test_opl_terminal_closeout_readback_rejects_currentness_mismatch_residue(
     assert "terminal_closeout" not in readback
 
 
+def test_opl_terminal_closeout_readback_rejects_stale_candidate_idempotency(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "closeout_refs": [carrier["paper_mission_transaction_ref"]],
+            "idempotency_key": "dm003::candidate-v1",
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_terminal_closeout_readback_accepts_matching_candidate_idempotency(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "closeout_refs": [carrier["paper_mission_transaction_ref"]],
+            "idempotency_key": "dm003::candidate-v2",
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
+
+
+def test_opl_terminal_closeout_readback_rejects_stale_nested_receipt_idempotency(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "closeout_refs": [carrier["paper_mission_transaction_ref"]],
+            "opl_transition_receipt": {
+                **_opl_transition_receipt(),
+                "attempt_idempotency_key": "dm003::candidate-v1::attempt",
+                "request_idempotency_key": "dm003::candidate-v1::request",
+            },
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
 def test_opl_terminal_closeout_readback_rejects_retired_stale_opl_task(
     tmp_path: Path,
 ) -> None:
@@ -376,6 +475,65 @@ def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
     assert receipt["can_select_next_owner"] is False
     assert receipt["can_claim_paper_progress"] is False
     assert terminal["opl_transition_receipt"] == receipt
+
+
+def test_opl_terminal_closeout_readback_rejects_stale_runtime_receipt_idempotency(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    payload = _opl_runtime_task_payload()
+    receipt = payload["family_runtime_task"]["events"][0]["payload"][
+        "opl_transition_receipt"
+    ]
+    receipt["request_idempotency_key"] = "dm003::candidate-v1::request"
+    receipt["attempt_idempotency_key"] = "dm003::candidate-v1::attempt"
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_terminal_closeout_readback_accepts_matching_runtime_receipt_idempotency(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    payload = _opl_runtime_task_payload()
+    receipt = payload["family_runtime_task"]["events"][0]["payload"][
+        "opl_transition_receipt"
+    ]
+    receipt["request_idempotency_key"] = carrier["request_idempotency_key"]
+    receipt["attempt_idempotency_key"] = carrier["attempt_idempotency_key"]
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["opl_transition_receipt"]["request_idempotency_key"] == (
+        carrier["request_idempotency_key"]
+    )
 
 
 def test_opl_terminal_closeout_readback_requires_transition_receipt(
