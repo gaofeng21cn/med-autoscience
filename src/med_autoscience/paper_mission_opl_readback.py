@@ -96,6 +96,16 @@ def paper_mission_opl_runtime_carrier_readback(
             study_root=study_root,
             attempt=attempt,
         )
+        if matched is not None:
+            local_matched = _matching_terminal_closeout(
+                carrier=carrier,
+                study_root=study_root,
+            )
+            if _local_route_back_closeout_supersedes_live_terminal(
+                live_matched=matched,
+                local_matched=local_matched,
+            ):
+                matched = local_matched
         if matched is None:
             return {
                 "surface_kind": "paper_mission_opl_runtime_carrier_readback",
@@ -120,6 +130,15 @@ def paper_mission_opl_runtime_carrier_readback(
         matched = None
     if live_probe is not None and live_probe[0] == "terminal":
         matched = (live_probe[1], live_probe[2])
+        local_matched = _matching_terminal_closeout(
+            carrier=carrier,
+            study_root=study_root,
+        )
+        if _local_route_back_closeout_supersedes_live_terminal(
+            live_matched=matched,
+            local_matched=local_matched,
+        ):
+            matched = local_matched
     if matched is None:
         matched = _matching_terminal_closeout(carrier=carrier, study_root=study_root)
     if matched is None:
@@ -253,6 +272,24 @@ def _matching_terminal_closeout_for_running_attempt(
             )
         ),
     )
+
+
+def _local_route_back_closeout_supersedes_live_terminal(
+    *,
+    live_matched: tuple[dict[str, Any], str] | None,
+    local_matched: tuple[dict[str, Any], str] | None,
+) -> bool:
+    if live_matched is None or local_matched is None:
+        return False
+    live_closeout, live_ref = live_matched
+    local_closeout, local_ref = local_matched
+    if local_ref == live_ref:
+        return False
+    if _text(local_closeout.get("stage_attempt_id")) == _text(
+        live_closeout.get("stage_attempt_id")
+    ):
+        return False
+    return _closeout_has_route_back_evidence(local_closeout)
 
 
 def _matches_running_attempt_closeout(
@@ -1041,16 +1078,12 @@ def _closeout_binds_route_identity(
         )
         if ref is not None
     }
-    expected_refs = {
-        ref
-        for ref in (
-            _text(carrier.get("paper_mission_transaction_ref")),
-            _text(carrier.get("stage_terminal_decision_ref")),
-            _text(carrier.get("opl_route_command_ref")),
-        )
-        if ref is not None
-    }
-    return bool(refs.intersection(expected_refs))
+    expected_refs = _carrier_route_identity_refs(carrier)
+    return any(
+        _route_ref_matches(observed_ref, expected_ref)
+        for observed_ref in refs
+        for expected_ref in expected_refs
+    )
 
 def _closeout_idempotency_mismatches_carrier(
     *,
@@ -1138,21 +1171,48 @@ def _closeout_binds_exact_route_identity(
     closeout: Mapping[str, Any],
     carrier: Mapping[str, Any],
 ) -> bool:
-    expected_transaction_ref = _text(carrier.get("paper_mission_transaction_ref"))
-    if expected_transaction_ref is None:
+    expected_transaction_refs = _carrier_transaction_refs(carrier)
+    if not expected_transaction_refs:
         return False
     closeout_transaction_ref = _text(closeout.get("paper_mission_transaction_ref"))
-    if closeout_transaction_ref == expected_transaction_ref:
-        return True
-    if (
-        _text(closeout.get("stage_packet_ref")) == expected_transaction_ref
-        and _closeout_has_route_back_evidence(closeout)
+    if any(
+        _route_ref_matches(closeout_transaction_ref, expected_transaction_ref)
+        for expected_transaction_ref in expected_transaction_refs
     ):
         return True
-    expected_stage_ref = _text(carrier.get("stage_terminal_decision_ref"))
-    if expected_stage_ref is not None and _text(closeout.get("stage_packet_ref")) == expected_stage_ref:
+    stage_packet_ref = _text(closeout.get("stage_packet_ref"))
+    if _closeout_has_route_back_evidence(closeout) and any(
+        _route_ref_matches(stage_packet_ref, expected_transaction_ref)
+        for expected_transaction_ref in expected_transaction_refs
+    ):
         return True
-    expected_route_ref = _text(carrier.get("opl_route_command_ref"))
+    expected_stage_refs = {
+        ref
+        for ref in (
+            _text(carrier.get("stage_terminal_decision_ref")),
+            *(
+                f"{transaction_ref}#stage_terminal_decision"
+                for transaction_ref in expected_transaction_refs
+            ),
+        )
+        if ref is not None
+    }
+    if any(
+        _route_ref_matches_same_fragment(stage_packet_ref, expected_stage_ref)
+        for expected_stage_ref in expected_stage_refs
+    ):
+        return True
+    expected_route_refs = {
+        ref
+        for ref in (
+            _text(carrier.get("opl_route_command_ref")),
+            *(
+                f"{transaction_ref}#opl_route_command"
+                for transaction_ref in expected_transaction_refs
+            ),
+        )
+        if ref is not None
+    }
     closeout_refs = {
         ref
         for ref in (
@@ -1163,7 +1223,86 @@ def _closeout_binds_exact_route_identity(
         )
         if ref is not None
     }
-    return expected_route_ref is not None and expected_route_ref in closeout_refs
+    return bool(expected_route_refs) and any(
+        _route_ref_matches_same_fragment(ref, expected_route_ref)
+        for ref in closeout_refs
+        for expected_route_ref in expected_route_refs
+    )
+
+def _carrier_route_identity_refs(carrier: Mapping[str, Any]) -> set[str]:
+    transaction_refs = _carrier_transaction_refs(carrier)
+    return {
+        ref
+        for ref in (
+            _text(carrier.get("paper_mission_transaction_ref")),
+            _text(carrier.get("stage_terminal_decision_ref")),
+            _text(carrier.get("opl_route_command_ref")),
+            *transaction_refs,
+            *(f"{ref}#stage_terminal_decision" for ref in transaction_refs),
+            *(f"{ref}#opl_route_command" for ref in transaction_refs),
+        )
+        if ref is not None
+    }
+
+def _carrier_transaction_refs(carrier: Mapping[str, Any]) -> set[str]:
+    refs = {
+        ref
+        for ref in (
+            _text(carrier.get("paper_mission_transaction_ref")),
+            _legacy_stage_run_transaction_ref(carrier),
+        )
+        if ref is not None
+    }
+    return refs
+
+def _legacy_stage_run_transaction_ref(carrier: Mapping[str, Any]) -> str | None:
+    stage_run_ref = _text(carrier.get("stage_run_ref"))
+    if stage_run_ref is None:
+        return None
+    prefix = "opl-stage-run://"
+    if not stage_run_ref.startswith(prefix):
+        return None
+    stage_run_id = stage_run_ref.removeprefix(prefix)
+    if not stage_run_id:
+        return None
+    return f"paper-mission-transaction::{stage_run_id}"
+
+def _route_ref_matches(left: str | None, right: str | None) -> bool:
+    if left is None or right is None:
+        return False
+    if left == right:
+        return True
+    return _paper_mission_transaction_refs_match(left, right)
+
+def _route_ref_matches_same_fragment(left: str | None, right: str | None) -> bool:
+    if left is None or right is None:
+        return False
+    if left == right:
+        return True
+    left_base, left_fragment = _split_route_ref(left)
+    right_base, right_fragment = _split_route_ref(right)
+    if left_fragment != right_fragment:
+        return False
+    return _paper_mission_transaction_refs_match(left_base, right_base)
+
+def _split_route_ref(value: str) -> tuple[str, str | None]:
+    base, separator, fragment = value.partition("#")
+    return base, fragment if separator else None
+
+def _paper_mission_transaction_refs_match(left: str, right: str) -> bool:
+    left_base = left.split("#", 1)[0]
+    right_base = right.split("#", 1)[0]
+    if left_base == right_base:
+        return True
+    left_parts = left_base.split("::")
+    right_parts = right_base.split("::")
+    if len(left_parts) < 5 or len(left_parts) != len(right_parts):
+        return False
+    if left_parts[0] != "paper-mission-transaction":
+        return False
+    if right_parts[0] != "paper-mission-transaction":
+        return False
+    return left_parts[2:] == right_parts[2:]
 
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)

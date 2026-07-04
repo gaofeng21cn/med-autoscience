@@ -465,9 +465,29 @@ def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
             _status_blocker(_mapping(readback.get("stage_terminal_decision")).get("reason")),
             _status_blocker(_mapping(readback.get("stage_terminal_decision")).get("blocker_id")),
             terminal_gate.get("blocked_reason"),
+            _route_back_checkpoint_blocker(readback),
             *(_status_blocker_list(decision.get("known_blockers"))),
         ]
     )
+
+
+def _route_back_checkpoint_blocker(readback: Mapping[str, Any]) -> str | None:
+    carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
+    receipt_consumption = _mapping(carrier.get("mas_receipt_consumption"))
+    if _optional_text(receipt_consumption.get("next_legal_action")) == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    ):
+        return "route_back"
+    terminal_closeout = _mapping(carrier.get("terminal_closeout"))
+    route_impact = _mapping(terminal_closeout.get("route_impact"))
+    if (
+        _optional_text(route_impact.get("owner_answer_kind"))
+        == "route_back_evidence_ref"
+    ):
+        return "route_back"
+    if _optional_text(route_impact.get("route_back_evidence_ref")) is not None:
+        return "route_back"
+    return None
 
 
 def stage_closure_delivery_readback(

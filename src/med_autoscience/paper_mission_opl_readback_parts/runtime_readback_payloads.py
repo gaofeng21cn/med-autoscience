@@ -53,6 +53,7 @@ def terminal_closeout_readback(
         missing_reason="stage_attempt_closeout_packet_cost_missing",
         null_fields={"usd": None},
     )
+    route_impact = _mapping(closeout.get("route_impact"))
     return {
         "surface_kind": _text(closeout.get("surface_kind")),
         "closeout_ref": closeout_ref,
@@ -82,6 +83,7 @@ def terminal_closeout_readback(
             if mas_receipt_consumption
             else {}
         ),
+        **({"route_impact": route_impact} if route_impact else {}),
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,

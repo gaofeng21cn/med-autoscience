@@ -13,6 +13,12 @@ from med_autoscience.paper_mission_consumption_readback import (
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_opl_carrier import (
+    paper_mission_opl_runtime_carrier,
+)
+from med_autoscience.paper_mission_transaction import (
+    PaperMissionTransactionContractError,
+)
 from med_autoscience.paper_mission_consumption_ledger import (
     write_paper_mission_consumption_ledger_outputs,
 )
@@ -1071,6 +1077,7 @@ def _build_terminalizer_source_readback(
     )
     direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
         materialized_readback=source_readback,
+        study_root=Path(profile.studies_root) / study_id,
     )
     if direct_stage_attempt is not None:
         return direct_stage_attempt
@@ -1090,6 +1097,14 @@ def _build_terminalizer_source_readback(
             opl_bin=None,
         )
     if source_readback is not None:
+        materialized_run_stage_attempt = (
+            _materialized_run_terminal_source_readback(
+                materialized_readback=source_readback,
+                study_root=Path(profile.studies_root) / study_id,
+            )
+        )
+        if materialized_run_stage_attempt is not None:
+            return materialized_run_stage_attempt
         return source_readback
     return build_paper_mission_readback(
         profile=profile,
@@ -1105,11 +1120,18 @@ def _build_terminalizer_source_readback(
 def _domain_transition_direct_terminal_source_readback(
     *,
     materialized_readback: Mapping[str, Any] | None,
+    study_root: Path,
 ) -> dict[str, Any] | None:
     readback = _mapping(materialized_readback)
     direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
     if not direct:
         return None
+    direct = attach_opl_runtime_carrier_readback(
+        readback=direct,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
     if _optional_text(direct.get("opl_runtime_readback_status")) != (
         "opl_runtime_terminal_readback_observed"
     ):
@@ -1129,6 +1151,57 @@ def _domain_transition_direct_terminal_source_readback(
             _mapping(direct.get("next_action")).get("outcome_ref")
         )
         or _optional_text(_mapping(direct.get("next_action")).get("action_id")),
+    }
+
+
+def _materialized_run_terminal_source_readback(
+    *,
+    materialized_readback: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any] | None:
+    materialized_ref = _optional_text(materialized_readback.get("materialized_mission_ref"))
+    raw_materialized = (
+        _mapping(_load_optional_json_object(Path(materialized_ref)))
+        if materialized_ref is not None
+        else {}
+    )
+    paper_mission_run = _mapping(raw_materialized) or _mapping(
+        materialized_readback.get("paper_mission_run")
+    )
+    run_transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
+    if not run_transaction:
+        return None
+    if _optional_text(run_transaction.get("transaction_id")) == _optional_text(
+        _mapping(materialized_readback.get("paper_mission_transaction")).get(
+            "transaction_id"
+        )
+    ):
+        return None
+    try:
+        carrier = paper_mission_opl_runtime_carrier(run_transaction)
+    except (KeyError, TypeError, ValueError, PaperMissionTransactionContractError):
+        return None
+    readback = attach_opl_runtime_carrier_readback(
+        readback={"opl_runtime_carrier": carrier},
+        study_root=study_root,
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+    if _optional_text(readback.get("opl_runtime_readback_status")) != (
+        "opl_runtime_terminal_readback_observed"
+    ):
+        return None
+    return {
+        **dict(materialized_readback),
+        "paper_mission_command": "terminalize-stage",
+        "source": "paper_mission_run_legacy_transaction",
+        "opl_runtime_carrier": carrier,
+        "opl_runtime_carrier_readback": _mapping(
+            readback.get("opl_runtime_carrier_readback")
+        ),
+        "opl_runtime_readback_status": _optional_text(
+            readback.get("opl_runtime_readback_status")
+        ),
     }
 
 
