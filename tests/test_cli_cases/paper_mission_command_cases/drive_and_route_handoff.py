@@ -659,6 +659,126 @@ def test_paper_mission_drive_does_not_stop_runtime_route_on_stale_owner_gate(
     assert not output_root.exists()
 
 
+def test_consumption_ledger_inspect_prefers_domain_transition_after_route_checkpoint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    mission_id = f"paper-mission::{study_id}::submission-milestone"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "action_id": "next-action-ai-reviewer",
+        "study_id": study_id,
+        "stage_id": "review",
+        "outcome_ref": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review"
+        ),
+        "action_family": "paper.review.ai_reviewer",
+        "action_kind": "owner_review",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review"
+        ),
+    }
+    monkeypatch.setattr(
+        commands,
+        "_latest_receipt_owner_consumption_readback",
+        lambda **_: {
+            "status": "owner_consumption_applied",
+            "stage_closure_decision": {
+                "decision_ref": f"{transaction['transaction_id']}#stage_closure_decision",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "next_owner": "MedAutoScience",
+                    "can_submit": False,
+                },
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "next_legal_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "receipt_evidence_ref": "opl://stage-attempts/sat-review",
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-review/stage_attempt_closeout_packet.json"
+                ),
+                "can_claim_paper_progress": False,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        commands.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: {
+            "study_id": study_id,
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_medical_prose_quality_review",
+                "lane": "review",
+            },
+            "next_action": next_action,
+        },
+    )
+
+    payload = commands._consumption_ledger_inspect_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        consumption_readback={
+            "surface_kind": "paper_mission_consumption_readback",
+            "mission_id": mission_id,
+            "study_id": study_id,
+            "selected_outcome": "accepted_submission_milestone_candidate",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": transaction,
+        },
+        study_root=study_root,
+        enable_opl_live_probe=False,
+        opl_bin=tmp_path / "missing-opl",
+    )
+
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert payload["next_action"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["domain_transition"]["decision_type"] == "ai_reviewer_re_eval"
+    assert payload["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
+
+
 def test_paper_mission_drive_submits_domain_transition_next_action_without_candidate_package(
     tmp_path: Path,
 ) -> None:
