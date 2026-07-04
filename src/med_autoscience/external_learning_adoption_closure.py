@@ -27,6 +27,10 @@ SIDECAR_CALLABLE_SURFACE = "external_learning_sidecar.run_external_learning_side
 REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/external_learning_sidecar/latest.json")
 SIDECAR_RESULT_RELATIVE_PATH = Path("artifacts/advisory/external_learning_sidecar/latest.json")
 SCHEMA_VERSION = 1
+OPENSCIENCE_SOURCE_REF = (
+    "external_repo:ai4s-research/open-science@"
+    "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+)
 FORBIDDEN_WRITES = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
@@ -136,9 +140,11 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
         ),
         _framework(
             framework_id="openscience_artifact_provenance",
-            source_project="OpenScience artifact/provenance patterns",
+            source_project="ai4s-research/open-science artifact/provenance patterns",
             source_refs=[
-                "external_repo:OpenScience@f120290",
+                OPENSCIENCE_SOURCE_REF,
+                "med_autoscience.scientific_capability_registry."
+                "openscience_artifact_provenance_advisory",
                 "med_autoscience.external_learning_progress_workers."
                 "build_openscience_artifact_provenance_advisory",
             ],
@@ -149,6 +155,8 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "project_local_provenance_ledger",
                 "skill_pack_governance",
                 "native_viewer_watch",
+                "connector_provenance_refs",
+                "data_flow_refs",
             ],
             local_execution_state="refs_only_sidecar_worker_landed",
             closure_status="sidecar_or_worker_landed",
@@ -158,8 +166,8 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "med_autoscience.external_learning_progress_workers."
                 "build_openscience_artifact_provenance_advisory; it emits artifact graph, "
                 "claim warning, annotation-to-regeneration, project-local provenance ledger, "
-                "skill-pack governance, and native viewer watch refs without introducing "
-                "OpenScience runtime, Electron, MCP, or AGPL code"
+                "skill-pack governance, connector provenance, data-flow, and native viewer "
+                "watch refs without introducing OpenScience runtime, Electron, MCP, or AGPL code"
             ),
             missing_landing_work=[
                 "MAS artifact mutation, claim verdicts, owner receipts, typed blockers, and publication quality remain MAS owner actions",
@@ -167,8 +175,9 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             ],
             next_landing_path=(
                 "emit refs-only OpenScience artifact/provenance candidates through "
-                "run_external_learning_sidecar; promote individual refs only when a MAS "
-                "owner surface consumes them"
+                "scientific_capability_registry.openscience_artifact_provenance_advisory "
+                "and run_external_learning_sidecar; promote individual refs only when a "
+                "MAS owner surface consumes them"
             ),
         ),
         _framework(

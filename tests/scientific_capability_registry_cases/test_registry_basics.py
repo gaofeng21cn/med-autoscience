@@ -244,6 +244,103 @@ def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capab
     }
 
 
+def test_scientific_capability_registry_exposes_openscience_provenance_advisory(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_owner_delta = {
+        "action_type": "artifact_provenance_review",
+        "action_id": "openscience-001",
+        "owner": "artifact_authority",
+        "work_unit_id": "figure-provenance",
+        "work_unit_fingerprint": "sha256:openscience",
+        "declared_needs": [
+            "artifact graph",
+            "claim warning",
+            "annotation regeneration",
+            "project ledger",
+            "connector provenance",
+            "data flow refs",
+        ],
+    }
+
+    registry = module.build_scientific_capability_registry()
+    summary = module.build_scientific_capability_registry_summary()
+    inventory = module.build_scientific_capability_registry_inventory()
+    capabilities = {item["capability_id"]: item for item in registry["capabilities"]}
+    capability = capabilities["openscience_artifact_provenance_advisory"]
+
+    assert "openscience_artifact_provenance_advisory" in summary["capability_ids"]
+    inventory_item = {
+        item["capability_id"]: item for item in inventory["inventory"]
+    }["openscience_artifact_provenance_advisory"]
+    assert inventory_item["capability_family"] == "workspace_provenance_advisory"
+    assert inventory_item["source_frameworks"] == [
+        "ai4s-research/open-science@2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66",
+        "OpenScience@2200ad2",
+    ]
+    assert capability["callable_surface"] == (
+        "external_learning_sidecar.run_external_learning_sidecar"
+    )
+    assert capability["output_refs"] == [
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+    ]
+    assert "artifact_graph" in capability["current_delta_trigger_terms"]
+    assert "unit_harmonized_external_validation_rerun" in capability["action_triggers"]
+    assert "wildcard_action_trigger_policy" not in capability
+    assert capability["role"] == (
+        "artifact_graph_claim_warning_annotation_regeneration_ledger_"
+        "connector_and_data_flow_refs_only_advisory"
+    )
+    assert capability["fail_open"] is True
+    assert capability["mainline_waits_for_capability"] is False
+    assert capability["authority_boundary"]["can_authorize_artifact_authority"] is False
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta=current_owner_delta,
+    )
+    selected = {
+        item["capability_id"]: item
+        for item in resolution["selected_capabilities"]
+    }
+    candidate = selected["openscience_artifact_provenance_advisory"]
+    assert resolution["fail_open"] is True
+    assert resolution["mainline_waits_for_capability"] is False
+    assert candidate["trigger_reason"] == (
+        "current_delta_declared_openscience_artifact_provenance_need"
+    )
+    assert candidate["readback"]["can_execute_external_runner"] is False
+    assert candidate["readback"]["can_authorize_quality_verdict"] is False
+    assert candidate["authority_boundary"]["can_authorize_artifact_authority"] is False
+
+    invocation = module.invoke_scientific_capability(
+        capability_id="openscience_artifact_provenance_advisory",
+        study_root=study_root,
+        current_owner_delta=current_owner_delta,
+        apply=True,
+    )
+
+    assert invocation["status"] == "opl_capability_request_pending"
+    assert invocation["refs_only"] is True
+    assert invocation["request_only"] is True
+    assert invocation["mainline_waits_for_capability"] is False
+    assert invocation["can_block_current_owner_action"] is False
+    assert invocation["mas_can_invoke_capability_sidecar"] is False
+    assert invocation["authority_boundary"]["can_authorize_artifact_authority"] is False
+    assert invocation["opl_capability_invocation_request"]["callable_surface"] == (
+        "external_learning_sidecar.run_external_learning_sidecar"
+    )
+    assert invocation["result"]["output_refs"] == [
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+    ]
+    assert not (
+        study_root / "artifacts/advisory/external_learning_sidecar/latest.json"
+    ).exists()
+    assert not (study_root / "artifacts/artifact_authority").exists()
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+
+
 def test_scientific_capability_registry_resolves_nature_figure_display_refs_only_descriptor(
     tmp_path: Path,
 ) -> None:

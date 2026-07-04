@@ -57,6 +57,7 @@ INVOCATION_SURFACE_KIND = "mas_scientific_capability_invocation"
 SCHEMA_VERSION = 1
 DEFAULT_CURRENT_DELTA_TRIGGER = "current_delta_declares_or_implies_affordance_need"
 NATURE_SKILLS_SOURCE_HEAD = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
+OPENSCIENCE_SOURCE_HEAD = "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
 NATURE_FIGURE_CONTRACT_REFS = (
     (
         "external:nature-skills@"
@@ -151,6 +152,21 @@ NATURE_REVIEWER_REPAIR_TRIGGER_TERMS = (
     "reviewer_repair_refs",
     "repair_action",
     "repair_action_candidates",
+)
+OPENSCIENCE_ARTIFACT_PROVENANCE_TRIGGER_TERMS = (
+    "artifact graph",
+    "artifact_graph",
+    "artifact provenance",
+    "claim warning",
+    "claim_warning",
+    "annotation regeneration",
+    "annotation_regeneration",
+    "project ledger",
+    "project_ledger",
+    "connector provenance",
+    "data flow",
+    "data-flow",
+    "source lineage",
 )
 
 
@@ -535,6 +551,32 @@ def _capabilities() -> list[dict[str, Any]]:
             callable_surface=external_learning_adoption_closure.SIDECAR_CALLABLE_SURFACE,
             output_refs=[external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH.as_posix()],
             role="review_import_source_experiment_and_progress_refs_only_advisory",
+        ),
+        _capability(
+            capability_id="openscience_artifact_provenance_advisory",
+            capability_family="workspace_provenance_advisory",
+            source_frameworks=[
+                f"ai4s-research/open-science@{OPENSCIENCE_SOURCE_HEAD}",
+                "OpenScience@2200ad2",
+            ],
+            action_triggers=[
+                "artifact_display_surface_materialization_required",
+                "return_to_ai_reviewer_workflow",
+                "run_gate_clearing_batch",
+                "run_quality_repair_batch",
+                "unit_harmonized_external_validation_rerun",
+            ],
+            current_delta_trigger_terms=list(
+                OPENSCIENCE_ARTIFACT_PROVENANCE_TRIGGER_TERMS
+            ),
+            current_delta_trigger_reason="current_delta_declared_openscience_artifact_provenance_need",
+            invocation_kind="external_learning_sidecar",
+            callable_surface=external_learning_adoption_closure.SIDECAR_CALLABLE_SURFACE,
+            output_refs=[external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH.as_posix()],
+            role=(
+                "artifact_graph_claim_warning_annotation_regeneration_ledger_"
+                "connector_and_data_flow_refs_only_advisory"
+            ),
         ),
         _capability(
             capability_id="evo_scientist_progress_sidecar",

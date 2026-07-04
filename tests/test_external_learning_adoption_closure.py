@@ -93,6 +93,33 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         "worker_or_executor_landing"
     ]
     assert "Pi" in frameworks["kdense_byok"]["worker_or_executor_landing"]
+    openscience = frameworks["openscience_artifact_provenance"]
+    assert openscience["source_project"] == (
+        "ai4s-research/open-science artifact/provenance patterns"
+    )
+    assert (
+        "external_repo:ai4s-research/open-science@"
+        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
+    ) in openscience["source_refs"]
+    assert (
+        "med_autoscience.scientific_capability_registry."
+        "openscience_artifact_provenance_advisory"
+    ) in openscience["source_refs"]
+    assert {
+        "artifact_graph",
+        "claim_warning",
+        "annotation_to_regeneration",
+        "project_local_provenance_ledger",
+        "connector_provenance_refs",
+        "data_flow_refs",
+    } <= set(openscience["absorbed_pattern_ids"])
+    assert "connector provenance" in openscience["worker_or_executor_landing"]
+    assert "data-flow" in openscience["worker_or_executor_landing"]
+    assert "scientific_capability_registry.openscience_artifact_provenance_advisory" in (
+        openscience["next_landing_path"]
+    )
+    assert openscience["friction_policy"]["can_block_current_owner_action"] is False
+    assert openscience["authority_boundary"]["can_write_artifact_authority"] is False
     assert closure["counts"]["framework_count"] == 12
     assert closure["counts"]["sidecar_execution_slot_count"] == 9
     assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
