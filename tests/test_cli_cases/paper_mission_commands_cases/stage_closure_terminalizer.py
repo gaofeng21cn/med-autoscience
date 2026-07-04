@@ -989,6 +989,13 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
     assert payload["stage_closure_decision"]["work_unit_id"] == (
         "ai_reviewer_medical_prose_quality_review"
     )
+    assert payload["stage_closure_decision"]["outcome"]["kind"] != "typed_blocker"
+    assert "not_applicable_domain_transition_direct" not in payload[
+        "stage_closure_decision"
+    ]["known_blockers"]
+    assert "domain_transition_direct_stage_attempt" not in payload[
+        "stage_closure_decision"
+    ]["known_blockers"]
     assert payload["stage_closure_decision"]["opl_closeout"][
         "stage_attempt_id"
     ] == "sat-ai-reviewer"
