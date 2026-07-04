@@ -144,6 +144,14 @@ _TABLE3_CLINICAL_INTERPRETATION_SPEC = TableShellSpec(
     table_qc_profile="publication_table_interpretation",
     required_exports=("md",),
 )
+_TABLE3_TIME_TO_EVENT_GROUPED_CALIBRATION_SPEC = TableShellSpec(
+    shell_id=_full_id("table3_grouped_calibration"),
+    display_name="Time-to-event Grouped Calibration Table",
+    paper_family_ids=("B",),
+    input_schema_id="time_to_event_grouped_calibration_table_v1",
+    table_qc_profile="publication_table_calibration",
+    required_exports=("md",),
+)
 _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC = TableShellSpec(
     shell_id=_full_id("table2_time_to_event_performance_summary"),
     display_name="Time-to-event Performance Summary Table",
@@ -155,6 +163,7 @@ _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC = TableShellSpec(
 _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID = {
     _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC.shell_id: _TABLE2_TIME_TO_EVENT_PERFORMANCE_SPEC,
     _TABLE3_CLINICAL_INTERPRETATION_SPEC.shell_id: _TABLE3_CLINICAL_INTERPRETATION_SPEC,
+    _TABLE3_TIME_TO_EVENT_GROUPED_CALIBRATION_SPEC.shell_id: _TABLE3_TIME_TO_EVENT_GROUPED_CALIBRATION_SPEC,
 }
 _TIME_TO_EVENT_DISCRIMINATION_CALIBRATION_PANEL_SPEC = EvidenceFigureSpec(
     template_id=_full_id("time_to_event_discrimination_calibration_panel"),

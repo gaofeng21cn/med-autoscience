@@ -10,9 +10,6 @@ from med_autoscience.controllers.authority_write_route import (
     blocked_authority_write_payload,
     resolve_authority_write_route_context,
 )
-from med_autoscience.controllers.gate_clearing_batch_package_freshness import (
-    freshness_proof_paths_exist,
-)
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     reproducibility_path,
@@ -295,15 +292,18 @@ def _current_package_pdf_visual_audit_current(
     current_package_root: Path,
     current_package_zip: Path,
 ) -> bool:
-    return freshness_proof_paths_exist(
-        {
-            "submission_manifest_path": str(expected_manifest_path),
-            "current_package_root": str(current_package_root),
-            "current_package_zip": str(current_package_zip),
-            "paper_pdf_path": str(current_package_root / "paper.pdf"),
-            "visual_audit_receipt_path": str(current_package_root / "figure_visual_audit_receipt.json"),
-        }
-    )
+    paper_pdf_path = current_package_root / "paper.pdf"
+    visual_audit_path = current_package_root / "figure_visual_audit_receipt.json"
+    if not expected_manifest_path.exists():
+        return False
+    if not (current_package_root.exists() or current_package_zip.exists()):
+        return False
+    if not paper_pdf_path.exists() or not visual_audit_path.exists():
+        return False
+    try:
+        return visual_audit_path.stat().st_mtime_ns >= paper_pdf_path.stat().st_mtime_ns
+    except OSError:
+        return False
 
 
 def _submission_manifest_is_generated_authority_source(source_root: Path) -> bool:
