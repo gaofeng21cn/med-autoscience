@@ -36,6 +36,42 @@ def receipt_owner_consumption_superseded_by_consumption(
     )
 
 
+def receipt_owner_consumption_superseded_by_stage_closure(
+    *,
+    receipt_owner_consumption_readback: Mapping[str, Any],
+    stage_closure_ledger_readback: Mapping[str, Any] | None,
+) -> bool:
+    if stage_closure_ledger_readback is None:
+        return False
+    if _receipt_is_consumed_typed_blocker(receipt_owner_consumption_readback):
+        return False
+    decision = _mapping(receipt_owner_consumption_readback.get("stage_closure_decision"))
+    receipt_outcome = _mapping(decision.get("outcome"))
+    if (
+        _optional_text(receipt_outcome.get("kind")) != "next_stage_transition"
+        or _optional_text(receipt_outcome.get("transition_kind"))
+        != "route_back_candidate_checkpoint"
+    ):
+        return False
+    stage_outcome = _mapping(stage_closure_ledger_readback.get("outcome"))
+    if (
+        _optional_text(stage_outcome.get("kind")) == "next_stage_transition"
+        and _optional_text(stage_outcome.get("transition_kind"))
+        == "route_back_candidate_checkpoint"
+    ):
+        return False
+    receipt_mtime = _path_mtime(
+        _optional_text(receipt_owner_consumption_readback.get("source_ref"))
+    )
+    stage_mtime = _path_mtime(
+        _optional_text(stage_closure_ledger_readback.get("source_ref"))
+        or _optional_text(stage_closure_ledger_readback.get("decision_ref"))
+    )
+    if receipt_mtime is None or stage_mtime is None:
+        return False
+    return stage_mtime > receipt_mtime
+
+
 def _receipt_is_consumed_typed_blocker(receipt: Mapping[str, Any]) -> bool:
     if _optional_text(receipt.get("status")) != "owner_consumption_applied":
         return False

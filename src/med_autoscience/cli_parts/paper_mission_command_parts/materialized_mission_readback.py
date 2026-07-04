@@ -64,6 +64,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.typed_blocker_resolut
     latest_typed_blocker_resolution_readback,
 )
 from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
 )
 from med_autoscience.controllers import study_domain_transition_table
@@ -208,6 +209,11 @@ def build_materialized_mission_readback_if_available(
     if receipt_owner_consumption_readback is not None and _receipt_superseded_by_consumption(
         receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         consumption_ledger_readback=consumption_ledger_readback,
+    ):
+        receipt_owner_consumption_readback = None
+    if receipt_owner_consumption_readback is not None and _receipt_superseded_by_stage_closure(
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        stage_closure_ledger_readback=stage_closure_ledger_readback,
     ):
         receipt_owner_consumption_readback = None
     typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
@@ -676,9 +682,15 @@ def _stage_closure_next_action_should_own_next_action(
         "paper.stage_closure.owner_consumption"
     ):
         return True
+    if _optional_text(action.get("action_family")) in {
+        "paper.delivery.sync",
+        "paper.delivery_sync",
+    }:
+        return True
     return (
         outcome.get("kind") == "next_stage_transition"
-        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+        and outcome.get("transition_kind")
+        in {"route_back_candidate_checkpoint", "current_package_mirror_sync"}
     )
 
 

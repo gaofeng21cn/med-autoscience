@@ -95,6 +95,11 @@ def stage_closure_decision_requires_reterminalize(
     if current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
     if decision.get("source_surface_kind") == "paper_mission_stage_closure_ledger":
+        if (
+            _stage_closure_outcome_kind(decision) == "owner_receipt"
+            and _current_package_needs_mirror_sync(_mapping(current_package))
+        ):
+            return True
         if _legacy_accepted_status_only_unknown_blocker(decision):
             return True
         return False
@@ -123,7 +128,8 @@ def terminalize_stage_closure_from_readback(
 ) -> dict[str, Any]:
     transaction = _mapping(readback.get("paper_mission_transaction"))
     stage_decision = _mapping(readback.get("stage_terminal_decision"))
-    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
+    existing_stage_closure = _mapping(readback.get("stage_closure_decision"))
+    outcome = _mapping(existing_stage_closure.get("outcome"))
     current_package = _mapping(readback.get("current_package"))
     current_package_clear = current_package_is_submission_ready_clear(current_package)
     repair_budget = _mapping(readback.get("route_back_budget")) or _mapping(
@@ -150,15 +156,25 @@ def terminalize_stage_closure_from_readback(
             )
         ),
         "gate_replay_blockers": (
-            [] if current_package_clear else stage_closure_readback_blockers(readback)
+            []
+            if current_package_clear
+            else _stage_closure_reterminalize_blockers(
+                readback=readback,
+                existing_stage_closure=existing_stage_closure,
+                transaction=transaction,
+            )
         ),
     }
     study_id = str(readback.get("study_id") or transaction.get("study_id") or "")
     stage_id = str(
-        transaction.get("stage_id") or stage_decision.get("target_stage_id") or "paper_mission"
+        existing_stage_closure.get("stage_id")
+        or transaction.get("stage_id")
+        or stage_decision.get("target_stage_id")
+        or "paper_mission"
     )
     work_unit_id = str(
         _first_text(
+            existing_stage_closure.get("work_unit_id"),
             transaction.get("work_unit_id"),
             stage_decision.get("next_work_unit"),
             stage_decision.get("target_work_unit_id"),
@@ -169,6 +185,7 @@ def terminalize_stage_closure_from_readback(
         )
     )
     work_unit_fingerprint = _first_text(
+        existing_stage_closure.get("work_unit_fingerprint"),
         transaction.get("transaction_id"),
         readback.get("mission_id"),
     )
@@ -189,7 +206,13 @@ def terminalize_stage_closure_from_readback(
         work_unit_fingerprint=work_unit_fingerprint,
         identity={
             "mission_id": readback.get("mission_id"),
-            "paper_mission_transaction_ref": transaction.get("transaction_id"),
+            "paper_mission_transaction_ref": _first_text(
+                _mapping(existing_stage_closure.get("identity")).get(
+                    "paper_mission_transaction_ref"
+                ),
+                existing_stage_closure.get("paper_mission_transaction_ref"),
+                transaction.get("transaction_id"),
+            ),
             "consume_candidate_status": readback.get("consume_candidate_status"),
             "transaction_state": readback.get("transaction_state"),
         },
@@ -199,8 +222,16 @@ def terminalize_stage_closure_from_readback(
             "source_ref": readback.get("source_ref"),
         },
         gate_replay=gate_replay,
-        delivery_readback=stage_closure_delivery_readback(readback),
-        opl_closeout=stage_closure_opl_closeout(readback),
+        delivery_readback=stage_closure_delivery_readback(
+            readback,
+            existing_stage_closure=existing_stage_closure,
+            transaction=transaction,
+        ),
+        opl_closeout=stage_closure_opl_closeout(
+            readback,
+            existing_stage_closure=existing_stage_closure,
+            transaction=transaction,
+        ),
         semantic_delta=semantic_delta,
         repair_budget=repair_budget,
         previous_signature=previous_signature,
@@ -276,14 +307,17 @@ def latest_current_stage_closure_for_consumption(
         transaction_ref=transaction_ref,
     )
     exact_transaction_match = stage_closure_ledger_readback is not None
-    if stage_closure_ledger_readback is None and transaction_ref is not None:
-        stage_closure_ledger_readback = (
-            latest_paper_mission_stage_closure_decision_readback(
-                workspace_root=workspace_root,
-                study_id=study_id,
-                transaction_ref=None,
-            )
-        )
+    latest_any_stage_closure = latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        transaction_ref=None,
+    )
+    if _stage_closure_decision_newer(
+        candidate=latest_any_stage_closure,
+        current=stage_closure_ledger_readback,
+    ):
+        stage_closure_ledger_readback = latest_any_stage_closure
+        exact_transaction_match = False
     if stage_closure_ledger_readback is None:
         return None
     if (
@@ -295,6 +329,48 @@ def latest_current_stage_closure_for_consumption(
     ):
         return None
     return stage_closure_ledger_readback
+
+
+def _stage_closure_decision_newer(
+    *,
+    candidate: Mapping[str, Any] | None,
+    current: Mapping[str, Any] | None,
+) -> bool:
+    if candidate is None:
+        return False
+    if current is None:
+        return True
+    candidate_ref = _optional_text(candidate.get("decision_ref"))
+    current_ref = _optional_text(current.get("decision_ref"))
+    if candidate_ref is not None and candidate_ref == current_ref:
+        return False
+    candidate_mtime = _path_mtime(
+        _optional_text(candidate.get("source_ref")) or candidate_ref
+    )
+    current_mtime = _path_mtime(_optional_text(current.get("source_ref")) or current_ref)
+    if candidate_mtime is None:
+        return False
+    if current_mtime is None:
+        return True
+    return candidate_mtime > current_mtime
+
+
+def _current_package_needs_mirror_sync(current_package: Mapping[str, Any]) -> bool:
+    freshness = _first_text(
+        current_package.get("freshness"),
+        current_package.get("freshness_status"),
+        current_package.get("delivery_status"),
+        current_package.get("status"),
+    )
+    return (
+        freshness == "layout_migration_pending_sync"
+        or current_package.get("layout_migration_pending_sync") is True
+    )
+
+
+def _stage_closure_outcome_kind(decision: Mapping[str, Any]) -> str | None:
+    outcome = _mapping(decision.get("outcome"))
+    return _first_text(outcome.get("kind"), decision.get("outcome_kind"))
 
 
 def _stage_closure_superseded_by_current_consumption(
@@ -333,6 +409,51 @@ def stage_closure_source_readback_summary(
     )
 
 
+def _stage_closure_reterminalize_blockers(
+    *,
+    readback: Mapping[str, Any],
+    existing_stage_closure: Mapping[str, Any],
+    transaction: Mapping[str, Any],
+) -> list[str]:
+    blockers = stage_closure_readback_blockers(readback)
+    if not _existing_stage_closure_supersedes_transaction(
+        existing_stage_closure=existing_stage_closure,
+        transaction=transaction,
+    ):
+        return blockers
+    return [
+        blocker
+        for blocker in blockers
+        if blocker
+        not in {
+            "accepted_submission_milestone_candidate",
+            "route_back",
+            "paper_mission_stage_route_domain_gate_pending",
+        }
+    ]
+
+
+def _existing_stage_closure_supersedes_transaction(
+    *,
+    existing_stage_closure: Mapping[str, Any],
+    transaction: Mapping[str, Any],
+) -> bool:
+    existing_ref = _first_text(
+        _mapping(existing_stage_closure.get("identity")).get(
+            "paper_mission_transaction_ref"
+        ),
+        existing_stage_closure.get("paper_mission_transaction_ref"),
+    )
+    transaction_ref = _optional_text(transaction.get("transaction_id"))
+    return (
+        existing_stage_closure.get("source_surface_kind")
+        == "paper_mission_stage_closure_ledger"
+        and existing_ref is not None
+        and transaction_ref is not None
+        and existing_ref != transaction_ref
+    )
+
+
 def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
     decision = _mapping(readback.get("stage_closure_decision"))
     terminal_gate = _mapping(readback.get("terminal_owner_gate"))
@@ -349,10 +470,19 @@ def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
     )
 
 
-def stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, Any]:
+def stage_closure_delivery_readback(
+    readback: Mapping[str, Any],
+    *,
+    existing_stage_closure: Mapping[str, Any] | None = None,
+    transaction: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     candidate = _mapping(readback.get("candidate_manifest"))
     output = _mapping(readback.get("output_manifest"))
     current_package = _mapping(readback.get("current_package"))
+    stale_route_blocked_reason = _existing_stage_closure_supersedes_transaction(
+        existing_stage_closure=_mapping(existing_stage_closure),
+        transaction=_mapping(transaction),
+    )
     return _compact_mapping(
         {
             "package_kind": _first_text(
@@ -373,13 +503,17 @@ def stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, An
                 if current_package_is_submission_ready_clear(current_package)
                 else None,
                 current_package.get("freshness"),
+                current_package.get("freshness_status"),
+                current_package.get("delivery_status"),
                 current_package.get("status"),
                 readback.get("freshness"),
                 output.get("freshness"),
             ),
             "blocked_reason": _first_text(
-                readback.get("blocked_reason"),
-                _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
+                None if stale_route_blocked_reason else readback.get("blocked_reason"),
+                None
+                if stale_route_blocked_reason
+                else _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
             ),
             "current_package_exists": (
                 bool(current_package) or output.get("current_package_exists")
@@ -392,7 +526,20 @@ def stage_closure_delivery_readback(readback: Mapping[str, Any]) -> dict[str, An
     )
 
 
-def stage_closure_opl_closeout(readback: Mapping[str, Any]) -> dict[str, Any]:
+def stage_closure_opl_closeout(
+    readback: Mapping[str, Any],
+    *,
+    existing_stage_closure: Mapping[str, Any] | None = None,
+    transaction: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    existing = _mapping(existing_stage_closure)
+    if _existing_stage_closure_supersedes_transaction(
+        existing_stage_closure=existing,
+        transaction=_mapping(transaction),
+    ):
+        closeout = _mapping(existing.get("opl_closeout"))
+        if closeout:
+            return dict(closeout)
     carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
     terminal_closeout = _mapping(carrier.get("terminal_closeout"))
     return _compact_mapping(

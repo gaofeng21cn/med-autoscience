@@ -772,6 +772,9 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    stage_closure_ledger = importlib.import_module(
+        "med_autoscience.paper_mission_stage_closure_ledger"
+    )
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
     )
@@ -823,6 +826,74 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
                 "domain_completion_claimed": False,
                 "domain_ready_claimed": False,
                 "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    stage_closure_ledger.write_paper_mission_stage_closure_decision(
+        output_root=(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_closure"
+            / "old-followthrough"
+        ),
+        study_id=study_id,
+        decision={
+            "stage_id": old_transaction["stage_id"],
+            "work_unit_id": old_transaction["stage_id"],
+            "work_unit_fingerprint": old_transaction["idempotency"][
+                "transaction_fingerprint"
+            ],
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "next_owner": "MedAutoScience",
+                "next_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "authority_materialized": False,
+            },
+            "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
+        },
+        source_readback={
+            "study_id": study_id,
+            "source_ref": str(old_ledger_root / "consume_record.json"),
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "transaction_state": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": old_transaction,
+        },
+        source="test",
+        forbidden_authority_writes=(),
+        forbidden_authority_claims=(),
+    )
+    stale_receipt_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+        / "old-route-checkpoint"
+        / study_id
+    )
+    stale_receipt_root.mkdir(parents=True)
+    (stale_receipt_root / "receipt_owner_consumption.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_receipt_owner_consumption",
+                "study_id": study_id,
+                "status": "owner_consumption_applied",
+                "authority_materialized": True,
+                "stage_closure_decision": {
+                    "surface_kind": "mas_stage_closure_decision",
+                    "stage_id": old_transaction["stage_id"],
+                    "work_unit_id": old_transaction["stage_id"],
+                    "outcome": {
+                        "kind": "next_stage_transition",
+                        "transition_kind": "route_back_candidate_checkpoint",
+                    },
+                    "counts_as_typed_blocker": False,
+                    "authority_boundary": {"writes_owner_receipt": False},
+                },
             }
         ),
         encoding="utf-8",
@@ -999,6 +1070,54 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
     assert payload["stage_closure_decision"]["opl_closeout"][
         "stage_attempt_id"
     ] == "sat-ai-reviewer"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["stage_closure_decision"]["stage_id"] == "review"
+
+    inspect_projection = materialized_readback.build_materialized_mission_readback_if_available(
+        profile=SimpleNamespace(
+            name="Obesity",
+            workspace_root=workspace_root,
+            studies_root=workspace_root / "studies",
+            default_publication_profile="general_medical_journal",
+        ),
+        profile_ref=profile_path,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source="test",
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+
+    assert inspect_projection is not None
+    assert inspect_projection["paper_mission_stage_closure_ledger_readback"][
+        "stage_id"
+    ] == "review"
+    assert inspect_projection["stage_closure_decision"]["stage_id"] == "review"
+    assert inspect_projection["stage_closure_decision"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert inspect_projection["stage_closure_decision"]["outcome"][
+        "transition_kind"
+    ] == "current_package_mirror_sync"
+    assert inspect_projection["canonical_next_action_source"] == (
+        "stage_closure.next_action"
+    )
+    assert inspect_projection["next_action"]["action_family"] == "paper.delivery.sync"
 
 
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:

@@ -42,6 +42,7 @@ MIRROR_SYNC_BLOCKERS = frozenset(
         "delivery_manifest_source_changed",
         "current_package_missing",
         "current_package_stale",
+        "layout_migration_pending_sync",
         "study_delivery_current_package_missing",
         "manuscript_current_package_missing",
         "manuscript_current_package_stale",
@@ -679,6 +680,8 @@ def _blockers_from_delivery(delivery: Mapping[str, Any]) -> list[str]:
     freshness = _text(delivery.get("freshness")) or _text(delivery.get("current_package_freshness"))
     if freshness in {"stale", "missing"}:
         blockers.append("current_package_stale" if freshness == "stale" else "current_package_missing")
+    if freshness == "layout_migration_pending_sync":
+        blockers.append("layout_migration_pending_sync")
     if delivery.get("current_package_exists") is False:
         blockers.append("current_package_missing")
     if delivery.get("current_package_current") is False:
