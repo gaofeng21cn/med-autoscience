@@ -9,6 +9,7 @@ from tests.study_runtime_test_helpers import write_synced_submission_delivery
 
 from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 from med_autoscience.paper_mission_stage_closure_ledger import (
+    latest_paper_mission_stage_closure_decision_readback,
     write_paper_mission_stage_closure_decision,
 )
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
@@ -725,6 +726,92 @@ def test_paper_mission_inspect_projects_ledger_typed_blocker_owner_gate(
     ] is False
     assert payload["mutation_policy"]["writes_authority"] is False
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
+
+def test_stage_closure_readback_accepts_latest_followthrough_for_base_transaction(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_id = "obesity_multicenter_phenotype_atlas"
+    base_ref = (
+        "paper-mission-transaction::obesity_multicenter_phenotype_atlas::"
+        "submission_milestone_candidate::paper-mission::"
+        "obesity_multicenter_phenotype_atlas::paper_mission_import::one-shot-migration"
+    )
+    followthrough_ref = (
+        "paper-mission-transaction::obesity_multicenter_phenotype_atlas::"
+        "submission_milestone_candidate::followthrough::followthrough-01::"
+        "paper-mission::obesity_multicenter_phenotype_atlas::"
+        "paper_mission_import::one-shot-migration"
+    )
+
+    write_paper_mission_stage_closure_decision(
+        output_root=(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_closure"
+            / "f6_submission_stage_packet"
+        ),
+        study_id=study_id,
+        decision={
+            "stage_id": "submission_milestone_candidate",
+            "work_unit_id": "submission_milestone_candidate",
+            "outcome": {"kind": "next_stage_transition"},
+        },
+        source_readback={
+            "mission_id": "mission-base",
+            "paper_mission_transaction": {
+                "transaction_id": base_ref,
+                "stage_id": "submission_milestone_candidate",
+            },
+        },
+        source="test",
+        forbidden_authority_writes=FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+        forbidden_authority_claims=("publication_ready",),
+    )
+    output_manifest = write_paper_mission_stage_closure_decision(
+        output_root=(
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_closure"
+            / "paper_mission_terminalize_stage"
+        ),
+        study_id=study_id,
+        decision={
+            "stage_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+        },
+        source_readback={
+            "mission_id": "mission-followthrough",
+            "paper_mission_transaction": {
+                "transaction_id": followthrough_ref,
+                "stage_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            },
+        },
+        source="test",
+        forbidden_authority_writes=FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+        forbidden_authority_claims=("publication_ready",),
+    )
+
+    readback = latest_paper_mission_stage_closure_decision_readback(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        transaction_ref=base_ref,
+    )
+
+    assert readback is not None
+    assert readback["decision_ref"] == output_manifest["stage_closure_decision_ref"]
+    assert readback["paper_mission_transaction_ref"] == followthrough_ref
+    assert readback["stage_id"] == (
+        "submission_milestone_candidate::followthrough::followthrough-01"
+    )
+    assert readback["can_claim_paper_progress"] is False
 
 
 def test_paper_mission_inspect_prefers_latest_governed_consumption_ledger_transaction(

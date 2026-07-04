@@ -152,7 +152,12 @@ def _valid_stage_closure_decision_readback(
         return None
     if _text(payload.get("study_id")) != study_id:
         return None
-    if transaction_ref and _text(payload.get("paper_mission_transaction_ref")) != transaction_ref:
+    payload_transaction_ref = _text(payload.get("paper_mission_transaction_ref"))
+    if transaction_ref and not _transaction_ref_matches_current_or_followthrough(
+        payload_transaction_ref=payload_transaction_ref,
+        transaction_ref=transaction_ref,
+        study_id=study_id,
+    ):
         return None
     if payload.get("counts_as_stage_closure_terminalizer_evidence") is not True:
         return None
@@ -196,6 +201,32 @@ def _valid_stage_closure_decision_readback(
         "source_surface_kind": "paper_mission_stage_closure_ledger",
         "projection_status": "terminalizer_outcome_observed",
     }
+
+
+def _transaction_ref_matches_current_or_followthrough(
+    *,
+    payload_transaction_ref: str | None,
+    transaction_ref: str,
+    study_id: str,
+) -> bool:
+    if payload_transaction_ref == transaction_ref:
+        return True
+    base_stage = _transaction_stage_segment(transaction_ref, study_id=study_id)
+    payload_stage = _transaction_stage_segment(payload_transaction_ref, study_id=study_id)
+    if base_stage is None or payload_stage is None:
+        return False
+    return payload_stage.startswith(f"{base_stage}::followthrough::")
+
+
+def _transaction_stage_segment(transaction_ref: str | None, *, study_id: str) -> str | None:
+    if transaction_ref is None:
+        return None
+    prefix = f"paper-mission-transaction::{study_id}::"
+    suffix = "::paper-mission::"
+    if not transaction_ref.startswith(prefix) or suffix not in transaction_ref:
+        return None
+    stage_segment = transaction_ref[len(prefix) : transaction_ref.index(suffix)]
+    return stage_segment or None
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:

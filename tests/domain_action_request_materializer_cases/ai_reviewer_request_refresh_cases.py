@@ -154,16 +154,20 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
         apply=True,
     )
 
-    original_request = json.loads(request_path.read_text(encoding="utf-8"))
+    refreshed_request = json.loads(request_path.read_text(encoding="utf-8"))
     assert result["ai_reviewer_request_refresh_count"] == 1
     assert result["ai_reviewer_request_refreshes"][0]["refresh_status"] == "refreshed"
+    assert result["ai_reviewer_request_refreshes"][0]["written"] is True
     assert result["ai_reviewer_request_refreshes"][0]["publication_eval_record_ref"] == str(new_record_path.resolve())
-    assert original_request["request_lifecycle"]["blocked_reason"] == (
-        "ai_reviewer_record_stale_after_current_manuscript"
+    assert result["written_files"] == [str(request_path)]
+    assert refreshed_request["request_lifecycle"]["blocked_reason"] is None
+    assert refreshed_request["request_lifecycle"]["assessment_ref"] == str(new_record_path.resolve())
+    assert "stale_record_ref" not in refreshed_request["request_lifecycle"]
+    assert "required_currentness_refs" not in refreshed_request["request_lifecycle"]
+    assert refreshed_request["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert refreshed_request["ai_reviewer_record"]["eval_id"] == (
+        "publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer"
     )
-    assert original_request["request_lifecycle"]["stale_record_ref"] == str(old_record_path.resolve())
-    assert "publication_eval_record_ref" not in original_request
-    assert "ai_reviewer_record" not in original_request
 
 
 def test_ai_reviewer_request_refresh_adopts_owner_route_less_record_production_output_by_work_unit(

@@ -943,6 +943,12 @@ def _write_consumption_ledger(
 
 def _paper_mission_carrier_for_transaction(transaction: dict) -> dict:
     identity = transaction["idempotency"]
+    decision = transaction["stage_terminal_decision"]
+    work_unit_id = (
+        decision.get("next_work_unit")
+        if decision.get("decision_kind") == "continue_same_stage"
+        else None
+    ) or transaction["stage_id"]
     return {
         "surface_kind": "mas_domain_progress_transition_request",
         "source_kind": "paper_mission_transaction_opl_route_command",
@@ -953,7 +959,7 @@ def _paper_mission_carrier_for_transaction(transaction: dict) -> dict:
         "opl_route_command_ref": transaction["transaction_id"] + "#opl_route_command",
         "study_id": transaction["study_id"],
         "stage_run_ref": transaction["stage_run_ref"],
-        "work_unit_id": transaction["stage_id"],
+        "work_unit_id": work_unit_id,
         "work_unit_fingerprint": identity["transaction_fingerprint"],
         "route_identity_key": transaction["transaction_id"] + "::route",
         "idempotency_key": identity["idempotency_key"],
@@ -964,7 +970,7 @@ def _paper_mission_carrier_for_transaction(transaction: dict) -> dict:
             "aggregate_id": transaction["transaction_id"],
             "mission_id": transaction["mission_id"],
             "study_id": transaction["study_id"],
-            "work_unit_id": transaction["stage_id"],
+            "work_unit_id": work_unit_id,
             "work_unit_fingerprint": identity["transaction_fingerprint"],
         },
     }

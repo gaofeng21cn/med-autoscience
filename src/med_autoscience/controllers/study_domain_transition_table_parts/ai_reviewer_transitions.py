@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,11 @@ from med_autoscience.controllers.next_action_envelope import (
     FAMILY_PAPER_WRITE_PROSE_REPAIR,
     compile_next_action_envelope,
 )
-from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
+from med_autoscience.study_task_intake import (
+    latest_task_intake_json_path,
+    read_latest_task_intake,
+    task_intake_is_reviewer_revision,
+)
 
 
 _PUBLICATION_GATE_RECHECK_ONLY_MISSING_FIELDS = frozenset({"owner_authorized_publication_gate_recheck"})
@@ -101,6 +106,7 @@ def project_stale_reviewer_revision_transition(
         study_root=study_root,
         publication_eval=publication_eval,
     ):
+        revision_source_refs = _latest_reviewer_revision_source_refs(study_root)
         return _transition(
             study_id=study_id,
             decision_type="ai_reviewer_re_eval",
@@ -117,7 +123,7 @@ def project_stale_reviewer_revision_transition(
                 required_owner_surface=str(publication_eval_relative_path),
                 opl_generic_runner_may_resume=True,
             ),
-            source_refs=source_refs,
+            source_refs=[*source_refs, *revision_source_refs],
             completion_receipt_consumption=completion_receipt_consumption,
         )
     return None
@@ -462,33 +468,41 @@ def build_ai_reviewer_next_action(
     source_refs: Iterable[str],
 ) -> dict[str, Any]:
     work_unit = dict(next_work_unit)
+    source_ref_list = list(source_refs)
+    work_unit_id = _text(work_unit.get("unit_id"))
+    source_fingerprint = _source_fingerprint(source_ref_list)
+    work_unit_fingerprint = (
+        f"domain-transition::ai_reviewer_re_eval::{work_unit_id}::source::{source_fingerprint}"
+    )
     stage_outcome = {
         "study_id": study_id,
         "stage_id": "review",
-        "work_unit_id": _text(work_unit.get("unit_id")),
-        "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{_text(work_unit.get('unit_id'))}",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "decision_signature": work_unit_fingerprint,
         "next_work_unit": work_unit,
         "controller_action": controller_action,
         "action_family": FAMILY_PAPER_REVIEW_AI_REVIEWER,
-        "source_refs": list(source_refs),
+        "source_refs": source_ref_list,
     }
     owner_route = {
         "owner": owner,
         "next_owner": owner,
         "action_type": controller_action,
-        "work_unit_id": _text(work_unit.get("unit_id")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
         "next_work_unit": work_unit,
         "action_family": FAMILY_PAPER_REVIEW_AI_REVIEWER,
-        "required_input_refs": list(source_refs),
+        "required_input_refs": source_ref_list,
     }
     return compile_next_action_envelope(
         stage_outcome=stage_outcome,
         study_id=study_id,
         stage_id="review",
-        outcome_ref=f"domain-transition::ai_reviewer_re_eval::{_text(work_unit.get('unit_id'))}",
+        outcome_ref=work_unit_fingerprint,
         owner_route=owner_route,
         authority_boundary=guard_boundary,
-        diagnostic_refs=list(source_refs),
+        diagnostic_refs=source_ref_list,
     )
 
 
@@ -553,6 +567,26 @@ def _guard_boundary(
     if required_owner_surface:
         payload["required_owner_surface"] = required_owner_surface
     return payload
+
+
+def _latest_reviewer_revision_source_refs(study_root: Path | None) -> list[str]:
+    if study_root is None:
+        return []
+    task_intake = read_latest_task_intake(study_root=study_root)
+    if not task_intake_is_reviewer_revision(task_intake):
+        return []
+    refs = [str(latest_task_intake_json_path(study_root=study_root))]
+    for key in ("task_id", "feedback_id", "request_id", "emitted_at", "generated_at", "created_at"):
+        text = _text(task_intake.get(key))
+        if text:
+            refs.append(f"task_intake.{key}:{text}")
+    return refs
+
+
+def _source_fingerprint(source_refs: Iterable[str]) -> str:
+    refs = [text for item in source_refs if (text := _text(item))]
+    payload = json.dumps(refs, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def _compact_work_unit(value: object) -> dict[str, str] | None:

@@ -59,6 +59,10 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
             "registry-data-lock-enrollment-boundary",
             "diagnostic-provenance-caveat-required",
             "figure-caption-content-consistency",
+            "pdf-nonblank-figure-export-qc",
+            "journal-figure-numbering-normalization",
+            "wide-table-supplement-or-landscape-routing",
+            "descriptive-atlas-discussion-theme-compression",
             "supplementary-missingness-atlas-required",
             "adult-bmi-sensitivity-table-required",
             "methods-registry-cohort-completeness",
@@ -137,7 +141,9 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
                 "target_id": "registry_data_lock_enrollment_boundary",
                 "requirement": (
                     "Methods distinguish observed visit-date coverage, formal registry enrollment period, "
-                    "analytic release version, and analytic data-lock date without inferring missing owner metadata"
+                    "analytic release version, and analytic data-lock date without inferring missing owner metadata; "
+                    "unconfirmed formal data-lock or enrollment facts must route to submission TODO or human gate "
+                    "instead of remaining as placeholder manuscript-body prose"
                 ),
                 "route_target": "write",
             },
@@ -157,6 +163,40 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
                     "not mention domains such as sleep or psychobehavioral measures unless the figure actually displays them"
                 ),
                 "route_target": "figure-polish",
+            },
+            {
+                "target_id": "pdf_nonblank_figure_export_qc",
+                "requirement": (
+                    "submission PDFs must pass page-level visual QC for every main figure panel, including a "
+                    "nonblank rendered image region for late figures such as Figure 5 and Figure 6; compile success "
+                    "or file existence alone is not enough"
+                ),
+                "route_target": "figure-polish",
+            },
+            {
+                "target_id": "journal_figure_numbering_normalization",
+                "requirement": (
+                    "paper-facing figure headings and captions use journal numbering such as 'Figure 1. Title' "
+                    "and must not retain double labels like 'F1 / Figure 1: F1'"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "wide_table_supplement_or_landscape_routing",
+                "requirement": (
+                    "wide variable-definition or ascertainment tables must be routed to supplementary material, "
+                    "split, or landscape output when main-text PDF layout would force severe wrapping or overlap"
+                ),
+                "route_target": "publication-gate",
+            },
+            {
+                "target_id": "descriptive_atlas_discussion_theme_compression",
+                "requirement": (
+                    "descriptive registry-atlas Discussion should synthesize findings into a small set of clinical "
+                    "themes, typically registry structure, adult metabolic phenotype, and psychobehavioral subcohort, "
+                    "rather than enumerating a long internal checklist of findings"
+                ),
+                "route_target": "review",
             },
             {
                 "target_id": "supplementary_missingness_atlas_required",

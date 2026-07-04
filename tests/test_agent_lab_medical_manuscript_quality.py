@@ -1055,6 +1055,10 @@ def test_obesity_registry_quality_profile_requires_sci_draft_volume_and_clinical
         "registry_data_lock_enrollment_boundary",
         "diagnostic_provenance_caveat_required",
         "figure_caption_content_consistency",
+        "pdf_nonblank_figure_export_qc",
+        "journal_figure_numbering_normalization",
+        "wide_table_supplement_or_landscape_routing",
+        "descriptive_atlas_discussion_theme_compression",
         "supplementary_missingness_atlas_required",
         "adult_bmi_sensitivity_table_required",
         "methods_registry_cohort_completeness",
@@ -1065,6 +1069,10 @@ def test_obesity_registry_quality_profile_requires_sci_draft_volume_and_clinical
     assert "reference-integrity-25-to-40-citations" in joined_refs
     assert "main-text-3500-word-floor" in joined_refs
     assert "clinical-value-result-figure-gap" in joined_refs
+    assert "pdf-nonblank-figure-export-qc" in joined_refs
+    assert "journal-figure-numbering-normalization" in joined_refs
+    assert "wide-table-supplement-or-landscape-routing" in joined_refs
+    assert "descriptive-atlas-discussion-theme-compression" in joined_refs
     assert "administrative-declaration-sections-required" in joined_refs
     assert "supplementary-missingness-atlas-required" in joined_refs
     assert "adult-bmi-sensitivity-table-required" in joined_refs

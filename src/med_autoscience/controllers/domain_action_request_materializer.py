@@ -869,8 +869,13 @@ def materialize_domain_action_requests(
     ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
         profile=profile,
         study_ids=resolved_study_ids,
-        apply=False,
+        apply=apply,
     )
+    written_files = [
+        refresh["request_path"]
+        for refresh in ai_reviewer_request_refreshes
+        if refresh.get("written") is True and _text(refresh.get("request_path"))
+    ]
 
     payload = with_owner_callable_adapter_projection({
         "surface": "domain_action_request_materializer",

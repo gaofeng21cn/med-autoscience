@@ -479,10 +479,43 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
     assert transition["next_action"]["action_kind"] == "owner_review"
     assert transition["next_action"]["owner"] == "ai_reviewer"
     assert transition["next_action"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    first_fingerprint = transition["next_action"]["work_unit_fingerprint"]
+    assert first_fingerprint.startswith(
+        "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review::source::"
+    )
+    assert first_fingerprint != (
+        "domain-transition::ai_reviewer_re_eval::"
+        "ai_reviewer_medical_prose_quality_review"
+    )
     assert transition["next_action"]["idempotency_key"]
     assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
         "ai_reviewer_publication_eval"
     )
+    assert str(study_root / "artifacts" / "controller" / "task_intake" / "latest.json") in transition["source_refs"]
+
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm002::20260704T042118Z",
+            "emitted_at": "2026-07-04T04:21:18+00:00",
+            "study_id": "dm002",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "Reviewer revision asks MAS to re-run manuscript medical prose quality review.",
+        },
+    )
+
+    next_transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert next_transition["next_action"]["work_unit_id"] == transition["next_action"]["work_unit_id"]
+    assert next_transition["next_action"]["work_unit_fingerprint"] != first_fingerprint
+    assert next_transition["next_action"]["idempotency_key"] != transition["next_action"]["idempotency_key"]
 
 
 def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(
