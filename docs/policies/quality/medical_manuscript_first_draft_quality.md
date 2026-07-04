@@ -55,7 +55,7 @@ DPCC 003 暴露的不是单篇返修 intake 缺失，而是初稿前质量授权
 - phenotype derivation: assignment method, clinical domains/features, rules or algorithm, class-count rationale, reproducibility / new-patient assignment, analysis-plan or prespecification status;
 - treatment gap: numerator, denominator, eligibility, time window, medication data source, interpretation label / non-causal guardrail;
 - baseline table: total population, phenotype columns, denominators, missingness, core clinical variables, units, comparison or balance statistics;
-- data quality: source record checks, plausibility checks, variable missingness, semantic field checks, attrition denominators, claim impact or downgrade.
+- data quality: source record checks, plausibility checks, diagnostic-variable ascertainment, adult/known-age applicability sensitivity, variable missingness, semantic field checks, attrition denominators, claim impact or downgrade.
 
 `pre_draft_quality_runtime_state.readiness.full_drafting_authorized` must stay false until these checklist blockers are closed or explicitly routed back. AI reviewer remains the quality owner for publishability and medical-journal prose; the structured checklist is a deterministic pre-draft blocker, not a substitute subjective reviewer.
 
@@ -86,8 +86,9 @@ Before a first full draft is treated as generated:
 - burden-medication discordance：至少有一个 phenotype x burden x recorded medication-coverage matrix，或明确 waiver；
 - exact gap definitions：每个 gap 指标必须有 numerator、denominator、eligibility、time/index window、medication source、class mapping 和 non-causal interpretation label；
 - medication-record sensitivity：当 medication record 不完整时，必须规划或完成 medication-field-present / any-recorded-medication sensitivity；否则只能写 documentation-sensitive review signal；
+- diagnostic ascertainment：当 uncontrolled disease、hypertension、dyslipidemia、complication burden 或 phenotype assignment 来自结构化字段时，必须物化诊断/测量变量 ascertainment table；
 - variable quality atlas：phenotype-defining variables 的 missingness、plausibility、semantic field checks 和 claim impact 必须进入 table 或 supplement；
-- site/trajectory robustness：如果稿件要有“医学发现感”，优先检查 site-level variation、transition category、calendar-year / threshold / age sensitivity；不要用 p-value pile-up 替代稳健性；
+- site/trajectory robustness：如果稿件要有“医学发现感”，优先检查 site-level variation、transition category、calendar-year / threshold / adult-known-age / age sensitivity；不要用 p-value pile-up 替代稳健性；
 - figure argument：cohort flow、phenotype/gap matrix、transition/site display 和 gap rate/count display 必须服务中心医学论点，rate 和 count 不得混成一个不可解释图；
 - terminology guardrail：没有 guideline-specific eligibility、contraindication、age/eGFR target 和 citation contract 时，不得把 recorded gap 写成 guideline nonadherence；优先用 recorded medication-coverage gap、treatment-review signal、burden-medication discordance。
 
