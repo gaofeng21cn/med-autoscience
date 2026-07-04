@@ -995,6 +995,8 @@ def _closeout_lacks_current_candidate_binding(
     expected = _idempotency_refs(carrier)
     if not expected:
         return False
+    if _closeout_binds_exact_route_identity(closeout=closeout, carrier=carrier):
+        return False
     observed = _idempotency_refs(closeout)
     observed.update(_idempotency_refs(_mapping(closeout.get("opl_transition_receipt"))))
     if observed:
@@ -1039,6 +1041,33 @@ def _candidate_ref_matches_expected(
         candidate_ref in expected_ref or expected_ref in candidate_ref
         for expected_ref in expected_refs
     )
+
+def _closeout_binds_exact_route_identity(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    expected_transaction_ref = _text(carrier.get("paper_mission_transaction_ref"))
+    if expected_transaction_ref is None:
+        return False
+    closeout_transaction_ref = _text(closeout.get("paper_mission_transaction_ref"))
+    if closeout_transaction_ref == expected_transaction_ref:
+        return True
+    expected_stage_ref = _text(carrier.get("stage_terminal_decision_ref"))
+    if expected_stage_ref is not None and _text(closeout.get("stage_packet_ref")) == expected_stage_ref:
+        return True
+    expected_route_ref = _text(carrier.get("opl_route_command_ref"))
+    closeout_refs = {
+        ref
+        for ref in (
+            _text(closeout.get("stage_packet_ref")),
+            _text(closeout.get("opl_route_command_ref")),
+            _text(closeout.get("route_command_ref")),
+            *_text_list(closeout.get("closeout_refs")),
+        )
+        if ref is not None
+    }
+    return expected_route_ref is not None and expected_route_ref in closeout_refs
 
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)
