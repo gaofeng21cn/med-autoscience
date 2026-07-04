@@ -474,3 +474,30 @@ def test_blocker_taxonomy_keeps_submission_authority_separate_from_mirror_sync()
     assert classes["route_back_checkpoint"] == [
         "paper_mission_stage_route_domain_gate_pending"
     ]
+
+
+def test_delivery_known_blockers_block_owner_receipt_when_current_package_cannot_submit() -> None:
+    decision = terminalize_stage_closure(
+        study_id="002-dm-china-us-mortality-attribution",
+        stage_id="publication_supervision",
+        work_unit_id="submission_milestone_candidate::followthrough::followthrough-02",
+        work_unit_fingerprint="dm002-current-package-authority",
+        gate_replay={"gate_replay_status": "blocked"},
+        delivery_readback={
+            "package_kind": "submission_ready_package",
+            "can_submit": False,
+            "quality_gate_status": "blocked",
+            "freshness": "current",
+            "generated_from_current_source": True,
+            "root": "/tmp/current-package",
+            "zip_exists": True,
+            "known_blockers": ["authority_snapshot_missing"],
+        },
+    )
+
+    assert decision["known_blockers"] == ["authority_snapshot_missing"]
+    assert decision["blocker_taxonomy"]["submission_authority"] == [
+        "authority_snapshot_missing"
+    ]
+    assert decision["outcome"]["kind"] == "human_gate"
+    assert decision["outcome"]["gate_type"] == "submission_authority_required"

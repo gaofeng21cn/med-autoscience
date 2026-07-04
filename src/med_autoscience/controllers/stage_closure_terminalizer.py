@@ -672,6 +672,7 @@ def _blockers_from_gate(gate: Mapping[str, Any]) -> list[str]:
 
 def _blockers_from_delivery(delivery: Mapping[str, Any]) -> list[str]:
     blockers: list[str | None] = [
+        *_texts(delivery.get("known_blockers")),
         *_texts(delivery.get("blockers")),
         *_texts(delivery.get("blocked_reasons")),
         _text(delivery.get("blocked_reason")),
