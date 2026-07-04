@@ -5,6 +5,26 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+CORE_SCHOLAR_SKILL_MODULES = {
+    "display",
+    "tables",
+    "stats",
+    "lit",
+    "write",
+    "review",
+    "submit",
+    "data",
+}
+
+ALL_STAGE_PROMPTS = (
+    "agent/prompts/direction_and_route_selection.md",
+    "agent/prompts/baseline_and_evidence_setup.md",
+    "agent/prompts/bounded_analysis_campaign.md",
+    "agent/prompts/manuscript_authoring.md",
+    "agent/prompts/review_and_quality_gate.md",
+    "agent/prompts/finalize_and_publication_handoff.md",
+)
+
 PROMPT_REQUIREMENTS = {
     "agent/prompts/bounded_analysis_campaign.md": {
         "max_lines": 95,
@@ -105,6 +125,40 @@ def test_stage_prompts_remain_thin_and_route_to_specialist_skills() -> None:
         assert "owner gate" in text.lower(), repo_path
         for route in expectation["routes"]:
             assert route in text, f"{repo_path} missing {route}"
+
+
+def test_stage_prompts_prefer_core_scholar_skills_before_external_discovery() -> None:
+    for repo_path in ALL_STAGE_PROMPTS:
+        text = _read(repo_path)
+
+        assert "eight `mas-scholar-skills` professional Skills" in text, repo_path
+        for module in CORE_SCHOLAR_SKILL_MODULES:
+            assert f"`{module}`" in text, f"{repo_path} missing core module {module}"
+        assert "`external-scientific-skills`" in text, repo_path
+        assert "uncovered specialist gap" in text, repo_path
+        assert "single-skill `search -> inspect -> sync`" in text, repo_path
+        assert "bulk-load is forbidden" in text, repo_path
+        assert "cannot become MAS authority" in text, repo_path
+
+
+def test_external_scientific_skills_is_thin_single_skill_router() -> None:
+    text = _read(
+        "src/med_autoscience/overlay/templates/medical-research-external-scientific-skills.SKILL.md"
+    )
+
+    assert len(text.splitlines()) <= 60
+    assert "eight core `mas-scholar-skills` modules" in text
+    for module in CORE_SCHOLAR_SKILL_MODULES:
+        assert f"`{module}`" in text
+    assert "single-skill" in text
+    assert "opl connect external-skills search --query <specialist-gap> --json" in text
+    assert "opl connect external-skills inspect --skill <skill-id> --json" in text
+    assert "opl connect external-skills sync --skill <skill-id>" in text
+    assert "Do not preload a domain, library, repository, or full external skill pack" in text
+    assert "`bulk_load_allowed = false`" in text
+    assert "`writes_authority = false`" in text
+    assert "Do not bulk load external skill libraries" in text
+    assert "MAS source of truth" in text
 
 
 def test_stage_prompts_do_not_reembed_old_professional_pack_playbooks() -> None:

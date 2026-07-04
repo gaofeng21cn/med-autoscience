@@ -209,6 +209,10 @@ stage_native_semantic_pack:
   external_science_skill_policy:
     state: core_scholar_skills_first_selective_external_gap_fill
     default_core_skill_source: mas-scholar-skills
+    codex_discovery_entry_skill_id: external-scientific-skills
+    single_skill_only: true
+    bulk_load_allowed: false
+    writes_authority: false
     default_core_skill_modules:
       - mas-scholar-skills.display
       - mas-scholar-skills.tables

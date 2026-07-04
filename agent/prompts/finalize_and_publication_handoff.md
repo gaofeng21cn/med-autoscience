@@ -45,14 +45,14 @@ outputs as refs-only candidates until MAS owner gate accepts them:
 
 ## External Specialist Skill Policy
 
-Default to the eight `mas-scholar-skills` professional Skills for ordinary
-medical-paper work. When that is insufficient, use the Codex discovery helper
-`external-scientific-skills` and OPL Connect external-skills only through
-`search -> inspect -> sync` when the user explicitly names a tool/database, a
-core Skill route-back names an uncovered specialist gap, stage policy judges the
-core eight insufficient for the current delta, or network/cloud/sensitive data
-access needs policy or approval. External specialist outputs are refs-only
-candidates; K-Dense or any external library cannot become MAS authority.
+Default to the eight `mas-scholar-skills` professional Skills (`display`, `tables`,
+`stats`, `lit`, `write`, `review`, `submit`, `data`) for ordinary medical-paper
+work. Use `external-scientific-skills` / OPL Connect only for a named or
+policy-detected uncovered specialist gap: explicit user tool/database/runtime,
+core Skill route-back, stage policy finding core eight cannot cover current
+delta, or network/cloud/sensitive-data/credential approval. The only allowed
+sequence is single-skill `search -> inspect -> sync`; bulk-load is forbidden.
+External specialist outputs are refs-only candidates; K-Dense or any external library cannot become MAS authority.
 
 ## MAS Stage Responsibilities
 
