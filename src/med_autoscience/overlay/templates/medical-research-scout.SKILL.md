@@ -1,588 +1,111 @@
 ---
 name: scout
-description: Use when a quest needs problem framing, literature scouting, dataset or metric clarification, or baseline discovery before deeper work.
+description: MAS scout stage projection for framing, source readiness, baseline-neighborhood routing, and owner-boundary handoff.
 ---
 
-# Scout
+# Scout Stage Operating Prompt
 
-Use this skill when the quest does not yet have a stable research frame.
+Use this stage prompt when MAS routes the current work unit to `scout`.
 
-## Interaction discipline
+## MAS Stage Projection Boundary (not Professional Skill source)
 
-- Follow the shared interaction contract injected by the system prompt.
-- For ordinary active work, prefer a concise progress update once work has crossed roughly 6 tool calls with a human-meaningful delta, and do not drift beyond roughly 12 tool calls or about 8 minutes without a user-visible update.
-- Message templates are references only. Adapt to the actual context and vary wording so updates feel natural and non-robotic.
-- If a threaded user reply arrives, interpret it relative to the latest scout progress update before assuming the task changed completely.
-- When scouting actually resolves the framing ambiguity, locks the evaluation contract, or makes the next anchor obvious, send one richer `artifact.interact(kind='milestone', reply_mode='threaded', ...)` update that says what is now clear, why it matters, and which stage should come next.
-
-## Stage purpose
-
-The scout stage exists to answer the smallest set of framing questions required to make the rest of the quest efficient:
-
-- what exact task is being solved?
-- which dataset, split, and metric contract matter?
-- which papers, repos, and baselines define the local neighborhood?
-- which unknowns still block baseline or ideation?
-
-This stage is not generic browsing.
-It is a bounded framing and discovery stage that should quickly make the next anchor obvious.
-
-The scout stage should usually establish four layers:
-
-- task-definition layer
-- evaluation-contract layer
-- literature and repo neighborhood layer
-- baseline-direction layer
-
-If one of these layers is still missing, say so explicitly.
-
-## Stage contract
-
-- Purpose: lock framing and name the next honest route.
-- Minimum credible work: durably lock task and evaluation contract, record the local reference and baseline neighborhood, and name either the next route or the blocking unknown.
-- Stop when: the next route is obvious and recorded, or the remaining blockers are explicit enough for downstream routing.
-- Route back: if baseline readiness is still unclear, route to `baseline`; if the framing still cannot support an honest next move, route through `decision`.
-
-{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
-
-{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
+This file is the MAS-owned stage/runtime projection for Codex discovery. It is
+not the Professional Skill source for literature review, dataset governance,
+statistics, writing, or submission methods. It decides what framing evidence is
+needed, what can route forward, what must route back, and which MAS owner
+surface must accept the result. Route professional method work through
+`contracts/capability_map.json` to MAS Scholar Skills.
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 
-## Research Harness clean-room boundary
-
-Research Harness is only a clean-room template lesson for this skill.
-It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
-Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
-
-## Source, provider, and citation readiness
-
-Before routing out of `scout`, record readiness for three surfaces:
-
-- `source_readiness`: the task frame, dataset or cohort source, metric contract, closest papers, official repos, and public sidecars are traced to primary or durable local sources, or the missing source class is named as a blocker.
-- `provider_provenance`: each retained source notes whether it came from user material, MAS durable artifacts, primary papers, official docs or repos, public registries, community notes, or open-web discovery; secondary providers can aid discovery but cannot become provenance authority.
-- `citation_readiness`: every citation candidate promoted beyond watchlist status has an identifier when available, a resolvable URL or DOI/arXiv/publisher source, the claim or route it supports, and a retained / rejected / watchlist status.
-
-If source readiness, provider provenance, or citation readiness is insufficient for a downstream baseline, idea, or writing claim, treat that as a scout blocker and record the blocked route explicitly.
-
-## Non-negotiable rules
-
-- Do not let `scout` become endless exploration.
-- Do not keep searching once the next anchor is already clear.
-- Do not guess the metric, split, or baseline identity when local evidence is still ambiguous.
-- Do not offload ordinary literature triage, dataset scouting, metadata gathering, or baseline neighborhood mapping to the human.
-  In this runtime, `scout` is normally agent-executed work; only escalate to the human when strategic constraints, unavailable private context, or explicit user preference really change the route.
-- Do not ask the user ordinary technical questions before checking local evidence first.
-- Do not force a baseline route without comparing attach, import, and reproduce options.
-- Do not rely on memory alone when primary sources or durable quest files exist.
-- Before broad external search, check quest/global memory first with `memory.list_recent(...)` and `memory.search(...)`.
-- When search tools are available, actively use them.
-  Prefer web search for paper discovery, usually targeting arXiv first, then expand with benchmark docs, official repos, and broader web search for provenance.
-- For scout-first or paper-bound routes, default to one proactive public-data discovery pass even when the user did not explicitly ask for it, unless the study contract explicitly waives public sidecars.
-  Write every retain / reject decision back into the public registry through `apply-data-asset-update`.
-  Keep large retained public datasets remote-only until there is an explicit study use case, storage budget, and reuse/prune plan; metadata and accessions are enough for route locking.
-- When a specific arXiv paper must be read or summarized, use `artifact.arxiv(paper_id=..., full_text=False)` instead of defaulting to a raw PDF.
-  Keep discovery in web search; use `artifact.arxiv(...)` only for actual paper reading, and set `full_text=True` only when needed.
-- Avoid repeating the same wide search from scratch.
-  Reuse prior survey notes and search only for genuinely missing, newer, or unresolved references.
-- Do not write long paper summaries that do not change the next stage.
-- Search for disconfirming evidence, not only supportive evidence.
-- If the apparent gap is already closed by straightforward scaling, standard engineering, or a strong recent paper, say so directly instead of inflating novelty.
-
-## Use when
-
-- the user goal is still ambiguous
-- the dataset or split contract is unclear
-- the primary metric is unclear
-- no trustworthy baseline has been identified
-- the paper or repo neighborhood is still thin
-- the quest was resumed after a long pause and framing needs reconstruction
-- the next stage is blocked by ambiguity rather than by implementation
-
-## Do not use when
-
-- the user already fixed the paper, baseline, dataset, metric contract, and scope
-- the quest already has a validated baseline and is ready for ideation or execution
-- the real blocker is execution or verification rather than framing
-
-## Preconditions and gate
-
-Before spending time scouting, first verify whether the current quest already contains enough framing in:
-
-- `brief.md`
-- `plan.md`
-- `status.md`
-- `SUMMARY.md`
-- baseline artifacts
-- recent paper or knowledge memory cards
-
-If the answer is already clear, exit quickly and move to the correct next anchor.
+{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
 
 {{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
-## Companion skill rule
-
-`scout` is the framing anchor.
-It often prepares for `baseline`.
-
-In practice:
-
-- use `scout` to determine the task frame, evaluation contract, paper neighborhood, and candidate baselines
-- use `baseline` once a concrete baseline route is justified
-
-Do not stay in `scout` once the next `baseline` route is obvious enough to record durably.
-
-## Truth sources
-
-Prefer the following sources in order:
-
-1. user-provided task description and explicit constraints
-2. durable quest files and artifacts
-3. codebase and repository docs
-4. primary papers, official repos, and benchmark docs
-5. existing reusable baselines and quest/global memory
-6. web-search results, often including arXiv and adjacent sources, used to fill gaps, verify provenance, or update recency
-
-Do not let the scout stage rest on vague recollection alone.
-
-## Required durable outputs
-
-The scout stage should usually leave behind:
-
-- an updated `brief.md`
-- an updated `plan.md`
-- optional `status.md` refresh if the quest state changed
-- a literature scouting report when external search was needed
-- `memory` cards for key references or framing notes
-- a report or decision artifact that points to the next anchor
-
-These artifacts are part of the human-auditable surface.
-Do not leave the scout result only in transient chat or expect the human to reconstruct the framing state from raw search output.
-
-Recommended durable scout files:
-
-- `artifacts/scout/literature_scout.md`
-- `artifacts/scout/framing_report.md`
-- `artifacts/scout/eval_contract.md`
-- `artifacts/scout/baseline_shortlist.md`
-- `artifacts/scout/journal_shortlist.md` when venue targeting affects paper framing
-
-If paper framing depends on likely target venues, do not jump directly to `resolve-submission-targets` or `journal-resolution`.
-
-In that situation, first resolve the evidence-backed journal shortlist:
-
-- use `resolve-journal-shortlist` when the study already carries shortlist evidence in durable state
-- otherwise scout and write the shortlist evidence back into durable study artifacts before treating venue targeting as settled
-
-Treat venue selection and submission-target resolution as different tasks:
-
-- venue selection asks where this paper is realistically publishable
-- submission target resolution asks how to format a package for a journal that was already chosen
-
-For more explicit output shapes, read:
-
-- `references/paper-triage-playbook.md`
-- `references/literature-scout-template.md`
-- `references/eval-contract-template.md`
-- `references/baseline-shortlist-template.md`
-
-## Thinking protocol
-
-Scout should be:
-
-- conclusion-first
-- bounded
-- evidence-first
-- oriented toward the next stage
-
-Use a simple reasoning order:
-
-1. what is already known?
-2. what is still ambiguous?
-3. which ambiguity actually changes later stages?
-4. what is the cheapest way to resolve it?
-5. which next anchor becomes justified after that?
-
-Do not dump disconnected facts.
-Turn them into a framing decision.
-
-## Workflow
-
-### 1. Reconstruct the current frame
-
-Summarize:
-
-- current task
-- current dataset and split understanding
-- current metric contract
-- current baseline status
-- current blockers
-
-If this can already be stated precisely, scouting may be complete immediately.
-
-### 2. Identify the minimum unknowns
-
-List only the unknowns that materially affect later stages, such as:
-
-- unclear evaluation metric
-- multiple conflicting dataset splits
-- missing baseline candidate
-- unclear repo or paper provenance
-- missing source paper for a claimed baseline
-
-Avoid collecting "nice to know" facts that do not change the next stage.
-
-Also classify each unknown:
-
-- blocks `baseline`
-- blocks `idea`
-- blocks both
-- useful but non-blocking
-- blocks venue selection
-
-### 2.1 Reuse durable memory before external search
-
-Before opening the web, check what the quest already knows.
-
-At minimum:
-
-- inspect `memory/portfolio/research_memory/registry.yaml` and linked assets when the workspace already has cross-study research memory
-- inspect `memory/portfolio/research_memory/topic_landscape.md` before re-deriving disease hot directions
-- inspect `memory/portfolio/research_memory/dataset_question_map.md` before proposing new study directions from the same core data
-- inspect `memory/portfolio/research_memory/venue_intelligence.md` before re-deriving journal neighborhoods or target-journal bands
-- inspect recent quest `papers`, `knowledge`, and `decisions`
-- inspect recent global `papers`, `knowledge`, and `templates` when the topic or benchmark looks reusable
-- run `memory.search(...)` over:
-  - task name
-  - dataset or benchmark
-  - metric or split keywords
-  - likely baseline names
-  - mechanism or failure-mode keywords
-
-Then classify the current state:
-
-- already covered well
-- stale and needs refresh
-- still missing
-
-If the frame is still missing broader disease-topic or venue-neighborhood context after local memory reuse, you may use the managed optional enrichment surface:
-
-- use `prepare-external-research` to scaffold a workspace-level Deep Research prompt under `memory/portfolio/research_memory/prompts/`
-- treat external AI research as optional enrichment, not as a required gate before the study can continue
-- store raw external AI returns under `memory/portfolio/research_memory/external_reports/YYYY-MM-DD-topic-opportunity-scout-<provider>.md`
-- write stable cross-study conclusions back into `topic_landscape.md`, `dataset_question_map.md`, and `venue_intelligence.md`
-
-If the frame is already explicit after memory reuse, stop and record the next anchor.
-Do not open a fresh broad search just because scouting feels unfinished.
-
-### 3. Search the paper and repo neighborhood
-
-Build a compact but sufficient neighborhood of references and implementations.
-
-Use external search actively when local evidence is not enough.
-When available, prefer:
-
-1. OPL Connect PubMed for biomedical literature, guidelines, primary-source, PMID, DOI, or citation-repair discovery:
-   `opl connect pubmed search --query <query> --limit <n> --json`
-2. the external `medical-research-lit` specialist when the quest needs a broader literature-library pass
-3. web search targeting arXiv for paper discovery outside PubMed-covered biomedical literature
-4. official benchmark docs and official repos for evaluation truth
-5. broader web search for provenance checks, follow-up work, and comparison context
-
-The MAS `scout` skill is the trigger and evidence-judgment owner. These literature tools return candidates, not scout authority. Treat returned normalized refs as citation candidates for MAS source readiness, provider provenance, citation readiness, framing impact, and next-anchor judgment. If the connector is unavailable, record a route-back or `connector_gap` with the attempted query and missing connector surface; do not fabricate papers, PMIDs, DOIs, guidelines, or source metadata.
-
-For papers that survive triage and need real reading, switch from discovery to reading:
-
-- use web search to find the paper
-- then use `artifact.arxiv(paper_id=..., full_text=False)` to read or summarize it
-- only switch to `full_text=True` or the raw PDF when the shorter view does not cover the needed detail
-
-Search buckets should include:
-
-- same task, same dataset, same metric
-- same task, same mechanism
-- same task, same failure mode
-- strongest recent competitors
-- papers or repos that may have already solved the claimed gap
-- official benchmark or evaluation documentation
-- official or de facto reference repos
-
-Use a layered search ladder:
-
-1. direct neighborhood:
-   - same task
-   - same dataset
-   - same metric
-2. mechanism neighborhood:
-   - same main lever or architectural trick
-   - same objective or loss family
-3. bottleneck neighborhood:
-   - papers or repos attacking the same failure mode
-   - papers exposing the same evaluation caveat
-4. adjacent inspiration neighborhood when useful:
-   - nearby tasks or domains that attack the same structural bottleneck
-
-Prefer recent papers more heavily when the area is moving quickly, but keep older anchor papers when they define the true baseline landscape.
-
-Keep a compact scouting ledger while searching.
-For each meaningful search pass, record:
-
-- query text
-- source, such as `memory`, `arXiv`, benchmark docs, repo search, or open web
-- why the query was issued
-- what new references were added
-- what prior references were re-confirmed
-- which ambiguity is still unresolved
-
-For each retained reference, record:
-
-- identifier or title
-- why it matters
-- whether it mainly informs:
-  - task framing
-  - evaluation contract
-  - baseline choice
-  - later ideation
-
-Also keep the retained set legible by classifying papers into:
-
-- closest competitors
-- adjacent inspirations
-- problem-defining anchors
-- maybe-already-solved references
-
-If you used external search, write a literature scouting report before ending the stage.
-Prefer the structure in `references/literature-scout-template.md`.
-
-Use `references/paper-triage-playbook.md` for a more detailed search and triage method.
-
-### 4. Clarify the evaluation contract
-
-Produce an explicit statement of:
-
-- task
-- dataset
-- split or evaluation partition
-- primary metric
-- secondary metrics if necessary
-- what counts as a useful improvement
-- what comparisons will be considered fair
-
-The evaluation contract should be strong enough that later `baseline`, `idea`, and `experiment` work do not need to keep re-deriving it.
-
-If the evaluation contract is still ambiguous after local analysis, record the ambiguity and recommended route durably, then return control to MAS outer loop instead of asking the user directly from scout.
-
-Use `references/eval-contract-template.md` when writing the contract durably.
-
-### 5. Produce a baseline shortlist
-
-End scouting with a clear baseline direction.
-
-For each serious candidate, score at least:
-
-- trustworthiness of provenance
-- metric and split compatibility
-- implementation availability
-- environment and dependency risk
-- reproduction or import cost
-- value as a downstream comparison reference
-
-Each candidate should lead to one recommended route:
-
-- attach an existing baseline
-- import a reusable baseline package
-- reproduce a baseline from source
-- reject this candidate
-
-For each serious candidate, also state:
-
-- whether it is a direct baseline, a strong competitor, or only an adjacent reference
-- whether the repo path or paper evidence is strong enough to trust the route
-- the cheapest credible next action: attach, import, reproduce, or reject
-
-Use `references/baseline-shortlist-template.md` for a structured shortlist.
-
-### 6. Recommend the next anchor
-
-Do not stop with a list of possibilities.
-Choose the most justified next anchor:
-
-- `baseline`
-- `idea`
-- remain in `scout`
-
-`idea` is only justified when the baseline is already durable and trustworthy enough.
-If no usable baseline exists, prefer `baseline`.
-
-### 7. Update quest continuity
-
-If the frame changed, update:
-
-- `brief.md`
-- `plan.md`
-- `status.md`
-
-Then record a durable report or decision showing the recommended next anchor.
-
-### 8. Stop on clarity, not exhaustion
-
-The stage is done when the framing is decision-ready, not when every curiosity is satisfied.
-
-Stop once all of the following are true:
-
-- the task frame is explicit enough
-- the evaluation contract is explicit enough
-- the baseline direction is justified enough
-- the next anchor is durable and obvious
-
-## Search stop rules
-
-Stop literature and repo search when:
-
-- the strongest obvious local neighbors are mapped
-- the evaluation contract no longer depends on unknown sources
-- at least one baseline route is clearly better than the alternatives
-- additional papers are no longer changing the next action
-
-Continue searching only if:
-
-- metric or split ambiguity remains
-- the current shortlist is too weak or conflicting
-- provenance of the likely baseline is still uncertain
-
-Do not continue searching just to collect more papers after the next anchor is already clear.
-
-## Memory rules
-
-Stage-start requirement:
-
-- begin every scout pass with `memory.list_recent(scope='quest', limit=5)`
-- then run at least one scout-relevant `memory.search(...)` before broad new search
-- if several idea or baseline lines already exist, narrow retrieval to the current line instead of mixing unrelated memory casually
-
-Write durable memory only when it is reusable later.
-
-Preferred memory usage:
-
-- quest `papers`:
-  - literature scouting summaries
-  - paper cards
-  - benchmark notes
-  - official-doc references
-  - repo provenance notes
-- quest `knowledge`:
-  - dataset quirks
-  - metric-contract notes
-  - split caveats
-  - bounded framing lessons for this quest
-- quest `decisions`:
-  - why a baseline route was preferred
-  - why a conflicting evaluation interpretation was rejected
-- global `knowledge`:
-  - reusable benchmark caveats
-  - general scouting heuristics
-- global `templates`:
-  - paper-card templates
-  - eval-contract templates
-  - shortlist templates
-
-Useful tags include:
-
-- `stage:scout`
-- `type:literature-scout`
-- `type:related-work`
-- `type:benchmark-note`
-- `type:metric-contract`
-- `type:baseline-shortlist`
-- `topic:<task-or-dataset>`
-
-When calling `memory.write(...)`, pass `tags` as an array like `["stage:scout", "type:related-work", "topic:<task-or-dataset>"]`, not as one comma-joined string.
-
-Recommended read timing:
-
-- before any new web search:
-  - run `memory.search(...)` over task, benchmark, metric, split, and likely baselines
-- at scout start:
-  - read recent quest `papers`, `knowledge`, and `decisions`
-- before baseline recommendation:
-  - re-check quest `decisions` and shortlist-related notes
-- after a long pause:
-  - warm-start from quest `papers` and `knowledge` before re-searching
-
-Stage-end requirement:
-
-- if scouting produced a durable framing conclusion, paper note, shortlist lesson, or metric-contract caveat, write at least one `memory.write(...)` before leaving the stage
-
-When writing quest `papers` cards, include enough metadata to reduce repeated scouting later:
-
-- title
-- identifier or arXiv id when available
-- URL
-- year
-- task / dataset / metric relevance
-- baseline relevance or provenance relevance
-- whether the source is official, community, or uncertain
-- whether it is `new_this_pass`, `known_before`, or `watchlist`
-
-At least one durable piece of the scouting survey should be written into quest memory whenever external search materially shaped the framing or baseline shortlist.
-
-Prefer concise, high-signal notes over long prose dumps.
-
-## Artifact rules
-
-Preferred artifact usage:
-
-- use `report` for:
-  - literature scouting synthesis
-  - framing synthesis
-  - evaluation contract
-  - baseline shortlist
-- use `decision` for:
-  - next-anchor recommendation
-  - blocked-state routing
-  - controller-visible ambiguity records when evidence cannot resolve the route
-- use `milestone` when the scout stage reached a clear framing checkpoint
-- use `approval` only if the user explicitly confirms a preference-sensitive route
-
-Use `artifact.interact(...)` as a structured blocking request only when the missing input is an external secret or credential that MAS cannot infer or act on.
-
-Do not close a scout stage that depended on external literature search without a durable `report`.
-
-## Blocked-state handling
-
-Record a blocked state if scouting cannot proceed because:
-
-- the quest objective is materially ambiguous
-- the required code or paper source is missing
-- multiple evaluation contracts conflict and the choice would change later conclusions
-- all baseline candidates are too weak, broken, or poorly specified
-
-A blocked scout result should state:
-
-- what is missing
-- why it matters
-- which next anchor is blocked
-- what concrete user choice or source is needed
-
-Do not hide a blocked scout stage behind generic literature chatter.
-
-## Exit criteria
-
-Exit the scout stage once all of the following are true:
-
-- the task frame is explicit
-- the evaluation contract is explicit
-- at least one baseline direction is justified
-- the next anchor is obvious enough to record durably
-
-If the stage relied on external search, the literature scouting report must also be durable before exit.
-
-Typical next anchors:
-
-- `baseline`
-- `idea`
-- remain in `scout` only if the remaining blocker is explicit and durable
-
-{{MED_AUTOSCIENCE_ROUTE_BIAS}}
-
-{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
+## Stage Contract
+
+Before routing out of `scout`, confirm:
+
+- active study/work-unit identity and current controller route;
+- task frame, cohort or dataset source, split, metric, and comparator scope;
+- closest paper, guideline, registry, dataset, benchmark, and repo refs;
+- source/provider/citation readiness for refs promoted beyond watchlist;
+- baseline-neighborhood direction, including attach/import/reproduce/reject;
+- the next legal owner: `baseline`, `idea`, `decision`, or a named route-back.
+
+## Professional Skill Routes
+
+Use MAS Scholar Skills only as refs-only professional support:
+
+- `medical-research-lit` for literature, citation, guideline, and PubMed/source
+  candidate refs.
+- `medical-data-governance` for cohort/source lineage, access, privacy,
+  registry, public-sidecar, and data-readiness candidates.
+- `medical-statistical-review` for metric, split, estimand, comparator, and
+  baseline-evaluation-contract candidates.
+- `medical-manuscript-review` only when the framing question is driven by an
+  existing draft or reviewer critique.
+- `medical-submission-prep` only when venue constraints affect the framing or
+  journal-shortlist route.
+
+If the eight core MAS Scholar Skills do not cover a named specialist gap, use
+the external specialist policy in `contracts/capability_map.json`; search,
+inspect, and sync a single skill only. External and ScholarSkills outputs remain
+candidate refs until MAS owner evidence accepts them.
+
+## Scout Responsibilities
+
+- Lock the smallest honest framing contract: task, source, metric, split,
+  comparator, and baseline-neighborhood direction.
+- Keep scouting bounded; stop when the next anchor is clear or the blocker is
+  explicit.
+- Preserve retained/rejected/watchlist status for material sources.
+- Distinguish source-readiness, provider provenance, and citation-readiness
+  gaps from downstream baseline or idea work.
+- Prefer durable quest/state refs over memory-only recollection; use external
+  discovery only to close a real framing gap.
+
+## Forbidden Shortcuts
+
+- Do not turn generic browsing, paper summaries, or memory recall into scout
+  authority.
+- Do not guess dataset, split, metric, citation, or baseline identity when local
+  evidence is ambiguous.
+- Do not create MAS domain truth, owner receipts, typed blockers, human gates,
+  publication verdicts, current-package authority, runtime queues, or provider
+  attempts from this prompt.
+- Do not let ScholarSkills, OMA, or external specialist outputs close the MAS
+  owner loop.
+
+## Route-Back and Blocker Shape
+
+When scouting cannot route forward, return the smallest explicit blocker:
+
+- missing or conflicting task frame;
+- missing cohort/source/readiness ref;
+- unresolved metric/split/comparator contract;
+- missing or weak baseline provenance;
+- insufficient citation/source provenance for downstream claims;
+- specialist gap requiring a named refs-only route.
+
+Each blocker must name the missing ref class, why it changes downstream routing,
+the next legal owner, and the validation method.
+
+## Closeout Shape
+
+Return one of:
+
+- `scout_framing_report_ref`;
+- `eval_contract_candidate_ref`;
+- `source_readiness_route_back_ref`;
+- `baseline_neighborhood_ref`;
+- `citation_or_literature_route_ref`;
+- `owner_gate_handoff_ref`;
+- `human_gate_request_ref` when a real human decision is required.
+
+## Continuation Handoff
+
+Route to `baseline` when a baseline attach/import/reproduce decision is the next
+honest move. Route to `idea` only when the framing and baseline direction are
+already durable enough for direction selection. Route to `decision` when the
+remaining ambiguity is a stop/branch/reset or preference-sensitive route choice.
