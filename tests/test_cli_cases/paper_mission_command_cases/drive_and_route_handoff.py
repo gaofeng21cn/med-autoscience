@@ -954,6 +954,66 @@ def test_paper_mission_inspect_projects_domain_transition_running_attempt(
     assert readback["authority_boundary"]["writes_paper_body"] is False
 
 
+def test_paper_mission_inspect_projects_ai_reviewer_direct_stage_attempt(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "action_id": "next-action-ai-reviewer",
+        "study_id": study_id,
+        "stage_id": "review",
+        "outcome_ref": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+        "action_family": "paper.review.ai_reviewer",
+        "action_kind": "owner_review",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+    }
+
+    readback = materialized_readback._domain_transition_direct_next_action_runtime_readback(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::paper_mission_import::one-shot-migration",
+        },
+        next_action=next_action,
+        canonical_next_action_source="domain_transition.next_action",
+        enable_opl_live_probe=False,
+        opl_bin=tmp_path / "missing-opl",
+    )
+
+    assert readback["transaction_state"] == "domain_transition_direct_stage_attempt"
+    assert readback["opl_runtime_carrier"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert readback["opl_runtime_carrier"]["work_unit_fingerprint"].endswith(
+        "::source::fresh"
+    )
+    assert readback["opl_runtime_readback_status"] == (
+        "waiting_for_opl_runtime_live_readback"
+    )
+
+
 def test_paper_mission_drive_can_submit_opl_stage_route_via_public_enqueue(
     tmp_path: Path,
     capsys,

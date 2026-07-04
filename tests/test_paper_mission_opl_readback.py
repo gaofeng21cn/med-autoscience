@@ -175,6 +175,80 @@ def test_opl_terminal_closeout_readback_accepts_current_route_target_closeout(
     assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
 
 
+def test_opl_terminal_closeout_readback_accepts_workspace_stage_attempt_closeout_without_fingerprint(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current"
+    )
+    closeout_root.mkdir(parents=True)
+    (closeout_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "study_id": study_id,
+                "stage_id": "review",
+                "stage_attempt_id": "sat-current",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "route_impact": {
+                    "route_target": "review",
+                    "recommended_next_owner": "MedAutoScience mission executor",
+                    "recommended_next_action": "consume_route_back_evidence_ref",
+                    "paper_progress_claim_allowed": False,
+                },
+                "authority_boundary": {
+                    "writes_authority": False,
+                    "writes_runtime": False,
+                    "writes_yang_authority": False,
+                    "writes_current_package": False,
+                    "writes_publication_eval": False,
+                    "writes_controller_decision": False,
+                    "writes_owner_receipt": False,
+                    "writes_typed_blocker": False,
+                    "writes_human_gate": False,
+                    "writes_runtime_queue_or_provider_attempt": False,
+                    "can_claim_paper_progress": False,
+                    "can_claim_submission_ready": False,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    carrier = {
+        "study_id": study_id,
+        "command_kind": "resume_stage",
+        "route_target": "review",
+        "opl_route_command": {"command_kind": "resume_stage", "target": "review"},
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+    }
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-current"
+    assert readback["terminal_closeout"]["closeout_ref"] == (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-current/"
+        "stage_attempt_closeout_packet.json"
+    )
+
+
 def test_opl_terminal_closeout_readback_rejects_unbound_local_closeout_for_route_identity(
     tmp_path: Path,
 ) -> None:

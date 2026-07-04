@@ -50,24 +50,34 @@ def matching_terminal_closeout(
             closeout_root = workspace_root / root_ref
             if not closeout_root.is_dir():
                 continue
-            pattern = f"**/{text_value(carrier.get('study_id'))}/stage_attempt_closeout_packet.json"
-            for closeout_path in closeout_root.glob(pattern):
-                closeout = read_json_object(closeout_path)
-                if closeout is None or not matches_carrier(
-                    closeout=closeout,
-                    carrier=carrier,
-                ):
-                    continue
-                matches.append(
-                    (
-                        closeout_path.stat().st_mtime,
-                        closeout,
-                        workspace_relative_ref(
-                            workspace_root=workspace_root,
-                            path=closeout_path,
-                        ),
+            study_id = text_value(carrier.get("study_id"))
+            patterns = [
+                f"**/{study_id}/stage_attempt_closeout_packet.json",
+                "**/stage_attempt_closeout_packet.json",
+            ]
+            seen_paths: set[Path] = set()
+            for pattern in patterns:
+                for closeout_path in closeout_root.glob(pattern):
+                    resolved_path = closeout_path.resolve()
+                    if resolved_path in seen_paths:
+                        continue
+                    seen_paths.add(resolved_path)
+                    closeout = read_json_object(closeout_path)
+                    if closeout is None or not matches_carrier(
+                        closeout=closeout,
+                        carrier=carrier,
+                    ):
+                        continue
+                    matches.append(
+                        (
+                            closeout_path.stat().st_mtime,
+                            closeout,
+                            workspace_relative_ref(
+                                workspace_root=workspace_root,
+                                path=closeout_path,
+                            ),
+                        )
                     )
-                )
     if not matches:
         return None
     _mtime, closeout, closeout_ref = sorted(

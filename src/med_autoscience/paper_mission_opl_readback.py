@@ -55,6 +55,7 @@ CLOSEOUT_RELATIVE_ROOTS = (
 )
 WORKSPACE_CLOSEOUT_RELATIVE_ROOTS = (
     Path("ops/medautoscience/paper_mission_consumption_ledger"),
+    Path("ops/medautoscience/paper_mission_stage_attempts"),
 )
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"
 RUNNING_READBACK_STATUS = "opl_runtime_attempt_running_observed"
@@ -874,13 +875,14 @@ def _matches_carrier(
     if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
         return False
     has_route_identity = _carrier_has_opl_route_identity(carrier)
+    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
     if not has_route_identity or not _closeout_binds_route_identity(
         closeout=closeout,
         carrier=carrier,
     ):
         if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
             return False
-        if _text(closeout.get("work_unit_fingerprint")) != _text(
+        if closeout_fingerprint is not None and closeout_fingerprint != _text(
             carrier.get("work_unit_fingerprint")
         ):
             return False
@@ -900,8 +902,37 @@ def _matches_carrier(
         return False
     if closeout.get("domain_ready_claimed") is True:
         return False
+    return _closeout_is_record_only(closeout)
+
+def _closeout_is_record_only(closeout: Mapping[str, Any]) -> bool:
     boundary = _mapping(closeout.get("authority_boundary"))
-    return boundary.get("record_only_surface") is True
+    if boundary.get("record_only_surface") is False:
+        return False
+    if boundary.get("record_only_surface") is True:
+        return True
+    false_authority_fields = (
+        "writes_authority",
+        "writes_runtime",
+        "writes_yang_authority",
+        "writes_current_package",
+        "writes_publication_eval",
+        "writes_controller_decision",
+        "writes_owner_receipt",
+        "writes_typed_blocker",
+        "writes_human_gate",
+        "writes_runtime_queue_or_provider_attempt",
+    )
+    if not false_authority_fields or not any(field in boundary for field in false_authority_fields):
+        return False
+    if any(boundary.get(field) is not False for field in false_authority_fields if field in boundary):
+        return False
+    false_claim_fields = (
+        "can_claim_paper_progress",
+        "can_claim_submission_ready",
+        "can_claim_publication_ready",
+        "can_claim_current_package",
+    )
+    return not any(boundary.get(field) is True for field in false_claim_fields)
 
 def _closeout_binds_route_identity(
     *,
