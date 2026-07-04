@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-04：Stage closure owner receipt 压制同 work-unit 旧 domain transition
+
+- 决策：`paper-mission inspect` 已读取到当前 stage closure 的 `owner_receipt`，且 outcome 只是 `current_package` / `can_submit=false` 这类非投稿就绪收束时，若旧 `domain_transition.next_action` 仍指向同一 `stage_id` / `work_unit_id`，materialized readback 必须压制该旧 next action，不得再次把同一个已关闭 work unit 投影为下一步。
+- 理由：Obesity paper line 的 AI reviewer work unit 已 terminalize 成 `owner_receipt`，但 materialized readback 在 stage closure 无 next action 时又回放同一 work unit 的旧 `domain_transition.next_action`，导致同一个 AI review action 被重复提交/投影。根因是 stage-closure owner receipt 与 domain-transition fallback 缺少同 identity 抑制规则。
+- 影响：该规则只压制同 stage / 同 work-unit 的旧 transition。不同 work-unit 的真实 successor、`submission_ready_package` / `can_submit=true` 的投稿就绪路径，以及 stage-closure 自身产生的 owner-consumption / delivery-sync next action 不受影响。不得手写 Yang authority、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 paper body。
+
 ## 2026-07-04：Live running projection 不能覆盖同一 StageAttempt 的本地 terminal closeout
 
 - 决策：`paper-mission inspect --request-opl-runtime-readback` 使用 OPL live probe 时，如果队列仍把某个 stage attempt 投影为 running，但 workspace 已存在同一 `stage_attempt_id`、同一 route identity 的 `stage_attempt_closeout_packet.json`，MAS 必须按 terminal closeout 读取，而不是继续投影 running。

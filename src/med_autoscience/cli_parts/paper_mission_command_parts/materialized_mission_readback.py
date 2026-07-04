@@ -301,6 +301,11 @@ def build_materialized_mission_readback_if_available(
             next_action=next_action_override,
             domain_transition_next_action=domain_transition_next_action,
         )
+        and not _stage_closure_suppresses_domain_transition_next_action(
+            stage_closure_decision=stage_closure_decision,
+            next_action=next_action_override,
+            domain_transition_next_action=domain_transition_next_action,
+        )
     ):
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
@@ -691,6 +696,38 @@ def _stage_closure_next_action_should_own_next_action(
         outcome.get("kind") == "next_stage_transition"
         and outcome.get("transition_kind")
         in {"route_back_candidate_checkpoint", "current_package_mirror_sync"}
+    )
+
+
+def _stage_closure_suppresses_domain_transition_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    next_action: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None,
+) -> bool:
+    if _mapping(next_action):
+        return False
+    action = _mapping(domain_transition_next_action)
+    if not action:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if outcome.get("kind") != "owner_receipt":
+        return False
+    if (
+        outcome.get("can_submit") is True
+        and outcome.get("package_kind") == "submission_ready_package"
+    ):
+        return False
+    decision_work_unit = _optional_text(stage_closure_decision.get("work_unit_id"))
+    action_work_unit = _optional_text(action.get("work_unit_id"))
+    if decision_work_unit is None or action_work_unit != decision_work_unit:
+        return False
+    decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
+    action_stage = _optional_text(action.get("stage_id"))
+    return (
+        decision_stage is None
+        or action_stage is None
+        or decision_stage == action_stage
     )
 
 
