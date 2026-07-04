@@ -216,7 +216,7 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
         ),
         (
             "table3_grouped_calibration",
-            "time_to_event_grouped_calibration_table_v1",
+            "time_to_event_grouped_inputs_v1",
             "publication_table_calibration",
         ),
     ],

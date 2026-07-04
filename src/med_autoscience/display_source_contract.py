@@ -42,5 +42,6 @@ TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "phenotype_gap_summary_schema_v1": "phenotype_gap_summary_schema.json",
     "transition_site_support_summary_schema_v1": "transition_site_support_summary_schema.json",
     "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
+    "time_to_event_grouped_inputs_v1": "time_to_event_grouped_inputs.json",
     "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
 }

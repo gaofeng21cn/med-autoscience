@@ -148,7 +148,7 @@ _TABLE3_TIME_TO_EVENT_GROUPED_CALIBRATION_SPEC = TableShellSpec(
     shell_id=_full_id("table3_grouped_calibration"),
     display_name="Time-to-event Grouped Calibration Table",
     paper_family_ids=("B",),
-    input_schema_id="time_to_event_grouped_calibration_table_v1",
+    input_schema_id="time_to_event_grouped_inputs_v1",
     table_qc_profile="publication_table_calibration",
     required_exports=("md",),
 )
