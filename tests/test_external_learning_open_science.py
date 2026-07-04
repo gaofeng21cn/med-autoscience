@@ -31,6 +31,29 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
                 "work_unit_fingerprint": "fp-openscience",
             },
             "refs": {"dispatch_path": "artifacts/supervision/openscience.json"},
+            "artifact_candidates": [
+                {
+                    "artifact_id": "figure-1",
+                    "artifact_ref": "artifacts/candidates/figure-1.png",
+                    "claim_type": "computed",
+                    "source_refs": ["sources/analysis.py"],
+                    "log_refs": ["artifacts/logs/figure-1.json"],
+                    "annotation_refs": ["annotations/reviewer-1.json"],
+                    "source_locator_ref": "src/figures/figure_1.py",
+                    "content_hash": "sha256:figure1",
+                },
+                {
+                    "artifact_id": "table-1",
+                },
+                {
+                    "artifact_id": "figure-2",
+                    "artifact_ref": "artifacts/candidates/figure-2.png",
+                    "claim_type": "parsed",
+                    "source_refs": ["sources/table.csv"],
+                    "log_refs": ["artifacts/logs/figure-2.json"],
+                    "annotation_refs": ["annotations/reviewer-2.json"],
+                },
+            ],
         }
     )
 
@@ -82,6 +105,72 @@ def test_openscience_worker_emits_refs_only_artifact_provenance_candidates() -> 
         "external-learning:openscience_artifact_provenance:"
         "dispatch-openscience-001:native_viewer_watch"
     )
+    assert advisory["claim_type_policy"] == {
+        "allowed_claim_types": ["computed", "parsed", "digitized", "hypothesis"],
+        "unknown_claim_type_warning": "missing_or_invalid_claim_type",
+        "can_authorize_quality_verdict": False,
+    }
+    graph = advisory["artifact_graph_projection"]
+    assert graph["surface_kind"] == "openscience_artifact_graph_refs_projection"
+    assert graph["refs_only"] is True
+    assert graph["node_count"] == 3
+    assert graph["edge_count"] == 6
+    assert graph["can_write_artifact_authority"] is False
+    warnings = {
+        (item["artifact_id"], item["warning_type"])
+        for item in advisory["claim_warning_checks"]
+    }
+    assert warnings == {
+        ("table-1", "missing_claim_type"),
+        ("table-1", "untraced_artifact"),
+        ("table-1", "unsupported_claim"),
+        ("table-1", "missing_log"),
+        ("figure-2", "missing_source_locator_for_regeneration"),
+    }
+    assert advisory["annotation_regeneration_requests"] == [
+        {
+            "surface_kind": "openscience_annotation_regeneration_ref",
+            "artifact_id": "figure-1",
+            "annotation_refs": ["annotations/reviewer-1.json"],
+            "source_locator_ref": "src/figures/figure_1.py",
+            "status": "ready_for_source_regeneration_hint",
+            "refs_only": True,
+            "can_mutate_source": False,
+            "can_write_artifact_body": False,
+        },
+        {
+            "surface_kind": "openscience_annotation_regeneration_ref",
+            "artifact_id": "figure-2",
+            "annotation_refs": ["annotations/reviewer-2.json"],
+            "source_locator_ref": None,
+            "status": "missing_source_locator",
+            "refs_only": True,
+            "can_mutate_source": False,
+            "can_write_artifact_body": False,
+        },
+    ]
+    ledger_pointer = advisory["project_ledger_pointer"]
+    assert ledger_pointer["surface_kind"] == "openscience_project_local_ledger_pointer"
+    assert ledger_pointer["ledger_ref"] == (
+        "external-learning:openscience_artifact_provenance:"
+        "dispatch-openscience-001:project_ledger"
+    )
+    assert ledger_pointer["content_hash_algorithm"] == "sha256:stable-json"
+    assert ledger_pointer["candidate_count"] == 3
+    assert ledger_pointer["proves_owner_acceptance"] is False
+    assert ledger_pointer["proves_artifact_authority"] is False
+    assert advisory["native_viewer_watch_projection"] == {
+        "surface_kind": "openscience_native_viewer_watch_projection",
+        "watch_only": True,
+        "viewer_ref": advisory["native_viewer_watch_ref"],
+        "displayed_artifact_refs": [
+            "artifacts/candidates/figure-1.png",
+            "artifacts/candidates/figure-2.png",
+        ],
+        "can_authorize_visual_quality": False,
+        "can_authorize_source_readiness": False,
+        "can_authorize_publication_readiness": False,
+    }
 
 
 def test_openscience_sidecar_dry_run_is_fail_open_without_dispatch(tmp_path: Path) -> None:

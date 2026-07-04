@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any, Mapping
 
 
@@ -56,6 +58,7 @@ OPENSCIENCE_REF_FAMILIES = (
     "skill_pack_governance_ref",
     "native_viewer_watch_ref",
 )
+OPENSCIENCE_CLAIM_TYPES = ("computed", "parsed", "digitized", "hypothesis")
 
 _ARK_REF_SUFFIXES = {
     "micro_canary_ref": "micro_canary",
@@ -174,6 +177,7 @@ def build_kdense_byok_pattern_advisory(dispatch: Mapping[str, Any] | None) -> di
 def build_openscience_artifact_provenance_advisory(
     dispatch: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
+    dispatch_mapping = _mapping(dispatch)
     context = _dispatch_context(dispatch)
     payload = _base_advisory(
         surface_kind=OPENSCIENCE_SURFACE_KIND,
@@ -193,6 +197,34 @@ def build_openscience_artifact_provenance_advisory(
             dispatch_id=context["candidate_dispatch_id"],
             suffix=_OPENSCIENCE_REF_SUFFIXES[family],
         )
+    artifacts = _openscience_artifacts(dispatch_mapping)
+    payload["claim_type_policy"] = {
+        "allowed_claim_types": list(OPENSCIENCE_CLAIM_TYPES),
+        "unknown_claim_type_warning": "missing_or_invalid_claim_type",
+        "can_authorize_quality_verdict": False,
+    }
+    payload["artifact_graph_projection"] = _artifact_graph_projection(artifacts)
+    payload["claim_warning_checks"] = _claim_warning_checks(artifacts)
+    payload["annotation_regeneration_requests"] = _annotation_regeneration_requests(
+        artifacts
+    )
+    payload["project_ledger_pointer"] = _project_ledger_pointer(
+        dispatch_id=context["candidate_dispatch_id"],
+        artifacts=artifacts,
+    )
+    payload["native_viewer_watch_projection"] = {
+        "surface_kind": "openscience_native_viewer_watch_projection",
+        "watch_only": True,
+        "viewer_ref": payload["native_viewer_watch_ref"],
+        "displayed_artifact_refs": [
+            artifact["artifact_ref"]
+            for artifact in artifacts
+            if artifact.get("artifact_ref")
+        ],
+        "can_authorize_visual_quality": False,
+        "can_authorize_source_readiness": False,
+        "can_authorize_publication_readiness": False,
+    }
     return payload
 
 
@@ -289,12 +321,192 @@ def _candidate_ref(*, framework_id: str, dispatch_id: str, suffix: str) -> str:
     return f"external-learning:{framework_id}:{dispatch_id}:{suffix}"
 
 
+def _openscience_artifacts(dispatch: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw = dispatch.get("artifact_candidates")
+    if raw is None:
+        raw = _mapping(dispatch.get("refs")).get("artifact_candidates")
+    if not isinstance(raw, list):
+        return []
+    artifacts: list[dict[str, Any]] = []
+    for index, item in enumerate(raw, start=1):
+        candidate = _mapping(item)
+        if not candidate:
+            continue
+        artifact_id = _text(candidate.get("artifact_id")) or f"artifact_{index}"
+        artifacts.append(
+            {
+                "artifact_id": artifact_id,
+                "artifact_ref": _text(candidate.get("artifact_ref"))
+                or _text(candidate.get("ref")),
+                "claim_type": _text(candidate.get("claim_type")),
+                "source_refs": _text_list(candidate.get("source_refs")),
+                "log_refs": _text_list(candidate.get("log_refs")),
+                "annotation_refs": _text_list(candidate.get("annotation_refs")),
+                "source_locator_ref": _text(candidate.get("source_locator_ref"))
+                or _text(candidate.get("source_locator")),
+                "content_hash": _text(candidate.get("content_hash"))
+                or _text(candidate.get("sha256")),
+            }
+        )
+    return artifacts
+
+
+def _artifact_graph_projection(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
+    nodes = [
+        {
+            "node_kind": "candidate_artifact",
+            "artifact_id": artifact["artifact_id"],
+            "artifact_ref": artifact.get("artifact_ref"),
+            "claim_type": artifact.get("claim_type"),
+            "content_hash": artifact.get("content_hash"),
+        }
+        for artifact in artifacts
+    ]
+    edges: list[dict[str, str]] = []
+    for artifact in artifacts:
+        artifact_id = str(artifact["artifact_id"])
+        for source_ref in artifact["source_refs"]:
+            edges.append(
+                {
+                    "edge_kind": "artifact_source_ref",
+                    "from": artifact_id,
+                    "to": source_ref,
+                }
+            )
+        for log_ref in artifact["log_refs"]:
+            edges.append(
+                {
+                    "edge_kind": "artifact_log_ref",
+                    "from": artifact_id,
+                    "to": log_ref,
+                }
+            )
+        for annotation_ref in artifact["annotation_refs"]:
+            edges.append(
+                {
+                    "edge_kind": "annotation_to_artifact_ref",
+                    "from": annotation_ref,
+                    "to": artifact_id,
+                }
+            )
+    return {
+        "surface_kind": "openscience_artifact_graph_refs_projection",
+        "refs_only": True,
+        "nodes": nodes,
+        "edges": edges,
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "can_write_artifact_authority": False,
+    }
+
+
+def _claim_warning_checks(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    warnings: list[dict[str, Any]] = []
+    for artifact in artifacts:
+        artifact_id = str(artifact["artifact_id"])
+        claim_type = artifact.get("claim_type")
+        if not claim_type:
+            warnings.append(_warning(artifact_id, "missing_claim_type"))
+        elif claim_type not in OPENSCIENCE_CLAIM_TYPES:
+            warnings.append(_warning(artifact_id, "invalid_claim_type"))
+        if not artifact.get("artifact_ref"):
+            warnings.append(_warning(artifact_id, "untraced_artifact"))
+        if not artifact["source_refs"]:
+            warnings.append(_warning(artifact_id, "unsupported_claim"))
+        if not artifact["log_refs"]:
+            warnings.append(_warning(artifact_id, "missing_log"))
+        if artifact["annotation_refs"] and not artifact.get("source_locator_ref"):
+            warnings.append(
+                _warning(artifact_id, "missing_source_locator_for_regeneration")
+            )
+    return warnings
+
+
+def _annotation_regeneration_requests(
+    artifacts: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    requests: list[dict[str, Any]] = []
+    for artifact in artifacts:
+        if not artifact["annotation_refs"]:
+            continue
+        requests.append(
+            {
+                "surface_kind": "openscience_annotation_regeneration_ref",
+                "artifact_id": artifact["artifact_id"],
+                "annotation_refs": artifact["annotation_refs"],
+                "source_locator_ref": artifact.get("source_locator_ref"),
+                "status": (
+                    "ready_for_source_regeneration_hint"
+                    if artifact.get("source_locator_ref")
+                    else "missing_source_locator"
+                ),
+                "refs_only": True,
+                "can_mutate_source": False,
+                "can_write_artifact_body": False,
+            }
+        )
+    return requests
+
+
+def _project_ledger_pointer(
+    *, dispatch_id: str, artifacts: list[dict[str, Any]]
+) -> dict[str, Any]:
+    ledger_material = [
+        {
+            "artifact_id": artifact["artifact_id"],
+            "artifact_ref": artifact.get("artifact_ref"),
+            "claim_type": artifact.get("claim_type"),
+            "source_refs": artifact["source_refs"],
+            "log_refs": artifact["log_refs"],
+            "annotation_refs": artifact["annotation_refs"],
+            "content_hash": artifact.get("content_hash"),
+        }
+        for artifact in artifacts
+    ]
+    digest = hashlib.sha256(
+        json.dumps(ledger_material, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "surface_kind": "openscience_project_local_ledger_pointer",
+        "ledger_ref": _candidate_ref(
+            framework_id=OPENSCIENCE_FRAMEWORK_ID,
+            dispatch_id=dispatch_id,
+            suffix="project_ledger",
+        ),
+        "content_hash": digest,
+        "content_hash_algorithm": "sha256:stable-json",
+        "candidate_count": len(artifacts),
+        "proves_owner_acceptance": False,
+        "proves_artifact_authority": False,
+    }
+
+
+def _warning(artifact_id: str, warning_type: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "openscience_graph_warning",
+        "artifact_id": artifact_id,
+        "warning_type": warning_type,
+        "severity": "advisory",
+        "refs_only": True,
+        "can_block_current_owner_action": False,
+        "can_authorize_quality_verdict": False,
+        "may_route_back_candidate": warning_type
+        in {"unsupported_claim", "missing_source_locator_for_regeneration"},
+    }
+
+
 def _dispatch_text(dispatch: Mapping[str, Any], key: str) -> str | None:
     return _text(dispatch.get(key)) or _text(_mapping(dispatch.get("source_action")).get(key))
 
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _text(value: object) -> str | None:
@@ -318,6 +530,7 @@ __all__ = [
     "KDENSE_SOURCE_CONTRACT_REF",
     "KDENSE_SURFACE_KIND",
     "OPENSCIENCE_FRAMEWORK_ID",
+    "OPENSCIENCE_CLAIM_TYPES",
     "OPENSCIENCE_REF_FAMILIES",
     "OPENSCIENCE_SOURCE_REF",
     "OPENSCIENCE_SURFACE_KIND",

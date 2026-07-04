@@ -89,7 +89,7 @@ External-learning 后续优化不再作为 MAS standalone selector / backlog 推
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned stage prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；canonical stage prompt source 仍是 `agent/stages/` + `agent/prompts/`，不能把 Nature-skills manifest、overlay template 或 Codex `.codex/skills` 投影当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 
-OpenScience 2026-07-04 intake 也遵守同一条规则。已落地范围是 contract policy + docs + refs-only sidecar worker；它的可复用点不是 Electron / WebUI app、MCP server 或 skill catalog，而是 local-first research workspace 如何把 artifact graph、claim warnings、annotation regeneration 和 project-local ledger 组织成可追溯工作面。已落地和后续晋级都只允许折回到以下 owner：
+OpenScience 2026-07-04 intake 也遵守同一条规则。已落地范围是 contract policy + docs + refs-only sidecar worker；该 worker 现在可从 `artifact_candidates` 生成 artifact graph refs、claim warning checks、annotation regeneration requests、project ledger pointer/hash 和 native viewer watch projection。它的可复用点不是 Electron / WebUI app、MCP server 或 skill catalog，而是 local-first research workspace 如何把 artifact graph、claim warnings、annotation regeneration 和 project-local ledger 组织成可追溯工作面。已落地和后续晋级都只允许折回到以下 owner：
 
 | OpenScience pattern | 推荐折回 owner | MAS / OPL 读法 |
 | --- | --- | --- |

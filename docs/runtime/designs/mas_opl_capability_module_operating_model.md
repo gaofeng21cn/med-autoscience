@@ -163,7 +163,7 @@ medautosci scientific-capability-registry \
 
 ### OpenScience local-first workspace 可复用模式
 
-OpenScience main `f120290` 对 MAS / OPL 的价值是 local-first research workspace pattern，不是 runtime 迁移目标。当前已落地 contract policy、runbook 和 `build_openscience_artifact_provenance_advisory` refs-only sidecar worker；MAS 不接入 OpenScience Electron / WebUI runtime，不复制它的 skill catalog，不把 `science_artifact` MCP 当作 MAS truth、artifact authority、owner receipt、typed blocker、publication gate 或 source readiness verdict。可学习内容必须落在基座 / Stage / 专业 Skill / 工具的明确 owner 上：
+OpenScience main `f120290` 对 MAS / OPL 的价值是 local-first research workspace pattern，不是 runtime 迁移目标。当前已落地 contract policy、runbook 和 `build_openscience_artifact_provenance_advisory` refs-only sidecar worker；该 worker 已能把候选 artifact 输入投影为 claim warning、annotation regeneration request、project ledger pointer/hash 和 native viewer watch-only refs。MAS 不接入 OpenScience Electron / WebUI runtime，不复制它的 skill catalog，不把 `science_artifact` MCP 当作 MAS truth、artifact authority、owner receipt、typed blocker、publication gate 或 source readiness verdict。可学习内容必须落在基座 / Stage / 专业 Skill / 工具的明确 owner 上：
 
 | OpenScience pattern | OPL substrate owner | MAS / ScholarSkills owner | 边界 |
 | --- | --- | --- | --- |
