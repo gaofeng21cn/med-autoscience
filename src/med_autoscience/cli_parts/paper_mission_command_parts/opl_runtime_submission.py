@@ -38,7 +38,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
-PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION = "user-stage-log-v1"
+PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION = "user-stage-log-v2"
 OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS = 15
 
 
@@ -377,6 +377,7 @@ def _opl_stage_route_runtime_request_from_handoff(
     attempt_idempotency_key = _optional_text(handoff.get("attempt_idempotency_key"))
     request_idempotency_key = _optional_text(handoff.get("request_idempotency_key"))
     candidate_ref = _optional_text(handoff.get("candidate_ref"))
+    candidate_hash = _paper_mission_candidate_ref_hash(candidate_ref)
     carrier = _mapping(handoff.get("opl_runtime_carrier"))
     work_unit_id = _first_text(handoff.get("work_unit_id"), carrier.get("work_unit_id"))
     work_unit_fingerprint = _first_text(
@@ -386,6 +387,15 @@ def _opl_stage_route_runtime_request_from_handoff(
     if request_idempotency_key is None:
         return None
     identity_basis = request_idempotency_key
+    advancing_delta_identity = _paper_mission_stage_route_advancing_delta_identity(
+        handoff=handoff,
+        command_kind=command_kind,
+        candidate_ref=candidate_ref,
+        candidate_hash=candidate_hash,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+    advancing_delta_fingerprint = _stable_sha256(advancing_delta_identity)
     dedupe_key = ":".join(
         [
             "paper-mission-route",
@@ -393,6 +403,7 @@ def _opl_stage_route_runtime_request_from_handoff(
             study_id,
             identity_basis,
             command_kind,
+            advancing_delta_fingerprint,
         ]
     )
     progress_guard = _paper_mission_route_request_progress_guard(handoff=handoff)
@@ -420,6 +431,9 @@ def _opl_stage_route_runtime_request_from_handoff(
         "study_id": study_id,
         "mission_id": _optional_text(handoff.get("mission_id")),
         "candidate_ref": candidate_ref,
+        "candidate_hash": candidate_hash,
+        "advancing_delta_fingerprint": advancing_delta_fingerprint,
+        "advancing_delta_identity": advancing_delta_identity,
         "paper_mission_transaction_ref": transaction_ref,
         "opl_route_command_ref": _optional_text(handoff.get("opl_route_command_ref")),
         "route_identity_key": route_identity_key,
@@ -482,6 +496,75 @@ def _opl_stage_route_runtime_request_from_handoff(
         "priority": 100,
         "source": "mas-paper-mission-drive",
         "payload": payload,
+    }
+
+
+def _paper_mission_candidate_ref_hash(candidate_ref: str | None) -> str | None:
+    if candidate_ref is None:
+        return None
+    path = Path(candidate_ref).expanduser()
+    if not path.is_file():
+        return None
+    try:
+        import hashlib
+
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        return None
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _paper_mission_stage_route_advancing_delta_identity(
+    *,
+    handoff: Mapping[str, Any],
+    command_kind: str,
+    candidate_ref: str | None,
+    candidate_hash: str | None,
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any]:
+    consume_result = _mapping(
+        _mapping(handoff.get("authority_consume_readback")).get("consume_result")
+    )
+    stage_terminal_decision = _mapping(handoff.get("stage_terminal_decision"))
+    terminal_owner_gate = _mapping(handoff.get("terminal_owner_gate"))
+    route = _mapping(handoff.get("opl_route_command"))
+    return {
+        "command_kind": command_kind,
+        "route_target": _first_text(handoff.get("route_target"), route.get("target")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "candidate_ref": candidate_ref,
+        "candidate_hash": candidate_hash,
+        "owner_receipt_ref": _first_text(
+            handoff.get("owner_receipt_ref"),
+            handoff.get("domain_owner_receipt_ref"),
+            consume_result.get("owner_receipt_ref"),
+            consume_result.get("domain_owner_receipt_ref"),
+        ),
+        "typed_blocker_ref": _first_text(
+            handoff.get("typed_blocker_ref"),
+            terminal_owner_gate.get("typed_blocker_ref"),
+            consume_result.get("typed_blocker_ref"),
+        ),
+        "human_gate_ref": _first_text(
+            handoff.get("human_gate_ref"),
+            terminal_owner_gate.get("human_gate_ref"),
+            consume_result.get("human_gate_ref"),
+        ),
+        "route_back_evidence_ref": _first_text(
+            handoff.get("route_back_evidence_ref"),
+            stage_terminal_decision.get("route_back_evidence_ref"),
+            terminal_owner_gate.get("route_back_evidence_ref"),
+            consume_result.get("route_back_evidence_ref"),
+        ),
+        "paper_facing_delta_ref": _first_text(
+            handoff.get("paper_facing_delta_ref"),
+            consume_result.get("paper_facing_delta_ref"),
+        ),
     }
 
 

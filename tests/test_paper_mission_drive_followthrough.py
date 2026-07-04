@@ -314,14 +314,17 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
         _route_back_handoff()
     )
 
-    assert runtime_request["dedupe_key"] == (
+    assert runtime_request["dedupe_key"].startswith(
         "paper-mission-route:"
         f"{opl_runtime_submission.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION}:"
         "003-dpcc-primary-care-phenotype-treatment-gap:"
         "paper-mission-transaction::dm003:"
-        "route_back"
+        "route_back:"
     )
     payload = runtime_request["payload"]
+    assert payload["candidate_hash"] is None
+    assert payload["advancing_delta_fingerprint"]
+    assert payload["advancing_delta_identity"]["candidate_ref"] == "/tmp/package.json"
     guard = payload["semantic_progress_guard"]
     assert guard["guard_kind"] == "non_advancing_route_back_detection"
     assert guard["can_claim_paper_progress"] is False
@@ -360,6 +363,42 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     assert payload["route_impact"]["domain_ready_verdict"] == "domain_gate_pending"
     assert payload["route_impact"]["progress_delta_classification"] == (
         "deliverable_progress"
+    )
+
+
+def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
+    tmp_path: Path,
+) -> None:
+    candidate_ref = tmp_path / "package_manifest.json"
+    candidate_ref.write_text(
+        json.dumps({"package": "submission", "version": 1}),
+        encoding="utf-8",
+    )
+    first = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+        _route_back_handoff(candidate_ref=str(candidate_ref))
+    )
+    same = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+        _route_back_handoff(candidate_ref=str(candidate_ref))
+    )
+
+    candidate_ref.write_text(
+        json.dumps({"package": "submission", "version": 2}),
+        encoding="utf-8",
+    )
+    second = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+        _route_back_handoff(candidate_ref=str(candidate_ref))
+    )
+
+    assert first["payload"]["candidate_hash"].startswith("sha256:")
+    assert first["dedupe_key"] == same["dedupe_key"]
+    assert first["payload"]["candidate_hash"] == same["payload"]["candidate_hash"]
+    assert first["dedupe_key"] != second["dedupe_key"]
+    assert first["payload"]["candidate_hash"] != second["payload"]["candidate_hash"]
+    assert first["payload"]["request_idempotency_key"] == (
+        second["payload"]["request_idempotency_key"]
+    )
+    assert first["payload"]["advancing_delta_fingerprint"] != (
+        second["payload"]["advancing_delta_fingerprint"]
     )
 
 
