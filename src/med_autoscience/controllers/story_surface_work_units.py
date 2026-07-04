@@ -61,6 +61,7 @@ STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
         "manuscript_story_repair",
         "medical_prose_and_publishability_gate_repair",
         "medical_prose_write_repair",
+        "medical_methods_and_registry_reporting_repair",
         "treatment_gap_reporting_repair",
     }
 )

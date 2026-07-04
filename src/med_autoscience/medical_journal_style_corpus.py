@@ -21,7 +21,7 @@ __all__ = [
 
 
 STABLE_MEDICAL_JOURNAL_STYLE_CORPUS_RELATIVE_PATH = Path("paper/medical_journal_style_corpus.json")
-CURRENT_MEDICAL_JOURNAL_STYLE_VERSION = "medical_journal_prose_style_v3"
+CURRENT_MEDICAL_JOURNAL_STYLE_VERSION = "medical_journal_prose_style_v4"
 MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID = "general_medical_journal_style_source_set_v1"
 STYLE_CURRENTNESS_POLICY_ID = "medical_journal_style_currentness_v1"
 
@@ -197,6 +197,12 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
                 "A paper should tell the clean scientific story supported by the final analysis surface, not narrate the system's repair path.",
                 "If an analysis repair corrected data preprocessing, the abstract, Results, Discussion opening, conclusion, title, and figure legends should report the final validated estimates without making the repair itself the contribution.",
             ],
+            "final_language_polish": [
+                "Remove internal project, workflow, package, reviewer, owner-confirmation, and TODO language from the manuscript body; unresolved facts belong in submission TODO, route-back, typed blocker, or human-gate surfaces.",
+                "State denominator, source, causal, prognostic, and treatment-response boundaries once in compressed clinical language; do not repeat defensive disclaimer lists across Abstract, Methods, Results, Discussion, and legends.",
+                "Replace data-engineering or AI-ish terms such as analytic surface and data surface with analytic cohort, analytic dataset, registry dataset, measured fields, or available measurements.",
+                "Compress the Abstract and Discussion around the few principal clinical findings rather than enumerating every internal check, negative claim, or limitation.",
+            ],
         },
         "rhetorical_moves": [
             {
@@ -223,6 +229,18 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
                 "bad_pattern": "After unit-harmonized predictor preprocessing, the repaired analysis is the manuscript contribution.",
                 "journal_style_move": "The final analysis estimates are reported directly, while preprocessing definitions stay in Methods and provenance stays outside the article body.",
             },
+            {
+                "move_id": "compressed_registry_boundary",
+                "use_for": "Registry Methods, Discussion, Conclusion, and figure legends",
+                "bad_pattern": "The findings are not population prevalence, not causal inference, not future risk, not treatment response, and not alliance-wide psychobehavioral status.",
+                "journal_style_move": "The analyses are descriptive and denominator-aware, with interpretation limited to the observed registry and source-specific subcohorts.",
+            },
+            {
+                "move_id": "submission_todo_boundary",
+                "use_for": "Methods declarations and administrative manuscript sections",
+                "bad_pattern": "Final submission wording for ethics approval and author details requires study-owner confirmation.",
+                "journal_style_move": "Confirmed ethics, consent, funding, conflicts, data availability, and author details appear as formal statements; unresolved facts remain outside the article body.",
+            },
         ],
         "reviewer_questions": [
             "Does the opening move from clinical problem to evidence gap to objective?",
@@ -230,6 +248,9 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
             "Does the Discussion interpret the main finding before listing limitations?",
             "Are claims restrained to the evidence map and uncertainty?",
             "If a prior analysis or preprocessing repair occurred, is that repair kept out of story-facing manuscript sections and handled only as reproducible Methods detail when needed?",
+            "Has the manuscript been de-internalized so submission TODOs, owner confirmations, package/currentness language, and workflow residue stay outside article body text?",
+            "Has repeated defensive disclaimer language been compressed into a small number of denominator-aware clinical boundary statements?",
+            "Have analytic surface, data surface, and similar AI/data-engineering terms been replaced with medical manuscript terms?",
             "Would a medical journal editor read the manuscript as original research rather than a work report?",
         ],
         "copyright_boundary": {
@@ -266,7 +287,14 @@ def validate_medical_journal_style_corpus(payload: object) -> list[str]:
     principles = payload.get("principles")
     if not isinstance(principles, Mapping):
         return ["principles must be an object"]
-    for key in ("introduction", "sentence_information_flow", "results", "discussion", "claim_restraint"):
+    for key in (
+        "introduction",
+        "sentence_information_flow",
+        "results",
+        "discussion",
+        "claim_restraint",
+        "final_language_polish",
+    ):
         if not _non_empty_sequence(principles.get(key)):
             return [f"principles.{key} must be a non-empty list"]
     if not _non_empty_sequence(payload.get("rhetorical_moves")):

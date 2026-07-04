@@ -56,6 +56,16 @@ def run_story_repair(
         resolved_study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
     )
     quality_batch = _read_json_object(quality_batch_path)
+    previous_repair_evidence_path = (
+        resolved_study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    )
+    previous_repair_evidence = _read_json_object(previous_repair_evidence_path)
+    source_eval_id = _text(publication_eval.get("eval_id"))
+    story_delta_anchor = _story_delta_anchor(
+        quality_batch=quality_batch,
+        previous_repair_evidence=previous_repair_evidence,
+        source_eval_id=source_eval_id,
+    )
     work_unit_id = _select_story_work_unit_id(
         study_id=study_id,
         publication_eval=publication_eval,
@@ -79,8 +89,8 @@ def run_story_repair(
         changed_paths = medical_prose_story_surface.materialize_medical_prose_story_surfaces(
             paper_root=paper_root,
             work_unit_id=work_unit_id,
-            source_eval_id=_text(publication_eval.get("eval_id")),
-            previous_quality_repair_batch=quality_batch,
+            source_eval_id=source_eval_id,
+            previous_quality_repair_batch=story_delta_anchor,
             publication_eval_payload=publication_eval,
             study_root=resolved_study_root,
         )
@@ -148,22 +158,27 @@ def run_story_repair(
             "work_unit_type": "text_repair",
             "owner": "write",
             "source": source,
-            "source_eval_id": _text(publication_eval.get("eval_id")),
+            "source_eval_id": source_eval_id,
             "gate_replay_target": "publication_eval/latest.json",
         },
         review_finding={
-            "source_eval_id": _text(publication_eval.get("eval_id")),
+            "source_eval_id": source_eval_id,
             "source_quality_repair_batch": str(quality_batch_path) if quality_batch_path.exists() else None,
             "paper_root": str(paper_root),
         },
-        source_refs=_source_refs(publication_eval_path, quality_batch_path, quality_batch),
+        source_refs=_source_refs(
+            publication_eval_path,
+            quality_batch_path,
+            quality_batch,
+            previous_repair_evidence_path,
+        ),
         changed_artifact_refs=changed_refs,
         evidence_ledger_ref=evidence_ledger_ref,
         review_ledger_ref=review_ledger_ref,
         gate_replay_target="publication_eval/latest.json",
         gate_replay_refs=[str(gate_replay_ref)],
         ai_reviewer_recheck_request_ref=ai_request.get("path"),
-        previous_quality_repair_batch=quality_batch,
+        previous_quality_repair_batch=story_delta_anchor,
         publication_eval_payload=publication_eval,
     )
     evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
@@ -191,7 +206,7 @@ def run_story_repair(
         "study_id": study_id,
         "quest_id": resolved_quest_id,
         "work_unit_id": work_unit_id,
-        "source_eval_id": _text(publication_eval.get("eval_id")),
+        "source_eval_id": source_eval_id,
         "changed_artifact_refs": evidence["changed_artifact_refs"],
         "repair_execution_evidence": evidence,
         "repair_execution_evidence_ref": str(evidence_path),
@@ -215,6 +230,33 @@ def _select_story_work_unit_id(
         if work_unit_id := _story_work_unit_id_from_payload(study_id=study_id, payload=payload):
             return work_unit_id
     return None
+
+
+def _story_delta_anchor(
+    *,
+    quality_batch: Mapping[str, Any],
+    previous_repair_evidence: Mapping[str, Any],
+    source_eval_id: str | None,
+) -> Mapping[str, Any]:
+    if _has_story_surface_hygiene(quality_batch):
+        return quality_batch
+    if not _has_story_surface_hygiene(previous_repair_evidence):
+        return quality_batch
+    return {
+        "schema_version": 1,
+        "source_eval_id": source_eval_id,
+        "status": previous_repair_evidence.get("status"),
+        "blocked_reason": _first_blocker(previous_repair_evidence),
+        "repair_execution_evidence": dict(previous_repair_evidence),
+    }
+
+
+def _has_story_surface_hygiene(payload: object) -> bool:
+    mapping = _mapping(payload)
+    evidence = _mapping(mapping.get("repair_execution_evidence")) or mapping
+    hygiene = _mapping(evidence.get("manuscript_surface_hygiene"))
+    refs = hygiene.get("surface_refs")
+    return isinstance(refs, list) and bool(refs)
 
 
 def _story_work_unit_id_from_payload(*, study_id: str, payload: object) -> str | None:
@@ -640,10 +682,17 @@ def _write_owner_receipt(*, study_root: Path, receipt: Mapping[str, Any]) -> Pat
     return path
 
 
-def _source_refs(publication_eval_path: Path, quality_batch_path: Path, quality_batch: Mapping[str, Any]) -> list[str]:
+def _source_refs(
+    publication_eval_path: Path,
+    quality_batch_path: Path,
+    quality_batch: Mapping[str, Any],
+    previous_repair_evidence_path: Path | None = None,
+) -> list[str]:
     refs = [str(publication_eval_path.resolve())]
     if quality_batch_path.exists():
         refs.append(str(quality_batch_path.resolve()))
+    if previous_repair_evidence_path is not None and previous_repair_evidence_path.exists():
+        refs.append(str(previous_repair_evidence_path.resolve()))
     if ref := _text(quality_batch.get("repair_execution_evidence_path")):
         refs.append(ref)
     return refs

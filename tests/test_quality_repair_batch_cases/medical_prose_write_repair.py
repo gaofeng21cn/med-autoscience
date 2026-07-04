@@ -941,3 +941,217 @@ def test_quality_repair_batch_consumes_publication_gate_replay_as_controller_pro
         for ref in evidence["controller_progress_delta"]["artifact_refs"]
     }
     assert "artifacts/controller/current_package_freshness/latest.json" in controller_refs
+
+
+def test_medical_prose_write_repair_preserves_descriptive_registry_writer_delta_with_stale_review_surface(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
+    paper_root = study_root / "paper"
+    old_text = "# Draft\n\nEarlier registry draft.\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str((paper_root / relative_path).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": _fingerprint(paper_root / relative_path),
+        }
+        for relative_path in ("draft.md", "build/review_manuscript.md")
+    ]
+    registry_story = "\n\n".join(
+        [
+            "# Multicenter obesity registry phenotype atlas",
+            "## Abstract",
+            "A descriptive registry phenotype atlas can define denominator, missingness, and source-specific clinical measurement before inferential studies.",
+            "## Introduction",
+            "The clinical problem is how a regional obesity registry captures BMI, waist circumference, metabolic fields, PHQ-9, GAD-7, and psychobehavioral measurements.",
+            "## Materials and Methods",
+            "### Study design and cohort",
+            "This descriptive registry study used source-layer accounting, available-record denominators, and observed registry data.",
+            "### Statistical analysis",
+            "Statistical analysis used counts, medians, denominators, and available-record percentages.",
+            "## Results",
+            "The phenotype atlas described source-layer structure, BMI-waist central obesity, waist circumference, and PHQ-9/GAD-7 psychobehavioral co-occurrence.",
+            "## Discussion",
+            "The registry atlas separates clinical phenotype description from population inference.",
+            "### Limitations",
+            "Registry-field summaries are not as disease prevalence, and the study does not establish population burden.",
+            "### Conclusions",
+            "The descriptive atlas supports registry improvement and future obesity care research.",
+        ]
+    ) + "\n"
+    (paper_root / "draft.md").write_text(registry_story, encoding="utf-8")
+
+    changed_paths = module.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id="medical_prose_write_repair",
+        source_eval_id="eval-obesity",
+        previous_quality_repair_batch={
+            "schema_version": 1,
+            "source_eval_id": "eval-obesity",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "surface_refs": old_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "story_surface_delta_refs": [],
+                },
+            },
+        },
+        publication_eval_payload={"eval_id": "eval-obesity"},
+        study_root=study_root,
+    )
+
+    assert {
+        Path(path).relative_to(study_root).as_posix()
+        for path in changed_paths
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == registry_story
+
+
+def test_medical_prose_write_repair_recovers_divergent_registry_story_surface_without_old_anchor(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
+    paper_root = study_root / "paper"
+    stale_review = "# Draft\n\nThis analytic surface is an earlier internal registry draft.\n"
+    registry_story = "\n\n".join(
+        [
+            "# Multicenter obesity registry phenotype atlas",
+            "## Abstract",
+            "A descriptive registry phenotype atlas can define denominator, missingness, and source-specific measurement before inferential studies.",
+            "## Introduction",
+            "The clinical problem is how a regional obesity registry captures BMI, waist circumference, metabolic fields, PHQ-9, GAD-7, and psychobehavioral measurements.",
+            "## Materials and Methods",
+            "### Study design and cohort",
+            "This descriptive registry study used source-layer accounting, available-record denominators, and observed registry data.",
+            "### Statistical analysis",
+            "Statistical analysis used counts, medians, denominators, and available-record percentages.",
+            "## Results",
+            "The phenotype atlas described source-layer structure, BMI-waist central obesity, waist circumference, and PHQ-9/GAD-7 psychobehavioral co-occurrence.",
+            "## Discussion",
+            "The registry atlas separates clinical phenotype description from population inference.",
+            "### Limitations",
+            "Registry-field summaries are not as disease prevalence, and the study does not establish population burden.",
+            "### Conclusions",
+            "The descriptive atlas supports registry improvement and future obesity care research.",
+        ]
+    ) + "\n"
+    (paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text(registry_story, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "build" / "review_manuscript.md").write_text(stale_review, encoding="utf-8")
+
+    changed_paths = module.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id="medical_prose_write_repair",
+        source_eval_id="eval-obesity",
+        previous_quality_repair_batch={
+            "schema_version": 1,
+            "source_eval_id": "eval-obesity",
+            "status": "blocked",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["controller_route_work_unit_unsupported"],
+            },
+        },
+        publication_eval_payload={"eval_id": "eval-obesity"},
+        study_root=study_root,
+    )
+
+    assert {
+        Path(path).relative_to(study_root).as_posix()
+        for path in changed_paths
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    assert (paper_root / "draft.md").read_text(encoding="utf-8") == registry_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == registry_story
+
+
+def test_medical_prose_write_repair_recovers_divergent_registry_story_surface_after_anchor_overwrite(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
+    paper_root = study_root / "paper"
+    registry_story = "\n\n".join(
+        [
+            "# Multicenter obesity registry phenotype atlas",
+            "## Abstract",
+            "A descriptive registry phenotype atlas can define denominator, missingness, and source-specific measurement before inferential studies.",
+            "## Introduction",
+            "The clinical problem is how a regional obesity registry captures BMI, waist circumference, metabolic fields, PHQ-9, GAD-7, and psychobehavioral measurements.",
+            "## Materials and Methods",
+            "### Study design and cohort",
+            "This descriptive registry study used source-layer accounting, available-record denominators, and observed registry data.",
+            "### Statistical analysis",
+            "Statistical analysis used counts, medians, denominators, and available-record percentages.",
+            "## Results",
+            "The phenotype atlas described source-layer structure, BMI-waist central obesity, waist circumference, and PHQ-9/GAD-7 psychobehavioral co-occurrence.",
+            "## Discussion",
+            "The registry atlas separates clinical phenotype description from population inference.",
+            "### Limitations",
+            "Registry-field summaries are not as disease prevalence, and the study does not establish population burden.",
+            "### Conclusions",
+            "The descriptive atlas supports registry improvement and future obesity care research.",
+        ]
+    ) + "\n"
+    (paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text(registry_story, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "build" / "review_manuscript.md").write_text(
+        "# Draft\n\nThis analytic surface is an earlier internal registry draft.\n",
+        encoding="utf-8",
+    )
+    current_refs = [
+        {
+            "path": str((paper_root / relative_path).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": _fingerprint(paper_root / relative_path),
+        }
+        for relative_path in ("draft.md", "build/review_manuscript.md")
+    ]
+
+    changed_paths = module.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id="medical_methods_and_registry_reporting_repair",
+        source_eval_id="eval-obesity",
+        previous_quality_repair_batch={
+            "schema_version": 1,
+            "source_eval_id": "eval-obesity",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "surface_refs": current_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "story_surface_delta_refs": [],
+                },
+            },
+        },
+        publication_eval_payload={"eval_id": "eval-obesity"},
+        study_root=study_root,
+    )
+
+    assert {
+        Path(path).relative_to(study_root).as_posix()
+        for path in changed_paths
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == registry_story

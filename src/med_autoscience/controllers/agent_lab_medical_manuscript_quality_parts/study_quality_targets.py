@@ -124,7 +124,8 @@ def _obesity_registry_descriptive_profile() -> dict[str, Any]:
                 "target_id": "internal_report_style_language_purge",
                 "requirement": (
                     "remove internal-report language, process justification, MAS/AI reviewer/package wording, "
-                    "and defensive stage narration from the manuscript body"
+                    "repeated disclaimer lists, analytic/data-surface jargon, and defensive stage narration "
+                    "from the manuscript body"
                 ),
                 "route_target": "write",
             },
@@ -500,7 +501,10 @@ def _general_high_quality_medical_manuscript_profile() -> dict[str, Any]:
             },
             {
                 "target_id": "internal_quality_language_purge",
-                "requirement": "internal runtime and quality-control language stays outside the manuscript body",
+                "requirement": (
+                    "internal runtime, quality-control, repeated defensive disclaimer, and AI/data-engineering "
+                    "language stay outside the manuscript body"
+                ),
                 "route_target": "write",
             },
             *_shared_manuscript_quality_targets(),

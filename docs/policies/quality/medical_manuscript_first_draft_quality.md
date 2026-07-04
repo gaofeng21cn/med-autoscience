@@ -24,6 +24,7 @@ MAS 的医学论文初稿不能只是研究执行日志、结果汇总或投稿�
 - `manuscript_native_prose`: prose must be journal-style medical writing, not controller notes, figure/table anchors, author-confirmation placeholders, or work-report question/answer narration.
 - `pre_draft_writing_readiness_contract`: first draft writing cannot begin until clinical question, population/design/outcome, display-to-claim map, claim-evidence map, section purpose, reader-flow plan, journal voice, and AI prose-review feedback loop are closed as machine-readable readiness items.
 - `first_draft_generation_model`: the writer must start from clinical problem, study design, population, timepoint, outcome, analysis plan, display-to-claim map, and reader-facing contribution; if those inputs are missing, route back before drafting.
+- `medical_prose_review_request`: final language polish is a required AI-reviewer loop, not an optional copy-edit. The reviewer must check four axes before a clear verdict: de-internalize workflow/TODO/package language, de-duplicate repeated boundary statements, de-defend limitations and descriptive-study rationale, and remove AI/data-engineering voice such as `analytic surface` or `data surface`.
 
 `medical_quality_operating_system_contract.quality_contract.first_draft_manuscript_quality_contract` projects the same rule with guideline-specific obligations selected from STROBE, TRIPOD, TRIPOD+AI, CONSORT, CONSORT-AI, PRISMA, and RECORD.
 
@@ -71,7 +72,9 @@ Before a first full draft is treated as generated:
 - if verified evidence surfaces support a stronger paper shape, MAS routes back to bounded analysis or an analysis campaign instead of writing a light descriptive first draft;
 - results narrative must answer clinical findings directly, then cite figures/tables as support;
 - limitations must be written as clinical interpretation, not as claim-boundary/controller language;
+- registry and observational manuscripts should state denominator, source, causal, prognostic, and treatment-response boundaries in compact clinical language; they must not repeat long defensive disclaimer lists across Abstract, Methods, Results, Discussion, and legends;
 - administrative placeholders belong in submission metadata or TODO surfaces, not in the article body;
+- terms such as `analytic surface` and `data surface` should be rewritten as analytic cohort, analytic dataset, registry dataset, measured fields, or available measurements;
 - figure legends must explain the display for readers, not describe what reviewers can identify or what the figure itself "defines".
 - internal correction provenance, debug history, and preprocessing repair history must not become the title, objective, Results, Discussion opening, conclusion, novelty claim, or figure-legend story. Corrected preprocessing definitions belong in Methods or table notes only when needed for reproducibility; the article body should report the final analysis estimates as the clean scientific story.
 

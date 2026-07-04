@@ -33,6 +33,18 @@ SUBMISSION_FRONT_MATTER_FIELD_ALIASES = {
     "conflict_of_interest": ("conflict_of_interest", "conflicts_of_interest"),
     "ethics": ("ethics", "ethics_statement"),
     "data_availability": ("data_availability", "data_availability_statement"),
+    "analytic_data_lock_date": (
+        "analytic_data_lock_date",
+        "data_lock_date",
+        "data_lock",
+        "analytic_release_date",
+    ),
+    "registry_enrollment_period": (
+        "registry_enrollment_period",
+        "study_enrollment_period",
+        "enrollment_period",
+        "enrollment_window",
+    ),
 }
 
 

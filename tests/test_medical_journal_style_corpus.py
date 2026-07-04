@@ -18,14 +18,14 @@ def test_style_corpus_materializes_reusable_medical_voice_principles(tmp_path: P
 
     assert result["artifact_path"] == str(study_root.resolve() / "paper" / "medical_journal_style_corpus.json")
     assert payload["corpus_id"] == "general_medical_journal_style_corpus_v1"
-    assert payload["style_version"] == "medical_journal_prose_style_v3"
+    assert payload["style_version"] == "medical_journal_prose_style_v4"
     assert payload["source_set_id"] == "general_medical_journal_style_source_set_v1"
     assert payload["style_digest"].startswith("sha256:")
     assert payload["style_currentness"] == {
         "status": "current",
         "currentness_policy_id": "medical_journal_style_currentness_v1",
-        "style_version": "medical_journal_prose_style_v3",
-        "current_style_version": "medical_journal_prose_style_v3",
+        "style_version": "medical_journal_prose_style_v4",
+        "current_style_version": "medical_journal_prose_style_v4",
         "style_digest": payload["style_digest"],
         "current_style_digest": payload["style_digest"],
     }
@@ -39,6 +39,13 @@ def test_style_corpus_materializes_reusable_medical_voice_principles(tmp_path: P
         "jama_network_open_original_investigations",
     }.issubset(source_ids)
     assert "Make the clinical finding the grammatical subject." in payload["principles"]["results"]
+    assert any(
+        "de-internalized" in item or "Remove internal project" in item
+        for item in payload["principles"]["final_language_polish"]
+    )
+    assert "compressed_registry_boundary" in {
+        item["move_id"] for item in payload["rhetorical_moves"]
+    }
     assert payload["copyright_boundary"]["long_excerpts_allowed"] is False
 
 
@@ -91,5 +98,5 @@ def test_ensure_current_style_corpus_upgrades_legacy_surface(tmp_path: Path) -> 
 
     payload = ensure_current_medical_journal_style_corpus(study_root=study_root)
 
-    assert payload["style_version"] == "medical_journal_prose_style_v3"
+    assert payload["style_version"] == "medical_journal_prose_style_v4"
     assert payload["style_currentness"]["status"] == "current"

@@ -16,6 +16,7 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_cu
     eval_bound_current_story_delta_is_preservable,
 )
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
+    materialize_current_writer_story_delta,
     preserve_current_writer_story_delta,
 )
 
@@ -82,6 +83,17 @@ def materialize_medical_prose_story_surfaces(
             )
             if ref.get("path")
         ]
+    current_writer_delta_paths = materialize_current_writer_story_delta(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=_contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=previous_quality_repair_batch,
+    )
+    if current_writer_delta_paths:
+        return current_writer_delta_paths
     if preserve_current_writer_story_delta(
         paper_root=paper_root,
         work_unit_id=work_unit_id,

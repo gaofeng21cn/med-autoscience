@@ -27,7 +27,7 @@ def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Pa
     assert result["medical_prose_review_request_path"] == str(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     )
-    assert style_corpus["style_version"] == "medical_journal_prose_style_v3"
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v4"
     assert style_corpus["style_digest"].startswith("sha256:")
     assert style_corpus["style_currentness"]["status"] == "current"
     assert request["review_owner"] == "ai_reviewer"
@@ -63,7 +63,7 @@ def test_apply_reports_review_request_materialization_error_when_blueprint_inval
     assert result["medical_prose_review_request_path"] == str(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     )
-    assert style_corpus["style_version"] == "medical_journal_prose_style_v3"
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v4"
     assert "medical_prose_review_request_missing_or_incomplete" in result["blockers"]
     assert any(
         hit["pattern_id"] == "medical_prose_review_request"
@@ -402,4 +402,60 @@ The complexity audit remained secondary because marginal discrimination gains di
         "candidate_package_residue",
         "complexity_audit_residue",
         "clinical_story_residue",
+    }.issubset({hit["pattern_id"] for hit in report["top_hits"]})
+
+
+def test_build_report_blocks_final_polish_residue_even_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
+    paper_root = _paper_root_from_quest(quest_root)
+    final_polish_residue_text = """
+## Introduction
+
+The Hunan registry provides a source-specific descriptive view of obesity phenotypes.
+
+## Materials and Methods
+
+### Study design and cohort
+
+Final submission wording for ethics approval and data availability requires study-owner confirmation.
+
+### Variable definition and measurement
+
+The analytic surface included 4189 records, and data surfaces were reviewed before analysis.
+
+### Model building
+
+No prediction model was developed.
+
+### Validation framework
+
+All analyses were descriptive.
+
+## Results
+
+### Registry profile
+
+BMI category was available for most adult records.
+
+## Discussion
+
+These analyses do not support claims about population-level disease frequency, causal inference, future risk, treatment response, or alliance-wide psychobehavioral status.
+
+A descriptive atlas may appear modest compared with a prediction model, but it is the appropriate first publication.
+"""
+    (paper_root / "draft.md").write_text(final_polish_residue_text, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").write_text(final_polish_residue_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "medical_journal_prose_style_not_met" in report["blockers"]
+    assert report["medical_journal_prose_ai_verdict"] == "clear"
+    assert report["medical_journal_prose_style_valid"] is False
+    assert {
+        "overdefensive_registry_boundary_disclaimer",
+        "self_defending_descriptive_atlas_language",
+        "analytic_surface_or_data_surface_jargon",
+        "administrative_confirmation_todo_body",
     }.issubset({hit["pattern_id"] for hit in report["top_hits"]})

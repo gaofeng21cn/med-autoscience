@@ -25,6 +25,10 @@ from med_autoscience.paper_mission_consumption_ledger import (
 from med_autoscience.paper_mission_stage_closure_ledger import (
     write_paper_mission_stage_closure_decision,
 )
+from med_autoscience.paper_mission_terminal_owner_gate import (
+    terminal_owner_gate_authority_readback as _terminal_owner_gate_authority_readback,
+    terminal_owner_gate_from_carrier_readback as _terminal_owner_gate_from_carrier_readback,
+)
 from med_autoscience.cli_parts.paper_mission_output_roots import (
     _assert_safe_consumption_ledger_output_root,
     _assert_safe_stage_closure_output_root,
@@ -59,6 +63,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
+    _domain_transition_direct_next_action_runtime_readback as _build_domain_transition_direct_next_action_runtime_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback_context import (
     dispatch_execution_policy as _dispatch_execution_policy,
@@ -514,6 +519,41 @@ def build_paper_mission_readback(
             **transaction_readback,
             "next_action": next_action_override,
         }
+        direct_next_action_runtime = (
+            _build_domain_transition_direct_next_action_runtime_readback(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                inspect_readback={**mission_candidate, **transaction_output_fields},
+                next_action=next_action_override,
+                canonical_next_action_source=canonical_next_action_source,
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
+        )
+        if direct_next_action_runtime:
+            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
+                direct_next_action_runtime
+            )
+            transaction_output_fields["current_opl_runtime_carrier"] = (
+                direct_next_action_runtime["opl_runtime_carrier"]
+            )
+            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            transaction_output_fields["current_opl_runtime_readback_status"] = (
+                direct_next_action_runtime["opl_runtime_readback_status"]
+            )
+            direct_terminal_owner_gate = _terminal_owner_gate_from_carrier_readback(
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            if direct_terminal_owner_gate:
+                transaction_output_fields["terminal_owner_gate"] = (
+                    direct_terminal_owner_gate
+                )
+                transaction_output_fields["terminal_owner_gate_authority_readback"] = (
+                    _terminal_owner_gate_authority_readback(direct_terminal_owner_gate)
+                )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,
@@ -759,6 +799,41 @@ def _consumption_ledger_inspect_readback(
             **transaction_readback,
             "next_action": next_action_override,
         }
+        direct_next_action_runtime = (
+            _build_domain_transition_direct_next_action_runtime_readback(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                inspect_readback={**base, **transaction_output_fields},
+                next_action=next_action_override,
+                canonical_next_action_source=canonical_next_action_source,
+                enable_opl_live_probe=enable_opl_live_probe,
+                opl_bin=opl_bin,
+            )
+        )
+        if direct_next_action_runtime:
+            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
+                direct_next_action_runtime
+            )
+            transaction_output_fields["current_opl_runtime_carrier"] = (
+                direct_next_action_runtime["opl_runtime_carrier"]
+            )
+            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            transaction_output_fields["current_opl_runtime_readback_status"] = (
+                direct_next_action_runtime["opl_runtime_readback_status"]
+            )
+            direct_terminal_owner_gate = _terminal_owner_gate_from_carrier_readback(
+                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            )
+            if direct_terminal_owner_gate:
+                transaction_output_fields["terminal_owner_gate"] = (
+                    direct_terminal_owner_gate
+                )
+                transaction_output_fields["terminal_owner_gate_authority_readback"] = (
+                    _terminal_owner_gate_authority_readback(direct_terminal_owner_gate)
+                )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,
@@ -1108,12 +1183,38 @@ def _build_terminalizer_source_readback(
         enable_opl_live_probe=True,
         opl_bin=None,
     )
-    direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
-        materialized_readback=source_readback,
-        study_root=Path(profile.studies_root) / study_id,
-    )
-    if direct_stage_attempt is not None:
-        return direct_stage_attempt
+    if source_readback is not None:
+        direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
+            materialized_readback=source_readback,
+            study_root=Path(profile.studies_root) / study_id,
+            profile=profile,
+            study_id=study_id,
+            enable_opl_live_probe=True,
+            opl_bin=None,
+        )
+        if direct_stage_attempt is not None:
+            return direct_stage_attempt
+    generic_source_readback = None
+    if source_readback is None:
+        generic_source_readback = build_paper_mission_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command="inspect",
+            dry_run=False,
+            source=source,
+            enable_opl_live_probe=True,
+        )
+        direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
+            materialized_readback=generic_source_readback,
+            study_root=Path(profile.studies_root) / study_id,
+            profile=profile,
+            study_id=study_id,
+            enable_opl_live_probe=True,
+            opl_bin=None,
+        )
+        if direct_stage_attempt is not None:
+            return direct_stage_attempt
     consumption_readback = latest_paper_mission_consumption_transaction_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
@@ -1139,6 +1240,8 @@ def _build_terminalizer_source_readback(
         if materialized_run_stage_attempt is not None:
             return materialized_run_stage_attempt
         return source_readback
+    if generic_source_readback is not None:
+        return generic_source_readback
     return build_paper_mission_readback(
         profile=profile,
         profile_ref=profile_ref,
@@ -1154,9 +1257,53 @@ def _domain_transition_direct_terminal_source_readback(
     *,
     materialized_readback: Mapping[str, Any] | None,
     study_root: Path,
+    profile: Any | None = None,
+    study_id: str | None = None,
+    enable_opl_live_probe: bool = False,
+    opl_bin: str | Path | None = None,
 ) -> dict[str, Any] | None:
     readback = _mapping(materialized_readback)
     direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
+    if not direct and profile is not None and study_id:
+        next_action = _mapping(readback.get("next_action"))
+        canonical_next_action_source = _optional_text(
+            readback.get("canonical_next_action_source")
+        )
+        domain_transition = _mapping(readback.get("domain_transition"))
+        stage_closure_outcome = _mapping(
+            _mapping(readback.get("stage_closure_decision")).get("outcome")
+        )
+        if (
+            canonical_next_action_source != "domain_transition.next_action"
+            and stage_closure_outcome.get("kind") != "typed_blocker"
+        ):
+            domain_transition_next_action = _domain_transition_canonical_next_action(
+                {"domain_transition": domain_transition}
+            )
+            if not domain_transition_next_action and readback:
+                domain_transition = study_domain_transition_table.project_domain_transition(
+                    study_id=study_id,
+                    study_root=study_root,
+                    status={},
+                    macro_state={},
+                    active_run_id=None,
+                )
+                domain_transition_next_action = _domain_transition_canonical_next_action(
+                    {"domain_transition": domain_transition}
+                )
+            if domain_transition_next_action:
+                next_action = domain_transition_next_action
+                canonical_next_action_source = "domain_transition.next_action"
+        direct = _build_domain_transition_direct_next_action_runtime_readback(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            inspect_readback=readback,
+            next_action=next_action,
+            canonical_next_action_source=canonical_next_action_source,
+            enable_opl_live_probe=enable_opl_live_probe,
+            opl_bin=opl_bin,
+        )
     if not direct:
         return None
     direct = attach_opl_runtime_carrier_readback(

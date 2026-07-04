@@ -1065,6 +1065,11 @@ def test_obesity_registry_quality_profile_requires_sci_draft_volume_and_clinical
         "results_phenotype_clinical_interpretability",
         "discussion_claim_guardrails",
     }.issubset(target_ids)
+    target_requirements = {
+        target["target_id"]: target["requirement"]
+        for target in work_order["study_quality_targets"]
+    }
+    assert "analytic/data-surface jargon" in target_requirements["internal_report_style_language_purge"]
     joined_refs = " ".join(suite["tasks"][0]["improvement_candidate"]["evidence_refs"])
     assert "reference-integrity-25-to-40-citations" in joined_refs
     assert "main-text-3500-word-floor" in joined_refs

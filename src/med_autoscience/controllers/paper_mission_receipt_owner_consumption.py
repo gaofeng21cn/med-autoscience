@@ -325,6 +325,16 @@ def _apply_result(
     )
     applied_outcome = _mapping(stage_closure_decision.get("outcome"))
     applied_stage = {
+        **(
+            {"stage_id": stage["stage_id"]}
+            if _text(stage.get("stage_id")) is not None
+            else {}
+        ),
+        **(
+            {"work_unit_id": stage["work_unit_id"]}
+            if _text(stage.get("work_unit_id")) is not None
+            else {}
+        ),
         "outcome_kind": _text(applied_outcome.get("kind")) or stage.get("outcome_kind"),
         "transition_kind": _text(applied_outcome.get("transition_kind")) or None,
         "next_legal_action": _first_text(
@@ -341,6 +351,11 @@ def _apply_result(
             {"typed_blocker_evidence_ref": receipt_ref}
             if apply_mode == "typed_blocker"
             else {"route_checkpoint_evidence_ref": receipt_ref}
+        ),
+        **(
+            {"opl_closeout": stage["opl_closeout"]}
+            if _mapping(stage.get("opl_closeout"))
+            else {}
         ),
     }
     applied_consumption = {
@@ -452,6 +467,16 @@ def _applied_stage_closure_decision(
             "schema_version": 1,
             "source": source,
             "study_id": study_id,
+            **(
+                {"stage_id": stage["stage_id"]}
+                if _text(stage.get("stage_id")) is not None
+                else {}
+            ),
+            **(
+                {"work_unit_id": stage["work_unit_id"]}
+                if _text(stage.get("work_unit_id")) is not None
+                else {}
+            ),
             "decision_ref": _text(stage.get("decision_ref")),
             "source_stage_closure_decision_ref": _text(stage.get("decision_ref")),
             "authority_materialized": True,
@@ -471,6 +496,11 @@ def _applied_stage_closure_decision(
             "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
             "route_checkpoint_evidence_ref": receipt_ref,
             "recorded_at": generated_at,
+            **(
+                {"opl_closeout": stage["opl_closeout"]}
+                if _mapping(stage.get("opl_closeout"))
+                else {}
+            ),
             "outcome": {
                 "kind": "next_stage_transition",
                 "transition_kind": "route_back_candidate_checkpoint",
@@ -507,6 +537,16 @@ def _applied_stage_closure_decision(
         "schema_version": 1,
         "source": source,
         "study_id": study_id,
+        **(
+            {"stage_id": stage["stage_id"]}
+            if _text(stage.get("stage_id")) is not None
+            else {}
+        ),
+        **(
+            {"work_unit_id": stage["work_unit_id"]}
+            if _text(stage.get("work_unit_id")) is not None
+            else {}
+        ),
         "decision_ref": _text(stage.get("decision_ref")),
         "source_stage_closure_decision_ref": _text(stage.get("decision_ref")),
         "authority_materialized": True,
@@ -527,6 +567,11 @@ def _applied_stage_closure_decision(
         "typed_runtime_blocker_ref": _text(evidence.get("typed_runtime_blocker_ref")),
         "typed_blocker_evidence_ref": receipt_ref,
         "recorded_at": generated_at,
+        **(
+            {"opl_closeout": stage["opl_closeout"]}
+            if _mapping(stage.get("opl_closeout"))
+            else {}
+        ),
         "outcome": {
             "kind": "typed_blocker",
             "blocker_type": blocked_reason,
@@ -641,11 +686,17 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     outcome = _mapping(decision.get("outcome"))
     guard = _mapping(readback.get("durable_mission_stop_guard"))
     return {
+        "stage_id": _first_text(decision.get("stage_id"), outcome.get("stage_id")),
+        "work_unit_id": _first_text(
+            decision.get("work_unit_id"),
+            outcome.get("work_unit_id"),
+        ),
         "outcome_kind": _text(outcome.get("kind")) or _text(readback.get("stage_closure_outcome")),
         "transition_kind": _text(outcome.get("transition_kind")) or None,
         "next_legal_action": _first_text(outcome.get("next_legal_action"), decision.get("next_legal_action")),
         "decision_ref": _first_text(decision.get("decision_ref"), readback.get("stage_closure_decision_ref")),
         "durable_stop_allowed": guard.get("durable_stop_allowed") is True,
+        "opl_closeout": _mapping(decision.get("opl_closeout")),
     }
 
 

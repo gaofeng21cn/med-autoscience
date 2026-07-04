@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-04：医学论文 final prose polish 收口到 AI reviewer prose gate
+
+- 决策：MAS 不新增独立 stage 来解决“内部化、重复、防守、AI 腔”问题；复用现有 `medical_prose_review_request -> ai_reviewer_medical_prose_quality_review -> medical_prose_write_repair -> AI reviewer recheck` 闭环，并把 style corpus 升级为 `medical_journal_prose_style_v4`。AI reviewer clear verdict 前必须检查四个 final-polish 轴：去内部化、去重复、去防守、去 AI/data-engineering 腔。
+- 决策：`medical_prose_review_request` 必须把肥胖 registry/descriptive 稿件暴露的问题转成结构化 safety flags：行政/owner-confirmation TODO 进正文、`analytic surface` / `data surface` 等工程口吻、项目问题清单式 objective、以及 not-prevalence / not-causal / not-prognostic 等防守性免责声明重复堆叠。blocking flag 存在时，AI reviewer 不能给 clear，只能 route back 到 `write` 或相应 owner。
+- 决策：final package / publication surface 继续作为后置 safety net；即使 AI reviewer 给出 clear，正文仍出现 owner-confirmation TODO、过度防守性 registry disclaimer、自我辩护式 descriptive-atlas 语言或 analytic/data-surface jargon 时，publication surface 必须阻断 final quality closure。
+- 理由：肥胖论文反馈显示主要缺口不是语法，而是 manuscript voice：科学边界清楚，但文字仍像内部项目报告、审稿回复或 AI 生成的谨慎说明。这个缺口属于医学写作质量 owner 问题，不能只靠前台改稿，也不能把 regex 扫描包装成质量权威；正确位置是 AI reviewer prose gate 加 writer route-back。
+- 影响：该规则只增强医学文体合同、review request、write stage prompt、Agent Lab quality target 和后置 publication-surface safety net；不写任何 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package、submission package 或 runtime/provider attempt。
+
 ## 2026-07-04：Stage closure owner receipt 压制同 work-unit 旧 domain transition
 
 - 决策：`paper-mission inspect` 已读取到当前 stage closure 的 `owner_receipt`，且 outcome 只是 `current_package` / `can_submit=false` 这类非投稿就绪收束时，若旧 `domain_transition.next_action` 仍指向同一 `stage_id` / `work_unit_id`，materialized readback 必须压制该旧 next action，不得再次把同一个已关闭 work unit 投影为下一步。

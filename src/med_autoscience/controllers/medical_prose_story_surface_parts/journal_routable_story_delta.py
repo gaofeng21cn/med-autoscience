@@ -9,21 +9,22 @@ def current_writer_story_delta_is_journal_routable(text: str) -> bool:
         and (
             _has_treatment_gap_manuscript_pattern(lowered)
             or _has_external_validation_manuscript_pattern(lowered)
+            or _has_descriptive_registry_atlas_pattern(lowered)
         )
     )
 
 
 def _has_required_sections(lowered: str) -> bool:
-    required_sections = (
-        "## abstract",
-        "## introduction",
-        "## methods",
-        "## results",
-        "## discussion",
-        "## limitations",
-        "## conclusion",
+    required_section_groups = (
+        ("## abstract",),
+        ("## introduction",),
+        ("## methods", "## materials and methods"),
+        ("## results",),
+        ("## discussion",),
+        ("## limitations", "### limitations"),
+        ("## conclusion", "## conclusions", "### conclusion", "### conclusions"),
     )
-    return all(section in lowered for section in required_sections)
+    return all(any(section in lowered for section in group) for group in required_section_groups)
 
 
 def _has_medical_reporting_structure(lowered: str) -> bool:
@@ -63,6 +64,27 @@ def _has_external_validation_manuscript_pattern(lowered: str) -> bool:
         and any(phrase in lowered for phrase in ("95% ci", "confidence interval", "bootstrap", "wilson"))
         and any(phrase in lowered for phrase in ("cox", "prediction model", "mortality score", "risk score"))
         and any(phrase in lowered for phrase in ("nhanes", "development cohort", "validation sample"))
+    )
+
+
+def _has_descriptive_registry_atlas_pattern(lowered: str) -> bool:
+    return (
+        "registry" in lowered
+        and any(phrase in lowered for phrase in ("phenotype atlas", "descriptive atlas", "registry atlas"))
+        and any(phrase in lowered for phrase in ("source layer", "source-layer", "source-specific"))
+        and any(phrase in lowered for phrase in ("denominator", "available-record", "missingness"))
+        and any(phrase in lowered for phrase in ("bmi", "waist circumference", "central obesity"))
+        and any(phrase in lowered for phrase in ("phq-9", "gad-7", "psychobehavioral"))
+        and any(
+            phrase in lowered
+            for phrase in (
+                "not as disease prevalence",
+                "not estimate population",
+                "not establish population",
+                "registry-field summaries",
+                "observed registry data",
+            )
+        )
     )
 
 

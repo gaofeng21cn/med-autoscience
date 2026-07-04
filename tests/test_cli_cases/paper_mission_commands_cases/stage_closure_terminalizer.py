@@ -1120,6 +1120,175 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
     assert inspect_projection["next_action"]["action_family"] == "paper.delivery.sync"
 
 
+def test_terminalize_stage_prefers_domain_transition_direct_closeout_without_materialized_mission(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    direct_handoff = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff"
+    )
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+
+    old_transaction = _paper_mission_transaction_payload(
+        mission_id=f"paper-mission::{study_id}::followthrough-02",
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    old_ledger_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "followthrough-02"
+        / study_id
+    )
+    _write_consumption_ledger(
+        ledger_root=old_ledger_root,
+        study_id=study_id,
+        candidate_ref="/tmp/followthrough-02/package_manifest.json",
+        transaction=old_transaction,
+    )
+    (old_ledger_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "study_id": study_id,
+                "stage_id": old_transaction["opl_route_command"]["target"],
+                "stage_attempt_id": "sat-old-followthrough",
+                "paper_mission_transaction_ref": old_transaction["transaction_id"],
+                "stage_packet_ref": (
+                    old_transaction["transaction_id"] + "#stage_terminal_decision"
+                ),
+                "opl_route_command_ref": (
+                    old_transaction["transaction_id"] + "#opl_route_command"
+                ),
+                "work_unit_id": old_transaction["stage_id"],
+                "work_unit_fingerprint": old_transaction["idempotency"][
+                    "transaction_fingerprint"
+                ],
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "action_id": "next-action-ai-reviewer",
+        "study_id": study_id,
+        "stage_id": "review",
+        "outcome_ref": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+        "action_family": "paper.review.ai_reviewer",
+        "action_kind": "owner_review",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+    }
+    monkeypatch.setattr(
+        materialized_readback.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: {"decision_type": "ai_reviewer_re_eval", "next_action": next_action},
+    )
+
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+    handoff = direct_handoff.build_direct_next_action_handoff(
+        profile=profile,
+        study_id=study_id,
+        inspect_readback={
+            "mission_id": old_transaction["mission_id"],
+            "study_id": study_id,
+        },
+        next_action=next_action,
+    )
+    carrier = handoff["opl_runtime_carrier"]
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-ai-reviewer"
+        / study_id
+    )
+    closeout_root.mkdir(parents=True)
+    (closeout_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "study_id": study_id,
+                "stage_id": "review",
+                "stage_attempt_id": "sat-ai-reviewer",
+                "paper_mission_transaction_ref": carrier[
+                    "paper_mission_transaction_ref"
+                ],
+                "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+                "opl_route_command_ref": carrier["opl_route_command_ref"],
+                "route_identity_key": carrier["route_identity_key"],
+                "work_unit_id": carrier["work_unit_id"],
+                "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["source_readback_summary"]["surface_kind"] == (
+        "paper_mission_domain_transition_direct_stage_attempt_readback"
+    )
+    assert payload["stage_closure_decision"]["stage_id"] == "review"
+    assert payload["stage_closure_decision"]["opl_closeout"][
+        "stage_attempt_id"
+    ] == "sat-ai-reviewer"
+
+
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:
     commands = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_commands"

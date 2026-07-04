@@ -610,6 +610,9 @@ def test_sync_study_delivery_writes_submission_todo_from_metadata_closeout_follo
     paper_root, study_root = make_delivery_workspace(tmp_path)
     manifest_path = paper_root / "submission_minimal" / "audit" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["front_matter_placeholders"] = {
+        "authors": "pending",
+    }
     manifest["metadata_closeout"] = {
         "status": "non_blocking_followup_only",
         "summary": "Administrative follow-up only.",
@@ -636,6 +639,7 @@ def test_sync_study_delivery_writes_submission_todo_from_metadata_closeout_follo
     todo_path = study_root / "manuscript" / "current_package" / "SUBMISSION_TODO.md"
     todo_text = todo_path.read_text(encoding="utf-8")
     assert "# Submission TODO" in todo_text
+    assert "- Authors: pending" in todo_text
     assert "- Objective metadata closeout: Authors, affiliations, and declaration wording still need user confirmation." in todo_text
     assert "- Journal template page proof: Only needed after a concrete target journal is chosen." in todo_text
     assert "scientific audit" in todo_text

@@ -62,6 +62,10 @@ External specialist outputs are refs-only candidates; K-Dense or any external li
   supplement aligned with the active claim boundary.
 - Keep internal operating notes, runtime terms, route mechanics, and quality
   jargon out of the manuscript body.
+- Before handoff, apply final prose polish: remove internal/unresolved-fact/package
+  language, collapse repeated boundary disclaimers, avoid defensive
+  self-explanation, and replace analytic/data-surface jargon with clinical
+  manuscript terms.
 - Route back instead of polishing unsupported prose when evidence, citation,
   source, display, artifact, or claim-boundary refs are missing or stale.
 

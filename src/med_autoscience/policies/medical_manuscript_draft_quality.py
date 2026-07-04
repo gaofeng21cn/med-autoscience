@@ -14,6 +14,8 @@ FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("locked probability", "locked probability", r"\blocked probability\b", re.IGNORECASE),
     ("contract", "contract", r"\bcontract\b", re.IGNORECASE),
     ("analysis surface", "analysis surface", r"\banalysis surface\b", re.IGNORECASE),
+    ("analytic surface", "analytic surface", r"\banalytic surfaces?\b", re.IGNORECASE),
+    ("data surface", "data surface", r"\bdata surfaces?\b", re.IGNORECASE),
     ("study surface", "study surface", r"\bstudy surface\b", re.IGNORECASE),
     ("predictor surface", "predictor surface", r"\bpredictor surfaces?\b", re.IGNORECASE),
     ("validation surface", "validation surface", r"\bvalidation surface\b", re.IGNORECASE),
@@ -117,6 +119,12 @@ PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
         r"\bnot yet been confirmed\b|\bReplace this placeholder\b|\bInsert the author-confirmed\b|\bverify the exact wording\b|\bshould be replaced\b|\brequires author confirmation\b|\bbefore external submission\b",
         re.IGNORECASE,
     ),
+    (
+        "administrative_confirmation_todo_residue",
+        "Final submission wording / requires owner confirmation",
+        r"\bFinal submission wording\b|\brequires (?:institutional|study[-\s]?owner|owner|author) confirmation\b|\b(?:ethics approval|consent|waiver|funding|competing interests|author affiliations|data availability).{0,160}\brequires\b.{0,80}\bconfirmation\b",
+        re.IGNORECASE,
+    ),
     ("paper_scaffold_role_residue", "paper protagonist / bounded complexity benchmark", r"\bpaper protagonist\b|\bbounded complexity benchmark\b|\bmodel-complexity competition\b", re.IGNORECASE),
     ("residual_hypopituitarism_endpoint_label", "later persistent global hypopituitarism", r"\blater persistent global hypopituitarism\b", re.IGNORECASE),
     (
@@ -216,6 +224,30 @@ MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
         r"\b(?:worked well|ready for review|good performance|performed well)\b",
         re.IGNORECASE,
     ),
+    (
+        "overdefensive_registry_boundary_disclaimer",
+        "over-defensive registry boundary disclaimer",
+        r"\bdo(?:es)? not support claims? about population[-\s]?level disease frequency\b|\bshould not be interpreted as population[-\s]?level, causal, prognostic\b|\bnot population(?:[-\s]?level)? (?:prevalence|disease frequency).{0,220}\b(?:causal|future risk|treatment response)\b",
+        re.IGNORECASE,
+    ),
+    (
+        "self_defending_descriptive_atlas_language",
+        "self-defending descriptive atlas language",
+        r"\bdescriptive atlas may appear modest\b|\bnot a defect if the manuscript labels it correctly\b",
+        re.IGNORECASE,
+    ),
+    (
+        "analytic_surface_or_data_surface_jargon",
+        "analytic/data surface",
+        r"\banalytic surfaces?\b|\bdata surfaces?\b",
+        re.IGNORECASE,
+    ),
+    (
+        "administrative_confirmation_todo_body",
+        "requires owner confirmation",
+        r"\bFinal submission wording\b|\brequires (?:institutional|study[-\s]?owner|owner|author) confirmation\b",
+        re.IGNORECASE,
+    ),
 ]
 
 MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
@@ -230,6 +262,10 @@ MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
         "candidate_package_residue",
         "complexity_audit_residue",
         "clinical_story_residue",
+        "overdefensive_registry_boundary_disclaimer",
+        "self_defending_descriptive_atlas_language",
+        "analytic_surface_or_data_surface_jargon",
+        "administrative_confirmation_todo_body",
     }
 )
 
@@ -324,7 +360,15 @@ def build_medical_prose_style_contract() -> dict[str, Any]:
             "administrative_or_author_instruction_in_body",
             "tool_or_runtime_provenance_in_body",
             "invalid_or_corrected_analysis_history_in_main_story",
+            "repeated_defensive_disclaimer_lists",
+            "ai_or_data_engineering_jargon_in_body",
         ],
+        "final_polish_axes": {
+            "de_internalize": "remove project, workflow, package, owner-confirmation, and submission-TODO language from article body text",
+            "de_duplicate": "avoid repeating the same boundary, limitation, or negative claim across sections",
+            "de_defend": "write limitations as compact clinical interpretation boundaries instead of self-defense or disclaimer lists",
+            "de_ai_voice": "replace analytic/data surface and similar AI/data-engineering terms with medical manuscript terms",
+        },
         "source_basis": list(PROSE_STYLE_SOURCE_BASIS),
     }
 
@@ -555,6 +599,10 @@ def build_medical_prose_review_contract() -> dict[str, Any]:
             "paragraph_argumentation_rhythm",
             "claim_restraint",
             "work_report_residue_judgment",
+            "de_internalized_final_language",
+            "non_repetitive_boundary_language",
+            "non_defensive_discussion_style",
+            "non_ai_data_engineering_voice",
         ],
         "mechanical_checks_role": "safety_flags_and_evidence_snippets_only",
     }
@@ -613,6 +661,8 @@ def build_first_draft_manuscript_quality_contract(
                 "submission_metadata_gap_in_article_body",
                 "manuscript_self_evaluation_conclusion",
                 "invalid_or_corrected_analysis_history_as_main_story",
+                "repeated_defensive_disclaimer_list",
+                "ai_or_data_engineering_jargon",
             ],
             "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
             "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
@@ -654,6 +704,7 @@ def build_first_draft_manuscript_quality_contract(
                 "convert research questions into clinical findings rather than question-answer prose",
                 "separate manuscript body from submission metadata, author confirmations, and operations notes",
                 "write the main scientific story from the cleaned valid evidence rather than from corrected data-processing errors or debug history",
+                "run final language polish before handoff: de-internalize, de-duplicate, de-defend, and remove AI/data-engineering voice",
                 "write figure legends as reader interpretation aids rather than reviewer instructions",
                 "keep Figure Legends to a concise title plus compact explanation by default; do not dump figure_semantics_manifest discussion, clinical implications, interpretation boundaries, or threshold caveats into the legend",
                 "for descriptive registry or phenotype-atlas manuscripts, write Methods as completed study methods with enrollment/data lock, ethics/consent, inclusion/exclusion, diagnostic variable ascertainment, age/BMI applicability, and missingness handling whenever evidence exists",

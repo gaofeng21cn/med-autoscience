@@ -98,6 +98,15 @@ _INTERNAL_METHOD_REPAIR_STORY_PATTERNS = (
 )
 _REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_PATTERNS: tuple[tuple[str, re.Pattern[str], str, str], ...] = (
     (
+        "administrative_author_confirmation_residue",
+        re.compile(
+            r"\bFinal submission wording\b|\brequires (?:institutional|study[-\s]?owner|owner|author) confirmation\b|\b(?:ethics approval|consent|waiver|funding|competing interests|author affiliations|data availability).{0,160}\brequires\b.{0,80}\bconfirmation\b",
+            re.IGNORECASE,
+        ),
+        "write",
+        "Administrative, ethics, author, funding, conflict, and data-availability TODOs belong in submission metadata or human gates, not manuscript body text.",
+    ),
+    (
         "registry_methods_time_window_placeholder",
         re.compile(r"\bcalendar enrollment period is not promoted\b", re.IGNORECASE),
         "write",
@@ -133,7 +142,33 @@ _REGISTRY_INITIAL_DRAFT_QUALITY_FLOOR_PATTERNS: tuple[tuple[str, re.Pattern[str]
         "write",
         "Selected populated diagnostic fields should be labelled as recorded or populated diagnostic-field summaries, not burden.",
     ),
+    (
+        "analytic_surface_or_data_surface_jargon",
+        re.compile(r"\banalytic surfaces?\b|\banalysis surfaces?\b|\bdata surfaces?\b", re.IGNORECASE),
+        "write",
+        "Replace analytic/data surface jargon with clinical manuscript terms such as analytic cohort, analytic dataset, measured fields, or available measurements.",
+    ),
+    (
+        "project_question_list_objective_residue",
+        re.compile(r"\bsix pragmatic clinical questions\b|\b(?:first|second|third|fourth|fifth|sixth) pragmatic clinical question\b", re.IGNORECASE),
+        "write",
+        "Convert project-question lists into a compact medical manuscript objective and clinically ordered Results narrative.",
+    ),
 )
+_DEFENSIVE_DISCLAIMER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "not_population_prevalence",
+        re.compile(r"\bnot\s+(?:population[-\s]?level\s+)?(?:prevalence|disease frequency)\b|\bshould not be interpreted as population[-\s]?level\b", re.IGNORECASE),
+    ),
+    ("not_causal", re.compile(r"\bnot\s+(?:causal|cause[-\s]?and[-\s]?effect|causal inference)\b", re.IGNORECASE)),
+    ("not_prognostic", re.compile(r"\bnot\s+(?:future risk|prognostic|longitudinal outcomes?)\b", re.IGNORECASE)),
+    ("not_treatment_response", re.compile(r"\bnot\s+treatment[-\s]?response\b|\bnot\s+treatment response\b", re.IGNORECASE)),
+    ("not_prediction_model", re.compile(r"\bnot\s+(?:a\s+)?prediction model\b", re.IGNORECASE)),
+    ("not_alliance_wide", re.compile(r"\bnot\s+alliance[-\s]?wide\b", re.IGNORECASE)),
+    ("does_not_support_claims", re.compile(r"\bdo(?:es)? not support claims? about\b", re.IGNORECASE)),
+)
+_DEFENSIVE_DISCLAIMER_CLUSTER_MIN_HITS = 4
+_DEFENSIVE_DISCLAIMER_CLUSTER_MIN_TYPES = 3
 
 
 def stable_medical_prose_review_request_path(*, study_root: Path) -> Path:
@@ -403,6 +438,51 @@ def _registry_initial_draft_quality_floor_flags(*, manuscript_text: str) -> list
     return flags
 
 
+def _defensive_disclaimer_repetition_flags(*, manuscript_text: str) -> list[dict[str, Any]]:
+    hits: list[dict[str, Any]] = []
+    current_section: str | None = None
+    for line_number, line in enumerate(manuscript_text.splitlines(), start=1):
+        current_section = _story_section_for_heading(_heading_label(line), current_section)
+        text = line.strip()
+        if not text:
+            continue
+        for pattern_id, pattern in _DEFENSIVE_DISCLAIMER_PATTERNS:
+            if not pattern.search(text):
+                continue
+            hits.append(
+                {
+                    "line_number": line_number,
+                    "section": current_section or "unknown",
+                    "pattern_id": pattern_id,
+                    "evidence_snippet": text[:240],
+                }
+            )
+            break
+    if len(hits) < _DEFENSIVE_DISCLAIMER_CLUSTER_MIN_HITS:
+        return []
+    if len({hit["pattern_id"] for hit in hits}) < _DEFENSIVE_DISCLAIMER_CLUSTER_MIN_TYPES:
+        return []
+    first = hits[0]
+    return [
+        {
+            "flag_id": "overdefensive_disclaimer_repetition",
+            "severity": "blocking",
+            "line_number": first["line_number"],
+            "section": first["section"],
+            "evidence_snippet": first["evidence_snippet"],
+            "source": "medical_journal_final_polish_floor",
+            "reason": (
+                "Boundary language is repeated as a defensive disclaimer cluster. Keep the scientific "
+                "boundary, but compress it into denominator-aware clinical interpretation and remove "
+                "duplicated not-prevalence/not-causal/not-prognostic lists."
+            ),
+            "clear_verdict_allowed": False,
+            "route_target": "write",
+            "cluster_evidence": hits[:8],
+        }
+    ]
+
+
 def _blocking_mechanical_safety_flags(request: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     flags: list[Mapping[str, Any]] = []
     for item in request.get("mechanical_safety_flags") or []:
@@ -458,6 +538,9 @@ def build_medical_prose_review_request(
     registry_quality_floor_flags = _registry_initial_draft_quality_floor_flags(
         manuscript_text=manuscript_text,
     )
+    defensive_disclaimer_flags = _defensive_disclaimer_repetition_flags(
+        manuscript_text=manuscript_text,
+    )
     payload: dict[str, Any] = {
         "schema_version": 1,
         "surface": "medical_prose_review_request",
@@ -501,16 +584,20 @@ def build_medical_prose_review_request(
             *list(mechanical_safety_flags or []),
             *story_flags,
             *registry_quality_floor_flags,
+            *defensive_disclaimer_flags,
         ],
         "review_tasks": [
             "Judge whether the manuscript sounds like a medical original research article rather than a work report.",
+            "Apply the final polish axes: de-internalize, de-duplicate, de-defend, and remove AI/data-engineering voice before any clear verdict.",
             "Assess Introduction clinical problem -> evidence gap -> objective flow.",
             "For registry or observational medical manuscripts, verify that Methods states enrollment period, data lock date, source-specific windows, ethics/consent/deidentification, cohort flow, inclusion/exclusion criteria, age eligibility, and variable definitions before allowing a clear verdict.",
+            "For registry manuscripts, compress boundary language into one denominator-aware interpretation instead of repeating not-prevalence, not-causal, not-prognostic, or not-treatment-response disclaimer lists.",
             "For obesity or BMI-category manuscripts, flag adult/child mixing unless the draft reports age distribution, under-18 proportion, adult-only sensitivity, and pediatric BMI-standard boundaries when applicable.",
             "Flag burden, prevalence, incidence, risk, and comorbidity language when denominators only represent populated diagnostic fields; require recorded/populated diagnostic-field wording unless population denominators are valid.",
             "Assess Results subject choice and old-to-new information flow.",
+            "Check that Abstract and Discussion foreground the principal clinical findings rather than an exhaustive internal checklist, negative-claim list, or self-defense of why the study is descriptive.",
             "Assess Discussion restraint, claim boundary, and limitation integration.",
-            "Reject internal workflow residue such as MAS/display-pack/current package language, self-evaluative submission-readiness claims, or statements that administrative metadata remain incomplete inside the article body.",
+            "Reject internal workflow residue such as MAS/display-pack/current package language, self-evaluative submission-readiness claims, study-owner confirmation TODOs, administrative metadata gaps, or analytic/data surface jargon inside the article body.",
             "Return representative bad sentences and concrete rewrite examples for the writer.",
             "Route back to blueprint, analysis, write, or review when the prose issue cannot be repaired by surface editing alone.",
         ],

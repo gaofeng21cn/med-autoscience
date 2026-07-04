@@ -45,6 +45,8 @@ Use `medical-manuscript-writing` when the work needs:
 - citation-integrity and source-trace discipline;
 - figure/table narrative binding;
 - reviewer-facing prose or response text.
+- final prose polish that removes internal/project language, repeated
+  disclaimers, defensive self-explanation, and AI/data-engineering jargon.
 
 Route adjacent professional work to sibling MAS Scholar Skills instead of
 embedding their methods here:
@@ -68,6 +70,9 @@ readiness.
   source refs.
 - Do not turn a specialist skill output into accepted manuscript truth without
   MAS owner consumption.
+- Do not return a draft that still says what the manuscript is not in repeated
+  defensive lists; compress boundaries into journal-style clinical limitation
+  language.
 - Do not create owner receipts, typed blockers, human gates, publication evals,
   controller decisions, runtime queues, or current-package authority from this
   prompt.

@@ -87,17 +87,18 @@ def test_review_request_bundles_blueprint_corpus_and_mechanical_evidence_without
     )
     assert payload["review_owner"] == "ai_reviewer"
     assert payload["style_corpus"]["corpus_id"] == "general_medical_journal_style_corpus_v1"
-    assert payload["style_corpus"]["style_version"] == "medical_journal_prose_style_v3"
+    assert payload["style_corpus"]["style_version"] == "medical_journal_prose_style_v4"
+    assert "final_language_polish" in payload["style_corpus"]["principles"]
     assert payload["style_corpus"]["style_digest"].startswith("sha256:")
     assert payload["style_currentness"]["status"] == "current"
-    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v3"
+    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v4"
     assert payload["style_currentness"]["style_digest"] == payload["style_corpus"]["style_digest"]
     assert payload["request_digest"].startswith("sha256:")
     assert payload["request_currentness"] == {
         "status": "current",
         "currentness_policy_id": "medical_prose_review_request_currentness_v1",
         "request_digest": payload["request_digest"],
-        "style_version": "medical_journal_prose_style_v3",
+        "style_version": "medical_journal_prose_style_v4",
         "style_digest": payload["style_corpus"]["style_digest"],
     }
     assert payload["structured_response_contract"]["mechanical_flags_role"] == "evidence_snippets_only"
@@ -408,12 +409,20 @@ def test_review_request_flags_registry_initial_draft_quality_floor_residue(
                 "## Methods",
                 "The calendar enrollment period is not promoted as a main-text claim until source metadata are audited.",
                 "This restriction is intentional.",
+                "Final submission wording for ethics approval, consent, funding, author affiliations, and data availability requires study-owner confirmation.",
                 "Result figures were generated with an R ggplot2 renderer using the current MAS display-pack style profile.",
                 "TRIPOD is cited only as a boundary reference for what is not being claimed.",
                 "",
+                "## Introduction",
+                "We asked six pragmatic clinical questions about the registry.",
+                "These analyses do not support claims about population-level disease frequency.",
+                "They are not causal inference.",
+                "They are not future risk or longitudinal outcomes.",
+                "They are not treatment response.",
+                "",
                 "## Results",
                 "### BMI category and metabolic comorbidity burden",
-                "BMI-category strata and metabolic comorbidity burden were reported using available-record denominators.",
+                "The analytic surface included 4189 records, and data surfaces were reviewed before reporting metabolic comorbidity burden.",
                 "",
                 "## Discussion",
                 "Administrative and submission metadata also remain incomplete.",
@@ -431,9 +440,13 @@ def test_review_request_flags_registry_initial_draft_quality_floor_residue(
     assert {
         "registry_methods_time_window_placeholder",
         "internal_restriction_explanation_residue",
+        "administrative_author_confirmation_residue",
         "workflow_tool_prose_residue",
         "prediction_reporting_boundary_overexplained",
         "selected_diagnostic_field_burden_language",
+        "analytic_surface_or_data_surface_jargon",
+        "project_question_list_objective_residue",
+        "overdefensive_disclaimer_repetition",
         "self_evaluative_conclusion_residue",
     }.issubset(flag_ids)
 
@@ -510,7 +523,7 @@ def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     assert review["assessment_provenance"]["manuscript_ref"].endswith("paper/draft.md")
     assert review["assessment_provenance"]["manuscript_digest"].startswith("sha256:")
     assert review["style_currentness"]["status"] == "current"
-    assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v3"
+    assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v4"
     assert review["style_currentness"]["style_digest"].startswith("sha256:")
     assert review["medical_journal_prose_quality"]["overall_style_verdict"] == "revise"
     assert review["medical_journal_prose_quality"]["route_back_recommendation"]["route_target"] == "write"

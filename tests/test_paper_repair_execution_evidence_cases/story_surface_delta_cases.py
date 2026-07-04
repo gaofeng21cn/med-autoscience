@@ -395,6 +395,9 @@ def test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair(
     assert story_work_units.is_story_surface_delta_write_work_unit(
         "dm002_after_story_repair_medical_prose_hardening"
     )
+    assert story_work_units.is_story_surface_delta_write_work_unit(
+        "medical_methods_and_registry_reporting_repair"
+    )
     assert story_work_units.is_story_surface_delta_write_work_unit("treatment_gap_reporting_repair")
 
 

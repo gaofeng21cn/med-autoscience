@@ -65,6 +65,8 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "invalid_or_corrected_analysis_history_as_main_story"
         in draft_contract["manuscript_native_prose"]["forbidden_modes"]
     )
+    assert "repeated_defensive_disclaimer_list" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    assert "ai_or_data_engineering_jargon" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
     assert (
         "authoring_strategy_or_workflow_status_sentence"
         in draft_contract["manuscript_native_prose"]["forbidden_modes"]
@@ -92,6 +94,12 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "invalid_or_corrected_analysis_history_in_main_story"
         in prose_contract["forbidden_scientific_style"]
     )
+    assert prose_contract["final_polish_axes"] == {
+        "de_internalize": "remove project, workflow, package, owner-confirmation, and submission-TODO language from article body text",
+        "de_duplicate": "avoid repeating the same boundary, limitation, or negative claim across sections",
+        "de_defend": "write limitations as compact clinical interpretation boundaries instead of self-defense or disclaimer lists",
+        "de_ai_voice": "replace analytic/data surface and similar AI/data-engineering terms with medical manuscript terms",
+    }
     blueprint_contract = draft_contract["medical_manuscript_blueprint_contract"]
     assert blueprint_contract["surface"] == "medical_manuscript_blueprint"
     assert blueprint_contract["required_before"] == "first_full_draft"
@@ -104,6 +112,8 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     prose_review_contract = draft_contract["medical_prose_review_contract"]
     assert prose_review_contract["owner"] == "ai_reviewer"
     assert prose_review_contract["mechanical_projection_can_authorize_quality"] is False
+    assert "non_defensive_discussion_style" in prose_review_contract["subjective_quality_authority"]
+    assert "non_ai_data_engineering_voice" in prose_review_contract["subjective_quality_authority"]
     assert "paper/results_narrative_map.json" in draft_contract["must_bind_existing_surfaces"]
     assert contract["quality_contract"]["stronger_paper_shape_scan"]["status"] == (
         "required_before_first_full_draft"

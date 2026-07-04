@@ -685,6 +685,8 @@ def test_create_submission_minimal_package_materializes_references_and_pending_f
         "conflict_of_interest": "pending",
         "ethics": "pending",
         "data_availability": "pending",
+        "analytic_data_lock_date": "pending",
+        "registry_enrollment_period": "pending",
     }
 
 
