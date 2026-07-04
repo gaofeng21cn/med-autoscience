@@ -9035,6 +9035,71 @@
       },
       {
         "action_triggers": [
+          "artifact_display_surface_materialization_required",
+          "return_to_ai_reviewer_workflow",
+          "run_gate_clearing_batch",
+          "run_quality_repair_batch",
+          "unit_harmonized_external_validation_rerun"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_provider_admission": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "capability_or_sidecar_can_be_admission_gate": false,
+          "failed_capability_blocks_owner_action": false,
+          "low_confidence_capability_blocks_owner_action": false,
+          "missing_capability_blocks_owner_action": false,
+          "sidecar_completion_required_for_stage_closeout": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
+        "capability_family": "workspace_provenance_advisory",
+        "capability_id": "openscience_artifact_provenance_advisory",
+        "capability_ref": "scientific-capability:openscience_artifact_provenance_advisory",
+        "current_delta_trigger_reason": "current_delta_declared_openscience_artifact_provenance_need",
+        "current_delta_trigger_terms": [
+          "artifact graph",
+          "artifact_graph",
+          "artifact provenance",
+          "claim warning",
+          "claim_warning",
+          "annotation regeneration",
+          "annotation_regeneration",
+          "project ledger",
+          "project_ledger",
+          "connector provenance",
+          "data flow",
+          "data-flow",
+          "source lineage"
+        ],
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "external_learning_sidecar",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/advisory/external_learning_sidecar/latest.json"
+        ],
+        "refs_only": true,
+        "role": "artifact_graph_claim_warning_annotation_regeneration_ledger_connector_and_data_flow_refs_only_advisory",
+        "source_frameworks": [
+          "ai4s-research/open-science@2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66",
+          "OpenScience@2200ad2"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
           "*"
         ],
         "authority_boundary": {
@@ -11399,7 +11464,7 @@
         "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 18,
+    "capability_count": 19,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,
