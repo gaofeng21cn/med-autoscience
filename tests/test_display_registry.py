@@ -214,6 +214,11 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
             "clinical_interpretation_summary_v1",
             "publication_table_interpretation",
         ),
+        (
+            "table3_grouped_calibration",
+            "time_to_event_grouped_calibration_table_v1",
+            "publication_table_calibration",
+        ),
     ],
 )
 def test_live_publication_table_shells_are_available_for_publication_surface_readback(
