@@ -151,6 +151,7 @@ def _supplementary_material_payload(
 
 _SUBMISSION_AUDIT_MATERIALIZATION_BLOCKERS = frozenset(
     {
+        "authority_snapshot_missing",
         "dispatch_gate_blocked",
         "submission_authority_or_human_gate_closeout_required",
     }

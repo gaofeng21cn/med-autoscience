@@ -81,6 +81,31 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
     assert not (paper_root / "submission_minimal").exists()
 
 
+def test_create_submission_minimal_package_materializes_audit_package_when_authority_snapshot_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
+    shutil.rmtree(paper_root.parent / "artifacts", ignore_errors=True)
+
+    result = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    manifest_path = submission_root / "audit" / "submission_manifest.json"
+    assert result["authority_route_gate"]["allowed"] is False
+    assert result["submission_materialization_status"]["can_submit"] is False
+    assert result["submission_materialization_status"]["quality_gate_status"] == "blocked"
+    assert result["submission_materialization_status"]["known_blockers"] == [
+        "authority_snapshot_missing"
+    ]
+    assert (submission_root / "paper.pdf").exists()
+    assert manifest_path.exists()
+
+
 def test_create_submission_minimal_package_materializes_audit_package_for_submission_human_gate(
     tmp_path: Path,
 ) -> None:
