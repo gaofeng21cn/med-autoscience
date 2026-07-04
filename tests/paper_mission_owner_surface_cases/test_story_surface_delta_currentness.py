@@ -520,6 +520,74 @@ def test_dm003_quality_batch_writer_handoff_stays_current_without_publication_ev
     assert study["owner_route"]["currentness_contract"]["missing_required_fields"] == []
 
 
+def test_story_surface_recheck_transition_carries_ai_reviewer_next_action(
+    tmp_path: Path,
+) -> None:
+    transition_module = importlib.import_module(
+        "med_autoscience.controllers.study_domain_transition_table_parts.story_surface_recheck_transition"
+    )
+    study_root = tmp_path / "study"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    eval_id = "publication-eval::dm003::post-story-repair"
+    recheck_request_ref = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    _write_json(
+        recheck_request_ref,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "requested"},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "status": "progress_delta_candidate",
+            "ai_reviewer_recheck_required": True,
+            "ai_reviewer_recheck_done": True,
+            "ai_reviewer_recheck_request_ref": str(recheck_request_ref),
+            "repair_work_unit": {"unit_id": "medical_prose_write_repair"},
+            "review_finding": {"source_eval_id": eval_id},
+            "manuscript_surface_hygiene": {
+                "status": "clear",
+                "story_surface_delta_present": True,
+                "story_surface_delta_refs": [str(study_root / "paper" / "draft.md")],
+                "blockers": [],
+            },
+        },
+    )
+
+    transition = transition_module.project_transition(
+        study_root=study_root,
+        study_id=study_id,
+        lifecycle={
+            "source_eval_id": eval_id,
+            "work_unit": {"unit_id": "medical_prose_write_repair"},
+        },
+        lifecycle_ref="artifacts/controller/publication_work_unit_lifecycle/latest.json",
+        publication_eval={
+            "eval_id": eval_id,
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "route_target": "write",
+                    "next_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+                }
+            ],
+        },
+        source_refs=["artifacts/publication_eval/latest.json"],
+        completion_receipt_consumption={"status": "consumed"},
+    )
+
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
+    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert transition["next_action"]["action_kind"] == "owner_review"
+    assert transition["next_action"]["owner"] == "ai_reviewer"
+    assert transition["next_action"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+
+
 def test_dm003_quality_batch_writer_handoff_preempts_consumed_finalize_gate_replay(
     monkeypatch,
     tmp_path: Path,
