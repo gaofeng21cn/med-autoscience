@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import filecmp
+import re
 import shutil
 
 from .shared_base import Any, Path, dump_json, load_json, resolve_relpath, utc_now
@@ -70,6 +71,50 @@ def _copy_tree_changed(
         if copied_path is not None:
             copied.append(copied_path)
     return copied
+
+
+def _filter_nested_figure_catalog_to_canonical_main_figures(
+    *,
+    source_root: Path,
+    paper_root: Path,
+) -> Path | None:
+    canonical_path = source_root / "figure_catalog.json"
+    nested_path = paper_root / "figures" / "figure_catalog.json"
+    if not canonical_path.exists() or not nested_path.exists():
+        return None
+    canonical_payload = load_json(canonical_path)
+    nested_payload = load_json(nested_path)
+    canonical_figures = canonical_payload.get("figures") or []
+    nested_figures = nested_payload.get("figures") or []
+    if not isinstance(canonical_figures, list) or not isinstance(nested_figures, list):
+        return None
+
+    allowed_titles = {
+        str(item.get("title") or "").strip()
+        for item in canonical_figures
+        if isinstance(item, dict) and str(item.get("title") or "").strip()
+    }
+    allowed_ids = {
+        re.sub(r"^figure\s+", "F", str(item.get("figure_id") or "").strip(), flags=re.IGNORECASE)
+        for item in canonical_figures
+        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+    }
+    filtered_figures = [
+        item
+        for item in nested_figures
+        if isinstance(item, dict)
+        and (
+            str(item.get("title") or "").strip() in allowed_titles
+            or str(item.get("figure_id") or "").strip() in allowed_ids
+        )
+    ]
+    if len(filtered_figures) == len(nested_figures):
+        return None
+
+    filtered_payload = dict(nested_payload)
+    filtered_payload["figures"] = filtered_figures
+    dump_json(nested_path, filtered_payload)
+    return nested_path
 
 
 def _relpath_from_paper(path: Path, *, paper_root: Path) -> str:
@@ -143,6 +188,12 @@ def _hydrate_delivery_required_sources(
                 rel_path=rel_path,
             )
         )
+    filtered_catalog_path = _filter_nested_figure_catalog_to_canonical_main_figures(
+        source_root=source_root,
+        paper_root=paper_root,
+    )
+    if filtered_catalog_path is not None:
+        hydrated.append(filtered_catalog_path)
     return hydrated
 
 
