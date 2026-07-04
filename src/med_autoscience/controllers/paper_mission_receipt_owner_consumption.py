@@ -220,17 +220,17 @@ def _owner_consumption_verdict(
     package = _current_package_summary(paper_mission_readback)
     consumption_action = _text(consumption.get("next_legal_action"))
     if (
-        consumption_action == "record_typed_blocker"
-        or stage["outcome_kind"] == "typed_blocker"
-    ):
-        verdict_kind = "record_typed_blocker_owner_consumption_required"
-        required_authority_surface = "paper-mission receipt-owner-consumption --apply-typed-blocker"
-    elif (
         stage["outcome_kind"] == "next_stage_transition"
         and stage["transition_kind"] == "route_back_candidate_checkpoint"
     ):
         verdict_kind = "consume_route_back_checkpoint_owner_consumption_required"
         required_authority_surface = "paper-mission receipt-owner-consumption --apply-route-checkpoint"
+    elif (
+        consumption_action == "record_typed_blocker"
+        or stage["outcome_kind"] == "typed_blocker"
+    ):
+        verdict_kind = "record_typed_blocker_owner_consumption_required"
+        required_authority_surface = "paper-mission receipt-owner-consumption --apply-typed-blocker"
     elif package["can_submit"] is True:
         verdict_kind = "submission_ready_owner_verdict_required"
         required_authority_surface = "paper-mission receipt-owner-consumption --apply-owner-verdict"
@@ -312,6 +312,7 @@ def _apply_result(
         receipt.get("receipt_ref"),
     )
     stage_closure_decision = _applied_stage_closure_decision(
+        apply_mode=apply_mode,
         study_id=study_id,
         stage=stage,
         package=package,
@@ -334,18 +335,30 @@ def _apply_result(
             stage_closure_decision.get("decision_ref"),
             stage.get("decision_ref"),
         ),
-        "durable_stop_allowed": True,
+        "durable_stop_allowed": apply_mode == "typed_blocker",
         "authority_materialized": True,
-        "typed_blocker_evidence_ref": receipt_ref,
+        **(
+            {"typed_blocker_evidence_ref": receipt_ref}
+            if apply_mode == "typed_blocker"
+            else {"route_checkpoint_evidence_ref": receipt_ref}
+        ),
     }
     applied_consumption = {
         **dict(consumption),
         "surface_kind": "mas_receipt_consumption_projection",
-        "status": "owner_consumed_typed_blocker",
+        "status": (
+            "owner_consumed_typed_blocker"
+            if apply_mode == "typed_blocker"
+            else "owner_consumed_route_checkpoint"
+        ),
         "authority_materialized": True,
-        "owner_result_kind": "typed_blocker",
-        "typed_blocker_evidence_ref": receipt_ref,
-        "durable_stop_allowed": True,
+        "owner_result_kind": "typed_blocker" if apply_mode == "typed_blocker" else "route_checkpoint",
+        **(
+            {"typed_blocker_evidence_ref": receipt_ref}
+            if apply_mode == "typed_blocker"
+            else {"route_checkpoint_evidence_ref": receipt_ref}
+        ),
+        "durable_stop_allowed": apply_mode == "typed_blocker",
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,
         "can_claim_runtime_ready": False,
@@ -367,7 +380,11 @@ def _apply_result(
         "receipt_evidence": {
             **dict(evidence),
             "authority_materialized": True,
-            "typed_blocker_evidence_ref": receipt_ref,
+            **(
+                {"typed_blocker_evidence_ref": receipt_ref}
+                if apply_mode == "typed_blocker"
+                else {"route_checkpoint_evidence_ref": receipt_ref}
+            ),
         },
         "opl_transition_receipt": _receipt_summary(receipt),
         "mas_receipt_consumption": applied_consumption,
@@ -411,6 +428,7 @@ def _implementation_gap() -> dict[str, Any]:
 
 def _applied_stage_closure_decision(
     *,
+    apply_mode: str,
     study_id: str,
     stage: Mapping[str, Any],
     package: Mapping[str, Any],
@@ -428,6 +446,62 @@ def _applied_stage_closure_decision(
         stage.get("transition_kind"),
         "paper_mission_opl_transition_receipt_consumed",
     )
+    if apply_mode == "route_checkpoint":
+        return {
+            "surface_kind": "mas_stage_closure_decision",
+            "schema_version": 1,
+            "source": source,
+            "study_id": study_id,
+            "decision_ref": _text(stage.get("decision_ref")),
+            "source_stage_closure_decision_ref": _text(stage.get("decision_ref")),
+            "authority_materialized": True,
+            "writes_authority": True,
+            "writes_runtime": False,
+            "writes_yang_authority": False,
+            "counts_as_stage_closure_terminalizer_evidence": False,
+            "counts_as_owner_receipt": False,
+            "counts_as_typed_blocker": False,
+            "counts_as_human_gate": False,
+            "counts_as_current_package": False,
+            "counts_as_runtime_truth": False,
+            "can_claim_paper_progress": False,
+            "can_claim_submission_ready": False,
+            "can_claim_publication_ready": False,
+            "can_claim_runtime_ready": False,
+            "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
+            "route_checkpoint_evidence_ref": receipt_ref,
+            "recorded_at": generated_at,
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "next_owner": "MedAutoScience",
+                "next_action": (
+                    stage.get("next_legal_action")
+                    or "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "known_blockers": known_blockers or [blocked_reason],
+                "resume_condition": (
+                    "route-back candidate checkpoint must be consumed into owner receipt, "
+                    "typed blocker, human gate, or next stage transition"
+                ),
+                "authority_materialized": True,
+                "route_checkpoint_evidence_ref": receipt_ref,
+                "package_kind": package.get("package_kind"),
+                "can_submit": package.get("can_submit") is True,
+            },
+            "authority_boundary": {
+                "surface_role": "paper_mission_receipt_owner_consumption",
+                "authority_materialized": True,
+                "writes_receipt_owner_consumption": True,
+                "writes_owner_receipt": False,
+                "writes_typed_blocker": False,
+                "writes_human_gate": False,
+                "writes_current_package": False,
+                "writes_submission_ready_package": False,
+                "writes_runtime_queue_or_provider_attempt": False,
+            },
+            "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+        }
     return {
         "surface_kind": "mas_stage_closure_decision",
         "schema_version": 1,
@@ -521,9 +595,18 @@ def _valid_owner_consumption_readback(
         return None
     decision = _mapping(payload.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
-    if outcome.get("kind") != "typed_blocker":
-        return None
-    if decision.get("counts_as_typed_blocker") is not True:
+    outcome_kind = _text(outcome.get("kind"))
+    transition_kind = _text(outcome.get("transition_kind"))
+    if outcome_kind == "typed_blocker":
+        if decision.get("counts_as_typed_blocker") is not True:
+            return None
+    elif (
+        outcome_kind == "next_stage_transition"
+        and transition_kind == "route_back_candidate_checkpoint"
+    ):
+        if decision.get("counts_as_typed_blocker") is True:
+            return None
+    else:
         return None
     boundary = _mapping(decision.get("authority_boundary"))
     if any(

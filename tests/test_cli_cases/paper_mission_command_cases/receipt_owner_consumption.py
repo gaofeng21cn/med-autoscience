@@ -450,7 +450,7 @@ def test_receipt_owner_consumption_apply_typed_blocker_writes_safe_consumption_l
     assert latest["source_ref"] == str(packet_ref)
 
 
-def test_receipt_owner_consumption_apply_route_checkpoint_records_typed_blocker_not_submission_ready(
+def test_receipt_owner_consumption_apply_route_checkpoint_records_checkpoint_not_submission_ready(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -499,16 +499,23 @@ def test_receipt_owner_consumption_apply_route_checkpoint_records_typed_blocker_
     assert payload["current_package"]["can_submit"] is True
     assert payload["submission_ready_claim_authorized"] is False
     assert payload["owner_consumption_verdict"]["can_claim_submission_ready"] is False
-    assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
-    assert payload["stage_closure"]["outcome_kind"] == "typed_blocker"
-    assert payload["stage_closure"]["transition_kind"] is None
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == "next_stage_transition"
+    assert payload["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
+    assert payload["stage_closure_decision"]["counts_as_typed_blocker"] is False
+    assert payload["mas_receipt_consumption"]["status"] == "owner_consumed_route_checkpoint"
+    assert payload["mas_receipt_consumption"]["owner_result_kind"] == "route_checkpoint"
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["transition_kind"] == "route_back_candidate_checkpoint"
+    assert payload["stage_closure"]["durable_stop_allowed"] is False
     assert payload["stage_closure_decision"]["outcome"]["can_submit"] is True
     assert payload["stage_closure_decision"]["authority_boundary"][
         "writes_current_package"
     ] is False
 
 
-def test_receipt_owner_consumption_route_checkpoint_can_require_typed_blocker_apply(
+def test_receipt_owner_consumption_route_checkpoint_supersedes_stale_typed_blocker_action(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -545,25 +552,41 @@ def test_receipt_owner_consumption_route_checkpoint_can_require_typed_blocker_ap
             str(readback_file),
             "--output-root",
             str(output_root),
-            "--apply-typed-blocker",
+            "--apply-route-checkpoint",
             "--format",
             "json",
         ]
     )
     payload = json.loads(capsys.readouterr().out)
+    packet_ref = output_root / study_id / "receipt_owner_consumption.json"
+    latest = latest_receipt_owner_consumption_readback(
+        workspace_root=tmp_path,
+        study_id=study_id,
+    )
 
     assert exit_code == 0
     assert payload["status"] == "owner_consumption_applied"
-    assert payload["apply_mode"] == "typed_blocker"
+    assert payload["apply_mode"] == "route_checkpoint"
     assert payload["owner_consumption_verdict"]["verdict_kind"] == (
-        "record_typed_blocker_owner_consumption_required"
+        "consume_route_back_checkpoint_owner_consumption_required"
     )
     assert payload["owner_consumption_verdict"]["required_authority_surface"] == (
-        "paper-mission receipt-owner-consumption --apply-typed-blocker"
+        "paper-mission receipt-owner-consumption --apply-route-checkpoint"
     )
-    assert payload["stage_closure_decision"]["outcome"]["kind"] == "typed_blocker"
-    assert payload["stage_closure"]["outcome_kind"] == "typed_blocker"
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == "next_stage_transition"
+    assert payload["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
+    assert payload["stage_closure_decision"]["counts_as_typed_blocker"] is False
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["transition_kind"] == "route_back_candidate_checkpoint"
     assert payload["submission_ready_claim_authorized"] is False
+    assert packet_ref.exists()
+    assert latest is not None
+    assert latest["source_ref"] == str(packet_ref)
+    assert latest["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
 
 
 def test_receipt_owner_consumption_apply_mode_mismatch_fails_closed(
