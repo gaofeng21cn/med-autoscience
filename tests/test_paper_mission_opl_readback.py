@@ -336,6 +336,50 @@ def test_opl_terminal_closeout_readback_rejects_stale_candidate_idempotency(
     assert "terminal_closeout" not in readback
 
 
+def test_opl_terminal_closeout_readback_rejects_no_idempotency_stale_candidate_ref(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    current_candidate_ref = (
+        "/workspace/ops/medautoscience/paper_mission_candidate_package/"
+        "20260704T1425_dm003_bounded_analysis_sci_upgrade/study/package_manifest.json"
+    )
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": (
+            "dm003::submission_milestone_candidate::"
+            f"{current_candidate_ref}::candidate-ref-missing"
+        ),
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "closeout_refs": [
+                carrier["paper_mission_transaction_ref"],
+                (
+                    "/workspace/ops/medautoscience/paper_mission_candidate_package/"
+                    "paper_mission_drive/study/package_manifest.json"
+                ),
+            ],
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+
+
 def test_opl_terminal_closeout_readback_accepts_matching_candidate_idempotency(
     tmp_path: Path,
 ) -> None:

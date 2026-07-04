@@ -905,6 +905,10 @@ def _matches_carrier(
         _non_current_closeout_reason(closeout.get("blocked_reason"))
         or not _closeout_binds_route_identity(closeout=closeout, carrier=carrier)
         or _closeout_idempotency_mismatches_carrier(closeout=closeout, carrier=carrier)
+        or _closeout_lacks_current_candidate_binding(
+            closeout=closeout,
+            carrier=carrier,
+        )
     ):
         return False
     if closeout.get("provider_completion_is_domain_completion") is True:
@@ -982,6 +986,59 @@ def _closeout_idempotency_mismatches_carrier(
     observed = _idempotency_refs(closeout)
     observed.update(_idempotency_refs(_mapping(closeout.get("opl_transition_receipt"))))
     return bool(expected and observed and not expected.intersection(observed))
+
+def _closeout_lacks_current_candidate_binding(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+) -> bool:
+    expected = _idempotency_refs(carrier)
+    if not expected:
+        return False
+    observed = _idempotency_refs(closeout)
+    observed.update(_idempotency_refs(_mapping(closeout.get("opl_transition_receipt"))))
+    if observed:
+        return False
+    candidate_refs = _closeout_candidate_refs(closeout)
+    if not candidate_refs:
+        return True
+    return not any(
+        _candidate_ref_matches_expected(candidate_ref, expected)
+        for candidate_ref in candidate_refs
+    )
+
+def _closeout_candidate_refs(closeout: Mapping[str, Any]) -> set[str]:
+    refs = {
+        text
+        for field in (
+            "candidate_ref",
+            "candidate_package_ref",
+            "package_manifest_ref",
+            "paper_mission_candidate_package_manifest",
+        )
+        if (text := _text(closeout.get(field))) is not None
+    }
+    refs.update(
+        text
+        for text in _text_list(closeout.get("closeout_refs"))
+        if _looks_like_candidate_package_ref(text)
+    )
+    return refs
+
+def _looks_like_candidate_package_ref(value: str) -> bool:
+    return (
+        "paper_mission_candidate_package" in value
+        and "package_manifest.json" in value
+    )
+
+def _candidate_ref_matches_expected(
+    candidate_ref: str,
+    expected_refs: set[str],
+) -> bool:
+    return any(
+        candidate_ref in expected_ref or expected_ref in candidate_ref
+        for expected_ref in expected_refs
+    )
 
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)
