@@ -46,6 +46,20 @@ FORBIDDEN_AUTHORITY_CLAIMS = (
     "yang_workspace_written",
 )
 
+NON_BLOCKING_STAGE_CLOSURE_STATUSES = frozenset(
+    {
+        "accepted",
+        "accepted_candidate",
+        "not_applicable_domain_transition_direct",
+        "domain_transition_direct_stage_attempt",
+        "domain_transition_next_action_ready",
+        (
+            "MAS domain transition selected a concrete OPL stage attempt for "
+            "the current paper repair work unit."
+        ),
+    }
+)
+
 
 def stage_closure_terminalizer_output_root(
     *,
@@ -558,7 +572,7 @@ def _dedupe_optional_texts(values: list[object]) -> list[str]:
 
 def _status_blocker(value: object) -> str | None:
     text = _optional_text(value)
-    if text in {"accepted", "accepted_candidate"}:
+    if text in NON_BLOCKING_STAGE_CLOSURE_STATUSES:
         return None
     return text
 
