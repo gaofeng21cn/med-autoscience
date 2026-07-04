@@ -428,6 +428,16 @@ def _drive_should_submit_direct_next_action(
         "paper.stage_closure.owner_consumption",
     }:
         return False
+    authority_boundary = _mapping(next_action.get("authority_boundary"))
+    if (
+        action_family == "runtime.opl_route"
+        and _optional_text(next_action.get("action_kind")) == "submit_to_opl_runtime"
+        and authority_boundary.get("can_submit_to_opl_runtime") is True
+        and bool(_mapping(readback.get("terminal_owner_gate")))
+        and _optional_text(next_action.get("owner")) is not None
+        and _optional_text(next_action.get("work_unit_id")) is not None
+    ):
+        return True
     if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
         return True
     return (

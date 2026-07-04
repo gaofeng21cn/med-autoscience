@@ -609,6 +609,56 @@ def test_paper_mission_drive_stops_when_route_back_checkpoint_owner_action_ready
     assert not output_root.exists()
 
 
+def test_paper_mission_drive_does_not_stop_runtime_route_on_stale_owner_gate(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    (Path(profile.studies_root) / study_id).mkdir(parents=True)
+    output_root = tmp_path / "workspace" / "ops" / "medautoscience" / "drive"
+
+    payload = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+        output_root=output_root,
+        source="test",
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::one-shot",
+            "objective": "Submit accepted mission route to OPL.",
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": "submission_milestone_candidate",
+                "authority_boundary": {
+                    "can_submit_to_opl_runtime": True,
+                    "can_claim_paper_progress": False,
+                },
+            },
+            "terminal_owner_gate": {
+                "gate_kind": "typed_blocker",
+                "blocked_reason": (
+                    "mission_executor_owner_answer_or_same_transaction_opl_readback_required"
+                ),
+                "typed_blocker_ref": "old-closeout#domain_blocker",
+                "can_claim_paper_progress": False,
+            },
+        },
+    )
+
+    assert payload is None
+    assert not output_root.exists()
+
+
 def test_paper_mission_drive_submits_domain_transition_next_action_without_candidate_package(
     tmp_path: Path,
 ) -> None:
