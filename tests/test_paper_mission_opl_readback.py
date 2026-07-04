@@ -443,6 +443,83 @@ def test_opl_terminal_closeout_readback_accepts_transaction_bound_route_back_evi
     assert readback["terminal_closeout"]["status"] == (
         "non_advancing_route_back_evidence_candidate"
     )
+    assert readback["opl_transition_receipt"]["receipt_status"] == (
+        "route_back_evidence_closeout_observed"
+    )
+    assert readback["receipt_evidence"]["route_back_evidence_ref"].endswith(
+        "route_back_evidence_packet.json"
+    )
+    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+
+
+def test_opl_terminal_closeout_readback_prefers_route_back_over_typed_closeout_residue(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-route-back/study/route_back_evidence_packet.json"
+    )
+    _write_closeout(
+        study_root,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "completed",
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-route-back",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "opl_transition_receipt": {
+                **_opl_transition_receipt(),
+                "typed_runtime_blocker_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-route-back/study/stage_attempt_closeout_packet.json"
+                ),
+                "route_impact": {
+                    "recommended_next_action": "consume_route_back_evidence_ref",
+                    "user_stage_log": {
+                        "evidence_refs": [
+                            "ops/medautoscience/paper_mission_stage_attempts/"
+                            "sat-route-back/study/attempt_candidate_manifest.json",
+                            route_back_ref,
+                        ],
+                    },
+                },
+            },
+            "typed_runtime_blocker_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-route-back/study/stage_attempt_closeout_packet.json"
+            ),
+            "closeout_refs": [
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-route-back/study/stage_attempt_closeout_packet.json",
+                route_back_ref,
+            ],
+            "authority_boundary": {
+                "record_only_surface": True,
+                "provider_completion_is_domain_completion": False,
+                "artifact_mutation_authorized": False,
+                "publication_eval_latest_write_authorized": False,
+                "controller_decision_write_authorized": False,
+            },
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["receipt_evidence"]["typed_runtime_blocker_ref"].endswith(
+        "stage_attempt_closeout_packet.json"
+    )
+    assert readback["receipt_evidence"]["route_back_evidence_ref"] == route_back_ref
+    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
 
 
 def test_opl_terminal_closeout_readback_accepts_matching_candidate_idempotency(

@@ -107,7 +107,31 @@ def opl_transition_receipt_readback(
 ) -> dict[str, Any] | None:
     receipt = _mapping(closeout.get("opl_transition_receipt"))
     if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
-        return None
+        route_back_evidence_ref = _route_back_evidence_ref(closeout)
+        if route_back_evidence_ref is None:
+            return None
+        stage_attempt_id = _text(closeout.get("stage_attempt_id"))
+        receipt = {
+            "surface_kind": "opl_transition_receipt",
+            "schema_version": 1,
+            "receipt_status": "route_back_evidence_closeout_observed",
+            "receipt_source": "stage_attempt_closeout_route_back_evidence",
+            "study_id": _text(closeout.get("study_id")),
+            "paper_mission_transaction_ref": _text(closeout.get("stage_packet_ref")),
+            "stage_attempt_id": stage_attempt_id,
+            "stage_attempt_ref": (
+                f"opl://stage-attempts/{stage_attempt_id}"
+                if stage_attempt_id
+                else None
+            ),
+            "runtime_closeout_ref": closeout_ref,
+            "blocked_reason": _first_text(
+                closeout.get("blocked_reason"),
+                closeout.get("status"),
+            ),
+            "route_back_evidence_ref": route_back_evidence_ref,
+            "can_claim_paper_progress": False,
+        }
     return {
         **dict(receipt),
         "role": "transport_receipt_only",
@@ -128,6 +152,10 @@ def receipt_evidence_readback(
     if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
         return None
     impact = _mapping(closeout.get("mas_impact_receipt"))
+    route_back_evidence_ref = _first_text(
+        receipt.get("route_back_evidence_ref"),
+        _route_back_evidence_ref(closeout),
+    )
     return {
         "surface_kind": "mas_receipt_evidence",
         "schema_version": 1,
@@ -144,6 +172,7 @@ def receipt_evidence_readback(
         ),
         "stage_attempt_ref": _text(receipt.get("stage_attempt_ref")),
         "typed_runtime_blocker_ref": _text(receipt.get("typed_runtime_blocker_ref")),
+        "route_back_evidence_ref": route_back_evidence_ref,
         "impact_receipt_kind": _text(impact.get("surface_kind")),
         "impact_receipt_ref": _text(impact.get("receipt_ref")),
         "can_claim_paper_progress": False,
@@ -168,23 +197,73 @@ def mas_receipt_consumption_readback(
     evidence = _mapping(receipt_evidence)
     if _text(evidence.get("surface_kind")) != "mas_receipt_evidence":
         return None
+    route_back_evidence_ref = _text(evidence.get("route_back_evidence_ref"))
+    typed_runtime_blocker_ref = _text(evidence.get("typed_runtime_blocker_ref"))
     return {
         "surface_kind": "mas_receipt_consumption_projection",
         "schema_version": 1,
         "status": "requires_mas_owner_consumption",
         "next_legal_action": (
-            "record_typed_blocker"
-            if _text(evidence.get("typed_runtime_blocker_ref"))
+            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+            if route_back_evidence_ref
+            else "record_typed_blocker"
+            if typed_runtime_blocker_ref
             else "consume_opl_transition_receipt"
         ),
         "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
-        "typed_runtime_blocker_ref": _text(evidence.get("typed_runtime_blocker_ref")),
+        "typed_runtime_blocker_ref": typed_runtime_blocker_ref,
+        "route_back_evidence_ref": route_back_evidence_ref,
         "forbidden_next_action": "synonymous_route_back_redrive",
         "durable_stop_allowed": False,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,
         "can_claim_runtime_ready": False,
     }
+
+
+def _route_back_evidence_ref(closeout: Mapping[str, Any]) -> str | None:
+    direct_ref = _text(closeout.get("route_back_evidence_ref"))
+    if direct_ref is not None:
+        return direct_ref
+    transition_receipt = _mapping(closeout.get("opl_transition_receipt"))
+    route_impact = _mapping(closeout.get("route_impact")) or _mapping(
+        transition_receipt.get("route_impact")
+    )
+    evidence_ref = _first_text(
+        route_impact.get("route_back_evidence_ref"),
+        _mapping(route_impact.get("stage_log_summary")).get("route_back_evidence_ref"),
+        _mapping(route_impact.get("user_stage_log")).get("route_back_evidence_ref"),
+        transition_receipt.get("route_back_evidence_ref"),
+    )
+    if evidence_ref is not None:
+        return evidence_ref
+    route_back_requested = (
+        _text(route_impact.get("owner_answer_kind")) == "route_back_evidence_ref"
+        or _text(route_impact.get("recommended_next_action"))
+        == "consume_route_back_evidence_ref"
+        or _text(route_impact.get("next_forced_paper_action")) is not None
+    )
+    if not route_back_requested:
+        return None
+    for item in closeout.get("closeout_refs") or ():
+        if isinstance(item, str):
+            if item.endswith("route_back_evidence_packet.json"):
+                return item
+            continue
+        ref = _mapping(item)
+        if _text(ref.get("ref_kind")) == "route_back_evidence_packet":
+            return _first_text(
+                ref.get("workspace_relative_ref"),
+                ref.get("uri"),
+                ref.get("ref"),
+            )
+    for key in ("stage_log_summary", "user_stage_log"):
+        summary = _mapping(route_impact.get(key))
+        for item in summary.get("evidence_refs") or ():
+            ref = _text(item)
+            if ref is not None and ref.endswith("route_back_evidence_packet.json"):
+                return ref
+    return None
 
 
 def accounting_mapping(
@@ -247,4 +326,3 @@ def running_attempt_readback(
             "controller_decision_write_authorized": False,
         },
     }
-

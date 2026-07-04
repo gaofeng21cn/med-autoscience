@@ -128,19 +128,10 @@ def paper_mission_next_action_envelope(
                         if mas_receipt_consumption
                         else {}
                     ),
-                    "allowed_actions": [
-                        *(
-                            ["record_typed_blocker"]
-                            if _transition_receipt_requires_typed_blocker(
-                                transition_receipt=transition_receipt,
-                                mas_receipt_consumption=mas_receipt_consumption,
-                            )
-                            else [
-                                "consume_opl_transition_receipt",
-                                "route_terminal_closeout_to_mas_owner_gate",
-                            ]
-                        ),
-                    ],
+                    "allowed_actions": _transition_receipt_allowed_actions(
+                        transition_receipt=transition_receipt,
+                        mas_receipt_consumption=mas_receipt_consumption,
+                    ),
                     "next_owner": "mas_authority_kernel",
                 }
                 if _text(transition_receipt.get("surface_kind"))
@@ -240,12 +231,51 @@ def _transition_receipt_action_family(
     transition_receipt: Mapping[str, Any],
     mas_receipt_consumption: Mapping[str, Any],
 ) -> str:
+    if _transition_receipt_requires_route_checkpoint(
+        transition_receipt=transition_receipt,
+        mas_receipt_consumption=mas_receipt_consumption,
+    ):
+        return "paper.stage_closure.owner_consumption"
     if _transition_receipt_requires_typed_blocker(
         transition_receipt=transition_receipt,
         mas_receipt_consumption=mas_receipt_consumption,
     ):
         return "blocked.typed"
     return "paper.gate.publishability_replay"
+
+
+def _transition_receipt_allowed_actions(
+    *,
+    transition_receipt: Mapping[str, Any],
+    mas_receipt_consumption: Mapping[str, Any],
+) -> list[str]:
+    if _transition_receipt_requires_typed_blocker(
+        transition_receipt=transition_receipt,
+        mas_receipt_consumption=mas_receipt_consumption,
+    ):
+        return ["record_typed_blocker"]
+    if _transition_receipt_requires_route_checkpoint(
+        transition_receipt=transition_receipt,
+        mas_receipt_consumption=mas_receipt_consumption,
+    ):
+        return ["consume_route_back_checkpoint_or_materialize_terminalizer_outcome"]
+    return [
+        "consume_opl_transition_receipt",
+        "route_terminal_closeout_to_mas_owner_gate",
+    ]
+
+
+def _transition_receipt_requires_route_checkpoint(
+    *,
+    transition_receipt: Mapping[str, Any],
+    mas_receipt_consumption: Mapping[str, Any],
+) -> bool:
+    return (
+        _text(mas_receipt_consumption.get("next_legal_action"))
+        == "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+        or _text(transition_receipt.get("route_back_evidence_ref")) is not None
+        or _text(mas_receipt_consumption.get("route_back_evidence_ref")) is not None
+    )
 
 
 def _transition_receipt_requires_typed_blocker(

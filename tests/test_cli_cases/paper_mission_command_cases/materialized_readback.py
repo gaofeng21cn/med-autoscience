@@ -407,6 +407,168 @@ def test_transaction_readback_reattaches_runtime_receipt_after_owner_answer_rout
     ] == calls[1]
 
 
+def test_consumption_ledger_inspect_routes_transaction_bound_route_back_evidence_to_owner_consumption(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_id = f"paper-mission::{study_id}::route-back-evidence-regression"
+    base_transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    package_path = _write_submission_milestone_package(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        mission_id=mission_id,
+        base_transaction=base_transaction,
+    )
+
+    consume_exit_code = cli.main(
+        [
+            "paper-mission",
+            "consume-candidate",
+            "--candidate",
+            str(package_path),
+            "--output-root",
+            str(
+                workspace_root
+                / "ops"
+                / "medautoscience"
+                / "paper_mission_consumption_ledger"
+                / "sat-route-back-evidence"
+            ),
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--format",
+            "json",
+        ]
+    )
+    consume_payload = json.loads(capsys.readouterr().out)
+    assert consume_exit_code == 0
+    current_transaction = consume_payload["paper_mission_transaction_readback"][
+        "paper_mission_transaction"
+    ]
+
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-route-back-evidence"
+        / study_id
+    )
+    closeout_root.mkdir(parents=True)
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        f"sat-route-back-evidence/{study_id}/route_back_evidence_packet.json"
+    )
+    (closeout_root / "route_back_evidence_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+                "study_id": study_id,
+                "route_back_evidence_ref": route_back_ref,
+                "next_forced_paper_action": {
+                    "action_kind": "owner_consume_route_back_evidence_then_write_repair"
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (closeout_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "non_advancing_route_back_evidence_candidate",
+                "study_id": study_id,
+                "stage_id": current_transaction["opl_route_command"]["target"],
+                "stage_attempt_id": "sat-route-back-evidence",
+                "stage_packet_ref": current_transaction["transaction_id"],
+                "work_unit_id": None,
+                "work_unit_fingerprint": None,
+                "route_impact": {
+                    "owner_answer_kind": "route_back_evidence_ref",
+                    "route_back_evidence_ref": route_back_ref,
+                    "can_claim_paper_progress": False,
+                },
+                "closeout_refs": [
+                    {
+                        "ref_kind": "route_back_evidence_packet",
+                        "workspace_relative_ref": route_back_ref,
+                    }
+                ],
+                "authority_boundary": {
+                    "candidate_is_authority": False,
+                    "writes_authority_surface": False,
+                    "writes_publication_eval": False,
+                    "writes_controller_decision": False,
+                    "writes_owner_receipt": False,
+                    "writes_typed_blocker": False,
+                    "writes_human_gate": False,
+                    "writes_current_package": False,
+                    "writes_runtime_queue": False,
+                    "writes_provider_attempt": False,
+                    "writes_yang_authority": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    inspect_exit_code = cli.main(
+        [
+            "paper-mission",
+            "inspect",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--request-opl-runtime-readback",
+            "--format",
+            "json",
+        ]
+    )
+    inspect_payload = json.loads(capsys.readouterr().out)
+
+    assert inspect_exit_code == 0
+    assert inspect_payload["paper_mission_current_transaction_source"] == (
+        "paper_mission_consumption_ledger"
+    )
+    assert inspect_payload["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-route-back-evidence"
+    assert inspect_payload["opl_runtime_carrier_readback"][
+        "mas_receipt_consumption"
+    ]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert inspect_payload["stage_closure_decision"]["outcome"]["kind"] == (
+        "next_stage_transition"
+    )
+    assert inspect_payload["stage_closure_decision"]["outcome"][
+        "transition_kind"
+    ] == "route_back_candidate_checkpoint"
+    assert inspect_payload["next_action"]["action_family"] == (
+        "paper.stage_closure.owner_consumption"
+    )
+    assert inspect_payload["next_action"]["action_type"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+    assert inspect_payload["next_action"]["authority_boundary"][
+        "can_submit_to_opl_runtime"
+    ] is False
+    assert inspect_payload["durable_mission_stop_guard"][
+        "durable_stop_allowed"
+    ] is False
+
+
 def test_paper_mission_materialized_readback_keeps_governed_consumption_current_when_terminal_residue_exists(
     tmp_path: Path,
     capsys,

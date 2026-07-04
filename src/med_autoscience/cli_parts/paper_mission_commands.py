@@ -682,15 +682,25 @@ def _consumption_ledger_inspect_readback(
     ):
         receipt_owner_consumption = None
     if receipt_owner_consumption is None:
+        route_back_projection = _consumption_ledger_route_back_projection(
+            transaction_readback=transaction_readback,
+            consumption_readback=consumption_readback,
+            base_readback=base,
+        )
+        if route_back_projection is not None:
+            return route_back_projection
         return {
             **base,
             **_transaction_readback_output_fields(transaction_readback),
         }
+    receipt_consume_candidate_status = _receipt_owner_consumption_status(
+        receipt_owner_consumption
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             **transaction_readback,
             "stage_closure_decision": receipt_owner_consumption["stage_closure_decision"],
-            "consume_candidate_status": "typed_blocker",
+            "consume_candidate_status": receipt_consume_candidate_status,
         },
         handoff=_mapping(consumption_readback.get("opl_route_handoff")),
         consumption_ledger_readback=consumption_readback,
@@ -734,8 +744,14 @@ def _consumption_ledger_inspect_readback(
         "mas_receipt_consumption": receipt_owner_consumption.get(
             "mas_receipt_consumption"
         ),
-        "consume_candidate_status": "typed_blocker",
-        "mission_state": "stable_blocker",
+        "consume_candidate_status": receipt_consume_candidate_status,
+        "mission_state": (
+            "stable_blocker"
+            if receipt_consume_candidate_status == "typed_blocker"
+            else "route_back"
+            if receipt_consume_candidate_status == "route_back"
+            else "consumed"
+        ),
         "stage_closure_decision": stage_closure_decision,
         "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
         "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
@@ -752,10 +768,108 @@ def _consumption_ledger_inspect_readback(
             else {}
         ),
         "durable_mission_stop_guard": _durable_mission_stop_guard(
-            consume_candidate_status="typed_blocker",
+            consume_candidate_status=receipt_consume_candidate_status,
             stage_closure_decision=stage_closure_decision,
         ),
     }
+
+
+def _consumption_ledger_route_back_projection(
+    *,
+    transaction_readback: Mapping[str, Any],
+    consumption_readback: Mapping[str, Any],
+    base_readback: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _transaction_readback_has_route_back_owner_answer(transaction_readback):
+        return None
+    consume_candidate_status = (
+        transaction_readback.get("consume_candidate_status_override")
+        or consumption_readback.get("consume_candidate_status")
+    )
+    stage_closure_input = {
+        **dict(transaction_readback),
+        **{
+            key: value
+            for key, value in dict(base_readback).items()
+            if key in {"current_package", "candidate_manifest", "output_manifest"}
+        },
+        "consume_candidate_status": consume_candidate_status,
+    }
+    stage_closure_decision = stage_closure_decision_projection(
+        readback=stage_closure_input,
+        handoff=_mapping(consumption_readback.get("opl_route_handoff")),
+        consumption_ledger_readback=consumption_readback,
+    )
+    if stage_closure_decision_missing(
+        stage_closure_decision
+    ) or _stage_closure_decision_requires_reterminalize(stage_closure_decision):
+        stage_closure_decision = _terminalize_stage_closure_from_readback(
+            stage_closure_input
+        )
+    next_action_override = _next_action_for_stage_closure_decision(
+        stage_closure_decision=stage_closure_decision,
+        transaction_readback=transaction_readback,
+    )
+    transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    if next_action_override is not None:
+        transaction_output_fields["next_action"] = next_action_override
+        transaction_output_fields["canonical_next_action_source"] = (
+            "stage_closure.next_action"
+        )
+        transaction_output_fields["paper_mission_transaction_readback"] = {
+            **dict(transaction_readback),
+            "next_action": next_action_override,
+        }
+    transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
+        transaction_output_fields=transaction_output_fields,
+        stage_closure_decision=stage_closure_decision,
+        next_action=next_action_override,
+    )
+    return {
+        **dict(base_readback),
+        **transaction_output_fields,
+        "stage_closure_decision": stage_closure_decision,
+        "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
+            "kind"
+        ),
+        "durable_mission_stop_guard": _durable_mission_stop_guard(
+            consume_candidate_status=str(consume_candidate_status or ""),
+            stage_closure_decision=stage_closure_decision,
+        ),
+    }
+
+
+def _transaction_readback_has_route_back_owner_answer(
+    transaction_readback: Mapping[str, Any],
+) -> bool:
+    owner_answer = _mapping(
+        transaction_readback.get("terminal_owner_gate_owner_answer_readback")
+    )
+    consume_result = _mapping(owner_answer.get("consume_result"))
+    return (
+        _optional_text(owner_answer.get("owner_answer_shape"))
+        == "route_back_evidence_ref"
+        or _optional_text(owner_answer.get("selected_outcome"))
+        == "route_back_evidence_ref"
+        or _optional_text(consume_result.get("outcome"))
+        == "route_back_evidence_ref"
+    )
+
+
+def _receipt_owner_consumption_status(
+    receipt_owner_consumption: Mapping[str, Any],
+) -> str:
+    consumption_status = _optional_text(
+        _mapping(receipt_owner_consumption.get("mas_receipt_consumption")).get(
+            "status"
+        )
+    )
+    if consumption_status == "owner_consumed_typed_blocker":
+        return "typed_blocker"
+    if consumption_status == "owner_consumed_route_checkpoint":
+        return "route_back"
+    return "accepted"
 
 
 def _paper_mission_consume_non_advancing_fields(
