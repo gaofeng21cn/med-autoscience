@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-04：Receipt owner consumption 必须选择可消费 terminal receipt
+
+- 决策：`paper-mission receipt-owner-consumption` 在读取 `paper-mission inspect --request-opl-runtime-readback` 时，不能无条件优先使用 `current_opl_runtime_carrier_readback`。如果该 projection 只是 running/stale attempt 且缺少 `opl_transition_receipt`、`receipt_evidence` 或 `mas_receipt_consumption`，而同一 readback 的 `opl_runtime_carrier_readback` 已包含可消费 terminal closeout receipt，则必须消费 terminal carrier。
+- 理由：Obesity paper line 暴露出 fresh OPL stage attempt 已 terminalized，并在 `opl_runtime_carrier_readback` 中带有完整 terminal receipt；但 readback 同时残留旧 running projection，owner-consumption selector 抢先选中 running projection，错误返回 `blocked_missing_consumable_opl_receipt`。这是 receipt carrier currentness/selection 缺陷，不是论文包缺失，也不是合法 human gate 本身。
+- 影响：该修复只改变 MAS receipt-owner-consumption 的 readback selector。当前 carrier 若本身有完整 receipt 仍优先当前 carrier；只有当前 carrier 不可消费且 terminal carrier 可消费时才切换。不得手写 Yang authority、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 paper body。
+
 ## 2026-07-04：PaperMission stage-route queue identity 必须携带 advancing delta
 
 - 决策：`paper_mission/stage-route` 提交到 OPL queue 时，dedupe identity 不得只由 study、PaperMission transaction / request idempotency key 和 command kind 构成。MAS 必须把本轮可推进 delta 纳入 runtime request：`candidate_hash`、candidate ref、work-unit id/fingerprint、owner receipt、typed blocker、human gate、route-back evidence 或 paper-facing delta refs，并用该 advancing-delta fingerprint 参与 OPL dedupe key。

@@ -679,15 +679,26 @@ def _receipt_summary(receipt: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
-    carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
+    current_carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
+    terminal_carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
+    carrier = current_carrier
+    if not _has_consumable_receipt(carrier) and _has_consumable_receipt(terminal_carrier):
+        carrier = terminal_carrier
     if not carrier:
-        carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
+        carrier = terminal_carrier
     for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption"):
         if not _mapping(carrier.get(key)):
             value = _mapping(readback.get(key))
             if value:
                 carrier[key] = value
     return carrier
+
+
+def _has_consumable_receipt(carrier: Mapping[str, Any]) -> bool:
+    return all(
+        _mapping(carrier.get(key))
+        for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption")
+    )
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

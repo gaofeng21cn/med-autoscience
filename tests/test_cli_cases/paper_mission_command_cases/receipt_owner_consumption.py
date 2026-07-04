@@ -236,6 +236,61 @@ def test_receipt_owner_consumption_prefers_current_direct_stage_carrier_over_leg
     )
 
 
+def test_receipt_owner_consumption_prefers_terminal_receipt_over_running_projection(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="typed_blocker",
+        transition_kind=None,
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback["current_opl_runtime_carrier_readback"] = {
+        "carrier_status": "opl_runtime_attempt_running_observed",
+        "runtime_readback_status": "running_attempt_observed",
+        "running_attempt": {
+            "task_id": "frt-running",
+            "stage_attempt_id": "sat-running",
+        },
+    }
+    terminal_carrier = readback["opl_runtime_carrier_readback"]
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-terminal"
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["receipt_evidence"]["runtime_closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-terminal/"
+        "stage_attempt_closeout_packet.json"
+    )
+    terminal_carrier["receipt_evidence"]["typed_runtime_blocker_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-terminal/"
+        "typed_source_readiness_blocker_packet.json"
+    )
+
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref="profile.toml",
+        output_root=tmp_path / "receipt_owner_consumption",
+        apply_mode="typed_blocker",
+        source="test",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-terminal"
+    )
+    assert payload["stage_closure"]["typed_blocker_evidence_ref"] == (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-terminal/"
+        "typed_source_readiness_blocker_packet.json"
+    )
+
+
 def test_receipt_owner_consumption_keeps_dm003_submission_ready_mirror_non_terminal(
     tmp_path: Path,
     capsys,
