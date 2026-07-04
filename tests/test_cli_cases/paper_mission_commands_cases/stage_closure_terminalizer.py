@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
@@ -763,6 +764,234 @@ def test_inspect_prefers_latest_consumption_transaction_over_placeholder(
         transaction["transaction_id"]
     )
     assert payload["stage_terminal_decision"]["next_owner"] == "mission_executor"
+
+
+def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_consumption(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+
+    old_transaction = _paper_mission_transaction_payload(
+        mission_id=f"paper-mission::{study_id}::followthrough-02",
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    old_ledger_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_consumption_ledger"
+        / "followthrough-02"
+        / study_id
+    )
+    _write_consumption_ledger(
+        ledger_root=old_ledger_root,
+        study_id=study_id,
+        candidate_ref="/tmp/followthrough-02/package_manifest.json",
+        transaction=old_transaction,
+    )
+    (old_ledger_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "study_id": study_id,
+                "stage_id": old_transaction["opl_route_command"]["target"],
+                "stage_attempt_id": "sat-old-followthrough",
+                "paper_mission_transaction_ref": old_transaction["transaction_id"],
+                "stage_packet_ref": (
+                    old_transaction["transaction_id"] + "#stage_terminal_decision"
+                ),
+                "opl_route_command_ref": (
+                    old_transaction["transaction_id"] + "#opl_route_command"
+                ),
+                "work_unit_id": old_transaction["stage_id"],
+                "work_unit_fingerprint": old_transaction["idempotency"][
+                    "transaction_fingerprint"
+                ],
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260704Tdomain-transition"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": f"paper-mission::{study_id}::domain-transition",
+                "study_id": study_id,
+                "objective": "Current domain transition should drive AI reviewer.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "consume_result": {"status": "accepted"},
+                "paper_mission_transaction": old_transaction,
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "schema_version": 1,
+        "action_id": "next-action-ai-reviewer",
+        "study_id": study_id,
+        "stage_id": "review",
+        "outcome_ref": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+        "action_family": "paper.review.ai_reviewer",
+        "action_kind": "owner_review",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "executor_target": "mas_owner_callable",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "ai_reviewer_medical_prose_quality_review::source::fresh"
+        ),
+    }
+
+    monkeypatch.setattr(
+        materialized_readback.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: {"decision_type": "ai_reviewer_re_eval", "next_action": next_action},
+    )
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-ai-reviewer"
+        / study_id
+    )
+    closeout_root.mkdir(parents=True)
+    inspect_projection = materialized_readback.build_materialized_mission_readback_if_available(
+        profile=SimpleNamespace(
+            name="Obesity",
+            workspace_root=workspace_root,
+            studies_root=workspace_root / "studies",
+            default_publication_profile="general_medical_journal",
+        ),
+        profile_ref=profile_path,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source="test",
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+    assert inspect_projection is not None
+    direct_projection = inspect_projection["domain_transition_direct_stage_attempt"]
+    carrier = direct_projection["opl_runtime_carrier"]
+    (closeout_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "study_id": study_id,
+                "stage_id": "review",
+                "stage_attempt_id": "sat-ai-reviewer",
+                "paper_mission_transaction_ref": carrier[
+                    "paper_mission_transaction_ref"
+                ],
+                "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+                "opl_route_command_ref": carrier["opl_route_command_ref"],
+                "route_identity_key": carrier["route_identity_key"],
+                "work_unit_id": carrier["work_unit_id"],
+                "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "domain_completion_claimed": False,
+                "domain_ready_claimed": False,
+                "closeout_refs": [
+                    str(study_root / "artifacts/publication_eval/latest.json")
+                ],
+                "authority_boundary": {"record_only_surface": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    inspect_projection = materialized_readback.build_materialized_mission_readback_if_available(
+        profile=SimpleNamespace(
+            name="Obesity",
+            workspace_root=workspace_root,
+            studies_root=workspace_root / "studies",
+            default_publication_profile="general_medical_journal",
+        ),
+        profile_ref=profile_path,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source="test",
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+    assert inspect_projection is not None
+    direct_projection = inspect_projection["domain_transition_direct_stage_attempt"]
+    assert direct_projection["opl_runtime_readback_status"] == (
+        "opl_runtime_terminal_readback_observed"
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["source_readback_summary"]["surface_kind"] == (
+        "paper_mission_domain_transition_direct_stage_attempt_readback"
+    )
+    assert payload["stage_closure_decision"]["stage_id"] == "review"
+    assert payload["stage_closure_decision"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    assert payload["stage_closure_decision"]["opl_closeout"][
+        "stage_attempt_id"
+    ] == "sat-ai-reviewer"
 
 
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:

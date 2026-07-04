@@ -945,6 +945,21 @@ def _build_terminalizer_source_readback(
     study_id: str,
     source: str,
 ) -> dict[str, Any]:
+    source_readback = _build_materialized_mission_readback_if_available(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source=source,
+        enable_opl_live_probe=True,
+        opl_bin=None,
+    )
+    direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
+        materialized_readback=source_readback,
+    )
+    if direct_stage_attempt is not None:
+        return direct_stage_attempt
     consumption_readback = latest_paper_mission_consumption_transaction_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
@@ -960,16 +975,6 @@ def _build_terminalizer_source_readback(
             enable_opl_live_probe=True,
             opl_bin=None,
         )
-    source_readback = _build_materialized_mission_readback_if_available(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        paper_mission_command="inspect",
-        dry_run=False,
-        source=source,
-        enable_opl_live_probe=True,
-        opl_bin=None,
-    )
     if source_readback is not None:
         return source_readback
     return build_paper_mission_readback(
@@ -981,6 +986,36 @@ def _build_terminalizer_source_readback(
         source=source,
         enable_opl_live_probe=True,
     )
+
+
+def _domain_transition_direct_terminal_source_readback(
+    *,
+    materialized_readback: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    readback = _mapping(materialized_readback)
+    direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
+    if not direct:
+        return None
+    if _optional_text(direct.get("opl_runtime_readback_status")) != (
+        "opl_runtime_terminal_readback_observed"
+    ):
+        return None
+    return {
+        **direct,
+        "paper_mission_command": "terminalize-stage",
+        "source": "paper_mission_domain_transition_direct_stage_attempt",
+        "study_id": _optional_text(direct.get("study_id"))
+        or _optional_text(readback.get("study_id")),
+        "mission_id": _optional_text(direct.get("mission_id"))
+        or _optional_text(readback.get("mission_id")),
+        "objective": _optional_text(readback.get("objective")),
+        "current_package": _mapping(readback.get("current_package")),
+        "domain_transition": _mapping(readback.get("domain_transition")),
+        "source_ref": _optional_text(
+            _mapping(direct.get("next_action")).get("outcome_ref")
+        )
+        or _optional_text(_mapping(direct.get("next_action")).get("action_id")),
+    }
 
 
 def _build_terminalizer_source_readback_from_stage_packet(
