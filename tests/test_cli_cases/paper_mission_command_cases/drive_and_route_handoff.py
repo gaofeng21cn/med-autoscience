@@ -659,6 +659,59 @@ def test_paper_mission_drive_does_not_stop_runtime_route_on_stale_owner_gate(
     assert not output_root.exists()
 
 
+def test_paper_mission_drive_does_not_stop_domain_next_action_on_current_consumption(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    (Path(profile.studies_root) / study_id).mkdir(parents=True)
+    output_root = tmp_path / "workspace" / "ops" / "medautoscience" / "drive"
+
+    payload = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+        output_root=output_root,
+        source="test",
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::one-shot",
+            "objective": "Return current revision to AI reviewer.",
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "canonical_next_action_source": "domain_transition.next_action",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "paper.review.ai_reviewer",
+                "action_kind": "owner_review",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "executor_target": "mas_owner_callable",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            },
+            "current_opl_runtime_carrier_readback": {
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "requires_mas_owner_consumption",
+                    "next_legal_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "receipt_evidence_ref": "opl://stage-attempts/sat_old",
+                    "route_checkpoint_evidence_ref": "old-checkpoint.json",
+                    "can_claim_paper_progress": False,
+                }
+            },
+        },
+    )
+
+    assert payload is None
+    assert not output_root.exists()
+
+
 def test_consumption_ledger_inspect_prefers_domain_transition_after_route_checkpoint(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1021,7 +1074,7 @@ def test_paper_mission_drive_submits_domain_transition_owner_workflow_after_rout
     assert payload["mutation_policy"]["writes_runtime"] is False
 
 
-def test_paper_mission_drive_stops_on_current_opl_route_back_consumption_before_redrive(
+def test_paper_mission_drive_prefers_domain_next_action_over_current_opl_consumption(
     tmp_path: Path,
 ) -> None:
     study_id = "obesity_multicenter_phenotype_atlas"
@@ -1088,12 +1141,11 @@ def test_paper_mission_drive_stops_on_current_opl_route_back_consumption_before_
         forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
     )
 
-    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
-    assert payload["drive_result"]["reason"] == (
-        "current_opl_route_back_checkpoint_requires_owner_consumption"
-    )
-    assert payload["drive_result"]["next_legal_action"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert payload["opl_route_handoff"]["route_target"] == "review"
+    assert payload["opl_route_handoff"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
     )
     assert payload["mutation_policy"]["writes_runtime"] is False
 

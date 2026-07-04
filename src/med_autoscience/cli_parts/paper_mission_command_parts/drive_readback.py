@@ -692,10 +692,7 @@ def _drive_owner_action_stop_readback(
         return None
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
     current_opl_owner_consumption = _drive_current_opl_owner_consumption(readback)
-    if (
-        _drive_should_submit_direct_next_action(readback)
-        and not current_opl_owner_consumption
-    ):
+    if _drive_should_submit_direct_next_action(readback):
         return None
     if can_package_from_next_action:
         return None
