@@ -99,6 +99,7 @@ def build_paper_mission_drive_readback(
         study_id=study_id,
         source=source,
         consume_candidate_readback_builder=consume_candidate_readback_builder,
+        enable_opl_live_probe=submit_opl_runtime is not False,
     )
     owner_action_stop = _drive_owner_action_stop_readback(
         profile=profile,
@@ -623,6 +624,7 @@ def _drive_next_action_source_readback(
     study_id: str,
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
+    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any] | None:
     inspect_readback = consume_candidate_readback_builder(
         profile=profile,
@@ -630,7 +632,7 @@ def _drive_next_action_source_readback(
         study_id=study_id,
         paper_mission_command="inspect",
         source=f"{source}:drive:canonical-next-action-inspect",
-        enable_opl_live_probe=False,
+        enable_opl_live_probe=enable_opl_live_probe,
     )
     next_action = _mapping(inspect_readback.get("next_action"))
     if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
@@ -654,6 +656,7 @@ def _drive_canonical_next_action_source_readback(
         study_id=study_id,
         source=source,
         consume_candidate_readback_builder=consume_candidate_readback_builder,
+        enable_opl_live_probe=False,
     )
     if not _drive_can_package_from_next_action(inspect_readback):
         return None
@@ -688,12 +691,18 @@ def _drive_owner_action_stop_readback(
     if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
-    if _drive_should_submit_direct_next_action(readback):
+    current_opl_owner_consumption = _drive_current_opl_owner_consumption(readback)
+    if (
+        _drive_should_submit_direct_next_action(readback)
+        and not current_opl_owner_consumption
+    ):
         return None
     if can_package_from_next_action:
         return None
-    has_owner_stop = _drive_has_terminal_owner_consumption_action(readback) or (
-        bool(_mapping(readback.get("typed_blocker_resolution_readback")))
+    has_owner_stop = (
+        bool(current_opl_owner_consumption)
+        or _drive_has_terminal_owner_consumption_action(readback)
+        or (bool(_mapping(readback.get("typed_blocker_resolution_readback"))))
     )
     if not has_owner_stop:
         return None
@@ -703,7 +712,10 @@ def _drive_owner_action_stop_readback(
         "surface_kind": "paper_mission_drive_result",
         "status": "owner_action_ready_no_redrive",
         "reason": reason,
-        "next_legal_action": _optional_text(next_action.get("action_type")),
+        "next_legal_action": _optional_text(
+            current_opl_owner_consumption.get("next_legal_action")
+        )
+        or _optional_text(next_action.get("action_type")),
         "forbidden_next_action": "synonymous_route_back_redrive",
         "can_submit_to_opl_runtime": False,
         "can_claim_paper_progress": False,
@@ -750,6 +762,11 @@ def _drive_owner_action_stop_readback(
         ),
         "typed_blocker_resolution_readback": dict(
             _mapping(readback.get("typed_blocker_resolution_readback"))
+        ),
+        **(
+            {"current_opl_owner_consumption": dict(current_opl_owner_consumption)}
+            if current_opl_owner_consumption
+            else {}
         ),
         "drive_result": drive_result,
         "mutation_policy": {
@@ -807,7 +824,34 @@ def _drive_has_terminal_owner_consumption_action(
     return False
 
 
+def _drive_current_opl_owner_consumption(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_readback = _mapping(readback.get("current_opl_runtime_carrier_readback"))
+    consumption = _mapping(current_readback.get("mas_receipt_consumption"))
+    if _optional_text(consumption.get("status")) != "requires_mas_owner_consumption":
+        return {}
+    next_legal_action = _optional_text(consumption.get("next_legal_action"))
+    if next_legal_action not in {
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+        "record_typed_blocker",
+        "consume_opl_transition_receipt",
+    }:
+        return {}
+    return dict(consumption)
+
+
 def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
+    current_consumption = _drive_current_opl_owner_consumption(readback)
+    if current_consumption:
+        next_legal_action = _optional_text(current_consumption.get("next_legal_action"))
+        if next_legal_action == (
+            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+        ):
+            return "current_opl_route_back_checkpoint_requires_owner_consumption"
+        if next_legal_action == "record_typed_blocker":
+            return "current_opl_terminal_closeout_requires_typed_blocker"
+        return "current_opl_transition_receipt_requires_owner_consumption"
     if _mapping(readback.get("typed_blocker_resolution_readback")):
         return "typed_blocker_resolution_successor_requires_owner_action"
     next_action = _mapping(readback.get("next_action"))
