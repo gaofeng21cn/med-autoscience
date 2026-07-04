@@ -75,6 +75,34 @@ Before a first full draft is treated as generated:
 - figure legends must explain the display for readers, not describe what reviewers can identify or what the figure itself "defines".
 - internal correction provenance, debug history, and preprocessing repair history must not become the title, objective, Results, Discussion opening, conclusion, novelty claim, or figure-legend story. Corrected preprocessing definitions belong in Methods or table notes only when needed for reproducibility; the article body should report the final analysis estimates as the clean scientific story.
 
+### 描述性表型 / treatment-gap 初稿门槛
+
+这类稿件不能只写成“分成若干组并报告各组比例”。first full draft 前必须回答描述性 atlas 的医学发现问题：这些表型是否揭示了可审计的临床负担、记录用药覆盖、轨迹或服务差异模式。
+
+以下内容缺失时，默认 route back 到 bounded analysis-campaign、figure/table repair、write 或 decision，而不是生成轻描述初稿：
+
+- discovery contract：一句话写清 phenotype atlas 揭示的医学/服务复核模式，而不是只列 class count；
+- hierarchy rationale：说明规则层级顺序的医学复核依据、未单列领域的处理依据、new-patient assignment 规则和 prespecification 状态；
+- burden-medication discordance：至少有一个 phenotype x burden x recorded medication-coverage matrix，或明确 waiver；
+- exact gap definitions：每个 gap 指标必须有 numerator、denominator、eligibility、time/index window、medication source、class mapping 和 non-causal interpretation label；
+- medication-record sensitivity：当 medication record 不完整时，必须规划或完成 medication-field-present / any-recorded-medication sensitivity；否则只能写 documentation-sensitive review signal；
+- variable quality atlas：phenotype-defining variables 的 missingness、plausibility、semantic field checks 和 claim impact 必须进入 table 或 supplement；
+- site/trajectory robustness：如果稿件要有“医学发现感”，优先检查 site-level variation、transition category、calendar-year / threshold / age sensitivity；不要用 p-value pile-up 替代稳健性；
+- figure argument：cohort flow、phenotype/gap matrix、transition/site display 和 gap rate/count display 必须服务中心医学论点，rate 和 count 不得混成一个不可解释图；
+- terminology guardrail：没有 guideline-specific eligibility、contraindication、age/eGFR target 和 citation contract 时，不得把 recorded gap 写成 guideline nonadherence；优先用 recorded medication-coverage gap、treatment-review signal、burden-medication discordance。
+
+### 预测模型外部验证初稿门槛
+
+这类稿件不能只是一组 C-index / calibration 指标摘要。first full draft 前必须把以下内容作为 pre-draft blocker 或已闭合 evidence surface：
+
+- source model：模型来源、完整公式或系数表、变量编码、单位转换、5 年 baseline survival / absolute-risk extraction；
+- validation cohort：数据年份、纳排、疾病定义、结局随访、5 年状态构建、删失/KM/IPCW 或二分类处理依据、缺失与 complete-case 策略；
+- survey policy：NHANES 等复杂抽样数据必须写清 unweighted 边界，并在需要时规划 survey-weighted sensitivity；
+- tables：Table 1 队列对比、Table 2 性能指标、按风险组/十分位的 grouped calibration table 必须有明确 shell、denominator、uncertainty 和 source refs；
+- figures：development risk-bin occupancy 与 validation self-quantile calibration 不得混画；若 validation cohort 全落入 development low-risk bin，必须把 occupancy collapse 和 within-validation ranking 分开展示；
+- calibration interpretation：极端 calibration slope、窄预测风险范围、O:E mismatch 必须解释为 risk-scale compression / baseline-risk mismatch / support mismatch 等受限解释，不能写成可部署绝对风险；
+- decision curve：没有 verified threshold range、net-benefit calculation、calibration basis 和 clinical action scenario 时，不得保留主图 DCA，也不得在 Methods/Results 外包装成 clinical utility。
+
 ## Gate 角色
 
 `medical_publication_surface` remains a safety net. It blocks work-report residue such as:
