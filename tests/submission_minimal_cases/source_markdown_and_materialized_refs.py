@@ -308,6 +308,42 @@ Preserved legend for the manuscript-shaped top-level figures block.
     assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_legends"] == 1
 
 
+def test_create_submission_minimal_package_strips_short_figure_id_from_image_alt_text(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+    draft_path = paper_root / "draft.md"
+
+    write_png(paper_root / "figures" / "F1.png")
+    write_text(
+        draft_path,
+        draft_path.read_text(encoding="utf-8")
+        + """
+
+# Figures
+
+## F1. Main figure
+
+![F1. Main figure](figures/F1.png)
+
+Legend text for the short-F main figure.
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![Main figure](figures/Figure1.png){width=100%}" in submission_markdown
+    assert "![F1. Main figure]" not in submission_markdown
+
+
 def test_create_submission_minimal_package_orders_main_figures_by_figure_number(
     tmp_path: Path,
 ) -> None:

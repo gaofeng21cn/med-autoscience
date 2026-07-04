@@ -9,6 +9,7 @@ from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
 from .source_hydration import hydrate_submission_package_sources_from_current_body
+from .export_renderers import default_pdf_rendering_profile
 from collections.abc import Mapping
 import inspect
 from med_autoscience.controllers import paper_authority_delivery_guard
@@ -526,6 +527,7 @@ def create_submission_minimal_package(
                 "pdf_path": relpath_from_workspace(target_submission_root / "paper.pdf", workspace_root),
                 "docx_path": relpath_from_workspace(target_submission_root / "manuscript.docx", workspace_root),
                 "csl_path": str(profile_config.csl_path.resolve()),
+                "pdf_rendering": default_pdf_rendering_profile(),
                 "surface_qc": manuscript_surface_qc,
             },
             "naming_map": {

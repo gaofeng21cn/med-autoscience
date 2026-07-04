@@ -214,6 +214,14 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     assert manifest_payload["output_root"] == "paper/submission_minimal"
     assert manifest_payload["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
     assert manifest_payload["manuscript"]["docx_path"] == "paper/submission_minimal/manuscript.docx"
+    assert manifest_payload["manuscript"]["pdf_rendering"] == {
+        "profile_id": "general_medical_reader_pdf_v1",
+        "renderer_family": "pandoc_xelatex",
+        "pdf_engine": "xelatex",
+        "template_family": "mas_professional_medical_article",
+        "layout_role": "human_reading_default",
+        "journal_specific": False,
+    }
     assert manifest_payload["naming_map"]["figures"] == {
         "F1": "Figure1",
         "FS1": "SupplementaryFigureS1",
@@ -382,10 +390,16 @@ title: "Submission"
     command = calls[0]["command"]
     assert command[command.index("--include-in-header") + 1] == "submission_pdf_layout.tex"
     assert "--pdf-engine=xelatex" in command
+    assert "geometry:margin=0.82in" in command
+    assert "linestretch=1.06" in command
     header_text = (tmp_path / "submission_pdf_layout.tex").read_text(encoding="utf-8")
+    assert "\\usepackage{newtxtext}" in header_text
+    assert "\\definecolor{MASAccent}{HTML}{145C68}" in header_text
+    assert "\\titleformat{\\section}{\\Large\\bfseries\\color{MASAccent}}" in header_text
+    assert "\\captionsetup{font=small,labelfont=bf" in header_text
     assert "\\floatplacement{figure}{H}" in header_text
-    assert "\\AtBeginEnvironment{longtable}{\\footnotesize" in header_text
-    assert "\\setlength{\\tabcolsep}{3pt}" in header_text
+    assert "\\AtBeginEnvironment{longtable}{\\small" in header_text
+    assert "\\setlength{\\tabcolsep}{4pt}" in header_text
     assert "\\begin{landscape}" not in header_text
 
 

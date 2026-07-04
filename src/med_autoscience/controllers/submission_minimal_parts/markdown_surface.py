@@ -421,10 +421,41 @@ def _submission_markdown_figure_relpath(*, figure_id: str, source_relpath: str) 
     return f"figures/{build_figure_basename(figure_id)}{source_suffix}"
 
 
-def _submission_markdown_image_line(*, alt_text: str, image_rel: str) -> str:
+def normalize_submission_figure_alt_text(*, alt_text: str, figure_id: str | None) -> str:
+    normalized_alt = str(alt_text or "").strip()
+    if not normalized_alt:
+        return ""
+    normalized_figure_id = str(figure_id or "").strip()
+    main_match = re.match(r"^F(\d+)$", normalized_figure_id, flags=re.IGNORECASE)
+    supplementary_match = re.match(r"^FS(\d+)$", normalized_figure_id, flags=re.IGNORECASE)
+    patterns: list[str] = []
+    if main_match:
+        figure_number = re.escape(main_match.group(1))
+        patterns.extend(
+            [
+                rf"^F\s*{figure_number}\s*[\.:;-]\s*",
+                rf"^Figure\s*{figure_number}\s*[\.:;-]\s*",
+            ]
+        )
+    elif supplementary_match:
+        figure_number = re.escape(supplementary_match.group(1))
+        patterns.extend(
+            [
+                rf"^FS\s*{figure_number}\s*[\.:;-]\s*",
+                rf"^Supplementary\s+Figure\s*S\s*{figure_number}\s*[\.:;-]\s*",
+            ]
+        )
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", normalized_alt, count=1, flags=re.IGNORECASE).strip()
+        if cleaned != normalized_alt:
+            return cleaned
+    return normalized_alt
+
+
+def _submission_markdown_image_line(*, alt_text: str, image_rel: str, figure_id: str | None = None) -> str:
     if not image_rel:
         return ""
-    normalized_alt = str(alt_text or "").strip()
+    normalized_alt = normalize_submission_figure_alt_text(alt_text=alt_text, figure_id=figure_id)
     return f"![{normalized_alt}]({image_rel}){{width=100%}}"
 
 
@@ -475,7 +506,7 @@ def build_catalog_backed_main_figures(*, paper_root: Path, submission_root: Path
         block_parts: list[str] = []
         if legend:
             block_parts.append(legend)
-        block_parts.append(_submission_markdown_image_line(alt_text="", image_rel=image_rel))
+        block_parts.append(_submission_markdown_image_line(alt_text="", image_rel=image_rel, figure_id=figure_id))
         figure_blocks.append(f"## {heading}\n\n" + "\n\n".join(block_parts))
     return "\n\n".join(figure_blocks).strip()
 
@@ -541,7 +572,11 @@ def build_catalog_backed_figure_blocks(*, paper_root: Path, submission_root: Pat
                     source_relpath=image_source_rel,
                 )
                 image_alt = _first_image_alt_text(extract_image_lines(source_body))
-                image_line = _submission_markdown_image_line(alt_text=image_alt, image_rel=image_rel)
+                image_line = _submission_markdown_image_line(
+                    alt_text=image_alt,
+                    image_rel=image_rel,
+                    figure_id=figure_id,
+                )
         heading = source_heading or _build_catalog_figure_heading(
             figure_id=figure_id,
             title=str(entry.get("title") or ""),
@@ -667,12 +702,12 @@ def rewrite_submission_surface_image_lines(*, image_lines: list[str], figure_id:
 
     figure_aliases = figure_id_aliases(normalized_figure_id)
     target_basename = build_figure_basename(normalized_figure_id)
-    image_pattern = re.compile(r"(!\[[^\]]*]\()([^)]+)(\))")
+    image_pattern = re.compile(r"(!\[)([^\]]*)(]\()([^)]+)(\))")
     rewritten_lines: list[str] = []
 
     for line in image_lines:
         def replace(match: re.Match[str]) -> str:
-            raw_path = match.group(2).strip()
+            raw_path = match.group(4).strip()
             if raw_path.startswith(("http://", "https://", "/", "../")):
                 return match.group(0)
             if "figures/" not in raw_path and not raw_path.startswith("figures"):
@@ -681,7 +716,11 @@ def rewrite_submission_surface_image_lines(*, image_lines: list[str], figure_id:
             if path_obj.stem not in figure_aliases:
                 return match.group(0)
             rewritten_path = path_obj.with_name(f"{target_basename}{path_obj.suffix}").as_posix()
-            return f"{match.group(1)}{rewritten_path}{match.group(3)}"
+            alt_text = normalize_submission_figure_alt_text(
+                alt_text=match.group(2),
+                figure_id=normalized_figure_id,
+            )
+            return f"{match.group(1)}{alt_text}{match.group(3)}{rewritten_path}{match.group(5)}"
 
         rewritten_lines.append(_ensure_submission_image_width(image_pattern.sub(replace, line)))
     return rewritten_lines
@@ -708,7 +747,13 @@ def build_submission_figure_blocks(
         if not image_lines and figure_id:
             fallback_image_rel = resolved_catalog_image_map.get(figure_id)
             if fallback_image_rel:
-                image_lines = [_submission_markdown_image_line(alt_text="", image_rel=fallback_image_rel)]
+                image_lines = [
+                    _submission_markdown_image_line(
+                        alt_text="",
+                        image_rel=fallback_image_rel,
+                        figure_id=figure_id,
+                    )
+                ]
         legend = merge_legend_with_figure_semantics(
             base_legend=strip_image_lines(block_body),
             figure_semantics=figure_semantics_map.get(figure_id or ""),
