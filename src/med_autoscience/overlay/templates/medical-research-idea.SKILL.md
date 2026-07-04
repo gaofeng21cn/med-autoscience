@@ -19,6 +19,10 @@ candidate route. Route professional method work through
 
 {{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
 
+{{MED_AUTOSCIENCE_ROUTE_BIAS}}
+
+{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
+
 {{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
 ## Stage Contract

@@ -20,6 +20,10 @@ surface must accept the decision. Route professional method work through
 
 {{MED_AUTOSCIENCE_AUTOMATION_READY}}
 
+{{MED_AUTOSCIENCE_ROUTE_BIAS}}
+
+{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
+
 ## Stage Contract
 
 Before recording a consequential route decision, confirm:
