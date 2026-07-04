@@ -130,8 +130,8 @@ K-Dense BYOK 对 MAS / OPL 的价值是产品和运行模式参考，不是 runt
 | 326 workflow templates | OPL Stagecraft | 抽象成 recipe catalog 候选：stage goal、required inputs、placeholder schema、suggested capability hints、expected artifact refs 和 stop condition。Stagecraft 只把 recipe 作为当前 owner delta 的 JIT route context，不新增 MAS selector 或 workflow truth。 |
 | 229 database refs | OPL Atlas / Source | 抽象成 source-ref candidate catalog：数据库 id、领域、类别、URL、credential / policy notes 和 source readiness precheck。MAS 只把它作为 source discovery 输入，source readiness verdict 仍由 MAS owner surface 产出。 |
 | 21 scientific specialists | Codex specialist roster / reviewer lanes | 映射为可命名的 specialist lane，例如 citation、statistics、methodology、reproducibility、peer-review。执行与审阅必须保持独立 invocation / context / receipt；specialist report 只是 reviewer/auditor candidate。 |
-| file tree、file preview、bioinformatics preview、LaTeX editor、PDF viewer | OPL Workspace / Vault / Console | Workspace 管文件拓扑和 upload/download，Vault 管 artifact refs、manifest、checksum、compile log，Console 管 preview 和 operator drilldown。文件存在、PDF render 或 LaTeX compile 不等于 artifact authority。 |
-| cost ledger / spend cap | OPL Vault / Console | agent、specialist、compute 成本分账为 budget receipt，Console 只展示预算和风险；预算信息不能替代研究质量、paper progress 或 owner gate。 |
+| file tree、file preview、bioinformatics preview、LaTeX editor、PDF viewer | OPL Workspace / Ledger / Console | Workspace 管文件拓扑和 upload/download，Ledger 管 artifact refs、manifest、checksum、compile log，Console 管 preview 和 operator drilldown。文件存在、PDF render 或 LaTeX compile 不等于 artifact authority。 |
+| cost ledger / spend cap | OPL Ledger / Console | agent、specialist、compute 成本分账为 budget receipt，Console 只展示预算和风险；预算信息不能替代研究质量、paper progress 或 owner gate。 |
 | interview form | MAS human-gate schema / OPL Console | 结构化问题、推荐选项、自由文本和附件可作为 human-gate 输入 shape；只有 MAS human gate / owner route 消费后才改变 truth 或 route。 |
 | MCP / Modal hooks | OPL Connect / Runway | Connect 管 MCP trust、secret scope、tool health；Runway 管 remote execution receipt、file-in/out、timeout、cost 和 fail-open / fail-closed policy。MAS 不把这些 connector 写成 domain authority。 |
 | OpenRouter Fusion | watch-only reviewer briefing | 仅用于多模型 judgment 的提示形态参考；因为无本地工具、不可复现且 panel source 不完整，不能关闭 independent reviewer gate、quality verdict 或 publication readiness。 |
@@ -186,12 +186,12 @@ medautosci scientific-capability-registry \
 | OPL Pack | 持 descriptor、ABI、pack compiler、安装包、版本锁、validate / doctor / generated surfaces |
 | OPL Stagecraft | 决定 stage 内什么时候使用能力、如何把 capability recipe 放进 stage policy 和 agent prompt |
 | OPL Runway | 执行 durable invocation、绑定 run-context、处理 retry / dead-letter / fail-open / fail-closed route |
-| OPL Vault | 保存 refs-only evidence、artifact manifest、execution receipt、lineage、audit trail 和 provenance |
+| OPL Ledger | 保存 refs-only evidence、artifact manifest、execution receipt、lineage、audit trail 和 provenance |
 | OPL Console | 向 operator / MAS agent 展示可用能力、调用状态、doctor 缺口、gallery 和 owner next action |
 | OPL Foundry Lab | 对能力模块做 benchmark、visual audit、regression、外部学习吸收和升级评估 |
 | OPL Connect | 接入外部 MCP、skill、CLI、GitHub 项目、模型服务、浏览器或第三方工具 |
 
-因此，这次构造方式确实是 OPL 基座能力提升，但提升的是“跨 domain agent 的 capability substrate”，不是新增一个并列品牌。OPL Pack / Atlas / Stagecraft / Runway / Vault / Console / Connect / Workspace / Foundry Lab / Charter 分别承担一部分，组合后让 MAS、MAG、RCA、BookForge 等 agent 都能调用同一批高质量专业能力。
+因此，这次构造方式确实是 OPL 基座能力提升，但提升的是“跨 domain agent 的 capability substrate”，不是新增一个并列品牌。OPL Pack / Atlas / Stagecraft / Runway / Ledger / Console / Connect / Workspace / Foundry Lab / Charter 分别承担一部分，组合后让 MAS、MAG、RCA、BookForge 等 agent 都能调用同一批高质量专业能力。
 
 ## MAS 不应外置的内容
 

@@ -26,14 +26,14 @@ SURFACE_DEFINITIONS = (
         "surface_id": "attempt_replay_lab_notebook_export",
         "pattern_id": "session_replay_lab_notebook",
         "contract_kind": "attempt_replay_lab_notebook_export_contract",
-        "consumer_owner_surface": "OPL Vault attempt ledger",
+        "consumer_owner_surface": "OPL Ledger attempt ledger",
         "description": "Attempt replay and lab notebook export projection contract.",
     },
     {
         "surface_id": "cost_ledger_budget_cap",
         "pattern_id": "cost_ledger_budget_cap",
         "contract_kind": "cost_ledger_budget_cap_contract",
-        "consumer_owner_surface": "OPL Vault / Console budget receipt",
+        "consumer_owner_surface": "OPL Ledger / Console budget receipt",
         "description": "Cost ledger and budget cap projection contract.",
     },
     {
