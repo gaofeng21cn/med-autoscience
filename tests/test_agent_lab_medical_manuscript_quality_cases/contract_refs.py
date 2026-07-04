@@ -18,13 +18,24 @@ def _medical_quality_mappings() -> list[dict[str, object]]:
 
 def test_agent_lab_handoff_routes_feedback_targets_to_scholar_skills_single_source() -> None:
     handoff = _agent_lab_handoff_contract()
+    capability_map_path = Path(__file__).resolve().parents[2] / "contracts" / "capability_map.json"
+    capability_map = json.loads(capability_map_path.read_text(encoding="utf-8"))
     contract_text = json.dumps(handoff, ensure_ascii=False)
     policy = handoff["meta_agent_work_order_contract"]["external_suite_improvement_policy"]
-    mappings = policy["capability_target_mappings"]
+    mappings = {
+        item["feedback_target"]: item
+        for item in capability_map["feedback_target_mappings"]
+    }
     registry_ref = "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
 
     assert "skill_ref:medical-research-write" not in contract_text
     assert "src/med_autoscience/overlay/templates/medical-research-write.SKILL.md" not in contract_text
+    assert "capability_target_mappings" not in policy
+    assert policy["capability_routing_ref"] == {
+        "ref": "contracts/capability_map.json#/feedback_target_mappings",
+        "role": "canonical_feedback_target_to_professional_skill_map",
+        "body_included": False,
+    }
     assert policy["failure_token_registry_ref"] == registry_ref
     assert policy["medical_failure_type_mappings_ref"] == (
         "contracts/capability_map.json#/medical_failure_type_mappings"
