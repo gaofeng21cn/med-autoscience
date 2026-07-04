@@ -113,6 +113,43 @@ def test_delivery_inspector_accepts_contract_backed_visual_audit_receipt(tmp_pat
     assert result["freshness"]["gate_freshness_handshake"]["status"] == "current"
 
 
+def test_delivery_inspector_treats_current_findings_open_visual_audit_as_fresh_package(
+    tmp_path: Path,
+) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
+    dump_json(
+        paper_root / "figure_visual_audit_receipt.json",
+        {
+            "schema_version": 1,
+            "receipt_id": "visual-audit::findings-open",
+            "final_status": "findings_open",
+            "inspected_artifacts": [{"figure_id": "F1"}],
+            "findings": [{"severity": "minor", "message": "caption polish remains open"}],
+        },
+    )
+
+    sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        route_context=writable_route_context(),
+    )
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    assert result["freshness"]["verdict"] == "current"
+    assert result["freshness"]["stale_reason"] is None
+    assert result["human_package"]["exists"] is True
+
+
 def test_delivery_inspector_marks_package_stale_without_current_visual_audit_receipt(tmp_path: Path) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
