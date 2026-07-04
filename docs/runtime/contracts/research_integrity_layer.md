@@ -42,7 +42,7 @@ MAS 同时暴露聚合消费面：
 - `build_research_integrity_gate_input_bundle(...)` 把上述三类 surface 聚合为 `research_integrity_gate_input_bundle`。
 - `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-gate-input", ...})` 是当前 service-safe callable entry；它接受 builder-native 字段，也接受 `reference` / `references`、`claim` / `claims`、`manuscript`、`provider_evidence` 等易用别名。
 - `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-reference-verification", ...})` 接受顶层 `provider_evidence`，也接受 OPL Connect 风格 `provider_receipts`，并把 receipt root 的 `provider_evidence`、`references[].provider_evidence`、`opl_connect_reference_verification.provider_evidence` 归一化为同一 gate input evidence；默认 receipt-first，仅在没有 evidence 时调用 MAS thin provider client，拉取 Crossref、PubMed、OpenAlex、Semantic Scholar first-slice evidence；Crossmark 使用 Crossref metadata signal。Publisher evidence 的正式来源是 OPL Connect DOI landing-page provider receipt；MAS thin fallback 仍只返回 `publisher_connector_required` evidence，不伪造 publisher truth，也不声明 live provider authority。
-- `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-review-publication-gate-stage-hook", ...})` 是 Review / Publication Gate 的 mandatory hook 输入面；它触发 `research-integrity-reference-verification` 并返回包含 `stage_obligation`、`target_stage_ids`、`triggered_opl_connect_provider_lookup_contract` 和 `manuscript_consistency_meta_review` 的 `research_integrity_gate_input_bundle`。这些字段声明 mandatory gate input 和 OPL Connect provider lookup contract，不声明 live owner consumption。
+- `MedAutoScienceDomainEntry.dispatch({"command": "research-integrity-review-publication-gate-stage-hook", ...})` 是 Review / Publication Gate 的 mandatory hook 输入面；它触发 `research-integrity-reference-verification` 并返回包含 `stage_obligation`、`stage_launch_required_input`、`target_stage_ids`、`triggered_opl_connect_provider_lookup_contract` 和 `manuscript_consistency_meta_review` 的 `research_integrity_gate_input_bundle`。这些字段声明 mandatory gate input 和 OPL Connect provider lookup contract，不声明 live owner consumption。
 - `family_action_catalog` 暴露 `research_integrity_gate_input` read-only descriptor，供 OPL generated / product-entry / MCP descriptor 消费；该 action 的 `mcp_public_runtime=false`，不声明公开 runtime 执行器。
 
 当前非 live gate-input 达标条件：每条 reference 至少有一个 provider crosscheck 得到 `verified`，或被明确标成 `unresolved`、`needs_review`、`contradicted`、`retracted` 之一；不能因 lookup 缺失而静默通过。若 evidence 来自 MAS thin fallback，它只是 transition-only gate input，不是权威 live citation verification；权威 provider truth 仍需要 OPL Connect provider receipt / readback。
@@ -53,18 +53,19 @@ MAS 同时暴露聚合消费面：
 
 稳定目标链路是：
 
-1. OPL Connect / provider lookup 根据 stage hook 请求拉取 Crossref、PubMed、OpenAlex、Semantic Scholar、publisher 或 Crossmark evidence，并返回 provider receipt / evidence payload；这是默认 provider truth 入口。
-2. MAS Research Integrity Gate 消费 provider evidence / provider receipt evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`，并在输出中保留 provider receipt refs 与 source refs 供 owner surface 追溯。
-3. AI reviewer 或 publication gate consumer 把该 bundle 当作 quality input，在 MAS owner surface 内决定 receipt、typed blocker、route-back 或 human gate。
+1. `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 stage control plane descriptor 在 `codex_cli_launch_packet.mandatory_pre_gate_checks` 写入 RI hook，且同一内容投影到 `stage_contract.mandatory_pre_gate_checks` 作为 readback / descriptor consumer。
+2. OPL Connect / provider lookup 根据 stage hook 请求拉取 Crossref、PubMed、OpenAlex、Semantic Scholar、publisher 或 Crossmark evidence，并返回 provider receipt / evidence payload；这是默认 provider truth 入口。
+3. MAS Research Integrity Gate 消费 provider evidence / provider receipt evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`，并在输出中保留 provider receipt refs 与 source refs 供 owner surface 追溯。
+4. AI reviewer 或 publication gate consumer 把该 bundle 当作 quality input，在 MAS owner surface 内决定 receipt、typed blocker、route-back 或 human gate。
 
-该链路的 stage hook 目标是 `review_and_quality_gate` 与 `finalize_and_publication_handoff`。当前合同固定 non-live callable、stage obligation、trigger chain、payload shape 和 forbidden-write boundary；provider lookup runtime、stage hook 执行、provider receipt 存储和 live owner consumption 仍必须由 OPL Connect / MAS owner surface 的新鲜 readback 证明。
+该链路的 stage hook 目标是 `review_and_quality_gate` 与 `finalize_and_publication_handoff`。当前合同固定 non-live callable、stage obligation、stage launch / readback pre-gate check、trigger chain、payload shape 和 forbidden-write boundary；provider lookup runtime、stage hook 执行、provider receipt 存储和 live owner consumption 仍必须由 OPL Connect / MAS owner surface 的新鲜 readback 证明。
 
 ## 完成度边界
 
 本层允许声明：
 
 - RI gate-input callable / descriptor / contract 已同步。
-- `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 mandatory RI hook obligation 已在 machine-readable contract / stage control plane / hook payload 中同步。
+- `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 mandatory RI hook 已在 machine-readable contract、stage control plane、hook payload、`codex_cli_launch_packet.mandatory_pre_gate_checks` 和 `stage_contract.mandatory_pre_gate_checks` 中同步。
 - RI payload 可作为 AI reviewer / publication gate 的输入证据。
 - forbidden writes 已被合同、action catalog 和 domain entry 边界声明。
 

@@ -5,7 +5,7 @@
   "owner": "MedAutoScience",
   "purpose": "Bind OPL/provider lookup, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
   "target_state": {
-    "summary": "Review and publication gate stage hooks request OPL/provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
+    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the hook requests OPL/provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
     "is_independent_professional_skill": false,
     "provider_lookup_owner": "OPL connector substrate",
     "provider_lookup_mode": "transition_only_receipt_first",
@@ -60,7 +60,8 @@
     "surface_kind": "research_integrity_ideal_trigger_chain",
     "version": "research-integrity-trigger-chain.v1",
     "chain": [
-      "OPL Connect provider lookup resolves external citation evidence and provider receipts",
+      "Stage control plane launch packet for review_and_quality_gate or finalize_and_publication_handoff carries mandatory_pre_gate_checks for the RI hook",
+      "OPL Connect provider lookup resolves external citation evidence and provider receipts for the hook request",
       "MAS Research Integrity Gate consumes provider evidence with manuscript, claim, citation, and display refs",
       "AI reviewer or publication gate consumer reads the RI gate input as evidence before MAS owner surface consumption"
     ],
@@ -139,6 +140,74 @@
       "can_write_provider_attempt": false,
       "can_write_runtime_queue": false
     },
+    "stage_launch_required_input": {
+      "surface_kind": "research_integrity_stage_launch_required_input",
+      "schema_version": 1,
+      "hook_id": "research-integrity-review-publication-gate-stage-hook",
+      "command": "research-integrity-review-publication-gate-stage-hook",
+      "target_stage_ids": [
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ],
+      "launch_surface": "codex_cli_launch_packet",
+      "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+      "triggered_action": "research-integrity-reference-verification",
+      "trigger_points": [
+        "reference_list_entered",
+        "manuscript_closeout_entered",
+        "review_gate_entered",
+        "publication_gate_entered"
+      ],
+      "required_gate_input_surfaces": [
+        "reference_verification_attestations",
+        "claim_citation_support_matrix_v2",
+        "manuscript_consistency_meta_review"
+      ],
+      "triggered_opl_connect_provider_lookup_contract": {
+        "surface_kind": "opl_connect_provider_lookup_contract",
+        "schema_version": 1,
+        "owner": "OPL connector substrate",
+        "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
+        "triggered_action": "research-integrity-reference-verification",
+        "lookup_providers": [
+          "crossref",
+          "pubmed",
+          "openalex",
+          "semantic_scholar",
+          "publisher",
+          "crossmark"
+        ],
+        "provider_receipt_consumed_by": "research-integrity-reference-verification",
+        "mandatory_gate_input_only": true,
+        "live_owner_consumption_claimed": false,
+        "can_write_provider_attempt": false,
+        "can_write_runtime_queue": false
+      },
+      "mandatory_before_stage_completion": true,
+      "required_before_owner_receipt_or_typed_blocker": true,
+      "mandatory_gate_input": true,
+      "live_owner_consumption_claimed": false,
+      "authority_boundary": {
+        "outputs_are_gate_inputs": true,
+        "surface_authority": "mandatory_stage_hook_gate_input_only",
+        "can_request_provider_lookup": true,
+        "can_write_mas_study_truth": false,
+        "can_write_publication_eval_latest": false,
+        "can_write_publication_eval": false,
+        "can_write_controller_decisions": false,
+        "can_mutate_current_package": false,
+        "can_write_current_package": false,
+        "can_sign_owner_receipt": false,
+        "can_write_owner_receipt": false,
+        "can_materialize_typed_blocker": false,
+        "can_write_typed_blocker": false,
+        "can_materialize_human_gate": false,
+        "can_write_runtime_queue_or_provider_attempt": false,
+        "can_authorize_publication_quality": false,
+        "can_authorize_publication_readiness": false,
+        "can_authorize_submission_readiness": false
+      }
+    },
     "required_gate_input_surfaces": [
       "reference_verification_attestations",
       "claim_citation_support_matrix_v2",
@@ -166,6 +235,7 @@
       "can_authorize_publication_readiness": false,
       "can_authorize_submission_readiness": false
     },
+    "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
     "completion_boundary": {
       "non_live_callable_stage_obligation_can_claim": true,
       "live_owner_consumption_claimed": false,
@@ -470,5 +540,84 @@
       "rtk make test-meta",
       "rtk scripts/verify.sh"
     ]
+  },
+  "stage_launch_required_input": {
+    "surface_kind": "research_integrity_stage_launch_required_input",
+    "schema_version": 1,
+    "hook_id": "research-integrity-review-publication-gate-stage-hook",
+    "command": "research-integrity-review-publication-gate-stage-hook",
+    "target_stage_ids": [
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
+    "launch_surface": "codex_cli_launch_packet",
+    "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+    "triggered_action": "research-integrity-reference-verification",
+    "trigger_points": [
+      "reference_list_entered",
+      "manuscript_closeout_entered",
+      "review_gate_entered",
+      "publication_gate_entered"
+    ],
+    "required_gate_input_surfaces": [
+      "reference_verification_attestations",
+      "claim_citation_support_matrix_v2",
+      "manuscript_consistency_meta_review"
+    ],
+    "triggered_opl_connect_provider_lookup_contract": {
+      "surface_kind": "opl_connect_provider_lookup_contract",
+      "schema_version": 1,
+      "owner": "OPL connector substrate",
+      "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
+      "triggered_action": "research-integrity-reference-verification",
+      "lookup_providers": [
+        "crossref",
+        "pubmed",
+        "openalex",
+        "semantic_scholar",
+        "publisher",
+        "crossmark"
+      ],
+      "provider_receipt_consumed_by": "research-integrity-reference-verification",
+      "mandatory_gate_input_only": true,
+      "live_owner_consumption_claimed": false,
+      "can_write_provider_attempt": false,
+      "can_write_runtime_queue": false
+    },
+    "mandatory_before_stage_completion": true,
+    "required_before_owner_receipt_or_typed_blocker": true,
+    "mandatory_gate_input": true,
+    "live_owner_consumption_claimed": false,
+    "authority_boundary": {
+      "outputs_are_gate_inputs": true,
+      "surface_authority": "mandatory_stage_hook_gate_input_only",
+      "can_request_provider_lookup": true,
+      "can_write_mas_study_truth": false,
+      "can_write_publication_eval_latest": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_mutate_current_package": false,
+      "can_write_current_package": false,
+      "can_sign_owner_receipt": false,
+      "can_write_owner_receipt": false,
+      "can_materialize_typed_blocker": false,
+      "can_write_typed_blocker": false,
+      "can_materialize_human_gate": false,
+      "can_write_runtime_queue_or_provider_attempt": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_publication_readiness": false,
+      "can_authorize_submission_readiness": false
+    }
+  },
+  "completion_boundary": {
+    "stage_launch_readback_surface": {
+      "launch_surface": "codex_cli_launch_packet.mandatory_pre_gate_checks",
+      "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+      "target_stage_ids": [
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ],
+      "live_owner_consumption_claimed": false
+    }
   }
 }
