@@ -828,7 +828,8 @@ def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
     assert "paper/evidence_ledger.json" in changed_paths
     assert "paper/review/review_ledger.json" in changed_paths
     assert extra_paths == [
-        str((paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").resolve())
+        str((paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").resolve()),
+        str((paper_root / "tables" / "generated" / "T3_grouped_calibration.md").resolve()),
     ]
     assert "manuscript_story_surface_delta_missing" not in result["repair_execution_evidence"]["blockers"]
 
@@ -924,4 +925,5 @@ def test_story_repair_executor_uses_study_root_dm002_evidence_for_body_authority
     assert "draft.md" in changed_paths
     assert "build/review_manuscript.md" in changed_paths
     assert "tables/generated/T2_time_to_event_performance_summary.md" in changed_paths
+    assert "tables/generated/T3_grouped_calibration.md" in changed_paths
     assert result["repair_execution_evidence"]["manuscript_surface_hygiene"]["story_surface_delta_present"] is True

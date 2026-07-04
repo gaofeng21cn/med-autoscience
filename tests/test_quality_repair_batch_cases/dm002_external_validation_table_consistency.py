@@ -165,6 +165,7 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "paper/draft.md" in changed_paths
     assert "paper/build/review_manuscript.md" in changed_paths
     assert "paper/tables/generated/T2_time_to_event_performance_summary.md" in changed_paths
+    assert "paper/tables/generated/T3_grouped_calibration.md" in changed_paths
     story_text = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert "External validation of a China-derived diabetes mortality score in NHANES" in story_text
     assert "15,789" in story_text
@@ -178,12 +179,17 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "Brier score was 0.118 (95% CI 0.111-0.125)" in story_text
     assert "calibration slope was 5.64 (95% CI 5.09-6.19)" in story_text
     assert "calibration intercept was 1.79 (95% CI 1.71-1.87)" in story_text
-    assert "decile 1" in story_text
-    assert "decile 10" in story_text
+    assert "lowest decile" in story_text
+    assert "highest decile" in story_text
     assert "HDL cholesterol was converted from mg/dL to mmol/L using 0.02586" in story_text
     assert "nonparametric bootstrap replicates" in story_text
     assert "lifelines 0.30.3" in story_text
     assert "unweighted NHANES" in story_text
+    assert "applied unchanged in NHANES" in story_text
+    assert "No NHANES coefficient updating" in story_text
+    assert "| HDL cholesterol, mmol/L | -0.0727923 |" in story_text
+    assert "risk-scale compression" in story_text
+    assert "Threshold-specific clinical utility was not estimated" in story_text
     assert "10.11 percentage points" in story_text
     assert "age, sex, smoking status, HbA1c, HDL cholesterol, systolic blood pressure, and diastolic blood pressure" in story_text
     assert "hdl_mmol_l" not in story_text
@@ -197,7 +203,11 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "| Calibration intercept | Not estimated | 1.79 (95% CI 1.71-1.87) |" in table2_text
     assert "| Calibration slope | Not estimated | 5.64 (95% CI 5.09-6.19) |" in table2_text
     assert "interval estimates for O/E ratio and Brier score" not in table2_text
-    assert "calibration slope" not in table2_text.lower().split("metrics not available", 1)[-1]
+    assert "Metrics not available" not in table2_text
+    table3_text = (paper_root / "tables" / "generated" / "T3_grouped_calibration.md").read_text(encoding="utf-8")
+    assert "| 1 | 566 | 13 | 1.61% | 2.30% (95% CI 1.35%-3.89%) |" in table3_text
+    assert "| 10 | 565 | 214 | 3.08% | 37.88% (95% CI 33.97%-41.95%) |" in table3_text
+    assert "not prespecified clinical decision thresholds" in table3_text
     forbidden_runtime_terms = (
         "MAS",
         "AI reviewer",
@@ -232,6 +242,16 @@ def _write_dm002_rerun_evidence(study_root: Path) -> None:
                 "event_col": "os_event",
                 "feature_order": ["Age", "Sex", "Smoke", "HbA1c", "hdl_mmol_l", "SBP", "DBP"],
                 "baseline_survival_at_5y": 0.980658000724163,
+                "penalizer": 0.1,
+                "coefficients": {
+                    "Age": 0.011948687080482029,
+                    "Sex": 0.0313238805263174,
+                    "Smoke": 0.02849717095975044,
+                    "HbA1c": 0.000478864702458937,
+                    "hdl_mmol_l": -0.0727922900242664,
+                    "SBP": 0.0022075652168967994,
+                    "DBP": -0.0026343582264566514,
+                },
                 "software": {
                     "python_packages": {
                         "lifelines": "0.30.3",
