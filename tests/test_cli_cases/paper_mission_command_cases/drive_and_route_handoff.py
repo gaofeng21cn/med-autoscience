@@ -978,6 +978,103 @@ def test_paper_mission_drive_stops_on_current_opl_route_back_consumption_before_
     assert payload["mutation_policy"]["writes_runtime"] is False
 
 
+def test_paper_mission_drive_ignores_stale_current_opl_consumption_after_owner_consumed_route_checkpoint(
+    tmp_path: Path,
+) -> None:
+    study_id = "obesity_multicenter_phenotype_atlas"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="Obesity",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-review/route_back_evidence_packet.json"
+    )
+    receipt_ref = "opl://stage-attempts/sat-review"
+
+    def fake_readback_builder(**kwargs):
+        assert kwargs["paper_mission_command"] == "inspect"
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Re-run AI reviewer after manuscript revision.",
+            "study_id": study_id,
+            "canonical_next_action_source": "domain_transition.next_action",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-ai-reviewer",
+                "study_id": study_id,
+                "stage_id": "review",
+                "action_family": "paper.review.ai_reviewer",
+                "action_kind": "owner_review",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "executor_target": "mas_owner_callable",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": "domain-transition::ai-reviewer",
+            },
+            "current_opl_runtime_carrier_readback": {
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "requires_mas_owner_consumption",
+                    "next_legal_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "receipt_evidence_ref": receipt_ref,
+                    "route_back_evidence_ref": route_back_ref,
+                    "forbidden_next_action": "synonymous_route_back_redrive",
+                    "can_claim_paper_progress": False,
+                }
+            },
+            "receipt_owner_consumption_readback": {
+                "status": "owner_consumption_applied",
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "owner_consumed_route_checkpoint",
+                    "next_legal_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "receipt_evidence_ref": receipt_ref,
+                    "route_back_evidence_ref": route_back_ref,
+                    "route_checkpoint_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-review/stage_attempt_closeout_packet.json"
+                    ),
+                    "forbidden_next_action": "synonymous_route_back_redrive",
+                    "can_claim_paper_progress": False,
+                },
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "obesity.local.toml",
+        study_id=study_id,
+        output_root=workspace_root / "ops" / "medautoscience" / "drive",
+        run_id=None,
+        submit_opl_runtime=False,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["drive_result"]["reason"] == "domain_transition_direct_stage_attempt"
+    assert payload["next_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert payload["output_manifest"]["candidate_package"] is None
+    assert payload["output_manifest"]["consumption_ledger"] is None
+    assert payload["mutation_policy"]["writes_runtime"] is False
+
+
 def test_paper_mission_inspect_projects_domain_transition_running_attempt(
     tmp_path: Path,
 ) -> None:

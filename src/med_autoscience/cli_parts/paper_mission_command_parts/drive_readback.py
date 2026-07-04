@@ -838,7 +838,74 @@ def _drive_current_opl_owner_consumption(
         "consume_opl_transition_receipt",
     }:
         return {}
+    if _drive_receipt_owner_consumption_already_applied(
+        readback=readback,
+        current_consumption=consumption,
+        next_legal_action=next_legal_action,
+    ):
+        return {}
     return dict(consumption)
+
+
+def _drive_receipt_owner_consumption_already_applied(
+    *,
+    readback: Mapping[str, Any],
+    current_consumption: Mapping[str, Any],
+    next_legal_action: str | None,
+) -> bool:
+    status_by_action = {
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome": {
+            "owner_consumed_route_checkpoint"
+        },
+        "record_typed_blocker": {"owner_consumed_typed_blocker"},
+        "consume_opl_transition_receipt": {"owner_consumed_opl_transition_receipt"},
+    }
+    allowed_statuses = status_by_action.get(next_legal_action or "", set())
+    if not allowed_statuses:
+        return False
+    for applied in _drive_applied_receipt_owner_consumptions(readback):
+        if _optional_text(applied.get("status")) not in allowed_statuses:
+            continue
+        if _drive_consumption_identity_matches(
+            current=current_consumption,
+            applied=applied,
+        ):
+            return True
+    return False
+
+
+def _drive_applied_receipt_owner_consumptions(
+    readback: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], ...]:
+    receipt_readback = _mapping(readback.get("receipt_owner_consumption_readback"))
+    candidates = (
+        _mapping(receipt_readback.get("mas_receipt_consumption")),
+        _mapping(readback.get("mas_receipt_consumption")),
+    )
+    return tuple(
+        candidate
+        for candidate in candidates
+        if _optional_text(candidate.get("surface_kind"))
+        == "mas_receipt_consumption_projection"
+    )
+
+
+def _drive_consumption_identity_matches(
+    *,
+    current: Mapping[str, Any],
+    applied: Mapping[str, Any],
+) -> bool:
+    for key in (
+        "route_back_evidence_ref",
+        "typed_runtime_blocker_ref",
+        "receipt_evidence_ref",
+        "route_checkpoint_evidence_ref",
+    ):
+        current_value = _optional_text(current.get(key))
+        applied_value = _optional_text(applied.get(key))
+        if current_value is not None and applied_value is not None:
+            return current_value == applied_value
+    return False
 
 
 def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
