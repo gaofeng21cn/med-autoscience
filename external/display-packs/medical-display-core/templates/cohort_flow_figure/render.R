@@ -285,24 +285,52 @@ cohort_step_label_line_count <- function(step) {
   length(label_lines) + 1L + length(detail_lines)
 }
 
-participant_flow_y_centers <- function(count) {
-  if (count < 1) {
-    return(numeric(0))
+participant_flow_node_height <- function(has_step_details, max_step_line_count) {
+  if (!has_step_details) {
+    return(9.5)
   }
-  if (count == 1) {
-    return(82)
-  }
-  y_top <- 91
-  y_bottom <- 12
-  seq(from = y_top, to = y_bottom, length.out = count)
+  min(30.0, max(15.5, as.numeric(max_step_line_count) * 3.4 + 3.2))
 }
 
-cohort_step_frame <- function(steps, step_ids) {
+participant_flow_node_gap <- function(node_height) {
+  max(4.2, as.numeric(node_height) * 0.22)
+}
+
+participant_flow_layout <- function(count, node_height, node_gap = participant_flow_node_gap(node_height)) {
+  if (count < 1) {
+    return(list(y = numeric(0), y_min = 0.0, y_max = 100.0, y_span = 100.0))
+  }
+  if (count == 1) {
+    y <- 70.0
+  } else {
+    y_top <- 96.0 - node_height / 2.0
+    y <- y_top - (seq_len(count) - 1) * (node_height + node_gap)
+  }
+  y_min <- min(0.0, y[[length(y)]] - node_height / 2.0 - 5.0)
+  y_max <- max(101.0, y[[1]] + node_height / 2.0 + 5.0)
+  list(y = y, y_min = y_min, y_max = y_max, y_span = y_max - y_min)
+}
+
+participant_flow_default_height_in <- function(payload, fallback = 5.8) {
+  if (identical(cohort_flow_mode(payload), "source_layer_accounting")) {
+    return(fallback)
+  }
+  steps <- required_list(payload, "steps")
+  has_step_details <- any(vapply(steps, function(step) nzchar(trimws(as.character(step$detail %||% ""))), logical(1)))
+  step_line_counts <- vapply(steps, cohort_step_label_line_count, integer(1))
+  max_step_line_count <- max(step_line_counts, 1L)
+  node_height <- participant_flow_node_height(has_step_details, max_step_line_count)
+  layout <- participant_flow_layout(length(steps), node_height)
+  max(fallback, fallback * layout$y_span / 105.0)
+}
+
+cohort_step_frame <- function(steps, step_ids, node_height, node_gap = participant_flow_node_gap(node_height)) {
+  layout <- participant_flow_layout(length(steps), node_height, node_gap)
   data.frame(
     step_id = step_ids,
     label = vapply(seq_along(steps), function(index) cohort_step_plot_label(steps[[index]], index), character(1)),
     x = rep(4, length(steps)),
-    y = participant_flow_y_centers(length(steps)),
+    y = layout$y,
     stringsAsFactors = FALSE
   )
 }
@@ -691,20 +719,20 @@ build_ggconsort_plot <- function(payload) {
   if (length(unique(step_ids)) != length(step_ids)) {
     stop("cohort_flow_figure step ids must be unique after ggconsort normalization")
   }
-  step_df <- cohort_step_frame(steps, step_ids)
+  node_height <- participant_flow_node_height(has_step_details, max_step_line_count)
+  node_gap <- participant_flow_node_gap(node_height)
+  plot_layout <- participant_flow_layout(length(steps), node_height, node_gap)
+  step_df <- cohort_step_frame(steps, step_ids, node_height, node_gap)
   step_df$x <- 0
   exclusion_df <- cohort_exclusion_frame(exclusions, step_df, step_ids)
   node_width <- if (length(exclusions) > 0) 50 else 68
-  node_height <- if (has_step_details) {
-    min(22.0, max(13.0, as.numeric(max_step_line_count) * 2.8 + 2.8))
-  } else {
-    9.5
-  }
   exclusion_width <- if (length(exclusions) > 0) 18 else 22
   exclusion_height <- 8
-  plot_y_min <- min(38, min(step_df$y - node_height / 2) - 5)
+  plot_y_min <- plot_layout$y_min
+  plot_y_max <- plot_layout$y_max
   if (nrow(exclusion_df) > 0) {
     plot_y_min <- min(plot_y_min, min(exclusion_df$y - exclusion_height / 2) - 5)
+    plot_y_max <- max(plot_y_max, max(exclusion_df$y + exclusion_height / 2) + 5)
   }
   connector_colour <- style_color(payload, "flow_connector", "#7B8794")
   node_fill <- style_color(payload, "flow_main_fill", "#FFFFFF")
@@ -716,7 +744,7 @@ build_ggconsort_plot <- function(payload) {
   plot_xlim <- if (length(exclusions) > 0) c(-44, 44) else c(-36, 36)
   plot <- ggplot2::ggplot() +
     ggplot2::theme_void() +
-    ggplot2::coord_cartesian(xlim = plot_xlim, ylim = c(plot_y_min, 101), clip = "off")
+    ggplot2::coord_cartesian(xlim = plot_xlim, ylim = c(plot_y_min, plot_y_max), clip = "off")
   if (nrow(step_df) > 1) {
     for (index in seq_len(nrow(step_df) - 1)) {
       plot <- plot +
@@ -992,18 +1020,6 @@ build_source_layer_layout_sidecar <- function(payload, dependency_environment) {
   )
 }
 
-participant_flow_sidecar_y_centers <- function(count) {
-  if (count < 1) {
-    return(numeric(0))
-  }
-  if (count == 1) {
-    return(0.64)
-  }
-  y_top <- 0.75
-  y_bottom <- 0.39
-  seq(from = y_top, to = y_bottom, length.out = count)
-}
-
 build_layout_sidecar <- function(payload, dependency_environment) {
   if (identical(cohort_flow_mode(payload), "source_layer_accounting")) {
     return(build_source_layer_layout_sidecar(payload, dependency_environment))
@@ -1017,21 +1033,29 @@ build_layout_sidecar <- function(payload, dependency_environment) {
   design_panels <- payload$design_panels %||% list()
   has_step_details <- any(vapply(steps, function(step) nzchar(trimws(as.character(step$detail %||% ""))), logical(1)))
   step_line_counts <- vapply(steps, cohort_step_label_line_count, integer(1))
+  max_step_line_count <- max(step_line_counts, 1L)
+  node_height_units <- participant_flow_node_height(has_step_details, max_step_line_count)
+  node_gap_units <- participant_flow_node_gap(node_height_units)
+  plot_layout <- participant_flow_layout(length(steps), node_height_units, node_gap_units)
+  output_height <- render_device_dimension(
+    payload,
+    "output_height_in",
+    "MAS_DISPLAY_OUTPUT_HEIGHT_IN",
+    participant_flow_default_height_in(payload)
+  )
+  normalize_y <- function(value) {
+    (as.numeric(value) - plot_layout$y_min) / plot_layout$y_span
+  }
+  node_height <- node_height_units / plot_layout$y_span
+  node_gap <- node_gap_units / plot_layout$y_span
   panel_ids <- declared_panel_ids(payload)
   rendered_panel_ids <- if (length(panel_ids) == 1) panel_ids else character(0)
   step_ids <- vapply(seq_along(steps), function(index) cohort_step_id(steps[[index]], index), character(1))
-  stack_top <- 0.93
-  stack_bottom <- 0.08
-  stack_span <- stack_top - stack_bottom
   step_count <- length(steps)
-  node_height <- min(0.16, stack_span / max(1, step_count + 0.35 * max(0, step_count - 1)))
-  node_height <- max(0.075, node_height)
-  node_gap <- max(0.024, node_height * 0.35)
   y_gap <- if (step_count > 1) node_height + node_gap else 0
-  y_top <- stack_top - node_height / 2
-  flow_panel_y0 <- max(0.0, y_top - max(0, step_count - 1) * y_gap - node_height / 2 - 0.02)
-  flow_panel_y1 <- min(1.0, y_top + node_height / 2 + 0.02)
-  y_centers <- y_top - (seq_along(steps) - 1) * y_gap
+  y_centers <- normalize_y(plot_layout$y)
+  flow_panel_y0 <- max(0.0, min(y_centers - node_height / 2.0) - 0.02)
+  flow_panel_y1 <- min(1.0, max(y_centers + node_height / 2.0) + 0.02)
   layout_boxes <- list()
   if (show_figure_title) {
     layout_boxes <- list(sidecar_box("title", "title", 0.05, 0.89, 0.95, 0.96))
@@ -1060,7 +1084,10 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       box_type = "main_step",
       line_count = as.integer(step_line_counts[[index]]),
       max_line_chars = if (has_step_details) 48L else 44L,
-      rendered_height_pt = if (has_step_details) max(94.0, as.numeric(step_line_counts[[index]]) * 18.0) else 74.0,
+      rendered_height_pt = max(
+        if (has_step_details) 94.0 else 74.0,
+        node_height_units / plot_layout$y_span * output_height * 72.0
+      ),
       rendered_width_pt = rendered_width_pt,
       padding_pt = 10.0,
       detail_truncated = FALSE
@@ -1132,6 +1159,7 @@ build_layout_sidecar <- function(payload, dependency_environment) {
     metrics = list(
       layout_mode = "participant_flow",
       layout_generation = "scholarskills_cohort_flow_v2",
+      layout_policy = "text_aware_dynamic_height_no_overlap_v1",
       flow_visual_policy = "purpose_first_reporting_flow_no_legacy_card_shell",
       figure_title_policy = "metadata_only_no_drawn_title",
       reporting_flow_kind = "consort_strobe_participant_flow",
@@ -1147,6 +1175,8 @@ build_layout_sidecar <- function(payload, dependency_environment) {
       ggconsort_capable_prepared_environment_required = TRUE,
       renderer_family = "r_ggplot2",
       renderer_role = "default",
+      figure_height_inches = output_height,
+      participant_node_gap_fraction = node_gap,
       opl_dependency_run_context_ref = dependency_environment$run_context_ref %||% "",
       opl_dependency_run_context_fingerprint = dependency_environment$run_context_fingerprint %||% "",
       publication_runtime_receipt = identical(dependency_environment$status %||% "", "prepared"),
@@ -1183,7 +1213,12 @@ render_cohort_flow_request <- function(request_path) {
   layout_sidecar <- build_layout_sidecar(payload, dependency_environment)
   write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
   output_width <- render_device_dimension(payload, "output_width_in", "MAS_DISPLAY_OUTPUT_WIDTH_IN", 7.2)
-  output_height <- render_device_dimension(payload, "output_height_in", "MAS_DISPLAY_OUTPUT_HEIGHT_IN", 5.8)
+  output_height <- render_device_dimension(
+    payload,
+    "output_height_in",
+    "MAS_DISPLAY_OUTPUT_HEIGHT_IN",
+    participant_flow_default_height_in(payload)
+  )
   ggsave(output_png, plot = plot, width = output_width, height = output_height, dpi = 320, units = "in", bg = "white")
   ggsave(output_pdf, plot = plot, width = output_width, height = output_height, units = "in", bg = "white")
   invisible(list(template_id = template_id, output_png_path = output_png, output_pdf_path = output_pdf, layout_sidecar_path = output_layout))
