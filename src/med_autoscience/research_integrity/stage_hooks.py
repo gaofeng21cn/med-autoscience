@@ -76,6 +76,7 @@ def build_review_publication_gate_stage_hook_payload(
         "triggered_opl_connect_provider_lookup_contract": (
             triggered_opl_connect_provider_lookup_contract()
         ),
+        "stage_launch_required_input": stage_launch_required_input(),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
         "status": reference_verification["status"],
         "stage_context": _stage_context(payload),
@@ -104,11 +105,53 @@ def stage_obligation() -> dict[str, Any]:
         "triggered_opl_connect_provider_lookup_contract": (
             triggered_opl_connect_provider_lookup_contract()
         ),
+        "stage_launch_required_input": stage_launch_required_input(),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
         "mandatory_gate_input": True,
         "live_owner_consumption_claimed": False,
         "authority_boundary": authority_boundary(),
         "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
+        "completion_boundary": completion_boundary(),
+    }
+
+
+def stage_launch_required_input(*, stage_id: str | None = None) -> dict[str, Any]:
+    target_stage_ids = [stage_id] if stage_id else list(TARGET_STAGE_IDS)
+    payload = {
+        "surface_kind": "research_integrity_stage_launch_required_input",
+        "schema_version": SCHEMA_VERSION,
+        "hook_id": HOOK_ID,
+        "command": HOOK_ID,
+        "target_stage_ids": target_stage_ids,
+        "launch_surface": "codex_cli_launch_packet",
+        "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+        "triggered_action": TRIGGERED_ACTION,
+        "trigger_points": list(TRIGGER_POINTS),
+        "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
+        "triggered_opl_connect_provider_lookup_contract": (
+            triggered_opl_connect_provider_lookup_contract()
+        ),
+        "mandatory_before_stage_completion": True,
+        "required_before_owner_receipt_or_typed_blocker": True,
+        "mandatory_gate_input": True,
+        "live_owner_consumption_claimed": False,
+        "authority_boundary": authority_boundary(),
+    }
+    if stage_id is not None:
+        payload["stage_id"] = stage_id
+    return payload
+
+
+def completion_boundary() -> dict[str, Any]:
+    return {
+        "non_live_callable_stage_obligation_can_claim": True,
+        "live_owner_consumption_claimed": False,
+        "live_truth_requires": [
+            "OPL Connect provider readback or receipt",
+            "MAS owner surface consumption",
+            "AI reviewer or publication gate receipt",
+            "runtime or artifact readback for the exact study work unit",
+        ],
     }
 
 
@@ -174,6 +217,8 @@ __all__ = [
     "TRIGGER_POINTS",
     "authority_boundary",
     "build_review_publication_gate_stage_hook_payload",
+    "completion_boundary",
     "stage_obligation",
+    "stage_launch_required_input",
     "triggered_opl_connect_provider_lookup_contract",
 ]

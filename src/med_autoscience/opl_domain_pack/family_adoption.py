@@ -540,6 +540,8 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         ],
     ]
     independent_gate_receipt_required = bool(stage.get("independent_gate_receipt_required", False))
+    mandatory_stage_hook_obligations = _mandatory_stage_hook_obligations(stage_id)
+    mandatory_pre_gate_checks = _mandatory_stage_hook_pre_gate_checks(stage_id)
     source_refs = [
         *_plane_source_refs(descriptor),
         {
@@ -579,6 +581,8 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
     progress_sprint_contract = _stage_progress_sprint_contract(stage, descriptor=descriptor)
     if progress_sprint_contract is not None:
         stage_contract["late_stage_progress_sprint_contract"] = progress_sprint_contract
+    if mandatory_pre_gate_checks:
+        stage_contract["mandatory_pre_gate_checks"] = mandatory_pre_gate_checks
     trust_boundary = {
         "lane": stage.get("trust_lane", "domain_agent"),
         "static_check_eligible": False,
@@ -592,6 +596,19 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         stage_contract["runtime_event_refs"] = runtime_event_refs
         trust_boundary["runtime_event_refs"] = runtime_event_refs
     stage_contract.update(cohort_loop_refs)
+    codex_cli_launch_packet = stage_skill_surface_projection.build_codex_cli_launch_packet(
+        stage_id=stage_id,
+        prompt_ref=prompt_ref,
+        skill_refs=skill_refs,
+        knowledge_refs=knowledge_refs,
+        quality_gate_refs=evaluation_refs,
+        quality_pack_refs=quality_pack_refs,
+        allowed_action_refs=allowed_action_refs,
+        expected_runtime_event_refs=runtime_event_refs,
+        independent_gate_receipt_required=independent_gate_receipt_required,
+    )
+    if mandatory_pre_gate_checks:
+        codex_cli_launch_packet["mandatory_pre_gate_checks"] = mandatory_pre_gate_checks
     stage_descriptor = {
         "stage_id": stage["stage_id"],
         "stage_kind": stage["stage_kind"],
@@ -643,17 +660,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             },
         ],
         "evaluation": evaluation_refs,
-        "codex_cli_launch_packet": stage_skill_surface_projection.build_codex_cli_launch_packet(
-            stage_id=stage_id,
-            prompt_ref=prompt_ref,
-            skill_refs=skill_refs,
-            knowledge_refs=knowledge_refs,
-            quality_gate_refs=evaluation_refs,
-            quality_pack_refs=quality_pack_refs,
-            allowed_action_refs=allowed_action_refs,
-            expected_runtime_event_refs=runtime_event_refs,
-            independent_gate_receipt_required=independent_gate_receipt_required,
-        ),
+        "codex_cli_launch_packet": codex_cli_launch_packet,
         "handoff": {
             "next_owner": "MedAutoScience",
             "next_stage_refs": list(stage.get("next_stage_refs", [])),
@@ -692,7 +699,6 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
     selected_executor = _selected_executor(stage_id)
     if selected_executor is not None:
         stage_descriptor["selected_executor"] = selected_executor
-    mandatory_stage_hook_obligations = _mandatory_stage_hook_obligations(stage_id)
     if mandatory_stage_hook_obligations:
         stage_descriptor["mandatory_stage_hook_obligations"] = mandatory_stage_hook_obligations
     return stage_descriptor
@@ -707,6 +713,17 @@ def _mandatory_stage_hook_obligations(stage_id: str) -> list[dict[str, Any]]:
     if stage_id not in RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS:
         return []
     return [research_integrity_stage_obligation()]
+
+
+def _mandatory_stage_hook_pre_gate_checks(stage_id: str) -> list[dict[str, Any]]:
+    from med_autoscience.research_integrity.stage_hooks import (
+        TARGET_STAGE_IDS as RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS,
+        stage_launch_required_input as research_integrity_stage_launch_required_input,
+    )
+
+    if stage_id not in RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS:
+        return []
+    return [research_integrity_stage_launch_required_input(stage_id=stage_id)]
 
 
 def _stage_expected_receipt_refs(stage_id: str) -> list[dict[str, str]]:
