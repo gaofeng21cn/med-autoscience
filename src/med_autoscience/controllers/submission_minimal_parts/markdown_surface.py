@@ -790,8 +790,20 @@ def build_table_blocks(
             table_blocks.append(normalized_body)
         else:
             table_blocks.append(f"## {selected_heading}\n\n{normalized_body}")
+    if not main_tables.strip():
+        for _table_id, (heading, block_body) in sorted(
+            replacement_blocks.items(),
+            key=lambda item: _natural_table_sort_key(item[1][0]),
+        ):
+            normalized_body = normalize_submission_table_body(block_body, heading=heading)
+            if normalized_body.startswith(r"\begin{landscape}"):
+                table_blocks.append(normalized_body)
+            else:
+                table_blocks.append(f"## {heading}\n\n{normalized_body}")
     if not table_blocks and main_tables.strip():
-        table_blocks.append(f"## Table 1\n\n{normalize_submission_table_body(main_tables, heading='Table 1')}")
+        normalized_body = normalize_submission_table_body(main_tables, heading="Table 1")
+        normalized_body = re.sub(r"(?m)^# (?!#)(.+)$", r"## \1", normalized_body)
+        table_blocks.append(f"## Table 1\n\n{normalized_body}")
     return table_blocks
 
 

@@ -11,8 +11,21 @@ _BODY_AUTHORITY_CURRENT_BODY_PAPER_REL = (
 )
 
 _DELIVERY_REQUIRED_SOURCE_RELS = (
+    "draft.md",
+    "references.bib",
     "evidence_ledger.json",
+    "figure_catalog.json",
+    "figure_semantics_manifest.json",
+    "figures/figure_catalog.json",
+    "figures/figure_semantics_manifest.json",
     "review/review_ledger.json",
+    "table_catalog.json",
+    "tables/table_catalog.json",
+)
+
+_DELIVERY_REQUIRED_SOURCE_DIRS = (
+    "figures/generated",
+    "tables/generated",
 )
 
 
@@ -35,6 +48,28 @@ def _copy_if_source_changed(
     target_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, target_path)
     return target_path
+
+
+def _copy_tree_changed(
+    *,
+    source_root: Path,
+    paper_root: Path,
+    rel_path: str,
+) -> list[Path]:
+    source_dir = source_root / rel_path
+    if not source_dir.is_dir():
+        return []
+    copied: list[Path] = []
+    for source_path in sorted(path for path in source_dir.rglob("*") if path.is_file()):
+        nested_rel = source_path.relative_to(source_root).as_posix()
+        copied_path = _copy_if_source_changed(
+            source_root=source_root,
+            paper_root=paper_root,
+            rel_path=nested_rel,
+        )
+        if copied_path is not None:
+            copied.append(copied_path)
+    return copied
 
 
 def _relpath_from_paper(path: Path, *, paper_root: Path) -> str:
@@ -100,6 +135,14 @@ def _hydrate_delivery_required_sources(
         )
         if copied_path is not None:
             hydrated.append(copied_path)
+    for rel_path in _DELIVERY_REQUIRED_SOURCE_DIRS:
+        hydrated.extend(
+            _copy_tree_changed(
+                source_root=source_root,
+                paper_root=paper_root,
+                rel_path=rel_path,
+            )
+        )
     return hydrated
 
 

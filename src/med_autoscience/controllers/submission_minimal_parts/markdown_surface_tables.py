@@ -128,7 +128,7 @@ def normalize_submission_table_body(block_body: str, *, heading: str) -> str:
     return normalize_wide_pipe_table_widths(block_body)
 
 
-def _select_catalog_table_markdown_source(entry: dict[str, Any]) -> str:
+def _select_catalog_table_markdown_source(entry: dict[str, Any], *, allow_default: bool = False) -> str:
     source_paths = resolve_table_source_paths(entry)
     markdown_paths = [
         str(item).strip()
@@ -142,6 +142,8 @@ def _select_catalog_table_markdown_source(entry: dict[str, Any]) -> str:
     if layout_policy == "long_measure_value_table_to_avoid_pdf_header_overlap":
         return markdown_paths[0]
     if entry.get("prefer_markdown_for_submission_pdf") is True:
+        return markdown_paths[0]
+    if allow_default:
         return markdown_paths[0]
     return ""
 
@@ -179,7 +181,10 @@ def build_catalog_backed_table_blocks(*, paper_root: Path, source_tables: str) -
         if str(entry.get("paper_role") or "").strip().lower() != "main_text":
             continue
         table_id = str(entry.get("table_id") or "").strip()
-        markdown_source_rel = _select_catalog_table_markdown_source(entry)
+        markdown_source_rel = _select_catalog_table_markdown_source(
+            entry,
+            allow_default=not source_tables.strip(),
+        )
         if not table_id or not markdown_source_rel:
             continue
         markdown_source_path = resolve_relpath(workspace_root, markdown_source_rel)
