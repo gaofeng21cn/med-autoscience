@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    align_carrier_readback_with_owner_consumption,
     latest_receipt_owner_consumption_readback,
     materialize_receipt_owner_consumption,
 )
@@ -91,6 +92,174 @@ def _readback(
             },
         },
     }
+
+
+def test_align_carrier_readback_projects_owner_consumed_status_for_same_attempt() -> None:
+    carrier = {
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-current",
+            "stage_attempt_ref": "opl://stage-attempts/sat-current",
+        },
+        "receipt_evidence": {
+            "receipt_ref": "opl://stage-attempts/sat-current",
+            "runtime_closeout_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/stage_attempt_closeout_packet.json"
+            ),
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+        },
+    }
+    owner_consumption = {
+        "status": "owner_consumption_applied",
+        "source_ref": "/tmp/receipt_owner_consumption.json",
+        "receipt_evidence": {
+            "surface_kind": "mas_receipt_evidence",
+            "receipt_ref": "opl://stage-attempts/sat-current",
+            "stage_attempt_ref": "opl://stage-attempts/sat-current",
+            "runtime_closeout_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/stage_attempt_closeout_packet.json"
+            ),
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/stage_attempt_closeout_packet.json"
+            ),
+        },
+    }
+
+    aligned = align_carrier_readback_with_owner_consumption(
+        carrier_readback=carrier,
+        receipt_owner_consumption_readback=owner_consumption,
+    )
+
+    assert aligned["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )
+    assert aligned["owner_consumption_status"] == "owner_consumed_route_checkpoint"
+    assert aligned["owner_consumption_readback_ref"] == (
+        "/tmp/receipt_owner_consumption.json"
+    )
+
+
+def test_align_carrier_readback_keeps_newer_unconsumed_attempt_pending() -> None:
+    carrier = {
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-newer",
+            "stage_attempt_ref": "opl://stage-attempts/sat-newer",
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+        },
+    }
+    owner_consumption = {
+        "status": "owner_consumption_applied",
+        "receipt_evidence": {
+            "receipt_ref": "opl://stage-attempts/sat-consumed",
+            "stage_attempt_ref": "opl://stage-attempts/sat-consumed",
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-consumed/stage_attempt_closeout_packet.json"
+            ),
+        },
+    }
+
+    aligned = align_carrier_readback_with_owner_consumption(
+        carrier_readback=carrier,
+        receipt_owner_consumption_readback=owner_consumption,
+    )
+
+    assert aligned["mas_receipt_consumption"]["status"] == (
+        "requires_mas_owner_consumption"
+    )
+    assert "owner_consumption_status" not in aligned
+
+
+def test_align_carrier_readback_projects_owner_consumed_current_attempt() -> None:
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    carrier = {
+        "carrier_status": "opl_runtime_terminal_readback_observed",
+        "runtime_readback_status": "terminal_closeout_observed",
+        "domain_ready_verdict": "domain_gate_pending",
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-stale-write",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale-write",
+            "work_unit_id": work_unit_id,
+        },
+        "receipt_evidence": {
+            "receipt_ref": "opl://stage-attempts/sat-stale-write",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale-write",
+            "runtime_closeout_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-stale-write/stage_attempt_closeout_packet.json"
+            ),
+        },
+        "terminal_closeout": {
+            "stage_attempt_id": "sat-stale-write",
+            "work_unit_id": work_unit_id,
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+        },
+    }
+    current_closeout_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-current-write/stage_attempt_closeout_packet.json"
+    )
+    owner_consumption = {
+        "status": "owner_consumption_applied",
+        "source_ref": "/tmp/receipt_owner_consumption.json",
+        "receipt_evidence": {
+            "receipt_ref": "temporal://attempt/sat-current-write",
+            "stage_attempt_ref": "temporal://attempt/sat-current-write",
+            "runtime_closeout_ref": current_closeout_ref,
+        },
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-current-write",
+            "stage_attempt_ref": "temporal://attempt/sat-current-write",
+        },
+        "stage_closure_decision": {
+            "work_unit_id": work_unit_id,
+            "opl_closeout": {
+                "stage_attempt_id": "sat-current-write",
+                "work_unit_id": work_unit_id,
+            },
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "runtime_closeout_ref": current_closeout_ref,
+            "route_checkpoint_evidence_ref": current_closeout_ref,
+        },
+    }
+
+    aligned = align_carrier_readback_with_owner_consumption(
+        carrier_readback=carrier,
+        receipt_owner_consumption_readback=owner_consumption,
+    )
+
+    assert aligned["owner_consumption_status"] == "owner_consumed_route_checkpoint"
+    assert aligned["owner_consumption_aligned_current_readback"] is True
+    assert aligned["owner_consumed_stage_attempt_id"] == "sat-current-write"
+    assert aligned["superseded_terminal_stage_attempt_id"] == "sat-stale-write"
+    assert aligned["opl_transition_receipt"]["stage_attempt_id"] == "sat-current-write"
+    assert aligned["receipt_evidence"]["runtime_closeout_ref"] == current_closeout_ref
+    assert aligned["terminal_closeout"]["stage_attempt_id"] == "sat-current-write"
+    assert aligned["terminal_closeout"]["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )
 
 
 def test_receipt_owner_consumption_classifies_dm002_typed_blocker_without_authority_write(
@@ -438,6 +607,93 @@ def test_receipt_owner_consumption_accepts_top_level_receipt_projection(
     assert payload["owner_consumption_verdict"]["required_authority_surface_exists"] is True
 
 
+def test_receipt_owner_consumption_accepts_already_owner_consumed_route_checkpoint_readback(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-owner-consumed-readback.json"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    carrier = readback["opl_runtime_carrier_readback"]
+    checkpoint_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-receipt/stage_attempt_closeout_packet.json"
+    )
+    carrier["mas_receipt_consumption"].update(
+        {
+            "status": "owner_consumed_route_checkpoint",
+            "owner_result_kind": "route_checkpoint",
+            "route_checkpoint_evidence_ref": checkpoint_ref,
+        }
+    )
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_already_materialized"
+    assert payload["readback_validation"]["valid"] is True
+    assert payload["readback_validation"]["observed_consumption_status"] == (
+        "owner_consumed_route_checkpoint"
+    )
+    assert payload["owner_consumption_already_materialized"] is True
+    assert payload["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )
+
+    output_root = (
+        tmp_path / "ops" / "medautoscience" / "paper_mission_receipt_owner_consumption"
+    )
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--output-root",
+            str(output_root),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    applied = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert applied["status"] == "owner_consumption_applied"
+    assert applied["apply_mode"] == "route_checkpoint"
+    assert applied["readback_validation"]["valid"] is True
+    assert applied["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )
+
+
 def test_receipt_owner_consumption_apply_typed_blocker_writes_safe_consumption_ledger(
     tmp_path: Path,
     capsys,
@@ -570,6 +826,287 @@ def test_receipt_owner_consumption_apply_route_checkpoint_records_checkpoint_not
     ] is False
 
 
+def test_receipt_owner_consumption_route_checkpoint_uses_current_receipt_identity(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-current-receipt-readback.json"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback["stage_closure_decision"]["stage_id"] = "review"
+    readback["stage_closure_decision"]["work_unit_id"] = (
+        "ai_reviewer_medical_prose_quality_review"
+    )
+    readback["stage_closure_decision"]["opl_closeout"] = {
+        "status": "opl_runtime_terminal_readback_observed",
+        "stage_attempt_id": "sat-stale-review",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+    }
+    receipt = readback["opl_runtime_carrier_readback"]["opl_transition_receipt"]
+    receipt["stage_attempt_id"] = "sat-current-write"
+    receipt["route_target"] = "write"
+    receipt["work_unit_id"] = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["stage_closure_decision"]["stage_id"] == "write"
+    assert payload["stage_closure_decision"]["work_unit_id"] == (
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    )
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current-write"
+    )
+    assert payload["stage_closure_decision"]["opl_closeout"]["work_unit_id"] == (
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    )
+    assert payload["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
+
+
+def test_receipt_owner_consumption_route_checkpoint_prefers_stage_closure_checkpoint_over_stale_carrier(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-stage-closure-checkpoint-readback.json"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    current_checkpoint_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-current-write/stage_attempt_closeout_packet.json"
+    )
+    readback["stage_closure_decision"].update(
+        {
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+            "receipt_evidence_ref": "opl://stage-attempts/sat-current-write",
+            "route_checkpoint_evidence_ref": current_checkpoint_ref,
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-current-write",
+                "work_unit_id": work_unit_id,
+            },
+        }
+    )
+    readback["stage_closure_decision"]["outcome"][
+        "route_checkpoint_evidence_ref"
+    ] = current_checkpoint_ref
+    stale_carrier = readback["opl_runtime_carrier_readback"]
+    stale_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-stale-candidate"
+    stale_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-stale-candidate"
+    )
+    stale_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-stale-candidate"
+    )
+    stale_carrier["receipt_evidence"]["runtime_closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-stale-candidate/"
+        f"{study_id}/stage_attempt_closeout_packet.json"
+    )
+    stale_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-stale-candidate"
+    )
+    stale_carrier["mas_receipt_consumption"]["receipt_evidence_ref"] = (
+        "opl://stage-attempts/sat-stale-candidate"
+    )
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current-write"
+    )
+    assert payload["receipt_evidence"]["runtime_closeout_ref"] == current_checkpoint_ref
+    assert payload["stage_closure"]["route_checkpoint_evidence_ref"] == (
+        current_checkpoint_ref
+    )
+    assert payload["stage_closure_decision"]["route_checkpoint_evidence_ref"] == (
+        current_checkpoint_ref
+    )
+    assert payload["stage_closure_decision"]["receipt_evidence_ref"] == (
+        "opl://stage-attempts/sat-current-write"
+    )
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current-write"
+    )
+    assert payload["owner_consumption_verdict"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current-write"
+    )
+
+
+def test_receipt_owner_consumption_route_checkpoint_reads_current_next_action_stage_closure(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current-write"
+    )
+    stage_closure_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "paper_mission_terminalize_stage"
+        / study_id
+        / "stage_closure_decision.json"
+    )
+    closeout_root.mkdir(parents=True)
+    stage_closure_ref.parent.mkdir(parents=True)
+    (closeout_root / "stage_attempt_closeout_packet.json").write_text(
+        json.dumps({"surface_kind": "stage_attempt_closeout_packet"}),
+        encoding="utf-8",
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    stage_closure_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_stage_closure_decision",
+                "study_id": study_id,
+                "stage_id": "write",
+                "work_unit_id": work_unit_id,
+                "decision_ref": str(stage_closure_ref),
+                "opl_closeout": {
+                    "status": "opl_runtime_terminal_readback_observed",
+                    "stage_attempt_id": "sat-current-write",
+                    "work_unit_id": work_unit_id,
+                },
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    readback_file = tmp_path / "dm003-next-action-stage-closure-readback.json"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    readback["study_root"] = str(study_root)
+    readback["stage_closure_decision"].update(
+        {
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+            "receipt_evidence_ref": "opl://stage-attempts/sat-stale-candidate",
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                f"sat-stale-candidate/{study_id}/stage_attempt_closeout_packet.json"
+            ),
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-stale-candidate",
+                "work_unit_id": work_unit_id,
+            },
+        }
+    )
+    readback["next_action"] = {
+        "action_family": "paper.stage_closure.owner_consumption",
+        "outcome_ref": str(stage_closure_ref),
+    }
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    current_checkpoint_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-current-write/stage_attempt_closeout_packet.json"
+    )
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current-write"
+    )
+    assert payload["stage_closure_decision"]["route_checkpoint_evidence_ref"] == (
+        current_checkpoint_ref
+    )
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current-write"
+    )
+
+
 def test_receipt_owner_consumption_route_checkpoint_supersedes_stale_typed_blocker_action(
     tmp_path: Path,
     capsys,
@@ -641,6 +1178,112 @@ def test_receipt_owner_consumption_route_checkpoint_supersedes_stale_typed_block
     assert latest["source_ref"] == str(packet_ref)
     assert latest["stage_closure_decision"]["outcome"]["transition_kind"] == (
         "route_back_candidate_checkpoint"
+    )
+
+
+def test_receipt_owner_consumption_prefers_stage_closure_ledger_route_checkpoint_over_stale_top_level_typed_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "obesity-readback.json"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="typed_blocker",
+        transition_kind=None,
+        package_kind="current_package",
+        can_submit=False,
+        consumption_next_legal_action="record_typed_blocker",
+    )
+    readback["paper_mission_stage_closure_ledger_readback"] = {
+        "decision_ref": f"mas://paper-mission/{study_id}/newer-stage-closure",
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+            "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+        },
+    }
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["owner_consumption_verdict"]["verdict_kind"] == (
+        "consume_route_back_checkpoint_owner_consumption_required"
+    )
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["transition_kind"] == "route_back_candidate_checkpoint"
+    assert payload["mas_receipt_consumption"]["owner_result_kind"] == "route_checkpoint"
+
+
+def test_receipt_owner_consumption_route_checkpoint_uses_domain_transition_successor_identity() -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback={
+            **_readback(
+                study_id=study_id,
+                stage_outcome="next_stage_transition",
+                transition_kind="route_back_candidate_checkpoint",
+                package_kind="current_package",
+                can_submit=False,
+            ),
+            "stage_closure_decision": {
+                "decision_ref": f"mas://paper-mission/{study_id}/stage-closure",
+                "stage_id": "review",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "opl_closeout": {
+                    "stage_attempt_id": "sat-review",
+                    "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                },
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+                    "route_checkpoint_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-review/stage_attempt_closeout_packet.json"
+                    ),
+                },
+            },
+            "domain_transition": {
+                "route_target": "write",
+                "next_work_unit": {
+                    "unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+                },
+                "next_action": {
+                    "stage_id": "write",
+                    "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                },
+            },
+        },
+        study_id=study_id,
+        profile_ref="/tmp/dm003.local.toml",
+        apply_mode="route_checkpoint",
+        source="pytest",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["stage_closure_decision"]["stage_id"] == "write"
+    assert payload["stage_closure_decision"]["work_unit_id"] == (
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
     )
 
 

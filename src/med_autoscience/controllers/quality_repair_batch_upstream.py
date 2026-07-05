@@ -379,6 +379,7 @@ def _list_mappings(value: object) -> list[dict[str, Any]]:
 
 def _materialize_medical_prose_story_surfaces(
     *,
+    study_root: Path,
     paper_root: Path,
     work_unit_id: str,
     source_eval_id: str | None,
@@ -391,6 +392,7 @@ def _materialize_medical_prose_story_surfaces(
         source_eval_id=source_eval_id,
         previous_quality_repair_batch=previous_quality_repair_batch,
         publication_eval_payload=publication_eval_payload,
+        study_root=study_root,
     )
 
 def _materialize_ai_reviewer_request(
@@ -478,7 +480,12 @@ def run_upstream_paper_repair_unit(
                 "paper_root": str(paper_root),
             },
         }
-    currentness_blocker = eval_bound_current_story_delta_blocker(
+    currentness_blocker = medical_prose_story_surface.dm002_side_surface_only_repair_blocker(
+        paper_root=paper_root,
+        work_unit_id=resolved_work_unit_id,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    ) or eval_bound_current_story_delta_blocker(
         paper_root=paper_root,
         work_unit_id=resolved_work_unit_id,
         medical_prose_write_repair_work_unit_id=medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
@@ -535,6 +542,7 @@ def run_upstream_paper_repair_unit(
     changed_refs.extend(
         _materialize_medical_prose_story_surfaces(
             paper_root=paper_root,
+            study_root=resolved_study_root,
             work_unit_id=resolved_work_unit_id,
             source_eval_id=source_eval_id,
             previous_quality_repair_batch=previous_quality_repair_batch,

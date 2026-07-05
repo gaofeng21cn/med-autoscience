@@ -213,10 +213,39 @@ candidate_plot_time_to_event_discrimination_calibration <- function(payload) {
       stringsAsFactors = FALSE
     )
   }))
+  risk_values <- c(calib_df$predicted, calib_df$observed)
+  risk_values <- risk_values[is.finite(risk_values)]
+  risk_max <- max(risk_values, 0.05, na.rm = TRUE)
+  risk_axis_max <- min(1, max(0.05, risk_max * 1.18))
+  risk_breaks <- pretty(c(0, risk_axis_max), n = 4)
+  risk_breaks <- risk_breaks[risk_breaks >= 0 & risk_breaks <= risk_axis_max]
+  if (length(risk_breaks) < 2) {
+    risk_breaks <- c(0, risk_axis_max)
+  }
+  short_label <- function(value) {
+    label <- candidate_non_empty(value, "")
+    if (grepl("NHANES", label, ignore.case = TRUE)) return("NHANES")
+    if (grepl("China", label, ignore.case = TRUE)) return("China")
+    label
+  }
+  calib_df$short_label <- vapply(calib_df$label, short_label, character(1))
   palette <- candidate_palette(payload)
+  discrim_values <- discrim_df$value[is.finite(discrim_df$value)]
+  discrim_min <- min(discrim_values, 0.5, na.rm = TRUE)
+  discrim_max <- max(discrim_values, 0.5, na.rm = TRUE)
+  discrim_span <- max(0.03, discrim_max - discrim_min)
+  discrim_axis_min <- max(0, discrim_min - discrim_span * 0.55)
+  discrim_axis_max <- min(1, discrim_max + discrim_span * 0.70)
+  discrim_breaks <- pretty(c(discrim_axis_min, discrim_axis_max), n = 4)
+  discrim_breaks <- discrim_breaks[discrim_breaks >= discrim_axis_min & discrim_breaks <= discrim_axis_max]
+  if (length(discrim_breaks) < 2) {
+    discrim_breaks <- c(discrim_axis_min, discrim_axis_max)
+  }
   discrim_plot <- ggplot(discrim_df, aes(x = label, y = value)) +
-    geom_col(fill = palette$primary, width = 0.62) +
-    coord_cartesian(ylim = c(0, 1)) +
+    geom_hline(yintercept = 0.5, colour = palette$reference, linetype = "dotted", linewidth = 0.35) +
+    geom_point(colour = palette$primary, size = 3.2) +
+    coord_cartesian(ylim = c(discrim_axis_min, discrim_axis_max), clip = "off") +
+    scale_y_continuous(breaks = discrim_breaks, labels = function(x) sprintf("%.2f", x)) +
     labs(
       title = candidate_non_empty(payload$panel_a_title, "Discrimination"),
       x = candidate_non_empty(payload$discrimination_x_label, ""),
@@ -227,12 +256,21 @@ candidate_plot_time_to_event_discrimination_calibration <- function(payload) {
   calib_plot <- ggplot(calib_df, aes(x = predicted, y = observed, label = label)) +
     geom_abline(slope = 1, intercept = 0, colour = palette$reference, linetype = "dashed", linewidth = 0.45) +
     geom_point(colour = palette$secondary, size = 2.4) +
-    geom_text(vjust = -0.6, size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.26, colour = palette$text) +
-    coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    geom_text(
+      aes(label = .data$short_label),
+      nudge_x = risk_axis_max * 0.035,
+      hjust = 0,
+      vjust = -0.15,
+      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.24,
+      colour = palette$text
+    ) +
+    coord_cartesian(xlim = c(0, risk_axis_max), ylim = c(0, risk_axis_max), clip = "off") +
+    scale_x_continuous(breaks = risk_breaks, labels = function(x) paste0(round(x * 100), "%")) +
+    scale_y_continuous(breaks = risk_breaks, labels = function(x) paste0(round(x * 100), "%")) +
     labs(
       title = candidate_non_empty(payload$panel_b_title, "Calibration"),
-      x = candidate_non_empty(payload$calibration_x_label, "Predicted risk"),
-      y = candidate_non_empty(payload$calibration_y_label, "Observed risk")
+      x = "Predicted 5-year risk",
+      y = "Observed 5-year risk"
     ) +
     candidate_theme(payload)
   patchwork::wrap_plots(list(discrim_plot, calib_plot), ncol = 2)
@@ -248,20 +286,79 @@ candidate_plot_time_to_event_risk_group_summary <- function(payload) {
   }
   risk_df <- do.call(rbind, lapply(seq_along(summaries), function(index) {
     item <- summaries[[index]]
+    observed_ci <- item$observed_5y_rate_ci_95
+    lower_ci <- if (is.list(observed_ci)) candidate_numeric(observed_ci$lower, NA_real_) else NA_real_
+    upper_ci <- if (is.list(observed_ci)) candidate_numeric(observed_ci$upper, NA_real_) else NA_real_
     data.frame(
       label = candidate_non_empty(item$label, sprintf("Risk %d", index)),
+      short_label = candidate_non_empty(item$risk_group_label, as.character(index)),
+      order = candidate_numeric(item$group_order, index),
       predicted = candidate_numeric(item$mean_predicted_risk_5y, 0.05 * index),
       observed = candidate_numeric(item$observed_km_risk_5y, 0.05 * index),
+      lower = lower_ci,
+      upper = upper_ci,
       events = candidate_numeric(item$events_5y, index),
       stringsAsFactors = FALSE
     )
   }))
+  risk_df <- risk_df[order(risk_df$order), , drop = FALSE]
   risk_df$label <- factor(risk_df$label, levels = risk_df$label)
   palette <- candidate_palette(payload)
+  risk_values <- c(risk_df$predicted, risk_df$observed, risk_df$lower, risk_df$upper)
+  risk_values <- risk_values[is.finite(risk_values)]
+  risk_axis_max <- min(1, max(0.05, max(risk_values, 0, na.rm = TRUE) * 1.08))
+  risk_breaks <- pretty(c(0, risk_axis_max), n = 4)
+  risk_breaks <- risk_breaks[risk_breaks >= 0 & risk_breaks <= risk_axis_max]
+  if (length(risk_breaks) < 2) {
+    risk_breaks <- c(0, risk_axis_max)
+  }
+  if (identical(payload$plot_variant, "nhanes_decile_grouped_calibration")) {
+    line_width <- style_numeric(style_stroke(payload), "primary_linewidth", 2.2) * 0.38
+    marker_size <- style_numeric(style_stroke(payload), "marker_size", 4.5) * 0.62
+    x_break_labels <- stats::setNames(risk_df$short_label, risk_df$label)
+    grouped_plot <- ggplot(risk_df, aes(x = label, group = 1)) +
+      geom_line(aes(y = predicted, colour = "Mean predicted risk"), linewidth = line_width) +
+      geom_point(aes(y = predicted, colour = "Mean predicted risk"), size = marker_size) +
+      geom_errorbar(
+        aes(
+          y = observed,
+          ymin = ifelse(is.finite(lower), lower, observed),
+          ymax = ifelse(is.finite(upper), upper, observed),
+          colour = "Observed mortality"
+        ),
+        width = 0.14,
+        linewidth = line_width * 0.95
+      ) +
+      geom_line(aes(y = observed, colour = "Observed mortality"), linewidth = line_width) +
+      geom_point(aes(y = observed, colour = "Observed mortality"), size = marker_size) +
+      scale_colour_manual(
+        values = c(
+          "Mean predicted risk" = palette$primary,
+          "Observed mortality" = palette$secondary
+        ),
+        name = NULL
+      ) +
+      coord_cartesian(ylim = c(0, risk_axis_max), clip = "off") +
+      scale_y_continuous(breaks = risk_breaks, labels = function(x) paste0(round(x * 100), "%")) +
+      scale_x_discrete(labels = x_break_labels) +
+      labs(
+        title = candidate_non_empty(payload$panel_a_title, "Grouped calibration across deciles"),
+        x = candidate_non_empty(payload$x_label, "Predicted-risk decile"),
+        y = candidate_non_empty(payload$y_label, "5-year mortality risk")
+      ) +
+      candidate_theme(payload) +
+      theme(
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        legend.position = "bottom",
+        legend.box = "horizontal"
+      )
+    return(grouped_plot)
+  }
   risk_plot <- ggplot(risk_df, aes(x = label)) +
     geom_col(aes(y = predicted), fill = palette$primary, width = 0.60, alpha = 0.84) +
     geom_point(aes(y = observed), colour = palette$secondary, size = 2.4) +
-    coord_cartesian(ylim = c(0, max(1, max(c(risk_df$predicted, risk_df$observed), na.rm = TRUE) * 1.15))) +
+    coord_cartesian(ylim = c(0, risk_axis_max)) +
+    scale_y_continuous(breaks = risk_breaks, labels = function(x) paste0(round(x * 100), "%")) +
     labs(
       title = candidate_non_empty(payload$panel_a_title, "Predicted and observed risk"),
       x = candidate_non_empty(payload$x_label, ""),

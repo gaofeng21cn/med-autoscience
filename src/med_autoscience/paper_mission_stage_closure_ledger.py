@@ -211,11 +211,19 @@ def _transaction_ref_matches_current_or_followthrough(
 ) -> bool:
     if payload_transaction_ref == transaction_ref:
         return True
+    if payload_transaction_ref and (
+        payload_transaction_ref.startswith(f"{transaction_ref}::followthrough::")
+        or transaction_ref.startswith(f"{payload_transaction_ref}::followthrough::")
+    ):
+        return True
     base_stage = _transaction_stage_segment(transaction_ref, study_id=study_id)
     payload_stage = _transaction_stage_segment(payload_transaction_ref, study_id=study_id)
     if base_stage is None or payload_stage is None:
         return False
-    return payload_stage.startswith(f"{base_stage}::followthrough::")
+    return (
+        payload_stage.startswith(f"{base_stage}::followthrough::")
+        or base_stage.startswith(f"{payload_stage}::followthrough::")
+    )
 
 
 def _transaction_stage_segment(transaction_ref: str | None, *, study_id: str) -> str | None:

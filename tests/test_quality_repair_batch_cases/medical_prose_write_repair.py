@@ -48,7 +48,22 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     _write_json(paper_root / "medical_prose_review.json", {"schema_version": 1, "findings": []})
     _write_json(paper_root / "results_narrative_map.json", {"schema_version": 1, "sections": []})
     _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
-    _write_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _write_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F4",
+                    "title": (
+                        "Guideline-linked glycemia, antihypertensive, and lipid-lowering treatment gaps "
+                        "aligned to the six DPCC phenotypes."
+                    ),
+                    "figure_purpose": "guideline_linked_treatment_gap_burden_small_multiples",
+                }
+            ],
+        },
+    )
     _write_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
     _write_json(
         paper_root / "dpcc_treatment_gap_alignment.json",
@@ -57,6 +72,10 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
             "displays": [
                 {
                     "display_id": "treatment_gap_alignment",
+                    "title": (
+                        "Guideline-linked glycemia, antihypertensive, and lipid-lowering treatment gaps "
+                        "aligned to the six DPCC phenotypes."
+                    ),
                     "rows": [
                         {
                             "phenotype_label": "Adiposity-linked multimorbidity",
@@ -198,8 +217,10 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "Variable definition and measurement" in story_text
     assert "Model or grouping framework" in story_text
     assert "Validation framework" in story_text
-    assert "Table 1 is the cohort-assembly and data-quality table" in story_text
-    assert "Table 2 is the phenotype-level baseline-characteristics table" in story_text
+    assert "prespecified plausibility and completeness checks" in story_text
+    assert "deterministic scripts used to reproduce cohort counts" in story_text
+    assert "retained release supported a large adult diabetes index cohort" in story_text
+    assert "Cohort assembly and data-quality summaries document the release size" in story_text
     assert "No sampling-based 95% confidence intervals were calculated" in story_text
     assert "Python" in story_text
     assert "71,370 of 181,306" in story_text
@@ -216,8 +237,27 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
         "before manuscript repair",
         "quality repair",
         "publication gate",
+        "semantic-audit",
+        "Revision analyses were implemented",
+        "Table 1 is",
+        "Table 2 is",
+        "Figure 4 supports",
+        "Guideline-linked",
     )
     assert not any(term in story_text for term in forbidden_runtime_terms)
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["title"] == (
+        "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
+        "aligned to the six DPCC phenotypes."
+    )
+    assert figure_catalog["figures"][0]["figure_purpose"] == (
+        "recorded_treatment_review_gap_burden_small_multiples"
+    )
+    treatment_alignment = json.loads((paper_root / "dpcc_treatment_gap_alignment.json").read_text(encoding="utf-8"))
+    assert treatment_alignment["displays"][0]["title"] == (
+        "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
+        "aligned to the six DPCC phenotypes."
+    )
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (paper_root / "submission_minimal").exists()
@@ -344,7 +384,7 @@ def test_medical_prose_write_repair_preserves_current_writer_story_delta(
             "This study addressed the evidence gap by asking whether DPCC records could define reproducible phenotypes and phenotype-specific recorded treatment-review gaps without converting the analysis into individualized treatment advice.",
             "## Methods",
             "### Study design and cohort",
-            "We conducted a retrospective descriptive study of deidentified DPCC primary-care records from May 2020 through December 2025. The index encounter was the first qualifying diabetes-coded visit after semantic-audit plausibility filtering.",
+            "We conducted a retrospective descriptive study of deidentified DPCC primary-care records from May 2020 through December 2025. The index encounter was the first qualifying diabetes-coded visit after prespecified plausibility and completeness checks.",
             "### Variable definition and measurement",
             "Candidate domains included age, sex, BMI, waist circumference, HbA1c, fasting glucose, lipid measures, eGFR, diagnoses, medication records, visit structure, and site identifiers. Missing values were not imputed.",
             "### Phenotype derivation and assignment",

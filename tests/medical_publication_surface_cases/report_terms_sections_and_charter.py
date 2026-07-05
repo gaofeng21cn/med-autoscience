@@ -525,3 +525,39 @@ def test_build_report_accepts_review_with_relative_subsection_levels(tmp_path: P
     assert "introduction_structure_missing_or_incomplete" not in report["blockers"]
     assert "methods_section_structure_missing_or_incomplete" not in report["blockers"]
     assert "results_section_structure_missing_or_incomplete" not in report["blockers"]
+
+
+def test_build_report_accepts_descriptive_registry_methods_headings(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    review_path = (
+        _paper_root_from_quest(quest_root)
+        / "build"
+        / "review_manuscript.md"
+    )
+    review_text = review_path.read_text(encoding="utf-8")
+    review_text = review_text.replace("\n### Model building\n", "\n### Analytical scope\n")
+    review_text = review_text.replace(
+        "\n### Validation framework\n",
+        "\n### Data checks and sensitivity analysis\n",
+    )
+    review_path.write_text(review_text, encoding="utf-8")
+
+    draft_path = _paper_root_from_quest(quest_root) / "draft.md"
+    draft_text = draft_path.read_text(encoding="utf-8")
+    draft_text = draft_text.replace("\n### Model building\n", "\n### Analytical scope\n")
+    draft_text = draft_text.replace(
+        "\n### Validation framework\n",
+        "\n### Data checks and sensitivity analysis\n",
+    )
+    draft_path.write_text(draft_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "methods_section_structure_missing_or_incomplete" not in report["blockers"]

@@ -408,6 +408,19 @@ def _build_transportability_time_to_event_grouped_payload(
     catalog_id: str,
 ) -> dict[str, Any]:
     rows = _risk_group_rows_from_report(risk_group_report_path)
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        label = str(row.get("label") or "").strip()
+        group_order = _parse_int(row.get("group_order"), label="group_order") if row.get("group_order") is not None else None
+        risk_group_label = str(row.get("risk_group_label") or "").strip()
+        normalized_rows.append(
+            {
+                **row,
+                "label": label or f"Decile {risk_group_label or len(normalized_rows) + 1}",
+                "risk_group_label": risk_group_label or str(group_order or len(normalized_rows) + 1),
+                "group_order": group_order or len(normalized_rows) + 1,
+            }
+        )
     return {
         "schema_version": 1,
         "input_schema_id": "time_to_event_grouped_inputs_v1",
@@ -419,17 +432,17 @@ def _build_transportability_time_to_event_grouped_payload(
                 "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
                 "catalog_id": catalog_id,
                 "paper_role": "main_text",
-                "title": "Transported 5-year mortality risk-group summary",
+                "title": "Grouped calibration across NHANES transported-score deciles",
                 "caption": (
-                    "Observed and predicted 5-year mortality risk across China-derived risk groups "
-                    "in the China and NHANES analysis cohorts."
+                    "Mean predicted and observed 5-year mortality risk across within-NHANES deciles of the transported "
+                    "China-derived score. Points show group-level estimates and observed-risk 95% confidence intervals. "
+                    "Deciles are descriptive validation groups and are not treatment thresholds."
                 ),
-                "panel_a_title": "Predicted and observed five-year risk",
-                "panel_b_title": "Observed five-year events",
-                "x_label": "Risk group",
+                "plot_variant": "nhanes_decile_grouped_calibration",
+                "panel_a_title": "Grouped calibration across NHANES deciles",
+                "x_label": "NHANES predicted-risk decile",
                 "y_label": "5-year mortality risk",
-                "event_count_y_label": "Observed five-year events",
-                "risk_group_summaries": rows,
+                "risk_group_summaries": normalized_rows,
             }
         ],
     }

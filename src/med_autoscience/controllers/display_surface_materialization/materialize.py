@@ -211,6 +211,34 @@ def _iter_display_surface_entries(
 
     return display_items
 
+def _deferred_figure_override(
+    *,
+    figure_catalog: dict[str, Any],
+    figure_id: str,
+    allowed_paper_roles: tuple[str, ...],
+) -> dict[str, Any]:
+    normalized_id = str(figure_id or "").strip()
+    if not normalized_id:
+        return {}
+    for item in figure_catalog.get("deferred_figures") or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("figure_id") or "").strip() != normalized_id:
+            continue
+        paper_role = str(item.get("paper_role") or "").strip()
+        if paper_role and paper_role not in allowed_paper_roles:
+            allowed = ", ".join(allowed_paper_roles)
+            raise ValueError(
+                f"deferred figure `{normalized_id}` paper_role `{paper_role}` is not allowed; allowed: {allowed}"
+            )
+        override: dict[str, Any] = {}
+        for key in ("paper_role", "title", "caption", "display_role", "deferred_reason"):
+            value = item.get(key)
+            if str(value or "").strip():
+                override[key] = value
+        return override
+    return {}
+
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     display_registry_payload = load_json(resolved_paper_root / "display_registry.json")
@@ -703,6 +731,13 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             if output_svg_path is not None and output_svg_path.exists():
                 written_files.append(str(output_svg_path))
             paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
+            deferred_override = _deferred_figure_override(
+                figure_catalog=figure_catalog,
+                figure_id=figure_id,
+                allowed_paper_roles=spec.allowed_paper_roles,
+            )
+            if str(deferred_override.get("paper_role") or "").strip():
+                paper_role = str(deferred_override["paper_role"]).strip()
             if paper_role not in spec.allowed_paper_roles:
                 allowed_roles = ", ".join(spec.allowed_paper_roles)
                 raise ValueError(
@@ -718,8 +753,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "input_schema_id": spec.input_schema_id,
                 "qc_profile": spec.layout_qc_profile,
                 "qc_result": qc_result,
-                "title": str(display_payload.get("title") or "").strip(),
-                "caption": str(display_payload.get("caption") or "").strip(),
+                "title": str(deferred_override.get("title") or display_payload.get("title") or "").strip(),
+                "caption": str(deferred_override.get("caption") or display_payload.get("caption") or "").strip(),
                 "export_paths": [
                     _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
                     _paper_relative_path(output_pdf_path, paper_root=resolved_paper_root),
@@ -736,6 +771,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "render_context": render_context,
                 "render_result": render_result,
                 **purpose_first_fields,
+                **{key: value for key, value in deferred_override.items() if key not in {"paper_role", "title", "caption"}},
             }
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),

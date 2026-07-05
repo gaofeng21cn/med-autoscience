@@ -372,7 +372,9 @@ def test_paper_mission_consume_candidate_preserves_canonical_next_action_transac
     assert payload["opl_route_command"]["target"] == (
         "medical_methods_and_registry_reporting_repair"
     )
-    assert payload["opl_runtime_carrier"]["work_unit_id"] == "write"
+    assert payload["opl_runtime_carrier"]["work_unit_id"] == (
+        "medical_methods_and_registry_reporting_repair"
+    )
     assert "submission_milestone_candidate::followthrough" not in (
         payload["paper_mission_transaction"]["transaction_id"]
     )

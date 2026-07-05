@@ -248,6 +248,12 @@ MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
         r"\bFinal submission wording\b|\brequires (?:institutional|study[-\s]?owner|owner|author) confirmation\b",
         re.IGNORECASE,
     ),
+    (
+        "descriptive_registry_burden_caption_overclaim",
+        "burden wording for selected diagnostic fields or subcohort screening instruments",
+        r"\b(?:BMI[-\s]?category\s+)?metabolic comorbidity burden\b|\b(?:recorded|populated|available) diagnostic fields?.{0,80}\bburden\b|\bavailable registry fields\b.{0,80}\bburden\b|\bpsychobehavioral symptom burden\b|\bwhole[-\s]?alliance psychobehavioral burden\b|\b(?:PHQ[-\s]?9|GAD[-\s]?7).{0,80}\bsymptom burden\b",
+        re.IGNORECASE,
+    ),
 ]
 
 MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
@@ -266,6 +272,7 @@ MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
         "self_defending_descriptive_atlas_language",
         "analytic_surface_or_data_surface_jargon",
         "administrative_confirmation_todo_body",
+        "descriptive_registry_burden_caption_overclaim",
     }
 )
 

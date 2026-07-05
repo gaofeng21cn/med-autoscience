@@ -68,6 +68,8 @@ def ai_reviewer_recheck_supersedes_lifecycle(
         return False
     if _non_empty_text(publication_eval.get("eval_id")) != source_eval_id:
         return False
+    if current_ai_reviewer_route_back_action(publication_eval) is not None:
+        return False
     repair_evidence = _read_json_object(repair_evidence_path)
     if not _repair_evidence_matches_completed_story_delta(
         repair_evidence,

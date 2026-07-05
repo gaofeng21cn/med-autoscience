@@ -29,8 +29,8 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
         "template_id": template_id,
         "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
         "layout_boxes": [
-            {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.075, "y0": 0.905, "x1": 0.11, "y1": 0.94},
-            {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.075, "y0": 0.405, "x1": 0.11, "y1": 0.44},
+            {"box_id": "source_layer_heading", "box_type": "section_label", "x0": 0.075, "y0": 0.905, "x1": 0.28, "y1": 0.94},
+            {"box_id": "analysis_coverage_heading", "box_type": "section_label", "x0": 0.075, "y0": 0.405, "x1": 0.33, "y1": 0.44},
             {"box_id": f"source_denominator_{denominator_step['step_id']}", "box_type": "main_step", "x0": 0.32, "y0": 0.79, "x1": 0.68, "y1": 0.91},
             *[
                 {
@@ -57,7 +57,7 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
             *[
                 {
                     "box_id": f"coverage_bar_{item.get('coverage_id')}",
-                    "box_type": "coverage_bar",
+                    "box_type": "coverage_step",
                     "x0": 0.34,
                     "y0": 0.31 - index * 0.085,
                     "x1": 0.62,
@@ -91,9 +91,27 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
                 "y1": 0.79,
             }
             for index, item in enumerate(source_layers)
+        ]
+        + [
+            {
+                "box_id": (
+                    "denominator_to_coverage"
+                    if index == 0
+                    else f"coverage_flow_{subcohort_coverage[index - 1].get('coverage_id')}_to_{item.get('coverage_id')}"
+                ),
+                "box_type": "coverage_flow_connector",
+                "x0": 0.50,
+                "y0": 0.36 - index * 0.085,
+                "x1": 0.50,
+                "y1": 0.42 - index * 0.085,
+            }
+            for index, item in enumerate(subcohort_coverage)
         ],
         "metrics": {
             "layout_mode": "source_layer_accounting",
+            "layout_generation": "scholarskills_cohort_flow_v2",
+            "flow_visual_policy": "purpose_first_reporting_flow_no_legacy_card_shell",
+            "figure_title_policy": "metadata_only_no_drawn_title",
             "reporting_flow_kind": "cohort_source_layer_and_subcohort_coverage",
             "source_renderer": "MAS/ReportingFlow::cohort_flow_figure",
             "figure_purpose": "participant_accounting_and_strobe_source_boundary",
@@ -111,7 +129,7 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
                     "line_count": 2,
                     "max_line_chars": 44,
                     "rendered_height_pt": 78.0,
-                    "rendered_width_pt": 260.0,
+                    "rendered_width_pt": 400.0,
                     "padding_pt": 9.0,
                 },
                 *[
@@ -129,7 +147,7 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
                 *[
                     {
                         "box_id": f"coverage_bar_{item.get('coverage_id')}",
-                        "box_type": "coverage_bar",
+                        "box_type": "coverage_step",
                         "line_count": 1,
                         "max_line_chars": 24,
                         "rendered_height_pt": 52.0,
@@ -199,10 +217,9 @@ def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[st
             }
         )
 
-    has_summary = bool(endpoint_inventory or design_panels)
-    panel_x1 = 0.60 if has_summary else 0.92
-    step_x0 = 0.13 if has_summary else 0.22
-    step_x1 = 0.39 if has_summary else 0.78
+    panel_x1 = 0.92
+    step_x0 = 0.14
+    step_x1 = 0.76
     panel_y0 = 0.08
     panel_y1 = 0.92
     step_count = len(steps)
@@ -236,34 +253,10 @@ def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[st
             {
                 "box_id": f"participant_exclusion_{exclusion['exclusion_id']}",
                 "box_type": "exclusion_box",
-                "x0": min(step_x1 + 0.04, panel_x1 - 0.20),
+                "x0": min(step_x1 + 0.03, panel_x1 - 0.14),
                 "y0": center_y - 0.035,
-                "x1": min(step_x1 + 0.22, panel_x1 - 0.03),
+                "x1": min(step_x1 + 0.16, panel_x1 - 0.02),
                 "y1": center_y + 0.035,
-            }
-        )
-
-    summary_boxes: list[dict[str, object]] = []
-    if endpoint_inventory:
-        summary_boxes.append(
-            {
-                "box_id": "participant_endpoint_summary",
-                "box_type": "summary_panel",
-                "x0": 0.66,
-                "y0": 0.58,
-                "x1": 0.94,
-                "y1": 0.78,
-            }
-        )
-    if design_panels:
-        summary_boxes.append(
-            {
-                "box_id": "participant_design_summary",
-                "box_type": "summary_panel",
-                "x0": 0.66,
-                "y0": 0.30 if endpoint_inventory else 0.48,
-                "x1": 0.94,
-                "y1": 0.52 if endpoint_inventory else 0.70,
             }
         )
 
@@ -300,15 +293,15 @@ def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[st
             "line_count": 2,
             "max_line_chars": 36,
             "rendered_height_pt": 86.0 if box["box_type"] == "main_step" else 60.0,
-            "rendered_width_pt": 220.0 if box["box_type"] == "main_step" else 176.0,
+                        "rendered_width_pt": 400.0 if box["box_type"] == "main_step" else 176.0,
             "padding_pt": 9.0 if box["box_type"] == "main_step" else 7.0,
         }
-        for box in [*step_boxes, *exclusion_boxes, *summary_boxes]
+        for box in [*step_boxes, *exclusion_boxes]
     ]
     return {
         "template_id": template_id,
         "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-        "layout_boxes": [*step_boxes, *exclusion_boxes, *summary_boxes],
+        "layout_boxes": [*step_boxes, *exclusion_boxes],
         "panel_boxes": [
             {
                 "box_id": "participant_flow_main",
@@ -322,6 +315,9 @@ def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[st
         "guide_boxes": guide_boxes,
         "metrics": {
             "layout_mode": "participant_flow",
+            "layout_generation": "scholarskills_cohort_flow_v2",
+            "flow_visual_policy": "purpose_first_reporting_flow_no_legacy_card_shell",
+            "figure_title_policy": "metadata_only_no_drawn_title",
             "source_renderer": "MAS/ReportingFlow::cohort_flow_figure",
             "figure_purpose": "participant_accounting_and_strobe_consort_flow",
             "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",

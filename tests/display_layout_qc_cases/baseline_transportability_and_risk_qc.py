@@ -350,6 +350,78 @@ def test_run_display_layout_qc_flags_non_monotonic_grouped_risk_summary() -> Non
     assert any(issue["rule_id"] == "event_count_order_not_monotonic" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_accepts_single_panel_dm002_grouped_calibration_variant() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_risk_group_summary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+                make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.50, y1=0.15),
+                make_box("x_axis_title", "x_axis_title", x0=0.32, y0=0.92, x1=0.68, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.90, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.24, y0=0.05, x1=0.76, y1=0.11),
+            ],
+            "metrics": {
+                "plot_variant": "nhanes_decile_grouped_calibration",
+                "risk_group_summaries": [
+                    {
+                        "label": "Decile 1",
+                        "cohort_id": "nhanes",
+                        "sample_size": 566,
+                        "events_5y": 13,
+                        "mean_predicted_risk_5y": 0.0161,
+                        "observed_km_risk_5y": 0.0230,
+                    },
+                    {
+                        "label": "Decile 2",
+                        "cohort_id": "nhanes",
+                        "sample_size": 566,
+                        "events_5y": 15,
+                        "mean_predicted_risk_5y": 0.0186,
+                        "observed_km_risk_5y": 0.0265,
+                    },
+                    {
+                        "label": "Decile 5",
+                        "cohort_id": "nhanes",
+                        "sample_size": 566,
+                        "events_5y": 54,
+                        "mean_predicted_risk_5y": 0.0228,
+                        "observed_km_risk_5y": 0.0954,
+                    },
+                    {
+                        "label": "Decile 6",
+                        "cohort_id": "nhanes",
+                        "sample_size": 566,
+                        "events_5y": 52,
+                        "mean_predicted_risk_5y": 0.0239,
+                        "observed_km_risk_5y": 0.0919,
+                    },
+                    {
+                        "label": "Decile 10",
+                        "cohort_id": "nhanes",
+                        "sample_size": 565,
+                        "events_5y": 214,
+                        "mean_predicted_risk_5y": 0.0308,
+                        "observed_km_risk_5y": 0.3788,
+                    },
+                ],
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "pass"
+
+
 def test_run_display_layout_qc_checks_grouped_risk_order_within_each_cohort() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

@@ -58,6 +58,13 @@ INTERNAL_MANUSCRIPT_INSTRUCTION_PATTERNS = (
         re.compile(r"\bthe\s+paper\s+(?:should|must|can)\b", flags=re.IGNORECASE),
     ),
     (
+        "display_directive",
+        re.compile(
+            r"\b(?:the\s+)?(?:first|second|third|main)?\s*display\s+(?:should|must)\b",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
         "imperative_use_as",
         re.compile(r"(?:^|[.;]\s+)use\s+as\b", flags=re.IGNORECASE),
     ),

@@ -53,11 +53,9 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         != "route_back_candidate_checkpoint"
     ):
         return False
-    stage_outcome = _mapping(stage_closure_ledger_readback.get("outcome"))
-    if (
-        _optional_text(stage_outcome.get("kind")) == "next_stage_transition"
-        and _optional_text(stage_outcome.get("transition_kind"))
-        == "route_back_candidate_checkpoint"
+    if _same_route_checkpoint_identity(
+        decision,
+        stage_closure_ledger_readback,
     ):
         return False
     receipt_mtime = _path_mtime(
@@ -70,6 +68,36 @@ def receipt_owner_consumption_superseded_by_stage_closure(
     if receipt_mtime is None or stage_mtime is None:
         return False
     return stage_mtime > receipt_mtime
+
+
+def _same_route_checkpoint_identity(
+    receipt_decision: Mapping[str, Any],
+    stage_decision: Mapping[str, Any],
+) -> bool:
+    stage_outcome = _mapping(stage_decision.get("outcome"))
+    if (
+        _optional_text(stage_outcome.get("kind")) != "next_stage_transition"
+        or _optional_text(stage_outcome.get("transition_kind"))
+        != "route_back_candidate_checkpoint"
+    ):
+        return False
+    receipt_identity = _route_checkpoint_identity(receipt_decision)
+    stage_identity = _route_checkpoint_identity(stage_decision)
+    return receipt_identity == stage_identity and any(receipt_identity)
+
+
+def _route_checkpoint_identity(decision: Mapping[str, Any]) -> tuple[str | None, ...]:
+    outcome = _mapping(decision.get("outcome"))
+    opl_closeout = _mapping(decision.get("opl_closeout"))
+    return (
+        _optional_text(decision.get("stage_id")),
+        _optional_text(decision.get("work_unit_id")),
+        _optional_text(decision.get("route_checkpoint_evidence_ref"))
+        or _optional_text(outcome.get("route_checkpoint_evidence_ref")),
+        _optional_text(decision.get("receipt_evidence_ref"))
+        or _optional_text(outcome.get("receipt_evidence_ref")),
+        _optional_text(opl_closeout.get("stage_attempt_id")),
+    )
 
 
 def _receipt_is_consumed_typed_blocker(receipt: Mapping[str, Any]) -> bool:

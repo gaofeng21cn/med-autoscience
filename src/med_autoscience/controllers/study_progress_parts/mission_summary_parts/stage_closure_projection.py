@@ -45,9 +45,19 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
     owner_gate_action = _non_empty_text(owner_gate_readback.get("next_legal_action"))
     if owner_gate_action:
         return owner_gate_action
+    next_action = _mapping(payload.get("next_action"))
+    next_action_surface = _non_empty_text(next_action.get("surface_kind"))
+    next_action_family = _non_empty_text(next_action.get("action_family"))
+    next_action_type = _non_empty_text(next_action.get("action_type"))
     receipt_consumption = _mapping(payload.get("mas_receipt_consumption"))
     receipt_action = _non_empty_text(receipt_consumption.get("next_legal_action"))
     receipt_status = _non_empty_text(receipt_consumption.get("status"))
+    if (
+        receipt_status == "owner_consumed_route_checkpoint"
+        and next_action_surface == "mas_next_action_envelope"
+        and next_action_family != "paper.stage_closure.owner_consumption"
+    ):
+        receipt_action = None
     if (
         receipt_action
         and receipt_action != "request_opl_runtime_readback"
@@ -56,10 +66,9 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
         return receipt_action
     if receipt_status == "owner_consumed_typed_blocker":
         return None
-    next_action = _mapping(payload.get("next_action"))
-    if _non_empty_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
+    if next_action_surface != "mas_next_action_envelope":
         return None
-    action_family = _non_empty_text(next_action.get("action_family"))
+    action_family = next_action_family
     if action_family == "runtime.opl_route":
         return "request_opl_runtime_readback"
     if action_family == "paper.gate.publishability_replay":
@@ -78,6 +87,8 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
             or _non_empty_text(route_command.get("command_kind")) == "wait_for_human"
         ):
             return "request_human_decision"
+    if next_action_type:
+        return next_action_type
     return None
 
 

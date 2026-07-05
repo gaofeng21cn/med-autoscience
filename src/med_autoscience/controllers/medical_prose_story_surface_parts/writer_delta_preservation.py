@@ -68,7 +68,7 @@ def materialize_current_writer_story_delta(
             current = None
         if current != rendered:
             path.write_text(rendered, encoding="utf-8")
-        paths.append(str(path))
+            paths.append(str(path))
     return paths
 
 

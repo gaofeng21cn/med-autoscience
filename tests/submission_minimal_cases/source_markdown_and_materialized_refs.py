@@ -257,7 +257,8 @@ def test_create_submission_minimal_package_keeps_submission_figure_legends_conci
     submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
         encoding="utf-8"
     )
-    assert "The cohort architecture is summarized for reader orientation." in submission_markdown
+    assert "The cohort architecture is summarized for reader orientation." not in submission_markdown
+    assert "Caption." in submission_markdown
     assert "The figure summarizes the observed cohort architecture." not in submission_markdown
     assert "Thresholds are descriptive operating points." not in submission_markdown
     assert "paper should" not in submission_markdown.lower()

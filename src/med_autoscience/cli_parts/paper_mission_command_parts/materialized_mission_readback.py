@@ -14,6 +14,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.command_metadata impo
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _load_json_object,
     _mapping,
+    _mapping_list,
     _optional_text,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff import (
@@ -67,6 +68,9 @@ from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
 )
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    align_carrier_readback_with_owner_consumption as _align_carrier_readback_with_owner_consumption,
+)
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
@@ -80,6 +84,14 @@ from med_autoscience.paper_mission_consumption_readback import (
 )
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
+)
+from med_autoscience.paper_mission_owner_answer import (
+    terminal_owner_gate_authority_consume_readback as _terminal_owner_gate_authority_consume_readback,
+    terminal_owner_gate_owner_answer_readback as _terminal_owner_gate_owner_answer_readback,
+)
+from med_autoscience.paper_mission_terminal_owner_gate import (
+    terminal_owner_gate_authority_readback as _terminal_owner_gate_authority_readback,
+    terminal_owner_gate_from_carrier_readback as _terminal_owner_gate_from_carrier_readback,
 )
 
 
@@ -146,7 +158,11 @@ def build_materialized_mission_readback_if_available(
             if consumption_ledger_readback is not None
             else None
         ),
-        authority_consume_readback=None,
+        authority_consume_readback=(
+            dict(consumption_ledger_readback)
+            if consumption_ledger_readback is not None
+            else None
+        ),
         enable_opl_live_probe=enable_opl_live_probe,
         opl_bin=opl_bin,
     )
@@ -294,6 +310,7 @@ def build_materialized_mission_readback_if_available(
             stage_closure_decision=stage_closure_decision,
             next_action=next_action_override,
             domain_transition_next_action=domain_transition_next_action,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         )
     )
     if (
@@ -307,6 +324,7 @@ def build_materialized_mission_readback_if_available(
             stage_closure_decision=stage_closure_decision,
             next_action=next_action_override,
             domain_transition_next_action=domain_transition_next_action,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         )
         and not stage_closure_suppresses_domain_transition
     ):
@@ -384,6 +402,11 @@ def build_materialized_mission_readback_if_available(
             transaction_output_fields["current_opl_runtime_readback_status"] = (
                 direct_next_action_runtime["opl_runtime_readback_status"]
             )
+    if receipt_owner_consumption_readback is not None:
+        transaction_output_fields = _align_current_carrier_owner_consumption(
+            transaction_output_fields=transaction_output_fields,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,
@@ -593,6 +616,92 @@ def _receipt_is_consumed_typed_blocker(receipt: Mapping[str, Any]) -> bool:
     return _optional_text(outcome.get("kind")) == "typed_blocker"
 
 
+def _align_current_carrier_owner_consumption(
+    *,
+    transaction_output_fields: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    fields = dict(transaction_output_fields)
+    changed = False
+    current = _mapping(fields.get("current_opl_runtime_carrier_readback"))
+    aligned_current = current
+    if current:
+        aligned_current = _align_carrier_readback_with_owner_consumption(
+            carrier_readback=current,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        )
+        if aligned_current != current:
+            fields["current_opl_runtime_carrier_readback"] = aligned_current
+            changed = True
+    direct = _mapping(fields.get("domain_transition_direct_stage_attempt"))
+    if direct and aligned_current != current:
+        fields["domain_transition_direct_stage_attempt"] = {
+            **direct,
+            "opl_runtime_carrier_readback": aligned_current,
+        }
+    carrier = _mapping(fields.get("opl_runtime_carrier_readback"))
+    if carrier:
+        aligned_carrier = _align_carrier_readback_with_owner_consumption(
+            carrier_readback=carrier,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        )
+        if aligned_carrier != carrier:
+            fields["opl_runtime_carrier_readback"] = aligned_carrier
+            changed = True
+            aligned_gate = _terminal_owner_gate_from_carrier_readback(aligned_carrier)
+            owner_answer_readback = {}
+            transaction_readback = _mapping(fields.get("paper_mission_transaction_readback"))
+            if transaction_readback:
+                paper_mission_transaction = _mapping(
+                    transaction_readback.get("paper_mission_transaction")
+                )
+                if paper_mission_transaction and aligned_gate:
+                    owner_answer_readback = _terminal_owner_gate_owner_answer_readback(
+                        terminal_owner_gate=aligned_gate,
+                        paper_mission_transaction=paper_mission_transaction,
+                        artifact_delta_refs=_mapping_list(
+                            transaction_readback.get("artifact_delta_refs")
+                        )
+                        or _mapping_list(
+                            paper_mission_transaction.get("artifact_delta_refs")
+                        ),
+                        paper_audit_pack_refs=_mapping(
+                            transaction_readback.get("paper_audit_pack_refs")
+                        )
+                        or _mapping(
+                            paper_mission_transaction.get("paper_audit_pack_refs")
+                        ),
+                    )
+                authority_readback = _terminal_owner_gate_authority_readback(aligned_gate)
+                if owner_answer_readback:
+                    authority_readback = _terminal_owner_gate_authority_consume_readback(
+                        terminal_owner_gate_authority_readback=authority_readback,
+                        owner_answer_readback=owner_answer_readback,
+                    )
+                fields["paper_mission_transaction_readback"] = {
+                    **transaction_readback,
+                    "opl_runtime_carrier_readback": aligned_carrier,
+                    "terminal_owner_gate": aligned_gate or None,
+                    "terminal_owner_gate_authority_readback": authority_readback or None,
+                    "terminal_owner_gate_owner_answer_readback": (
+                        owner_answer_readback or None
+                    ),
+                }
+            if aligned_gate:
+                fields["terminal_owner_gate"] = aligned_gate
+                authority_readback = _terminal_owner_gate_authority_readback(aligned_gate)
+                if owner_answer_readback:
+                    authority_readback = _terminal_owner_gate_authority_consume_readback(
+                        terminal_owner_gate_authority_readback=authority_readback,
+                        owner_answer_readback=owner_answer_readback,
+                    )
+                fields["terminal_owner_gate_authority_readback"] = authority_readback or None
+                fields["terminal_owner_gate_owner_answer_readback"] = (
+                    owner_answer_readback or None
+                )
+    return fields if changed else transaction_output_fields
+
+
 def _consumption_is_non_advancing_route_back(
     consumption_ledger_readback: Mapping[str, Any],
 ) -> bool:
@@ -708,6 +817,7 @@ def _stage_closure_next_action_should_own_next_action(
     stage_closure_decision: Mapping[str, Any],
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None = None,
+    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
 ) -> bool:
     action = _mapping(next_action)
     if not action:
@@ -718,7 +828,16 @@ def _stage_closure_next_action_should_own_next_action(
         and outcome.get("kind") == "next_stage_transition"
         and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
     ):
-        return False
+        if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption_readback):
+            return not _route_checkpoint_identity_matches_domain_transition(
+                stage_closure_decision=stage_closure_decision,
+                domain_transition_next_action=domain_transition_next_action,
+            )
+        return _route_checkpoint_matches_domain_transition(
+            stage_closure_decision=stage_closure_decision,
+            outcome=outcome,
+            domain_transition_next_action=domain_transition_next_action,
+        )
     if _optional_text(action.get("action_family")) == (
         "paper.stage_closure.owner_consumption"
     ):
@@ -735,17 +854,77 @@ def _stage_closure_next_action_should_own_next_action(
     )
 
 
+def _receipt_owner_consumed_route_checkpoint(
+    readback: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping(readback)
+    if _optional_text(payload.get("status")) != "owner_consumption_applied":
+        return False
+    consumption = _mapping(payload.get("mas_receipt_consumption"))
+    return _optional_text(consumption.get("status")) == "owner_consumed_route_checkpoint"
+
+
+def _route_checkpoint_matches_domain_transition(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    domain_transition_next_action: Mapping[str, Any] | None,
+) -> bool:
+    if not _route_checkpoint_identity_matches_domain_transition(
+        stage_closure_decision=stage_closure_decision,
+        domain_transition_next_action=domain_transition_next_action,
+    ):
+        return False
+    return (
+        stage_closure_decision.get("authority_materialized") is True
+        or _optional_text(outcome.get("route_checkpoint_evidence_ref")) is not None
+        or _optional_text(
+            _mapping(stage_closure_decision.get("opl_closeout")).get("stage_attempt_id")
+        )
+        is not None
+    )
+
+
+def _route_checkpoint_identity_matches_domain_transition(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    domain_transition_next_action: Mapping[str, Any] | None,
+) -> bool:
+    action = _mapping(domain_transition_next_action)
+    if not action:
+        return False
+    decision_work_unit = _optional_text(stage_closure_decision.get("work_unit_id"))
+    action_work_unit = _optional_text(action.get("work_unit_id"))
+    if (
+        decision_work_unit is not None
+        and action_work_unit is not None
+        and decision_work_unit != action_work_unit
+    ):
+        return False
+    decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
+    action_stage = _optional_text(action.get("stage_id"))
+    if (
+        decision_stage is not None
+        and action_stage is not None
+        and decision_stage != action_stage
+    ):
+        return False
+    return True
+
+
 def _stage_closure_suppresses_domain_transition_next_action(
     *,
     stage_closure_decision: Mapping[str, Any],
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None,
+    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
 ) -> bool:
     action_override = _mapping(next_action)
     if _stage_closure_next_action_should_own_next_action(
         stage_closure_decision=stage_closure_decision,
         next_action=action_override,
         domain_transition_next_action=domain_transition_next_action,
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
     ):
         return False
     action = _mapping(domain_transition_next_action)

@@ -456,25 +456,44 @@ def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, 
         )
 
     if sidecar.template_id == "time_to_event_risk_group_summary":
-        if len(sidecar.panel_boxes) < 2:
-            issues.append(
-                _issue(
-                    rule_id="composite_panels_missing",
-                    message="time-to-event risk-group summary requires two panel boxes",
-                    target="panel_boxes",
-                    expected={"minimum_count": 2},
-                    observed={"count": len(sidecar.panel_boxes)},
+        plot_variant = str(sidecar.metrics.get("plot_variant") or "").strip()
+        if plot_variant == "nhanes_decile_grouped_calibration":
+            if len(sidecar.panel_boxes) < 1:
+                issues.append(
+                    _issue(
+                        rule_id="grouped_calibration_panel_missing",
+                        message="NHANES grouped-calibration summary requires one primary panel box",
+                        target="panel_boxes",
+                        expected={"minimum_count": 1},
+                        observed={"count": len(sidecar.panel_boxes)},
+                    )
+                )
+            issues.extend(
+                _check_composite_panel_label_anchors(
+                    sidecar,
+                    label_panel_map={"panel_label_A": "panel_left"},
                 )
             )
-        issues.extend(
-            _check_composite_panel_label_anchors(
-                sidecar,
-                label_panel_map={
-                    "panel_label_A": "panel_left",
-                    "panel_label_B": "panel_right",
-                },
+        else:
+            if len(sidecar.panel_boxes) < 2:
+                issues.append(
+                    _issue(
+                        rule_id="composite_panels_missing",
+                        message="time-to-event risk-group summary requires two panel boxes",
+                        target="panel_boxes",
+                        expected={"minimum_count": 2},
+                        observed={"count": len(sidecar.panel_boxes)},
+                    )
+                )
+            issues.extend(
+                _check_composite_panel_label_anchors(
+                    sidecar,
+                    label_panel_map={
+                        "panel_label_A": "panel_left",
+                        "panel_label_B": "panel_right",
+                    },
+                )
             )
-        )
         risk_group_summaries = sidecar.metrics.get("risk_group_summaries")
         if not isinstance(risk_group_summaries, list) or not risk_group_summaries:
             issues.append(

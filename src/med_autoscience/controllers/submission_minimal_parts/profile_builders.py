@@ -42,6 +42,8 @@ def build_general_medical_submission_markdown(
     compiled_markdown_path: Path,
     submission_root: Path,
     compiled_markdown_text: str | None = None,
+    output_name: str = "manuscript_submission.md",
+    allow_landscape_latex_for_tables: bool = True,
 ) -> Path:
     paper_root = compiled_markdown_path.parent if compiled_markdown_path.name == "draft.md" else compiled_markdown_path.parents[1]
     compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
@@ -214,6 +216,7 @@ def build_general_medical_submission_markdown(
     table_blocks = build_table_blocks(
         main_tables=main_tables,
         catalog_table_blocks=catalog_table_blocks,
+        allow_landscape_latex=allow_landscape_latex_for_tables,
     )
     section_blocks = [
         ("# Abstract", abstract),
@@ -261,7 +264,7 @@ def build_general_medical_submission_markdown(
         markdown_parts.append(f"# Main Tables\n\n{'\n\n'.join(table_blocks).strip()}")
     if references_entry_count > 0:
         markdown_parts.append("# References")
-    output_path = submission_root / "manuscript_submission.md"
+    output_path = submission_root / output_name
     write_text(output_path, "\n\n".join(markdown_parts).strip() + "\n")
     return output_path
 

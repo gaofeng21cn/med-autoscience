@@ -62,8 +62,18 @@ INTRODUCTION_REQUIRED_PARAGRAPH_COUNT = 3
 METHODS_REQUIRED_SUBSECTION_HEADINGS = (
     "Study design and cohort",
     "Variable definition and measurement",
-    "Model building",
-    "Validation framework",
+    "Analytical scope",
+    "Data checks and sensitivity analysis",
+)
+METHODS_REQUIRED_SUBSECTION_GROUPS = (
+    ("Study design and cohort",),
+    ("Variable definition and measurement",),
+    ("Analytical scope", "Descriptive analysis scope", "Model building"),
+    (
+        "Data checks and sensitivity analysis",
+        "Quality checks and sensitivity analysis",
+        "Validation framework",
+    ),
 )
 RESULTS_MIN_SUBSECTION_COUNT = 2
 
@@ -888,7 +898,8 @@ def build_intervention_message(report: dict[str, object]) -> str:
         prose_structure_clause += (
             " Rewrite the manuscript Methods prose so it includes the exact reviewer-facing subsections "
             f"`{METHODS_REQUIRED_SUBSECTION_HEADINGS[0]}`, `{METHODS_REQUIRED_SUBSECTION_HEADINGS[1]}`, "
-            f"`{METHODS_REQUIRED_SUBSECTION_HEADINGS[2]}`, and `{METHODS_REQUIRED_SUBSECTION_HEADINGS[3]}`."
+            f"`{METHODS_REQUIRED_SUBSECTION_HEADINGS[2]}`, and `{METHODS_REQUIRED_SUBSECTION_HEADINGS[3]}`. "
+            "Use `Model building` or `Validation framework` only for manuscripts that actually fit or validate models."
         )
     results_clause = ""
     if "results_narrative_map_missing_or_incomplete" in (report.get("blockers") or []):

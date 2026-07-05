@@ -188,7 +188,14 @@ def build_artifact_first_mission_summary(
     ):
         receipt_owner_consumption_readback = {}
     if receipt_owner_consumption_readback:
-        effective_consume_candidate_status = "typed_blocker"
+        effective_consume_candidate_status = (
+            _effective_consume_candidate_status_for_receipt_owner_consumption(
+                fallback=effective_consume_candidate_status,
+                receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+            )
+        )
+        if effective_consume_candidate_status == "route_back":
+            mission_state = "route_back"
     live_readback = _study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
@@ -368,8 +375,17 @@ def attach_artifact_first_mission_summary(
     )
     summary_next_action = _mapping(summary.get("next_action"))
     summary_next_action_promotable = _summary_next_action_is_promotable(summary)
+    summary_overrides_existing = _summary_next_action_should_override_existing(
+        payload=payload,
+        summary=summary,
+    )
+    summary_selected_as_next_action = summary_next_action_promotable and (
+        summary_overrides_existing or not existing_next_action
+    )
     next_action = (
-        existing_next_action
+        summary_next_action
+        if summary_next_action_promotable and summary_overrides_existing
+        else existing_next_action
         or (summary_next_action if summary_next_action_promotable else {})
     )
     if next_action:
@@ -418,13 +434,11 @@ def attach_artifact_first_mission_summary(
         ]
     if next_action:
         updated["next_action"] = next_action
-        updated["canonical_next_action_source"] = (
-            existing_next_action_source
-            or (
-                "precomputed_canonical_next_action"
-                if existing_next_action
-                else "artifact_first_mission_summary.next_action"
-            )
+        updated["canonical_next_action_source"] = _summary_selected_next_action_source(
+            summary_selected_as_next_action=summary_selected_as_next_action,
+            summary_next_action=summary_next_action,
+            existing_next_action=existing_next_action,
+            existing_next_action_source=existing_next_action_source,
         )
         updated = without_legacy_next_action_authority(updated)
     elif summary_next_action:
@@ -531,6 +545,53 @@ def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
     return (
         _non_empty_text(read_model_source.get("source_kind"))
         != "legacy_progress_projection_fallback"
+    )
+
+
+def _summary_next_action_should_override_existing(
+    *,
+    payload: Mapping[str, Any],
+    summary: Mapping[str, Any],
+) -> bool:
+    summary_next_action = _mapping(summary.get("next_action"))
+    if not summary_next_action:
+        return False
+    if _non_empty_text(summary_next_action.get("action_family")) != (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return False
+    receipt = _mapping(summary.get("receipt_owner_consumption_readback"))
+    consumption = _mapping(receipt.get("mas_receipt_consumption"))
+    if _non_empty_text(consumption.get("status")) != "owner_consumed_route_checkpoint":
+        return False
+    existing = _mapping(payload.get("next_action"))
+    if not existing:
+        return True
+    return (
+        _non_empty_text(existing.get("action_family"))
+        != "paper.stage_closure.owner_consumption"
+        or _non_empty_text(existing.get("work_unit_id"))
+        != _non_empty_text(summary_next_action.get("work_unit_id"))
+    )
+
+
+def _summary_selected_next_action_source(
+    *,
+    summary_selected_as_next_action: bool,
+    summary_next_action: Mapping[str, Any],
+    existing_next_action: Mapping[str, Any],
+    existing_next_action_source: str | None,
+) -> str:
+    if summary_selected_as_next_action:
+        if _non_empty_text(summary_next_action.get("action_family")) == (
+            "paper.stage_closure.owner_consumption"
+        ):
+            return "stage_closure.next_action"
+        return "artifact_first_mission_summary.next_action"
+    return existing_next_action_source or (
+        "precomputed_canonical_next_action"
+        if existing_next_action
+        else "artifact_first_mission_summary.next_action"
     )
 
 
@@ -737,6 +798,28 @@ def _paper_mission_run_with_stage_closure_readback(
         "stage_closure_outcome": stage_closure_readback.get("outcome_kind")
         or _mapping(stage_closure_readback.get("outcome")).get("kind"),
     }
+
+
+def _effective_consume_candidate_status_for_receipt_owner_consumption(
+    *,
+    fallback: str,
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> str:
+    receipt = _mapping(receipt_owner_consumption_readback)
+    consumption = _mapping(receipt.get("mas_receipt_consumption"))
+    status = _non_empty_text(consumption.get("status"))
+    if status == "owner_consumed_route_checkpoint":
+        return "route_back"
+    if status == "owner_consumed_typed_blocker":
+        return "typed_blocker"
+    outcome = _mapping(_mapping(receipt.get("stage_closure_decision")).get("outcome"))
+    if (
+        _non_empty_text(outcome.get("kind")) == "next_stage_transition"
+        and _non_empty_text(outcome.get("transition_kind"))
+        == "route_back_candidate_checkpoint"
+    ):
+        return "route_back"
+    return fallback or "typed_blocker"
 
 
 def _top_level_current_package_projection(payload: Mapping[str, Any]) -> dict[str, Any]:

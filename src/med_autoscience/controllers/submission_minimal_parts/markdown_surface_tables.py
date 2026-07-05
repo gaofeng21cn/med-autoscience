@@ -121,8 +121,13 @@ def _wide_pipe_table_to_latex(block_body: str, *, caption: str) -> str | None:
     return "\n".join(latex_lines).strip()
 
 
-def normalize_submission_table_body(block_body: str, *, heading: str) -> str:
-    latex_table = _wide_pipe_table_to_latex(block_body, caption=heading)
+def normalize_submission_table_body(
+    block_body: str,
+    *,
+    heading: str,
+    allow_landscape_latex: bool = True,
+) -> str:
+    latex_table = _wide_pipe_table_to_latex(block_body, caption=heading) if allow_landscape_latex else None
     if latex_table is not None:
         return latex_table
     return normalize_wide_pipe_table_widths(block_body)
@@ -143,7 +148,7 @@ def _select_catalog_table_markdown_source(entry: dict[str, Any]) -> str:
         return markdown_paths[0]
     if entry.get("prefer_markdown_for_submission_pdf") is True:
         return markdown_paths[0]
-    return ""
+    return markdown_paths[0]
 
 
 def _strip_catalog_table_markdown_heading(markdown_text: str) -> str:
@@ -157,6 +162,18 @@ def _strip_catalog_table_markdown_heading(markdown_text: str) -> str:
     return "\n".join(lines).strip()
 
 
+def _source_table_body_is_materialized(block_body: str) -> bool:
+    headers, rows, _ = _parse_pipe_table(block_body)
+    if headers and rows:
+        return True
+    normalized = str(block_body or "")
+    return bool(re.search(r"\\begin\{(?:table|tabular|landscape)\}", normalized))
+
+
+def _body_contains_tabular_content(block_body: str) -> bool:
+    return _source_table_body_is_materialized(block_body)
+
+
 def build_catalog_backed_table_blocks(*, paper_root: Path, source_tables: str) -> dict[str, tuple[str, str]]:
     table_catalog_path = paper_root / "tables" / "table_catalog.json"
     if not table_catalog_path.exists():
@@ -168,7 +185,7 @@ def build_catalog_backed_table_blocks(*, paper_root: Path, source_tables: str) -
 
     workspace_root = paper_root.parent
     source_blocks = {
-        parse_table_id_from_heading(heading): heading
+        parse_table_id_from_heading(heading): (heading, _source_table_body_is_materialized(block_body))
         for heading, block_body in _extract_table_blocks(source_tables)
         if parse_table_id_from_heading(heading)
     }
@@ -185,7 +202,10 @@ def build_catalog_backed_table_blocks(*, paper_root: Path, source_tables: str) -
         markdown_source_path = resolve_relpath(workspace_root, markdown_source_rel)
         if not markdown_source_path.exists():
             continue
-        heading = source_blocks.get(table_id) or _build_catalog_table_heading(
+        source_block = source_blocks.get(table_id)
+        if source_block is not None and source_block[1]:
+            continue
+        heading = source_block[0] if source_block is not None else _build_catalog_table_heading(
             table_id=table_id,
             title=str(entry.get("title") or ""),
         )
@@ -230,3 +250,15 @@ def _extract_table_blocks(main_tables: str) -> list[tuple[str, str]]:
         for heading, body in parse_top_level_blocks(main_tables)
         if _heading_is_table(heading)
     ]
+
+
+def extract_peer_table_blocks(main_tables: str) -> list[tuple[str, str]]:
+    for parser in (parse_third_level_blocks, parse_second_level_blocks, parse_top_level_blocks):
+        parsed_blocks = [
+            (heading, body)
+            for heading, body in parser(main_tables)
+            if _body_contains_tabular_content(body)
+        ]
+        if parsed_blocks:
+            return parsed_blocks
+    return []

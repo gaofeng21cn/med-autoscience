@@ -79,6 +79,45 @@ def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_pat
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_prefers_stage_native_body_authority_when_present(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "001-stage-native"
+    legacy_manuscript = study_root / "paper" / "draft.md"
+    stage_native_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    stage_native_manuscript = stage_native_paper_root / "draft.md"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-1"})
+    legacy_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    legacy_manuscript.write_text("Legacy copy must not receive the repair.\n", encoding="utf-8")
+    stage_native_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    stage_native_manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+
+    result = module.dispatch_repair_work_unit(
+        study_id="001-stage-native",
+        quest_id="quest-001-stage-native",
+        study_root=study_root,
+        repair_work_unit=_work_unit("text_repair"),
+        opl_execution_authorization=_opl_auth("stage-native-text-repair"),
+        apply=True,
+    )
+
+    assert result["accepted"] is True
+    assert result["execution_status"] == "executed"
+    assert "restrained interpretation" in stage_native_manuscript.read_text(encoding="utf-8")
+    assert legacy_manuscript.read_text(encoding="utf-8") == "Legacy copy must not receive the repair.\n"
+    assert result["canonical_artifact_delta"]["meaningful_artifact_delta"] is True
+    changed_paths = {ref["path"] for ref in result["canonical_artifact_delta"]["artifact_refs"]}
+    assert str(stage_native_manuscript) in changed_paths
+    assert (stage_native_paper_root / "review" / "review_ledger.json").is_file()
+
+
 def test_paper_repair_executor_applies_bounded_json_artifact_patch(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "001-json"
@@ -163,6 +202,72 @@ def test_paper_repair_executor_rejects_json_artifact_patch_outside_paper_root(
     assert result["execution_status"] == "blocked"
     assert result["typed_blocker"] == "json_artifact_patch_path_not_allowed"
     assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_paper_repair_executor_applies_bounded_text_artifact_patch(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "001-text"
+    manuscript = study_root / "paper" / "draft.md"
+    table = study_root / "paper" / "tables" / "T2.csv"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    table.parent.mkdir(parents=True, exist_ok=True)
+    table.write_text("Phenotype,Gap\nGlycemic,86.11%\n", encoding="utf-8")
+    work_unit = _work_unit("text_repair")
+    work_unit["text_artifact_patches"] = [
+        {
+            "relative_path": "paper/tables/T2.csv",
+            "target_text": "Glycemic,86.11%",
+            "replacement_text": "Glycemic,62.0%",
+        }
+    ]
+
+    result = module.dispatch_repair_work_unit(
+        study_id="001-text",
+        quest_id="quest-001-text",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("text-artifact"),
+        apply=True,
+    )
+
+    changed_paths = {
+        item["path"]
+        for item in result["repair_execution_evidence"]["changed_artifact_refs"]
+    }
+    assert result["execution_status"] == "executed"
+    assert table.read_text(encoding="utf-8") == "Phenotype,Gap\nGlycemic,62.0%\n"
+    assert str(table.resolve()) in changed_paths
+
+
+def test_paper_repair_executor_rejects_text_artifact_patch_outside_paper_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "001-text-blocked"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    work_unit = _work_unit("text_repair")
+    work_unit["text_artifact_patches"] = [
+        {
+            "relative_path": "manuscript/current_package/manuscript.md",
+            "replacement_text": "forbidden",
+        }
+    ]
+
+    result = module.dispatch_repair_work_unit(
+        study_id="001-text-blocked",
+        quest_id="quest-001-text-blocked",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("text-artifact-blocked"),
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "text_artifact_patch_path_not_allowed"
 
 
 def test_paper_repair_executor_downgrades_claim_and_updates_evidence_ledger(tmp_path: Path) -> None:

@@ -144,6 +144,66 @@
         "journal_export"
       ],
       "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "registry_variable_availability_panel",
+      "category_id": "publication_shells",
+      "family_id": "registry_variable_availability",
+      "title": "Registry Variable Availability starter",
+      "purpose": "Create a registry variable availability panel with source and denominator traceability.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "table_like_companion_panel",
+      "required_data_roles": [
+        "variable",
+        "domain",
+        "source",
+        "available_n",
+        "availability_rate"
+      ],
+      "recommended_template_seed_ids": [
+        "availability_bar_panel"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "layout_readability"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
+    },
+    {
+      "recipe_id": "variable_ascertainment_panel",
+      "category_id": "publication_shells",
+      "family_id": "variable_ascertainment",
+      "title": "Variable Ascertainment starter",
+      "purpose": "Create a variable ascertainment panel or table for source, definition, and measurement-window reporting.",
+      "starter_kind": "display_pack_seeded",
+      "panel_grammar": "table_like_companion_panel",
+      "required_data_roles": [
+        "variable",
+        "source",
+        "definition",
+        "measurement_window",
+        "available_n"
+      ],
+      "recommended_template_seed_ids": [
+        "supplementary_variable_ascertainment"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "policy_id": "medical_starter_recipe_policy.v1"
     }
   ]
 }

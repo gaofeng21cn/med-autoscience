@@ -322,11 +322,11 @@ def inspect_methods_section_structure(path: Path) -> list[dict[str, Any]]:
         ]
     subsection_blocks = first_subsection_heading_blocks(blocks, parent=methods_block)
     subsection_map = {normalize_heading(block.heading): block for block in subsection_blocks if block.body.strip()}
-    missing_headings = [
-        heading
-        for heading in medical_surface_policy.METHODS_REQUIRED_SUBSECTION_HEADINGS
-        if normalize_heading(heading) not in subsection_map
-    ]
+    missing_heading_groups: list[str] = []
+    for group in medical_surface_policy.METHODS_REQUIRED_SUBSECTION_GROUPS:
+        if not any(normalize_heading(heading) in subsection_map for heading in group):
+            missing_heading_groups.append(" or ".join(group))
+    missing_headings = missing_heading_groups
     if not missing_headings:
         return []
     return [
@@ -431,4 +431,3 @@ def iter_non_formal_question_sentences(line: str) -> list[str]:
                 sentences.append(sentence)
         sentence_start = index + 1
     return sentences
-

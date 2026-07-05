@@ -468,6 +468,8 @@ def _validate_time_to_event_display_payload(
             raise ValueError(
                 f"{path.name} display `{expected_display_id}` must contain a non-empty risk_group_summaries list"
             )
+        plot_variant = str(payload.get("plot_variant") or "").strip() or None
+        single_panel_grouped_calibration = plot_variant == "nhanes_decile_grouped_calibration"
         normalized_summaries: list[dict[str, Any]] = []
         for index, item in enumerate(summaries_payload):
             if not isinstance(item, dict):
@@ -509,6 +511,14 @@ def _validate_time_to_event_display_payload(
                     ),
                 ),
             }
+            if item.get("group_order") is not None:
+                normalized_summary["group_order"] = _require_non_negative_int(
+                    item.get("group_order"),
+                    label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].group_order",
+                    allow_zero=False,
+                )
+            elif single_panel_grouped_calibration:
+                normalized_summary["group_order"] = index + 1
             for optional_text_field in ("cohort_id", "cohort_label", "risk_group_label"):
                 if item.get(optional_text_field) is not None:
                     normalized_summary[optional_text_field] = _require_non_empty_string(
@@ -518,8 +528,31 @@ def _validate_time_to_event_display_payload(
                             f"risk_group_summaries[{index}].{optional_text_field}"
                         ),
                     )
+            observed_ci_payload = item.get("observed_5y_rate_ci_95")
+            if observed_ci_payload is not None:
+                if not isinstance(observed_ci_payload, dict):
+                    raise ValueError(
+                        f"{path.name} display `{expected_display_id}` "
+                        f"risk_group_summaries[{index}].observed_5y_rate_ci_95 must be an object"
+                    )
+                normalized_summary["observed_5y_rate_ci_95"] = {
+                    "lower": _require_numeric_value(
+                        observed_ci_payload.get("lower"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"risk_group_summaries[{index}].observed_5y_rate_ci_95.lower"
+                        ),
+                    ),
+                    "upper": _require_numeric_value(
+                        observed_ci_payload.get("upper"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"risk_group_summaries[{index}].observed_5y_rate_ci_95.upper"
+                        ),
+                    ),
+                }
             normalized_summaries.append(normalized_summary)
-        return {
+        normalized_payload = {
             "display_id": expected_display_id,
             "template_id": expected_template_id,
             "title": title,
@@ -529,18 +562,33 @@ def _validate_time_to_event_display_payload(
                 payload.get("panel_a_title"),
                 label=f"{path.name} display `{expected_display_id}` panel_a_title",
             ),
-            "panel_b_title": _require_non_empty_string(
-                payload.get("panel_b_title"),
-                label=f"{path.name} display `{expected_display_id}` panel_b_title",
-            ),
             "x_label": x_label,
             "y_label": y_label,
-            "event_count_y_label": _require_non_empty_string(
-                payload.get("event_count_y_label"),
-                label=f"{path.name} display `{expected_display_id}` event_count_y_label",
-            ),
             "risk_group_summaries": normalized_summaries,
         }
+        if plot_variant is not None:
+            normalized_payload["plot_variant"] = plot_variant
+        if single_panel_grouped_calibration:
+            if payload.get("panel_b_title") is not None:
+                normalized_payload["panel_b_title"] = _require_non_empty_string(
+                    payload.get("panel_b_title"),
+                    label=f"{path.name} display `{expected_display_id}` panel_b_title",
+                )
+            if payload.get("event_count_y_label") is not None:
+                normalized_payload["event_count_y_label"] = _require_non_empty_string(
+                    payload.get("event_count_y_label"),
+                    label=f"{path.name} display `{expected_display_id}` event_count_y_label",
+                )
+            return normalized_payload
+        normalized_payload["panel_b_title"] = _require_non_empty_string(
+            payload.get("panel_b_title"),
+            label=f"{path.name} display `{expected_display_id}` panel_b_title",
+        )
+        normalized_payload["event_count_y_label"] = _require_non_empty_string(
+            payload.get("event_count_y_label"),
+            label=f"{path.name} display `{expected_display_id}` event_count_y_label",
+        )
+        return normalized_payload
     groups = payload.get("groups")
     if not isinstance(groups, list) or not groups:
         raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty groups list")

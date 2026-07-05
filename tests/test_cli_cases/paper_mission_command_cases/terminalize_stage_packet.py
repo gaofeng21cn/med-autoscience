@@ -14,8 +14,9 @@ def test_terminalize_stage_uses_explicit_stage_packet_over_stale_consumption(
     cli = importlib.import_module("med_autoscience.cli")
     study_id = "obesity_multicenter_phenotype_atlas"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
     stage_attempt_root = (
-        tmp_path
+        workspace_root
         / "ops"
         / "medautoscience"
         / "paper_mission_stage_attempts"
@@ -26,7 +27,7 @@ def test_terminalize_stage_uses_explicit_stage_packet_over_stale_consumption(
         "ops/medautoscience/paper_mission_stage_attempts/"
         "sat-review/route_back_evidence_packet.json"
     )
-    (tmp_path / route_back_ref).write_text(
+    (workspace_root / route_back_ref).write_text(
         json.dumps(
             {
                 "surface_kind": "paper_mission_stage_attempt_route_back_evidence_packet",
@@ -70,7 +71,7 @@ def test_terminalize_stage_uses_explicit_stage_packet_over_stale_consumption(
             "--stage-packet",
             str(stage_packet),
             "--output-root",
-            str(tmp_path / "ops" / "medautoscience" / "paper_mission_stage_closure"),
+            str(workspace_root / "ops" / "medautoscience" / "paper_mission_stage_closure"),
             "--format",
             "json",
         ]
@@ -91,3 +92,114 @@ def test_terminalize_stage_uses_explicit_stage_packet_over_stale_consumption(
     assert payload["source_readback_summary"]["surface_kind"] == (
         "paper_mission_stage_attempt_closeout_readback"
     )
+
+
+def test_terminalize_stage_autodiscovers_route_back_stage_packet_before_stale_consumption(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "obesity_multicenter_phenotype_atlas"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    stage_attempt_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current"
+    )
+    stage_attempt_root.mkdir(parents=True)
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-current/route_back_evidence_packet.json"
+    )
+    (workspace_root / route_back_ref).write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_stage_attempt_route_back_evidence_packet",
+                "study_id": study_id,
+                "stage_id": "write",
+                "work_unit_id": "medical_methods_and_registry_reporting_repair",
+                "owner_answer_kind": "route_back_evidence_ref",
+            }
+        ),
+        encoding="utf-8",
+    )
+    closeout_ref = stage_attempt_root / "stage_attempt_closeout_packet.json"
+    closeout_ref.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "study_id": study_id,
+                "stage_id": "write",
+                "work_unit_id": "medical_methods_and_registry_reporting_repair",
+                "stage_attempt_id": "sat-current",
+                "status": "completed",
+                "owner_answer_kind": "route_back_evidence_ref",
+                "route_back_evidence_ref": route_back_ref,
+                "provider_attempt_ref": "opl://stage-attempts/sat-current",
+            }
+        ),
+        encoding="utf-8",
+    )
+    stale_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+        / study_id
+    )
+    stale_root.mkdir(parents=True)
+    (stale_root / "receipt_owner_consumption.json").write_text(
+        json.dumps(
+            {
+                "surface_kind": "paper_mission_receipt_owner_consumption",
+                "schema_version": 1,
+                "status": "owner_consumption_applied",
+                "study_id": study_id,
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "owner_consumed_typed_blocker",
+                    "owner_result_kind": "typed_blocker",
+                },
+                "stage_closure_decision": {
+                    "surface_kind": "mas_stage_closure_decision",
+                    "outcome": {
+                        "kind": "typed_blocker",
+                        "blocker_type": "paper_mission_stage_route_domain_gate_pending",
+                    },
+                    "counts_as_typed_blocker": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--output-root",
+            str(workspace_root / "ops" / "medautoscience" / "paper_mission_stage_closure"),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["source_readback_summary"]["surface_kind"] == (
+        "paper_mission_stage_attempt_closeout_readback"
+    )
+    assert payload["stage_closure_decision"]["outcome"]["kind"] == (
+        "next_stage_transition"
+    )
+    assert payload["stage_closure_decision"]["outcome"]["transition_kind"] == (
+        "route_back_candidate_checkpoint"
+    )
+    assert payload["stage_closure_decision"].get("counts_as_typed_blocker") is not True

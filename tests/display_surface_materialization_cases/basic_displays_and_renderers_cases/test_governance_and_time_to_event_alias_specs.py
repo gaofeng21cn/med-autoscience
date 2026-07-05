@@ -133,6 +133,99 @@ def test_materialize_display_surface_uses_transportability_governance_template_f
     assert figures_by_id["F5"]["rendered_title_policy"] == "figure_title_metadata_only_not_drawn_inside_plot"
 
 
+def test_materialize_display_surface_preserves_deferred_figure_catalog_role_for_evidence_figures(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "transportability_governance",
+                    "display_kind": "figure",
+                    "requirement_key": "center_transportability_governance_summary_panel",
+                    "catalog_id": "F5",
+                    "shell_path": "paper/figures/Figure5.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [],
+            "deferred_figures": [
+                {
+                    "figure_id": "F5",
+                    "paper_role": "supplementary",
+                    "title": "Supplementary transportability governance",
+                    "caption": "Deferred governance figure retained outside the main-text figure set.",
+                    "display_role": "supplementary_evidence",
+                    "deferred_reason": "Too detailed for main-text figure sequence.",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "center_transportability_governance_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "transportability_governance",
+                    "template_id": full_id("center_transportability_governance_summary_panel"),
+                    "title": "Transportability governance",
+                    "caption": "Center-level transportability governance summary.",
+                    "metric_family": "c_index",
+                    "metric_panel_title": "Cohort discrimination",
+                    "metric_x_label": "C-index",
+                    "metric_reference_value": 0.74,
+                    "batch_shift_threshold": 0.04,
+                    "slope_acceptance_lower": 0.85,
+                    "slope_acceptance_upper": 1.15,
+                    "oe_ratio_acceptance_lower": 0.85,
+                    "oe_ratio_acceptance_upper": 1.15,
+                    "summary_panel_title": "Transportability action",
+                    "centers": [
+                        {
+                            "center_id": "china",
+                            "center_label": "China validation",
+                            "cohort_role": "external_validation",
+                            "support_count": 22800,
+                            "event_count": 2180,
+                            "metric_estimate": 0.74,
+                            "metric_lower": 0.72,
+                            "metric_upper": 0.76,
+                            "max_shift": 0.03,
+                            "slope": 0.96,
+                            "oe_ratio": 1.02,
+                            "verdict": "stable",
+                            "action": "Proceed with monitoring",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["F5"]["paper_role"] == "supplementary"
+    assert figures_by_id["F5"]["title"] == "Supplementary transportability governance"
+    assert figures_by_id["F5"]["display_role"] == "supplementary_evidence"
+    assert figures_by_id["F5"]["deferred_reason"] == "Too detailed for main-text figure sequence."
+
+
 def test_materialize_display_surface_reports_missing_evidence_payload_with_owner_route_context(
     tmp_path: Path,
 ) -> None:

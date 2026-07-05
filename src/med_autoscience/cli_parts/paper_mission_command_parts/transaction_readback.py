@@ -266,17 +266,38 @@ def _paper_mission_transaction_readback(
         enable_opl_live_probe=enable_opl_live_probe,
         opl_bin=opl_bin,
     )
+    suppress_terminal_owner_gate = (
+        _authority_consume_readback_supersedes_terminal_owner_gate(
+            authority_consume_readback=authority_consume_readback,
+            transaction=transaction,
+            readback=readback,
+            study_root=study_root,
+        )
+    )
+    if suppress_terminal_owner_gate:
+        readback["opl_runtime_carrier_readback"] = (
+            _runtime_readback_superseded_by_authority_consumption(readback)
+        )
+        readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_live_readback"
     readback = attach_next_action(readback)
-    terminal_owner_gate = _terminal_owner_gate_from_transaction_readback(readback)
+    terminal_owner_gate = (
+        {}
+        if suppress_terminal_owner_gate
+        else _terminal_owner_gate_from_transaction_readback(readback)
+    )
     readback["terminal_owner_gate"] = terminal_owner_gate or None
     terminal_gate_authority_readback = terminal_owner_gate_authority_readback(
         terminal_owner_gate
     )
-    owner_answer_readback = terminal_owner_gate_owner_answer_readback(
-        terminal_owner_gate=terminal_owner_gate,
-        paper_mission_transaction=transaction,
-        artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
-        paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+    owner_answer_readback = (
+        {}
+        if suppress_terminal_owner_gate
+        else terminal_owner_gate_owner_answer_readback(
+            terminal_owner_gate=terminal_owner_gate,
+            paper_mission_transaction=transaction,
+            artifact_delta_refs=_mapping_list(transaction.get("artifact_delta_refs")),
+            paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
+        )
     ) if not owner_answer_readback_prefill else dict(owner_answer_readback_prefill)
     terminal_gate_authority_readback = terminal_owner_gate_authority_consume_readback(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
@@ -360,6 +381,110 @@ def _owner_answer_readback_for_route_back_without_artifact_delta(
         artifact_delta_refs=[],
         paper_audit_pack_refs=_mapping(transaction.get("paper_audit_pack_refs")),
     )
+
+
+def _authority_consume_readback_supersedes_terminal_owner_gate(
+    *,
+    authority_consume_readback: Mapping[str, Any] | None,
+    transaction: Mapping[str, Any],
+    readback: Mapping[str, Any],
+    study_root: Path,
+) -> bool:
+    authority = _mapping(authority_consume_readback)
+    if _first_text(
+        authority.get("status"),
+        authority.get("selected_outcome"),
+        authority.get("consume_candidate_status"),
+    ) not in {"accepted_candidate", "accepted_submission_milestone_candidate"}:
+        return False
+    consume_result = _mapping(authority.get("consume_result"))
+    supersedes = _first_text(
+        consume_result.get("paper_facing_delta_ref"),
+        consume_result.get("canonical_paper_or_artifact_delta_ref"),
+    ) is not None or bool(_mapping_list(transaction.get("artifact_delta_refs")))
+    decision = _mapping(transaction.get("stage_terminal_decision"))
+    supersedes = supersedes or (
+        _optional_text(decision.get("decision_kind")) == "continue_same_stage"
+        and _optional_text(decision.get("status"))
+        == "accepted_submission_milestone_candidate"
+    )
+    if not supersedes:
+        return False
+    return _authority_acceptance_is_newer_than_terminal_closeout(
+        authority_consume_readback=authority,
+        readback=readback,
+        study_root=study_root,
+    )
+
+
+def _authority_acceptance_is_newer_than_terminal_closeout(
+    *,
+    authority_consume_readback: Mapping[str, Any],
+    readback: Mapping[str, Any],
+    study_root: Path,
+) -> bool:
+    source_ref = _first_text(
+        authority_consume_readback.get("source_ref"),
+        authority_consume_readback.get("consume_record_ref"),
+    )
+    if source_ref is None:
+        return True
+    terminal_closeout = _mapping(
+        _mapping(readback.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+    )
+    closeout_ref = _optional_text(terminal_closeout.get("closeout_ref"))
+    if closeout_ref is None:
+        return False
+    source_mtime = _path_mtime(_resolve_workspace_ref(source_ref, study_root=study_root))
+    closeout_mtime = _path_mtime(
+        _resolve_workspace_ref(closeout_ref, study_root=study_root)
+    )
+    if source_mtime is None or closeout_mtime is None:
+        return False
+    return source_mtime >= closeout_mtime
+
+
+def _runtime_readback_superseded_by_authority_consumption(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    carrier_readback = _mapping(readback.get("opl_runtime_carrier_readback"))
+    terminal_closeout = _mapping(carrier_readback.get("terminal_closeout"))
+    return {
+        "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+        "schema_version": 1,
+        "carrier_status": "waiting_for_opl_runtime_live_readback",
+        "runtime_readback_status": "terminal_closeout_superseded",
+        "dispatch_status": "transition_request_pending",
+        "domain_ready_verdict": "authority_consumed_candidate_supersedes_terminal_closeout",
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "can_claim_provider_running": False,
+        "can_claim_paper_progress": False,
+        "can_claim_runtime_ready": False,
+        "authority_materialized": False,
+        "request_carrier_preserved": True,
+        **(
+            {"superseded_terminal_closeout_ref": terminal_closeout["closeout_ref"]}
+            if terminal_closeout.get("closeout_ref")
+            else {}
+        ),
+    }
+
+
+def _resolve_workspace_ref(ref: str, *, study_root: Path) -> Path:
+    path = Path(ref)
+    if path.is_absolute():
+        return path
+    if study_root.parent.name == "studies":
+        return study_root.parent.parent / path
+    return study_root / path
+
+
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return None
 
 
 def _mission_state_for_materialized_readback(

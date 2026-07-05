@@ -13,6 +13,7 @@
   "category_refs": [
     "categories/study_design_and_flow.json",
     "categories/population_and_baseline.json",
+    "categories/registry_and_phenotype_quality.json",
     "categories/effect_estimation.json",
     "categories/survival_and_time_to_event.json",
     "categories/diagnosis_and_prediction.json",
@@ -48,6 +49,7 @@
     "recipes/ml_explainability_and_causal.json",
     "recipes/omics_and_molecular.json",
     "recipes/population_and_baseline.json",
+    "recipes/registry_and_phenotype_quality.json",
     "recipes/publication_shells.json",
     "recipes/single_cell_and_spatial.json",
     "recipes/study_design_and_flow.json",

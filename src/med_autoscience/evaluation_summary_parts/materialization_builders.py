@@ -39,10 +39,20 @@ _OBJECTIVE_PUNCTUATION = ("，", ",", "；", ";", "。", ".", "：", ":", "、",
 
 
 def _objective_compare_text(value: str) -> str:
-    text = " ".join(value.split())
+    text = " ".join(value.split()).strip()
     for mark in _OBJECTIVE_PUNCTUATION:
         text = text.replace(f" {mark}", mark).replace(f"{mark} ", mark)
-    return text
+    text = text.removesuffix("?").removesuffix(".").strip()
+    lowered = text.lower()
+    if ",can we " in lowered:
+        prefix, suffix = text[: lowered.index(",can we ")], text[lowered.index(",can we ") + len(",can we ") :]
+        text = f"{prefix},{suffix}"
+    elif ", can we " in lowered:
+        prefix, suffix = text[: lowered.index(", can we ")], text[lowered.index(", can we ") + len(", can we ") :]
+        text = f"{prefix}, {suffix}"
+    elif lowered.startswith("can we "):
+        text = text[len("can we ") :]
+    return text.lower()
 
 
 

@@ -307,7 +307,15 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
                 "stop_loss_pressure": "none",
             },
             "quality_assessment": {},
-            "gaps": [],
+            "gaps": [
+                {
+                    "gap_id": "submission-authority",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Submission authority remains outside AI reviewer quality authority.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                }
+            ],
             "recommended_actions": [],
             "quality_assessment": {
                 "medical_journal_prose_quality": {
@@ -386,6 +394,127 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
     assert refreshed_publication_eval["assessment_provenance"]["ai_reviewer_required"] is False
     assert refreshed_publication_eval["reviewer_operating_system"]["contract_id"] == "medical_publication_ai_reviewer_os_v1"
     assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:45:00+00:00"
+
+
+def test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_escalation_record(
+    tmp_path: Path,
+) -> None:
+    publication_runtime = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.publication_runtime"
+    )
+    study_root = tmp_path / "study"
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    _write_study_charter_and_controller_summary(study_root)
+    publication_eval_path = _write_publication_eval(
+        study_root,
+        quest_root,
+        assessment_provenance={
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(study_root / "paper" / "draft.md")],
+            "ai_reviewer_required": False,
+        },
+        quality_assessment={
+            dimension: {
+                "status": "ready",
+                "summary": f"{dimension} is reviewer-ready.",
+                "evidence_refs": [str(study_root / "paper" / "draft.md")],
+            }
+            for dimension in _AI_REVIEWER_DIMENSIONS
+        },
+        recommended_actions=[
+            {
+                "action_id": "publication-eval-action::continue_bundle_stage",
+                "action_type": "continue_same_line",
+                "priority": "now",
+                "reason": "AI reviewer-backed publication quality is current.",
+                "route_target": "finalize",
+                "route_key_question": "Which final submission authority items remain?",
+                "route_rationale": "Only bundle-stage submission authority remains.",
+                "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                "requires_controller_decision": True,
+            }
+        ],
+    )
+    publication_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
+    publication_eval.update(
+        {
+            "eval_id": "publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00",
+            "emitted_at": "2026-04-12T09:45:00+00:00",
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "AI reviewer-backed publication quality is current.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "submission-authority",
+                    "gap_type": "delivery",
+                    "severity": "optional",
+                    "summary": "Submission authority remains outside AI reviewer quality authority.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                }
+            ],
+            "reviewer_operating_system": _valid_reviewer_operating_system(
+                study_root,
+                quest_root,
+                eval_id="publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00",
+            ),
+        }
+    )
+    _write_json(publication_eval_path, publication_eval)
+    gate_report_path = _write_publishability_gate_report(quest_root)
+    gate_report = json.loads(gate_report_path.read_text(encoding="utf-8"))
+    gate_report.update(
+        {
+            "generated_at": "2026-04-12T09:50:00+00:00",
+            "status": "clear",
+            "allow_write": True,
+            "recommended_action": "continue_per_gate",
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "supervisor_phase": "bundle_stage_ready",
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        }
+    )
+    _write_json(gate_report_path, gate_report)
+    evaluation_summary_path = (
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    )
+    _write_json(
+        evaluation_summary_path,
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-11T09:45:00+00:00",
+            "quality_closure_truth": {"state": "quality_repair_required"},
+            "quality_review_loop": {"closure_state": "quality_repair_required"},
+        },
+    )
+
+    publication_runtime._refresh_publication_surfaces_from_gate_report(
+        study_root=study_root,
+        study_id="001-risk",
+        quest_root=quest_root,
+        quest_id="quest-001",
+        publication_eval_path=publication_eval_path,
+        runtime_escalation_path=None,
+        runtime_readback_payload=None,
+    )
+
+    refreshed_summary = json.loads(evaluation_summary_path.read_text(encoding="utf-8"))
+    runtime_context_path = (
+        study_root / "artifacts" / "eval_hygiene" / "runtime_escalation_context" / "latest.json"
+    )
+    runtime_context = json.loads(runtime_context_path.read_text(encoding="utf-8"))
+
+    assert refreshed_summary["emitted_at"] == "2026-04-12T09:45:00+00:00"
+    assert refreshed_summary["quality_closure_truth"]["state"] == "bundle_only_remaining"
+    assert refreshed_summary["runtime_escalation_ref"]["artifact_path"] == str(runtime_context_path.resolve())
+    assert runtime_context["authority_boundary"]["can_claim_runtime_escalation"] is False
 
 
 def test_blocked_gate_projection_does_not_overwrite_current_ai_reviewer_eval(

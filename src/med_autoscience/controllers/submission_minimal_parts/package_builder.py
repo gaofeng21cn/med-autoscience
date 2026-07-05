@@ -171,6 +171,13 @@ def _is_supplementary_table(entry: Mapping[str, Any]) -> bool:
     return str(entry.get("paper_role") or "").strip().lower() == "supplementary"
 
 
+def _is_supplementary_figure(entry: Mapping[str, Any]) -> bool:
+    if str(entry.get("paper_role") or "").strip().lower() != "supplementary":
+        return False
+    display_role = str(entry.get("display_role") or "").strip().lower()
+    return not display_role.startswith("deferred_")
+
+
 def _supplementary_table_label(table_id: str) -> str:
     normalized = table_id.strip()
     if normalized.upper().startswith("S"):
@@ -208,6 +215,72 @@ def _markdown_without_front_matter(markdown_text: str) -> str:
             if line.strip() == "---":
                 return "\n".join(lines[index + 1 :]).strip()
     return markdown_text.strip()
+
+
+def _figure_markdown_image_path(
+    *,
+    entry: Mapping[str, Any],
+    workspace_root: Path,
+    submission_root: Path,
+) -> str:
+    preferred_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".pdf", ".svg")
+    output_paths = [str(path or "").strip() for path in entry.get("output_paths") or [] if str(path or "").strip()]
+    for suffix in preferred_suffixes:
+        for raw_path in output_paths:
+            if not raw_path.lower().endswith(suffix):
+                continue
+            resolved = resolve_relpath(workspace_root, raw_path)
+            if not resolved.exists():
+                continue
+            try:
+                return resolved.resolve().relative_to(submission_root.resolve()).as_posix()
+            except ValueError:
+                return relpath_from_workspace(resolved, workspace_root)
+    return ""
+
+
+def _build_supplementary_figures_markdown(
+    *,
+    figure_entries: list[dict[str, Any]],
+    submission_root: Path,
+    workspace_root: Path,
+) -> Path | None:
+    supplementary_entries = [entry for entry in figure_entries if _is_supplementary_figure(entry)]
+    if not supplementary_entries:
+        return None
+
+    lines = [
+        "---",
+        'title: "Supplementary Figures"',
+        "bibliography: references.bib",
+        "link-citations: true",
+        "---",
+        "",
+        "# Supplementary Figures",
+        "",
+        "This file contains supplementary figures generated with the manuscript review package.",
+        "",
+    ]
+    for index, entry in enumerate(supplementary_entries, start=1):
+        title = str(entry.get("title") or "").strip()
+        heading = f"## Supplementary Figure S{index}"
+        if title:
+            heading += f". {title}"
+        lines.extend([heading, ""])
+        caption = str(entry.get("caption") or "").strip()
+        if caption:
+            lines.extend([caption, ""])
+        image_path = _figure_markdown_image_path(
+            entry=entry,
+            workspace_root=workspace_root,
+            submission_root=submission_root,
+        )
+        if image_path:
+            lines.extend([f"![]({image_path}){{width=100%}}", ""])
+
+    output_path = submission_root / "supplementary_figures.md"
+    write_text(output_path, "\n".join(lines).rstrip() + "\n")
+    return output_path
 
 
 def _build_supplementary_tables_markdown(
@@ -255,11 +328,42 @@ def _build_supplementary_tables_markdown(
     return output_path
 
 
+def _build_combined_supplementary_markdown(
+    *,
+    supplementary_markdown_paths: list[Path],
+    submission_root: Path,
+) -> Path | None:
+    paths = [path for path in supplementary_markdown_paths if path.exists()]
+    if not paths:
+        return None
+    if len(paths) == 1:
+        return paths[0]
+    body = "\n\n".join(_markdown_without_front_matter(path.read_text(encoding="utf-8")) for path in paths)
+    output_path = submission_root / "supplementary_material.md"
+    write_text(
+        output_path,
+        "\n".join(
+            [
+                "---",
+                'title: "Supplementary Material"',
+                "bibliography: references.bib",
+                "link-citations: true",
+                "---",
+                "",
+                body.strip(),
+                "",
+            ]
+        ),
+    )
+    return output_path
+
+
 def _build_combined_review_markdown(
     *,
     manuscript_markdown_path: Path,
     supplementary_markdown_path: Path,
     submission_root: Path,
+    output_name: str = "manuscript_with_supplementary.md",
 ) -> Path:
     combined_text = (
         manuscript_markdown_path.read_text(encoding="utf-8").rstrip()
@@ -267,7 +371,7 @@ def _build_combined_review_markdown(
         + _markdown_without_front_matter(supplementary_markdown_path.read_text(encoding="utf-8"))
         + "\n"
     )
-    output_path = submission_root / "manuscript_with_supplementary.md"
+    output_path = submission_root / output_name
     write_text(output_path, combined_text)
     return output_path
 
@@ -447,10 +551,12 @@ def create_submission_minimal_package(
         compiled_pdf_path = output_pdf_path
 
         source_markdown_path = compiled_markdown_path
+        docx_source_markdown_path: Path | None = None
         supplementary_source_markdown_path: Path | None = None
         supplementary_output_docx_path: Path | None = None
         supplementary_output_pdf_path: Path | None = None
         combined_review_source_markdown_path: Path | None = None
+        combined_review_docx_source_markdown_path: Path | None = None
         combined_review_docx_path: Path | None = None
         combined_review_pdf_path: Path | None = None
         source_markdown_alias_path: Path | None = None
@@ -460,6 +566,13 @@ def create_submission_minimal_package(
                 compiled_markdown_path=compiled_markdown_path,
                 submission_root=staging_submission_root,
                 compiled_markdown_text=compiled_markdown_text,
+            )
+            docx_source_markdown_path = build_general_medical_submission_markdown(
+                compiled_markdown_path=compiled_markdown_path,
+                submission_root=staging_submission_root,
+                compiled_markdown_text=compiled_markdown_text,
+                output_name="manuscript_submission_docx.md",
+                allow_landscape_latex_for_tables=False,
             )
         elif is_frontiers_family_harvard_profile(resolved_publication_profile):
             source_markdown_path = build_frontiers_manuscript_markdown(
@@ -535,6 +648,9 @@ def create_submission_minimal_package(
                 "pack_id": pack_id,
                 "renderer_family": entry.get("renderer_family"),
                 "paper_role": entry.get("paper_role"),
+                "display_role": entry.get("display_role"),
+                "title": entry.get("title"),
+                "caption": entry.get("caption"),
                 "input_schema_id": entry.get("input_schema_id"),
                 "qc_profile": entry.get("qc_profile"),
                 "qc_result": entry.get("qc_result"),
@@ -597,17 +713,36 @@ def create_submission_minimal_package(
             table_entries.append(table_entry)
 
         if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
-            supplementary_source_markdown_path = _build_supplementary_tables_markdown(
+            supplementary_tables_markdown_path = _build_supplementary_tables_markdown(
                 table_entries=table_entries,
                 submission_root=staging_submission_root,
                 workspace_root=workspace_root,
             )
+            supplementary_figures_markdown_path = _build_supplementary_figures_markdown(
+                figure_entries=figure_entries,
+                submission_root=staging_submission_root,
+                workspace_root=workspace_root,
+            )
+            supplementary_source_markdown_path = _build_combined_supplementary_markdown(
+                supplementary_markdown_paths=[
+                    path
+                    for path in (supplementary_tables_markdown_path, supplementary_figures_markdown_path)
+                    if path is not None
+                ],
+                submission_root=staging_submission_root,
+            )
             if supplementary_source_markdown_path is not None:
-                supplementary_output_pdf_path = staging_submission_root / "supplementary_tables.pdf"
+                supplementary_output_pdf_path = staging_submission_root / f"{supplementary_source_markdown_path.stem}.pdf"
                 combined_review_source_markdown_path = _build_combined_review_markdown(
                     manuscript_markdown_path=source_markdown_path,
                     supplementary_markdown_path=supplementary_source_markdown_path,
                     submission_root=staging_submission_root,
+                )
+                combined_review_docx_source_markdown_path = _build_combined_review_markdown(
+                    manuscript_markdown_path=docx_source_markdown_path or source_markdown_path,
+                    supplementary_markdown_path=supplementary_source_markdown_path,
+                    submission_root=staging_submission_root,
+                    output_name="manuscript_with_supplementary_docx.md",
                 )
                 combined_review_docx_path = staging_submission_root / "manuscript_with_supplementary.docx"
                 combined_review_pdf_path = staging_submission_root / "paper_with_supplementary.pdf"
@@ -620,7 +755,7 @@ def create_submission_minimal_package(
         )
 
         export_docx(
-            compiled_markdown_path=source_markdown_path,
+            compiled_markdown_path=docx_source_markdown_path or source_markdown_path,
             paper_root=paper_root,
             output_docx_path=output_docx_path,
             csl_path=profile_config.csl_path,
@@ -649,7 +784,7 @@ def create_submission_minimal_package(
             )
         if combined_review_source_markdown_path is not None and combined_review_docx_path is not None:
             export_docx(
-                compiled_markdown_path=combined_review_source_markdown_path,
+                compiled_markdown_path=combined_review_docx_source_markdown_path or combined_review_source_markdown_path,
                 paper_root=paper_root,
                 output_docx_path=combined_review_docx_path,
                 csl_path=profile_config.csl_path,

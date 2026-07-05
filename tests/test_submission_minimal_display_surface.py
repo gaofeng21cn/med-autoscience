@@ -3,7 +3,9 @@ from __future__ import annotations
 import base64
 import importlib
 import json
+import os
 from pathlib import Path
+import shutil
 from typing import Any
 
 from med_autoscience import display_registry
@@ -314,6 +316,210 @@ Caption.
     assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
 
 
+def test_create_submission_minimal_package_refreshes_stale_compile_report_from_newer_current_draft(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Newer Current Draft"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Newer current draft abstract.
+
+# Methods
+
+Newer current draft methods.
+""",
+    )
+    compile_report_path = paper_root / "build" / "compile_report.json"
+    os.utime(compile_report_path, (1000, 1000))
+    os.utime(paper_root / "draft.md", (2000, 2000))
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    compile_report = json.loads(compile_report_path.read_text(encoding="utf-8"))
+    assert "Newer Current Draft" in submission_text
+    assert "Newer current draft methods." in submission_text
+    assert "Display Surface Manuscript" not in submission_text
+    assert compile_report["status"] == "current_draft_compile_source_hydrated"
+    assert compile_report["source_markdown_path"] == "paper/draft.md"
+    assert manifest["source_hydration"]["source_compile_report_status"] == "refreshed_from_current_draft"
+    assert "paper/build/compile_report.json" in manifest["source_hydration"]["hydrated_files"]
+
+
+def test_create_submission_minimal_package_preserves_current_draft_table_body_over_stale_catalog(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Current Draft With Table"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Current draft abstract.
+
+# Main Tables
+
+### Table 1. Current review table
+
+| Characteristic | Value |
+| --- | --- |
+| Current row | 99 |
+""",
+    )
+    os.utime(paper_root / "build" / "compile_report.json", (1000, 1000))
+    os.utime(paper_root / "tables" / "T1_summary.md", (1000, 1000))
+    os.utime(paper_root / "draft.md", (2000, 2000))
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "Current row" in submission_text
+    assert "99" in submission_text
+    assert "Age | 52" not in submission_text
+
+
+def test_create_submission_minimal_package_refreshes_stage_native_current_body_paper_root(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    seed_root = make_workspace(tmp_path / "seed")
+    paper_root = (
+        tmp_path
+        / "study"
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    shutil.copytree(seed_root, paper_root)
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Stage Native Current Body Draft"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Stage-native current body abstract.
+
+# Methods
+
+Stage-native current body methods.
+""",
+    )
+    compile_report_path = paper_root / "build" / "compile_report.json"
+    os.utime(compile_report_path, (1000, 1000))
+    os.utime(paper_root / "draft.md", (2000, 2000))
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "Stage Native Current Body Draft" in submission_text
+    assert "Stage-native current body methods." in submission_text
+    assert "Display Surface Manuscript" not in submission_text
+    assert manifest["source_hydration"]["source_root"] == str(paper_root.resolve())
+    assert manifest["source_hydration"]["source_compile_report_status"] == "refreshed_from_current_draft"
+
+
+def test_create_submission_minimal_package_preserves_newer_target_draft_when_hydrating_current_body(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    study_root = tmp_path / "workspace"
+    paper_root = make_workspace(tmp_path)
+    current_body_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    shutil.copytree(paper_root, current_body_paper_root)
+    write_text(
+        current_body_paper_root / "draft.md",
+        """---
+title: "Older Current Body Draft"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Older current-body draft.
+""",
+    )
+    write_text(
+        paper_root / "draft.md",
+        """---
+title: "Newer Target Draft"
+bibliography: references.bib
+link-citations: true
+---
+
+# Abstract
+
+Newer target draft abstract.
+
+# Methods
+
+Newer target draft methods.
+""",
+    )
+    os.utime(current_body_paper_root / "draft.md", (1000, 1000))
+    os.utime(current_body_paper_root / "build" / "compile_report.json", (1000, 1000))
+    os.utime(paper_root / "draft.md", (2000, 2000))
+    os.utime(paper_root / "build" / "compile_report.json", (1000, 1000))
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "Newer Target Draft" in submission_text
+    assert "Newer target draft methods." in submission_text
+    assert "Older Current Body Draft" not in submission_text
+    assert manifest["source_hydration"]["source_compile_report_status"] == "refreshed_from_current_draft"
+
+
 def test_create_submission_minimal_package_hydrates_delivery_required_ledgers_from_current_body(
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
@@ -438,6 +644,45 @@ Caption.
     assert "## Baseline cohort and burden characteristics by Knosp strata" in submission_text
     assert "## Comparative performance for the bounded non-GTR extension" in submission_text
     assert "| Knosp + diameter | 0.80 |" in submission_text
+
+
+def test_create_submission_minimal_package_materializes_catalog_tables_when_source_has_no_main_tables_section(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        """---
+title: "Display Surface Manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+# Abstract
+
+Test citation [@ref1].
+
+# Main Figures
+
+## Figure 1. Main figure
+
+Caption.
+
+![](../figures/F1_main.png)
+""",
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "# Main Tables" in submission_text
+    assert "## Table 1. Summary table" in submission_text
+    assert "| Characteristic | Value |" in submission_text
+    assert "| Age | 52 |" in submission_text
 
 
 def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_table_exports(tmp_path: Path) -> None:

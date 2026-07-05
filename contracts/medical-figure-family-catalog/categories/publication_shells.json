@@ -210,6 +210,90 @@
       ],
       "template_seed_ids": [],
       "ai_adaptation_notes": "AI may move overcrowded panels to separate supplement figures rather than shrinking text below readability."
+    },
+    {
+      "family_id": "registry_variable_availability",
+      "category_id": "publication_shells",
+      "title": "Registry Variable Availability",
+      "intent": "Show variable or field availability across registry domains, sites, or source systems.",
+      "canonical_variants": [
+        "availability_bar_panel",
+        "variable_inventory_table",
+        "source_availability_matrix"
+      ],
+      "data_roles": [
+        "variable",
+        "domain",
+        "source",
+        "available_n",
+        "availability_rate"
+      ],
+      "starter_recipe_refs": [
+        "registry_variable_availability_panel"
+      ],
+      "style_tokens": [
+        "supplement_dense"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "layout_readability"
+      ],
+      "loose_match_terms": [
+        "registry variable availability",
+        "field availability",
+        "source availability",
+        "variable inventory"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "availability_bar_panel"
+      ],
+      "ai_adaptation_notes": "AI may use bars, matrices, or compact tables, but must separate measurement availability from clinical prevalence."
+    },
+    {
+      "family_id": "variable_ascertainment",
+      "category_id": "publication_shells",
+      "title": "Variable Ascertainment",
+      "intent": "Show how analysis variables are ascertained, sourced, or operationalized for reproducible medical reporting.",
+      "canonical_variants": [
+        "ascertainment_table",
+        "source_definition_panel",
+        "variable_measurement_audit"
+      ],
+      "data_roles": [
+        "variable",
+        "source",
+        "definition",
+        "measurement_window",
+        "available_n"
+      ],
+      "starter_recipe_refs": [
+        "variable_ascertainment_panel"
+      ],
+      "style_tokens": [
+        "clinical_journal"
+      ],
+      "palette_tokens": [
+        "categorical_accessible"
+      ],
+      "qa_gate_ids": [
+        "source_data_traceability",
+        "journal_export"
+      ],
+      "loose_match_terms": [
+        "variable ascertainment",
+        "variable definition",
+        "measurement source",
+        "diagnostic ascertainment"
+      ],
+      "external_refs": [],
+      "template_seed_ids": [
+        "supplementary_variable_ascertainment"
+      ],
+      "ai_adaptation_notes": "AI may render as table or source-data companion; definitions, source fields, and denominator notes must stay auditable."
     }
   ]
 }

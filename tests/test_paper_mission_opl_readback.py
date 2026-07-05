@@ -1138,6 +1138,38 @@ def test_opl_runtime_readback_reports_same_identity_running_attempt(
     assert running["provider_completion_is_domain_ready"] is False
 
 
+def test_opl_runtime_readback_consumes_running_attempt_closeout_without_work_unit(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    _write_closeout(
+        study_root,
+        {
+            "status": "route_back_evidence_candidate",
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-running",
+            "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+            "work_unit_id": None,
+            "work_unit_fingerprint": None,
+            "blocked_reason": None,
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=_opl_running_task_running_attempt_payload(),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "terminal_closeout_observed"
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-running"
+    assert "running_attempt" not in readback
+    assert readback["can_claim_paper_progress"] is False
+
+
 def test_opl_runtime_readback_prefers_live_running_attempt_over_local_terminal_residue(
     tmp_path: Path,
 ) -> None:

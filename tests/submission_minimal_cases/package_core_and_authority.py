@@ -186,10 +186,14 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     )
 
     submission_root = paper_root / "submission_minimal"
-    supplementary_markdown_path = submission_root / "supplementary_tables.md"
-    supplementary_pdf_path = submission_root / "supplementary_tables.pdf"
+    supplementary_tables_markdown_path = submission_root / "supplementary_tables.md"
+    supplementary_figures_markdown_path = submission_root / "supplementary_figures.md"
+    supplementary_markdown_path = submission_root / "supplementary_material.md"
+    supplementary_pdf_path = submission_root / "supplementary_material.pdf"
     combined_docx_path = submission_root / "manuscript_with_supplementary.docx"
     combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
+    assert supplementary_tables_markdown_path.exists()
+    assert supplementary_figures_markdown_path.exists()
     assert supplementary_markdown_path.exists()
     assert supplementary_pdf_path.exists()
     assert combined_docx_path.exists()
@@ -200,13 +204,15 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     assert supplementary_markdown.count("Supplementary Table S1. Missingness atlas") == 1
     assert "Supplementary completeness summary." in supplementary_markdown
     assert "| BMI | 0 |" in supplementary_markdown
+    assert "Supplementary Figure S1. Supplementary figure" in supplementary_markdown
+    assert "![](figures/SupplementaryFigureS1.png){width=100%}" in supplementary_markdown
 
     manifest = json.loads((submission_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
     assert manifest["supplementary_material"]["source_markdown_path"] == (
-        "paper/submission_minimal/supplementary_tables.md"
+        "paper/submission_minimal/supplementary_material.md"
     )
     assert manifest["supplementary_material"]["pdf_path"] == (
-        "paper/submission_minimal/supplementary_tables.pdf"
+        "paper/submission_minimal/supplementary_material.pdf"
     )
     assert manifest["supplementary_material"]["combined_review_docx_path"] == (
         "paper/submission_minimal/manuscript_with_supplementary.docx"
@@ -218,6 +224,29 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
         len(PdfReader(str(submission_root / "paper.pdf")).pages)
         + len(PdfReader(str(supplementary_pdf_path)).pages)
     )
+
+
+def test_create_submission_minimal_package_skips_deferred_supplementary_figures(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"][1]["display_role"] = "deferred_context_not_main_evidence"
+    dump_json(figure_catalog_path, figure_catalog)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    supplementary_figures_markdown_path = submission_root / "supplementary_figures.md"
+    supplementary_markdown_path = submission_root / "supplementary_material.md"
+
+    assert not supplementary_figures_markdown_path.exists()
+    assert not supplementary_markdown_path.exists()
 
 
 def test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input(
@@ -1171,3 +1200,89 @@ def test_create_submission_minimal_package_accepts_current_figure_and_table_cata
     assert (submission_root / "figures" / "figure1.pdf").exists()
     assert (submission_root / "figures" / "figure1.png").exists()
     assert (submission_root / "tables" / "table1.md").exists()
+
+
+def test_submission_source_contract_signature_changes_when_renderer_contract_changes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shared_module = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.source_contract"
+    )
+    paper_root = make_paper_workspace(tmp_path)
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    kwargs = {
+        "paper_root": paper_root,
+        "workspace_root": paper_root.parent,
+        "compile_report_path": paper_root / "build" / "compile_report.json",
+        "compiled_markdown_path": paper_root / "build" / "review_manuscript.md",
+        "figure_catalog_path": paper_root / "figures" / "figure_catalog.json",
+        "table_catalog_path": paper_root / "tables" / "table_catalog.json",
+        "figure_catalog": figure_catalog,
+        "table_catalog": table_catalog,
+        "references_source_path": paper_root / "references.bib",
+    }
+
+    baseline_contract = shared_module.build_submission_minimal_source_contract(**kwargs)
+    monkeypatch.setattr(
+        shared_module,
+        "_controller_renderer_contract_entries",
+        lambda: [
+            {
+                "path": "controller_module://submission_minimal_parts/profile_builders.py",
+                "size": 1,
+                "mtime_ns": 1,
+                "sha256": "1" * 64,
+            }
+        ],
+    )
+    changed_contract = shared_module.build_submission_minimal_source_contract(**kwargs)
+
+    assert baseline_contract["controller_renderer_signature"] != changed_contract["controller_renderer_signature"]
+    assert baseline_contract["source_signature"] != changed_contract["source_signature"]
+
+
+def test_general_medical_docx_markdown_keeps_wide_main_tables(tmp_path: Path) -> None:
+    profile_builders = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.profile_builders"
+    )
+    paper_root = make_paper_workspace(tmp_path)
+    write_text(
+        paper_root / "tables" / "T4_wide.md",
+        "\n".join(
+            [
+                "| BMI category | A | B | C | D | E | F | G | H |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+                "| Overweight | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |",
+            ]
+        ) + "\n",
+    )
+    write_text(paper_root / "tables" / "T4_wide.csv", "BMI category,A,B,C,D,E,F,G,H\nOverweight,1,2,3,4,5,6,7,8\n")
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table_catalog = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    table_catalog["tables"].append(
+        {
+            "table_id": "T4",
+            "paper_role": "main_text",
+            "title": "Adult multidimensional metabolic phenotype profile by BMI category",
+            "caption": "Wide table preview.",
+            "asset_paths": [
+                "paper/tables/T4_wide.csv",
+                "paper/tables/T4_wide.md",
+            ],
+        }
+    )
+    dump_json(table_catalog_path, table_catalog)
+
+    output_path = profile_builders.build_general_medical_submission_markdown(
+        compiled_markdown_path=paper_root / "build" / "review_manuscript.md",
+        submission_root=paper_root / "submission_minimal",
+        compiled_markdown_text=(paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8"),
+        output_name="manuscript_submission_docx.md",
+        allow_landscape_latex_for_tables=False,
+    )
+    markdown_text = output_path.read_text(encoding="utf-8")
+    assert "## Table 4. Adult multidimensional metabolic phenotype profile by BMI category" in markdown_text
+    assert "| BMI category | A | B | C | D | E | F | G | H |" in markdown_text
+    assert r"\begin{landscape}" not in markdown_text

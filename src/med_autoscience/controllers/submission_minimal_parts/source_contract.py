@@ -65,6 +65,33 @@ def _source_signature_payload(source_files: list[dict[str, Any]]) -> list[dict[s
     ]
 
 
+def _controller_renderer_contract_entries() -> list[dict[str, Any]]:
+    parts_root = Path(__file__).resolve().parent
+    controllers_root = parts_root.parent
+    tracked_paths = (
+        parts_root / "profile_builders.py",
+        parts_root / "markdown_surface.py",
+        parts_root / "markdown_surface_tables.py",
+        parts_root / "export_renderers.py",
+        parts_root / "package_builder.py",
+        controllers_root / "study_delivery_sync_parts" / "current_package_projection.py",
+    )
+    entries: list[dict[str, Any]] = []
+    for path in tracked_paths:
+        if not path.exists() or not path.is_file():
+            continue
+        stat = path.stat()
+        entries.append(
+            {
+                "path": f"controller_module://{path.relative_to(controllers_root).as_posix()}",
+                "size": stat.st_size,
+                "mtime_ns": stat.st_mtime_ns,
+                "sha256": _hash_file_bytes(path),
+            }
+        )
+    return sorted(entries, key=lambda item: str(item["path"]))
+
+
 def build_submission_minimal_source_contract(
     *,
     paper_root: Path,
@@ -142,14 +169,30 @@ def build_submission_minimal_source_contract(
             add_required(source_path)
 
     source_files = sorted(entries_by_path.values(), key=lambda item: str(item["path"]))
-    source_signature = hashlib.sha256(
-        json.dumps(_source_signature_payload(source_files), ensure_ascii=False, sort_keys=True).encode("utf-8")
+    controller_renderer_files = _controller_renderer_contract_entries()
+    controller_renderer_signature = hashlib.sha256(
+        json.dumps(_source_signature_payload(controller_renderer_files), ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
-    latest_source_mtime_ns = max((int(item["mtime_ns"]) for item in source_files), default=0)
+    source_signature = hashlib.sha256(
+        json.dumps(
+            {
+                "paper_inputs": _source_signature_payload(source_files),
+                "controller_renderer_inputs": _source_signature_payload(controller_renderer_files),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    latest_source_mtime_ns = max(
+        (int(item["mtime_ns"]) for item in [*source_files, *controller_renderer_files]),
+        default=0,
+    )
     return {
         "schema_version": 1,
         "source_files": source_files,
         "source_paths": [str(item["path"]) for item in source_files],
+        "controller_renderer_files": controller_renderer_files,
+        "controller_renderer_signature": controller_renderer_signature,
         "source_signature": source_signature,
         "latest_source_mtime_ns": latest_source_mtime_ns,
         "missing_source_paths": sorted(missing_source_paths),

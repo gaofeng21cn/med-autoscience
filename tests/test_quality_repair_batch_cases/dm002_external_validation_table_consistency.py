@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -75,6 +76,32 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
     _write_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     _write_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _write_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_risk_group_summary",
+                    "catalog_id": "F3",
+                }
+            ],
+        },
+    )
+    (paper_root / "tables" / "generated").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv").write_text(
+        "\n".join(
+            [
+                'Characteristic,"China cohort (n=15,789)","NHANES cohort (n=5,659)"',
+                '"HDL cholesterol, cohort source unit",1.2 (0.4),48.2 (14.2)',
+                '"5-year all-cause mortality events, n (%)",321 (2.0%),704 (12.4%)',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     _write_dm002_rerun_evidence(study_root)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
     publication_eval_payload["recommended_actions"][0].update(
@@ -164,8 +191,11 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     }
     assert "paper/draft.md" in changed_paths
     assert "paper/build/review_manuscript.md" in changed_paths
+    assert "paper/tables/generated/T1_baseline_characteristics.md" in changed_paths
+    assert "paper/tables/generated/T1_baseline_characteristics.csv" in changed_paths
     assert "paper/tables/generated/T2_time_to_event_performance_summary.md" in changed_paths
     assert "paper/tables/generated/T3_grouped_calibration.md" in changed_paths
+    assert "paper/time_to_event_grouped_inputs.json" in changed_paths
     story_text = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert "External validation of a China-derived diabetes mortality score in NHANES" in story_text
     assert "15,789" in story_text
@@ -175,6 +205,10 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "0.734 (95% CI 0.714-0.757)" in story_text
     assert "12.44% (95% CI 11.68%-13.17%)" in story_text
     assert "2.33% (95% CI 2.33%-2.35%)" in story_text
+    assert "NHANES 1999-2018 public-use survey program linked to the 2019 mortality follow-up release" in story_text
+    assert "doctor-diagnosed diabetes (DIQ010 == 1)" in story_text
+    assert "PERMTH_EXM" in story_text
+    assert "does not preserve a cycle-by-cycle exclusion ledger" in story_text
     assert "O:E ratio was 5.33 (95% CI 5.02-5.65)" in story_text
     assert "Brier score was 0.118 (95% CI 0.111-0.125)" in story_text
     assert "calibration slope was 5.64 (95% CI 5.09-6.19)" in story_text
@@ -182,10 +216,17 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "lowest decile" in story_text
     assert "highest decile" in story_text
     assert "HDL cholesterol was converted from mg/dL to mmol/L using 0.02586" in story_text
+    assert "| HDL cholesterol, mmol/L | 1.2 (0.4) | 1.25 (0.37) |" in story_text
+    assert "NHANES HDL-C was originally measured in mg/dL and converted to mmol/L by multiplying by 0.02586" in story_text
+    assert "| 5-year all-cause mortality events, n (%) | 309 (2.0%) | 704 (12.4%) |" in story_text
+    assert "| 5-year all-cause mortality events | 309 | 704 |" in story_text
+    assert "moderate preservation of risk ordering" in story_text
     assert "nonparametric bootstrap replicates" in story_text
     assert "lifelines 0.30.3" in story_text
     assert "unweighted NHANES" in story_text
     assert "applied unchanged in NHANES" in story_text
+    assert "archived rerun recorded a penalizer of 0.1" in story_text
+    assert "did not identify whether that penalty was ridge, lasso, or elastic net" in story_text
     assert "No NHANES coefficient updating" in story_text
     assert "| HDL cholesterol, mmol/L | -0.0727923 |" in story_text
     assert "risk-scale compression" in story_text
@@ -194,9 +235,30 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "age, sex, smoking status, HbA1c, HDL cholesterol, systolic blood pressure, and diastolic blood pressure" in story_text
     assert "hdl_mmol_l" not in story_text
     assert "% percentage points" not in story_text
+    assert "HDL cholesterol, cohort source unit" not in story_text
+    assert "48.2 (14.2)" not in story_text
+    assert "321 in analysis data; 309 within 5-year horizon" not in story_text
+    assert "preserved but not definitive risk ordering" not in story_text
+    assert "HDL unit conversion changed the NHANES risk scale materially" not in story_text
+    table1_text = (
+        paper_root / "tables" / "generated" / "T1_baseline_characteristics.md"
+    ).read_text(encoding="utf-8")
+    assert "| HDL cholesterol, mmol/L | 1.2 (0.4) | 1.25 (0.37) |" in table1_text
+    assert "| 5-year all-cause mortality events, n (%) | 309 (2.0%) | 704 (12.4%) |" in table1_text
+    assert "NHANES HDL-C was originally measured in mg/dL" in table1_text
+    assert table1_text.count("NHANES HDL-C was originally measured in mg/dL") == 1
+    table1_csv = (
+        paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv"
+    ).read_text(encoding="utf-8")
+    assert '"HDL cholesterol, mmol/L",1.2 (0.4),1.25 (0.37)' in table1_csv
+    assert '"5-year all-cause mortality events, n (%)",309 (2.0%),704 (12.4%)' in table1_csv
+    assert "HDL cholesterol, cohort source unit" not in table1_csv
+    assert "48.2 (14.2)" not in table1_csv
+    assert "321 (2.0%)" not in table1_csv
     table2_text = (
         paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md"
     ).read_text(encoding="utf-8")
+    assert "| 5-year all-cause mortality events | 309 | 704 |" in table2_text
     assert "| C-index | 0.760 | 0.734 (95% CI 0.714-0.757) |" in table2_text
     assert "| Observed-to-expected ratio | 1.00 | 5.33 (95% CI 5.02-5.65) |" in table2_text
     assert "| Brier score | 0.019 | 0.118 (95% CI 0.111-0.125) |" in table2_text
@@ -208,6 +270,18 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     assert "| 1 | 566 | 13 | 1.61% | 2.30% (95% CI 1.35%-3.89%) |" in table3_text
     assert "| 10 | 565 | 214 | 3.08% | 37.88% (95% CI 33.97%-41.95%) |" in table3_text
     assert "not prespecified clinical decision thresholds" in table3_text
+    grouped_inputs = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    grouped_display = grouped_inputs["displays"][0]
+    assert grouped_display["display_id"] == "km_risk_stratification"
+    assert grouped_display["plot_variant"] == "nhanes_decile_grouped_calibration"
+    assert grouped_display["risk_group_summaries"][0]["label"] == "Decile 1"
+    assert grouped_display["risk_group_summaries"][0]["risk_group_label"] == "1"
+    assert grouped_display["risk_group_summaries"][-1]["label"] == "Decile 10"
+    assert grouped_display["risk_group_summaries"][0]["observed_5y_rate_ci_95"]["lower"] == pytest.approx(
+        0.013470882925079992
+    )
+    assert grouped_display["risk_group_summaries"][-1]["events_5y"] == 214
+    assert "groups" not in grouped_display
     forbidden_runtime_terms = (
         "MAS",
         "AI reviewer",

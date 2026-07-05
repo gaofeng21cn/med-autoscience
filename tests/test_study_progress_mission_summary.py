@@ -26,6 +26,23 @@ def _disable_default_opl_live_probe(monkeypatch: pytest.MonkeyPatch, tmp_path) -
 from tests.test_study_progress_mission_summary_cases.materialized_readback import *  # noqa: F403,F401
 
 
+def test_receipt_owner_consumption_route_checkpoint_maps_to_route_back_status() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    status = module._effective_consume_candidate_status_for_receipt_owner_consumption(
+        fallback="accepted",
+        receipt_owner_consumption_readback={
+            "mas_receipt_consumption": {
+                "status": "owner_consumed_route_checkpoint",
+            }
+        },
+    )
+
+    assert status == "route_back"
+
+
 def test_fallback_mission_summary_consumes_governed_ledger_without_materialized_run(
     tmp_path,
     capsys,
@@ -863,6 +880,112 @@ def test_live_terminal_receipt_consumption_supersedes_stale_runtime_readback_req
     assert payload["artifact_first_mission_summary"]["mas_receipt_consumption"] == (
         payload["mas_receipt_consumption"]
     )
+
+
+def test_attach_artifact_first_mission_summary_prefers_stage_closure_owner_consumption_over_stale_existing_next_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+    stale_next_action = {
+        "surface_kind": SURFACE_KIND,
+        "action_id": "next-action::stale-write",
+        "action_family": "paper.write.prose_repair",
+        "owner": "write",
+        "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+    }
+    summary_next_action = {
+        "surface_kind": SURFACE_KIND,
+        "action_id": "next-action::owner-consumption",
+        "action_family": "paper.stage_closure.owner_consumption",
+        "owner": "MedAutoScience",
+        "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+    }
+
+    monkeypatch.setattr(
+        module,
+        "build_artifact_first_mission_summary",
+        lambda *_args, **_kwargs: {
+            "mission_state": "route_back",
+            "consume_candidate_status": "route_back",
+            "stage_closure_decision": {
+                "decision_ref": "stage-closure::review",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                },
+            },
+            "paper_mission_run": {"mission_state": "consumed"},
+            "current_objective": {},
+            "latest_artifact_delta": {},
+            "next_owner_or_human_decision": {},
+            "paper_mission_transaction": {},
+            "stage_terminal_decision": {},
+            "opl_route_command": {},
+            "opl_runtime_carrier": {},
+            "opl_transition_receipt": {},
+            "receipt_evidence": {},
+            "mas_receipt_consumption": {},
+            "transaction_state": "consumed",
+            "read_model_source": {"source_kind": "paper_mission_consumption_ledger"},
+            "next_action": summary_next_action,
+            "receipt_owner_consumption_readback": {
+                "mas_receipt_consumption": {
+                    "status": "owner_consumed_route_checkpoint"
+                }
+            },
+        },
+    )
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "next_action": stale_next_action,
+            "canonical_next_action_source": "precomputed_canonical_next_action",
+        }
+    )
+
+    assert payload["next_action"] == summary_next_action
+    assert payload["canonical_next_action_source"] == "stage_closure.next_action"
+
+
+def test_domain_transition_next_action_yields_to_stage_closure_route_checkpoint() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.canonical_next_action_selection"
+    )
+
+    next_action = module.domain_transition_canonical_next_action(
+        {
+            "next_action": {
+                "surface_kind": SURFACE_KIND,
+                "action_id": "next-action::owner-consumption",
+                "action_family": "paper.stage_closure.owner_consumption",
+                "owner": "MedAutoScience",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            },
+            "receipt_owner_consumption_readback": {
+                "mas_receipt_consumption": {
+                    "status": "owner_consumed_route_checkpoint",
+                }
+            },
+            "domain_transition": {
+                "decision_type": "continue_same_stage",
+                "next_action": {
+                    "surface_kind": SURFACE_KIND,
+                    "action_id": "next-action::stale-write",
+                    "action_family": "paper.write.prose_repair",
+                    "owner": "write",
+                    "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                    "expected_output_contract": {
+                        "output_kind": "canonical_manuscript_delta"
+                    },
+                },
+            },
+        }
+    )
+
+    assert next_action == {}
 
 
 def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request() -> None:

@@ -440,6 +440,8 @@ def _drive_should_submit_direct_next_action(
     ):
         return True
     if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
+        if _drive_direct_next_action_already_owner_consumed(readback, next_action):
+            return False
         return True
     return (
         _optional_text(readback.get("canonical_next_action_source"))
@@ -448,7 +450,34 @@ def _drive_should_submit_direct_next_action(
         and action_family is not None
         and _optional_text(next_action.get("owner")) is not None
         and _optional_text(next_action.get("work_unit_id")) is not None
+        and not _drive_direct_next_action_already_owner_consumed(readback, next_action)
     )
+
+
+def _drive_direct_next_action_already_owner_consumed(
+    readback: Mapping[str, Any],
+    next_action: Mapping[str, Any],
+) -> bool:
+    current = _mapping(readback.get("current_opl_runtime_carrier_readback"))
+    consumption = _mapping(current.get("mas_receipt_consumption"))
+    status = _optional_text(consumption.get("status")) or ""
+    if not status.startswith("owner_consumed_"):
+        return False
+    if status == "owner_consumed_route_checkpoint":
+        return False
+    next_work_unit = _optional_text(next_action.get("work_unit_id"))
+    current_work_unit = _optional_text(
+        _mapping(current.get("opl_transition_receipt")).get("work_unit_id")
+    ) or _optional_text(
+        _mapping(current.get("terminal_closeout")).get("work_unit_id")
+    ) or _optional_text(
+        consumption.get("work_unit_id")
+    ) or _optional_text(
+        current.get("work_unit_id")
+    )
+    if next_work_unit is None or current_work_unit is None:
+        return False
+    return next_work_unit == current_work_unit
 
 
 def _drive_direct_next_action_readback(

@@ -97,7 +97,12 @@ def _stale_time_to_event_grouped_payload_candidate_ids(
     expected_template_id: str,
 ) -> list[str]:
     candidate_display_ids: list[str] = []
+    payload_display_ids: set[str] = set()
     for display in displays:
+        if isinstance(display, dict):
+            display_id = str(display.get("display_id") or "").strip()
+            if display_id:
+                payload_display_ids.add(display_id)
         display_id = _is_stale_time_to_event_grouped_payload_candidate(
             display=display,
             risk_summary_display_ids=risk_summary_display_ids,
@@ -105,6 +110,10 @@ def _stale_time_to_event_grouped_payload_candidate_ids(
         )
         if display_id is not None:
             candidate_display_ids.append(display_id)
+    missing_registry_ids = sorted(risk_summary_display_ids - payload_display_ids)
+    candidate_display_ids.extend(
+        display_id for display_id in missing_registry_ids if display_id not in candidate_display_ids
+    )
     return candidate_display_ids
 
 

@@ -275,6 +275,13 @@ def _materialized_mission_summary(
         )
     ):
         receipt_owner_consumption_readback = None
+    if receipt_owner_consumption_readback:
+        effective_consume_candidate_status = (
+            _effective_consume_candidate_status_for_receipt_owner_consumption(
+                fallback=effective_consume_candidate_status,
+                receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+            )
+        )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             "paper_mission_transaction": effective_transaction,
@@ -478,6 +485,28 @@ def _mission_state_for_consumption_ledger(
     if status in {"route_back", "rejected"}:
         return "route_back"
     return "consumed"
+
+
+def _effective_consume_candidate_status_for_receipt_owner_consumption(
+    *,
+    fallback: str,
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> str:
+    receipt = _mapping(receipt_owner_consumption_readback)
+    consumption = _mapping(receipt.get("mas_receipt_consumption"))
+    status = _non_empty_text(consumption.get("status"))
+    if status == "owner_consumed_route_checkpoint":
+        return "route_back"
+    if status == "owner_consumed_typed_blocker":
+        return "typed_blocker"
+    outcome = _mapping(_mapping(receipt.get("stage_closure_decision")).get("outcome"))
+    if (
+        _non_empty_text(outcome.get("kind")) == "next_stage_transition"
+        and _non_empty_text(outcome.get("transition_kind"))
+        == "route_back_candidate_checkpoint"
+    ):
+        return "route_back"
+    return fallback or "typed_blocker"
 
 
 def _consume_result_for_consumption_ledger(

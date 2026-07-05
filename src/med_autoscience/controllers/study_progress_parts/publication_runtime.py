@@ -602,11 +602,18 @@ def _refresh_publication_surfaces_from_gate_report(
     evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
     evaluation_summary_payload = _read_json_object(evaluation_summary_path)
     evaluation_summary_emitted_at = _non_empty_text((evaluation_summary_payload or {}).get("emitted_at"))
+    evaluation_summary_runtime_escalation_ref = _evaluation_summary_runtime_escalation_ref(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_escalation_path=runtime_escalation_path,
+        publication_eval_payload=publication_eval_payload,
+        evaluation_summary_payload=evaluation_summary_payload,
+    )
     if (
         publication_eval_payload is not None
         and publishability_gate_path is not None
-        and runtime_escalation_path is not None
-        and runtime_escalation_path.exists()
+        and evaluation_summary_runtime_escalation_ref is not None
         and refreshed_eval_emitted_at is not None
         and refreshed_eval_emitted_at != evaluation_summary_emitted_at
         and materialize_read_model_artifacts
@@ -614,12 +621,93 @@ def _refresh_publication_surfaces_from_gate_report(
         try:
             materialize_evaluation_summary_artifacts(
                 study_root=study_root,
-                runtime_escalation_ref=runtime_escalation_path,
+                runtime_escalation_ref=evaluation_summary_runtime_escalation_ref,
                 publishability_gate_report_ref=publishability_gate_path,
             )
         except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
     return publication_eval_payload, publishability_gate_path, publishability_gate_payload
+
+
+def _evaluation_summary_runtime_escalation_ref(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    runtime_escalation_path: Path | None,
+    publication_eval_payload: dict[str, Any] | None,
+    evaluation_summary_payload: dict[str, Any] | None,
+) -> Path | dict[str, str] | None:
+    if runtime_escalation_path is not None and runtime_escalation_path.exists():
+        return runtime_escalation_path
+    publication_eval_runtime_ref = _runtime_escalation_ref_from_payload(publication_eval_payload)
+    if publication_eval_runtime_ref is not None:
+        return publication_eval_runtime_ref
+    existing_runtime_ref = _runtime_escalation_ref_from_payload(evaluation_summary_payload)
+    if existing_runtime_ref is not None:
+        return existing_runtime_ref
+    return _materialize_missing_runtime_escalation_context_ref(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+    )
+
+
+def _runtime_escalation_ref_from_payload(payload: dict[str, Any] | None) -> Path | dict[str, str] | None:
+    if not isinstance(payload, dict):
+        return None
+    runtime_context_refs = payload.get("runtime_context_refs")
+    if isinstance(runtime_context_refs, dict):
+        ref_text = _non_empty_text(runtime_context_refs.get("runtime_escalation_ref"))
+        if ref_text is not None:
+            ref_path = Path(ref_text).expanduser()
+            if ref_path.exists():
+                return ref_path
+    runtime_ref = payload.get("runtime_escalation_ref")
+    if isinstance(runtime_ref, dict):
+        artifact_text = _non_empty_text(runtime_ref.get("artifact_path"))
+        if artifact_text is not None and Path(artifact_text).expanduser().exists():
+            return {
+                "record_id": _non_empty_text(runtime_ref.get("record_id")) or "",
+                "artifact_path": artifact_text,
+                "summary_ref": _non_empty_text(runtime_ref.get("summary_ref")) or "",
+            }
+    return None
+
+
+def _materialize_missing_runtime_escalation_context_ref(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+) -> Path:
+    artifact_path = (
+        study_root
+        / "artifacts"
+        / "eval_hygiene"
+        / "runtime_escalation_context"
+        / "latest.json"
+    )
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    summary_ref = launch_report_path if launch_report_path.exists() else artifact_path
+    payload = {
+        "schema_version": 1,
+        "record_id": f"runtime-escalation-context::{study_id}::{quest_id or 'unknown'}::not_available",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "status": "not_available",
+        "reason": "runtime_escalation_record_missing_for_evaluation_summary_refresh",
+        "artifact_path": str(artifact_path.resolve()),
+        "summary_ref": str(summary_ref.resolve()),
+        "authority_boundary": {
+            "surface_role": "read_model_context_only",
+            "can_claim_runtime_escalation": False,
+            "can_claim_paper_progress": False,
+        },
+    }
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return artifact_path
 
 
 def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:

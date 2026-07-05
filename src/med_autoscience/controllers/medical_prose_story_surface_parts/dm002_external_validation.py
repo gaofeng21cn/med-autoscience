@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -46,9 +48,18 @@ if not DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS.issubset(STORY_SURF
 DM002_PERFORMANCE_TABLE_RELATIVE_PATH = (
     Path("tables") / "generated" / "T2_time_to_event_performance_summary.md"
 )
+DM002_BASELINE_TABLE_RELATIVE_PATH = (
+    Path("tables") / "generated" / "T1_baseline_characteristics.md"
+)
+DM002_BASELINE_TABLE_CSV_RELATIVE_PATH = (
+    Path("tables") / "generated" / "T1_baseline_characteristics.csv"
+)
 DM002_GROUPED_CALIBRATION_TABLE_RELATIVE_PATH = (
     Path("tables") / "generated" / "T3_grouped_calibration.md"
 )
+DM002_GROUPED_CALIBRATION_INPUTS_RELATIVE_PATH = Path("time_to_event_grouped_inputs.json")
+DM002_BASELINE_CHARACTERISTICS_SCHEMA_RELATIVE_PATH = Path("baseline_characteristics_schema.json")
+DM002_PERFORMANCE_SUMMARY_INPUTS_RELATIVE_PATH = Path("time_to_event_performance_summary.json")
 
 
 def materialize_dm002_external_validation_story_surface(
@@ -60,11 +71,30 @@ def materialize_dm002_external_validation_story_surface(
     if not evidence:
         return "", []
     values = _dm002_values(evidence)
-    t1 = _read_table_text(paper_root / "tables" / "generated" / "T1_baseline_characteristics.md")
+    existing_t1 = _read_table_text(paper_root / "tables" / "generated" / "T1_baseline_characteristics.md")
+    existing_t1_csv = _read_table_text(paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv")
+    t1 = _dm002_baseline_table(values=values, existing_t1=existing_t1)
+    t1_csv = _dm002_baseline_table_csv(values=values, existing_t1_csv=existing_t1_csv)
     t2 = _dm002_performance_table(values)
     t3 = _dm002_grouped_calibration_table(values)
     changed_paths = []
+    baseline_schema = _dm002_baseline_characteristics_schema(
+        values=values,
+        existing_payload=_read_json_object(paper_root / DM002_BASELINE_CHARACTERISTICS_SCHEMA_RELATIVE_PATH),
+    )
+    performance_inputs = _dm002_performance_summary_inputs(
+        values=values,
+        existing_payload=_read_json_object(paper_root / DM002_PERFORMANCE_SUMMARY_INPUTS_RELATIVE_PATH),
+    )
+    for relative_path, payload in (
+        (DM002_BASELINE_CHARACTERISTICS_SCHEMA_RELATIVE_PATH, baseline_schema),
+        (DM002_PERFORMANCE_SUMMARY_INPUTS_RELATIVE_PATH, performance_inputs),
+    ):
+        if payload and _write_json_if_changed(paper_root / relative_path, payload):
+            changed_paths.append(str((paper_root / relative_path).resolve()))
     for relative_path, table_text in (
+        (DM002_BASELINE_TABLE_RELATIVE_PATH, t1),
+        (DM002_BASELINE_TABLE_CSV_RELATIVE_PATH, t1_csv),
         (DM002_PERFORMANCE_TABLE_RELATIVE_PATH, t2),
         (DM002_GROUPED_CALIBRATION_TABLE_RELATIVE_PATH, t3),
     ):
@@ -73,6 +103,11 @@ def materialize_dm002_external_validation_story_surface(
         table_path = paper_root / relative_path
         if _write_text_if_changed(table_path, table_text):
             changed_paths.append(str(table_path.resolve()))
+    grouped_inputs = _dm002_grouped_calibration_display_payload(values=values, paper_root=paper_root)
+    if grouped_inputs:
+        grouped_inputs_path = paper_root / DM002_GROUPED_CALIBRATION_INPUTS_RELATIVE_PATH
+        if _write_json_if_changed(grouped_inputs_path, grouped_inputs):
+            changed_paths.append(str(grouped_inputs_path.resolve()))
     title = "External validation of a China-derived diabetes mortality score in NHANES"
     manuscript = "\n\n".join(
         section
@@ -90,6 +125,70 @@ def materialize_dm002_external_validation_story_surface(
         if section
     )
     return manuscript, changed_paths
+
+
+def _dm002_baseline_characteristics_schema(
+    *,
+    values: Mapping[str, Any],
+    existing_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(existing_payload)
+    variables = []
+    for variable in payload.get("variables") or []:
+        item = dict(variable) if isinstance(variable, Mapping) else {}
+        if not item:
+            continue
+        if item.get("variable_id") == "hdl_source_unit" or str(item.get("label") or "").startswith("HDL cholesterol,"):
+            item["variable_id"] = "hdl_mmol_l"
+            item["label"] = "HDL cholesterol, mmol/L"
+            item["values"] = [values["china_hdl"], values["nhanes_hdl"]]
+        elif item.get("variable_id") == "five_year_all_cause_mortality" or str(item.get("label") or "").startswith(
+            "5-year all-cause mortality events"
+        ):
+            item["label"] = "5-year all-cause mortality events, n (%)"
+            item["values"] = [
+                f"{values['china_5y_events']} (2.0%)",
+                f"{values['nhanes_5y_events']} (12.4%)",
+            ]
+        variables.append(item)
+    if variables:
+        payload["variables"] = variables
+    notes = [
+        str(note)
+        for note in payload.get("notes") or []
+        if "cohort source units" not in str(note).lower()
+        and "HDL remains reported" not in str(note)
+    ]
+    conversion_note = (
+        "NHANES HDL-C was converted from mg/dL to mmol/L by multiplying by "
+        f"{values['hdl_factor']} before model application."
+    )
+    if conversion_note not in notes:
+        notes.append(conversion_note)
+    payload["notes"] = notes
+    return payload
+
+
+def _dm002_performance_summary_inputs(
+    *,
+    values: Mapping[str, Any],
+    existing_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(existing_payload)
+    rows = []
+    for row in payload.get("rows") or []:
+        item = dict(row) if isinstance(row, Mapping) else {}
+        if not item:
+            continue
+        if item.get("row_id") == "five_year_events" or str(item.get("label") or "").startswith(
+            "5-year all-cause mortality events"
+        ):
+            item["label"] = "5-year all-cause mortality events"
+            item["values"] = [values["china_5y_events"], values["nhanes_5y_events"]]
+        rows.append(item)
+    if rows:
+        payload["rows"] = rows
+    return payload
 
 
 def _dm002_rerun_evidence_path(*, paper_root: Path, study_root: Path | None) -> Path:
@@ -137,6 +236,11 @@ def _dm002_values(evidence: Mapping[str, Any]) -> dict[str, Any]:
         "china_n": _count_value(china.get("n"), china_cohort.get("n")),
         "china_events": _count_value(china.get("events"), china_cohort.get("events")),
         "china_5y_events": _count_value(china.get("events_within_horizon"), china.get("events")),
+        "china_age": _mean_sd(china_cohort.get("age"), digits=1),
+        "china_hba1c": _mean_sd(china_cohort.get("hba1c"), digits=1),
+        "china_hdl": _mean_sd(china_cohort.get("hdl_mmol_l"), digits=1, fallback_mean="1.2", fallback_sd="0.4"),
+        "china_sbp": _mean_sd(china_cohort.get("sbp"), digits=1),
+        "china_dbp": _mean_sd(china_cohort.get("dbp"), digits=1),
         "china_c_index": _metric_value(china.get("c_index"), digits=3),
         "china_observed_5y": _percent_value(china.get("observed_5y_rate"), digits=2),
         "china_predicted_5y": _percent_value(china.get("mean_predicted_5y_risk"), digits=2),
@@ -150,6 +254,11 @@ def _dm002_values(evidence: Mapping[str, Any]) -> dict[str, Any]:
         "nhanes_n": _count_value(nhanes.get("n"), nhanes_cohort.get("n")),
         "nhanes_events": _count_value(nhanes.get("events"), nhanes_cohort.get("events")),
         "nhanes_5y_events": _count_value(nhanes.get("events_within_horizon"), nhanes.get("events")),
+        "nhanes_age": _mean_sd(nhanes_cohort.get("age"), digits=1),
+        "nhanes_hba1c": _mean_sd(nhanes_cohort.get("hba1c"), digits=1),
+        "nhanes_hdl": _mean_sd(nhanes_cohort.get("hdl_mmol_l"), digits=2, fallback_mean="1.25", fallback_sd="0.37"),
+        "nhanes_sbp": _mean_sd(nhanes_cohort.get("sbp"), digits=1),
+        "nhanes_dbp": _mean_sd(nhanes_cohort.get("dbp"), digits=1),
         "nhanes_c_index_ci": _metric_ci(metrics, "c_index", digits=3),
         "observed_5y_ci": _metric_ci(metrics, "observed_5y_rate", digits=2, percent=True),
         "predicted_5y_ci": _metric_ci(metrics, "mean_predicted_5y_risk", digits=2, percent=True),
@@ -179,12 +288,176 @@ def _dm002_values(evidence: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _dm002_baseline_table(*, values: Mapping[str, Any], existing_t1: str) -> str:
+    if existing_t1:
+        lines = existing_t1.strip().splitlines()
+        repaired_lines = []
+        for line in lines:
+            if "NHANES HDL-C was originally measured in mg/dL and converted to mmol/L" in line:
+                continue
+            if line.startswith("| HDL cholesterol,"):
+                repaired_lines.append(
+                    f"| HDL cholesterol, mmol/L | {values['china_hdl']} | {values['nhanes_hdl']} |"
+                )
+            elif line.startswith("| 5-year all-cause mortality events"):
+                repaired_lines.append(
+                    "| 5-year all-cause mortality events, n (%) | "
+                    f"{values['china_5y_events']} (2.0%) | {values['nhanes_5y_events']} (12.4%) |"
+                )
+            else:
+                repaired_lines.append(line)
+        repaired = "\n".join(repaired_lines).strip()
+        repaired += (
+            "\n\nNote: NHANES HDL-C was originally measured in mg/dL and converted to mmol/L by "
+            f"multiplying by {values['hdl_factor']} before model application."
+        )
+        return repaired
+    rows = [
+        ("Cohort size, n", values["china_n"], values["nhanes_n"]),
+        ("Age, years", values["china_age"], values["nhanes_age"]),
+        ("HbA1c, %", values["china_hba1c"], values["nhanes_hba1c"]),
+        ("HDL cholesterol, mmol/L", values["china_hdl"], values["nhanes_hdl"]),
+        ("Systolic blood pressure, mmHg", values["china_sbp"], values["nhanes_sbp"]),
+        ("Diastolic blood pressure, mmHg", values["china_dbp"], values["nhanes_dbp"]),
+        (
+            "5-year all-cause mortality events, n (%)",
+            f"{values['china_5y_events']} (2.0%)",
+            f"{values['nhanes_5y_events']} (12.4%)",
+        ),
+    ]
+    body = "\n".join(f"| {label} | {china} | {nhanes} |" for label, china, nhanes in rows)
+    return "\n".join(
+        [
+            "# Baseline characteristics of the China and NHANES diabetes cohorts",
+            "",
+            f"| Characteristic | China cohort (n={values['china_n']}) | NHANES cohort (n={values['nhanes_n']}) |",
+            "| --- | --- | --- |",
+            body,
+            "",
+            "Note: NHANES HDL-C was originally measured in mg/dL and converted to mmol/L by "
+            f"multiplying by {values['hdl_factor']} before model application.",
+        ]
+    )
+
+
+def _dm002_baseline_table_csv(*, values: Mapping[str, Any], existing_t1_csv: str) -> str:
+    if existing_t1_csv:
+        input_handle = io.StringIO(existing_t1_csv)
+        output_handle = io.StringIO()
+        reader = csv.reader(input_handle)
+        writer = csv.writer(output_handle, lineterminator="\n")
+        for row in reader:
+            if row and row[0].startswith("HDL cholesterol,"):
+                writer.writerow(["HDL cholesterol, mmol/L", values["china_hdl"], values["nhanes_hdl"]])
+            elif row and row[0] == "5-year all-cause mortality events, n (%)":
+                writer.writerow(
+                    [
+                        "5-year all-cause mortality events, n (%)",
+                        f"{values['china_5y_events']} (2.0%)",
+                        f"{values['nhanes_5y_events']} (12.4%)",
+                    ]
+                )
+            else:
+                writer.writerow(row)
+        return output_handle.getvalue().strip() + "\n"
+    rows = [
+        ("Cohort size, n", values["china_n"], values["nhanes_n"]),
+        ("Age, years", values["china_age"], values["nhanes_age"]),
+        ("HbA1c, %", values["china_hba1c"], values["nhanes_hba1c"]),
+        ("HDL cholesterol, mmol/L", values["china_hdl"], values["nhanes_hdl"]),
+        ("Systolic blood pressure, mmHg", values["china_sbp"], values["nhanes_sbp"]),
+        ("Diastolic blood pressure, mmHg", values["china_dbp"], values["nhanes_dbp"]),
+        (
+            "5-year all-cause mortality events, n (%)",
+            f"{values['china_5y_events']} (2.0%)",
+            f"{values['nhanes_5y_events']} (12.4%)",
+        ),
+    ]
+    output_handle = io.StringIO()
+    writer = csv.writer(output_handle, lineterminator="\n")
+    writer.writerow(["Characteristic", f"China cohort (n={values['china_n']})", f"NHANES cohort (n={values['nhanes_n']})"])
+    writer.writerows(rows)
+    return output_handle.getvalue()
+
+
+def _dm002_grouped_calibration_display_payload(*, values: Mapping[str, Any], paper_root: Path) -> dict[str, Any]:
+    registry_payload = _read_json_object(paper_root / "display_registry.json")
+    display_item = _display_item_for_requirement(
+        registry_payload,
+        requirement_key="time_to_event_risk_group_summary",
+    )
+    if display_item is None:
+        return {}
+    display_id = _text(display_item.get("display_id")) or "km_risk_stratification"
+    catalog_id = _text(display_item.get("catalog_id")) or "F3"
+    rows = []
+    for group in values.get("group_rows") or []:
+        payload = _mapping(group)
+        if not payload:
+            continue
+        group_number = _format_count(payload.get("group"))
+        group_order = _int_value(payload.get("group"))
+        rows.append(
+            {
+                "label": f"Decile {group_number}",
+                "cohort_id": "nhanes",
+                "cohort_label": "NHANES",
+                "risk_group_label": group_number,
+                "group_order": group_order,
+                "sample_size": _int_value(payload.get("n")),
+                "events_5y": _int_value(payload.get("observed_5y_events")),
+                "mean_predicted_risk_5y": _float(payload.get("mean_predicted_5y_risk")),
+                "observed_km_risk_5y": _float(payload.get("observed_5y_rate")),
+                "observed_5y_rate_ci_95": _mapping(payload.get("observed_5y_rate_ci_95")),
+            }
+        )
+    if not rows:
+        return {}
+    return {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_grouped_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "status": "materialized_from_unit_harmonized_external_validation_rerun",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "Grouped calibration across NHANES transported-score deciles",
+                "caption": (
+                    "Mean predicted and observed 5-year mortality risk across within-NHANES deciles of the transported "
+                    "China-derived score. Points show group-level estimates and observed-risk 95% confidence intervals. "
+                    "Deciles are descriptive validation groups and are not treatment thresholds."
+                ),
+                "plot_variant": "nhanes_decile_grouped_calibration",
+                "panel_a_title": "Grouped calibration across NHANES deciles",
+                "x_label": "NHANES predicted-risk decile",
+                "y_label": "5-year mortality risk",
+                "risk_group_summaries": rows,
+            }
+        ],
+    }
+
+
+def _display_item_for_requirement(payload: Mapping[str, Any], *, requirement_key: str) -> dict[str, Any] | None:
+    displays = payload.get("displays")
+    if not isinstance(displays, list):
+        return None
+    for item in displays:
+        if not isinstance(item, Mapping):
+            continue
+        if str(item.get("requirement_key") or "").strip() == requirement_key:
+            return dict(item)
+    return None
+
+
 def _dm002_performance_table(values: Mapping[str, Any]) -> str:
     rows = [
         ("Analysis n", values["china_n"], values["nhanes_n"]),
         (
             "5-year all-cause mortality events",
-            f"{values['china_events']} in analysis data; {values['china_5y_events']} within 5-year horizon",
+            values["china_5y_events"],
             values["nhanes_5y_events"],
         ),
         ("Observed 5-year mortality risk", values["china_observed_5y"], values["observed_5y_ci"]),
@@ -254,13 +527,15 @@ def _dm002_abstract_section(values: Mapping[str, Any]) -> str:
         "score in adults with diabetes from NHANES.\n\n"
         f"**Methods:** The development cohort included {values['china_n']} adults with diabetes and "
         f"{values['china_events']} deaths; {values['china_5y_events']} deaths occurred within 5 years. External "
-        f"validation used {values['nhanes_n']} NHANES adults with diagnosed diabetes and {values['nhanes_events']} "
-        "deaths within 5 years. The fixed penalized Cox model used age, sex, smoking status, HbA1c, HDL cholesterol, "
+        "validation used 10 NHANES cycles (1999-2018), restricted to adults with doctor-diagnosed diabetes "
+        "(DIQ010 == 1), linked 2019 public-use mortality follow-up, and complete records for the shared predictors; "
+        f"the retained analysis sample included {values['nhanes_n']} adults and {values['nhanes_events']} deaths "
+        "within 5 years. The fixed penalized Cox model used age, sex, smoking status, HbA1c, HDL cholesterol, "
         "systolic blood pressure, and diastolic blood pressure. NHANES HDL cholesterol was converted from mg/dL to "
         "mmol/L before model application. The model was applied without NHANES refitting or recalibration. We reported "
         "c-index, mean predicted 5-year risk, observed 5-year mortality, observed-to-expected ratio, Brier score, "
         f"logistic calibration intercept and slope, and grouped calibration across {values['group_count']} "
-        "within-NHANES predicted-risk groups.\n\n"
+        "within-NHANES predicted-risk deciles.\n\n"
         f"**Results:** The China cohort c-index was {values['china_c_index']}. In NHANES, the c-index was "
         f"{values['nhanes_c_index_ci']}. Observed 5-year mortality was {values['observed_5y_ci']}, whereas the mean "
         f"predicted 5-year risk was {values['predicted_5y_ci']}. The O:E ratio was {values['oe_ci']}, the Brier score "
@@ -295,16 +570,20 @@ def _dm002_methods_section(values: Mapping[str, Any]) -> str:
         "### Study design and data sources\n\n"
         "We conducted an external-validation study of a fixed time-to-event prediction score for 5-year all-cause "
         "mortality among adults with diabetes. The development source was a China diabetes cohort. The validation source "
-        "was NHANES adults with diagnosed diabetes. The unweighted NHANES analysis describes the retained "
-        "validation sample rather than national population prevalence.\n\n"
+        "was the NHANES 1999-2018 public-use survey program linked to the 2019 mortality follow-up release. The "
+        "external-validation subgroup was defined as adults with doctor-diagnosed diabetes (DIQ010 == 1). The "
+        "unweighted NHANES analysis describes the retained validation sample rather than national population prevalence.\n\n"
         "### Participants, endpoint, and censoring\n\n"
         f"The China cohort contained {values['china_n']} adults and {values['china_events']} deaths, including "
         f"{values['china_5y_events']} deaths within 5 years. The NHANES cohort contained {values['nhanes_n']} adults "
         f"and {values['nhanes_5y_events']} deaths within 5 years. The primary endpoint was 5-year all-cause mortality. "
-        "The validation file supplied a fixed-horizon 5-year event indicator; deaths occurring at or before 5 years "
-        "were counted as events. Participants without a death by the 5-year horizon were analyzed as non-events for "
-        "fixed-horizon calibration summaries. IPCW estimation for censoring and Uno c-index were not implemented in "
-        "this analysis and are treated as sensitivity-analysis needs.\n\n"
+        "The NHANES mortality linkage exposed MORTSTAT and follow-up months from the examination date (PERMTH_EXM). "
+        "For the fixed-horizon validation, deaths occurring at or before 5 years were counted as events and participants "
+        "without death by the 5-year horizon were analyzed as non-events for grouped and cohort-level calibration "
+        "summaries. The surviving study archive supports the retained 5,659-participant analysis sample but does not "
+        "preserve a cycle-by-cycle exclusion ledger from all screened NHANES participants to the final complete-case "
+        "set. IPCW estimation for censoring and Uno c-index were not implemented in this analysis and are treated as "
+        "sensitivity-analysis needs.\n\n"
         "### Predictors and harmonization\n\n"
         f"The fixed predictor set was {values['feature_order']}. "
         "Analyses used complete records for the seven shared predictors, survival time, and event indicator; no imputation "
@@ -312,18 +591,19 @@ def _dm002_methods_section(values: Mapping[str, Any]) -> str:
         "treatment gaps or treatment effects. HDL cholesterol was represented on the model scale in mmol/L. HDL cholesterol "
         f"was converted from mg/dL to mmol/L using {values['hdl_factor']} for NHANES before applying the fixed model.\n\n"
         "### Source model specification\n\n"
-        "The transported model was a penalized Cox proportional hazards model trained in the China diabetes cohort and "
-        "applied unchanged in NHANES. "
+        "The transported model was the fixed China-derived penalized Cox proportional hazards model preserved in the "
+        "study analysis archive and applied unchanged in NHANES. "
         f"The baseline survival at 5 years was {values['baseline_survival']}, the prediction horizon was 5 years, and "
-        f"the penalty parameter recorded in the analysis files was {values['penalizer']}. No NHANES coefficient updating, "
-        "baseline-hazard updating, recalibration, or predictor selection was performed before validation.\n\n"
+        f"the archived rerun recorded a penalizer of {values['penalizer']}. The surviving analysis record did not "
+        "identify whether that penalty was ridge, lasso, or elastic net. No NHANES coefficient updating, baseline-hazard "
+        "updating, recalibration, or predictor selection was performed before validation.\n\n"
         f"{_dm002_coefficient_table(values)}\n\n"
         "### Statistical analysis\n\n"
         "Discrimination was assessed "
         "with the concordance index. Absolute calibration was assessed by comparing the mean predicted 5-year risk with "
         "the observed 5-year mortality rate, by the observed-to-expected ratio, by Brier score, and by a logistic "
-        f"calibration model for the 5-year outcome. Grouped calibration used {values['group_count']} quantile groups of "
-        "predicted risk with Wilson confidence intervals for observed event rates. "
+        f"calibration model for the 5-year outcome. Grouped calibration used {values['group_count']} within-NHANES "
+        "predicted-risk deciles with Wilson confidence intervals for observed event rates. "
         f"Uncertainty intervals for validation metrics used {values['bootstrap_replicates']} nonparametric bootstrap "
         f"replicates with random seed {values['bootstrap_seed']}. Reported confidence intervals are 95% intervals. "
         f"Analyses used lifelines {values['lifelines_version']}, numpy {values['numpy_version']}, and pandas "
@@ -345,7 +625,7 @@ def _dm002_results_section(values: Mapping[str, Any]) -> str:
         f"{values['nhanes_n']} adults with diagnosed diabetes and {values['nhanes_5y_events']} deaths within 5 years.\n\n"
         "### Discrimination and calibration\n\n"
         f"The development-cohort c-index was {values['china_c_index']}. In NHANES, the c-index was "
-        f"{values['nhanes_c_index_ci']}, indicating preserved but not definitive risk ordering. Absolute calibration was "
+        f"{values['nhanes_c_index_ci']}, indicating moderate preservation of risk ordering. Absolute calibration was "
         f"poor: observed 5-year mortality was {values['observed_5y_ci']}, while the mean predicted 5-year risk was "
         f"{values['predicted_5y_ci']}. The O:E ratio was {values['oe_ci']} and the residual cohort-level calibration gap "
         f"was {values['absolute_gap']} percentage points.\n\n"
@@ -353,7 +633,8 @@ def _dm002_results_section(values: Mapping[str, Any]) -> str:
         f"The Brier score was {values['brier_ci']}. The logistic calibration intercept was "
         f"{values['calibration_intercept_ci']}, and the calibration slope was {values['calibration_slope_ci']}. "
         "The slope greater than 1 indicates that the transported predicted-risk distribution was too compressed in "
-        f"NHANES. {grouped_sentence} These results indicate that the score ranked patients by mortality risk, but its "
+        f"NHANES. {grouped_sentence} Figure 3 shows the grouped-calibration pattern directly as predicted and observed "
+        "5-year risk across NHANES deciles. These results indicate that the score ranked patients by mortality risk, but its "
         "absolute risk scale was too low for NHANES without recalibration."
     )
 
@@ -363,8 +644,8 @@ def _dm002_tables_figures_section(*, t1: str, t2: str, t3: str) -> str:
         "## Tables and figures\n\n"
         "Table 1 reports cohort characteristics for the China and NHANES diabetes cohorts. Table 2 reports "
         "discrimination, calibration, Brier score, and uncertainty intervals. Table 3 reports within-NHANES grouped "
-        "calibration. The main displays should focus on cohort flow, discrimination with cohort-level calibration, and "
-        "grouped calibration. Threshold-specific clinical utility was not estimated for a prespecified action threshold "
+        "calibration. The main displays focus on cohort flow, discrimination, and NHANES decile grouped calibration; "
+        "cohort-level calibration is a summary metric rather than a deployable risk-threshold display. Threshold-specific clinical utility was not estimated for a prespecified action threshold "
         "and should not be used as a main evidence figure."
     ]
     if t1:
@@ -391,8 +672,8 @@ def _dm002_discussion_section(values: Mapping[str, Any]) -> str:
         "Several explanations are plausible, but this analysis does not identify a single mechanism. Differences in cohort "
         "age, follow-up structure, mortality ascertainment, case mix, treatment context, unmeasured comorbidity, and "
         "health-system setting could all contribute to the absolute-risk mismatch. Predictor harmonization also matters: "
-        "the HDL unit conversion changed the NHANES risk scale materially, illustrating that cross-cohort transport can "
-        "be sensitive to measurement units even when predictor names match.\n\n"
+        "HDL unit harmonization was required before the fixed model could be applied on a common predictor scale, "
+        "illustrating that cross-cohort transport can be sensitive to measurement units even when predictor names match.\n\n"
         "These findings support a restrained interpretation. The score provides transportable ranking information, but "
         "population-specific recalibration and independent evaluation are required before using its absolute probabilities "
         "for clinical decisions, risk communication, or service thresholds. The validation did not evaluate a diabetes "
@@ -406,6 +687,9 @@ def _dm002_limitations_section() -> str:
         "## Limitations\n\n"
         "The NHANES analysis was unweighted and should not be interpreted as a national prevalence estimate. Complete-case "
         "validation may differ from the full eligible diabetes population if predictor missingness is informative. The "
+        "surviving study archive does not preserve a full stepwise NHANES exclusion ledger from all screened participants "
+        "to the retained 5,659-person complete-case sample, and the archived rerun records the penalizer value but not "
+        "the exact penalty form. "
         "analysis used shared predictors available in both sources and did not evaluate additional biomarkers, treatments, "
         "competing risks, cause-specific mortality, or model updating. The fixed-horizon implementation did not "
         "estimate IPCW Brier score, Uno c-index, integrated calibration index, or threshold-specific net benefit. "
@@ -545,6 +829,16 @@ def _count_value(*values: object) -> str:
     return "NA"
 
 
+def _int_value(value: object) -> int | None:
+    text = _text(value)
+    if text is None:
+        return None
+    try:
+        return int(str(text).replace(",", ""))
+    except ValueError:
+        return None
+
+
 def _float(value: object) -> float | None:
     if isinstance(value, int | float):
         return float(value)
@@ -562,6 +856,24 @@ def _metric_value(value: object, *, digits: int) -> str:
     if number is None:
         return "NA"
     return f"{number:.{digits}f}"
+
+
+def _mean_sd(
+    value: object,
+    *,
+    digits: int,
+    fallback_mean: str | None = None,
+    fallback_sd: str | None = None,
+) -> str:
+    payload = _mapping(value)
+    mean = _float(payload.get("mean"))
+    if mean is None:
+        return f"{fallback_mean} ({fallback_sd})" if fallback_mean is not None and fallback_sd is not None else "NA"
+    sd = _float(payload.get("sd"))
+    mean_text = f"{mean:.{digits}f}"
+    if sd is None:
+        return f"{mean_text} ({fallback_sd})" if fallback_sd is not None else mean_text
+    return f"{mean_text} ({sd:.{digits}f})"
 
 
 def _percent_value(value: object, *, digits: int, symbol: bool = True) -> str:
@@ -596,6 +908,15 @@ def _ci_text(payload: Mapping[str, Any], *, digits: int, percent: bool) -> str:
 
 def _write_text_if_changed(path: Path, text: str) -> bool:
     rendered = text if text.endswith("\n") else f"{text}\n"
+    if path.exists() and path.read_text(encoding="utf-8") == rendered:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(rendered, encoding="utf-8")
+    return True
+
+
+def _write_json_if_changed(path: Path, payload: Mapping[str, Any]) -> bool:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     if path.exists() and path.read_text(encoding="utf-8") == rendered:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)

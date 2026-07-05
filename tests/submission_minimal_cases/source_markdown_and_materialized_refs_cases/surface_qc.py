@@ -103,6 +103,44 @@ The manuscript should open with this burden-architecture figure. Use as the main
     assert "submission_source_markdown_internal_instruction_leakage" in failure_reasons
 
 
+def test_build_submission_manuscript_surface_qc_flags_display_directive_in_legends(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_source.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Abstract
+
+Structured abstract.
+
+# Figure Legends
+
+## Figure 1. Cohort flow
+
+The first display should account for the cohort before phenotype interpretation.
+""",
+    )
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown,
+        docx_path=tmp_path / "manuscript.docx",
+        pdf_path=tmp_path / "paper.pdf",
+        expected_main_figure_count=0,
+    )
+
+    failure_reasons = {
+        item["failure_reason"] for item in manuscript_surface_qc["failures"]
+    }
+    assert manuscript_surface_qc["status"] == "fail"
+    assert "submission_source_markdown_internal_instruction_leakage" in failure_reasons
+
+
 def test_build_submission_manuscript_surface_qc_blocks_engineering_prose_residue_in_legends(
     tmp_path: Path,
 ) -> None:
@@ -145,6 +183,93 @@ Calibration and decision-curve evidence across candidate packages within the pre
     }
     assert manuscript_surface_qc["status"] == "fail"
     assert "submission_source_markdown_medical_journal_prose_residue" in failure_reasons
+
+
+def test_build_submission_manuscript_surface_qc_blocks_registry_burden_figure_wording(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Abstract
+
+Structured abstract.
+
+# Main Figures
+
+## Figure 2. BMI-category metabolic comorbidity burden in available registry fields
+
+![](figures/Figure2.png)
+
+# Figure Legends
+
+## Figure 3. Registry variable availability
+
+PHQ-9 and GAD-7 availability is not interpreted as whole-alliance psychobehavioral burden.
+""",
+    )
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown,
+        docx_path=tmp_path / "manuscript.docx",
+        pdf_path=tmp_path / "paper.pdf",
+        expected_main_figure_count=0,
+    )
+
+    assert manuscript_surface_qc["status"] == "fail"
+    prose_hits = [
+        hit
+        for item in manuscript_surface_qc["failures"]
+        for hit in item.get("medical_journal_prose_hits", [])
+    ]
+    assert "descriptive_registry_burden_caption_overclaim" in {
+        hit["pattern_id"] for hit in prose_hits
+    }
+
+
+def test_build_submission_manuscript_surface_qc_allows_population_burden_boundary_caveat(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Abstract
+
+Structured abstract.
+
+# Limitations
+
+Source counts do not establish population-level burden or national representativeness. Available-record denominators vary across variables.
+""",
+    )
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown,
+        docx_path=tmp_path / "manuscript.docx",
+        pdf_path=tmp_path / "paper.pdf",
+        expected_main_figure_count=0,
+    )
+
+    prose_hits = [
+        hit
+        for item in manuscript_surface_qc["failures"]
+        for hit in item.get("medical_journal_prose_hits", [])
+    ]
+    assert "descriptive_registry_burden_caption_overclaim" not in {
+        hit["pattern_id"] for hit in prose_hits
+    }
 
 
 def test_build_submission_manuscript_surface_qc_blocks_internal_quality_record_language(

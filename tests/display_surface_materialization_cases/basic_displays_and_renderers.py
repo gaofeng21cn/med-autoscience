@@ -1,4 +1,5 @@
 import csv
+import os
 
 from .shared import *
 
@@ -333,6 +334,141 @@ def test_materialize_display_surface_hydrates_current_body_display_sources(
     assert (paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv").exists()
     assert result["figures_materialized"] == ["F1"]
     assert result["tables_materialized"] == ["T2"]
+
+def test_materialize_display_surface_preserves_newer_target_sources_over_stale_current_body(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    current_body_paper_root = (
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper"
+    )
+    write_default_publication_display_contracts(paper_root)
+    _write_prepared_dependency_environment(paper_root)
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                    "shell_path": "paper/figures/cohort_flow.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "cohort_flow",
+            "catalog_id": "F1",
+            "title": "Current target cohort",
+            "steps": [
+                {"step_id": "source", "label": "Current source", "n": 220, "detail": "Current paper source"},
+                {"step_id": "analysis", "label": "Current analysis", "n": 200, "detail": "Current cohort"},
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "cohort_flow",
+            "catalog_id": "F1",
+            "title": "Stale current-body cohort",
+            "steps": [
+                {"step_id": "source", "label": "Stale source", "n": 120, "detail": "Stale paper source"},
+                {"step_id": "analysis", "label": "Stale analysis", "n": 100, "detail": "Stale cohort"},
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {"figure_id": "F1", "title": "Current target semantics", "renderer_contract": {}}
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {"figure_id": "F1", "title": "Stale current-body semantics", "renderer_contract": {}}
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "figures" / "cohort_flow.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+    )
+    for stale_path in (
+        current_body_paper_root / "cohort_flow.json",
+        current_body_paper_root / "figure_semantics_manifest.json",
+    ):
+        os.utime(stale_path, (1000, 1000))
+    for current_path in (
+        paper_root / "cohort_flow.json",
+        paper_root / "figure_semantics_manifest.json",
+    ):
+        os.utime(current_path, (2000, 2000))
+
+    def fake_subprocess_renderer(
+        *,
+        full_template_id: str,
+        template_manifest,
+        runtime_template_root: Path,
+        pack_root: Path,
+        paper_root: Path,
+        figure_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+        dependency_environment: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF-1.4\n", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(full_template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return {"status": "rendered", "figure_id": figure_id}
+
+    materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
+    monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    cohort_flow = json.loads((paper_root / "cohort_flow.json").read_text(encoding="utf-8"))
+    semantics = json.loads((paper_root / "figure_semantics_manifest.json").read_text(encoding="utf-8"))
+    preserved_sources = set(result["source_hydration"]["preserved_current_sources"])
+    assert cohort_flow["steps"][-1]["n"] == 200
+    assert semantics["figures"][0]["title"] == "Current target semantics"
+    assert "paper/cohort_flow.json" in preserved_sources
+    assert "paper/figure_semantics_manifest.json" in preserved_sources
+    assert "paper/cohort_flow.json" not in result["source_hydration"]["hydrated_files"]
+    assert "paper/figure_semantics_manifest.json" not in result["source_hydration"]["hydrated_files"]
 
 def test_materialize_display_surface_replaces_legacy_catalog_entries_with_matching_catalog_id(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")

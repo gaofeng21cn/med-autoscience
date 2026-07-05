@@ -249,6 +249,7 @@ from .markdown_surface_tables import (
     _extract_table_blocks,
     _natural_table_sort_key,
     build_catalog_backed_table_blocks,
+    extract_peer_table_blocks,
     normalize_submission_table_body,
     normalize_wide_pipe_table_widths,
     parse_table_id_from_heading,
@@ -662,7 +663,8 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
 
     if panel_clauses:
         append_sentence(" ".join(f"{clause}." for clause in panel_clauses))
-    append_sentence(glossary_sentence)
+    if glossary_sentence:
+        append_sentence(glossary_sentence)
     return " ".join(legend_sentences).strip()
 
 
@@ -773,25 +775,54 @@ def build_table_blocks(
     *,
     main_tables: str,
     catalog_table_blocks: dict[str, tuple[str, str]] | None = None,
+    allow_landscape_latex: bool = True,
 ) -> list[str]:
     table_blocks: list[str] = []
     parsed_blocks = _extract_table_blocks(main_tables)
+    if not parsed_blocks:
+        parsed_blocks = extract_peer_table_blocks(main_tables)
     replacement_blocks = catalog_table_blocks or {}
+    if parsed_blocks and all(parse_table_id_from_heading(heading) is None for heading, _ in parsed_blocks):
+        replacement_blocks = {}
+    seen_table_ids: set[str] = set()
     for heading, block_body in sorted(
         parsed_blocks,
         key=lambda item: _natural_table_sort_key(item[0]),
     ):
         table_id = parse_table_id_from_heading(heading)
+        if table_id:
+            seen_table_ids.add(table_id)
         replacement_heading, replacement_body = replacement_blocks.get(table_id or "", ("", ""))
         selected_heading = replacement_heading or heading
         selected_body = replacement_body or block_body
-        normalized_body = normalize_submission_table_body(selected_body, heading=selected_heading)
+        normalized_body = normalize_submission_table_body(
+            selected_body,
+            heading=selected_heading,
+            allow_landscape_latex=allow_landscape_latex,
+        )
         if normalized_body.startswith(r"\begin{landscape}"):
             table_blocks.append(normalized_body)
         else:
             table_blocks.append(f"## {selected_heading}\n\n{normalized_body}")
+    for table_id, (heading, block_body) in sorted(
+        replacement_blocks.items(),
+        key=lambda item: _natural_table_sort_key(item[1][0] or item[0]),
+    ):
+        if table_id in seen_table_ids:
+            continue
+        normalized_body = normalize_submission_table_body(
+            block_body,
+            heading=heading,
+            allow_landscape_latex=allow_landscape_latex,
+        )
+        if normalized_body.startswith(r"\begin{landscape}"):
+            table_blocks.append(normalized_body)
+        else:
+            table_blocks.append(f"## {heading}\n\n{normalized_body}")
     if not table_blocks and main_tables.strip():
-        table_blocks.append(f"## Table 1\n\n{normalize_submission_table_body(main_tables, heading='Table 1')}")
+        table_blocks.append(
+            f"## Table 1\n\n{normalize_submission_table_body(main_tables, heading='Table 1', allow_landscape_latex=allow_landscape_latex)}"
+        )
     return table_blocks
 
 

@@ -17,7 +17,11 @@ _DELIVERY_REQUIRED_SOURCE_RELS = (
 
 
 def _current_body_paper_root(*, paper_root: Path) -> Path:
-    return paper_root.parent / _BODY_AUTHORITY_CURRENT_BODY_PAPER_REL
+    resolved = paper_root.resolve()
+    current_body_parts = Path(_BODY_AUTHORITY_CURRENT_BODY_PAPER_REL).parts
+    if tuple(resolved.parts[-len(current_body_parts) :]) == current_body_parts:
+        return resolved
+    return resolved.parent / _BODY_AUTHORITY_CURRENT_BODY_PAPER_REL
 
 
 def _copy_if_source_changed(
@@ -30,8 +34,14 @@ def _copy_if_source_changed(
     if not source_path.exists():
         return None
     target_path = paper_root / rel_path
-    if target_path.exists() and filecmp.cmp(source_path, target_path, shallow=False):
-        return None
+    if target_path.exists():
+        if filecmp.cmp(source_path, target_path, shallow=False):
+            return None
+        try:
+            if target_path.stat().st_mtime_ns > source_path.stat().st_mtime_ns:
+                return None
+        except OSError:
+            pass
     target_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, target_path)
     return target_path
@@ -123,6 +133,55 @@ def _build_compile_report_from_current_draft(*, paper_root: Path) -> dict[str, A
     }
 
 
+def _source_markdown_values(payload: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for key in ("source_markdown_path", "source_markdown", "entry_path"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            values.append(value.strip())
+    return values
+
+
+def _source_points_to_current_draft(payload: dict[str, Any]) -> bool:
+    return any(
+        value in {"draft.md", "paper/draft.md"} or value.endswith("/paper/draft.md")
+        for value in _source_markdown_values(payload)
+    )
+
+
+def _compile_report_needs_current_draft_refresh(
+    *,
+    paper_root: Path,
+    compile_report_path: Path,
+    bundle_manifest: dict[str, Any],
+) -> bool:
+    draft_path = paper_root / "draft.md"
+    if not draft_path.exists():
+        return False
+    if not compile_report_path.exists():
+        return True
+    try:
+        compile_report = load_json(compile_report_path)
+    except (OSError, ValueError):
+        compile_report = {}
+    try:
+        draft_mtime = draft_path.stat().st_mtime
+        compile_report_mtime = compile_report_path.stat().st_mtime
+    except OSError:
+        return True
+    explicit_draft_path = bundle_manifest.get("draft_path")
+    if (
+        _compile_report_has_current_source_locator(compile_report)
+        and not _source_points_to_current_draft(compile_report)
+        and isinstance(explicit_draft_path, str)
+        and explicit_draft_path.strip()
+    ):
+        return False
+    if _source_points_to_current_draft(compile_report) and compile_report_mtime >= draft_mtime:
+        return False
+    return draft_mtime > compile_report_mtime
+
+
 def hydrate_submission_package_sources_from_current_body(
     *,
     paper_root: Path,
@@ -135,6 +194,7 @@ def hydrate_submission_package_sources_from_current_body(
     hydrated_files: list[Path] = []
     source_compile_report_path: Path | None = None
     source_compile_report_status = "not_used"
+    target_compile_report_existed = target_compile_report_path.exists()
 
     if source_root.exists():
         hydrated_files.extend(
@@ -170,12 +230,20 @@ def hydrate_submission_package_sources_from_current_body(
             else:
                 source_compile_report_status = "ignored_no_current_source_locator"
 
-    if not target_compile_report_path.exists():
+    if _compile_report_needs_current_draft_refresh(
+        paper_root=resolved_paper_root,
+        compile_report_path=target_compile_report_path,
+        bundle_manifest=bundle_manifest,
+    ):
         generated_compile_report = _build_compile_report_from_current_draft(paper_root=resolved_paper_root)
         if generated_compile_report is not None:
             dump_json(target_compile_report_path, generated_compile_report)
             hydrated_files.append(target_compile_report_path)
-            source_compile_report_status = "generated_from_current_draft"
+            source_compile_report_status = (
+                "refreshed_from_current_draft"
+                if target_compile_report_existed or source_compile_report_status != "not_used"
+                else "generated_from_current_draft"
+            )
 
     bundle_inputs = bundle_manifest.get("bundle_inputs")
     compile_report_ref = None

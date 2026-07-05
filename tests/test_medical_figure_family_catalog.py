@@ -26,6 +26,7 @@ def test_medical_figure_family_catalog_loads_full_ontology() -> None:
     assert [category.category_id for category in catalog.categories] == [
         "study_design_and_flow",
         "population_and_baseline",
+        "registry_and_phenotype_quality",
         "effect_estimation",
         "survival_and_time_to_event",
         "diagnosis_and_prediction",
@@ -65,7 +66,7 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     assert {"statistical_estimand", "source_data_and_statistics_refs", "auditability"} <= set(
         policy["default_ai_must_preserve"]
     )
-    assert len(catalog.starter_recipes) == 76
+    assert len(catalog.starter_recipes) == 84
     assert set(catalog.starter_recipes_by_id) == {
         recipe_ref
         for family in catalog.families_by_id.values()
@@ -143,6 +144,10 @@ def test_representative_medical_figure_families_are_present() -> None:
         "consort_trial_flow": "study_design_and_flow",
         "prisma_review_flow": "study_design_and_flow",
         "multipanel_storyboard": "publication_shells",
+        "registry_denominator_dot_range": "registry_and_phenotype_quality",
+        "phenotype_atlas_heatmap": "registry_and_phenotype_quality",
+        "registry_variable_availability": "publication_shells",
+        "variable_ascertainment": "publication_shells",
     }
     for family_id, category_id in expected_categories.items():
         assert catalog.family(family_id).category_id == category_id

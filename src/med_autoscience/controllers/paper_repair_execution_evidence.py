@@ -653,21 +653,28 @@ def _story_surface_currentness_delta_refs(
     )
     if not previous_surface_refs:
         return []
-    if is_story_surface_delta_write_work_unit(work_unit_id) and not current_writer_story_delta_is_preservable(
-        paper_root=study_root / "paper",
-        work_unit_id=work_unit_id,
-        medical_prose_write_repair_work_unit_id=_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
-        manuscript_story_surface_relative_paths=(Path("draft.md"), Path("build") / "review_manuscript.md"),
-        contains_forbidden_manuscript_terms=_contains_medical_prose_forbidden_manuscript_terms,
-        source_eval_id=source_eval_id,
-        previous_quality_repair_batch=previous_quality_repair_batch,
-    ):
-        return []
+    active_paper_root = _story_surface_authority_roots(study_root=study_root)[0] / "paper"
     previous_by_path = {
         _text(ref.get("path")): ref
         for ref in previous_surface_refs
         if isinstance(ref, Mapping) and _text(ref.get("path")) is not None
     }
+    if is_story_surface_delta_write_work_unit(work_unit_id):
+        if not current_writer_story_delta_is_preservable(
+            paper_root=active_paper_root,
+            work_unit_id=work_unit_id,
+            medical_prose_write_repair_work_unit_id=_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+            manuscript_story_surface_relative_paths=(Path("draft.md"), Path("build") / "review_manuscript.md"),
+            contains_forbidden_manuscript_terms=_contains_medical_prose_forbidden_manuscript_terms,
+            source_eval_id=source_eval_id,
+            previous_quality_repair_batch=previous_quality_repair_batch,
+        ):
+            return []
+        if not _synchronized_story_surfaces_changed_from_previous(
+            study_root=study_root,
+            previous_by_path=previous_by_path,
+        ):
+            return []
     refs: list[dict[str, Any]] = []
     seen = {
         _text(ref.get("path"))
@@ -700,6 +707,30 @@ def _story_surface_currentness_delta_refs(
             }
         )
     return refs
+
+
+def _synchronized_story_surfaces_changed_from_previous(
+    *,
+    study_root: Path,
+    previous_by_path: Mapping[str | None, Mapping[str, Any]],
+) -> bool:
+    surfaces = _existing_manuscript_story_surfaces(study_root=study_root)
+    if not surfaces:
+        return False
+    texts: list[str] = []
+    for surface in surfaces:
+        previous_ref = previous_by_path.get(str(surface.resolve()))
+        if not isinstance(previous_ref, Mapping):
+            return False
+        previous_fingerprint = _mapping(previous_ref.get("fingerprint"))
+        current_fingerprint = _path_fingerprint(surface)
+        if not current_fingerprint or previous_fingerprint == current_fingerprint:
+            return False
+        try:
+            texts.append(surface.read_text(encoding="utf-8"))
+        except OSError:
+            return False
+    return len(set(texts)) == 1
 
 
 def _previous_batch_can_anchor_story_surface_delta(

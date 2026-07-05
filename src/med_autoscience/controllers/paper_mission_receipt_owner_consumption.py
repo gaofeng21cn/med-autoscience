@@ -93,6 +93,296 @@ def latest_receipt_owner_consumption_readback(
     return max(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
+def align_carrier_readback_with_owner_consumption(
+    *,
+    carrier_readback: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    carrier = dict(_mapping(carrier_readback))
+    receipt_owner_consumption = _mapping(receipt_owner_consumption_readback)
+    if not carrier or not receipt_owner_consumption:
+        return carrier
+    applied_consumption = _mapping(receipt_owner_consumption.get("mas_receipt_consumption"))
+    status = _text(applied_consumption.get("status"))
+    if not status.startswith("owner_consumed_"):
+        return carrier
+    applied_evidence = _mapping(receipt_owner_consumption.get("receipt_evidence"))
+    if _owner_consumption_matches_carrier(
+        carrier=carrier,
+        applied_consumption=applied_consumption,
+        applied_evidence=applied_evidence,
+    ):
+        return _attach_owner_consumption_to_carrier(
+            carrier=carrier,
+            receipt_owner_consumption=receipt_owner_consumption,
+            applied_consumption=applied_consumption,
+            applied_evidence=applied_evidence,
+        )
+    if not _owner_consumption_supersedes_pending_carrier(
+        carrier=carrier,
+        receipt_owner_consumption=receipt_owner_consumption,
+        applied_consumption=applied_consumption,
+        applied_evidence=applied_evidence,
+    ):
+        return carrier
+    return _owner_consumed_carrier_readback(
+        carrier=carrier,
+        receipt_owner_consumption=receipt_owner_consumption,
+        applied_consumption=applied_consumption,
+        applied_evidence=applied_evidence,
+    )
+
+
+def _attach_owner_consumption_to_carrier(
+    *,
+    carrier: Mapping[str, Any],
+    receipt_owner_consumption: Mapping[str, Any],
+    applied_consumption: Mapping[str, Any],
+    applied_evidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    aligned = {
+        **carrier,
+        "receipt_evidence": {
+            **dict(_mapping(carrier.get("receipt_evidence"))),
+            **dict(applied_evidence),
+            "authority_materialized": True,
+        },
+        "mas_receipt_consumption": dict(applied_consumption),
+        "owner_consumption_readback_ref": _first_text(
+            receipt_owner_consumption.get("source_ref"),
+            receipt_owner_consumption.get("decision_ref"),
+        ),
+        "owner_consumption_status": _text(applied_consumption.get("status")),
+    }
+    if "terminal_closeout" in aligned:
+        aligned["terminal_closeout"] = {
+            **dict(_mapping(aligned.get("terminal_closeout"))),
+            "mas_receipt_consumption": dict(applied_consumption),
+        }
+    return aligned
+
+
+def _owner_consumption_supersedes_pending_carrier(
+    *,
+    carrier: Mapping[str, Any],
+    receipt_owner_consumption: Mapping[str, Any],
+    applied_consumption: Mapping[str, Any],
+    applied_evidence: Mapping[str, Any],
+) -> bool:
+    carrier_consumption = _mapping(carrier.get("mas_receipt_consumption"))
+    if _text(carrier_consumption.get("status")) != "requires_mas_owner_consumption":
+        return False
+    carrier_work_unit = _carrier_work_unit_id(carrier)
+    consumed_work_unit = _receipt_owner_consumption_work_unit_id(
+        receipt_owner_consumption
+    )
+    if carrier_work_unit is None or consumed_work_unit is None:
+        return False
+    if carrier_work_unit != consumed_work_unit:
+        return False
+    carrier_attempt_id = _stage_attempt_id_from_refs(
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_id"),
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_ref"),
+        _mapping(carrier.get("terminal_closeout")).get("stage_attempt_id"),
+        _mapping(carrier.get("receipt_evidence")).get("stage_attempt_ref"),
+        _mapping(carrier.get("receipt_evidence")).get("receipt_ref"),
+    )
+    consumed_attempt_id = _stage_attempt_id_from_refs(
+        _mapping(receipt_owner_consumption.get("opl_transition_receipt")).get(
+            "stage_attempt_id"
+        ),
+        _mapping(receipt_owner_consumption.get("opl_transition_receipt")).get(
+            "stage_attempt_ref"
+        ),
+        applied_evidence.get("stage_attempt_ref"),
+        applied_evidence.get("receipt_ref"),
+        applied_consumption.get("runtime_closeout_ref"),
+        applied_consumption.get("route_checkpoint_evidence_ref"),
+    )
+    return bool(consumed_attempt_id and carrier_attempt_id != consumed_attempt_id)
+
+
+def _owner_consumed_carrier_readback(
+    *,
+    carrier: Mapping[str, Any],
+    receipt_owner_consumption: Mapping[str, Any],
+    applied_consumption: Mapping[str, Any],
+    applied_evidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipt = _mapping(receipt_owner_consumption.get("opl_transition_receipt"))
+    stage_closure = _mapping(receipt_owner_consumption.get("stage_closure_decision"))
+    opl_closeout = _mapping(stage_closure.get("opl_closeout"))
+    terminal_closeout = _mapping(carrier.get("terminal_closeout"))
+    consumed_attempt_id = _stage_attempt_id_from_refs(
+        receipt.get("stage_attempt_id"),
+        receipt.get("stage_attempt_ref"),
+        applied_evidence.get("stage_attempt_ref"),
+        applied_evidence.get("receipt_ref"),
+        applied_consumption.get("runtime_closeout_ref"),
+        applied_consumption.get("route_checkpoint_evidence_ref"),
+    )
+    carrier_attempt_id = _stage_attempt_id_from_refs(
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_id"),
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_ref"),
+        terminal_closeout.get("stage_attempt_id"),
+        _mapping(carrier.get("receipt_evidence")).get("stage_attempt_ref"),
+        _mapping(carrier.get("receipt_evidence")).get("receipt_ref"),
+    )
+    closeout_ref = _first_text(
+        applied_consumption.get("runtime_closeout_ref"),
+        applied_consumption.get("route_checkpoint_evidence_ref"),
+        applied_evidence.get("runtime_closeout_ref"),
+        applied_evidence.get("route_checkpoint_evidence_ref"),
+        terminal_closeout.get("closeout_ref"),
+    )
+    receipt_ref = _first_text(
+        receipt.get("stage_attempt_ref"),
+        applied_evidence.get("stage_attempt_ref"),
+        applied_evidence.get("receipt_ref"),
+        applied_consumption.get("receipt_ref"),
+    )
+    work_unit_id = (
+        _receipt_owner_consumption_work_unit_id(receipt_owner_consumption)
+        or _carrier_work_unit_id(carrier)
+    )
+    aligned_receipt = {
+        **dict(_mapping(carrier.get("opl_transition_receipt"))),
+        **dict(receipt),
+        "stage_attempt_id": consumed_attempt_id,
+        "stage_attempt_ref": receipt_ref,
+        "work_unit_id": work_unit_id,
+    }
+    aligned_evidence = {
+        **dict(_mapping(carrier.get("receipt_evidence"))),
+        **dict(applied_evidence),
+        "receipt_ref": receipt_ref,
+        "runtime_closeout_ref": closeout_ref,
+        "stage_attempt_ref": receipt_ref,
+        "authority_materialized": True,
+    }
+    aligned_terminal_closeout = {
+        **dict(terminal_closeout),
+        **dict(opl_closeout),
+        "stage_attempt_id": consumed_attempt_id,
+        "work_unit_id": work_unit_id,
+        "closeout_ref": closeout_ref,
+        "receipt_evidence": aligned_evidence,
+        "opl_transition_receipt": aligned_receipt,
+        "mas_receipt_consumption": dict(applied_consumption),
+    }
+    return {
+        **dict(carrier),
+        "domain_ready_verdict": _first_text(
+            applied_consumption.get("status"),
+            carrier.get("domain_ready_verdict"),
+        ),
+        "owner_consumption_status": _text(applied_consumption.get("status")),
+        "owner_consumption_readback_ref": _first_text(
+            receipt_owner_consumption.get("source_ref"),
+            receipt_owner_consumption.get("decision_ref"),
+        ),
+        "owner_consumption_aligned_current_readback": True,
+        "owner_consumed_stage_attempt_id": consumed_attempt_id,
+        "superseded_terminal_stage_attempt_id": carrier_attempt_id,
+        "receipt_evidence": aligned_evidence,
+        "opl_transition_receipt": aligned_receipt,
+        "mas_receipt_consumption": dict(applied_consumption),
+        "terminal_closeout": aligned_terminal_closeout,
+    }
+
+
+def _carrier_work_unit_id(carrier: Mapping[str, Any]) -> str | None:
+    return _first_text(
+        _mapping(carrier.get("opl_transition_receipt")).get("work_unit_id"),
+        _mapping(carrier.get("terminal_closeout")).get("work_unit_id"),
+    )
+
+
+def _receipt_owner_consumption_work_unit_id(
+    receipt_owner_consumption: Mapping[str, Any],
+) -> str | None:
+    stage_closure = _mapping(receipt_owner_consumption.get("stage_closure_decision"))
+    return _first_text(
+        stage_closure.get("work_unit_id"),
+        _mapping(stage_closure.get("opl_closeout")).get("work_unit_id"),
+        _mapping(receipt_owner_consumption.get("opl_transition_receipt")).get(
+            "work_unit_id"
+        ),
+    )
+
+
+def _owner_consumption_matches_carrier(
+    *,
+    carrier: Mapping[str, Any],
+    applied_consumption: Mapping[str, Any],
+    applied_evidence: Mapping[str, Any],
+) -> bool:
+    carrier_attempt_id = _stage_attempt_id_from_refs(
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_id"),
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_ref"),
+        _mapping(carrier.get("receipt_evidence")).get("stage_attempt_ref"),
+        _mapping(carrier.get("receipt_evidence")).get("receipt_ref"),
+        _mapping(carrier.get("terminal_closeout")).get("stage_attempt_id"),
+    )
+    consumed_attempt_id = _stage_attempt_id_from_refs(
+        applied_evidence.get("stage_attempt_ref"),
+        applied_evidence.get("receipt_ref"),
+        applied_consumption.get("receipt_evidence_ref"),
+        applied_consumption.get("route_checkpoint_evidence_ref"),
+        applied_consumption.get("typed_runtime_blocker_ref"),
+    )
+    if carrier_attempt_id and consumed_attempt_id:
+        return carrier_attempt_id == consumed_attempt_id
+    carrier_refs = _carrier_identity_refs(carrier)
+    consumed_refs = {
+        ref
+        for ref in (
+            _first_text(applied_evidence.get("runtime_closeout_ref")),
+            _first_text(applied_consumption.get("route_checkpoint_evidence_ref")),
+            _first_text(applied_consumption.get("typed_runtime_blocker_ref")),
+            _first_text(applied_evidence.get("receipt_ref")),
+            _first_text(applied_consumption.get("receipt_evidence_ref")),
+        )
+        if ref
+    }
+    return bool(carrier_refs and consumed_refs and carrier_refs.intersection(consumed_refs))
+
+
+def _carrier_identity_refs(carrier: Mapping[str, Any]) -> set[str]:
+    receipt = _mapping(carrier.get("opl_transition_receipt"))
+    evidence = _mapping(carrier.get("receipt_evidence"))
+    terminal = _mapping(carrier.get("terminal_closeout"))
+    return {
+        ref
+        for ref in (
+            _first_text(receipt.get("stage_attempt_ref")),
+            _first_text(receipt.get("runtime_closeout_ref")),
+            _first_text(evidence.get("receipt_ref")),
+            _first_text(evidence.get("runtime_closeout_ref")),
+            _first_text(terminal.get("closeout_ref")),
+        )
+        if ref
+    }
+
+
+def _stage_attempt_id_from_refs(*values: object) -> str | None:
+    for value in values:
+        text = _first_text(value)
+        if text is None:
+            continue
+        if text.startswith("sat_") or text.startswith("sat-"):
+            return text
+        marker = "opl://stage-attempts/"
+        if marker in text:
+            suffix = text.split(marker, 1)[1]
+            return suffix.split("/", 1)[0].split("#", 1)[0]
+        path_marker = "paper_mission_stage_attempts/"
+        if path_marker in text:
+            suffix = text.split(path_marker, 1)[1]
+            return suffix.split("/", 1)[0]
+    return None
+
+
 def _validate_readback(
     *,
     paper_mission_readback: Mapping[str, Any],
@@ -114,7 +404,12 @@ def _validate_readback(
         missing.append("opl_runtime_carrier_readback.receipt_evidence")
     if not consumption:
         missing.append("opl_runtime_carrier_readback.mas_receipt_consumption")
-    if consumption and _text(consumption.get("status")) != "requires_mas_owner_consumption":
+    consumption_status = _text(consumption.get("status"))
+    if (
+        consumption
+        and consumption_status != "requires_mas_owner_consumption"
+        and not _owner_consumption_already_materialized(consumption_status)
+    ):
         mismatched.append("mas_receipt_consumption.status")
     if receipt and receipt.get("can_claim_paper_progress") is not False:
         mismatched.append("opl_transition_receipt.can_claim_paper_progress")
@@ -186,15 +481,23 @@ def _consumption_result(
             verdict=verdict,
             apply_mode=apply_mode,
         )
+    already_materialized = _owner_consumption_already_materialized(
+        _text(consumption.get("status"))
+    )
     return {
         "surface_kind": "paper_mission_receipt_owner_consumption",
         "schema_version": 1,
-        "status": "owner_consumption_evidence_materialized",
+        "status": (
+            "owner_consumption_already_materialized"
+            if already_materialized
+            else "owner_consumption_evidence_materialized"
+        ),
         "study_id": study_id,
         "profile_ref": profile_ref,
         "source": source,
         "write_permitted": False,
         "authority_materialized": False,
+        "owner_consumption_already_materialized": already_materialized,
         "paper_ready_claim_authorized": False,
         "publication_ready_claim_authorized": False,
         "submission_ready_claim_authorized": False,
@@ -208,6 +511,10 @@ def _consumption_result(
         "implementation_gap": _implementation_gap(),
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
     }
+
+
+def _owner_consumption_already_materialized(status: str | None) -> bool:
+    return bool(status and status.startswith("owner_consumed_"))
 
 
 def _owner_consumption_verdict(
@@ -257,6 +564,12 @@ def _owner_consumption_verdict(
         "forbidden_next_action": _text(consumption.get("forbidden_next_action"))
         or "synonymous_route_back_redrive",
         "receipt_ref": _first_text(
+            stage.get("receipt_evidence_ref")
+            if verdict_kind == "consume_route_back_checkpoint_owner_consumption_required"
+            else None,
+            stage.get("route_checkpoint_evidence_ref")
+            if verdict_kind == "consume_route_back_checkpoint_owner_consumption_required"
+            else None,
             receipt.get("stage_attempt_ref"),
             receipt.get("receipt_ref"),
             receipt.get("runtime_closeout_ref"),
@@ -304,7 +617,18 @@ def _apply_result(
     generated_at = _utc_now()
     stage = _stage_closure_summary(paper_mission_readback)
     package = _current_package_summary(paper_mission_readback)
+    if apply_mode == "route_checkpoint":
+        receipt, evidence, consumption = _route_checkpoint_aligned_receipt_inputs(
+            paper_mission_readback=paper_mission_readback,
+            stage=stage,
+            receipt=receipt,
+            evidence=evidence,
+            consumption=consumption,
+        )
     receipt_ref = _first_text(
+        stage.get("route_checkpoint_evidence_ref")
+        if apply_mode == "route_checkpoint"
+        else None,
         evidence.get("typed_runtime_blocker_ref"),
         consumption.get("typed_runtime_blocker_ref"),
         evidence.get("runtime_closeout_ref"),
@@ -417,6 +741,107 @@ def _apply_result(
     }
 
 
+def _route_checkpoint_aligned_receipt_inputs(
+    *,
+    paper_mission_readback: Mapping[str, Any],
+    stage: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    consumption: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    if _text(stage.get("transition_kind")) != "route_back_candidate_checkpoint":
+        return dict(receipt), dict(evidence), dict(consumption)
+    checkpoint_ref = _first_text(stage.get("route_checkpoint_evidence_ref"))
+    if checkpoint_ref is None:
+        return dict(receipt), dict(evidence), dict(consumption)
+    closeout = _mapping(stage.get("opl_closeout"))
+    stage_attempt_id = _first_text(closeout.get("stage_attempt_id"))
+    stage_attempt_ref = (
+        f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
+    )
+    successor = _route_checkpoint_successor_identity(paper_mission_readback)
+    route_target = _first_text(
+        successor.get("stage_id"),
+        stage.get("stage_id"),
+    )
+    route_work_unit_id = _first_text(
+        successor.get("work_unit_id"),
+        stage.get("work_unit_id"),
+    )
+    receipt_ref = _first_text(
+        stage.get("receipt_evidence_ref"),
+        stage_attempt_ref,
+        evidence.get("receipt_ref"),
+        receipt.get("stage_attempt_ref"),
+        receipt.get("receipt_ref"),
+    )
+    aligned_receipt = {
+        **dict(receipt),
+        **(
+            {"stage_attempt_id": stage_attempt_id}
+            if stage_attempt_id is not None
+            else {}
+        ),
+        **(
+            {"stage_attempt_ref": stage_attempt_ref}
+            if stage_attempt_ref is not None
+            else {}
+        ),
+        "runtime_closeout_ref": checkpoint_ref,
+        "route_target": route_target,
+        "work_unit_id": route_work_unit_id,
+    }
+    aligned_evidence = {
+        **dict(evidence),
+        **({"receipt_ref": receipt_ref} if receipt_ref is not None else {}),
+        "runtime_closeout_ref": checkpoint_ref,
+        **(
+            {"stage_attempt_ref": stage_attempt_ref}
+            if stage_attempt_ref is not None
+            else {}
+        ),
+        "route_checkpoint_evidence_ref": checkpoint_ref,
+        "route_back_evidence_ref": _first_text(
+            evidence.get("route_back_evidence_ref"),
+            consumption.get("route_back_evidence_ref"),
+        ),
+    }
+    aligned_consumption = {
+        **dict(consumption),
+        **(
+            {"receipt_evidence_ref": receipt_ref}
+            if receipt_ref is not None
+            else {}
+        ),
+        "route_checkpoint_evidence_ref": checkpoint_ref,
+    }
+    return aligned_receipt, aligned_evidence, aligned_consumption
+
+
+def _route_checkpoint_successor_identity(
+    paper_mission_readback: Mapping[str, Any],
+) -> dict[str, str]:
+    domain_transition = _mapping(paper_mission_readback.get("domain_transition"))
+    next_action = _mapping(domain_transition.get("next_action"))
+    next_work_unit = _mapping(domain_transition.get("next_work_unit"))
+    route_target = _first_text(
+        next_action.get("stage_id"),
+        domain_transition.get("route_target"),
+    )
+    work_unit_id = _first_text(
+        next_action.get("work_unit_id"),
+        next_work_unit.get("unit_id"),
+    )
+    return {
+        key: value
+        for key, value in {
+            "stage_id": route_target,
+            "work_unit_id": work_unit_id,
+        }.items()
+        if value is not None
+    }
+
+
 def _implementation_gap() -> dict[str, Any]:
     return {
         "gap_kind": "mas_owner_consumption_authority_apply_surface_missing",
@@ -462,19 +887,34 @@ def _applied_stage_closure_decision(
         "paper_mission_opl_transition_receipt_consumed",
     )
     if apply_mode == "route_checkpoint":
+        route_stage_id = _first_text(
+            receipt.get("route_target"),
+            receipt.get("stage_id"),
+            stage.get("stage_id"),
+        )
+        route_work_unit_id = _first_text(
+            receipt.get("work_unit_id"),
+            consumption.get("work_unit_id"),
+            stage.get("work_unit_id"),
+        )
+        route_opl_closeout = _receipt_aligned_opl_closeout(
+            stage=stage,
+            receipt=receipt,
+            work_unit_id=route_work_unit_id,
+        )
         return {
             "surface_kind": "mas_stage_closure_decision",
             "schema_version": 1,
             "source": source,
             "study_id": study_id,
             **(
-                {"stage_id": stage["stage_id"]}
-                if _text(stage.get("stage_id")) is not None
+                {"stage_id": route_stage_id}
+                if route_stage_id is not None
                 else {}
             ),
             **(
-                {"work_unit_id": stage["work_unit_id"]}
-                if _text(stage.get("work_unit_id")) is not None
+                {"work_unit_id": route_work_unit_id}
+                if route_work_unit_id is not None
                 else {}
             ),
             "decision_ref": _text(stage.get("decision_ref")),
@@ -497,8 +937,8 @@ def _applied_stage_closure_decision(
             "route_checkpoint_evidence_ref": receipt_ref,
             "recorded_at": generated_at,
             **(
-                {"opl_closeout": stage["opl_closeout"]}
-                if _mapping(stage.get("opl_closeout"))
+                {"opl_closeout": route_opl_closeout}
+                if route_opl_closeout
                 else {}
             ),
             "outcome": {
@@ -599,6 +1039,27 @@ def _applied_stage_closure_decision(
     }
 
 
+def _receipt_aligned_opl_closeout(
+    *,
+    stage: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    work_unit_id: str | None,
+) -> dict[str, Any]:
+    closeout = _mapping(stage.get("opl_closeout"))
+    receipt_stage_attempt_id = _text(receipt.get("stage_attempt_id"))
+    if receipt_stage_attempt_id is None:
+        return closeout
+    if _text(closeout.get("stage_attempt_id")) == receipt_stage_attempt_id:
+        return closeout
+    aligned = {
+        "status": "opl_runtime_terminal_readback_observed",
+        "stage_attempt_id": receipt_stage_attempt_id,
+    }
+    if work_unit_id is not None:
+        aligned["work_unit_id"] = work_unit_id
+    return aligned
+
+
 def _write_output_packet(
     *,
     output_root: Path,
@@ -682,9 +1143,18 @@ def _read_json_object(path: Path) -> dict[str, Any]:
 
 
 def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
-    decision = _mapping(readback.get("stage_closure_decision"))
+    decision = _effective_stage_closure_decision(readback)
     outcome = _mapping(decision.get("outcome"))
     guard = _mapping(readback.get("durable_mission_stop_guard"))
+    opl_closeout = _mapping(decision.get("opl_closeout"))
+    stage_attempt_id = _first_text(opl_closeout.get("stage_attempt_id"))
+    derived_stage_attempt_ref = (
+        f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
+    )
+    derived_checkpoint_ref = _route_checkpoint_evidence_ref_from_opl_closeout(
+        readback=readback,
+        stage_attempt_id=stage_attempt_id,
+    )
     return {
         "stage_id": _first_text(decision.get("stage_id"), outcome.get("stage_id")),
         "work_unit_id": _first_text(
@@ -696,8 +1166,96 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
         "next_legal_action": _first_text(outcome.get("next_legal_action"), decision.get("next_legal_action")),
         "decision_ref": _first_text(decision.get("decision_ref"), readback.get("stage_closure_decision_ref")),
         "durable_stop_allowed": guard.get("durable_stop_allowed") is True,
-        "opl_closeout": _mapping(decision.get("opl_closeout")),
+        "opl_closeout": opl_closeout,
+        "receipt_evidence_ref": _first_text(
+            decision.get("receipt_evidence_ref"),
+            outcome.get("receipt_evidence_ref"),
+            derived_stage_attempt_ref,
+        ),
+        "route_checkpoint_evidence_ref": _first_text(
+            decision.get("route_checkpoint_evidence_ref"),
+            outcome.get("route_checkpoint_evidence_ref"),
+            derived_checkpoint_ref,
+        ),
     }
+
+
+def _route_checkpoint_evidence_ref_from_opl_closeout(
+    *,
+    readback: Mapping[str, Any],
+    stage_attempt_id: str | None,
+) -> str | None:
+    if stage_attempt_id is None:
+        return None
+    next_action = _mapping(readback.get("next_action"))
+    if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
+        return None
+    if _first_text(next_action.get("outcome_ref")) is None:
+        return None
+    study_root = _first_text(readback.get("study_root"))
+    study_id = _first_text(readback.get("study_id"))
+    if study_root is not None:
+        root = Path(study_root).expanduser().resolve()
+        workspace_root = root.parent.parent if root.parent.name == "studies" else root
+        relative_candidates = [
+            Path("ops")
+            / "medautoscience"
+            / "paper_mission_stage_attempts"
+            / stage_attempt_id
+            / "stage_attempt_closeout_packet.json",
+        ]
+        if study_id is not None:
+            relative_candidates.append(
+                Path("ops")
+                / "medautoscience"
+                / "paper_mission_stage_attempts"
+                / stage_attempt_id
+                / study_id
+                / "stage_attempt_closeout_packet.json"
+            )
+        for relative in relative_candidates:
+            if (workspace_root / relative).exists():
+                return relative.as_posix()
+    return (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        f"{stage_attempt_id}/stage_attempt_closeout_packet.json"
+    )
+
+
+def _effective_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str, Any]:
+    next_action_decision = _next_action_stage_closure_decision(readback)
+    if next_action_decision:
+        return next_action_decision
+    decision = _mapping(readback.get("stage_closure_decision"))
+    ledger = _mapping(readback.get("paper_mission_stage_closure_ledger_readback"))
+    ledger_outcome = _mapping(ledger.get("outcome"))
+    if (
+        ledger_outcome.get("kind") == "next_stage_transition"
+        and ledger_outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    ):
+        return ledger
+    return decision
+
+
+def _next_action_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping(readback.get("next_action"))
+    if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
+        return {}
+    outcome_ref = _first_text(next_action.get("outcome_ref"))
+    if outcome_ref is None:
+        return {}
+    payload = _read_json_object(Path(outcome_ref))
+    if _text(payload.get("surface_kind")) != "mas_stage_closure_decision":
+        return {}
+    if _text(payload.get("study_id")) != _text(readback.get("study_id")):
+        return {}
+    outcome = _mapping(payload.get("outcome"))
+    if (
+        _text(outcome.get("kind")) == "next_stage_transition"
+        and _text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint"
+    ):
+        return payload
+    return {}
 
 
 def _current_package_summary(readback: Mapping[str, Any]) -> dict[str, Any]:

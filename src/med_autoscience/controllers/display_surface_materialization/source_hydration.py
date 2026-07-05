@@ -46,13 +46,22 @@ def _copy_if_source_changed(
     source_root: Path,
     paper_root: Path,
     rel_path: str,
+    preserved_current_sources: list[str] | None = None,
 ) -> Path | None:
     source_path = source_root / rel_path
     if not source_path.exists():
         return None
     target_path = paper_root / rel_path
-    if target_path.exists() and filecmp.cmp(source_path, target_path, shallow=False):
-        return None
+    if target_path.exists():
+        if filecmp.cmp(source_path, target_path, shallow=False):
+            return None
+        try:
+            if target_path.stat().st_mtime_ns > source_path.stat().st_mtime_ns:
+                if preserved_current_sources is not None:
+                    preserved_current_sources.append(rel_path)
+                return None
+        except OSError:
+            pass
     target_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, target_path)
     return target_path
@@ -89,6 +98,7 @@ def _copy_shell_path(
     paper_root: Path,
     item: dict[str, Any],
     copied_files: list[Path],
+    preserved_current_sources: list[str],
 ) -> dict[str, Any] | None:
     shell_path = str(item.get("shell_path") or "").strip()
     if not shell_path:
@@ -101,6 +111,7 @@ def _copy_shell_path(
         source_root=source_root,
         paper_root=paper_root,
         rel_path=shell_rel_path,
+        preserved_current_sources=preserved_current_sources,
     )
     if copied_path is not None:
         copied_files.append(copied_path)
@@ -179,6 +190,7 @@ def hydrate_display_surface_sources_from_current_body(
     copied_files: list[Path] = []
     missing_required_source_files: list[str] = []
     preserved_current_generated_sources: list[str] = []
+    preserved_current_sources: list[str] = []
     required_rels: set[str] = set()
     displays = display_registry_payload.get("displays")
     if not isinstance(displays, list):
@@ -192,6 +204,7 @@ def hydrate_display_surface_sources_from_current_body(
             paper_root=resolved_paper_root,
             item=item,
             copied_files=copied_files,
+            preserved_current_sources=preserved_current_sources,
         )
         requirement_key = _resolve_requirement_key(item=item, shell_payload=shell_payload)
         for rel_path in _required_input_rels_for_display(item=item, requirement_key=requirement_key):
@@ -202,6 +215,7 @@ def hydrate_display_surface_sources_from_current_body(
             source_root=source_root,
             paper_root=resolved_paper_root,
             rel_path=rel_path,
+            preserved_current_sources=preserved_current_sources,
         )
         if copied_path is not None:
             copied_files.append(copied_path)
@@ -220,6 +234,7 @@ def hydrate_display_surface_sources_from_current_body(
             source_root=source_root,
             paper_root=resolved_paper_root,
             rel_path=rel_path,
+            preserved_current_sources=preserved_current_sources,
         )
         if copied_path is not None:
             copied_files.append(copied_path)
@@ -235,6 +250,9 @@ def hydrate_display_surface_sources_from_current_body(
         "missing_required_source_files": missing_required_source_files,
         "preserved_current_generated_sources": [
             f"paper/{rel_path}" for rel_path in sorted(set(preserved_current_generated_sources))
+        ],
+        "preserved_current_sources": [
+            f"paper/{rel_path}" for rel_path in sorted(set(preserved_current_sources))
         ],
     }
 

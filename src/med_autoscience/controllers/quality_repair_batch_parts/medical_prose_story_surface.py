@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.medical_prose_story_surface_parts.dm002_external_validation import (
+    DM002_AFTER_STORY_REPAIR_MEDICAL_PROSE_HARDENING_WORK_UNIT_ID,
     DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS,
     DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
     DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
@@ -38,6 +40,32 @@ FORBIDDEN_MANUSCRIPT_TERMS = (
     "quality repair",
     "publication gate",
     "controller",
+    "semantic-audit",
+    "Revision analyses were implemented",
+    "Table 1 is",
+    "Table 2 is",
+    "Figure 4 supports",
+    "Guideline-linked",
+)
+DPCC_DISPLAY_TEXT_REPLACEMENTS = (
+    (
+        "Guideline-linked glycemia, antihypertensive, and lipid-lowering treatment gaps "
+        "aligned to the six DPCC phenotypes.",
+        "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
+        "aligned to the six DPCC phenotypes.",
+    ),
+    (
+        "Guideline-linked treatment-gap burden across DPCC phenotypes",
+        "Recorded treatment-review gap burden across DPCC phenotypes",
+    ),
+    (
+        "Guideline-linked treatment-gap burden",
+        "Recorded treatment-review gap burden",
+    ),
+    (
+        "guideline_linked_treatment_gap_burden_small_multiples",
+        "recorded_treatment_review_gap_burden_small_multiples",
+    ),
 )
 
 
@@ -61,6 +89,17 @@ def materialize_medical_prose_story_surfaces(
     )
     if currentness_blocker:
         raise RuntimeError(str(currentness_blocker["blocked_reason"]))
+    if _dm002_side_surface_only_repair_is_allowed(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        _, extra_changed_paths = materialize_dm002_external_validation_story_surface(
+            paper_root=paper_root,
+            study_root=study_root,
+        )
+        return extra_changed_paths
     if eval_bound_current_story_delta_is_preservable(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
@@ -70,6 +109,12 @@ def materialize_medical_prose_story_surfaces(
         source_eval_id=source_eval_id,
         publication_eval_payload=publication_eval_payload,
     ):
+        extra_changed_paths: list[str] = []
+        if work_unit_id in DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS:
+            _, extra_changed_paths = materialize_dm002_external_validation_story_surface(
+                paper_root=paper_root,
+                study_root=study_root,
+            )
         return [
             str(ref["path"])
             for ref in eval_bound_current_story_delta_refs(
@@ -82,7 +127,7 @@ def materialize_medical_prose_story_surfaces(
                 publication_eval_payload=publication_eval_payload,
             )
             if ref.get("path")
-        ]
+        ] + extra_changed_paths
     current_writer_delta_paths = materialize_current_writer_story_delta(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
@@ -103,7 +148,16 @@ def materialize_medical_prose_story_surfaces(
         source_eval_id=source_eval_id,
         previous_quality_repair_batch=previous_quality_repair_batch,
     ):
-        return _current_story_surface_paths(paper_root=paper_root)
+        if work_unit_id in {
+            DM002_AFTER_STORY_REPAIR_MEDICAL_PROSE_HARDENING_WORK_UNIT_ID,
+            DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+        }:
+            _, extra_changed_paths = materialize_dm002_external_validation_story_surface(
+                paper_root=paper_root,
+                study_root=study_root,
+            )
+            return extra_changed_paths
+        return []
     extra_changed_paths: list[str] = []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
@@ -122,15 +176,108 @@ def materialize_medical_prose_story_surfaces(
         paper_root=paper_root,
         manuscript=manuscript,
     )
+    artifact_changed_paths = _materialize_dpcc_display_metadata_repairs(paper_root=paper_root)
     if current_story_surface_paths:
-        return current_story_surface_paths + extra_changed_paths
+        return current_story_surface_paths + extra_changed_paths + artifact_changed_paths
     changed_paths: list[str] = []
     for relpath in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS:
         path = paper_root / relpath
         if _write_text_if_changed(path, manuscript):
             changed_paths.append(str(path.resolve()))
     changed_paths.extend(extra_changed_paths)
+    changed_paths.extend(artifact_changed_paths)
     return changed_paths
+
+
+def _dm002_side_surface_only_repair_is_allowed(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    source_eval_id: str | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> bool:
+    return (
+        _dm002_side_surface_only_repair_state(
+            paper_root=paper_root,
+            work_unit_id=work_unit_id,
+            source_eval_id=source_eval_id,
+            publication_eval_payload=publication_eval_payload,
+        )
+        == "live"
+    )
+
+
+def dm002_side_surface_only_repair_blocker(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    source_eval_id: str | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if (
+        _dm002_side_surface_only_repair_state(
+            paper_root=paper_root,
+            work_unit_id=work_unit_id,
+            source_eval_id=source_eval_id,
+            publication_eval_payload=publication_eval_payload,
+        )
+        != "digest_mismatch"
+    ):
+        return {}
+    return {
+        "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+        "source_eval_id": source_eval_id,
+        "work_unit_id": work_unit_id,
+    }
+
+
+def _dm002_side_surface_only_repair_state(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    source_eval_id: str | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> str | None:
+    if work_unit_id != DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID:
+        return None
+    payload = dict(publication_eval_payload) if isinstance(publication_eval_payload, Mapping) else {}
+    if source_eval_id and _text(payload.get("eval_id")) != source_eval_id:
+        return None
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, Mapping):
+        return None
+    currentness_checks = reviewer_os.get("currentness_checks")
+    if not isinstance(currentness_checks, Mapping):
+        return None
+    prose_currentness = currentness_checks.get("medical_prose_review")
+    if not isinstance(prose_currentness, Mapping):
+        return None
+    if _text(prose_currentness.get("status")) != "current":
+        return None
+    manuscript_digest = _text(prose_currentness.get("manuscript_digest"))
+    manuscript_ref = _text(prose_currentness.get("manuscript_ref"))
+    if not manuscript_digest or not manuscript_digest.startswith("sha256:") or not manuscript_ref:
+        return None
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    story_surface_paths = {
+        (resolved_paper_root / relative_path).expanduser().resolve()
+        for relative_path in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+    }
+    manuscript_path = Path(manuscript_ref).expanduser()
+    if not manuscript_path.is_absolute():
+        manuscript_path = (resolved_paper_root.parent / manuscript_path).resolve()
+    else:
+        manuscript_path = manuscript_path.resolve()
+    if manuscript_path not in story_surface_paths:
+        return None
+    if all(
+        path.exists()
+        and path.is_file()
+        and f"sha256:{_sha256_bytes(path.read_bytes())}" == manuscript_digest
+        for path in story_surface_paths
+    ):
+        return "live"
+    return "digest_mismatch"
 
 
 def _current_story_surface_paths_if_already_materialized(*, paper_root: Path, manuscript: str) -> list[str]:
@@ -260,7 +407,7 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         f"processed release contained {cohort['processed_records']} source records from {cohort['unique_patients']} "
         "patients, with most participating practices located in Hunan. The primary denominator was the index diabetes "
         f"cohort of {cohort['index_patients']} adults. For each patient, the index encounter was the first qualifying "
-        "diabetes-coded visit with phenotype-ready fields after semantic-audit plausibility filtering. Repeated source "
+        "diabetes-coded visit with phenotype-ready fields after prespecified plausibility and completeness checks. Repeated source "
         "rows from the same patient within a 7-day visit episode were not counted as separate transition opportunities. "
         f"The repeated-visit support panel included {cohort['repeated_visit_patients']} patients, and "
         f"{cohort['transition_eligible']} patients were eligible for first-to-last phenotype transition summaries. "
@@ -336,8 +483,9 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "follow-up support, transition-eligible patients for first-to-last transition summaries, and release visit "
         "episodes for site-level coverage. No sampling-based 95% confidence intervals were calculated for the main "
         "release-level descriptive counts, because the analysis enumerated the retained DPCC release rather than "
-        "sampling from a target national population. Revision analyses were implemented in Python using sqlite3, numpy, "
-        "scipy, and matplotlib. No "
+        "sampling from a target national population. Analyses were implemented in Python using sqlite3, numpy, "
+        "scipy, and matplotlib, with deterministic scripts used to reproduce cohort counts, phenotype summaries, "
+        "treatment-review indicators, transition summaries, and display inputs. No "
         "causal model, p-value-driven hypothesis test, individualized prediction model, or blood-pressure target "
         "attainment analysis was used for the main manuscript."
     )
@@ -356,16 +504,18 @@ def _results_section(
     return (
         "## Results\n\n"
         "### Cohort and analytic support\n\n"
-        f"The processed release included {cohort['processed_records']} source records from {cohort['unique_patients']} "
-        f"patients. The index cohort included {cohort['index_patients']} adults with diabetes. Cross-site continuity "
-        f"was observed for {cohort['cross_site_patients']} patients. Repeated-visit support was available for "
+        f"After plausibility filtering, the retained release supported a large adult diabetes index cohort from "
+        f"{cohort['processed_records']} source records and {cohort['unique_patients']} patients. The index cohort "
+        f"included {cohort['index_patients']} adults with diabetes. Cross-site continuity was observed for "
+        f"{cohort['cross_site_patients']} patients. Repeated-visit support was available for "
         f"{cohort['repeated_visit_patients']} patients, and {cohort['transition_eligible']} contributed to the "
-        "first-to-last transition analysis. Figure 1 presents the cohort flow and quality-control exclusions.\n\n"
+        "first-to-last transition analysis. The cohort-flow display supports these denominators and quality-control "
+        "exclusions rather than serving as the paragraph's main logic.\n\n"
         "### Baseline characteristics\n\n"
-        "Table 1 is the cohort-assembly and data-quality table for the retained DPCC release. It documents the release "
-        "size, index denominator, repeated-visit support, site-level support, blood-pressure semantic checks, and "
-        "plausibility-filter exclusions. Table 2 is the phenotype-level baseline-characteristics table, with patient "
-        "counts, cohort shares, mean age, mean BMI, mean HbA1c, and phenotype-scoped treatment-review gap rates.\n\n"
+        "Cohort assembly and data-quality summaries document the release size, index denominator, repeated-visit "
+        "support, site-level support, blood-pressure semantic checks, and plausibility-filter exclusions. Phenotype-level "
+        "baseline summaries report patient counts, cohort shares, mean age, mean BMI, mean HbA1c, and phenotype-scoped "
+        "treatment-review gap rates.\n\n"
         "### Phenotype distribution and clinical profiles\n\n"
         f"{phenotype_sentence} The phenotype table shows a clinically interpretable gradient: severe glycemic "
         "multimorbidity had the highest mean HbA1c, adiposity-linked multimorbidity and adiposity-dominant diabetes "
@@ -377,8 +527,8 @@ def _results_section(
         "without a recorded diabetes medication was 50.05% in glycemic-dominant diabetes, 39.36% in adiposity-linked "
         "multimorbidity, and 33.51% in severe glycemic multimorbidity. Hypertension context without a recorded "
         "antihypertensive ranged from 57.86% to 73.68% among scoped phenotypes, and dyslipidemia context without "
-        f"recorded lipid-lowering therapy ranged from 75.96% to 91.40%. {leading_gaps} {absolute_gaps} Figure 4 supports "
-        "the service-burden claim by showing absolute patient counts for the same medication-coverage gaps, using "
+        f"recorded lipid-lowering therapy ranged from 75.96% to 91.40%. {leading_gaps} {absolute_gaps} At the service-review "
+        "scale, absolute patient counts showed where recorded medication-coverage gaps concentrated while preserving "
         "phenotype-specific denominators and retaining Not assessed indicators outside their scoped denominator.\n\n"
         "### Transition stability and site support\n\n"
         f"Among {transition['transition_eligible']} transition-eligible repeated-visit patients, first-to-last "
@@ -515,6 +665,44 @@ def _gap_rows(*, treatment_gap_alignment: Mapping[str, Any]) -> list[dict[str, s
         if isinstance(row, Mapping):
             result.append({str(key): str(value) for key, value in row.items()})
     return result
+
+
+def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]:
+    changed_paths: list[str] = []
+    for relpath in (
+        Path("dpcc_treatment_gap_alignment.json"),
+        Path("results_narrative_map.json"),
+        Path("claim_evidence_map.json"),
+        Path("figure_catalog.json"),
+        Path("figures") / "figure_catalog.json",
+        Path("build") / "display_pack_render_requests" / "F4.render_request.json",
+    ):
+        path = paper_root / relpath
+        if not path.exists() or not path.is_file():
+            continue
+        payload = _read_json_object(path)
+        if not payload:
+            continue
+        updated = _replace_dpcc_display_metadata_text(payload)
+        if updated != payload and _write_json_if_changed(path, updated):
+            changed_paths.append(str(path.resolve()))
+    return changed_paths
+
+
+def _replace_dpcc_display_metadata_text(value: Any) -> Any:
+    if isinstance(value, str):
+        updated = value
+        for target, replacement in DPCC_DISPLAY_TEXT_REPLACEMENTS:
+            updated = updated.replace(target, replacement)
+        return updated
+    if isinstance(value, list):
+        return [_replace_dpcc_display_metadata_text(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _replace_dpcc_display_metadata_text(item)
+            for key, item in value.items()
+        }
+    return value
 
 
 def _leading_gap_sentence(rows: list[dict[str, str]]) -> str:
@@ -667,6 +855,15 @@ def _write_text_if_changed(path: Path, text: str) -> bool:
     return True
 
 
+def _write_json_if_changed(path: Path, payload: Mapping[str, Any]) -> bool:
+    rendered = json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n"
+    if path.exists() and path.read_text(encoding="utf-8") == rendered:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(rendered, encoding="utf-8")
+    return True
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -676,10 +873,15 @@ def _text(value: object) -> str | None:
     return text or None
 
 
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 __all__ = [
     "DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID",
     "DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID",
     "MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS",
     "MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID",
+    "dm002_side_surface_only_repair_blocker",
     "materialize_medical_prose_story_surfaces",
 ]

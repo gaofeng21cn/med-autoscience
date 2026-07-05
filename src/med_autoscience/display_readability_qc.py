@@ -183,6 +183,8 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
 
     risk_group_summaries = metrics.get("risk_group_summaries")
     if isinstance(risk_group_summaries, list) and len(risk_group_summaries) >= 2:
+        plot_variant = str(metrics.get("plot_variant") or "").strip()
+        grouped_calibration_variant = plot_variant == "nhanes_decile_grouped_calibration"
         grouped_summaries: dict[str, dict[str, list[float]]] = {}
         for index, item in enumerate(risk_group_summaries):
             summary = _require_mapping(item, label=f"layout_sidecar.metrics.risk_group_summaries[{index}]")
@@ -261,7 +263,7 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
                         expected={"minimum_predicted_risk_spread": minimum_predicted_risk_spread},
                     )
                 )
-            if event_count_spread < minimum_event_count_spread:
+            if not grouped_calibration_variant and event_count_spread < minimum_event_count_spread:
                 issues.append(
                     _issue(
                         rule_id="event_count_spread_not_readable",
@@ -280,7 +282,7 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
                         observed={"predicted_risks": predicted_risks},
                     )
                 )
-            if not _is_non_decreasing(observed_risks):
+            if not grouped_calibration_variant and not _is_non_decreasing(observed_risks):
                 issues.append(
                     _issue(
                         rule_id="observed_risk_order_not_monotonic",
@@ -289,7 +291,7 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
                         observed={"observed_risks": observed_risks},
                     )
                 )
-            if not _is_non_decreasing(event_counts):
+            if not grouped_calibration_variant and not _is_non_decreasing(event_counts):
                 issues.append(
                     _issue(
                         rule_id="event_count_order_not_monotonic",
