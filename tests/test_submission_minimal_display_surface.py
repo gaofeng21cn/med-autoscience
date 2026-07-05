@@ -563,6 +563,84 @@ def test_create_submission_minimal_package_hydrates_delivery_required_ledgers_fr
     assert (paper_root / "submission_minimal" / "audit" / "evidence_ledger.json").exists()
 
 
+def test_create_submission_minimal_package_hydrates_current_body_manuscript_and_tables(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    study_root = tmp_path / "workspace"
+    paper_root = make_workspace(tmp_path)
+    current_body_paper_root = (
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper"
+    )
+    (paper_root / "build" / "compile_report.json").unlink()
+    write_text(paper_root / "draft.md", "# Stale root draft\n\nOld text.\n")
+    write_text(
+        current_body_paper_root / "draft.md",
+        """# Current body manuscript
+
+## Abstract
+
+Current authority abstract.
+
+## Results
+
+Current authority results.
+
+## Discussion
+
+Current authority discussion.
+""",
+    )
+    dump_json(
+        current_body_paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "performance_summary",
+                    "paper_role": "main_text",
+                    "title": "Current performance table",
+                    "asset_paths": ["paper/tables/generated/T2_current_performance.md"],
+                },
+                {
+                    "table_id": "T3",
+                    "table_shell_id": "grouped_calibration",
+                    "paper_role": "main_text",
+                    "title": "Current decile calibration",
+                    "asset_paths": ["paper/tables/generated/T3_current_deciles.md"],
+                },
+            ],
+        },
+    )
+    write_text(
+        current_body_paper_root / "tables" / "generated" / "T2_current_performance.md",
+        "| Metric | Value |\n| --- | --- |\n| C-index | 0.734 |\n",
+    )
+    write_text(
+        current_body_paper_root / "tables" / "generated" / "T3_current_deciles.md",
+        "| Decile | Events |\n| --- | ---: |\n| 10 | 214 |\n",
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    submission_text = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "Current authority abstract." in submission_text
+    assert "Old text." not in submission_text
+    assert "## Table 2. Current performance table" in submission_text
+    assert "| C-index | 0.734 |" in submission_text
+    assert "## Table 3. Current decile calibration" in submission_text
+    assert "| 10 | 214 |" in submission_text
+    assert "paper/draft.md" in manifest["source_hydration"]["hydrated_files"]
+    assert "paper/tables/table_catalog.json" in manifest["source_hydration"]["hydrated_files"]
+    assert "paper/tables/generated/T3_current_deciles.md" in manifest["source_hydration"]["hydrated_files"]
+
+
 def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
