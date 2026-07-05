@@ -249,6 +249,102 @@ def test_create_submission_minimal_package_skips_deferred_supplementary_figures(
     assert not supplementary_markdown_path.exists()
 
 
+def test_create_submission_minimal_package_recovers_inline_supplementary_tables_without_catalog_entries(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    write_text(
+        paper_root / "draft.md",
+        """# Current MAS Draft Title
+
+## Abstract
+
+Current draft abstract.
+
+## Introduction
+
+Current draft introduction with citation [@ref1].
+
+## Methods
+
+Current draft methods.
+
+## Results
+
+Current draft results.
+
+## Supplementary Tables
+
+### Supplementary Table S1. Missingness and plausibility of phenotype-defining variables
+
+| Variable | Missing |
+| --- | --- |
+| BMI | 0 |
+
+## Discussion
+
+Current draft discussion.
+
+## Conclusion
+
+Current draft conclusion.
+""",
+    )
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "schema_version": 1,
+            "source_markdown_path": "paper/draft.md",
+            "output_pdf": "paper/paper.pdf",
+        },
+    )
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"][1]["display_role"] = "deferred_context_not_main_evidence"
+    dump_json(figure_catalog_path, figure_catalog)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    supplementary_markdown_path = submission_root / "supplementary_material.md"
+    supplementary_pdf_path = submission_root / "supplementary_material.pdf"
+    combined_docx_path = submission_root / "manuscript_with_supplementary.docx"
+    combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
+
+    assert supplementary_markdown_path.exists()
+    assert supplementary_pdf_path.exists()
+    assert combined_docx_path.exists()
+    assert combined_pdf_path.exists()
+
+    supplementary_markdown = supplementary_markdown_path.read_text(encoding="utf-8")
+    assert "# Supplementary Tables" in supplementary_markdown
+    assert "Supplementary Table S1. Missingness and plausibility of phenotype-defining variables" in supplementary_markdown
+    assert "| BMI | 0 |" in supplementary_markdown
+
+    submission_text = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "Supplementary Table S1. Missingness and plausibility of phenotype-defining variables" not in submission_text
+
+    manifest = json.loads((submission_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["supplementary_material"]["source_markdown_path"] == (
+        "paper/submission_minimal/supplementary_material.md"
+    )
+    assert manifest["supplementary_material"]["pdf_path"] == (
+        "paper/submission_minimal/supplementary_material.pdf"
+    )
+    assert manifest["supplementary_material"]["combined_review_docx_path"] == (
+        "paper/submission_minimal/manuscript_with_supplementary.docx"
+    )
+    assert manifest["supplementary_material"]["combined_review_pdf_path"] == (
+        "paper/submission_minimal/paper_with_supplementary.pdf"
+    )
+
+
 def test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input(
     tmp_path: Path,
 ) -> None:

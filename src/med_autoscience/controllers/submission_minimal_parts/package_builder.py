@@ -332,11 +332,12 @@ def _build_combined_supplementary_markdown(
     *,
     supplementary_markdown_paths: list[Path],
     submission_root: Path,
+    force_combined_output: bool = False,
 ) -> Path | None:
     paths = [path for path in supplementary_markdown_paths if path.exists()]
     if not paths:
         return None
-    if len(paths) == 1:
+    if len(paths) == 1 and not force_combined_output:
         return paths[0]
     body = "\n\n".join(_markdown_without_front_matter(path.read_text(encoding="utf-8")) for path in paths)
     output_path = submission_root / "supplementary_material.md"
@@ -713,23 +714,67 @@ def create_submission_minimal_package(
             table_entries.append(table_entry)
 
         if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+            inline_supplementary_fallback_used = False
             supplementary_tables_markdown_path = _build_supplementary_tables_markdown(
                 table_entries=table_entries,
                 submission_root=staging_submission_root,
                 workspace_root=workspace_root,
             )
+            if supplementary_tables_markdown_path is None:
+                supplementary_tables_markdown_path = build_general_medical_inline_supplementary_section_markdown(
+                    compiled_markdown_path=compiled_markdown_path,
+                    submission_root=staging_submission_root,
+                    section_heading="Supplementary Tables",
+                    output_name="supplementary_tables.md",
+                    intro_text=(
+                        "This file contains supplementary tables preserved from the canonical manuscript source."
+                    ),
+                    compiled_markdown_text=compiled_markdown_text,
+                )
+                inline_supplementary_fallback_used = supplementary_tables_markdown_path is not None
             supplementary_figures_markdown_path = _build_supplementary_figures_markdown(
                 figure_entries=figure_entries,
                 submission_root=staging_submission_root,
                 workspace_root=workspace_root,
             )
+            if supplementary_figures_markdown_path is None:
+                supplementary_figures_markdown_path = build_general_medical_inline_supplementary_section_markdown(
+                    compiled_markdown_path=compiled_markdown_path,
+                    submission_root=staging_submission_root,
+                    section_heading="Supplementary Figures",
+                    output_name="supplementary_figures.md",
+                    intro_text=(
+                        "This file contains supplementary figures preserved from the canonical manuscript source."
+                    ),
+                    compiled_markdown_text=compiled_markdown_text,
+                )
+                inline_supplementary_fallback_used = (
+                    inline_supplementary_fallback_used or supplementary_figures_markdown_path is not None
+                )
+            supplementary_material_fallback_path: Path | None = None
+            if supplementary_tables_markdown_path is None and supplementary_figures_markdown_path is None:
+                supplementary_material_fallback_path = build_general_medical_inline_supplementary_section_markdown(
+                    compiled_markdown_path=compiled_markdown_path,
+                    submission_root=staging_submission_root,
+                    section_heading="Supplementary Material",
+                    output_name="supplementary_material.md",
+                    intro_text=(
+                        "This file contains supplementary material preserved from the canonical manuscript source."
+                    ),
+                    compiled_markdown_text=compiled_markdown_text,
+                )
             supplementary_source_markdown_path = _build_combined_supplementary_markdown(
                 supplementary_markdown_paths=[
                     path
-                    for path in (supplementary_tables_markdown_path, supplementary_figures_markdown_path)
+                    for path in (
+                        supplementary_tables_markdown_path,
+                        supplementary_figures_markdown_path,
+                        supplementary_material_fallback_path,
+                    )
                     if path is not None
                 ],
                 submission_root=staging_submission_root,
+                force_combined_output=inline_supplementary_fallback_used,
             )
             if supplementary_source_markdown_path is not None:
                 supplementary_output_pdf_path = staging_submission_root / f"{supplementary_source_markdown_path.stem}.pdf"

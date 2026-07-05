@@ -37,6 +37,70 @@ def _remove_canonical_manuscript_section(markdown_text: str, section_key: str) -
     return markdown_text
 
 
+def _matches_named_markdown_heading(heading: str, *section_headings: str) -> bool:
+    normalized_heading = normalize_markdown_heading_key(heading)
+    for section_heading in section_headings:
+        normalized_section_heading = normalize_markdown_heading_key(section_heading)
+        if normalized_heading == normalized_section_heading:
+            return True
+        if normalized_heading.startswith(f"{normalized_section_heading}:"):
+            return True
+    return False
+
+
+def _extract_named_markdown_section(markdown_text: str, *section_headings: str) -> tuple[str, str]:
+    heading_pattern = re.compile(r"(?m)^(#{1,2})\s+([^\n]+?)\s*$")
+    matches = list(heading_pattern.finditer(markdown_text))
+    for index, match in enumerate(matches):
+        heading = match.group(2).strip()
+        if not _matches_named_markdown_heading(heading, *section_headings):
+            continue
+        heading_level = len(match.group(1))
+        content_start = match.end()
+        content_end = len(markdown_text)
+        for next_match in matches[index + 1 :]:
+            if len(next_match.group(1)) <= heading_level:
+                content_end = next_match.start()
+                break
+        content = markdown_text[content_start:content_end].strip()
+        if content:
+            return heading, content
+    return "", ""
+
+
+def build_general_medical_inline_supplementary_section_markdown(
+    *,
+    compiled_markdown_path: Path,
+    submission_root: Path,
+    section_heading: str,
+    output_name: str,
+    intro_text: str,
+    compiled_markdown_text: str | None = None,
+) -> Path | None:
+    compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
+    heading, body = _extract_named_markdown_section(compiled_text, section_heading)
+    if not body.strip():
+        return None
+    rewritten_body = rewrite_image_paths(
+        markdown_text=body,
+        source_markdown_dir=compiled_markdown_path.parent,
+        target_markdown_dir=submission_root,
+    )
+    markdown_text = (
+        "---\n"
+        f'title: "{section_heading}"\n'
+        "bibliography: references.bib\n"
+        "link-citations: true\n"
+        "---\n\n"
+        f"# {heading or section_heading}\n\n"
+        f"{intro_text}\n\n"
+        f"{rewritten_body.strip()}\n"
+    )
+    output_path = submission_root / output_name
+    write_text(output_path, markdown_text)
+    return output_path
+
+
 def build_general_medical_submission_markdown(
     *,
     compiled_markdown_path: Path,
