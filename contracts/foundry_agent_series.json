@@ -342,6 +342,59 @@
   "stage_control_plane_ref": "contracts/stage_control_plane.json",
   "stage_control_plane_target_domain_id": "med-autoscience",
   "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
+  "standard_feedback_self_evolution_trigger_policy": {
+    "accepted_feedback_profile": "target_agent_feedback_external_suite",
+    "applies_to_series_memberships": [
+      "standard_domain_agent",
+      "framework_capability_package"
+    ],
+    "authority_boundary": {
+      "can_authorize_quality_or_export": false,
+      "can_create_owner_receipt": false,
+      "can_create_typed_blocker": false,
+      "can_execute_repo_patch_without_developer_mode": false,
+      "can_mutate_artifact_body": false,
+      "can_write_domain_truth": false,
+      "refs_only": true
+    },
+    "contract_can_trigger_execution": false,
+    "developer_mode_execution_gate_refs": [
+      "opl-developer-mode:repo-fix-execution",
+      "opl-developer-mode:direct-fix-or-fork-pr-route"
+    ],
+    "developer_route_policy": {
+      "auto_developer_mode_can_select_local_checkout_source_when_identity_matches": true,
+      "direct_fix_route": "requires_target_repo_direct_write_authority_or_agent_owner_developer_authority",
+      "feedback_capture_route": "allowed_for_all_users_refs_only",
+      "manual_developer_mode_cannot_grant_direct_repo_write": true,
+      "manual_enable_without_direct_write_route": "fork_pull_request",
+      "official_or_third_party_agent_without_authority_route": "fork_pull_request_or_owner_handoff"
+    },
+    "feedback_capture_requires_developer_mode": false,
+    "feedbackops_event_kind": "target_agent_feedback_external_suite",
+    "policy_id": "standard_agent_feedback_self_evolution_trigger.v1",
+    "repo_fix_execution_requires_opl_developer_mode": true,
+    "required_trigger_fields": [
+      "feedbackops_event_kind",
+      "accepted_feedback_profile",
+      "target_agent_id",
+      "idempotency_key",
+      "external_suite_ref",
+      "developer_mode_execution_gate_refs",
+      "oma_evolution_skill_ref",
+      "owner_closeout_readback_refs"
+    ],
+    "standard_status_projection_ref": "contracts/opl-framework/agent-lab-contract.json#/domain_feedback_self_evolution_surface",
+    "surface_kind": "opl_foundry_agent_standard_feedback_self_evolution_trigger_policy",
+    "trigger_chain": [
+      "domain_or_package_thin_feedback_adapter",
+      "opl_feedbackops_agent_lab_status_projection",
+      "opl_meta_agent_oma_agent_evolution_work_order",
+      "developer_mode_direct_fix_or_fork_pr_route",
+      "target_owner_closeout_readback"
+    ],
+    "version": "foundry-agent-feedback-self-evolution-trigger.v1"
+  },
   "standard_public_projection_policy": {
     "active_public_projection_allows_compatibility_aliases": false,
     "active_public_projection_allows_domain_owned_cli_as_standard_surface": false,
