@@ -1575,6 +1575,145 @@ def test_terminalize_stage_prefers_newer_workspace_stage_packet_over_matching_so
         "stage_attempt_id"
     ] == "sat-new"
 
+
+def test_terminalize_stage_prefers_route_back_identity_when_closeout_packet_fields_are_sparse(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    packets_root = (
+        workspace_root / "ops" / "medautoscience" / "paper_mission_stage_attempts"
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    transaction_id = (
+        "paper-mission-transaction::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "write::paper-mission::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "medical_prose_write_repair_publication_gate_replay::one-shot-migration::"
+        "followthrough::89b46ab394eb"
+    )
+
+    def write_packet(
+        attempt_id: str,
+        *,
+        packet_stage_id: str,
+        route_stage_id: str,
+        route_work_unit_id: str | None,
+        route_transaction_ref: str | None,
+        mtime: float,
+    ) -> Path:
+        root = packets_root / attempt_id
+        root.mkdir(parents=True, exist_ok=True)
+        route_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            "route_back_evidence_packet.json"
+        )
+        route_payload = {
+            "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+            "study_id": study_id,
+            "stage_id": route_stage_id,
+            "owner_answer_kind": "route_back_evidence_ref",
+        }
+        if route_work_unit_id is not None:
+            route_payload["work_unit_id"] = route_work_unit_id
+        if route_transaction_ref is not None:
+            route_payload["stage_packet_ref"] = route_transaction_ref
+            route_payload["source_evidence"] = {
+                "paper_mission_transaction_ref": route_transaction_ref,
+            }
+        (workspace_root / route_ref).write_text(
+            json.dumps(route_payload),
+            encoding="utf-8",
+        )
+        packet_path = root / "stage_attempt_closeout_packet.json"
+        packet_payload = {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "route_back_evidence_candidate",
+            "study_id": study_id,
+            "stage_id": packet_stage_id,
+            "stage_attempt_id": attempt_id,
+            "route_back_evidence_ref": route_ref,
+            "owner_answer_kind": "route_back_evidence_ref",
+        }
+        packet_path.write_text(json.dumps(packet_payload), encoding="utf-8")
+        os.utime(packet_path, (mtime, mtime))
+        return packet_path
+
+    old_packet = write_packet(
+        "sat-old",
+        packet_stage_id="write",
+        route_stage_id="write",
+        route_work_unit_id=work_unit_id,
+        route_transaction_ref=transaction_id,
+        mtime=1_000.0,
+    )
+    new_packet = write_packet(
+        "sat-new",
+        packet_stage_id=work_unit_id,
+        route_stage_id=work_unit_id,
+        route_work_unit_id=work_unit_id,
+        route_transaction_ref=transaction_id,
+        mtime=2_000.0,
+    )
+    source_readback = {
+        "study_id": study_id,
+        "mission_id": f"paper-mission::{study_id}::terminalize-test",
+        "mission_state": "route_back",
+        "consume_candidate_status": "route_back",
+        "paper_mission_transaction": {
+            "transaction_id": transaction_id,
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+        },
+        "stage_closure_decision": {
+            "identity": {
+                "paper_mission_transaction_ref": transaction_id,
+            },
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-old",
+            },
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "stage_attempt_id": "sat-old",
+                "closeout_refs": [str(old_packet)],
+            }
+        },
+    }
+    monkeypatch.setattr(
+        commands,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: source_readback,
+    )
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+
+    readback = commands._build_terminalizer_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source="test",
+    )
+
+    assert readback["source_ref"] == str(new_packet)
+    assert readback["paper_mission_transaction"]["transaction_id"] == transaction_id
+    assert readback["paper_mission_transaction"]["stage_id"] == "write"
+    assert readback["paper_mission_transaction"]["work_unit_id"] == work_unit_id
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-new"
+
+
 def test_latest_stage_attempt_route_back_source_readback_prefers_current_terminal_attempt_over_newer_stale_packet(
     tmp_path: Path,
     monkeypatch,

@@ -134,8 +134,15 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption import 
     align_carrier_readback_with_owner_consumption as _align_carrier_readback_with_owner_consumption,
 )
 from med_autoscience.controllers import study_domain_transition_table
+from med_autoscience.controllers import study_progress as _study_progress
 from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
+)
+from med_autoscience.mcp_server_parts.projection_adapters import (
+    serialize_study_runtime_result as _serialize_study_runtime_result,
+)
+from med_autoscience.cli_parts.study_read_commands import (
+    _progress_first_status_payload as _study_progress_status_payload,
 )
 
 CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES = (
@@ -745,6 +752,11 @@ def _consumption_ledger_inspect_readback(
         enable_opl_live_probe=enable_opl_live_probe,
         opl_bin=opl_bin,
     )
+    progress_overlay = _study_progress_paper_mission_overlay(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+    )
     receipt_owner_consumption = _latest_receipt_owner_consumption_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
@@ -772,11 +784,16 @@ def _consumption_ledger_inspect_readback(
             stage_closure_ledger_readback=stage_closure_ledger_readback,
         )
         if route_back_projection is not None:
-            return route_back_projection
-        return {
-            **base,
-            **_transaction_readback_output_fields(transaction_readback),
-        }
+            return _merge_study_progress_overlay(
+                route_back_projection, progress_overlay
+            )
+        return _merge_study_progress_overlay(
+            {
+                **base,
+                **_transaction_readback_output_fields(transaction_readback),
+            },
+            progress_overlay,
+        )
     receipt_consume_candidate_status = _receipt_owner_consumption_status(
         receipt_owner_consumption
     )
@@ -904,7 +921,8 @@ def _consumption_ledger_inspect_readback(
         transaction_output_fields=transaction_output_fields,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
-    return {
+    return _merge_study_progress_overlay(
+        {
         **base,
         **transaction_output_fields,
         "receipt_owner_consumption_readback": receipt_owner_consumption,
@@ -940,7 +958,95 @@ def _consumption_ledger_inspect_readback(
             consume_candidate_status=receipt_consume_candidate_status,
             stage_closure_decision=stage_closure_decision,
         ),
+        },
+        progress_overlay,
+    )
+
+
+def _study_progress_paper_mission_overlay(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+) -> dict[str, Any]:
+    try:
+        result = _study_progress.read_study_progress(
+            profile=profile,
+            profile_ref=Path(profile_ref),
+            study_id=study_id,
+            study_root=None,
+            entry_mode=None,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+            enable_opl_live_provider_attempt_probe=False,
+        )
+        payload = _study_progress_status_payload(
+            _serialize_study_runtime_result(result)
+        )
+    except Exception:
+        return {}
+    paper_mission_run = _mapping(payload.get("paper_mission_run"))
+    if not paper_mission_run:
+        paper_mission_run = _mapping(
+            _mapping(payload.get("artifact_first_mission_summary")).get(
+                "paper_mission_run"
+            )
+        )
+    if not paper_mission_run:
+        return {}
+    return {
+        "paper_mission_run": paper_mission_run,
+        "current_objective": _mapping(payload.get("current_objective"))
+        or _mapping(paper_mission_run.get("current_objective")),
+        "next_owner_or_human_decision": _mapping(
+            payload.get("next_owner_or_human_decision")
+        )
+        or _mapping(paper_mission_run.get("next_owner_or_human_decision")),
+        "stage_closure_decision": _mapping(payload.get("stage_closure_decision")),
+        "current_stage": _optional_text(payload.get("current_stage")),
+        "current_work_unit": _optional_text(payload.get("current_work_unit")),
+        "current_executable_owner_action": _mapping(
+            payload.get("current_executable_owner_action")
+        ),
     }
+
+
+def _merge_study_progress_overlay(
+    readback: Mapping[str, Any],
+    overlay: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not overlay:
+        return dict(readback)
+    merged = dict(readback)
+    paper_mission_run = _mapping(overlay.get("paper_mission_run"))
+    if paper_mission_run and not _mapping(merged.get("paper_mission_run")):
+        merged["paper_mission_run"] = paper_mission_run
+        if not _optional_text(merged.get("mission_state")):
+            merged["mission_state"] = _optional_text(paper_mission_run.get("mission_state"))
+    for key in ("current_objective", "next_owner_or_human_decision"):
+        if _mapping(overlay.get(key)):
+            merged[key] = overlay[key]
+    for key in ("stage_closure_decision", "current_executable_owner_action"):
+        if not _mapping(merged.get(key)) and _mapping(overlay.get(key)):
+            merged[key] = overlay[key]
+    for key in ("current_stage", "current_work_unit"):
+        if not _optional_text(merged.get(key)) and _optional_text(overlay.get(key)):
+            merged[key] = overlay[key]
+    if (
+        not _optional_text(merged.get("stage_closure_decision_ref"))
+        and _mapping(merged.get("stage_closure_decision"))
+    ):
+        merged["stage_closure_decision_ref"] = _mapping(
+            merged.get("stage_closure_decision")
+        ).get("decision_ref")
+    if (
+        not _optional_text(merged.get("stage_closure_outcome"))
+        and _mapping(merged.get("stage_closure_decision"))
+    ):
+        merged["stage_closure_outcome"] = _mapping(
+            _mapping(merged.get("stage_closure_decision")).get("outcome")
+        ).get("kind")
+    return merged
 
 
 def _consumption_ledger_route_back_projection(
@@ -1717,10 +1823,19 @@ def _build_terminalizer_source_readback_from_stage_packet(
     work_unit_id = _optional_text(packet.get("work_unit_id")) or _optional_text(
         route_back.get("work_unit_id")
     )
-    stage_id = _optional_text(packet.get("stage_id")) or _optional_text(
-        route_back.get("stage_id")
+    stage_packet_ref = _first_non_empty_text(
+        packet.get("stage_packet_ref"),
+        route_back.get("stage_packet_ref"),
+        _mapping(route_back.get("source_evidence")).get("paper_mission_transaction_ref"),
     )
-    stage_packet_ref = _optional_text(packet.get("stage_packet_ref")) or str(packet_ref)
+    stage_id = _stage_packet_route_stage_id(
+        study_id=study_id,
+        packet=packet,
+        route_back=route_back,
+        stage_packet_ref=stage_packet_ref,
+    )
+    if stage_packet_ref is None:
+        stage_packet_ref = str(packet_ref)
     route_back_ref = _optional_text(packet.get("route_back_evidence_ref"))
     candidate_ref = _optional_text(packet.get("owner_answer_ref")) or _optional_text(
         route_back.get("owner_answer_ref")
@@ -1803,33 +1918,59 @@ def _latest_stage_attempt_route_back_source_readback(
     if not packets_root.exists():
         return None
     expected = _expected_stage_attempt_identity(source_readback)
+    current_transaction_ref = _optional_text(
+        _mapping(source_readback.get("paper_mission_transaction")).get("transaction_id")
+    )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
-    preferred: list[tuple[float, str, Path]] = []
-    exact: list[tuple[float, str, Path]] = []
-    fallback: list[tuple[float, str, Path]] = []
+    candidates: list[tuple[int, int, float, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
         packet = _load_optional_json_object(packet_ref)
         if not isinstance(packet, Mapping):
             continue
         if _optional_text(packet.get("study_id")) != study_id:
             continue
-        route_ref = _optional_text(packet.get("route_back_evidence_ref"))
+        route_back = _load_stage_packet_route_back_evidence(
+            workspace_root=Path(profile.workspace_root).expanduser().resolve(),
+            packet=packet,
+        )
+        route_ref = _optional_text(packet.get("route_back_evidence_ref")) or _optional_text(
+            route_back.get("route_back_evidence_ref")
+        )
         if route_ref is None and _optional_text(packet.get("owner_answer_kind")) != (
             "route_back_evidence_ref"
         ):
             continue
-        stage_id = _optional_text(packet.get("stage_id"))
-        work_unit_id = _optional_text(packet.get("work_unit_id"))
+        stage_packet_ref = _first_non_empty_text(
+            packet.get("stage_packet_ref"),
+            route_back.get("stage_packet_ref"),
+            _mapping(route_back.get("source_evidence")).get(
+                "paper_mission_transaction_ref"
+            ),
+        )
+        stage_id = _stage_packet_route_stage_id(
+            study_id=study_id,
+            packet=packet,
+            route_back=route_back,
+            stage_packet_ref=stage_packet_ref,
+        )
+        work_unit_id = _first_non_empty_text(
+            packet.get("work_unit_id"),
+            route_back.get("work_unit_id"),
+        )
         stage_attempt_id = _optional_text(packet.get("stage_attempt_id"))
-        sort_key = (packet_ref.stat().st_mtime, str(packet_ref), packet_ref)
+        transaction_priority = _stage_packet_transaction_priority(
+            stage_packet_ref=stage_packet_ref,
+            current_transaction_ref=current_transaction_ref,
+            study_id=study_id,
+        )
+        bucket_priority = 0
         if (
             preferred_stage_attempt_ids
             and stage_attempt_id is not None
             and stage_attempt_id in preferred_stage_attempt_ids
         ):
-            preferred.append(sort_key)
-            continue
-        if (
+            bucket_priority = 2
+        elif (
             (
                 not expected["stage_ids"]
                 or stage_id in expected["stage_ids"]
@@ -1839,13 +1980,19 @@ def _latest_stage_attempt_route_back_source_readback(
                 or work_unit_id in expected["work_unit_ids"]
             )
         ):
-            exact.append(sort_key)
-        else:
-            fallback.append(sort_key)
-    candidates = preferred or exact or fallback
+            bucket_priority = 1
+        candidates.append(
+            (
+                transaction_priority,
+                bucket_priority,
+                packet_ref.stat().st_mtime,
+                str(packet_ref),
+                packet_ref,
+            )
+        )
     if not candidates:
         return None
-    packet_ref = max(candidates, key=lambda item: (item[0], item[1]))[2]
+    packet_ref = max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))[4]
     return _build_terminalizer_source_readback_from_stage_packet(
         profile=profile,
         profile_ref=profile_ref,
@@ -1931,6 +2078,90 @@ def _load_stage_packet_route_back_evidence(
     if not path.exists():
         return {}
     return _load_json_object(path)
+
+
+def _stage_packet_route_stage_id(
+    *,
+    study_id: str,
+    packet: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+    stage_packet_ref: str | None,
+) -> str | None:
+    derived = _paper_mission_transaction_stage_id(
+        stage_packet_ref,
+        study_id=study_id,
+    )
+    packet_stage_id = _optional_text(packet.get("stage_id"))
+    route_stage_id = _optional_text(route_back.get("stage_id"))
+    route_work_unit_id = _optional_text(route_back.get("work_unit_id"))
+    return (
+        derived
+        or (
+            route_stage_id
+            if packet_stage_id is not None
+            and route_work_unit_id is not None
+            and packet_stage_id == route_work_unit_id
+            else None
+        )
+        or packet_stage_id
+        or route_stage_id
+    )
+
+
+def _paper_mission_transaction_stage_id(
+    transaction_ref: str | None,
+    *,
+    study_id: str,
+) -> str | None:
+    if transaction_ref is None:
+        return None
+    prefix = f"paper-mission-transaction::{study_id}::"
+    suffix = "::paper-mission::"
+    if not transaction_ref.startswith(prefix) or suffix not in transaction_ref:
+        return None
+    stage_segment = transaction_ref[len(prefix) : transaction_ref.index(suffix)]
+    if not stage_segment:
+        return None
+    return stage_segment.split("::followthrough::", 1)[0] or None
+
+
+def _stage_packet_transaction_priority(
+    *,
+    stage_packet_ref: str | None,
+    current_transaction_ref: str | None,
+    study_id: str,
+) -> int:
+    if stage_packet_ref is None or current_transaction_ref is None:
+        return 0
+    if stage_packet_ref == current_transaction_ref:
+        return 1
+    if stage_packet_ref.startswith(f"{current_transaction_ref}::followthrough::"):
+        return 2
+    if current_transaction_ref.startswith(f"{stage_packet_ref}::followthrough::"):
+        return 1
+    current_stage = _paper_mission_transaction_stage_id(
+        current_transaction_ref,
+        study_id=study_id,
+    )
+    stage_packet_stage = _paper_mission_transaction_stage_id(
+        stage_packet_ref,
+        study_id=study_id,
+    )
+    if current_stage is None or stage_packet_stage is None:
+        return 0
+    if stage_packet_stage.startswith(f"{current_stage}::followthrough::"):
+        return 2
+    if current_stage.startswith(f"{stage_packet_stage}::followthrough::"):
+        return 1
+    return 0
+
+
+def _first_non_empty_text(*values: object) -> str | None:
+    for value in values:
+        text = _optional_text(value)
+        if text is not None:
+            return text
+    return None
 
 
 def _stage_packet_opl_runtime_carrier_readback(

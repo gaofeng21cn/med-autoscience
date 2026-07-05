@@ -1110,6 +1110,24 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     outcome = _mapping(decision.get("outcome"))
     guard = _mapping(readback.get("durable_mission_stop_guard"))
     opl_closeout = _mapping(decision.get("opl_closeout"))
+    domain_transition = _mapping(readback.get("domain_transition"))
+    domain_next_action = _mapping(domain_transition.get("next_action"))
+    domain_next_work_unit = _mapping(domain_transition.get("next_work_unit"))
+    prefers_domain_successor = (
+        _text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint"
+        and (
+            _first_text(
+                domain_next_action.get("stage_id"),
+                domain_transition.get("route_target"),
+            )
+            is not None
+            or _first_text(
+                domain_next_action.get("work_unit_id"),
+                domain_next_work_unit.get("unit_id"),
+            )
+            is not None
+        )
+    )
     stage_attempt_id = _first_text(opl_closeout.get("stage_attempt_id"))
     derived_stage_attempt_ref = (
         f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
@@ -1119,10 +1137,21 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
         stage_attempt_id=stage_attempt_id,
     )
     return {
-        "stage_id": _first_text(decision.get("stage_id"), outcome.get("stage_id")),
+        "stage_id": _first_text(
+            domain_next_action.get("stage_id") if prefers_domain_successor else None,
+            domain_transition.get("route_target") if prefers_domain_successor else None,
+            decision.get("stage_id"),
+            outcome.get("stage_id"),
+            domain_next_action.get("stage_id"),
+            domain_transition.get("route_target"),
+        ),
         "work_unit_id": _first_text(
+            domain_next_action.get("work_unit_id") if prefers_domain_successor else None,
+            domain_next_work_unit.get("unit_id") if prefers_domain_successor else None,
             decision.get("work_unit_id"),
             outcome.get("work_unit_id"),
+            domain_next_action.get("work_unit_id"),
+            domain_next_work_unit.get("unit_id"),
         ),
         "outcome_kind": _text(outcome.get("kind")) or _text(readback.get("stage_closure_outcome")),
         "transition_kind": _text(outcome.get("transition_kind")) or None,

@@ -1080,6 +1080,91 @@ def test_consumption_ledger_inspect_prefers_owner_consumed_route_checkpoint_when
     assert payload["stage_closure_decision"]["work_unit_id"] == (
         "ai_reviewer_medical_prose_quality_review"
     )
+
+
+def test_consumption_ledger_inspect_attaches_study_progress_paper_mission_run_when_materialized_run_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    mission_id = f"paper-mission::{study_id}::submission-milestone"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+
+    monkeypatch.setattr(
+        commands,
+        "_study_progress_paper_mission_overlay",
+        lambda **_: {
+            "paper_mission_run": {
+                "mission_id": mission_id,
+                "mission_state": "consumed",
+                "current_objective": {
+                    "objective": "review_current_paper_delta",
+                    "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                },
+            },
+            "current_objective": {
+                "objective": "review_current_paper_delta",
+                "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            },
+            "next_owner_or_human_decision": {
+                "kind": "owner_or_route",
+                "next_owner": "write",
+                "route_command": "resume_stage",
+                "route_target": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            },
+            "current_stage": "queued",
+        },
+    )
+    monkeypatch.setattr(
+        commands,
+        "_latest_receipt_owner_consumption_readback",
+        lambda **_: None,
+    )
+    monkeypatch.setattr(
+        commands,
+        "_consumption_ledger_route_back_projection",
+        lambda **_: None,
+    )
+
+    payload = commands._consumption_ledger_inspect_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        consumption_readback={
+            "surface_kind": "paper_mission_consumption_readback",
+            "mission_id": mission_id,
+            "study_id": study_id,
+            "selected_outcome": "accepted_submission_milestone_candidate",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": transaction,
+        },
+        study_root=study_root,
+        enable_opl_live_probe=False,
+        opl_bin=tmp_path / "missing-opl",
+    )
+
+    assert payload["paper_mission_run"]["mission_id"] == mission_id
+    assert payload["paper_mission_run"]["mission_state"] == "consumed"
+    assert payload["current_objective"]["objective"] == "review_current_paper_delta"
+    assert payload["next_owner_or_human_decision"]["next_owner"] == "write"
+    assert payload["current_stage"] == "queued"
+
+
 def test_paper_mission_drive_submits_domain_transition_next_action_without_candidate_package(
     tmp_path: Path,
 ) -> None:
