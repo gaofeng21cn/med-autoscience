@@ -1005,6 +1005,7 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
                 "route_identity_key": carrier["route_identity_key"],
                 "work_unit_id": carrier["work_unit_id"],
                 "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+                "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
                 "provider_completion_is_domain_completion": False,
                 "provider_completion_is_domain_ready": False,
                 "domain_completion_claimed": False,
@@ -2104,7 +2105,7 @@ def test_latest_stage_attempt_route_back_source_readback_prefers_current_termina
     assert stale_packet.stat().st_mtime > current_packet.stat().st_mtime
 
 
-def test_consumption_ledger_inspect_prefers_current_handoff_after_owner_consumed_route_checkpoint(
+def test_consumption_ledger_inspect_ignores_stale_current_handoff_after_owner_consumed_route_checkpoint(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -2162,6 +2163,10 @@ def test_consumption_ledger_inspect_prefers_current_handoff_after_owner_consumed
         commands,
         "_latest_receipt_owner_consumption_readback",
         lambda **_: {
+            "source_ref": (
+                "ops/medautoscience/paper_mission_receipt_owner_consumption/"
+                f"{study_id}/receipt_owner_consumption.json"
+            ),
             "status": "owner_consumption_applied",
             "stage_closure_decision": {
                 "decision_ref": f"{mission_id}#stage-closure",
@@ -2255,16 +2260,28 @@ def test_consumption_ledger_inspect_prefers_current_handoff_after_owner_consumed
         opl_bin=tmp_path / "missing-opl",
     )
 
-    assert payload["canonical_next_action_source"] == (
-        "paper_mission_next_action_envelope"
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert payload["next_action"]["owner"] == "ai_reviewer"
+    assert payload["next_action"]["work_unit_id"] == (
+        "ai_reviewer_medical_prose_quality_review"
     )
-    assert payload["next_action"]["action_family"] == "runtime.opl_route"
-    assert payload["next_action"]["owner"] == "one-person-lab"
-    assert payload["next_action"]["work_unit_id"] == work_unit_id
     assert payload["domain_transition"]["decision_type"] == "ai_reviewer_re_eval"
     assert payload["domain_transition_direct_stage_attempt"]["opl_route_handoff"][
         "work_unit_id"
-    ] == work_unit_id
+    ] == "ai_reviewer_medical_prose_quality_review"
+    assert payload["domain_transition_direct_stage_attempt"]["opl_route_handoff"][
+        "owner_consumption_readback_ref"
+    ] == (
+        "ops/medautoscience/paper_mission_receipt_owner_consumption/"
+        f"{study_id}/receipt_owner_consumption.json"
+    )
+    assert payload["domain_transition_direct_stage_attempt"]["opl_route_handoff"][
+        "route_checkpoint_evidence_ref"
+    ] == (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-review/stage_attempt_closeout_packet.json"
+    )
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:
     commands = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_commands"

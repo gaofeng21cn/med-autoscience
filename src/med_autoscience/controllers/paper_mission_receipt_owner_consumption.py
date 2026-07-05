@@ -1269,20 +1269,84 @@ def _next_action_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str
     if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
         return {}
     outcome_ref = _first_text(next_action.get("outcome_ref"))
-    if outcome_ref is None:
-        return {}
-    payload = _read_json_object(Path(outcome_ref))
-    if _text(payload.get("surface_kind")) != "mas_stage_closure_decision":
-        return {}
-    if _text(payload.get("study_id")) != _text(readback.get("study_id")):
-        return {}
-    outcome = _mapping(payload.get("outcome"))
-    if (
-        _text(outcome.get("kind")) == "next_stage_transition"
-        and _text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint"
+    if outcome_ref is not None:
+        payload = _read_json_object(Path(outcome_ref))
+        if _text(payload.get("surface_kind")) != "mas_stage_closure_decision":
+            return {}
+        if _text(payload.get("study_id")) != _text(readback.get("study_id")):
+            return {}
+        outcome = _mapping(payload.get("outcome"))
+        if (
+            _text(outcome.get("kind")) == "next_stage_transition"
+            and _text(outcome.get("transition_kind"))
+            == "route_back_candidate_checkpoint"
+        ):
+            return payload
+    return _synthesized_next_action_stage_closure_decision(readback)
+
+
+def _synthesized_next_action_stage_closure_decision(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    carrier = _carrier(readback)
+    next_action = _mapping(readback.get("next_action"))
+    terminal_closeout = _mapping(carrier.get("terminal_closeout"))
+    receipt = _mapping(carrier.get("opl_transition_receipt"))
+    evidence = _mapping(carrier.get("receipt_evidence"))
+    consumption = _mapping(carrier.get("mas_receipt_consumption"))
+    if _text(consumption.get("next_legal_action")) != (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
     ):
-        return payload
-    return {}
+        return {}
+    route_checkpoint_ref = _first_text(
+        terminal_closeout.get("closeout_ref"),
+        evidence.get("runtime_closeout_ref"),
+        receipt.get("runtime_closeout_ref"),
+    )
+    if route_checkpoint_ref is None:
+        return {}
+    domain_transition = _mapping(readback.get("domain_transition"))
+    domain_next_action = _mapping(domain_transition.get("next_action"))
+    domain_next_work_unit = _mapping(domain_transition.get("next_work_unit"))
+    work_unit_id = _first_text(
+        next_action.get("work_unit_id"),
+        domain_next_action.get("work_unit_id"),
+        domain_next_work_unit.get("unit_id"),
+        terminal_closeout.get("work_unit_id"),
+    )
+    stage_id = _first_text(
+        next_action.get("stage_id"),
+        domain_next_action.get("stage_id"),
+        domain_transition.get("route_target"),
+        terminal_closeout.get("stage_id"),
+    )
+    stage_attempt_id = _first_text(
+        terminal_closeout.get("stage_attempt_id"),
+        receipt.get("stage_attempt_id"),
+    )
+    return {
+        "surface_kind": "mas_stage_closure_decision",
+        "schema_version": 1,
+        "study_id": _text(readback.get("study_id")) or None,
+        "stage_id": stage_id,
+        "work_unit_id": work_unit_id,
+        "receipt_evidence_ref": _first_text(
+            evidence.get("receipt_ref"),
+            receipt.get("stage_attempt_ref"),
+        ),
+        "route_checkpoint_evidence_ref": route_checkpoint_ref,
+        "opl_closeout": {
+            "status": "opl_runtime_terminal_readback_observed",
+            "stage_attempt_id": stage_attempt_id,
+            "work_unit_id": work_unit_id,
+        },
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+            "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+            "route_checkpoint_evidence_ref": route_checkpoint_ref,
+        },
+    }
 
 
 def _current_package_summary(readback: Mapping[str, Any]) -> dict[str, Any]:

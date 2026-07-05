@@ -560,11 +560,87 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
     assert transition["route_target"] == "write"
     assert transition["owner"] == "write"
     assert transition["controller_action"] == "request_opl_stage_attempt"
-    assert transition["next_work_unit"]["unit_id"] == (
-        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    assert transition["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
+    assert "reviewer-revision manuscript, figure, table, abstract, discussion, and supplementary repairs" in (
+        transition["next_work_unit"]["summary"]
     )
     assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
     assert transition["next_action"]["owner"] == "write"
+    first_fingerprint = transition["next_action"]["work_unit_fingerprint"]
+    assert first_fingerprint.startswith(
+        "domain-transition::route_back_same_line::"
+        "medical_prose_write_repair::source::"
+    )
+    assert transition["next_action"]["idempotency_key"]
+
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm003::20260705T064542Z",
+            "emitted_at": "2026-07-05T06:45:42+00:00",
+            "study_id": "dm003",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "Upgrade DM003 into a higher-quality SCI paper with revised main figures and medication sensitivity framing.",
+        },
+    )
+
+    next_transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm003",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert next_transition["next_action"]["work_unit_id"] == transition["next_action"]["work_unit_id"]
+    assert next_transition["next_action"]["work_unit_fingerprint"] != first_fingerprint
+    assert next_transition["next_action"]["idempotency_key"] != transition["next_action"]["idempotency_key"]
+
+
+def test_stale_reviewer_revision_write_routeback_yields_to_analysis_campaign_markers(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    current_eval = _current_ai_reviewer_route_back_eval(study_root)
+    current_eval["emitted_at"] = "2026-07-01T01:00:00+00:00"
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, current_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm002::20260705T073000Z",
+            "emitted_at": "2026-07-05T07:30:00+00:00",
+            "study_id": "dm002",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": (
+                "DM002 high-priority methodology correction: current external-validation claims are "
+                "potentially invalid because the active transportability input uses incompatible HDL units. "
+                "Roll back from manuscript improvement to analysis/harmonization owner."
+            ),
+            "constraints": [
+                "Do not continue prose polishing until unit-harmonized external validation has been rerun."
+            ],
+            "first_cycle_outputs": [
+                "analysis/harmonization route-back decision; unit-harmonized rerun or typed blocker"
+            ],
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "analysis-campaign"
+    assert transition["owner"] == "analysis-campaign"
+    assert transition["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert "supplementary analysis" in transition["next_work_unit"]["summary"]
+    assert transition["next_action"]["work_unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(

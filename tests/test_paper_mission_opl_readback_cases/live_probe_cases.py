@@ -107,6 +107,38 @@ def test_opl_runtime_readback_accepts_current_control_running_on_blocked_task(
     assert readback["can_claim_paper_progress"] is False
 
 
+def test_opl_runtime_readback_accepts_current_control_running_without_stage_attempt_details(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    payload = _opl_running_task_running_attempt_payload()
+    runtime_task = payload["family_runtime_task"]
+    task = runtime_task["task"]
+    task["current_control_state"] = {
+        "running_provider_attempt": True,
+        "current_stage_attempt_id": "sat-running",
+    }
+    runtime_task["stage_attempts"] = []
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-running"
+    assert readback["running_attempt"]["provider_attempt_ref"] == (
+        "opl://stage-attempts/sat-running"
+    )
+    assert readback["running_attempt"]["task_status"] == "running"
+    assert readback["running_attempt"]["provider_status"] == "running"
+    assert readback["can_claim_paper_progress"] is False
+
+
 def test_opl_runtime_readback_accepts_same_route_identity_with_changed_route_target(
     tmp_path: Path,
 ) -> None:

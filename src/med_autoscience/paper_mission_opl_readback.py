@@ -993,6 +993,43 @@ def _opl_task_running_attempt(
         linked = _mapping(task.get("linked_stage_attempt_liveness"))
         if linked and _matches_opl_stage_attempt(carrier=carrier, stage_attempt=linked):
             stage_attempt = linked
+    stage_attempt_id = _text(stage_attempt.get("stage_attempt_id")) or _text(
+        current_control.get("current_stage_attempt_id")
+    )
+    if not stage_attempt and stage_attempt_id is not None:
+        return {
+            "surface_kind": "opl_stage_attempt_running_readback",
+            "status": "running",
+            "study_id": _text(carrier.get("study_id")),
+            "stage_id": _carrier_route_target(carrier),
+            "stage_attempt_id": stage_attempt_id,
+            "work_unit_id": _text(carrier.get("work_unit_id")),
+            "work_unit_fingerprint": _text(carrier.get("work_unit_fingerprint")),
+            "stage_packet_ref": _text(carrier.get("stage_terminal_decision_ref")),
+            "provider_attempt_ref": f"opl://stage-attempts/{stage_attempt_id}",
+            "provider_kind": _text(task.get("provider_kind"))
+            or _text(current_control.get("provider_kind")),
+            "workflow_id": _text(current_control.get("workflow_id")),
+            "provider_status": "running",
+            "last_heartbeat_at": _text(current_control.get("last_heartbeat_at")),
+            "last_runner_event_kind": _text(
+                current_control.get("last_runner_event_kind")
+            ),
+            "task_id": _text(task.get("task_id")),
+            "task_status": _text(task.get("status")),
+            "runtime_readback_source": runtime_readback_source,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "can_claim_paper_progress": False,
+            "authority_boundary": {
+                "record_only_surface": True,
+                "provider_completion_is_domain_completion": False,
+                "provider_completion_is_domain_ready": False,
+                "artifact_mutation_authorized": False,
+                "publication_eval_latest_write_authorized": False,
+                "controller_decision_write_authorized": False,
+            },
+        }
     stage_status = _text(stage_attempt.get("status"))
     provider_run = _mapping(stage_attempt.get("provider_run"))
     provider_status = _text(provider_run.get("provider_status"))
@@ -1001,7 +1038,6 @@ def _opl_task_running_attempt(
         and provider_status != "running"
     ):
         return None
-    stage_attempt_id = _text(stage_attempt.get("stage_attempt_id"))
     return {
         "surface_kind": "opl_stage_attempt_running_readback",
         "status": "running",

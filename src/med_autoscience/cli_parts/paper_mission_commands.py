@@ -96,6 +96,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.submission_gate_readb
     apply_submission_authority_owner_gate_readback as _apply_submission_authority_owner_gate_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.common import (
+    _first_text,
     _load_optional_json_object,
     _mapping,
     _mapping_list,
@@ -513,13 +514,8 @@ def build_paper_mission_readback(
         transaction_readback=transaction_readback,
         consumption_readback=consumption_ledger_readback or {},
     )
-    if (
-        _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption)
-        and current_handoff_next_action
-    ):
-        next_action_override = current_handoff_next_action
-        canonical_next_action_source = "paper_mission_next_action_envelope"
-        typed_blocker_resolution_readback = None
+    if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption):
+        current_handoff_next_action = None
     if (
         domain_transition_next_action
         and current_handoff_next_action is None
@@ -554,7 +550,11 @@ def build_paper_mission_readback(
                 profile=profile,
                 study_id=study_id,
                 study_root=study_root,
-                inspect_readback={**mission_candidate, **transaction_output_fields},
+                inspect_readback={
+                    **mission_candidate,
+                    **transaction_output_fields,
+                    "receipt_owner_consumption_readback": receipt_owner_consumption,
+                },
                 next_action=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
                 enable_opl_live_probe=enable_opl_live_probe,
@@ -584,6 +584,29 @@ def build_paper_mission_readback(
                 transaction_output_fields["terminal_owner_gate_authority_readback"] = (
                     _terminal_owner_gate_authority_readback(direct_terminal_owner_gate)
                 )
+            (
+                stage_closure_decision,
+                next_action_override,
+                canonical_next_action_source,
+            ) = _override_next_action_from_direct_terminal_closeout(
+                direct_next_action_runtime=direct_next_action_runtime,
+                stage_closure_decision=stage_closure_decision,
+                transaction_readback=transaction_readback,
+                typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+                next_action_override=next_action_override,
+                canonical_next_action_source=canonical_next_action_source,
+                receipt_owner_consumption_readback=receipt_owner_consumption,
+            )
+            if next_action_override is not None:
+                transaction_output_fields["next_action"] = next_action_override
+                if canonical_next_action_source is not None:
+                    transaction_output_fields["canonical_next_action_source"] = (
+                        canonical_next_action_source
+                    )
+                transaction_output_fields["paper_mission_transaction_readback"] = {
+                    **transaction_readback,
+                    "next_action": next_action_override,
+                }
     transaction_output_fields = _align_current_carrier_owner_consumption(
         transaction_output_fields=transaction_output_fields,
         receipt_owner_consumption_readback=receipt_owner_consumption,
@@ -830,13 +853,8 @@ def _consumption_ledger_inspect_readback(
         transaction_readback=transaction_readback,
         consumption_readback=consumption_readback,
     )
-    if (
-        _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption)
-        and current_handoff_next_action
-    ):
-        next_action_override = current_handoff_next_action
-        canonical_next_action_source = "paper_mission_next_action_envelope"
-        typed_blocker_resolution_readback = None
+    if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption):
+        current_handoff_next_action = None
     if (
         domain_transition_next_action
         and current_handoff_next_action is None
@@ -872,7 +890,11 @@ def _consumption_ledger_inspect_readback(
                 profile=profile,
                 study_id=study_id,
                 study_root=study_root,
-                inspect_readback={**base, **transaction_output_fields},
+                inspect_readback={
+                    **base,
+                    **transaction_output_fields,
+                    "receipt_owner_consumption_readback": receipt_owner_consumption,
+                },
                 next_action=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
                 enable_opl_live_probe=enable_opl_live_probe,
@@ -902,6 +924,29 @@ def _consumption_ledger_inspect_readback(
                 transaction_output_fields["terminal_owner_gate_authority_readback"] = (
                     _terminal_owner_gate_authority_readback(direct_terminal_owner_gate)
                 )
+            (
+                stage_closure_decision,
+                next_action_override,
+                canonical_next_action_source,
+            ) = _override_next_action_from_direct_terminal_closeout(
+                direct_next_action_runtime=direct_next_action_runtime,
+                stage_closure_decision=stage_closure_decision,
+                transaction_readback=transaction_readback,
+                typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+                next_action_override=next_action_override,
+                canonical_next_action_source=canonical_next_action_source,
+                receipt_owner_consumption_readback=receipt_owner_consumption,
+            )
+            if next_action_override is not None:
+                transaction_output_fields["next_action"] = next_action_override
+                if canonical_next_action_source is not None:
+                    transaction_output_fields["canonical_next_action_source"] = (
+                        canonical_next_action_source
+                    )
+                transaction_output_fields["paper_mission_transaction_readback"] = {
+                    **transaction_readback,
+                    "next_action": next_action_override,
+                }
     transaction_output_fields = _align_current_carrier_owner_consumption(
         transaction_output_fields=transaction_output_fields,
         receipt_owner_consumption_readback=receipt_owner_consumption,
@@ -2327,7 +2372,7 @@ def _stage_closure_next_action_should_own_next_action(
         and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
     ):
         if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption_readback):
-            return not _route_checkpoint_identity_matches_domain_transition(
+            return not _owner_consumed_route_checkpoint_yields_to_domain_transition(
                 stage_closure_decision=stage_closure_decision,
                 domain_transition_next_action=domain_transition_next_action,
             )
@@ -2365,7 +2410,11 @@ def _align_current_carrier_owner_consumption(
     changed = False
     current = _mapping(fields.get("current_opl_runtime_carrier_readback"))
     aligned_current = current
-    if current:
+    preserve_direct_successor = _preserve_direct_successor_runtime_readback(
+        transaction_output_fields=fields,
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+    )
+    if current and not preserve_direct_successor:
         aligned_current = _align_carrier_readback_with_owner_consumption(
             carrier_readback=current,
             receipt_owner_consumption_readback=receipt_owner_consumption_readback,
@@ -2442,6 +2491,34 @@ def _align_current_carrier_owner_consumption(
     return fields if changed else transaction_output_fields
 
 
+def _preserve_direct_successor_runtime_readback(
+    *,
+    transaction_output_fields: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> bool:
+    direct = _mapping(transaction_output_fields.get("domain_transition_direct_stage_attempt"))
+    if not direct:
+        return False
+    handoff = _mapping(direct.get("opl_route_handoff"))
+    successor_owner_consumption_ref = _optional_text(
+        handoff.get("owner_consumption_readback_ref")
+    )
+    if successor_owner_consumption_ref is None:
+        return False
+    applied_owner_consumption_ref = _first_text(
+        receipt_owner_consumption_readback.get("source_ref"),
+        receipt_owner_consumption_readback.get("decision_ref"),
+    )
+    if successor_owner_consumption_ref != applied_owner_consumption_ref:
+        return False
+    carrier_readback = _mapping(direct.get("opl_runtime_carrier_readback"))
+    carrier_status = _optional_text(carrier_readback.get("carrier_status"))
+    return carrier_status in {
+        "opl_runtime_attempt_running_observed",
+        "opl_runtime_terminal_readback_observed",
+    }
+
+
 def _route_checkpoint_matches_domain_transition(
     *,
     stage_closure_decision: Mapping[str, Any],
@@ -2461,6 +2538,28 @@ def _route_checkpoint_matches_domain_transition(
         )
         is not None
     )
+
+
+def _owner_consumed_route_checkpoint_yields_to_domain_transition(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    domain_transition_next_action: Mapping[str, Any] | None,
+) -> bool:
+    if _route_checkpoint_identity_matches_domain_transition(
+        stage_closure_decision=stage_closure_decision,
+        domain_transition_next_action=domain_transition_next_action,
+    ):
+        return True
+    action = _mapping(domain_transition_next_action)
+    if _optional_text(action.get("surface_kind")) != "mas_next_action_envelope":
+        return False
+    if _optional_text(action.get("action_type")) != "request_opl_stage_attempt":
+        return False
+    decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
+    action_stage = _optional_text(action.get("stage_id"))
+    if decision_stage is None or action_stage is None:
+        return False
+    return decision_stage == action_stage
 
 
 def _route_checkpoint_identity_matches_domain_transition(
@@ -2503,6 +2602,65 @@ def _domain_transition_next_action_requests_stage_attempt(
         _optional_text(action.get("action_family")) is not None
         and _optional_text(action.get("owner")) is not None
         and _optional_text(action.get("work_unit_id")) is not None
+    )
+
+
+def _override_next_action_from_direct_terminal_closeout(
+    *,
+    direct_next_action_runtime: Mapping[str, Any],
+    stage_closure_decision: Mapping[str, Any],
+    transaction_readback: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+    next_action_override: Mapping[str, Any] | None,
+    canonical_next_action_source: str | None,
+    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
+) -> tuple[Mapping[str, Any], Mapping[str, Any] | None, str | None]:
+    direct = _mapping(direct_next_action_runtime)
+    if _optional_text(direct.get("opl_runtime_readback_status")) != (
+        "opl_runtime_terminal_readback_observed"
+    ):
+        return stage_closure_decision, next_action_override, canonical_next_action_source
+    receipt_owner_consumption = _mapping(receipt_owner_consumption_readback)
+    if (
+        _optional_text(receipt_owner_consumption.get("status"))
+        == "owner_consumption_applied"
+        and _optional_text(
+            _mapping(receipt_owner_consumption.get("mas_receipt_consumption")).get(
+                "status"
+            )
+        )
+        == "owner_consumed_route_checkpoint"
+    ):
+        handoff = _mapping(direct.get("opl_route_handoff"))
+        applied_owner_consumption_ref = _first_text(
+            receipt_owner_consumption.get("source_ref"),
+            receipt_owner_consumption.get("decision_ref"),
+        )
+        if applied_owner_consumption_ref is not None and _optional_text(
+            handoff.get("owner_consumption_readback_ref")
+        ) == applied_owner_consumption_ref:
+            return (
+                stage_closure_decision,
+                next_action_override,
+                canonical_next_action_source,
+            )
+    carrier_readback = _mapping(direct.get("opl_runtime_carrier_readback"))
+    if _optional_text(_mapping(carrier_readback.get("mas_receipt_consumption")).get("status")) != (
+        "requires_mas_owner_consumption"
+    ):
+        return stage_closure_decision, next_action_override, canonical_next_action_source
+    refreshed_stage_closure_decision = _terminalize_stage_closure_from_readback(direct)
+    refreshed_next_action = _next_action_for_stage_closure_decision(
+        stage_closure_decision=refreshed_stage_closure_decision,
+        transaction_readback=transaction_readback,
+        typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+    )
+    return (
+        refreshed_stage_closure_decision,
+        refreshed_next_action,
+        "stage_closure.next_action"
+        if refreshed_next_action is not None
+        else canonical_next_action_source,
     )
 
 

@@ -23,6 +23,7 @@ from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
 )
 from med_autoscience.study_task_intake import (
+    build_task_intake_progress_override,
     latest_task_intake_json_path,
     read_latest_task_intake,
     task_intake_is_reviewer_revision,
@@ -66,12 +67,24 @@ def project_transition(
         return None
     route_back_action = current_ai_reviewer_route_back_action(publication_eval)
     if route_back_action is not None:
+        route_back_source_refs = list(source_refs)
+        if stale_after_reviewer_revision(
+            study_root=study_root,
+            publication_eval=publication_eval,
+        ):
+            route_back_source_refs.extend(
+                _latest_reviewer_revision_source_refs(study_root)
+            )
+            route_back_action = _task_intake_route_back_action_override(
+                study_root=study_root,
+                action=route_back_action,
+            )
         return _route_back_transition(
             study_id=study_id,
             action=route_back_action,
             active_run_id=active_run_id,
             publication_eval_relative_path=publication_eval_relative_path,
-            source_refs=source_refs,
+            source_refs=route_back_source_refs,
             completion_receipt_consumption=completion_receipt_consumption,
         )
     if _requires_ai_reviewer_re_eval(publication_eval):
@@ -221,12 +234,24 @@ def _current_ai_reviewer_record_route_back_transition(
     route_back_action = current_ai_reviewer_route_back_action(record_payload)
     if route_back_action is None:
         return None
+    route_back_source_refs = [*source_refs, str(record_path)]
+    if stale_after_reviewer_revision(
+        study_root=study_root,
+        publication_eval=record_payload,
+    ):
+        route_back_source_refs.extend(
+            _latest_reviewer_revision_source_refs(study_root)
+        )
+        route_back_action = _task_intake_route_back_action_override(
+            study_root=study_root,
+            action=route_back_action,
+        )
     return _route_back_transition(
         study_id=study_id,
         action=route_back_action,
         active_run_id=None,
         publication_eval_relative_path=publication_eval_relative_path,
-        source_refs=[*source_refs, str(record_path)],
+        source_refs=route_back_source_refs,
         completion_receipt_consumption={
             **dict(completion_receipt_consumption),
             "status": "consumed",
@@ -297,6 +322,130 @@ def _route_back_transition(
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
     )
+
+
+def _task_intake_route_back_action_override(
+    *,
+    study_root: Path | None,
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    if study_root is None:
+        return dict(action)
+    task_intake = read_latest_task_intake(study_root=study_root)
+    if not task_intake_is_reviewer_revision(task_intake):
+        return dict(action)
+    override = build_task_intake_progress_override(task_intake, study_root=study_root)
+    if not isinstance(override, Mapping):
+        return dict(action)
+    current_required_action = _text(override.get("current_required_action"))
+    if current_required_action not in {"continue_write_stage", "return_to_analysis_campaign"}:
+        return dict(action)
+    route_target = _task_intake_route_target(
+        task_intake=task_intake,
+        action=action,
+        override=override,
+        current_required_action=current_required_action,
+    )
+    if route_target not in {"write", "analysis-campaign"}:
+        return dict(action)
+    next_work_unit = _task_intake_route_back_work_unit(
+        task_intake=task_intake,
+        route_target=route_target,
+    )
+    action_payload = dict(action)
+    action_payload["route_target"] = route_target
+    action_payload["next_work_unit"] = next_work_unit
+    return action_payload
+
+
+def _task_intake_route_target(
+    *,
+    task_intake: Mapping[str, Any],
+    action: Mapping[str, Any],
+    override: Mapping[str, Any],
+    current_required_action: str,
+) -> str:
+    current_route_target = _text(action.get("route_target")) or _text(_mapping(action.get("next_work_unit")).get("lane"))
+    if current_route_target in {"write", "analysis-campaign"} and not _task_intake_requires_analysis_override(
+        task_intake=task_intake,
+        current_required_action=current_required_action,
+    ):
+        return current_route_target
+    quality_execution_lane = _mapping(override.get("quality_execution_lane"))
+    same_line_route_truth = _mapping(override.get("same_line_route_truth"))
+    return (
+        _text(quality_execution_lane.get("route_target"))
+        or _text(same_line_route_truth.get("route_target"))
+        or ("analysis-campaign" if current_required_action == "return_to_analysis_campaign" else "write")
+    )
+
+
+def _task_intake_requires_analysis_override(
+    *,
+    task_intake: Mapping[str, Any],
+    current_required_action: str,
+) -> bool:
+    if current_required_action != "return_to_analysis_campaign":
+        return False
+    text_corpus = " ".join(
+        (
+            [_text(task_intake.get("task_intent")) or ""]
+            + _text_list(task_intake.get("constraints"))
+            + _text_list(task_intake.get("first_cycle_outputs"))
+        )
+    ).lower()
+    return any(
+        marker in text_corpus
+        for marker in (
+            "do not continue prose",
+            "prose polishing until",
+            "roll back from manuscript improvement to analysis",
+            "analysis/harmonization route-back decision",
+            "不得继续",
+            "补充分析",
+            "稳健性验证",
+            "analysis/harmonization",
+        )
+    )
+
+
+def _task_intake_route_back_work_unit(
+    *,
+    task_intake: Mapping[str, Any],
+    route_target: str,
+) -> dict[str, str]:
+    summary = _task_intake_route_back_summary(task_intake=task_intake, route_target=route_target)
+    if route_target == "analysis-campaign":
+        return _work_unit(
+            "analysis_claim_evidence_repair",
+            "analysis-campaign",
+            summary,
+        )
+    return _work_unit(
+        "medical_prose_write_repair",
+        "write",
+        summary,
+    )
+
+
+def _task_intake_route_back_summary(
+    *,
+    task_intake: Mapping[str, Any],
+    route_target: str,
+) -> str:
+    task_intent = _text(task_intake.get("task_intent"))
+    first_cycle_outputs = _text_list(task_intake.get("first_cycle_outputs"))
+    focus = task_intent or (first_cycle_outputs[0] if first_cycle_outputs else None)
+    if focus and len(focus) > 220:
+        focus = focus[:217].rstrip() + "..."
+    if route_target == "analysis-campaign":
+        prefix = "Run the narrowest supplementary analysis required by the latest reviewer revision before the paper can return to writing."
+    else:
+        prefix = (
+            "Apply the latest reviewer-revision manuscript, figure, table, abstract, discussion, and supplementary repairs "
+            "on the same study line without expanding claims."
+        )
+    return f"{prefix} Focus: {focus}" if focus else prefix
 
 
 def _requires_ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
@@ -523,33 +672,39 @@ def build_route_back_next_action(
 ) -> dict[str, Any]:
     work_unit = dict(next_work_unit)
     work_unit_id = _text(work_unit.get("unit_id"))
+    source_ref_list = list(source_refs)
+    work_unit_fingerprint = _route_back_work_unit_fingerprint(
+        work_unit_id=work_unit_id,
+        source_refs=source_ref_list,
+    )
     stage_outcome = {
         "study_id": study_id,
         "stage_id": route_target,
         "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
+        "work_unit_fingerprint": work_unit_fingerprint,
         "next_work_unit": work_unit,
         "controller_action": controller_action,
         "action_family": FAMILY_PAPER_WRITE_PROSE_REPAIR,
-        "source_refs": list(source_refs),
+        "source_refs": source_ref_list,
     }
     owner_route = {
         "owner": owner,
         "next_owner": owner,
         "action_type": controller_action,
         "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
         "next_work_unit": work_unit,
         "action_family": FAMILY_PAPER_WRITE_PROSE_REPAIR,
-        "required_input_refs": list(source_refs),
+        "required_input_refs": source_ref_list,
     }
     return compile_next_action_envelope(
         stage_outcome=stage_outcome,
         study_id=study_id,
         stage_id=route_target,
-        outcome_ref=f"domain-transition::route_back_same_line::{work_unit_id}",
+        outcome_ref=work_unit_fingerprint,
         owner_route=owner_route,
         authority_boundary=guard_boundary,
-        diagnostic_refs=list(source_refs),
+        diagnostic_refs=source_ref_list,
     )
 
 
@@ -592,6 +747,27 @@ def _source_fingerprint(source_refs: Iterable[str]) -> str:
     refs = [text for item in source_refs if (text := _text(item))]
     payload = json.dumps(refs, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _route_back_work_unit_fingerprint(
+    *,
+    work_unit_id: str,
+    source_refs: Iterable[str],
+) -> str:
+    base = f"domain-transition::route_back_same_line::{work_unit_id}"
+    refs = [text for item in source_refs if (text := _text(item))]
+    if not _route_back_source_sensitive(refs):
+        return base
+    return f"{base}::source::{_source_fingerprint(refs)}"
+
+
+def _route_back_source_sensitive(source_refs: Iterable[str]) -> bool:
+    for ref in source_refs:
+        if ref.startswith("task_intake."):
+            return True
+        if ref.endswith("/artifacts/controller/task_intake/latest.json"):
+            return True
+    return False
 
 
 def _compact_work_unit(value: object) -> dict[str, str] | None:
