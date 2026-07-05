@@ -256,6 +256,7 @@ stopifnot(identical(layout$metrics$source_renderer, "MAS/DPCC::treatment_gap_ali
 stopifnot(identical(layout$metrics$figure_purpose, "recorded_treatment_review_gap_burden_small_multiples"))
 stopifnot(identical(layout$metrics$rendered_title_policy, "figure_title_metadata_only_not_drawn_inside_plot"))
 stopifnot(length(layout$panel_boxes) == 4)
+stopifnot(identical(built$plot$labels$x, "Recorded review signal (% of panel denominator)"))
 built_labels <- unique(unlist(lapply(built$data, function(layer) layer$label %||% character())))
 stopifnot(any(grepl("^72.0% [(]n=720[)]$", built_labels)))
 """

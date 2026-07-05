@@ -264,11 +264,11 @@ dpcc_plot_treatment_gap_alignment <- function(payload) {
         "0"
       )),
       hjust = -0.08,
-      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.22,
+      size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.20,
       colour = palette$text
     ) +
     facet_wrap(~gap_label, ncol = 2, scales = "fixed") +
-    coord_cartesian(xlim = c(0, max(1, max(long_df$gap_percent, na.rm = TRUE) * 1.18)), clip = "off") +
+    coord_cartesian(xlim = c(0, max(1, max(long_df$gap_percent, na.rm = TRUE) * 1.55)), clip = "off") +
     labs(
       title = NULL,
       x = "Recorded review signal (% of panel denominator)",
