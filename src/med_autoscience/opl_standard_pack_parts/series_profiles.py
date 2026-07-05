@@ -52,6 +52,68 @@ STANDARD_PUBLIC_PROJECTION_POLICY = {
     ],
 }
 
+STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY = {
+    "surface_kind": "opl_foundry_agent_standard_feedback_self_evolution_trigger_policy",
+    "version": "foundry-agent-feedback-self-evolution-trigger.v1",
+    "policy_id": "standard_agent_feedback_self_evolution_trigger.v1",
+    "applies_to_series_memberships": [
+        "standard_domain_agent",
+        "framework_capability_package",
+    ],
+    "feedbackops_event_kind": "target_agent_feedback_external_suite",
+    "accepted_feedback_profile": "target_agent_feedback_external_suite",
+    "trigger_chain": [
+        "domain_or_package_thin_feedback_adapter",
+        "opl_feedbackops_agent_lab_status_projection",
+        "opl_meta_agent_oma_agent_evolution_work_order",
+        "developer_mode_direct_fix_or_fork_pr_route",
+        "target_owner_closeout_readback",
+    ],
+    "required_trigger_fields": [
+        "feedbackops_event_kind",
+        "accepted_feedback_profile",
+        "target_agent_id",
+        "idempotency_key",
+        "external_suite_ref",
+        "developer_mode_execution_gate_refs",
+        "oma_evolution_skill_ref",
+        "owner_closeout_readback_refs",
+    ],
+    "standard_status_projection_ref": (
+        "contracts/opl-framework/agent-lab-contract.json#/"
+        "domain_feedback_self_evolution_surface"
+    ),
+    "feedback_capture_requires_developer_mode": False,
+    "repo_fix_execution_requires_opl_developer_mode": True,
+    "contract_can_trigger_execution": False,
+    "developer_mode_execution_gate_refs": [
+        "opl-developer-mode:repo-fix-execution",
+        "opl-developer-mode:direct-fix-or-fork-pr-route",
+    ],
+    "developer_route_policy": {
+        "feedback_capture_route": "allowed_for_all_users_refs_only",
+        "direct_fix_route": (
+            "requires_target_repo_direct_write_authority_or_"
+            "agent_owner_developer_authority"
+        ),
+        "manual_enable_without_direct_write_route": "fork_pull_request",
+        "official_or_third_party_agent_without_authority_route": (
+            "fork_pull_request_or_owner_handoff"
+        ),
+        "manual_developer_mode_cannot_grant_direct_repo_write": True,
+        "auto_developer_mode_can_select_local_checkout_source_when_identity_matches": True,
+    },
+    "authority_boundary": {
+        "refs_only": True,
+        "can_write_domain_truth": False,
+        "can_mutate_artifact_body": False,
+        "can_authorize_quality_or_export": False,
+        "can_create_owner_receipt": False,
+        "can_create_typed_blocker": False,
+        "can_execute_repo_patch_without_developer_mode": False,
+    },
+}
+
 SERIES_DESIGN_PROFILE = {
     "surface_kind": "opl_foundry_agent_series_design_profile",
     "version": "foundry-agent-series-design-profile.v1",

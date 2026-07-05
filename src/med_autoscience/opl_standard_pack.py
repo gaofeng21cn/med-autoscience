@@ -51,6 +51,7 @@ from med_autoscience.opl_standard_pack_parts.series_profiles import (
     DOMAIN_SPECIFIC_PROFILE,
     SERIES_DESIGN_PROFILE,
     SHARED_POLICY_RELEASE,
+    STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY,
     STANDARD_PUBLIC_PROJECTION_POLICY,
     WORKSPACE_TOPOLOGY_PROFILE,
 )
@@ -197,6 +198,9 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
         "shared_policy_release": SHARED_POLICY_RELEASE,
         "agent_membership_projection_policy": AGENT_MEMBERSHIP_PROJECTION_POLICY,
         "standard_public_projection_policy": STANDARD_PUBLIC_PROJECTION_POLICY,
+        "standard_feedback_self_evolution_trigger_policy": (
+            STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY
+        ),
         "series_design_profile": SERIES_DESIGN_PROFILE,
         "workspace_topology_profile": WORKSPACE_TOPOLOGY_PROFILE,
         "domain_specific_profile": DOMAIN_SPECIFIC_PROFILE,
