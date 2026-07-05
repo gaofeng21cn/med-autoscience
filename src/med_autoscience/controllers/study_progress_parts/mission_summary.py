@@ -25,6 +25,9 @@ from med_autoscience.paper_mission_opl_readback import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
+from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_stage_closure,
+)
 from .canonical_next_action_gate import (
     has_canonical_next_action,
     legacy_next_action_authority_retirement,
@@ -187,6 +190,14 @@ def build_artifact_first_mission_summary(
         consumption_ledger_readback=consumption_ledger_readback,
     ):
         receipt_owner_consumption_readback = {}
+    if (
+        receipt_owner_consumption_readback
+        and receipt_owner_consumption_superseded_by_stage_closure(
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+            stage_closure_ledger_readback=stage_closure_ledger_readback,
+        )
+    ):
+        receipt_owner_consumption_readback = {}
     if receipt_owner_consumption_readback:
         effective_consume_candidate_status = (
             _effective_consume_candidate_status_for_receipt_owner_consumption(
@@ -196,6 +207,21 @@ def build_artifact_first_mission_summary(
         )
         if effective_consume_candidate_status == "route_back":
             mission_state = "route_back"
+    stage_closure_source = (
+        {
+            "stage_closure_decision": receipt_owner_consumption_readback[
+                "stage_closure_decision"
+            ]
+        }
+        if receipt_owner_consumption_readback
+        else {"stage_closure_decision": stage_closure_ledger_readback}
+        if stage_closure_ledger_readback
+        else {
+            "stage_closure_decision": progress["stage_closure_decision"]
+        }
+        if _mapping(progress.get("stage_closure_decision"))
+        else {}
+    )
     live_readback = _study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
@@ -208,19 +234,7 @@ def build_artifact_first_mission_summary(
     carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
     stage_closure_decision = stage_closure_decision_projection(
         readback={
-            **(
-                {"stage_closure_decision": progress["stage_closure_decision"]}
-                if _mapping(progress.get("stage_closure_decision"))
-                else {
-                    "stage_closure_decision": receipt_owner_consumption_readback[
-                        "stage_closure_decision"
-                    ]
-                }
-                if receipt_owner_consumption_readback
-                else {"stage_closure_decision": stage_closure_ledger_readback}
-                if stage_closure_ledger_readback
-                else {}
-            ),
+            **stage_closure_source,
             "paper_mission_transaction": effective_transaction,
             "stage_terminal_decision": _mapping(
                 effective_transaction.get("stage_terminal_decision")

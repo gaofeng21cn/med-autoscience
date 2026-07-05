@@ -619,7 +619,6 @@ def _apply_result(
     package = _current_package_summary(paper_mission_readback)
     if apply_mode == "route_checkpoint":
         receipt, evidence, consumption = _route_checkpoint_aligned_receipt_inputs(
-            paper_mission_readback=paper_mission_readback,
             stage=stage,
             receipt=receipt,
             evidence=evidence,
@@ -743,7 +742,6 @@ def _apply_result(
 
 def _route_checkpoint_aligned_receipt_inputs(
     *,
-    paper_mission_readback: Mapping[str, Any],
     stage: Mapping[str, Any],
     receipt: Mapping[str, Any],
     evidence: Mapping[str, Any],
@@ -758,15 +756,6 @@ def _route_checkpoint_aligned_receipt_inputs(
     stage_attempt_id = _first_text(closeout.get("stage_attempt_id"))
     stage_attempt_ref = (
         f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
-    )
-    successor = _route_checkpoint_successor_identity(paper_mission_readback)
-    route_target = _first_text(
-        successor.get("stage_id"),
-        stage.get("stage_id"),
-    )
-    route_work_unit_id = _first_text(
-        successor.get("work_unit_id"),
-        stage.get("work_unit_id"),
     )
     receipt_ref = _first_text(
         stage.get("receipt_evidence_ref"),
@@ -788,8 +777,8 @@ def _route_checkpoint_aligned_receipt_inputs(
             else {}
         ),
         "runtime_closeout_ref": checkpoint_ref,
-        "route_target": route_target,
-        "work_unit_id": route_work_unit_id,
+        "route_target": _first_text(stage.get("stage_id")),
+        "work_unit_id": _first_text(stage.get("work_unit_id")),
     }
     aligned_evidence = {
         **dict(evidence),
@@ -816,32 +805,6 @@ def _route_checkpoint_aligned_receipt_inputs(
         "route_checkpoint_evidence_ref": checkpoint_ref,
     }
     return aligned_receipt, aligned_evidence, aligned_consumption
-
-
-def _route_checkpoint_successor_identity(
-    paper_mission_readback: Mapping[str, Any],
-) -> dict[str, str]:
-    domain_transition = _mapping(paper_mission_readback.get("domain_transition"))
-    next_action = _mapping(domain_transition.get("next_action"))
-    next_work_unit = _mapping(domain_transition.get("next_work_unit"))
-    route_target = _first_text(
-        next_action.get("stage_id"),
-        domain_transition.get("route_target"),
-    )
-    work_unit_id = _first_text(
-        next_action.get("work_unit_id"),
-        next_work_unit.get("unit_id"),
-    )
-    return {
-        key: value
-        for key, value in {
-            "stage_id": route_target,
-            "work_unit_id": work_unit_id,
-        }.items()
-        if value is not None
-    }
-
-
 def _implementation_gap() -> dict[str, Any]:
     return {
         "gap_kind": "mas_owner_consumption_authority_apply_surface_missing",

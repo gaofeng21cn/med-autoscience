@@ -760,7 +760,10 @@ def _domain_transition_direct_next_action_runtime_readback(
     enable_opl_live_probe: bool,
     opl_bin: str | Path | None,
 ) -> dict[str, Any]:
-    if canonical_next_action_source != "domain_transition.next_action":
+    if canonical_next_action_source not in {
+        "domain_transition.next_action",
+        "paper_mission_next_action_envelope",
+    }:
         return {}
     if not _domain_transition_next_action_requests_stage_attempt(next_action):
         return {}

@@ -12,6 +12,7 @@ from med_autoscience.paper_mission_consumption_readback import (
 )
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
+    paper_mission_next_action_envelope as _paper_mission_next_action_envelope,
 )
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
@@ -501,8 +502,20 @@ def build_paper_mission_readback(
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     canonical_next_action_source = None
+    current_handoff_next_action = _consumption_ledger_current_route_next_action(
+        transaction_readback=transaction_readback,
+        consumption_readback=consumption_ledger_readback or {},
+    )
+    if (
+        _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption)
+        and current_handoff_next_action
+    ):
+        next_action_override = current_handoff_next_action
+        canonical_next_action_source = "paper_mission_next_action_envelope"
+        typed_blocker_resolution_readback = None
     if (
         domain_transition_next_action
+        and current_handoff_next_action is None
         and not _typed_blocker_resolution_should_own_next_action(
             stage_closure_decision=stage_closure_decision,
             typed_blocker_resolution_readback=typed_blocker_resolution_readback,
@@ -516,7 +529,7 @@ def build_paper_mission_readback(
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
         typed_blocker_resolution_readback = None
-    elif next_action_override is not None:
+    elif next_action_override is not None and canonical_next_action_source is None:
         canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
     if next_action_override is not None:
@@ -796,8 +809,20 @@ def _consumption_ledger_inspect_readback(
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
     )
     canonical_next_action_source = None
+    current_handoff_next_action = _consumption_ledger_current_route_next_action(
+        transaction_readback=transaction_readback,
+        consumption_readback=consumption_readback,
+    )
+    if (
+        _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption)
+        and current_handoff_next_action
+    ):
+        next_action_override = current_handoff_next_action
+        canonical_next_action_source = "paper_mission_next_action_envelope"
+        typed_blocker_resolution_readback = None
     if (
         domain_transition_next_action
+        and current_handoff_next_action is None
         and not _typed_blocker_resolution_should_own_next_action(
             stage_closure_decision=stage_closure_decision,
             typed_blocker_resolution_readback=typed_blocker_resolution_readback,
@@ -812,7 +837,7 @@ def _consumption_ledger_inspect_readback(
         next_action_override = domain_transition_next_action
         canonical_next_action_source = "domain_transition.next_action"
         typed_blocker_resolution_readback = None
-    elif next_action_override is not None:
+    elif next_action_override is not None and canonical_next_action_source is None:
         canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
     if next_action_override is not None:
@@ -1020,6 +1045,62 @@ def _receipt_owner_consumption_status(
     if consumption_status == "owner_consumed_route_checkpoint":
         return "route_back"
     return "accepted"
+
+
+def _consumption_ledger_current_route_next_action(
+    *,
+    transaction_readback: Mapping[str, Any],
+    consumption_readback: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _consumption_ledger_has_current_route_handoff(consumption_readback):
+        return None
+    envelope = _paper_mission_next_action_envelope(
+        transaction=_mapping(transaction_readback.get("paper_mission_transaction")),
+        stage_terminal_decision=_mapping(consumption_readback.get("stage_terminal_decision")),
+        opl_route_command=_mapping(consumption_readback.get("opl_route_command")),
+        opl_runtime_carrier=_mapping(consumption_readback.get("opl_runtime_carrier")),
+        opl_route_handoff=_mapping(consumption_readback.get("opl_route_handoff")),
+        diagnostic_refs=[
+            ref
+            for ref in (_optional_text(consumption_readback.get("source_ref")),)
+            if ref is not None
+        ],
+    )
+    action = _mapping(envelope)
+    if (
+        _optional_text(action.get("surface_kind")) != "mas_next_action_envelope"
+        or _optional_text(action.get("owner")) is None
+        or _optional_text(action.get("work_unit_id")) is None
+    ):
+        return None
+    return dict(action)
+
+
+def _consumption_ledger_has_current_route_handoff(
+    consumption_readback: Mapping[str, Any],
+) -> bool:
+    handoff = _mapping(consumption_readback.get("opl_route_handoff"))
+    stage_terminal_decision = _mapping(
+        consumption_readback.get("stage_terminal_decision")
+    ) or _mapping(handoff.get("stage_terminal_decision"))
+    opl_route_command = _mapping(consumption_readback.get("opl_route_command")) or _mapping(
+        handoff.get("opl_route_command")
+    )
+    if _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command":
+        return True
+    if handoff.get("can_submit_to_opl_runtime") is not True:
+        return False
+    if _optional_text(opl_route_command.get("command_kind")) in {
+        "resume_stage",
+        "advance_stage",
+        "submit_to_opl_runtime",
+    } and _optional_text(opl_route_command.get("target")) is not None:
+        return True
+    return (
+        _optional_text(stage_terminal_decision.get("recommended_next_action"))
+        == "request_opl_stage_attempt"
+        and _optional_text(stage_terminal_decision.get("next_work_unit")) is not None
+    )
 
 
 def _paper_mission_consume_non_advancing_fields(
@@ -1722,6 +1803,8 @@ def _latest_stage_attempt_route_back_source_readback(
     if not packets_root.exists():
         return None
     expected = _expected_stage_attempt_identity(source_readback)
+    preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
+    preferred: list[tuple[float, str, Path]] = []
     exact: list[tuple[float, str, Path]] = []
     fallback: list[tuple[float, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
@@ -1737,7 +1820,15 @@ def _latest_stage_attempt_route_back_source_readback(
             continue
         stage_id = _optional_text(packet.get("stage_id"))
         work_unit_id = _optional_text(packet.get("work_unit_id"))
+        stage_attempt_id = _optional_text(packet.get("stage_attempt_id"))
         sort_key = (packet_ref.stat().st_mtime, str(packet_ref), packet_ref)
+        if (
+            preferred_stage_attempt_ids
+            and stage_attempt_id is not None
+            and stage_attempt_id in preferred_stage_attempt_ids
+        ):
+            preferred.append(sort_key)
+            continue
         if (
             (
                 not expected["stage_ids"]
@@ -1751,7 +1842,7 @@ def _latest_stage_attempt_route_back_source_readback(
             exact.append(sort_key)
         else:
             fallback.append(sort_key)
-    candidates = exact or fallback
+    candidates = preferred or exact or fallback
     if not candidates:
         return None
     packet_ref = max(candidates, key=lambda item: (item[0], item[1]))[2]
@@ -1763,7 +1854,38 @@ def _latest_stage_attempt_route_back_source_readback(
         source=f"{source}:autodiscovered-stage-packet",
     )
 
+def _preferred_terminal_stage_attempt_ids(
+    readback: Mapping[str, Any],
+) -> set[str]:
+    stage_attempt_ids = set()
+    for carrier_key in (
+        "opl_runtime_carrier_readback",
+        "current_opl_runtime_carrier_readback",
+    ):
+        terminal_closeout = _mapping(
+            _mapping(readback.get(carrier_key)).get("terminal_closeout")
+        )
+        stage_attempt_id = _optional_text(terminal_closeout.get("stage_attempt_id"))
+        if stage_attempt_id is not None and (
+            carrier_key == "current_opl_runtime_carrier_readback"
+            or _terminal_closeout_is_live_runtime_observed(terminal_closeout)
+        ):
+            stage_attempt_ids.add(stage_attempt_id)
+    return stage_attempt_ids
 
+
+def _terminal_closeout_is_live_runtime_observed(
+    closeout: Mapping[str, Any],
+) -> bool:
+    closeout_ref = _optional_text(closeout.get("closeout_ref"))
+    if closeout_ref is not None and closeout_ref.startswith(
+        "opl://family-runtime/tasks/"
+    ):
+        return True
+    return _optional_text(closeout.get("runtime_readback_source")) in {
+        "opl_family_runtime_queue_inspect",
+        "opl_family_runtime_queue_list",
+    }
 def _expected_stage_attempt_identity(readback: Mapping[str, Any]) -> dict[str, set[str]]:
     next_action = _mapping(readback.get("next_action"))
     domain_transition = _mapping(readback.get("domain_transition"))
@@ -2090,6 +2212,7 @@ def _route_checkpoint_identity_matches_domain_transition(
         and decision_stage != action_stage
     ):
         return False
+    return True
     return True
 
 

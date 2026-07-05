@@ -1233,6 +1233,93 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
     assert payload["next_legal_action"] == "consume_opl_transition_receipt"
 
 
+def test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_progress_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.mission_summary"
+    )
+
+    monkeypatch.setattr(module, "_latest_materialized_mission", lambda *_: {})
+    monkeypatch.setattr(module, "_latest_consumption_ledger_readback", lambda **_: {})
+    monkeypatch.setattr(module, "_latest_receipt_owner_consumption_readback", lambda **_: {})
+    monkeypatch.setattr(
+        module,
+        "_latest_stage_closure_ledger_readback",
+        lambda **_: {
+            "surface_kind": "mas_stage_closure_decision",
+            "decision_ref": "/tmp/current-stage-closure.json",
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/stage_attempt_closeout_packet.json"
+                ),
+                "next_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+            },
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-current",
+                "work_unit_id": "submission_milestone_candidate",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_study_progress_opl_runtime_readback",
+        lambda **_: {
+            "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
+            "opl_runtime_carrier_readback": {
+                "carrier_status": "opl_runtime_terminal_readback_observed",
+                "terminal_closeout": {
+                    "stage_attempt_id": "sat-current",
+                    "closeout_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-current/stage_attempt_closeout_packet.json"
+                    ),
+                },
+            },
+        },
+    )
+
+    payload = module.attach_artifact_first_mission_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_root": "/tmp/studies/003-dpcc-primary-care-phenotype-treatment-gap",
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "stage_closure_decision": {
+                "projection_status": "terminalizer_outcome_observed",
+                "decision_ref": "/tmp/stale-stage-closure.json",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "route_checkpoint_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-stale/stage_attempt_closeout_packet.json"
+                    ),
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                },
+                "opl_closeout": {
+                    "status": "opl_runtime_terminal_readback_observed",
+                    "stage_attempt_id": "sat-stale",
+                },
+            },
+        },
+        enable_opl_live_probe=True,
+    )
+
+    assert payload["stage_closure_decision"]["decision_ref"] == "/tmp/current-stage-closure.json"
+    assert payload["stage_closure"]["decision_ref"] == "/tmp/current-stage-closure.json"
+    assert payload["stage_closure"]["outcome"]["route_checkpoint_evidence_ref"].endswith(
+        "sat-current/stage_attempt_closeout_packet.json"
+    )
+
+
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.mission_summary"
