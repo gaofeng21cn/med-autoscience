@@ -113,18 +113,18 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] == 38
-    assert payload["inventory"]["active_template_count"] == 38
-    assert payload["inventory"]["canonical_family_count"] == 38
-    assert payload["inventory"]["canonical_template_count"] == 38
+    assert payload["inventory"]["template_count"] == 54
+    assert payload["inventory"]["active_template_count"] == 54
+    assert payload["inventory"]["canonical_family_count"] == 54
+    assert payload["inventory"]["canonical_template_count"] == 54
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert payload["inventory"]["analysis_responsibility_counts"] == {
         "computed_in_template": 3,
         "illustration_shell": 1,
-        "table_shell": 1,
-        "validated_summary_required": 33,
+        "table_shell": 9,
+        "validated_summary_required": 41,
     }
     assert payload["inventory"]["kind_counts"]["illustration_shell"] == 2
     assert payload["inventory"]["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
@@ -173,7 +173,7 @@ def test_display_pack_capability_discover_templates_defaults_to_canonical_surfac
     assert payload["template_surface_policy"]["composition_recipe_routing_required"] is True
     assert payload["template_surface_policy"]["template_analysis_responsibility_required"] is True
     assert payload["template_surface_policy"]["validated_summary_templates_fail_closed_on_raw_analysis_requests"] is True
-    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 80
+    assert payload["template_surface_policy"]["migration_inventory_template_count"] == 94
     assert payload["template_surface_policy"]["returned_template_count"] == payload["inventory"]["template_count"]
     assert payload["templates"]
     assert len(payload["composition_recipe_surface"]["recipes"]) == 6
@@ -416,7 +416,39 @@ def test_compile_display_figure_intent_emits_claim_first_contract_without_blocki
     )
     assert payload["figure_workflow_packet"]["figures"][0]["render_inspect_revise"]["inspect_at_final_size"] is True
     assert payload["figure_contract_policy"]["observed_head"] == "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
+    assert payload["figure_contract_policy"]["secondary_learning_sources"][0]["source_project"] == (
+        "Haojae/scipilot-figure-skill"
+    )
+    assert payload["figure_contract"]["plot_selection_quality_floor"]["blocks_unrelated_agent_progress"] is False
+    assert "small_n_mean_bar_without_points" in payload["figure_contract"]["misleading_chart_warning_floor"]
     assert payload["compiled_figure_request"]["medical_figure_template_seed_ids"]
+
+
+def test_compile_display_figure_intent_carries_scipilot_plot_selection_and_visual_qa_refs() -> None:
+    payload = compile_display_figure_intent(
+        intent="Compare calibration slope and observed risk by validation center.",
+        claim_ref="claim:center-calibration",
+        data_ref="data:center-calibration",
+        figure_request={
+            "plot_selection_ref": "paper/figure_selection/F2.json",
+            "variable_profile_ref": "paper/figure_selection/F2_profile.json",
+            "group_sample_size_ref": "paper/figure_selection/F2_group_n.json",
+            "graph_warnings_ref": "paper/figure_selection/F2_warnings.json",
+        },
+    )
+
+    workflow_figure = payload["figure_workflow_packet"]["figures"][0]
+    floor = workflow_figure["plot_selection_quality_floor"]
+    qa_split = workflow_figure["render_inspect_revise"]["qa_split"]
+
+    assert floor["plot_selection_ref"] == "paper/figure_selection/F2.json"
+    assert floor["variable_profile_ref"] == "paper/figure_selection/F2_profile.json"
+    assert floor["group_sample_size_ref"] == "paper/figure_selection/F2_group_n.json"
+    assert floor["warning_ref"] == "paper/figure_selection/F2_warnings.json"
+    assert floor["blocks_unrelated_progress"] is False
+    assert "glyph_or_missing_font_warning" in qa_split["deterministic_qc"]
+    assert "legend_or_annotation_occlusion" in qa_split["ai_visual_review"]
+    assert qa_split["both_are_evidence_refs_not_publication_authority"] is True
 
 
 @pytest.mark.parametrize(

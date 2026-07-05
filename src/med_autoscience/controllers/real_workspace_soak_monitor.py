@@ -5,8 +5,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from med_autoscience.controllers import multistudy_soak_proof
 from med_autoscience.controllers.real_workspace_soak_monitor_parts.read_model import (
     blocked_reason_summary as _blocked_reason_summary,
@@ -196,6 +194,8 @@ def _study_from_readiness_payload(
 
 
 def _study_yaml_identity(study_root: Path) -> Mapping[str, Any]:
+    import yaml
+
     path = study_root / "study.yaml"
     try:
         payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

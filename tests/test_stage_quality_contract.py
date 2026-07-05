@@ -258,12 +258,22 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
     assert figure_pack["journal_family_patterns"] == [
         "core_claim",
         "evidence_chain",
+        "data_question_first_plot_selection",
         "panel_role",
         "source_data_refs",
         "statistics_refs",
         "export_contract",
         "qa_risks",
+        "misleading_chart_warning_refs",
+        "deterministic_qc_ai_visual_review_refs",
     ]
+    figure_contracts = {item["contract_id"]: item for item in figure_pack["extension_contracts"]}
+    scipilot_floor = figure_contracts["scipilot_visualization_advisor_ref_floor"]
+    assert scipilot_floor["learned_from"] == "Haojae/scipilot-figure-skill"
+    assert scipilot_floor["may_block_unrelated_owner_dispatch"] is False
+    assert scipilot_floor["may_authorize_publication_readiness"] is False
+    assert "small_n_mean_bar_without_points" in scipilot_floor["forbidden_shortcuts"]
+    assert "external_python_stack_as_default_mas_renderer" in scipilot_floor["forbidden_shortcuts"]
 
     argument_pack = packs["manuscript_argument_pack"]
     assert argument_pack["journal_family_patterns"] == [

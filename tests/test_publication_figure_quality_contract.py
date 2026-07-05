@@ -330,6 +330,15 @@ def test_load_figure_workflow_packet_requires_nonblocking_storyboard_and_paper_g
                         "figure_archetype": "quantitative_grid",
                         "selected_backend": "r_ggplot2",
                     },
+                    "plot_selection_quality_floor": {
+                        "question_or_claim_present": True,
+                        "variable_profile_ref": "paper/figure_selection/F1_profile.json",
+                        "group_sample_size_ref": "paper/figure_selection/F1_group_n.json",
+                        "plot_selection_ref": "paper/figure_selection/F1_plot_selection.json",
+                        "warning_ref": "paper/figure_selection/F1_warnings.json",
+                        "blocks_unrelated_progress": False,
+                        "missing_items_route": "repair_hint_or_current_delta_typed_repair_only",
+                    },
                     "storyboard": {
                         "hero_panel": "discrimination_curve",
                         "supporting_panel_roles": ["threshold_context"],
@@ -347,6 +356,11 @@ def test_load_figure_workflow_packet_requires_nonblocking_storyboard_and_paper_g
                             "paper/figure_visual_audit_receipt.json",
                         ],
                         "revision_record_required": True,
+                        "qa_split": {
+                            "deterministic_qc": ["glyph_or_missing_font_warning", "text_clipping"],
+                            "ai_visual_review": ["legend_or_annotation_occlusion", "panel_label_alignment"],
+                            "both_are_evidence_refs_not_publication_authority": True,
+                        },
                     },
                     "paper_use_acceptance": {
                         "required_before_paper_use": [
@@ -373,6 +387,10 @@ def test_load_figure_workflow_packet_requires_nonblocking_storyboard_and_paper_g
 
     assert payload["workflow_status"] == "audit_clear"
     assert payload["figures"][0]["storyboard"]["hero_panel"] == "discrimination_curve"
+    assert payload["figures"][0]["plot_selection_quality_floor"]["blocks_unrelated_progress"] is False
+    assert payload["figures"][0]["render_inspect_revise"]["qa_split"][
+        "both_are_evidence_refs_not_publication_authority"
+    ] is True
     assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
 
 

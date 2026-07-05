@@ -68,7 +68,9 @@
       "loader": "med_autoscience.publication_figure_quality_contract:load_figure_workflow_packet",
       "required_top_level": ["schema_version", "packet_id", "policy_ref", "workflow_status", "nonblocking_progress_policy", "figures", "authority_boundary"],
       "required_entry_fields": ["figure_id", "figure_brief", "storyboard", "render_inspect_revise", "paper_use_acceptance"],
-      "relationship": "Records the Nature-Skills-informed MAS figure brief, storyboard, render-inspect-revise loop, and paper-use acceptance checklist for each paper-facing figure.",
+      "optional_entry_fields": ["plot_selection_quality_floor"],
+      "relationship": "Records the Nature-Skills- and SciPilot-informed MAS figure brief, data-question-first plot selection refs, storyboard, render-inspect-revise loop, deterministic-QA/AI-visual-review split, and paper-use acceptance checklist for each paper-facing figure.",
+      "scipilot_pattern": "Clean-room adoption of Haojae/scipilot-figure-skill as visualization-advisor discipline: plot selection starts from question, data shape, sample size, uncertainty, and warning refs; it does not import the Python scripts or make matplotlib/seaborn/plotly the default MAS evidence renderer.",
       "authority_boundary": "Workflow guidance and audit packet only. It cannot block ordinary R/ggplot2 evidence progress, mutate data/statistics, replace visual audit, or authorize publication readiness."
     },
     "ai_illustration_receipt": {

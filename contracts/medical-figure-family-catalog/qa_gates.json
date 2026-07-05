@@ -95,6 +95,35 @@
         "render_inspect_revise_loop_declared",
         "workflow_packet_nonblocking_for_default_progress"
       ]
+    },
+    {
+      "gate_id": "data_question_first_plot_selection",
+      "checks": [
+        "figure_question_or_core_claim_present",
+        "variable_type_profile_or_ref_present",
+        "group_sample_size_profile_or_ref_present_when_grouped",
+        "uncertainty_or_statistical_annotation_policy_declared",
+        "table_vs_figure_tradeoff_recorded"
+      ]
+    },
+    {
+      "gate_id": "misleading_chart_warning_floor",
+      "checks": [
+        "small_n_mean_bar_warning_or_points_visible",
+        "dual_axis_requires_shared_unit_or_scatter_rationale",
+        "pie_3d_and_rainbow_rejected_for_scientific_evidence",
+        "error_bar_or_interval_type_disclosed",
+        "continuous_color_scale_has_colorbar_units"
+      ]
+    },
+    {
+      "gate_id": "deterministic_and_ai_visual_review_split",
+      "checks": [
+        "deterministic_qc_covers_glyphs_clipping_tick_overlap",
+        "ai_visual_review_covers_occlusion_panel_alignment_grayscale",
+        "final_size_export_inspected_before_paper_use",
+        "qa_refs_do_not_authorize_publication_readiness"
+      ]
     }
   ]
 }

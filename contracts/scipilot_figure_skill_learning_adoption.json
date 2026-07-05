@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "contract_id": "scipilot_figure_skill_learning_adoption.v1",
+  "owner": "MedAutoScience",
+  "purpose": "Clean-room adoption record for Haojae/scipilot-figure-skill patterns that MAS may consume as non-authority figure planning, Stage quality-pack, specialist-skill, and export-QA refs without importing the external runtime.",
+  "machine_boundary": "This contract records refs-only learning surfaces. It is not a renderer, Python dependency declaration, visual-audit receipt, owner receipt, typed blocker, current-package authority, publication verdict, or submission-readiness surface.",
+  "source": {
+    "repository": "https://github.com/Haojae/scipilot-figure-skill",
+    "observed_head": "43098ddb9e6a6d142218540c114f9ed38922fc42",
+    "observed_date": "2026-07-05",
+    "inspected_paths": [
+      "README.md",
+      "SKILL.md",
+      "references/chart_selection.md",
+      "references/viz_pitfalls.md",
+      "references/visual_review.md",
+      "references/journal_specs.md",
+      "references/publication_checklist.md",
+      "scripts/profile_data.py",
+      "scripts/visual_qa.py",
+      "scripts/check_figure.py",
+      "scripts/export_figure.py"
+    ],
+    "license": "MIT"
+  },
+  "learned_patterns": [
+    "data_question_first_plot_selection",
+    "small_n_and_misleading_chart_warning_floor",
+    "final_size_export_and_font_glyph_qc",
+    "programmatic_qc_then_ai_visual_review_split",
+    "cjk_and_negative_glyph_publication_export_caution"
+  ],
+  "adoptions": [
+    {
+      "pattern_id": "data_question_first_plot_selection",
+      "classification": "adopt",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "display_pack_agent_figure_contract_policy",
+      "target_landing": "plot_selection_quality_floor",
+      "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet"
+      ],
+      "evidence_gate": "focused_display_pack_agent_tests",
+      "progress_policy": "missing refs emit repair hints or current-delta typed repair only; unrelated owner dispatch must continue"
+    },
+    {
+      "pattern_id": "small_n_and_misleading_chart_warning_floor",
+      "classification": "adopt",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "medical_figure_family_catalog_qa_gates",
+      "target_landing": "misleading_chart_warning_floor",
+      "consumable_surfaces": [
+        "contracts/medical-figure-family-catalog/qa_gates.json#/qa_gates/misleading_chart_warning_floor",
+        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
+      ],
+      "evidence_gate": "qa_gate_contract_readback_tests",
+      "progress_policy": "warning refs are non-authority quality inputs unless the active current delta requires figure repair"
+    },
+    {
+      "pattern_id": "programmatic_qc_then_ai_visual_review_split",
+      "classification": "adapt",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "display_pack_figure_workflow_packet",
+      "target_landing": "render_inspect_revise.qa_split",
+      "consumable_surfaces": [
+        "paper/figure_workflow_packet.json",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.publication_figure_quality_contract.load_figure_workflow_packet"
+      ],
+      "evidence_gate": "figure_workflow_packet_contract_loader_tests",
+      "progress_policy": "deterministic QC and AI visual review refs support visual audit; they do not replace the visual-audit receipt or owner gate"
+    },
+    {
+      "pattern_id": "scipilot_python_runtime_and_scripts",
+      "classification": "reject",
+      "landing_status": "rejected_by_boundary",
+      "local_owner_surface": "figure_renderer_contract",
+      "target_landing": "no_runtime_import",
+      "rejected_surfaces": [
+        "matplotlib_seaborn_plotly_as_default_mas_evidence_renderer",
+        "scipilot_scripts_as_mas_tools",
+        "scipilot_checklist_as_publication_authority",
+        "external_skill_runner_as_provider"
+      ],
+      "reason": "MAS already owns renderer contracts, Display Pack surfaces, and authority gates; external scripts are useful references but would create a second runtime and weaken progress-first routing."
+    }
+  ],
+  "global_forbidden_authority": [
+    "publication_readiness_authority",
+    "quality_verdict_authority",
+    "visual_audit_replacement",
+    "owner_receipt_authority",
+    "typed_blocker_authority",
+    "runtime_queue_or_provider_attempt_authority",
+    "current_package_authority",
+    "default_renderer_runtime_dependency"
+  ]
+}

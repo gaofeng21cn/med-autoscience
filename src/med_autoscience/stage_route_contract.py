@@ -5,8 +5,6 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 STAGE_ROUTE_CONTRACT_REF = "agent/stages/stage_route_contract.yaml"
 PACKAGED_STAGE_ROUTE_CONTRACT_RESOURCE = "stage_route_contract.yaml"
 
@@ -154,6 +152,8 @@ class StageEntryMode:
 
 
 def load_stage_route_contract_payload(path: Path | None = None) -> dict[str, object]:
+    import yaml
+
     resolved_path = path.expanduser().resolve() if path is not None else None
     if resolved_path is not None:
         raw_text = resolved_path.read_text(encoding="utf-8")

@@ -32,6 +32,8 @@ DEFAULT_AUTHORITY_BOUNDARY = {
 
 NATURE_SKILLS_OBSERVED_HEAD = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
 NATURE_SKILLS_OBSERVED_DATE = "2026-06-20"
+SCIPILOT_FIGURE_SKILL_OBSERVED_HEAD = "43098ddb9e6a6d142218540c114f9ed38922fc42"
+SCIPILOT_FIGURE_SKILL_OBSERVED_DATE = "2026-07-05"
 
 FIGURE_CONTRACT_POLICY = {
     "policy_id": "mas_nature_skills_informed_figure_contract.v1",
@@ -40,14 +42,29 @@ FIGURE_CONTRACT_POLICY = {
     "observed_date": NATURE_SKILLS_OBSERVED_DATE,
     "adopted_patterns": [
         "core_conclusion_before_plotting",
+        "data_question_first_plot_selection",
         "evidence_chain_maps_panels_to_claim",
         "figure_archetype_first_layout",
         "backend_exclusive_render_export_receipt",
         "journal_export_contract_before_styling",
         "final_visual_qa_after_render",
+        "misleading_chart_warning_floor",
+        "programmatic_qc_then_ai_visual_review_split",
         "figure_brief_storyboard_render_inspect_revise_packet",
         "page_level_composition_recipes_over_duplicate_templates",
         "direct_labels_shared_legends_and_hero_panel_hierarchy",
+    ],
+    "secondary_learning_sources": [
+        {
+            "source_project": "Haojae/scipilot-figure-skill",
+            "source_role": "scientific_visualization_advisor_pattern",
+            "observed_head": SCIPILOT_FIGURE_SKILL_OBSERVED_HEAD,
+            "observed_date": SCIPILOT_FIGURE_SKILL_OBSERVED_DATE,
+            "absorbed_as": "plot_selection_warning_and_visual_qa_ref_floor",
+            "runtime_dependency": False,
+            "default_backend_dependency": False,
+            "authority_dependency": False,
+        }
     ],
     "mas_adaptations": [
         "r_ggplot2_is_default_for_data_evidence",
@@ -58,6 +75,8 @@ FIGURE_CONTRACT_POLICY = {
         "starter_template_is_quality_floor_not_ceiling",
         "ai_may_redesign_layout_palette_panel_structure_and_backend_when_semantics_are_preserved",
         "nature_style_lifecycle_is_nonblocking_until_paper_use_gate",
+        "scipilot_plotting_warnings_emit_refs_without_blocking_unrelated_progress",
+        "programmatic_qc_and_ai_readback_are_evidence_refs_not_publication_verdicts",
     ],
     "rejected_patterns": [
         {
@@ -67,6 +86,10 @@ FIGURE_CONTRACT_POLICY = {
         {
             "pattern": "vendor_skill_runner_or_default_skill_source",
             "reason": "Nature-Skills remains a clean-room learning source, not a MAS runtime, selector, or publication authority.",
+        },
+        {
+            "pattern": "scipilot_python_stack_as_default_mas_renderer",
+            "reason": "SciPilot contributes visualization discipline; MAS evidence figures stay on the paper-local renderer contract, with R/ggplot2 as the default evidence path.",
         },
     ],
     "machine_boundary": (
@@ -86,12 +109,40 @@ JOURNAL_EXPORT_CONTRACT = {
     "panel_label_policy": "bold_lowercase_near_top_left_when_multipanel",
 }
 
+PLOT_SELECTION_QUALITY_FLOOR = {
+    "selection_ref_required": True,
+    "required_inputs": [
+        "figure_question_or_core_claim",
+        "variable_type_profile",
+        "group_sample_size_profile",
+        "distribution_or_outlier_note",
+        "uncertainty_or_statistical_annotation_policy",
+        "table_vs_figure_tradeoff",
+    ],
+    "advisory_only": True,
+    "blocks_unrelated_agent_progress": False,
+    "missing_selection_ref_route": "emit_repair_hint_or_current_delta_typed_repair_only",
+}
+
+MISLEADING_CHART_WARNING_FLOOR = [
+    "small_n_mean_bar_without_points",
+    "dual_y_axis_without_shared_unit_or_scatter_rationale",
+    "pie_or_3d_chart_for_scientific_evidence",
+    "categorical_axis_connected_as_line_without_ordered_scale_rationale",
+    "truncated_axis_without_explicit_break_or_scale_reason",
+    "continuous_color_scale_without_colorbar_or_units",
+    "rainbow_or_jet_for_ordered_scientific_data",
+    "error_bar_or_interval_type_missing_from_caption",
+]
+
 VISUAL_QA_REQUIREMENTS = [
     "core_conclusion_present",
     "every_panel_maps_to_claim_or_is_removed",
     "claim_data_and_statistics_refs_present",
     "selected_backend_used_for_render_preview_export_and_qa",
     "no_text_or_legend_overlap_at_final_size",
+    "deterministic_qc_checks_glyphs_clipping_and_tick_overlap",
+    "ai_visual_review_checks_occlusion_panel_alignment_and_grayscale_discrimination",
     "shared_or_direct_labels_when_repeated_legends_would_crowd",
     "palette_roles_match_data_semantics",
     "colorblind_and_grayscale_interpretability_checked",
@@ -186,6 +237,8 @@ def figure_contract_policy() -> dict[str, Any]:
         **FIGURE_CONTRACT_POLICY,
         "journal_export_contract": dict(JOURNAL_EXPORT_CONTRACT),
         "visual_qa_requirements": list(VISUAL_QA_REQUIREMENTS),
+        "plot_selection_quality_floor": dict(PLOT_SELECTION_QUALITY_FLOOR),
+        "misleading_chart_warning_floor": list(MISLEADING_CHART_WARNING_FLOOR),
         "authority_boundary": dict(DEFAULT_AUTHORITY_BOUNDARY),
         "publication_polish_policy": publication_polish_policy(),
         "figure_workflow_policy": figure_workflow_policy(),
@@ -272,6 +325,8 @@ def _build_figure_contract(
         "backend_policy": _backend_policy_for_request(figure_kind, preferred_renderer),
         "journal_export_contract": dict(JOURNAL_EXPORT_CONTRACT),
         "visual_qa_requirements": list(VISUAL_QA_REQUIREMENTS),
+        "plot_selection_quality_floor": dict(PLOT_SELECTION_QUALITY_FLOOR),
+        "misleading_chart_warning_floor": list(MISLEADING_CHART_WARNING_FLOOR),
         "publication_polish_policy_ref": publication_polish_policy()["policy_id"],
         "publication_polish_required_before_paper_use": publication_polish_policy()[
             "required_before_paper_use"
@@ -289,6 +344,7 @@ def _build_figure_contract(
             "backend_question_required_for_default_mas_evidence_path": False,
             "missing_refs_route_to_typed_repair": True,
             "templates_are_lower_bound_floor_not_ceiling": True,
+            "plot_selection_warnings_block_unrelated_progress": False,
         },
         "authority_boundary": dict(DEFAULT_AUTHORITY_BOUNDARY),
     }

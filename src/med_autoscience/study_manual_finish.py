@@ -7,11 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
-
-from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
-from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.study_delivery_package_contract import delivery_manifest_allows_directory_current_package
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
@@ -131,6 +127,8 @@ _SCIENTIFIC_TODO_TERMS = frozenset(
 
 
 def _load_yaml_dict(path: Path) -> dict[str, object]:
+    import yaml
+
     if not path.exists():
         return {}
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -175,6 +173,8 @@ def _delivery_authority_context(
         if candidate.exists():
             return candidate, publication_profile
     if quest_root is not None:
+        from med_autoscience.runtime_protocol import paper_artifacts
+
         paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
         if paper_bundle_manifest_path is not None:
             return paper_bundle_manifest_path.parent.resolve(), publication_profile
@@ -186,6 +186,8 @@ def _submission_surfaces_current(
     study_root: Path,
     quest_root: Path | None = None,
 ) -> bool:
+    from med_autoscience.controllers import study_delivery_sync
+
     paper_root, publication_profile = _delivery_authority_context(
         study_root=study_root,
         quest_root=quest_root,
@@ -449,6 +451,8 @@ def resolve_submission_metadata_only_manual_finish_contract(
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     if not _autonomous_current_package_ready(study_root=resolved_study_root, quest_root=resolved_quest_root):
         return None
+    from med_autoscience.runtime_protocol import paper_artifacts
+
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(resolved_quest_root)
     if paper_bundle_manifest_path is None:
         return None

@@ -14,6 +14,8 @@ POLICY_ID = "mas_nature_skills_figure_workflow_lifecycle.v1"
 COMPOSITION_POLICY_ID = "mas_medical_figure_composition_recipes.v1"
 OBSERVED_NATURE_SKILLS_HEAD = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
 OBSERVED_NATURE_SKILLS_DATE = "2026-06-20"
+OBSERVED_SCIPILOT_HEAD = "43098ddb9e6a6d142218540c114f9ed38922fc42"
+OBSERVED_SCIPILOT_DATE = "2026-07-05"
 
 AUTHORITY_BOUNDARY = {
     "can_mutate_data_or_statistics": False,
@@ -39,6 +41,7 @@ PAPER_USE_ACCEPTANCE = (
     "paper_local_data_and_statistics_refs_present",
     "semantic_palette_roles_resolved_from_article_style_profile",
     "rendered_artifact_inspected_at_final_size",
+    "deterministic_qc_and_ai_visual_review_refs_recorded_or_residualized",
     "guide_legend_colorbar_overlap_checked_after_render",
     "revision_delta_or_residual_item_recorded",
     "visual_audit_receipt_or_residual_item_recorded",
@@ -140,7 +143,21 @@ def figure_workflow_policy() -> dict[str, Any]:
             "shared_legends_and_direct_labels",
             "render_inspect_revise_before_paper_use",
             "final_size_visual_qa_receipt",
+            "data_question_first_chart_selection_ref",
+            "misleading_chart_warning_ref_floor",
+            "programmatic_layout_qc_before_ai_visual_review",
             "design_shells_get_art_direction_not_statistical_renderer_constraints",
+        ],
+        "secondary_learning_sources": [
+            {
+                "source_project": "Haojae/scipilot-figure-skill",
+                "observed_head": OBSERVED_SCIPILOT_HEAD,
+                "observed_date": OBSERVED_SCIPILOT_DATE,
+                "absorbed_as": "scientific_visualization_advisor_quality_floor",
+                "runtime_dependency": False,
+                "default_backend_dependency": False,
+                "hard_gate_by_default": False,
+            }
         ],
         "mas_adaptations": [
             "default_data_evidence_path_stays_r_ggplot2_and_nonblocking",
@@ -148,9 +165,24 @@ def figure_workflow_policy() -> dict[str, Any]:
             "workflow_packet_is_quality_ceiling_guidance_not_publication_authority",
             "ai_may_redesign_panels_layout_palette_and_backend_when_truth_refs_are_preserved",
             "real_paper_visual_audit_and_owner_gate_remain_required_for_final_acceptance",
+            "plot_selection_and_warning_refs_are_nonblocking_until_current_delta_requires_repair",
         ],
         "workflow_states": list(WORKFLOW_STATES),
         "paper_use_acceptance": list(PAPER_USE_ACCEPTANCE),
+        "plot_selection_quality_floor": {
+            "requires_question_or_claim": True,
+            "requires_variable_type_and_sample_size_profile": True,
+            "requires_uncertainty_or_statistical_annotation_policy": True,
+            "blocks_default_evidence_progress": False,
+        },
+        "misleading_chart_warning_floor": [
+            "small_n_mean_bar_without_points",
+            "dual_y_axis_without_shared_unit_or_scatter_rationale",
+            "pie_or_3d_chart_for_scientific_evidence",
+            "categorical_axis_connected_as_line_without_ordered_scale_rationale",
+            "rainbow_or_jet_for_ordered_scientific_data",
+            "error_bar_or_interval_type_missing_from_caption",
+        ],
         "composition_recipe_policy_ref": COMPOSITION_POLICY_ID,
         "composition_recipes_are_floor_not_ceiling": True,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -238,6 +270,17 @@ def build_figure_workflow_packet(
                     "figure_archetype": archetype,
                     "selected_backend": _text(backend_policy.get("selected_backend")),
                     "design_track": "data_evidence_programmatic" if request.get("figure_kind") != "illustration_shell" else "design_or_flow_expression",
+                    "plot_selection_ref": _text(request.get("plot_selection_ref")),
+                    "variable_profile_ref": _text(request.get("variable_profile_ref")),
+                },
+                "plot_selection_quality_floor": {
+                    "question_or_claim_present": bool(_text(contract.get("core_conclusion")) or claim_ref),
+                    "variable_profile_ref": _text(request.get("variable_profile_ref")),
+                    "group_sample_size_ref": _text(request.get("group_sample_size_ref")),
+                    "plot_selection_ref": _text(request.get("plot_selection_ref")),
+                    "warning_ref": _text(request.get("graph_warnings_ref") or request.get("figure_warning_ref")),
+                    "blocks_unrelated_progress": False,
+                    "missing_items_route": "repair_hint_or_current_delta_typed_repair_only",
                 },
                 "storyboard": {
                     "composition_recipe": composition,
@@ -267,6 +310,21 @@ def build_figure_workflow_packet(
                         "paper/figure_visual_audit_receipt.json",
                         "paper/figure_polish_lifecycle.json",
                     ],
+                    "qa_split": {
+                        "deterministic_qc": [
+                            "glyph_or_missing_font_warning",
+                            "text_clipping",
+                            "tick_label_overlap",
+                            "export_format_and_final_size",
+                        ],
+                        "ai_visual_review": [
+                            "legend_or_annotation_occlusion",
+                            "panel_label_alignment",
+                            "grayscale_or_colorblind_discrimination",
+                            "visible_claim_matches_evidence_refs",
+                        ],
+                        "both_are_evidence_refs_not_publication_authority": True,
+                    },
                     "revision_record_required": True,
                     "next_action": "display-pack-render" if not missing_refs else "display-pack-repair",
                     "receipt_refs": dict(receipt_refs or {}),
