@@ -424,6 +424,7 @@ def _drive_should_submit_direct_next_action(
     readback = _mapping(inspect_readback)
     next_action = _mapping(readback.get("next_action"))
     action_family = _optional_text(next_action.get("action_family"))
+    canonical_source = _optional_text(readback.get("canonical_next_action_source"))
     if action_family in {
         "paper.package.submission_minimal",
         "paper.stage_closure.owner_consumption",
@@ -434,16 +435,18 @@ def _drive_should_submit_direct_next_action(
         action_family == "runtime.opl_route"
         and _optional_text(next_action.get("action_kind")) == "submit_to_opl_runtime"
         and authority_boundary.get("can_submit_to_opl_runtime") is True
-        and bool(_mapping(readback.get("terminal_owner_gate")))
         and _optional_text(next_action.get("owner")) is not None
         and _optional_text(next_action.get("work_unit_id")) is not None
+        and (
+            canonical_source == "paper_mission_next_action_envelope"
+            or bool(_mapping(readback.get("terminal_owner_gate")))
+        )
     ):
         return True
     if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
         return True
     return (
-        _optional_text(readback.get("canonical_next_action_source"))
-        == "domain_transition.next_action"
+        canonical_source == "domain_transition.next_action"
         and _optional_text(next_action.get("surface_kind")) == "mas_next_action_envelope"
         and action_family is not None
         and _optional_text(next_action.get("owner")) is not None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 
 from tests.mcp_opl_current_control_state_handoff_cases.shared import (
     append_jsonl as _append_jsonl,
@@ -120,6 +121,128 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
     assert terminal_log["authority_boundary"]["observability_only"] is True
     assert terminal_log["authority_boundary"]["can_mark_live_run"] is False
     assert terminal_log["authority_boundary"]["can_authorize_quality_verdict"] is False
+
+
+def test_study_progress_latest_terminal_stage_log_prefers_current_stage_closure_route_checkpoint_over_newer_stale_closeout(
+    tmp_path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_paper_mission_owner_surface",
+            "generated_at": "2026-07-05T03:50:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "runtime_health": {"health_status": "awaiting_explicit_resume"},
+                }
+            ],
+        },
+    )
+    stale_closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-stale.json"
+    )
+    _write_json(
+        stale_closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-07-05T03:40:00Z",
+            "study_id": "001-risk",
+            "stage_id": "submission_milestone_candidate",
+            "stage_attempt_id": "sat-stale",
+            "status": "blocked_with_typed_closeout",
+            "work_unit_id": "submission_milestone_candidate",
+            "paper_stage_log": {
+                "stage_name": "submission_milestone_candidate",
+                "paper_work_done": ["Recorded an older submission checkpoint blocker."],
+                "outcome": "typed_blocker",
+                "remaining_blockers": ["opl_runtime_live_readback_missing"],
+                "evidence_refs": ["ops/medautoscience/paper_mission_stage_attempts/sat-stale/stage_attempt_closeout_packet.json"],
+            },
+        },
+    )
+    current_closeout_path = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current"
+        / "stage_attempt_closeout_packet.json"
+    )
+    _write_json(
+        current_closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-07-05T03:35:00Z",
+            "study_id": "001-risk",
+            "stage_id": "review",
+            "stage_attempt_id": "sat-current",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "route_back_evidence_candidate",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "paper_stage_log": {
+                "stage_name": "review",
+                "paper_work_done": ["Materialized the current route-back checkpoint packet."],
+                "outcome": "route_back_evidence_candidate",
+                "remaining_blockers": [],
+                "evidence_refs": ["ops/medautoscience/paper_mission_stage_attempts/sat-current/stage_attempt_closeout_packet.json"],
+            },
+        },
+    )
+    os.utime(stale_closeout_path, (1_783_000_000, 1_783_000_000))
+    os.utime(current_closeout_path, (1_782_999_900, 1_782_999_900))
+    stage_closure_path = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "paper_mission_terminalize_stage"
+        / "001-risk"
+        / "stage_closure_decision.json"
+    )
+    _write_json(
+        stage_closure_path,
+        {
+            "surface_kind": "mas_stage_closure_decision",
+            "generated_at": "2026-07-05T03:49:00Z",
+            "study_id": "001-risk",
+            "stage_id": "review",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "route_checkpoint_evidence_ref": "ops/medautoscience/paper_mission_stage_attempts/sat-current/stage_attempt_closeout_packet.json",
+            "opl_closeout": {
+                "stage_attempt_id": "sat-current",
+                "status": "opl_runtime_terminal_readback_observed",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            },
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "route_checkpoint_evidence_ref": "ops/medautoscience/paper_mission_stage_attempts/sat-current/stage_attempt_closeout_packet.json",
+            },
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    terminal_log = projection["latest_terminal_stage_log"]
+    assert terminal_log["stage_attempt_id"] == "sat-current"
+    assert terminal_log["source_path"] == str(current_closeout_path)
+    assert terminal_log["action_type"] == "return_to_ai_reviewer_workflow"
+    assert terminal_log["paper_stage_log"]["paper_work_done"] == [
+        "Materialized the current route-back checkpoint packet."
+    ]
 
 
 def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution(tmp_path) -> None:

@@ -978,15 +978,81 @@ def test_paper_mission_drive_submits_domain_transition_next_action_without_candi
     assert payload["opl_runtime_carrier_readback"]["running_attempt"]["work_unit_id"] == (
         "medical_methods_and_registry_reporting_repair"
     )
-    assert payload["drive_result"]["status"] == "opl_stage_route_running"
-    captured = json.loads(capture_path.read_text(encoding="utf-8"))
-    enqueue_payload = next(item["payload"] for item in captured if "payload" in item)
-    assert enqueue_payload["route_target"] == "write"
-    assert enqueue_payload["work_unit_id"] == (
-        "medical_methods_and_registry_reporting_repair"
+
+
+def test_paper_mission_drive_submits_current_paper_mission_next_action_envelope_without_candidate_package(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
     )
-    assert enqueue_payload["stage_run_request"]["route_target"] == "write"
-    assert enqueue_payload["authority_boundary"]["writes_paper_body"] is False
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    work_unit_fingerprint = (
+        "domain-transition::route_back_same_line::"
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    )
+
+    def fake_readback_builder(**kwargs):
+        command = kwargs["paper_mission_command"]
+        assert command == "inspect"
+        return {
+            "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Resume the current write repair work unit.",
+            "study_id": study_id,
+            "canonical_next_action_source": "paper_mission_next_action_envelope",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-current-write",
+                "study_id": study_id,
+                "stage_id": "write",
+                "outcome_ref": work_unit_fingerprint,
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "authority_boundary": {
+                    "projection_only": True,
+                    "can_write_runtime_queue": False,
+                    "can_write_provider_attempt": False,
+                    "can_submit_to_opl_runtime": True,
+                },
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        output_root=workspace_root / "ops" / "medautoscience" / "drive",
+        run_id=None,
+        submit_opl_runtime=False,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["inspect_readback"]["canonical_next_action_source"] == (
+        "paper_mission_next_action_envelope"
+    )
+    assert payload["drive_result"]["status"] == "opl_runtime_submission_pending"
+    assert payload["drive_result"]["route_target"] == "write"
+    assert payload["drive_result"]["work_unit_id"] == work_unit_id
+    assert payload["opl_route_handoff"]["route_target"] == "write"
+    assert payload["opl_route_handoff"]["work_unit_id"] == work_unit_id
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 

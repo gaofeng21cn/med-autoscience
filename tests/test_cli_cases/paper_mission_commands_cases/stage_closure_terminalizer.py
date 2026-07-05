@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1287,6 +1288,569 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_without_mat
     assert payload["stage_closure_decision"]["opl_closeout"][
         "stage_attempt_id"
     ] == "sat-ai-reviewer"
+
+
+def test_terminalize_stage_route_back_autodiscovery_reads_nested_attempt_packets(
+    tmp_path: Path,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+    packets_root = workspace_root / "ops" / "medautoscience" / "paper_mission_stage_attempts"
+    work_unit_id = "submission_milestone_candidate::followthrough::followthrough-01"
+
+    def write_packet(root: Path, attempt_id: str, mtime: float) -> None:
+        root.mkdir(parents=True, exist_ok=True)
+        route_ref = (
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            f"{attempt_id}/{study_id}/route_back_evidence_packet.json"
+        )
+        route_path = workspace_root / route_ref
+        route_path.parent.mkdir(parents=True, exist_ok=True)
+        route_path.write_text(
+            json.dumps(
+                {
+                    "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+                    "study_id": study_id,
+                    "stage_id": work_unit_id,
+                    "work_unit_id": work_unit_id,
+                }
+            ),
+            encoding="utf-8",
+        )
+        packet_path = root / "stage_attempt_closeout_packet.json"
+        packet_path.write_text(
+            json.dumps(
+                {
+                    "surface_kind": "stage_attempt_closeout_packet",
+                    "status": "owner_answer_candidate_materialized",
+                    "study_id": study_id,
+                    "stage_id": work_unit_id,
+                    "work_unit_id": work_unit_id,
+                    "stage_attempt_id": attempt_id,
+                    "route_back_evidence_ref": route_ref,
+                    "owner_answer_kind": "route_back_evidence_ref",
+                    "provider_completion_is_domain_completion": False,
+                    "provider_completion_is_domain_ready": False,
+                }
+            ),
+            encoding="utf-8",
+        )
+        os.utime(packet_path, (mtime, mtime))
+
+    write_packet(packets_root / "sat-old", "sat-old", 1_000.0)
+    write_packet(packets_root / "sat-new" / study_id, "sat-new", 2_000.0)
+
+    readback = commands._latest_stage_attempt_route_back_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source_readback={
+            "stage_terminal_decision": {
+                "next_work_unit": work_unit_id,
+            },
+        },
+        source="test",
+    )
+
+    assert readback is not None
+    assert readback["source_ref"].endswith(
+        f"paper_mission_stage_attempts/sat-new/{study_id}/stage_attempt_closeout_packet.json"
+    )
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-new"
+
+
+def test_terminalize_stage_prefers_current_transaction_stage_closure_over_stale_direct(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    transaction_id = (
+        "paper-mission-transaction::002::submission_milestone_candidate::"
+        "followthrough-02"
+    )
+    source_readback = {
+        "study_id": study_id,
+        "mission_id": "paper-mission::002",
+        "paper_mission_transaction": {
+            "transaction_id": transaction_id,
+            "study_id": study_id,
+            "stage_id": "submission_milestone_candidate::followthrough::followthrough-02",
+        },
+        "consume_candidate_status": "accepted_submission_milestone_candidate",
+        "transaction_state": "accepted_submission_milestone_candidate",
+        "stage_closure_decision": {
+            "surface_kind": "mas_stage_closure_decision",
+            "stage_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            "identity": {"paper_mission_transaction_ref": transaction_id},
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-current-followthrough",
+                "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-01",
+            },
+        },
+        "domain_transition": {
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "stage_id": "review",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            }
+        },
+        "current_package": {"status": "current", "can_submit": False},
+        "opl_runtime_carrier_readback": {
+            "carrier_status": "opl_runtime_terminal_readback_observed",
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current-followthrough",
+                "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-01",
+                "closeout_refs": [
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current-followthrough/"
+                    f"{study_id}/stage_attempt_closeout_packet.json"
+                ],
+            },
+        },
+        "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
+    }
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+
+    monkeypatch.setattr(
+        commands,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: source_readback,
+    )
+
+    def fail_if_stale_direct_is_used(**_: object) -> None:
+        raise AssertionError("stale domain-transition direct closeout should not win")
+
+    monkeypatch.setattr(
+        commands,
+        "_domain_transition_direct_terminal_source_readback",
+        fail_if_stale_direct_is_used,
+    )
+
+    readback = commands._build_terminalizer_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source="test",
+    )
+    decision = commands._terminalize_stage_closure_from_readback(readback)
+
+    assert readback is source_readback
+    assert decision["stage_id"] == (
+        "submission_milestone_candidate::followthrough::followthrough-01"
+    )
+    assert decision["opl_closeout"]["stage_attempt_id"] == "sat-current-followthrough"
+
+
+def test_terminalize_stage_prefers_newer_workspace_stage_packet_over_matching_source_closeout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    packets_root = (
+        workspace_root / "ops" / "medautoscience" / "paper_mission_stage_attempts"
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    transaction_id = "paper-mission-transaction::dm003::write::current"
+
+    def write_packet(attempt_id: str, stage_id: str, mtime: float) -> Path:
+        root = packets_root / attempt_id
+        root.mkdir(parents=True, exist_ok=True)
+        route_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            "route_back_evidence_packet.json"
+        )
+        (workspace_root / route_ref).write_text(
+            json.dumps(
+                {
+                    "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+                    "study_id": study_id,
+                    "stage_id": "write",
+                    "work_unit_id": work_unit_id,
+                    "owner_answer_kind": "route_back_evidence_ref",
+                }
+            ),
+            encoding="utf-8",
+        )
+        packet_path = root / "stage_attempt_closeout_packet.json"
+        packet_path.write_text(
+            json.dumps(
+                {
+                    "surface_kind": "stage_attempt_closeout_packet",
+                    "status": "route_back_evidence_candidate",
+                    "study_id": study_id,
+                    "stage_id": stage_id,
+                    "stage_attempt_id": attempt_id,
+                    "route_back_evidence_ref": route_ref,
+                    "owner_answer_kind": "route_back_evidence_ref",
+                }
+            ),
+            encoding="utf-8",
+        )
+        os.utime(packet_path, (mtime, mtime))
+        return packet_path
+
+    old_packet = write_packet("sat-old", "write", 1_000.0)
+    new_packet = write_packet("sat-new", work_unit_id, 2_000.0)
+    source_readback = {
+        "study_id": study_id,
+        "mission_id": f"paper-mission::{study_id}::terminalize-test",
+        "mission_state": "route_back",
+        "consume_candidate_status": "route_back",
+        "paper_mission_transaction": {
+            "transaction_id": transaction_id,
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+        },
+        "stage_closure_decision": {
+            "identity": {
+                "paper_mission_transaction_ref": transaction_id,
+            },
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-old",
+            },
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "stage_attempt_id": "sat-old",
+                "closeout_refs": [str(old_packet)],
+            }
+        },
+    }
+    monkeypatch.setattr(
+        commands,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: source_readback,
+    )
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+
+    readback = commands._build_terminalizer_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source="test",
+    )
+
+    assert readback["source_ref"] == str(new_packet)
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-new"
+
+
+def test_latest_stage_attempt_route_back_source_readback_prefers_current_terminal_attempt_over_newer_stale_packet(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    packets_root = (
+        workspace_root / "ops" / "medautoscience" / "paper_mission_stage_attempts"
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    transaction_id = "paper-mission-transaction::dm003::write::current"
+
+    def write_packet(attempt_id: str, stage_id: str, mtime: float) -> Path:
+        root = packets_root / attempt_id
+        root.mkdir(parents=True, exist_ok=True)
+        route_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            "route_back_evidence_packet.json"
+        )
+        (workspace_root / route_ref).write_text(
+            json.dumps(
+                {
+                    "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+                    "study_id": study_id,
+                    "stage_id": "write",
+                    "work_unit_id": work_unit_id,
+                    "owner_answer_kind": "route_back_evidence_ref",
+                }
+            ),
+            encoding="utf-8",
+        )
+        packet_path = root / "stage_attempt_closeout_packet.json"
+        packet_path.write_text(
+            json.dumps(
+                {
+                    "surface_kind": "stage_attempt_closeout_packet",
+                    "status": "route_back_evidence_candidate",
+                    "study_id": study_id,
+                    "stage_id": stage_id,
+                    "stage_attempt_id": attempt_id,
+                    "route_back_evidence_ref": route_ref,
+                    "owner_answer_kind": "route_back_evidence_ref",
+                }
+            ),
+            encoding="utf-8",
+        )
+        os.utime(packet_path, (mtime, mtime))
+        return packet_path
+
+    current_packet = write_packet("sat-current", work_unit_id, 1_000.0)
+    stale_packet = write_packet("sat-stale", work_unit_id, 2_000.0)
+    source_readback = {
+        "study_id": study_id,
+        "mission_id": f"paper-mission::{study_id}::terminalize-test",
+        "mission_state": "route_back",
+        "consume_candidate_status": "route_back",
+        "paper_mission_transaction": {
+            "transaction_id": transaction_id,
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+        },
+        "stage_closure_decision": {
+            "identity": {
+                "paper_mission_transaction_ref": transaction_id,
+            },
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-stale",
+            },
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "stage_attempt_id": "sat-current",
+                "closeout_ref": "opl://family-runtime/tasks/frt-current/terminal-closeout-readback",
+                "runtime_readback_source": "opl_family_runtime_queue_inspect",
+                "closeout_refs": [str(current_packet)],
+            }
+        },
+        "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
+    }
+    monkeypatch.setattr(
+        commands,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: source_readback,
+    )
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+
+    readback = commands._latest_stage_attempt_route_back_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source_readback=source_readback,
+        source="test",
+    )
+
+    assert readback is not None
+    assert readback["source_ref"] == str(current_packet)
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-current"
+    assert stale_packet.stat().st_mtime > current_packet.stat().st_mtime
+
+
+def test_consumption_ledger_inspect_prefers_current_handoff_after_owner_consumed_route_checkpoint(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=tmp_path / "workspace",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    mission_id = f"paper-mission::{study_id}::submission-milestone::current-write"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    work_unit_fingerprint = (
+        "domain-transition::route_back_same_line::"
+        "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    )
+    stage_terminal_decision = {
+        "decision_kind": "continue_same_stage",
+        "status": "accepted_submission_milestone_candidate",
+        "reason": "MAS canonical next action requests the current write repair work unit.",
+        "next_owner": "write",
+        "next_work_unit": work_unit_id,
+        "recommended_next_action": "request_opl_stage_attempt",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_next_action_ref": work_unit_fingerprint,
+    }
+    opl_route_command = {
+        "command_kind": "resume_stage",
+        "target": work_unit_id,
+        "reason": "MAS canonical next action requests the current write repair work unit.",
+        "runtime_owner": "one-person-lab",
+    }
+    opl_runtime_carrier = {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "study_id": study_id,
+        "stage_id": "write",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "target_runtime_owner": "one-person-lab",
+        "route_identity_key": "route::dm003-current-write",
+        "attempt_idempotency_key": "attempt::dm003-current-write",
+        "request_idempotency_key": "request::dm003-current-write",
+    }
+
+    monkeypatch.setattr(
+        commands,
+        "_latest_receipt_owner_consumption_readback",
+        lambda **_: {
+            "status": "owner_consumption_applied",
+            "stage_closure_decision": {
+                "decision_ref": f"{mission_id}#stage-closure",
+                "stage_id": "review",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "next_owner": "MedAutoScience",
+                    "route_checkpoint_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-review/stage_attempt_closeout_packet.json"
+                    ),
+                },
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "next_legal_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "receipt_evidence_ref": "opl://stage-attempts/sat-review",
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-review/stage_attempt_closeout_packet.json"
+                ),
+                "can_claim_paper_progress": False,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        commands.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: {
+            "study_id": study_id,
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_medical_prose_quality_review",
+                "lane": "review",
+            },
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-ai-reviewer",
+                "study_id": study_id,
+                "stage_id": "review",
+                "action_family": "paper.review.ai_reviewer",
+                "action_kind": "owner_review",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "executor_target": "mas_owner_callable",
+                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+                "work_unit_fingerprint": "domain-transition::ai-reviewer",
+            },
+        },
+    )
+
+    payload = commands._consumption_ledger_inspect_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        consumption_readback={
+            "surface_kind": "paper_mission_consumption_readback",
+            "mission_id": mission_id,
+            "study_id": study_id,
+            "selected_outcome": "accepted_submission_milestone_candidate",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": transaction,
+            "stage_terminal_decision": stage_terminal_decision,
+            "opl_route_command": opl_route_command,
+            "opl_runtime_carrier": opl_runtime_carrier,
+            "opl_route_handoff": {
+                "handoff_status": "ready_for_opl_route_command",
+                "next_owner": "write",
+                "can_submit_to_opl_runtime": True,
+                "stage_terminal_decision": stage_terminal_decision,
+                "opl_route_command": opl_route_command,
+                "opl_runtime_carrier": opl_runtime_carrier,
+            },
+        },
+        study_root=study_root,
+        enable_opl_live_probe=False,
+        opl_bin=tmp_path / "missing-opl",
+    )
+
+    assert payload["canonical_next_action_source"] == (
+        "paper_mission_next_action_envelope"
+    )
+    assert payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert payload["next_action"]["owner"] == "one-person-lab"
+    assert payload["next_action"]["work_unit_id"] == work_unit_id
+    assert payload["domain_transition"]["decision_type"] == "ai_reviewer_re_eval"
+    assert payload["domain_transition_direct_stage_attempt"]["opl_route_handoff"][
+        "work_unit_id"
+    ] == work_unit_id
 
 
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:

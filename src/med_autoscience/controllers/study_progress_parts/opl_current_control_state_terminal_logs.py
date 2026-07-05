@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -116,8 +117,33 @@ def _latest_terminal_stage_log_projection(
             )
             if projection is not None:
                 candidates.append(projection)
+    preferred_identities = _preferred_terminal_stage_log_identities(
+        profile=profile,
+        study_id=study_id,
+    )
+    for identity in preferred_identities:
+        preferred_projection = _preferred_terminal_stage_log_projection(
+            profile=profile,
+            study_id=study_id,
+            identity=identity,
+        )
+        if preferred_projection is not None:
+            candidates.append(preferred_projection)
     if not candidates:
         return None
+    for identity in preferred_identities:
+        matches = [
+            candidate
+            for candidate in candidates
+            if _terminal_stage_log_matches_preferred_identity(
+                candidate=candidate,
+                identity=identity,
+            )
+        ]
+        if not matches:
+            continue
+        matches.sort(key=_terminal_stage_log_sort_key, reverse=True)
+        return matches[0]
     candidates.sort(key=_terminal_stage_log_sort_key, reverse=True)
     return candidates[0]
 
@@ -609,6 +635,160 @@ def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[int, float, 
         _source_path_mtime(Path(source_path)) if source_path is not None else 0.0
     )
     return (_terminal_stage_log_source_priority(value), mtime, _non_empty_text(value.get("generated_at")) or "")
+
+
+def _epoch_seconds(value: str | None) -> float:
+    if value is None:
+        return 0.0
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return 0.0
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def _preferred_terminal_stage_log_identities(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    identities: list[dict[str, Any]] = []
+    workspace_root = Path(profile.workspace_root)
+    stage_closure_path = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "paper_mission_terminalize_stage"
+        / study_id
+        / "stage_closure_decision.json"
+    )
+    stage_closure = _read_json_object(stage_closure_path)
+    if identity := _preferred_terminal_stage_log_identity(
+        profile=profile,
+        payload=stage_closure,
+        source_path=stage_closure_path,
+    ):
+        identities.append(identity)
+    receipt_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+    )
+    for receipt_path in receipt_root.glob(f"**/{study_id}/receipt_owner_consumption.json"):
+        receipt = _read_json_object(receipt_path)
+        if identity := _preferred_terminal_stage_log_identity(
+            profile=profile,
+            payload=receipt,
+            source_path=receipt_path,
+        ):
+            identities.append(identity)
+    identities.sort(
+        key=lambda item: (
+            _number_value(item.get("observed_at")) or 0.0,
+            1 if _non_empty_text(item.get("source_kind")) == "receipt_owner_consumption" else 0,
+        ),
+        reverse=True,
+    )
+    return identities
+
+
+def _preferred_terminal_stage_log_identity(
+    *,
+    profile: WorkspaceProfile,
+    payload: Mapping[str, Any] | None,
+    source_path: Path,
+) -> dict[str, Any]:
+    if not isinstance(payload, Mapping):
+        return {}
+    decision = _mapping_copy(payload.get("stage_closure_decision")) or _mapping_copy(payload)
+    if not decision:
+        return {}
+    study_id = _non_empty_text(decision.get("study_id")) or _non_empty_text(payload.get("study_id"))
+    route_checkpoint_ref = (
+        _non_empty_text(payload.get("route_checkpoint_evidence_ref"))
+        or _non_empty_text(_mapping_copy(payload.get("mas_receipt_consumption")).get("route_checkpoint_evidence_ref"))
+        or _non_empty_text(decision.get("route_checkpoint_evidence_ref"))
+        or _non_empty_text(_mapping_copy(decision.get("outcome")).get("route_checkpoint_evidence_ref"))
+    )
+    route_checkpoint_path = _workspace_ref_path(profile=profile, ref=route_checkpoint_ref)
+    stage_attempt_id = (
+        _non_empty_text(_mapping_copy(decision.get("opl_closeout")).get("stage_attempt_id"))
+        or _non_empty_text(decision.get("stage_attempt_id"))
+    )
+    if study_id is None or (route_checkpoint_path is None and stage_attempt_id is None):
+        return {}
+    return {
+        "study_id": study_id,
+        "stage_attempt_id": stage_attempt_id,
+        "route_checkpoint_path": str(route_checkpoint_path) if route_checkpoint_path is not None else None,
+        "observed_at": max(
+            _source_path_mtime(source_path),
+            _epoch_seconds(_non_empty_text(payload.get("recorded_at"))),
+            _epoch_seconds(_non_empty_text(payload.get("generated_at"))),
+            _epoch_seconds(_non_empty_text(decision.get("generated_at"))),
+        ),
+        "source_kind": (
+            "receipt_owner_consumption"
+            if _non_empty_text(payload.get("surface_kind")) == "paper_mission_receipt_owner_consumption"
+            else "stage_closure_decision"
+        ),
+    }
+
+
+def _preferred_terminal_stage_log_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    identity: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    route_checkpoint_path = _workspace_ref_path(
+        profile=profile,
+        ref=_non_empty_text(identity.get("route_checkpoint_path")),
+    )
+    if route_checkpoint_path is None:
+        return None
+    closeout = _read_json_object(route_checkpoint_path)
+    return _terminal_stage_log_from_closeout(
+        closeout=closeout,
+        closeout_path=route_checkpoint_path,
+        study_id=study_id,
+    )
+
+
+def _terminal_stage_log_matches_preferred_identity(
+    *,
+    candidate: Mapping[str, Any],
+    identity: Mapping[str, Any],
+) -> bool:
+    candidate_attempt_id = _non_empty_text(candidate.get("stage_attempt_id"))
+    preferred_attempt_id = _non_empty_text(identity.get("stage_attempt_id"))
+    if candidate_attempt_id is not None and preferred_attempt_id is not None:
+        return candidate_attempt_id == preferred_attempt_id
+    candidate_source_path = _non_empty_text(candidate.get("source_path"))
+    preferred_path = _non_empty_text(identity.get("route_checkpoint_path"))
+    return (
+        candidate_source_path is not None
+        and preferred_path is not None
+        and candidate_source_path == preferred_path
+    )
+
+
+def _workspace_ref_path(
+    *,
+    profile: WorkspaceProfile,
+    ref: str | None,
+) -> Path | None:
+    text = _non_empty_text(ref)
+    if text is None:
+        return None
+    path = Path(text)
+    if path.is_absolute():
+        return path
+    return Path(profile.workspace_root) / path
 
 
 def _terminal_stage_log_source_priority(value: Mapping[str, Any]) -> int:

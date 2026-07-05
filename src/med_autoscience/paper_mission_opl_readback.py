@@ -322,7 +322,11 @@ def _matches_running_attempt_closeout(
         return False
     if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
         return False
-    if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
+    closeout_work_unit_id = _text(closeout.get("work_unit_id"))
+    if (
+        closeout_work_unit_id is not None
+        and closeout_work_unit_id != _text(carrier.get("work_unit_id"))
+    ):
         return False
     closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
     if closeout_fingerprint is not None and closeout_fingerprint != _text(
