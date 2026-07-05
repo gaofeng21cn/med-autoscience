@@ -188,9 +188,11 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     submission_root = paper_root / "submission_minimal"
     supplementary_markdown_path = submission_root / "supplementary_tables.md"
     supplementary_pdf_path = submission_root / "supplementary_tables.pdf"
+    combined_docx_path = submission_root / "manuscript_with_supplementary.docx"
     combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
     assert supplementary_markdown_path.exists()
     assert supplementary_pdf_path.exists()
+    assert combined_docx_path.exists()
     assert combined_pdf_path.exists()
 
     supplementary_markdown = supplementary_markdown_path.read_text(encoding="utf-8")
@@ -205,6 +207,9 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     )
     assert manifest["supplementary_material"]["pdf_path"] == (
         "paper/submission_minimal/supplementary_tables.pdf"
+    )
+    assert manifest["supplementary_material"]["combined_review_docx_path"] == (
+        "paper/submission_minimal/manuscript_with_supplementary.docx"
     )
     assert manifest["supplementary_material"]["combined_review_pdf_path"] == (
         "paper/submission_minimal/paper_with_supplementary.pdf"

@@ -167,6 +167,34 @@ def test_sync_study_delivery_primary_manuscript_artifact_mtimes_mark_controller_
     assert int(manuscript_pdf.stat().st_mtime) > old_timestamp
 
 
+def test_sync_study_delivery_uses_combined_review_artifacts_for_primary_manuscript_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_root = paper_root / "submission_minimal"
+    write_text(source_root / "manuscript_with_supplementary.docx", "combined docx")
+    write_text(source_root / "paper_with_supplementary.pdf", "%PDF-1.4\n%combined pdf\n")
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (study_root / "manuscript" / "manuscript.docx").read_text(encoding="utf-8") == "combined docx"
+    assert "%combined pdf" in (study_root / "manuscript" / "paper.pdf").read_text(encoding="utf-8")
+    manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    root_artifacts = {
+        Path(item["target_path"]).name: Path(item["source_path"]).name
+        for item in manifest["copied_files"]
+        if item["category"] == "manuscript"
+    }
+    assert root_artifacts == {
+        "manuscript.docx": "manuscript_with_supplementary.docx",
+        "paper.pdf": "paper_with_supplementary.pdf",
+    }
+
+
 def test_describe_submission_delivery_ignores_stale_submission_evidence_snapshot_for_current_package(
     tmp_path: Path,
 ) -> None:

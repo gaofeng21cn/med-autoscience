@@ -122,6 +122,7 @@ def _supplementary_material_payload(
     supplementary_source_markdown_path: Path | None,
     supplementary_output_docx_path: Path | None,
     supplementary_output_pdf_path: Path | None,
+    combined_review_docx_path: Path | None,
     combined_review_pdf_path: Path | None,
     profile_config: Any,
     staging_submission_root: Path,
@@ -157,6 +158,8 @@ def _supplementary_material_payload(
         payload["docx_path"] = rel_remapped(supplementary_output_docx_path)
     if supplementary_output_pdf_path is not None:
         payload["pdf_path"] = rel_remapped(supplementary_output_pdf_path)
+    if combined_review_docx_path is not None:
+        payload["combined_review_docx_path"] = rel_remapped(combined_review_docx_path)
     if combined_review_pdf_path is not None:
         payload["combined_review_pdf_path"] = rel_remapped(combined_review_pdf_path)
     if profile_config.supplementary_reference_doc_path is not None:
@@ -196,6 +199,15 @@ def _table_markdown_body(markdown_text: str) -> str:
         while lines and not lines[0].strip():
             lines.pop(0)
     return "\n".join(lines).strip()
+
+
+def _markdown_without_front_matter(markdown_text: str) -> str:
+    lines = markdown_text.strip().splitlines()
+    if lines and lines[0].strip() == "---":
+        for index, line in enumerate(lines[1:], start=1):
+            if line.strip() == "---":
+                return "\n".join(lines[index + 1 :]).strip()
+    return markdown_text.strip()
 
 
 def _build_supplementary_tables_markdown(
@@ -240,6 +252,23 @@ def _build_supplementary_tables_markdown(
 
     output_path = submission_root / "supplementary_tables.md"
     write_text(output_path, "\n".join(lines).rstrip() + "\n")
+    return output_path
+
+
+def _build_combined_review_markdown(
+    *,
+    manuscript_markdown_path: Path,
+    supplementary_markdown_path: Path,
+    submission_root: Path,
+) -> Path:
+    combined_text = (
+        manuscript_markdown_path.read_text(encoding="utf-8").rstrip()
+        + "\n\n# Supplementary Material\n\n"
+        + _markdown_without_front_matter(supplementary_markdown_path.read_text(encoding="utf-8"))
+        + "\n"
+    )
+    output_path = submission_root / "manuscript_with_supplementary.md"
+    write_text(output_path, combined_text)
     return output_path
 
 
@@ -421,6 +450,8 @@ def create_submission_minimal_package(
         supplementary_source_markdown_path: Path | None = None
         supplementary_output_docx_path: Path | None = None
         supplementary_output_pdf_path: Path | None = None
+        combined_review_source_markdown_path: Path | None = None
+        combined_review_docx_path: Path | None = None
         combined_review_pdf_path: Path | None = None
         source_markdown_alias_path: Path | None = None
 
@@ -573,6 +604,12 @@ def create_submission_minimal_package(
             )
             if supplementary_source_markdown_path is not None:
                 supplementary_output_pdf_path = staging_submission_root / "supplementary_tables.pdf"
+                combined_review_source_markdown_path = _build_combined_review_markdown(
+                    manuscript_markdown_path=source_markdown_path,
+                    supplementary_markdown_path=supplementary_source_markdown_path,
+                    submission_root=staging_submission_root,
+                )
+                combined_review_docx_path = staging_submission_root / "manuscript_with_supplementary.docx"
                 combined_review_pdf_path = staging_submission_root / "paper_with_supplementary.pdf"
 
         references_manifest, references_source_path, references_coverage = materialize_and_validate_submission_references(
@@ -609,6 +646,14 @@ def create_submission_minimal_package(
                 paper_root=paper_root,
                 output_pdf_path=supplementary_output_pdf_path,
                 csl_path=profile_config.csl_path,
+            )
+        if combined_review_source_markdown_path is not None and combined_review_docx_path is not None:
+            export_docx(
+                compiled_markdown_path=combined_review_source_markdown_path,
+                paper_root=paper_root,
+                output_docx_path=combined_review_docx_path,
+                csl_path=profile_config.csl_path,
+                reference_doc_path=profile_config.reference_doc_path,
             )
         if supplementary_output_pdf_path is not None and combined_review_pdf_path is not None:
             _write_combined_review_pdf(
@@ -759,6 +804,7 @@ def create_submission_minimal_package(
             supplementary_source_markdown_path=supplementary_source_markdown_path,
             supplementary_output_docx_path=supplementary_output_docx_path,
             supplementary_output_pdf_path=supplementary_output_pdf_path,
+            combined_review_docx_path=combined_review_docx_path,
             combined_review_pdf_path=combined_review_pdf_path,
             profile_config=profile_config,
             staging_submission_root=staging_submission_root,
