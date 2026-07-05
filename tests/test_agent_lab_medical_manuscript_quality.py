@@ -1007,12 +1007,22 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
     assert trigger["refs_only"] is True
     assert trigger["writes_study_truth"] is False
     assert trigger["status"] == "runnable_after_suite_materialized"
+    assert trigger["adapter_role"] == "domain_thin_feedback_adapter"
+    assert trigger["oma_evolution_skill_ref"] == "opl-meta-agent:oma-agent-evolution"
+    assert trigger["contract_itself_triggers_execution"] is False
     assert trigger["target_route"] == {
         "domain_owner": "med-autoscience",
         "agent_lab_owner": "one-person-lab",
         "meta_agent_owner": "opl-meta-agent",
         "target_repo": "med-autoscience",
     }
+    assert trigger["owner_chain"] == [
+        "med-autoscience:reviewer_revision_intake",
+        "med-autoscience:agent_lab_medical_manuscript_quality_suite",
+        "one-person-lab:feedbackops_agent_lab_projection",
+        "opl-meta-agent:oma-agent-evolution",
+        "med-autoscience:owner_closeout_readback",
+    ]
     assert trigger["target_action_contracts"]["oma_improve"] == (
         "opl-meta-agent.improve-from-external-agent-lab-suite"
     )

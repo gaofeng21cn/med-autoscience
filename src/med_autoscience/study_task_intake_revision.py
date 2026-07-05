@@ -211,6 +211,8 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
 
 def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | None) -> dict[str, Any]:
     study_id = _study_id(payload)
+    fast_lane_requested = _task_intake_requests_manuscript_fast_lane(payload)
+    suite_materialization_required = not fast_lane_requested
     return {
         "surface_kind": "mas_reviewer_revision_self_evolution_trigger",
         "schema_version": 1,
@@ -230,7 +232,24 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
         "status": "queued_for_agent_lab_external_suite",
         "trigger_kind": "reviewer_revision_quality_gap",
         "study_id": study_id,
+        "adapter_role": "domain_thin_feedback_adapter",
         "default_route": "mas_to_opl_agent_lab_to_oma_work_order",
+        "owner_chain": [
+            "med-autoscience:reviewer_revision_intake",
+            "med-autoscience:agent_lab_medical_manuscript_quality_suite",
+            "one-person-lab:feedbackops_agent_lab_projection",
+            "opl-meta-agent:oma-agent-evolution",
+            "med-autoscience:owner_closeout_readback",
+        ],
+        "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
+        "agent_lab_suite_materialization": {
+            "required": suite_materialization_required,
+            "bypass_allowed": fast_lane_requested,
+            "bypass_reason": "text_only_fast_lane" if fast_lane_requested else None,
+            "stable_suite_relative_path": "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+            "materialized_by": "medautosci submit-study-task reviewer_revision hook",
+            "contract_itself_triggers_execution": False,
+        },
         "fast_lane_policy": {
             "text_only_fast_lane_may_bypass_agent_lab": True,
             "structural_manuscript_or_evidence_change_requires_agent_lab": True,
@@ -294,3 +313,9 @@ def _build_manuscript_fast_lane_contract(payload: dict[str, Any] | None) -> dict
     from med_autoscience.study_task_intake_fast_lane import build_manuscript_fast_lane_contract
 
     return build_manuscript_fast_lane_contract(payload)
+
+
+def _task_intake_requests_manuscript_fast_lane(payload: dict[str, Any] | None) -> bool:
+    from med_autoscience.study_task_intake_fast_lane import task_intake_requests_manuscript_fast_lane
+
+    return task_intake_requests_manuscript_fast_lane(payload)

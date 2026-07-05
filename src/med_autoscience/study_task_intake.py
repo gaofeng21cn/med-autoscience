@@ -818,7 +818,7 @@ def write_task_intake(
     first_cycle_outputs: Iterable[object] = (),
     task_intake_kind: str | None = None,
 ) -> dict[str, Any]:
-    return surfaces.write_task_intake(
+    payload = surfaces.write_task_intake(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
@@ -840,3 +840,64 @@ def write_task_intake(
         first_cycle_outputs=first_cycle_outputs,
         task_intake_kind=task_intake_kind,
     )
+    suite_materialization = _materialize_reviewer_revision_agent_lab_suite_if_required(payload)
+    if suite_materialization is not None:
+        payload["agent_lab_suite_materialization"] = suite_materialization
+        payload.setdefault("artifact_refs", {})["agent_lab_medical_manuscript_quality_suite"] = (
+            suite_materialization["suite_path"]
+        )
+        _rewrite_task_intake_json_artifact_refs(payload)
+    return payload
+
+
+def _materialize_reviewer_revision_agent_lab_suite_if_required(payload: dict[str, Any]) -> dict[str, Any] | None:
+    revision_intake = payload.get("revision_intake")
+    if not isinstance(revision_intake, dict):
+        return None
+    if task_intake_requests_manuscript_fast_lane(payload):
+        return None
+
+    from med_autoscience.controllers.agent_lab_medical_manuscript_quality import (
+        materialize_medical_manuscript_quality_agent_lab_suite,
+    )
+
+    study_root_text = _non_empty_text(payload.get("study_root"))
+    if study_root_text is None:
+        raise ValueError("reviewer_revision task intake cannot materialize Agent Lab suite without study_root")
+    artifact_refs = payload.get("artifact_refs") if isinstance(payload.get("artifact_refs"), dict) else {}
+    reviewer_feedback_ref = _non_empty_text(artifact_refs.get("latest_json")) or _non_empty_text(
+        payload.get("task_id")
+    )
+    materialized = materialize_medical_manuscript_quality_agent_lab_suite(
+        study_root=Path(study_root_text),
+        reviewer_feedback_ref=reviewer_feedback_ref,
+    )
+    trigger = revision_intake.get("self_evolution_trigger") if isinstance(revision_intake, dict) else {}
+    return {
+        "surface_kind": "mas_reviewer_revision_agent_lab_suite_materialization",
+        "status": "materialized",
+        "required": True,
+        "trigger_ref": trigger.get("idempotency_key") if isinstance(trigger, dict) else None,
+        "suite_path": materialized["suite_path"],
+        "suite_id": materialized["suite"]["suite_id"],
+        "target_route": (
+            materialized["suite"]["feedback_self_evolution_trigger"].get("target_route")
+            if isinstance(materialized["suite"].get("feedback_self_evolution_trigger"), dict)
+            else None
+        ),
+        "authority_boundary": materialized["authority_boundary"],
+    }
+
+
+def _rewrite_task_intake_json_artifact_refs(payload: dict[str, Any]) -> None:
+    artifact_refs = payload.get("artifact_refs")
+    if not isinstance(artifact_refs, dict):
+        return
+    for key in ("latest_json", "timestamped_json"):
+        path_text = _non_empty_text(artifact_refs.get(key))
+        if path_text is None:
+            continue
+        path = Path(path_text)
+        if not path.exists():
+            continue
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

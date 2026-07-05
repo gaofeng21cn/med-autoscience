@@ -339,6 +339,20 @@
         "body_included": false
       },
       "medical_manuscript_quality": {
+        "adapter_role": "domain_thin_feedback_adapter",
+        "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
+        "contract_itself_triggers_execution": false,
+        "trigger_chain": [
+          "medautosci submit-study-task writes reviewer_revision intake",
+          "med-autoscience materializes artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+          "one-person-lab FeedbackOps/Agent Lab projects suite and work-order status refs",
+          "opl-meta-agent oma-agent-evolution classifies failure and emits developer patch work order",
+          "med-autoscience owner readback accepts owner receipt, route-back, typed blocker, or human gate"
+        ],
+        "fast_lane_policy": {
+          "text_only_fast_lane_may_bypass_suite": true,
+          "structural_feedback_requires_suite": true
+        },
         "default_change_refs": [
           "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
           "prompt_ref:ai_reviewer_medical_prose_quality_review",

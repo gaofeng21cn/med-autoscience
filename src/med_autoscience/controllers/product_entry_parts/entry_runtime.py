@@ -561,6 +561,7 @@ def submit_study_task(
         "first_cycle_outputs": list(latest_payload.get("first_cycle_outputs") or []),
         "revision_intake": latest_payload.get("revision_intake"),
         "manual_hold_intake": latest_payload.get("manual_hold_intake"),
+        "agent_lab_suite_materialization": payload.get("agent_lab_suite_materialization"),
         "startup_brief_path": str(startup_brief_path),
         "artifacts": dict(payload.get("artifact_refs") or {}),
         "runtime_intervention": runtime_intervention,

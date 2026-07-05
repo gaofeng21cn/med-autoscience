@@ -282,6 +282,9 @@ def _feedback_self_evolution_trigger(
         "status": "runnable_after_suite_materialized",
         "study_id": study_id,
         "feedback_ref": feedback_ref,
+        "adapter_role": "domain_thin_feedback_adapter",
+        "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
+        "contract_itself_triggers_execution": False,
         "external_suite_path": str(suite_path),
         "external_suite_ref": f"agent-lab-suite:mas/{study_id}/high-quality-medical-manuscript",
         "source_feedback_refs": _existing_refs(
@@ -295,6 +298,13 @@ def _feedback_self_evolution_trigger(
             "meta_agent_owner": "opl-meta-agent",
             "target_repo": "med-autoscience",
         },
+        "owner_chain": [
+            "med-autoscience:reviewer_revision_intake",
+            "med-autoscience:agent_lab_medical_manuscript_quality_suite",
+            "one-person-lab:feedbackops_agent_lab_projection",
+            "opl-meta-agent:oma-agent-evolution",
+            "med-autoscience:owner_closeout_readback",
+        ],
         "target_action_contracts": {
             "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
             "oma_improve": "opl-meta-agent.improve-from-external-agent-lab-suite",

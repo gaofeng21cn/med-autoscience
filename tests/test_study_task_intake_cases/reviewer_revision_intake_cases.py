@@ -49,6 +49,10 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
     trigger = summary["revision_intake"]["self_evolution_trigger"]
     assert trigger["surface_kind"] == "mas_reviewer_revision_self_evolution_trigger"
     assert trigger["status"] == "queued_for_agent_lab_external_suite"
+    assert trigger["adapter_role"] == "domain_thin_feedback_adapter"
+    assert trigger["oma_evolution_skill_ref"] == "opl-meta-agent:oma-agent-evolution"
+    assert trigger["agent_lab_suite_materialization"]["required"] is True
+    assert trigger["agent_lab_suite_materialization"]["contract_itself_triggers_execution"] is False
     assert trigger["target_actions"]["oma_materialization"] == (
         "opl-meta-agent.improve-from-external-agent-lab-suite"
     )
@@ -217,6 +221,13 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
     assert trigger["refs_only"] is True
     assert trigger["writes_study_truth"] is False
+    assert trigger["owner_chain"] == [
+        "med-autoscience:reviewer_revision_intake",
+        "med-autoscience:agent_lab_medical_manuscript_quality_suite",
+        "one-person-lab:feedbackops_agent_lab_projection",
+        "opl-meta-agent:oma-agent-evolution",
+        "med-autoscience:owner_closeout_readback",
+    ]
     assert trigger["authority_boundary"]["can_write_study_truth"] is False
     assert trigger["authority_boundary"]["can_write_typed_blocker"] is False
     assert (

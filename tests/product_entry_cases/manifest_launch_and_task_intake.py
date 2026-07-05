@@ -449,6 +449,17 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert payload["revision_intake"]["kind"] == "reviewer_revision"
     assert payload["revision_intake"]["reactivation_required"] is True
     assert payload["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
+    suite_path = Path(payload["artifacts"]["agent_lab_medical_manuscript_quality_suite"])
+    suite_payload = json.loads(suite_path.read_text(encoding="utf-8"))
+    assert payload["agent_lab_suite_materialization"]["status"] == "materialized"
+    assert payload["agent_lab_suite_materialization"]["required"] is True
+    assert suite_path.is_file()
+    assert written_payload["agent_lab_suite_materialization"]["status"] == "materialized"
+    assert written_payload["artifact_refs"]["agent_lab_medical_manuscript_quality_suite"] == str(suite_path)
+    assert suite_payload["suite_kind"] == "agent_lab_external_suite"
+    assert suite_payload["feedback_self_evolution_trigger"]["oma_evolution_skill_ref"] == (
+        "opl-meta-agent:oma-agent-evolution"
+    )
     assert written_payload["revision_intake"]["handoff_required"] is True
     assert "Revision Intake Checklist" in latest_markdown_text
     assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text
