@@ -1080,8 +1080,6 @@ def test_consumption_ledger_inspect_prefers_owner_consumed_route_checkpoint_when
     assert payload["stage_closure_decision"]["work_unit_id"] == (
         "ai_reviewer_medical_prose_quality_review"
     )
-
-
 def test_paper_mission_drive_submits_domain_transition_next_action_without_candidate_package(
     tmp_path: Path,
 ) -> None:
