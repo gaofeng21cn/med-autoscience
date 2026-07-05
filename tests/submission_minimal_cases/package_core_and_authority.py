@@ -154,6 +154,67 @@ def test_create_submission_minimal_package_materializes_audit_package_for_submis
     assert manifest["submission_materialization_status"] == result["submission_materialization_status"]
 
 
+def test_create_submission_minimal_package_writes_general_supplementary_table_preview(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    write_text(paper_root / "tables" / "S1_missingness.csv", "Variable,Missing\nBMI,0\n")
+    write_text(
+        paper_root / "tables" / "S1_missingness.md",
+        "| Variable | Missing |\n| --- | --- |\n| BMI | 0 |\n",
+    )
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table_catalog = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    table_catalog["tables"].append(
+        {
+            "table_id": "S1",
+            "paper_role": "supplementary",
+            "title": "Missingness atlas",
+            "caption": "Supplementary completeness summary.",
+            "asset_paths": [
+                "paper/tables/S1_missingness.csv",
+                "paper/tables/S1_missingness.md",
+            ],
+        }
+    )
+    dump_json(table_catalog_path, table_catalog)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    supplementary_markdown_path = submission_root / "supplementary_tables.md"
+    supplementary_pdf_path = submission_root / "supplementary_tables.pdf"
+    combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
+    assert supplementary_markdown_path.exists()
+    assert supplementary_pdf_path.exists()
+    assert combined_pdf_path.exists()
+
+    supplementary_markdown = supplementary_markdown_path.read_text(encoding="utf-8")
+    assert "Supplementary Table S1. Missingness atlas" in supplementary_markdown
+    assert supplementary_markdown.count("Supplementary Table S1. Missingness atlas") == 1
+    assert "Supplementary completeness summary." in supplementary_markdown
+    assert "| BMI | 0 |" in supplementary_markdown
+
+    manifest = json.loads((submission_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["supplementary_material"]["source_markdown_path"] == (
+        "paper/submission_minimal/supplementary_tables.md"
+    )
+    assert manifest["supplementary_material"]["pdf_path"] == (
+        "paper/submission_minimal/supplementary_tables.pdf"
+    )
+    assert manifest["supplementary_material"]["combined_review_pdf_path"] == (
+        "paper/submission_minimal/paper_with_supplementary.pdf"
+    )
+    assert len(PdfReader(str(combined_pdf_path)).pages) == (
+        len(PdfReader(str(submission_root / "paper.pdf")).pages)
+        + len(PdfReader(str(supplementary_pdf_path)).pages)
+    )
+
+
 def test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input(
     tmp_path: Path,
 ) -> None:

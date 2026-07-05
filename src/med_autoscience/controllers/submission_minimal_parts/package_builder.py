@@ -121,14 +121,29 @@ def _supplementary_material_payload(
     *,
     supplementary_source_markdown_path: Path | None,
     supplementary_output_docx_path: Path | None,
+    supplementary_output_pdf_path: Path | None,
+    combined_review_pdf_path: Path | None,
     profile_config: Any,
     staging_submission_root: Path,
     target_submission_root: Path,
     workspace_root: Path,
 ) -> dict[str, str] | None:
-    if supplementary_source_markdown_path is None or supplementary_output_docx_path is None:
+    if supplementary_source_markdown_path is None:
         return None
-    return {
+    if supplementary_output_docx_path is None and supplementary_output_pdf_path is None:
+        return None
+
+    def rel_remapped(path: Path) -> str:
+        return relpath_from_workspace(
+            remap_staging_path_to_target(
+                path=path,
+                staging_root=staging_submission_root,
+                target_root=target_submission_root,
+            ),
+            workspace_root,
+        )
+
+    payload = {
         "source_markdown_path": relpath_from_workspace(
             remap_staging_path_to_target(
                 path=supplementary_source_markdown_path,
@@ -137,16 +152,116 @@ def _supplementary_material_payload(
             ),
             workspace_root,
         ),
-        "docx_path": relpath_from_workspace(
-            remap_staging_path_to_target(
-                path=supplementary_output_docx_path,
-                staging_root=staging_submission_root,
-                target_root=target_submission_root,
-            ),
-            workspace_root,
-        ),
-        "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
     }
+    if supplementary_output_docx_path is not None:
+        payload["docx_path"] = rel_remapped(supplementary_output_docx_path)
+    if supplementary_output_pdf_path is not None:
+        payload["pdf_path"] = rel_remapped(supplementary_output_pdf_path)
+    if combined_review_pdf_path is not None:
+        payload["combined_review_pdf_path"] = rel_remapped(combined_review_pdf_path)
+    if profile_config.supplementary_reference_doc_path is not None:
+        payload["reference_doc_path"] = str(profile_config.supplementary_reference_doc_path.resolve())
+    return payload
+
+
+def _is_supplementary_table(entry: Mapping[str, Any]) -> bool:
+    return str(entry.get("paper_role") or "").strip().lower() == "supplementary"
+
+
+def _supplementary_table_label(table_id: str) -> str:
+    normalized = table_id.strip()
+    if normalized.upper().startswith("S"):
+        return f"Supplementary Table {normalized.upper()}"
+    return f"Supplementary Table {normalized}"
+
+
+def _markdown_output_path_for_table_entry(
+    *,
+    entry: Mapping[str, Any],
+    workspace_root: Path,
+) -> Path | None:
+    for output_path in entry.get("output_paths") or []:
+        normalized = str(output_path or "").strip()
+        if normalized and Path(normalized).suffix.lower() == ".md":
+            return resolve_relpath(workspace_root, normalized)
+    return None
+
+
+def _table_markdown_body(markdown_text: str) -> str:
+    lines = markdown_text.strip().splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    if lines and lines[0].lstrip().startswith("#"):
+        lines.pop(0)
+        while lines and not lines[0].strip():
+            lines.pop(0)
+    return "\n".join(lines).strip()
+
+
+def _build_supplementary_tables_markdown(
+    *,
+    table_entries: list[dict[str, Any]],
+    submission_root: Path,
+    workspace_root: Path,
+) -> Path | None:
+    supplementary_entries = [entry for entry in table_entries if _is_supplementary_table(entry)]
+    if not supplementary_entries:
+        return None
+
+    lines = [
+        "---",
+        'title: "Supplementary Tables"',
+        "bibliography: references.bib",
+        "link-citations: true",
+        "---",
+        "",
+        "# Supplementary Tables",
+        "",
+        "This file contains supplementary tables generated with the manuscript review package.",
+        "",
+    ]
+    for entry in supplementary_entries:
+        table_id = str(entry.get("table_id") or "").strip()
+        title = str(entry.get("title") or "").strip()
+        label = _supplementary_table_label(table_id)
+        heading = f"## {label}"
+        if title:
+            heading += f". {title}"
+        lines.extend([heading, ""])
+        caption = str(entry.get("caption") or "").strip()
+        if caption:
+            lines.extend([caption, ""])
+        markdown_path = _markdown_output_path_for_table_entry(
+            entry=entry,
+            workspace_root=workspace_root,
+        )
+        if markdown_path is not None and markdown_path.exists():
+            lines.extend([_table_markdown_body(markdown_path.read_text(encoding="utf-8")), ""])
+
+    output_path = submission_root / "supplementary_tables.md"
+    write_text(output_path, "\n".join(lines).rstrip() + "\n")
+    return output_path
+
+
+def _write_combined_review_pdf(
+    *,
+    manuscript_pdf_path: Path,
+    supplementary_pdf_path: Path | None,
+    output_pdf_path: Path,
+) -> Path | None:
+    if supplementary_pdf_path is None or not supplementary_pdf_path.exists():
+        return None
+    from pypdf import PdfReader, PdfWriter
+
+    writer = PdfWriter()
+    for source_path in (manuscript_pdf_path, supplementary_pdf_path):
+        reader = PdfReader(str(source_path))
+        for page in reader.pages:
+            writer.add_page(page)
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_pdf_path.open("wb") as handle:
+        writer.write(handle)
+    return output_pdf_path
 
 
 _SUBMISSION_AUDIT_MATERIALIZATION_BLOCKERS = frozenset(
@@ -305,6 +420,8 @@ def create_submission_minimal_package(
         source_markdown_path = compiled_markdown_path
         supplementary_source_markdown_path: Path | None = None
         supplementary_output_docx_path: Path | None = None
+        supplementary_output_pdf_path: Path | None = None
+        combined_review_pdf_path: Path | None = None
         source_markdown_alias_path: Path | None = None
 
         if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
@@ -433,6 +550,8 @@ def create_submission_minimal_package(
                 "table_shell_id": entry.get("table_shell_id"),
                 "pack_id": pack_id,
                 "paper_role": entry.get("paper_role"),
+                "title": entry.get("title"),
+                "caption": entry.get("caption"),
                 "input_schema_id": entry.get("input_schema_id"),
                 "qc_profile": entry.get("qc_profile"),
                 "qc_result": entry.get("qc_result"),
@@ -445,6 +564,16 @@ def create_submission_minimal_package(
                 pack_summary_by_id=pack_summary_by_id,
             )
             table_entries.append(table_entry)
+
+        if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+            supplementary_source_markdown_path = _build_supplementary_tables_markdown(
+                table_entries=table_entries,
+                submission_root=staging_submission_root,
+                workspace_root=workspace_root,
+            )
+            if supplementary_source_markdown_path is not None:
+                supplementary_output_pdf_path = staging_submission_root / "supplementary_tables.pdf"
+                combined_review_pdf_path = staging_submission_root / "paper_with_supplementary.pdf"
 
         references_manifest, references_source_path, references_coverage = materialize_and_validate_submission_references(
             paper_root=paper_root,
@@ -473,6 +602,19 @@ def create_submission_minimal_package(
                 output_docx_path=supplementary_output_docx_path,
                 csl_path=profile_config.csl_path,
                 reference_doc_path=profile_config.supplementary_reference_doc_path,
+            )
+        if supplementary_source_markdown_path is not None and supplementary_output_pdf_path is not None:
+            export_pdf(
+                compiled_markdown_path=supplementary_source_markdown_path,
+                paper_root=paper_root,
+                output_pdf_path=supplementary_output_pdf_path,
+                csl_path=profile_config.csl_path,
+            )
+        if supplementary_output_pdf_path is not None and combined_review_pdf_path is not None:
+            _write_combined_review_pdf(
+                manuscript_pdf_path=output_pdf_path,
+                supplementary_pdf_path=supplementary_output_pdf_path,
+                output_pdf_path=combined_review_pdf_path,
             )
         pruned_legacy_paths = prune_legacy_paper_surface_exports(
             paper_root=paper_root,
@@ -616,6 +758,8 @@ def create_submission_minimal_package(
         supplementary_material = _supplementary_material_payload(
             supplementary_source_markdown_path=supplementary_source_markdown_path,
             supplementary_output_docx_path=supplementary_output_docx_path,
+            supplementary_output_pdf_path=supplementary_output_pdf_path,
+            combined_review_pdf_path=combined_review_pdf_path,
             profile_config=profile_config,
             staging_submission_root=staging_submission_root,
             target_submission_root=target_submission_root,
