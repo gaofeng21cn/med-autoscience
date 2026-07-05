@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-05：用户只看 `delivery/`，`paper/` 与 `manuscript/` 退回内部角色名
+
+- 决策：study root 新增稳定浅层入口 `delivery/`。对人暴露的默认路径固定为 `delivery/current/` 与 `delivery/current.zip`；它们只是指向 `manuscript/current_package` 与 `manuscript/current_package.zip` 的浅层 alias，不新增第二套 truth surface。
+- 决策：`paper/` 与 `manuscript/` 继续保留原物理路径，避免打断既有 contracts、read models、tests、authority gate、workspace git boundary 和 historical refs。语义上重新分账：`paper/` 是 canonical authority/build source，`manuscript/` 是 MAS/runtime compatibility mirror，`delivery/` 才是用户默认入口。
+- 决策：所有由 study delivery sync、current-package projection、journal package mirror 或 stale-preview materialization 生成的人读 README，必须显式提示“人从 `delivery/current/` 开始，编辑从 `paper/` 开始，不要把 `manuscript/` 当编辑源”。`paper/submission_minimal/` 继续保留为 controller-authorized package source，不再承担对人导航职责。
+- 理由：用户反馈表明 `paper/`、`paper/submission_minimal/`、`manuscript/`、`manuscript/current_package/` 在认知上过于接近，尤其 `paper` 和 `manuscript` 名字都像正文目录，导致“权威源”“投稿包源”“人读镜像”三层混在一起。真正要解决的是对外导航，而不是鲁莽重命名内部 contract path。
+- 影响：这是 human-facing shallow entry / docs / git-boundary 优化，不改变 MAS authority owner、publication gate、currentness proof、owner receipt、typed blocker、human gate、submission-ready 判定，也不手写 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 `current_package` authority。后续若要物理重命名 `paper/` 或 `manuscript/`，必须先做 contracts/read-model 全链路迁移设计。
+
 ## 2026-07-04：医学论文 final prose polish 收口到 AI reviewer prose gate
 
 - 决策：MAS 不新增独立 stage 来解决“内部化、重复、防守、AI 腔”问题；复用现有 `medical_prose_review_request -> ai_reviewer_medical_prose_quality_review -> medical_prose_write_repair -> AI reviewer recheck` 闭环，并把 style corpus 升级为 `medical_journal_prose_style_v4`。AI reviewer clear verdict 前必须检查四个 final-polish 轴：去内部化、去重复、去防守、去 AI/data-engineering 腔。

@@ -30,6 +30,13 @@ _DELIVERY_REQUIRED_SOURCE_DIRS = (
     "tables/generated",
 )
 
+_SOURCE_DECLARATION_COLLECTIONS = (
+    "figures",
+    "main_text_figures",
+    "deferred_figures",
+    "tables",
+)
+
 
 def _current_body_paper_root(*, paper_root: Path) -> Path:
     resolved = paper_root.resolve()
@@ -145,6 +152,104 @@ def _relpath_from_paper(path: Path, *, paper_root: Path) -> str:
     return f"paper/{path.resolve().relative_to(paper_root.resolve()).as_posix()}"
 
 
+def _normalize_paper_relative_source_path(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if normalized.startswith("paper/"):
+        return normalized.removeprefix("paper/")
+    return None
+
+
+def _catalog_declared_source_paths(payload: dict[str, Any]) -> set[str]:
+    declared_paths: set[str] = set()
+    for collection_name in _SOURCE_DECLARATION_COLLECTIONS:
+        entries = payload.get(collection_name)
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            source_paths = entry.get("source_paths")
+            if not isinstance(source_paths, list):
+                continue
+            for value in source_paths:
+                normalized = _normalize_paper_relative_source_path(value)
+                if normalized is not None:
+                    declared_paths.add(normalized)
+    return declared_paths
+
+
+def _normalized_render_request_ids(payload: dict[str, Any]) -> set[str]:
+    figure_ids: set[str] = set()
+    for collection_name in ("figures", "main_text_figures", "deferred_figures"):
+        entries = payload.get(collection_name)
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for raw_value in (
+                entry.get("figure_id"),
+                entry.get("catalog_id"),
+            ):
+                if not isinstance(raw_value, str):
+                    continue
+                normalized = raw_value.strip()
+                if not normalized:
+                    continue
+                normalized = re.sub(r"^figure\s+", "F", normalized, flags=re.IGNORECASE)
+                figure_ids.add(normalized)
+    return figure_ids
+
+
+def _hydrate_catalog_declared_sources(
+    *,
+    source_root: Path,
+    paper_root: Path,
+) -> list[Path]:
+    hydrated: list[Path] = []
+    declared_relpaths: set[str] = set()
+    render_request_ids: set[str] = set()
+    for rel_path in (
+        "figure_catalog.json",
+        "figures/figure_catalog.json",
+        "table_catalog.json",
+        "tables/table_catalog.json",
+    ):
+        catalog_path = source_root / rel_path
+        if not catalog_path.exists():
+            continue
+        try:
+            payload = load_json(catalog_path)
+        except Exception:
+            continue
+        declared_relpaths.update(_catalog_declared_source_paths(payload))
+        render_request_ids.update(_normalized_render_request_ids(payload))
+
+    for rel_path in sorted(declared_relpaths):
+        copied_path = _copy_if_source_changed(
+            source_root=source_root,
+            paper_root=paper_root,
+            rel_path=rel_path,
+        )
+        if copied_path is not None:
+            hydrated.append(copied_path)
+
+    for figure_id in sorted(render_request_ids):
+        copied_path = _copy_if_source_changed(
+            source_root=source_root,
+            paper_root=paper_root,
+            rel_path=f"build/display_pack_render_requests/{figure_id}.render_request.json",
+        )
+        if copied_path is not None:
+            hydrated.append(copied_path)
+
+    return hydrated
+
+
 def _first_existing_current_body_compile_report(*, source_root: Path) -> Path | None:
     for rel_path in ("build/compile_report.json", "compile_report.json"):
         candidate = source_root / rel_path
@@ -218,6 +323,12 @@ def _hydrate_delivery_required_sources(
     )
     if filtered_catalog_path is not None:
         hydrated.append(filtered_catalog_path)
+    hydrated.extend(
+        _hydrate_catalog_declared_sources(
+            source_root=source_root,
+            paper_root=paper_root,
+        )
+    )
     return hydrated
 
 

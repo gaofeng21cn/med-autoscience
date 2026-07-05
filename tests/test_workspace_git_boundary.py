@@ -27,6 +27,7 @@ def test_workspace_gitignore_declares_lightweight_study_artifact_boundary() -> N
     assert "!studies/*/artifacts/evidence_ledger.json" in gitignore_text
     assert "!studies/*/artifacts/review_ledger.json" in gitignore_text
     assert "studies/*/runtime_binding.yaml" in gitignore_text
+    assert "studies/*/delivery/**" in gitignore_text
     assert "studies/*/manuscript/current_package/**" in gitignore_text
     assert "studies/*/manuscript/*.zip" in gitignore_text
     assert "studies/*/manuscript/*.pdf" in gitignore_text

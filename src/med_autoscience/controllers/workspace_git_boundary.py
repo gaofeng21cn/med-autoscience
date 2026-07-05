@@ -104,6 +104,7 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "!studies/*/artifacts/evidence_ledger.json",
     "!studies/*/artifacts/review_ledger.json",
     "studies/*/runtime_binding.yaml",
+    "studies/*/delivery/**",
     "studies/*/manuscript/current_package/**",
     "studies/*/manuscript/journal_packages/**",
     "studies/*/manuscript/*_submission_*/**",

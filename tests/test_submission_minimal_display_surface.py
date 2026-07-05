@@ -641,6 +641,105 @@ Current authority discussion.
     assert "paper/tables/generated/T3_current_deciles.md" in manifest["source_hydration"]["hydrated_files"]
 
 
+def test_create_submission_minimal_package_hydrates_current_body_figure_inputs_and_render_requests(
+    tmp_path: Path,
+    writable_authority_route_context: dict[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    study_root = tmp_path / "workspace"
+    paper_root = make_workspace(tmp_path)
+    current_body_paper_root = (
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper"
+    )
+    dump_json(
+        paper_root / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "Figure 3",
+                    "title": "Grouped calibration across NHANES transported-score deciles",
+                    "source_paths": ["paper/time_to_event_grouped_inputs.json"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "Figure 3",
+                    "title": "Grouped calibration across NHANES transported-score deciles",
+                    "source_paths": ["paper/time_to_event_grouped_inputs.json"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F3",
+                    "catalog_id": "F3",
+                    "paper_role": "main_text",
+                    "title": "Grouped calibration across NHANES transported-score deciles",
+                    "export_paths": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
+                    "source_paths": ["paper/time_to_event_grouped_inputs.json"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_to_event_grouped_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_grouped_inputs_v1",
+            "displays": [{"title": "Stale grouped summary"}],
+        },
+    )
+    dump_json(
+        current_body_paper_root / "time_to_event_grouped_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_grouped_inputs_v1",
+            "displays": [{"title": "Grouped calibration across NHANES transported-score deciles"}],
+        },
+    )
+    dump_json(
+        paper_root / "build" / "display_pack_render_requests" / "F3.render_request.json",
+        {
+            "figure_id": "F3",
+            "display_payload": {"title": "Stale grouped summary"},
+        },
+    )
+    dump_json(
+        current_body_paper_root / "build" / "display_pack_render_requests" / "F3.render_request.json",
+        {
+            "figure_id": "F3",
+            "display_payload": {"title": "Grouped calibration across NHANES transported-score deciles"},
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+        route_context=writable_authority_route_context,
+    )
+
+    grouped_inputs = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    render_request = json.loads(
+        (paper_root / "build" / "display_pack_render_requests" / "F3.render_request.json").read_text(encoding="utf-8")
+    )
+    assert grouped_inputs["displays"][0]["title"] == "Grouped calibration across NHANES transported-score deciles"
+    assert render_request["display_payload"]["title"] == "Grouped calibration across NHANES transported-score deciles"
+    assert "paper/time_to_event_grouped_inputs.json" in manifest["source_hydration"]["hydrated_files"]
+    assert "paper/build/display_pack_render_requests/F3.render_request.json" in manifest["source_hydration"]["hydrated_files"]
+
+
 def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)

@@ -43,6 +43,7 @@ from .delivery_descriptions import (
     _iter_relative_files,
 )
 from .delivery_io import build_zip_from_directory
+from .external_entry import _sync_user_delivery_entry
 
 def _resolve_submission_source_path(*, paper_root: Path, source_root: Path, relative_path: Path) -> Path:
     if relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
@@ -637,7 +638,12 @@ def materialize_submission_delivery_stale_notice(
     _resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="submission_notice_materialize",
         context=authority_route_context or route_context,
-        default_paths=[current_package_root, current_package_zip, delivery_status_path],
+        default_paths=[
+            current_package_root,
+            current_package_zip,
+            delivery_status_path,
+            study_root / "delivery",
+        ],
     )
     if not bool(authority_route_gate.get("authorized")):
         return blocked_authority_write_payload(
@@ -825,6 +831,14 @@ def materialize_submission_delivery_stale_notice(
         }
     )
     dump_json(delivery_status_path, status_payload)
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage="submission_preview",
+        source_relative_root=source_relative_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+    )
     return {
         "applicable": True,
         **status_payload,

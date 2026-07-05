@@ -44,6 +44,18 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert (study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json").exists()
     assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
+    assert (study_root / "delivery" / "README.md").exists()
+    assert (study_root / "delivery" / "current").is_symlink()
+    assert (study_root / "delivery" / "current.zip").is_symlink()
+    assert (study_root / "delivery" / "current").resolve() == (
+        study_root / "manuscript" / "current_package"
+    ).resolve()
+    assert (study_root / "delivery" / "current.zip").resolve() == (
+        study_root / "manuscript" / "current_package.zip"
+    ).resolve()
+    assert "Preferred package entry: `delivery/current/`" in (
+        study_root / "delivery" / "README.md"
+    ).read_text(encoding="utf-8")
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert delivery_manifest["surface_roles"] == {
         "controller_authorized_paper_root": str(paper_root),

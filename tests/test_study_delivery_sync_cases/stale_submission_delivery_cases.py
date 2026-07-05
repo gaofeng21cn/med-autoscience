@@ -214,6 +214,13 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     assert (manuscript_root / "current_package" / "figures" / "F1_authority_preview.pdf").exists()
     assert (manuscript_root / "current_package" / "tables" / "table_catalog.json").exists()
     assert (manuscript_root / "current_package" / "tables" / "T1_authority_preview.csv").exists()
+    assert (study_root / "delivery" / "current").is_symlink()
+    assert (study_root / "delivery" / "current").resolve() == (
+        manuscript_root / "current_package"
+    ).resolve()
+    assert "Active sync stage: `submission_preview`" in (
+        study_root / "delivery" / "README.md"
+    ).read_text(encoding="utf-8")
     status_payload = json.loads(status_path.read_text(encoding="utf-8"))
     assert status_payload["status"] == "stale_source_missing"
     assert status_payload["stale_reason"] == "delivery_manifest_sources_missing"

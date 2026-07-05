@@ -71,6 +71,7 @@ from .submission_delivery_descriptions import (
     _submission_source_relative_paths,
     _submission_source_signature,
 )
+from .external_entry import _sync_user_delivery_entry
 from .authority_refs import build_delivery_authority_ref_block
 from .promoted_journal_delivery import sync_promoted_journal_delivery
 
@@ -188,6 +189,14 @@ def sync_draft_handoff_delivery(
         ),
     }
     dump_json(manuscript_root / "delivery_manifest.json", manifest)
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage="draft_handoff",
+        source_relative_root=source_relative_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+    )
     return manifest
 
 
@@ -435,6 +444,14 @@ def sync_general_delivery(
     if normalized_stage != "finalize":
         remove_directory(artifacts_final_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage=normalized_stage,
+        source_relative_root=source_relative_root,
+        current_package_root=manuscript_root / "current_package",
+        current_package_zip=manuscript_root / "current_package.zip",
+    )
     return manifest
 
 
@@ -543,6 +560,14 @@ def _sync_current_package_mirror_delivery(
         ),
     }
     dump_json(manuscript_root / "delivery_manifest.json", manifest)
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage=f"{publication_profile}_{normalized_stage}",
+        source_relative_root=source_relative_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+    )
     return manifest
 
 
@@ -728,6 +753,15 @@ def sync_journal_specific_delivery(
         ),
     }
     dump_json(journal_package_root / "delivery_manifest.json", manifest)
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage=f"{publication_profile}_{normalized_stage}",
+        source_relative_root=source_relative_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        journal_packages_root=journal_package_root.parent,
+    )
     return manifest
 
 

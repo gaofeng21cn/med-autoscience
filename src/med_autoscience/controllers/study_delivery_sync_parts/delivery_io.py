@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -21,6 +22,16 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def write_relative_symlink(*, link_path: Path, target_path: Path, target_is_directory: bool = False) -> None:
+    link_path.parent.mkdir(parents=True, exist_ok=True)
+    if link_path.is_symlink() or link_path.is_file():
+        link_path.unlink()
+    elif link_path.exists():
+        shutil.rmtree(link_path)
+    relative_target = Path(os.path.relpath(target_path, start=link_path.parent))
+    link_path.symlink_to(relative_target, target_is_directory=target_is_directory)
 
 
 def reset_directory(path: Path) -> None:

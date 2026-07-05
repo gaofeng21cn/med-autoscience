@@ -36,6 +36,7 @@ from .submission_delivery_descriptions import (
     _submission_source_relative_paths,
     _submission_source_signature,
 )
+from .external_entry import _sync_user_delivery_entry
 
 
 def sync_promoted_journal_delivery(
@@ -328,6 +329,15 @@ def sync_promoted_journal_delivery(
         ),
     }
     dump_json(manuscript_root / "delivery_manifest.json", manifest)
+    _sync_user_delivery_entry(
+        study_root=study_root,
+        study_id=study_id,
+        stage=f"{publication_profile}_submission",
+        source_relative_root=source_relative_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        journal_package_mirrors_root=mirror_root.parent,
+    )
     return manifest
 
 

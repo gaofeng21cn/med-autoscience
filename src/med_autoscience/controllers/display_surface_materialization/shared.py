@@ -312,14 +312,15 @@ def _build_paper_surface_readmes(
             """\
             # Paper Authority Surface
 
-            - This directory is the manuscript-facing authority surface for the active study line.
+            - This directory is the canonical paper-authority source for the active study line.
             - Figures: `paper/figures/figure_catalog.json` + `paper/figures/generated/`
             - Tables: `paper/tables/table_catalog.json` + `paper/tables/generated/`
             - Canonical submission package: `paper/submission_minimal/`
-            - Human-facing delivery mirror: `../manuscript/`
+            - Preferred human-facing entry: `../delivery/current/`
+            - MAS/runtime compatibility mirror: `../manuscript/`
             - Auxiliary finalize/runtime evidence only: `../artifacts/`
 
-            If a human needs the latest authoritative display outputs, start here instead of `manuscript/` or `artifacts/`.
+            Edit from `paper/`. For the latest readable package, open `../delivery/current/`.
             """
         ),
         paper_root / "figures" / "README.md": textwrap.dedent(

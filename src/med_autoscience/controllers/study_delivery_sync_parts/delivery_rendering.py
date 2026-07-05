@@ -56,11 +56,12 @@ def build_general_delivery_readme(*, study_id: str, stage: str, source_relative_
         f"- Sync stage: `{stage}`\n"
         f"- Canonical authority surface: `paper/`\n"
         f"- Controller-authorized package source: `{source_relative_root}/`\n"
-        f"- This directory: `manuscript/` (human-facing delivery root)\n"
-        f"- Stable human-facing entry: `manuscript/current_package/`\n"
+        f"- Preferred human-facing entry: `delivery/current/`\n"
+        f"- This directory: `manuscript/` (compatibility mirror root)\n"
+        f"- Compatibility mirror entry: `manuscript/current_package/`\n"
         f"- Delivery manifest: `manuscript/delivery_manifest.json`\n\n"
         f"This directory is refreshed automatically from the controller-authorized paper package. "
-        f"Humans should open `manuscript/current_package/`, not reconstruct stage-specific paths.\n"
+        f"Humans should start at `delivery/current/`; `manuscript/` stays as the MAS/runtime compatibility mirror.\n"
     )
 
 
@@ -119,13 +120,14 @@ def build_preview_general_delivery_readme(
 
 def build_manuscript_root_readme() -> str:
     return (
-        "# Manuscript Delivery Surface\n\n"
+        "# Manuscript Compatibility Mirror\n\n"
         "- Canonical authority surface: `paper/`\n"
-        "- Human-facing delivery root: `manuscript/`\n"
-        "- Stable human-facing package entry: `manuscript/current_package/`\n"
+        "- Preferred human-facing entry: `delivery/current/`\n"
+        "- This directory: `manuscript/` (compatibility mirror root)\n"
+        "- Compatibility mirror entry: `manuscript/current_package/`\n"
         "- Delivery manifest: `manuscript/delivery_manifest.json`\n\n"
-        "Use `manuscript/` when a human needs the latest handoff-ready manuscript bundle. "
-        "Edit or regenerate from `paper/`, not from this mirror.\n"
+        "Humans should open `delivery/current/` first. "
+        "`manuscript/` remains the MAS/runtime mirror surface; edit or regenerate from `paper/`, not from this projection.\n"
     )
 
 
@@ -133,10 +135,11 @@ def build_artifacts_root_readme() -> str:
     return (
         "# Artifact Auxiliary Surface\n\n"
         "- Canonical authority surface: `paper/`\n"
-        "- Human-facing final delivery surface: `manuscript/`\n"
+        "- Preferred human-facing delivery surface: `delivery/current/`\n"
+        "- Compatibility mirror root: `manuscript/`\n"
         "- This directory is reserved for machine-generated auxiliary/runtime/finalization evidence.\n"
         "- Figures/tables are no longer mirrored here during normal submission sync.\n\n"
-        "Use `manuscript/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
+        "Use `delivery/current/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
     )
 
 
@@ -147,8 +150,9 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
         f"- Sync stage: `{stage}`\n"
         "- This directory is not part of the human-facing final delivery surface.\n"
         "- Expected contents: finalize/manuscript build evidence such as `paper_bundle_manifest.json` and `compile_report.json`.\n"
-        "- Stable human-facing package entry remains `manuscript/current_package/`.\n"
-        "- Figures/tables remain in `manuscript/current_package/` for human review, and in `paper/` as authority.\n\n"
+        "- Preferred human-facing package entry remains `delivery/current/`.\n"
+        "- Compatibility mirror entry remains `manuscript/current_package/`.\n"
+        "- Figures/tables remain in `delivery/current/` for human review, and in `paper/` as authority.\n\n"
         "Use this directory only for machine-generated finalization evidence only, not for human-facing display lookup.\n"
     )
 
@@ -208,6 +212,8 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str, s
         f"- Sync stage: `{publication_profile}_submission`\n"
         f"- Publication profile: `{publication_profile}`\n"
         f"- Controller-authorized package source: `{source_relative_root}/`\n"
+        f"- Preferred human-facing entry: `delivery/current/`\n"
+        f"- Compatibility mirror root: `manuscript/`\n"
         f"- Contents:\n"
         f"  - `manuscript.docx`\n"
         f"  - `paper.pdf`\n"
@@ -220,6 +226,44 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str, s
         f"  - `journal_package_mirrors/{publication_profile}/`\n\n"
         f"This study-level final delivery is assembled automatically from the primary journal package so the canonical shallow handoff stays aligned with the active target-journal surface.\n"
     )
+
+
+def build_user_delivery_entry_readme(
+    *,
+    study_id: str,
+    stage: str,
+    source_relative_root: str,
+    has_journal_packages: bool = False,
+    has_journal_package_mirrors: bool = False,
+) -> str:
+    lines = [
+        "# Study Delivery Entry",
+        "",
+        f"- Study: `{study_id}`",
+        f"- Active sync stage: `{stage}`",
+        "- Preferred package entry: `delivery/current/`",
+        "- Preferred zip entry: `delivery/current.zip`",
+        "- Canonical authority surface: `paper/`",
+        f"- Controller-authorized package source: `{source_relative_root}/`",
+        "- Compatibility mirror for MAS/runtime: `manuscript/current_package/`",
+        "",
+        "This directory exists to keep the human-facing entry shallow and stable. Open `current/`; edit or regenerate from `paper/`.",
+    ]
+    if has_journal_packages:
+        lines.extend(
+            [
+                "",
+                "- Target-journal package aliases, when materialized: `delivery/journal_packages/`",
+            ]
+        )
+    if has_journal_package_mirrors:
+        lines.extend(
+            [
+                "- Promoted journal mirrors, when materialized: `delivery/journal_package_mirrors/`",
+            ]
+        )
+    lines.append("")
+    return "\n".join(lines)
 
 
 def ensure_manuscript_root_readme(*, manuscript_root: Path) -> None:
@@ -329,6 +373,7 @@ def build_current_package_readme(
         f"- Study: `{study_id}`",
         f"- Active sync stage: `{stage}`",
         f"- Status: {status_line}",
+        "- Preferred human-facing alias: `../delivery/current/`",
         "- current_package/ is a human-facing mirror, not an edit source.",
         "",
         "## Submission files",
