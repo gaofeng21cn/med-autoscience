@@ -441,6 +441,94 @@ def test_paper_mission_drive_reuses_existing_reviewer_revision_handoff_without_o
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_direct_write_handoff_carries_latest_task_intake_scope_into_runtime_request(
+    tmp_path: Path,
+) -> None:
+    direct_handoff = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff"
+    )
+    runtime_submission = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.opl_runtime_submission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    task_intake_path = (
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+    )
+    task_intake_path.parent.mkdir(parents=True, exist_ok=True)
+    task_intake_path.write_text(
+        json.dumps(
+            {
+                "task_id": f"study-task::{study_id}::20260705T102124Z",
+                "study_id": study_id,
+                "task_intake_kind": "reviewer_revision",
+                "task_intent": (
+                    "Reframe DM002 around retained cross-population risk stratification, "
+                    "promote what remains usable, and require recalibration only for "
+                    "absolute-risk communication."
+                ),
+                "constraints": [
+                    "Prefer MAS-native revision surfaces.",
+                    "Refresh canonical paper source first, then package.",
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    profile = SimpleNamespace(
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    handoff = direct_handoff.build_direct_next_action_handoff(
+        profile=profile,
+        study_id=study_id,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+        },
+        next_action={
+            "surface_kind": "mas_next_action_envelope",
+            "schema_version": 1,
+            "action_family": "paper.write.prose_repair",
+            "action_kind": "repair",
+            "action_type": "request_opl_stage_attempt",
+            "owner": "write",
+            "stage_id": "write",
+            "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+            "work_unit_fingerprint": (
+                "domain-transition::route_back_same_line::"
+                "dm002_after_story_repair_medical_prose_hardening"
+            ),
+            "outcome_ref": (
+                "domain-transition::route_back_same_line::"
+                "dm002_after_story_repair_medical_prose_hardening"
+            ),
+        },
+    )
+
+    runtime_request = runtime_submission._opl_stage_route_runtime_request_from_handoff(
+        handoff
+    )
+
+    assert handoff["task_intake_kind"] == "reviewer_revision"
+    assert handoff["task_intake_ref"]["task_id"] == (
+        f"study-task::{study_id}::20260705T102124Z"
+    )
+    assert handoff["task_intake_ref"]["artifact_path"] == str(task_intake_path)
+    assert handoff["task_intake_summary"]["task_intent"].startswith(
+        "Reframe DM002 around retained cross-population risk stratification"
+    )
+    assert runtime_request is not None
+    assert runtime_request["payload"]["task_intake_kind"] == "reviewer_revision"
+    assert runtime_request["payload"]["task_intake_ref"]["artifact_path"] == str(
+        task_intake_path
+    )
+    assert runtime_request["payload"]["task_intake_summary"]["task_intent"].startswith(
+        "Reframe DM002 around retained cross-population risk stratification"
+    )
+
+
 def test_paper_mission_drive_packages_when_submission_minimal_owner_action_ready(
     tmp_path: Path,
     capsys,

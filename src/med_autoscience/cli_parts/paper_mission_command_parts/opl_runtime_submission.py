@@ -424,6 +424,9 @@ def _opl_stage_route_runtime_request_from_handoff(
         handoff=handoff,
         progress_guard=progress_guard,
     )
+    task_intake_kind = _optional_text(handoff.get("task_intake_kind"))
+    task_intake_ref = _mapping(handoff.get("task_intake_ref"))
+    task_intake_summary = _mapping(handoff.get("task_intake_summary"))
     route_impact = {
         "decision": command_kind,
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
@@ -465,6 +468,9 @@ def _opl_stage_route_runtime_request_from_handoff(
         "route_target": _first_text(handoff.get("route_target"), route.get("target")),
         "workspace_root": workspace_root,
         "domain_workspace_root": workspace_root,
+        **({"task_intake_kind": task_intake_kind} if task_intake_kind else {}),
+        **({"task_intake_ref": task_intake_ref} if task_intake_ref else {}),
+        **({"task_intake_summary": task_intake_summary} if task_intake_summary else {}),
         "route_command_materialized": handoff.get("transaction_materialized") is True,
         "opl_route_command": route,
         "opl_route_handoff_record": dict(handoff),
