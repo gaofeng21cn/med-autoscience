@@ -298,6 +298,77 @@ def test_dm002_current_hardening_preserves_external_validation_writer_delta(
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
 
 
+def test_dm002_after_story_repair_regenerates_latest_external_validation_story_surface(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "002-dm-china-us-mortality-attribution"
+    paper_root = study_root / "paper"
+    old_text = "# Draft\n\nOutdated external-validation draft surface.\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str((paper_root / relative_path).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": _fingerprint(paper_root / relative_path),
+        }
+        for relative_path in ("draft.md", "build/review_manuscript.md")
+    ]
+    preserved_writer_story = "\n\n".join(
+        [
+            "# External validation of a China-derived diabetes mortality score in NHANES",
+            "## Abstract",
+            "**Background:** Mortality prediction models developed in one diabetes population require external validation before their absolute-risk estimates can be interpreted in another population.",
+            "**Methods:** The fixed penalized Cox model used age, sex, smoking status, HbA1c, HDL cholesterol, systolic blood pressure, and diastolic blood pressure.",
+            "**Conclusions:** The China-derived score retained moderate mortality risk ordering in NHANES adults with diabetes but substantially underestimated absolute 5-year mortality. It should be interpreted as a transported ranking signal; population-specific recalibration or model updating is required before absolute-risk use.",
+            "## Introduction",
+            "This study evaluated whether a fixed seven-predictor China-derived Cox score for 5-year all-cause mortality retained useful risk ordering in a US diabetes cohort from NHANES, and whether its absolute risk estimates were calibrated for that cohort without refitting or recalibration.",
+            "## Discussion",
+            "Grouped calibration showed a narrow predicted-risk range despite a wide observed-risk gradient.",
+            "## Conclusion",
+            "A China-derived diabetes mortality score retained moderate risk ordering in NHANES but substantially underestimated absolute 5-year mortality.",
+        ]
+    ) + "\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        (paper_root / relative_path).write_text(preserved_writer_story, encoding="utf-8")
+    _write_dm002_template_inputs(study_root)
+    source_eval_id = "publication-eval::dm002::after-story-repair"
+
+    changed_paths = medical_prose_story_surface.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id=DM002_AFTER_STORY_REPAIR_WORK_UNIT,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=_previous_blocked_batch(
+            source_eval_id=source_eval_id,
+            surface_refs=old_refs,
+        ),
+        study_root=study_root,
+    )
+
+    assert {
+        Path(path).relative_to(study_root).as_posix()
+        for path in changed_paths
+    } == {
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/baseline_characteristics_schema.json",
+        "paper/tables/generated/T1_baseline_characteristics.md",
+        "paper/tables/generated/T1_baseline_characteristics.csv",
+        "paper/tables/generated/T2_time_to_event_performance_summary.md",
+        "paper/tables/generated/T3_grouped_calibration.md",
+    }
+    regenerated_story = (paper_root / "draft.md").read_text(encoding="utf-8")
+    assert regenerated_story != preserved_writer_story
+    assert regenerated_story.startswith(
+        "# External validation of a fixed China-derived 5-year diabetes mortality score in NHANES"
+    )
+    assert "fixed Cox risk equation" in regenerated_story
+    assert "should not be used for absolute-risk communication or threshold-based decisions" in regenerated_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == regenerated_story
+
+
 def test_dm002_display_table_repair_preserves_ai_reviewer_bound_current_manuscript_without_closing(
     monkeypatch: Any,
     tmp_path: Path,
@@ -438,6 +509,15 @@ def test_dm002_display_table_repair_preserves_ai_reviewer_bound_current_manuscri
     assert upstream_result["ai_reviewer_recheck_request_ref"] is None
     assert upstream_result["ai_reviewer_recheck_deferred_reason"] == "manuscript_story_surface_delta_missing"
     assert _sha256_text(writer_story) == manuscript_digest
+
+
+def test_forbidden_manuscript_term_guard_does_not_false_positive_on_body_mass_index() -> None:
+    assert (
+        medical_prose_story_surface._contains_forbidden_manuscript_terms(
+            "The analysis used additional risk factors such as body mass index and diabetes duration."
+        )
+        is False
+    )
 
 
 def test_dm002_display_table_repair_fail_closes_when_ai_reviewer_bound_digest_is_not_live(

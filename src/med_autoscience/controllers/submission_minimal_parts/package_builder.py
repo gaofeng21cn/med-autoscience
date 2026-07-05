@@ -8,7 +8,10 @@ from .markdown_surface import *
 from .post_materialization_sync import replay_post_submission_minimal_sync
 from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
-from .source_hydration import hydrate_submission_package_sources_from_current_body
+from .source_hydration import (
+    _filter_nested_figure_catalog_to_canonical_main_figures,
+    hydrate_submission_package_sources_from_current_body,
+)
 from .export_renderers import default_pdf_rendering_profile
 from collections.abc import Mapping
 import inspect
@@ -172,10 +175,126 @@ def _is_supplementary_table(entry: Mapping[str, Any]) -> bool:
 
 
 def _is_supplementary_figure(entry: Mapping[str, Any]) -> bool:
-    if str(entry.get("paper_role") or "").strip().lower() != "supplementary":
-        return False
-    display_role = str(entry.get("display_role") or "").strip().lower()
-    return not display_role.startswith("deferred_")
+    return str(entry.get("paper_role") or "").strip().lower() == "supplementary"
+
+
+def _paper_relative_figure_path(*, source_path: Path, paper_root: Path) -> str:
+    return f"paper/{source_path.resolve().relative_to(paper_root.resolve()).as_posix()}"
+
+
+def _resolve_deferred_figure_export_paths(
+    *,
+    entry: Mapping[str, Any],
+    paper_root: Path,
+) -> list[str]:
+    figure_id = str(entry.get("figure_id") or "").strip()
+    if not figure_id:
+        return []
+
+    render_request_path = paper_root / "build" / "display_pack_render_requests" / f"{figure_id}.render_request.json"
+    if render_request_path.exists():
+        render_request = load_json(render_request_path)
+        request_paths: list[str] = []
+        for key in ("output_svg_path", "output_png_path", "output_pdf_path"):
+            value = render_request.get(key)
+            if not isinstance(value, str) or not value.strip():
+                continue
+            candidate_path = Path(value).expanduser()
+            if candidate_path.exists():
+                request_paths.append(
+                    _paper_relative_figure_path(source_path=candidate_path, paper_root=paper_root)
+                )
+        if request_paths:
+            return request_paths
+
+    generated_dir = paper_root / "figures" / "generated"
+    if not generated_dir.is_dir():
+        return []
+
+    fallback_paths: list[str] = []
+    for suffix in (".svg", ".png", ".pdf"):
+        for candidate_path in sorted(generated_dir.glob(f"{figure_id}_*{suffix}")):
+            if candidate_path.is_file():
+                fallback_paths.append(
+                    _paper_relative_figure_path(source_path=candidate_path, paper_root=paper_root)
+                )
+    return fallback_paths
+
+
+def _resolve_submission_figure_export_paths(
+    *,
+    entry: Mapping[str, Any],
+    paper_root: Path,
+) -> list[str]:
+    export_paths = resolve_figure_source_paths(dict(entry))
+    if export_paths:
+        return export_paths
+    return _resolve_deferred_figure_export_paths(entry=entry, paper_root=paper_root)
+
+
+def _materialize_submission_figure_entry(
+    *,
+    entry: Mapping[str, Any],
+    paper_root: Path,
+    workspace_root: Path,
+    figures_output_dir: Path,
+    pack_summary_by_id: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    export_paths = _resolve_submission_figure_export_paths(
+        entry=entry,
+        paper_root=paper_root,
+    )
+    if not export_paths:
+        return None
+    existing_export_paths = filter_existing_source_paths(
+        workspace_root=workspace_root,
+        paper_root=paper_root,
+        source_paths=export_paths,
+    )
+    if existing_export_paths:
+        export_paths = existing_export_paths
+    missing_paths = find_missing_source_paths(
+        workspace_root=workspace_root,
+        paper_root=paper_root,
+        source_paths=export_paths,
+    )
+    if missing_paths:
+        if is_planned_catalog_entry(dict(entry)):
+            return None
+        missing_paths_text = ", ".join(str(path) for path in missing_paths)
+        raise FileNotFoundError(
+            f"missing submission asset(s) for figure `{entry.get('figure_id')}`: {missing_paths_text}"
+        )
+    basename = build_figure_basename(str(entry["figure_id"]))
+    output_paths = copy_with_renamed_targets(
+        workspace_root=workspace_root,
+        paper_root=paper_root,
+        source_paths=export_paths,
+        output_dir=figures_output_dir,
+        basename=basename,
+    )
+    pack_id = _resolve_pack_id(dict(entry), id_field="template_id")
+    figure_entry = {
+        "figure_id": entry["figure_id"],
+        "template_id": entry.get("template_id"),
+        "pack_id": pack_id,
+        "renderer_family": entry.get("renderer_family"),
+        "paper_role": entry.get("paper_role"),
+        "display_role": entry.get("display_role"),
+        "title": entry.get("title"),
+        "caption": entry.get("caption"),
+        "input_schema_id": entry.get("input_schema_id"),
+        "qc_profile": entry.get("qc_profile"),
+        "qc_result": entry.get("qc_result"),
+        "source_paths": export_paths,
+        "output_paths": output_paths,
+    }
+    _attach_pack_provenance(
+        figure_entry,
+        pack_id=pack_id,
+        pack_summary_by_id=pack_summary_by_id,
+    )
+    return figure_entry
 
 
 def _supplementary_table_label(table_id: str) -> str:
@@ -201,10 +320,17 @@ def _table_markdown_body(markdown_text: str) -> str:
     lines = markdown_text.strip().splitlines()
     while lines and not lines[0].strip():
         lines.pop(0)
+    leading_control_lines: list[str] = []
+    while lines and lines[0].strip() in {"\\newpage", "\\pagebreak"}:
+        leading_control_lines.append(lines.pop(0))
+        while lines and not lines[0].strip():
+            lines.pop(0)
     if lines and lines[0].lstrip().startswith("#"):
         lines.pop(0)
         while lines and not lines[0].strip():
             lines.pop(0)
+    elif leading_control_lines:
+        lines = leading_control_lines + [""] + lines
     return "\n".join(lines).strip()
 
 
@@ -491,6 +617,12 @@ def create_submission_minimal_package(
             default_path="paper/figures/figure_catalog.json",
         ),
     )
+    filtered_direct_figure_catalog_path = _filter_nested_figure_catalog_to_canonical_main_figures(
+        source_root=paper_root,
+        paper_root=paper_root,
+    )
+    if filtered_direct_figure_catalog_path is not None:
+        figure_catalog_path = filtered_direct_figure_catalog_path
     table_catalog_path = resolve_relpath(
         workspace_root,
         resolve_bundle_input_path(
@@ -610,58 +742,41 @@ def create_submission_minimal_package(
 
         figure_entries: list[dict[str, Any]] = []
         figure_naming_map: dict[str, str] = {}
+        seen_figure_ids: set[str] = set()
         for entry in figure_catalog.get("figures", []):
-            export_paths = resolve_figure_source_paths(entry)
-            if not export_paths:
+            paper_role = str(entry.get("paper_role") or "").strip().lower()
+            display_role = str(entry.get("display_role") or "").strip().lower()
+            if paper_role == "supplementary" and display_role.startswith("deferred_"):
                 continue
-            existing_export_paths = filter_existing_source_paths(
-                workspace_root=workspace_root,
+            figure_entry = _materialize_submission_figure_entry(
+                entry=entry,
                 paper_root=paper_root,
-                source_paths=export_paths,
-            )
-            if existing_export_paths:
-                export_paths = existing_export_paths
-            missing_paths = find_missing_source_paths(
                 workspace_root=workspace_root,
-                paper_root=paper_root,
-                source_paths=export_paths,
-            )
-            if missing_paths:
-                if is_planned_catalog_entry(entry):
-                    continue
-                missing_paths_text = ", ".join(str(path) for path in missing_paths)
-                raise FileNotFoundError(
-                    f"missing submission asset(s) for figure `{entry.get('figure_id')}`: {missing_paths_text}"
-                )
-            basename = build_figure_basename(str(entry["figure_id"]))
-            output_paths = copy_with_renamed_targets(
-                workspace_root=workspace_root,
-                paper_root=paper_root,
-                source_paths=export_paths,
-                output_dir=figures_output_dir,
-                basename=basename,
-            )
-            figure_naming_map[str(entry["figure_id"])] = basename
-            pack_id = _resolve_pack_id(entry, id_field="template_id")
-            figure_entry = {
-                "figure_id": entry["figure_id"],
-                "template_id": entry.get("template_id"),
-                "pack_id": pack_id,
-                "renderer_family": entry.get("renderer_family"),
-                "paper_role": entry.get("paper_role"),
-                "display_role": entry.get("display_role"),
-                "title": entry.get("title"),
-                "caption": entry.get("caption"),
-                "input_schema_id": entry.get("input_schema_id"),
-                "qc_profile": entry.get("qc_profile"),
-                "qc_result": entry.get("qc_result"),
-                "source_paths": export_paths,
-                "output_paths": output_paths,
-            }
-            _attach_pack_provenance(
-                figure_entry,
-                pack_id=pack_id,
+                figures_output_dir=figures_output_dir,
                 pack_summary_by_id=pack_summary_by_id,
+            )
+            if figure_entry is None:
+                continue
+            figure_naming_map[str(figure_entry["figure_id"])] = build_figure_basename(
+                str(figure_entry["figure_id"])
+            )
+            figure_entries.append(figure_entry)
+            seen_figure_ids.add(str(figure_entry["figure_id"]))
+        for entry in figure_catalog.get("deferred_figures", []):
+            figure_id = str(entry.get("figure_id") or "").strip()
+            if not figure_id or figure_id in seen_figure_ids:
+                continue
+            figure_entry = _materialize_submission_figure_entry(
+                entry=entry,
+                paper_root=paper_root,
+                workspace_root=workspace_root,
+                figures_output_dir=figures_output_dir,
+                pack_summary_by_id=pack_summary_by_id,
+            )
+            if figure_entry is None:
+                continue
+            figure_naming_map[str(figure_entry["figure_id"])] = build_figure_basename(
+                str(figure_entry["figure_id"])
             )
             figure_entries.append(figure_entry)
 

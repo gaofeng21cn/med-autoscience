@@ -1110,6 +1110,17 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     outcome = _mapping(decision.get("outcome"))
     guard = _mapping(readback.get("durable_mission_stop_guard"))
     opl_closeout = _mapping(decision.get("opl_closeout"))
+    carrier = _carrier(readback)
+    carrier_terminal_closeout = _mapping(carrier.get("terminal_closeout"))
+    carrier_consumption = _mapping(carrier.get("mas_receipt_consumption"))
+    if _carrier_route_back_closeout_supersedes_stage_closure_decision(
+        carrier_terminal_closeout=carrier_terminal_closeout,
+        carrier_consumption=carrier_consumption,
+        decision_opl_closeout=opl_closeout,
+        carrier_receipt_evidence=_mapping(carrier.get("receipt_evidence")),
+        carrier_receipt=_mapping(carrier.get("opl_transition_receipt")),
+    ):
+        opl_closeout = carrier_terminal_closeout
     domain_transition = _mapping(readback.get("domain_transition"))
     domain_next_action = _mapping(domain_transition.get("next_action"))
     domain_next_work_unit = _mapping(domain_transition.get("next_work_unit"))
@@ -1170,6 +1181,30 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
             derived_checkpoint_ref,
         ),
     }
+
+
+def _carrier_route_back_closeout_supersedes_stage_closure_decision(
+    *,
+    carrier_terminal_closeout: Mapping[str, Any],
+    carrier_consumption: Mapping[str, Any],
+    decision_opl_closeout: Mapping[str, Any],
+    carrier_receipt_evidence: Mapping[str, Any],
+    carrier_receipt: Mapping[str, Any],
+) -> bool:
+    if _text(carrier_consumption.get("status")) != "requires_mas_owner_consumption":
+        return False
+    if not carrier_terminal_closeout:
+        return False
+    carrier_attempt_id = _first_text(carrier_terminal_closeout.get("stage_attempt_id"))
+    if carrier_attempt_id is None:
+        return False
+    decision_attempt_id = _first_text(decision_opl_closeout.get("stage_attempt_id"))
+    if decision_attempt_id == carrier_attempt_id:
+        return False
+    return _first_text(
+        carrier_receipt_evidence.get("route_back_evidence_ref"),
+        carrier_receipt.get("route_back_evidence_ref"),
+    ) is not None
 
 
 def _route_checkpoint_evidence_ref_from_opl_closeout(

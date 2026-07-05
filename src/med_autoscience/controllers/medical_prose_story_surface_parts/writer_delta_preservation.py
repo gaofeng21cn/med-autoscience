@@ -140,6 +140,8 @@ def _current_writer_story_delta_text(
         if not isinstance(previous_ref, Mapping):
             continue
         previous_fingerprint = _mapping(previous_ref.get("fingerprint"))
+        if not previous_fingerprint:
+            continue
         current_fingerprint = _path_fingerprint(path)
         if not current_fingerprint or previous_fingerprint == current_fingerprint:
             continue

@@ -243,6 +243,7 @@ def _matching_terminal_closeout(
         closeout_relative_roots=CLOSEOUT_RELATIVE_ROOTS,
         workspace_closeout_relative_roots=WORKSPACE_CLOSEOUT_RELATIVE_ROOTS,
         matches_carrier=_matches_carrier,
+        candidate_priority=_closeout_candidate_priority,
     )
 
 
@@ -264,13 +265,14 @@ def _matching_terminal_closeout_for_running_attempt(
         study_root=study_root,
         closeout_relative_roots=CLOSEOUT_RELATIVE_ROOTS,
         workspace_closeout_relative_roots=WORKSPACE_CLOSEOUT_RELATIVE_ROOTS,
-        matches_carrier=lambda closeout, carrier: (
+        matches_carrier=lambda closeout, carrier, route_back=None: (
             _matches_running_attempt_closeout(
                 closeout=closeout,
                 carrier=carrier,
                 stage_attempt_id=stage_attempt_id,
             )
         ),
+        candidate_priority=_closeout_candidate_priority,
     )
 
 
@@ -292,6 +294,9 @@ def _local_route_back_closeout_supersedes_live_terminal(
     if _closeout_is_live_runtime_terminal(
         closeout=live_closeout,
         closeout_ref=live_ref,
+    ) and not _followthrough_route_back_supersedes_live_terminal(
+        live_closeout=live_closeout,
+        local_closeout=local_closeout,
     ):
         return False
     return _closeout_has_route_back_evidence(local_closeout)
@@ -335,7 +340,8 @@ def _matches_running_attempt_closeout(
         return False
     route_target = _carrier_route_target(carrier)
     if route_target is not None and _text(closeout.get("stage_id")) != route_target:
-        return False
+        if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
+            return False
     if closeout.get("provider_completion_is_domain_completion") is True:
         return False
     if closeout.get("provider_completion_is_domain_ready") is True:
@@ -345,6 +351,113 @@ def _matches_running_attempt_closeout(
     if closeout.get("domain_ready_claimed") is True:
         return False
     return _closeout_is_record_only(closeout)
+
+
+def _closeout_candidate_priority(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    closeout_path: Path,
+    closeout_ref: str,
+    route_back: Mapping[str, Any] | None = None,
+) -> tuple[int, int, int, float]:
+    route_back = _mapping(route_back)
+    return (
+        1
+        if _closeout_binds_exact_route_identity(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
+        )
+        else 0,
+        1 if _closeout_prefers_followthrough_identity(closeout, route_back) else 0,
+        _closeout_semantic_priority(closeout, route_back),
+        closeout_path.stat().st_mtime,
+    )
+
+
+def _closeout_prefers_followthrough_identity(
+    closeout: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+) -> bool:
+    refs = {
+        ref
+        for ref in (
+            _text(closeout.get("paper_mission_transaction_ref")),
+            _text(closeout.get("stage_packet_ref")),
+            _text(route_back.get("paper_mission_transaction_ref")),
+            _text(route_back.get("stage_packet_ref")),
+        )
+        if ref is not None
+    }
+    return any("::followthrough::" in ref for ref in refs)
+
+
+def _closeout_semantic_priority(
+    closeout: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+) -> int:
+    score = 0
+    route_impact = _mapping(closeout.get("route_impact"))
+    closeout_refs = _text_list(closeout.get("closeout_refs"))
+    if _first_text(
+        route_impact.get("paper_facing_delta_ref"),
+        closeout.get("paper_facing_delta_ref"),
+    ):
+        score += 2
+    if _first_text(
+        closeout.get("candidate_manifest_ref"),
+        route_back.get("candidate_manifest_ref"),
+    ) or any("candidate_manifest.json" in ref for ref in closeout_refs):
+        score += 1
+    if (
+        _mapping(route_impact.get("stage_log_summary"))
+        or _mapping(route_impact.get("user_stage_log"))
+        or _text(route_impact.get("human_stage_log")) is not None
+    ):
+        score += 1
+    if any("progress_events" in ref for ref in closeout_refs):
+        score += 1
+    if _text(route_back.get("owner_gate_verdict")) is not None:
+        score += 1
+    if _text(route_back.get("next_forced_paper_action")) is not None:
+        score += 1
+    if (
+        _mapping(route_back.get("source_evidence"))
+        or _text(route_back.get("source_readiness_checklist_ref")) is not None
+    ):
+        score += 1
+    if _first_text(
+        route_back.get("remaining_blocker"),
+        route_back.get("remaining_blockers"),
+    ):
+        score += 1
+    return score
+
+
+def _followthrough_route_back_supersedes_live_terminal(
+    *,
+    live_closeout: Mapping[str, Any],
+    local_closeout: Mapping[str, Any],
+) -> bool:
+    if not _closeout_has_route_back_evidence(local_closeout):
+        return False
+    local_route_ref = _first_text(
+        local_closeout.get("stage_packet_ref"),
+        local_closeout.get("paper_mission_transaction_ref"),
+    )
+    live_route_ref = _first_text(
+        live_closeout.get("stage_packet_ref"),
+        live_closeout.get("paper_mission_transaction_ref"),
+    )
+    if not _route_ref_matches(local_route_ref, live_route_ref):
+        return False
+    if local_route_ref is None or "::followthrough::" not in local_route_ref:
+        return False
+    return _closeout_semantic_priority(local_closeout, {}) >= _closeout_semantic_priority(
+        live_closeout,
+        {},
+    )
 
 
 def _matching_opl_runtime_terminal_closeout(
@@ -1015,7 +1128,9 @@ def _matches_carrier(
     *,
     closeout: Mapping[str, Any],
     carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any] | None = None,
 ) -> bool:
+    route_back = _mapping(route_back)
     if _text(closeout.get("surface_kind")) != "stage_attempt_closeout_packet":
         return False
     if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
@@ -1025,6 +1140,7 @@ def _matches_carrier(
     if not has_route_identity or not _closeout_binds_route_identity(
         closeout=closeout,
         carrier=carrier,
+        route_back=route_back,
     ):
         if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
             return False
@@ -1032,16 +1148,24 @@ def _matches_carrier(
             carrier.get("work_unit_fingerprint")
         ):
             return False
-    route_target = _carrier_route_target(carrier)
-    if route_target is not None and _text(closeout.get("stage_id")) != route_target:
+    if not _closeout_matches_route_target(
+        closeout=closeout,
+        carrier=carrier,
+        route_back=route_back,
+    ):
         return False
     if has_route_identity and (
         _non_current_closeout_reason(closeout.get("blocked_reason"))
-        or not _closeout_binds_route_identity(closeout=closeout, carrier=carrier)
+        or not _closeout_binds_route_identity(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
+        )
         or _closeout_idempotency_mismatches_carrier(closeout=closeout, carrier=carrier)
         or _closeout_lacks_current_candidate_binding(
             closeout=closeout,
             carrier=carrier,
+            route_back=route_back,
         )
     ):
         return False
@@ -1089,13 +1213,19 @@ def _closeout_binds_route_identity(
     *,
     closeout: Mapping[str, Any],
     carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any] | None = None,
 ) -> bool:
+    route_back = _mapping(route_back)
     refs = {
         ref
         for ref in (
             _text(closeout.get("stage_packet_ref")),
+            _text(closeout.get("paper_mission_transaction_ref")),
             _text(closeout.get("opl_route_command_ref")),
             _text(closeout.get("route_command_ref")),
+            _text(route_back.get("stage_packet_ref")),
+            _text(route_back.get("paper_mission_transaction_ref")),
+            _text(route_back.get("opl_route_command_ref")),
             *_text_list(closeout.get("closeout_refs")),
         )
         if ref is not None
@@ -1121,17 +1251,24 @@ def _closeout_lacks_current_candidate_binding(
     *,
     closeout: Mapping[str, Any],
     carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any] | None = None,
 ) -> bool:
+    route_back = _mapping(route_back)
     expected = _idempotency_refs(carrier)
     if not expected:
         return False
-    if _closeout_binds_exact_route_identity(closeout=closeout, carrier=carrier):
+    if _closeout_binds_exact_route_identity(
+        closeout=closeout,
+        carrier=carrier,
+        route_back=route_back,
+    ):
         return False
     observed = _idempotency_refs(closeout)
     observed.update(_idempotency_refs(_mapping(closeout.get("opl_transition_receipt"))))
+    observed.update(_idempotency_refs(route_back))
     if observed:
         return False
-    candidate_refs = _closeout_candidate_refs(closeout)
+    candidate_refs = _closeout_candidate_refs(closeout, route_back)
     if not candidate_refs:
         return True
     return not any(
@@ -1139,7 +1276,12 @@ def _closeout_lacks_current_candidate_binding(
         for candidate_ref in candidate_refs
     )
 
-def _closeout_candidate_refs(closeout: Mapping[str, Any]) -> set[str]:
+def _closeout_candidate_refs(
+    closeout: Mapping[str, Any],
+    route_back: Mapping[str, Any] | None = None,
+) -> set[str]:
+    route_back = _mapping(route_back)
+    source_evidence = _mapping(route_back.get("source_evidence"))
     refs = {
         text
         for field in (
@@ -1152,10 +1294,57 @@ def _closeout_candidate_refs(closeout: Mapping[str, Any]) -> set[str]:
     }
     refs.update(
         text
+        for text in (
+            _text(route_back.get("candidate_manifest_ref")),
+            _text(route_back.get("paper_facing_delta_ref")),
+            _text(source_evidence.get("paper_mission_candidate_package_ref")),
+            _text(source_evidence.get("paper_facing_candidate_delta_ref")),
+        )
+        if text is not None
+    )
+    refs.update(
+        text
         for text in _text_list(closeout.get("closeout_refs"))
         if _looks_like_candidate_package_ref(text)
     )
     return refs
+
+def _closeout_matches_route_target(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+) -> bool:
+    route_target = _carrier_route_target(carrier)
+    if route_target is None:
+        return True
+    observed_stage_ids = {
+        value
+        for value in (
+            _text(closeout.get("stage_id")),
+            _text(route_back.get("stage_id")),
+        )
+        if value is not None
+    }
+    if route_target in observed_stage_ids:
+        return True
+    observed_work_unit_ids = {
+        value
+        for value in (
+            _text(closeout.get("work_unit_id")),
+            _text(route_back.get("work_unit_id")),
+        )
+        if value is not None
+    }
+    return (
+        bool(observed_work_unit_ids)
+        and _text(carrier.get("work_unit_id")) in observed_work_unit_ids
+        and _closeout_binds_route_identity(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
+        )
+    )
 
 def _closeout_has_route_back_evidence(closeout: Mapping[str, Any]) -> bool:
     route_impact = _mapping(closeout.get("route_impact"))
@@ -1192,17 +1381,25 @@ def _closeout_binds_exact_route_identity(
     *,
     closeout: Mapping[str, Any],
     carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any] | None = None,
 ) -> bool:
+    route_back = _mapping(route_back)
     expected_transaction_refs = _carrier_transaction_refs(carrier)
     if not expected_transaction_refs:
         return False
-    closeout_transaction_ref = _text(closeout.get("paper_mission_transaction_ref"))
+    closeout_transaction_ref = _first_text(
+        closeout.get("paper_mission_transaction_ref"),
+        route_back.get("paper_mission_transaction_ref"),
+    )
     if any(
         _route_ref_matches(closeout_transaction_ref, expected_transaction_ref)
         for expected_transaction_ref in expected_transaction_refs
     ):
         return True
-    stage_packet_ref = _text(closeout.get("stage_packet_ref"))
+    stage_packet_ref = _first_text(
+        closeout.get("stage_packet_ref"),
+        route_back.get("stage_packet_ref"),
+    )
     if _closeout_has_route_back_evidence(closeout) and any(
         _route_ref_matches(stage_packet_ref, expected_transaction_ref)
         for expected_transaction_ref in expected_transaction_refs
@@ -1239,8 +1436,12 @@ def _closeout_binds_exact_route_identity(
         ref
         for ref in (
             _text(closeout.get("stage_packet_ref")),
+            _text(closeout.get("paper_mission_transaction_ref")),
             _text(closeout.get("opl_route_command_ref")),
             _text(closeout.get("route_command_ref")),
+            _text(route_back.get("stage_packet_ref")),
+            _text(route_back.get("paper_mission_transaction_ref")),
+            _text(route_back.get("opl_route_command_ref")),
             *_text_list(closeout.get("closeout_refs")),
         )
         if ref is not None
@@ -1316,6 +1517,11 @@ def _paper_mission_transaction_refs_match(left: str, right: str) -> bool:
     right_base = right.split("#", 1)[0]
     if left_base == right_base:
         return True
+    if (
+        _normalize_paper_mission_transaction_ref(left_base)
+        == _normalize_paper_mission_transaction_ref(right_base)
+    ):
+        return True
     left_parts = left_base.split("::")
     right_parts = right_base.split("::")
     if len(left_parts) < 5 or len(left_parts) != len(right_parts):
@@ -1325,6 +1531,20 @@ def _paper_mission_transaction_refs_match(left: str, right: str) -> bool:
     if right_parts[0] != "paper-mission-transaction":
         return False
     return left_parts[2:] == right_parts[2:]
+
+def _normalize_paper_mission_transaction_ref(value: str) -> str:
+    parts = value.split("::")
+    if not parts or parts[0] != "paper-mission-transaction":
+        return value
+    normalized: list[str] = []
+    index = 0
+    while index < len(parts):
+        if parts[index] == "followthrough":
+            index += 2 if index + 1 < len(parts) else 1
+            continue
+        normalized.append(parts[index])
+        index += 1
+    return "::".join(normalized)
 
 def _non_current_closeout_reason(value: object) -> bool:
     reason = _text(value)

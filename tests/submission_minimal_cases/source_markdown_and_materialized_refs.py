@@ -257,14 +257,123 @@ def test_create_submission_minimal_package_keeps_submission_figure_legends_conci
     submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
         encoding="utf-8"
     )
-    assert "The cohort architecture is summarized for reader orientation." not in submission_markdown
     assert "Caption." in submission_markdown
+    assert "The cohort architecture is summarized for reader orientation." in submission_markdown
+    assert submission_markdown.count("The cohort architecture is summarized for reader orientation.") == 1
     assert "The figure summarizes the observed cohort architecture." not in submission_markdown
     assert "Thresholds are descriptive operating points." not in submission_markdown
     assert "paper should" not in submission_markdown.lower()
     assert "do not recast" not in submission_markdown.lower()
     assert "must not" not in submission_markdown.lower()
     assert "should not" not in submission_markdown.lower()
+
+
+def test_figure_legend_merge_skips_near_duplicate_semantic_message() -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.markdown_surface")
+
+    legend = module.merge_legend_with_figure_semantics(
+        base_legend=(
+            "Recorded metabolic diagnostic fields by BMI category among records with populated status. "
+            "Point size reflects the available denominator; labels show positive records over available records. "
+            "Percentages exclude unknown values and are not prevalence estimates."
+        ),
+        figure_semantics={
+            "direct_message": (
+                "Recorded metabolic diagnostic fields are shown by BMI category among records with populated status. "
+                "Point size reflects the available denominator; labels show positive records over available records. "
+                "Percentages exclude unknown values and are not prevalence estimates."
+            )
+        },
+    )
+
+    assert legend.count("Recorded metabolic diagnostic fields") == 1
+
+
+def test_create_submission_minimal_package_skips_stale_panel_messages_for_single_panel_grouped_calibration(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "direct_message": "Observed mortality rises steeply across NHANES deciles while mean predicted risk remains compressed.",
+                    "panel_messages": [
+                        {"panel_id": "A", "message": "Panel A: legacy multi-panel wording should not survive the single-panel grouped calibration export."},
+                        {"panel_id": "B", "message": "Panel B: legacy multi-panel wording should not survive the single-panel grouped calibration export."},
+                    ],
+                }
+            ],
+        },
+    )
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"][0]["template_id"] = "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+    figure_catalog["figures"][0]["qc_result"] = {
+        "status": "pass",
+        "metrics": {"plot_variant": "nhanes_decile_grouped_calibration"},
+    }
+    dump_json(figure_catalog_path, figure_catalog)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Observed mortality rises steeply across NHANES deciles while mean predicted risk remains compressed." in submission_markdown
+    assert "legacy multi-panel wording should not survive the single-panel grouped calibration export" not in submission_markdown
+
+
+def test_create_submission_minimal_package_copies_deferred_supplementary_figure_assets(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"] = [figure_catalog["figures"][0]]
+    figure_catalog["deferred_figures"] = [
+        {
+            "figure_id": "F4",
+            "paper_role": "supplementary",
+            "display_role": "deferred_context_not_main_evidence",
+            "title": "Deferred threshold-utility context",
+            "caption": "Deferred context retained as supplementary support.",
+        }
+    ]
+    dump_json(figure_catalog_path, figure_catalog)
+    output_png_path = paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.png"
+    output_pdf_path = paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.pdf"
+    write_png(output_png_path)
+    write_text(output_pdf_path, "%PDF-1.4\n%deferred figure\n")
+    dump_json(
+        paper_root / "build" / "display_pack_render_requests" / "F4.render_request.json",
+        {
+            "output_png_path": str(output_png_path.resolve()),
+            "output_pdf_path": str(output_pdf_path.resolve()),
+            "output_svg_path": None,
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    figure_names = {path.name for path in (paper_root / "submission_minimal" / "figures").iterdir()}
+    assert "Figure1.png" in figure_names
+    assert "Figure4.png" in figure_names
+    assert "Figure4.pdf" in figure_names
 
 
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(

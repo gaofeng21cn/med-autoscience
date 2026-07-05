@@ -162,7 +162,7 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     write_text(paper_root / "tables" / "S1_missingness.csv", "Variable,Missing\nBMI,0\n")
     write_text(
         paper_root / "tables" / "S1_missingness.md",
-        "| Variable | Missing |\n| --- | --- |\n| BMI | 0 |\n",
+        "\\newpage\n\n# Supplementary Table S1. Missingness atlas\n\n| Variable | Missing |\n| --- | --- |\n| BMI | 0 |\n",
     )
     table_catalog_path = paper_root / "tables" / "table_catalog.json"
     table_catalog = json.loads(table_catalog_path.read_text(encoding="utf-8"))
@@ -226,15 +226,36 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     )
 
 
-def test_create_submission_minimal_package_skips_deferred_supplementary_figures(
+def test_create_submission_minimal_package_materializes_deferred_supplementary_figures(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
-    figure_catalog["figures"][1]["display_role"] = "deferred_context_not_main_evidence"
+    figure_catalog["figures"] = [figure_catalog["figures"][0]]
+    figure_catalog["deferred_figures"] = [
+        {
+            "figure_id": "F4",
+            "paper_role": "supplementary",
+            "display_role": "deferred_context_not_main_evidence",
+            "title": "Deferred threshold-utility context",
+            "caption": "Deferred context retained as supplementary support.",
+        }
+    ]
     dump_json(figure_catalog_path, figure_catalog)
+    output_png_path = paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.png"
+    output_pdf_path = paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.pdf"
+    write_png(output_png_path)
+    write_text(output_pdf_path, "%PDF-1.4\n%deferred figure\n")
+    dump_json(
+        paper_root / "build" / "display_pack_render_requests" / "F4.render_request.json",
+        {
+            "output_png_path": str(output_png_path.resolve()),
+            "output_pdf_path": str(output_pdf_path.resolve()),
+            "output_svg_path": None,
+        },
+    )
 
     module.create_submission_minimal_package(
         paper_root=paper_root,
@@ -243,10 +264,27 @@ def test_create_submission_minimal_package_skips_deferred_supplementary_figures(
 
     submission_root = paper_root / "submission_minimal"
     supplementary_figures_markdown_path = submission_root / "supplementary_figures.md"
-    supplementary_markdown_path = submission_root / "supplementary_material.md"
+    combined_docx_path = submission_root / "manuscript_with_supplementary.docx"
+    combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
 
-    assert not supplementary_figures_markdown_path.exists()
-    assert not supplementary_markdown_path.exists()
+    assert supplementary_figures_markdown_path.exists()
+    assert combined_docx_path.exists()
+    assert combined_pdf_path.exists()
+    supplementary_markdown = supplementary_figures_markdown_path.read_text(encoding="utf-8")
+    assert "Supplementary Figure S1. Deferred threshold-utility context" in supplementary_markdown
+    assert "Deferred context retained as supplementary support." in supplementary_markdown
+    assert "![](figures/Figure4.png){width=100%}" in supplementary_markdown
+
+    manifest = json.loads((submission_root / "audit" / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["supplementary_material"]["source_markdown_path"] == (
+        "paper/submission_minimal/supplementary_figures.md"
+    )
+    assert manifest["supplementary_material"]["combined_review_docx_path"] == (
+        "paper/submission_minimal/manuscript_with_supplementary.docx"
+    )
+    assert manifest["supplementary_material"]["combined_review_pdf_path"] == (
+        "paper/submission_minimal/paper_with_supplementary.pdf"
+    )
 
 
 def test_create_submission_minimal_package_recovers_inline_supplementary_tables_without_catalog_entries(
@@ -401,6 +439,40 @@ Current draft conclusion.
     assert "Current MAS Draft Title" in submission_text
     assert "Current draft methods." in submission_text
     assert "Test Medical Manuscript" not in submission_text
+
+
+def test_create_submission_minimal_package_refreshes_review_manuscript_when_current_draft_is_newer(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    current_story = """# Current MAS Draft Title
+
+## Abstract
+
+Current draft abstract.
+
+## Introduction
+
+Current draft introduction.
+"""
+    write_text(paper_root / "draft.md", current_story)
+    write_text(paper_root / "build" / "review_manuscript.md", "# Stale Review\n\nOld text.\n")
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "schema_version": 1,
+            "source_markdown_path": "paper/draft.md",
+            "output_pdf": "paper/paper.pdf",
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == current_story.rstrip() + "\n"
 
 
 def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_path: Path) -> None:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -139,7 +140,7 @@ def materialize_medical_prose_story_surfaces(
     )
     if current_writer_delta_paths:
         return current_writer_delta_paths
-    if preserve_current_writer_story_delta(
+    if work_unit_id != DM002_AFTER_STORY_REPAIR_MEDICAL_PROSE_HARDENING_WORK_UNIT_ID and preserve_current_writer_story_delta(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
         medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
@@ -843,7 +844,11 @@ def _format_percent(value: object) -> str:
 
 def _contains_forbidden_manuscript_terms(text: str) -> bool:
     lowered = text.lower()
-    return any(term.lower() in lowered for term in FORBIDDEN_MANUSCRIPT_TERMS)
+    for term in FORBIDDEN_MANUSCRIPT_TERMS:
+        escaped = re.escape(term.lower())
+        if re.search(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", lowered):
+            return True
+    return False
 
 
 def _write_text_if_changed(path: Path, text: str) -> bool:

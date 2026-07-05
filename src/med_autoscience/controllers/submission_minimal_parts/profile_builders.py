@@ -116,6 +116,7 @@ def build_general_medical_submission_markdown(
     main_figures = ""
     appendix_heading = ""
     appendix = ""
+    limitations = ""
     figure_semantics_map: dict[str, dict[str, Any]] = {}
     manuscript_title, manuscript_sections, manuscript_auxiliary_blocks = parse_manuscript_shaped_draft(compiled_text)
 
@@ -153,8 +154,14 @@ def build_general_medical_submission_markdown(
         discussion = extract_optional_block_between_markers(
             compiled_text,
             start_marker="\n## Discussion\n\n",
-            end_markers=["\n## Conclusion\n"],
+            end_markers=["\n## Limitations\n", "\n## Conclusion\n"],
             label="Discussion",
+        )
+        limitations = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Limitations\n\n",
+            end_markers=["\n## Conclusion\n", "\n# Appendix", "\n## Appendix\n"],
+            label="Limitations",
         )
         conclusion = extract_optional_block_between_markers(
             compiled_text,
@@ -170,6 +177,7 @@ def build_general_medical_submission_markdown(
         methods = first_nonempty_block(manuscript_sections, "Methods", "Materials and Methods", "Materials & Methods")
         results = first_nonempty_block(manuscript_sections, "Results")
         discussion = first_nonempty_block(manuscript_sections, "Discussion")
+        limitations = first_nonempty_block(manuscript_sections, "Limitations")
         conclusion = first_nonempty_block(manuscript_sections, "Conclusion", "Conclusions")
         main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
         if not main_tables:
@@ -211,6 +219,11 @@ def build_general_medical_submission_markdown(
         discussion = extract_optional_markdown_block(
             body,
             "Discussion",
+            ["Limitations", "Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        limitations = extract_optional_markdown_block(
+            body,
+            "Limitations",
             ["Conclusion", "Main Tables", "Main Figures", "Appendix"],
         )
         conclusion = extract_optional_markdown_block(
@@ -231,6 +244,7 @@ def build_general_medical_submission_markdown(
         methods = _remove_canonical_manuscript_section(methods, "appendix")
         results = _remove_canonical_manuscript_section(results, "appendix")
         discussion = _remove_canonical_manuscript_section(discussion, "appendix")
+        limitations = _remove_canonical_manuscript_section(limitations, "appendix")
         conclusion = _remove_canonical_manuscript_section(conclusion, "appendix")
         main_tables = _remove_canonical_manuscript_section(main_tables, "appendix")
         main_figures = _remove_canonical_manuscript_section(main_figures, "appendix")
@@ -288,6 +302,7 @@ def build_general_medical_submission_markdown(
         ("# Methods", methods),
         ("# Results", results),
         ("# Discussion", discussion),
+        ("# Limitations", limitations),
         ("# Conclusion", conclusion),
         (appendix_heading or "# Appendix", appendix),
     ]

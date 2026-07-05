@@ -1,3 +1,5 @@
+from difflib import SequenceMatcher
+
 from .shared_base import *
 
 def extract_block_between_markers(
@@ -380,11 +382,24 @@ def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
     figures = _iter_figure_semantics_items(payload.get("figures") if isinstance(payload, dict) else None)
     if not figures:
         return {}
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog_payload = load_json(figure_catalog_path) if figure_catalog_path.exists() else {}
+    catalog_entries = {
+        str(item.get("figure_id") or "").strip(): item
+        for item in _sorted_figure_catalog_entries(
+            figure_catalog_payload.get("figures") if isinstance(figure_catalog_payload, dict) else []
+        )
+        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+    }
     normalized: dict[str, dict[str, Any]] = {}
     for item in figures:
         figure_id = str(item.get("figure_id") or "").strip()
+        merged_item = dict(item)
+        catalog_entry = catalog_entries.get(figure_id)
+        if catalog_entry is not None:
+            merged_item.setdefault("__figure_catalog_entry", dict(catalog_entry))
         for alias in figure_id_aliases(figure_id):
-            normalized[alias] = item
+            normalized[alias] = merged_item
     return normalized
 
 
@@ -608,9 +623,27 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
             return f"{text}."
         return text
 
+    def is_near_duplicate(candidate: str, existing: str) -> bool:
+        normalized_candidate = re.sub(r"\W+", " ", candidate.casefold()).strip()
+        normalized_existing = re.sub(r"\W+", " ", existing.casefold()).strip()
+        if not normalized_candidate or not normalized_existing:
+            return False
+        if normalized_candidate in normalized_existing or normalized_existing in normalized_candidate:
+            return True
+        candidate_tokens = set(normalized_candidate.split())
+        existing_tokens = set(normalized_existing.split())
+        if candidate_tokens and existing_tokens:
+            overlap = len(candidate_tokens & existing_tokens) / min(
+                len(candidate_tokens), len(existing_tokens)
+            )
+            if overlap >= 0.8:
+                return True
+        return SequenceMatcher(None, normalized_candidate, normalized_existing).ratio() >= 0.82
+
     def append_sentence(value: str) -> None:
         sentence = normalize_sentence(value)
-        if sentence and sentence not in " ".join(legend_sentences):
+        existing_text = " ".join(legend_sentences)
+        if sentence and not is_near_duplicate(sentence, existing_text):
             legend_sentences.append(sentence)
 
     append_sentence(base_legend)
@@ -623,7 +656,14 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
     append_sentence(str(figure_semantics.get("direct_message") or ""))
 
     panel_messages = figure_semantics.get("panel_messages") or figure_semantics.get("panel_level_messages")
-    if isinstance(panel_messages, list) and panel_messages:
+    figure_catalog_entry = figure_semantics.get("__figure_catalog_entry")
+    qc_result = figure_catalog_entry.get("qc_result") if isinstance(figure_catalog_entry, dict) else None
+    qc_metrics = qc_result.get("metrics") if isinstance(qc_result, dict) else None
+    plot_variant = str(qc_metrics.get("plot_variant") or "").strip() if isinstance(qc_metrics, dict) else ""
+    include_panel_messages = figure_semantics.get("legend_include_panel_messages")
+    if not isinstance(include_panel_messages, bool):
+        include_panel_messages = plot_variant != "nhanes_decile_grouped_calibration"
+    if include_panel_messages and isinstance(panel_messages, list) and panel_messages:
         for panel in panel_messages:
             if not isinstance(panel, dict):
                 continue

@@ -1922,7 +1922,7 @@ def _latest_stage_attempt_route_back_source_readback(
         _mapping(source_readback.get("paper_mission_transaction")).get("transaction_id")
     )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
-    candidates: list[tuple[int, int, float, str, Path]] = []
+    candidates: list[tuple[int, int, int, float, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
         packet = _load_optional_json_object(packet_ref)
         if not isinstance(packet, Mapping):
@@ -1981,9 +1981,14 @@ def _latest_stage_attempt_route_back_source_readback(
             )
         ):
             bucket_priority = 1
+        semantic_priority = _stage_packet_route_back_semantic_priority(
+            packet=packet,
+            route_back=route_back,
+        )
         candidates.append(
             (
                 transaction_priority,
+                semantic_priority,
                 bucket_priority,
                 packet_ref.stat().st_mtime,
                 str(packet_ref),
@@ -1992,7 +1997,10 @@ def _latest_stage_attempt_route_back_source_readback(
         )
     if not candidates:
         return None
-    packet_ref = max(candidates, key=lambda item: (item[0], item[1], item[2], item[3]))[4]
+    packet_ref = max(
+        candidates,
+        key=lambda item: (item[0], item[1], item[2], item[3], item[4]),
+    )[5]
     return _build_terminalizer_source_readback_from_stage_packet(
         profile=profile,
         profile_ref=profile_ref,
@@ -2154,6 +2162,42 @@ def _stage_packet_transaction_priority(
     if current_stage.startswith(f"{stage_packet_stage}::followthrough::"):
         return 1
     return 0
+
+
+def _stage_packet_route_back_semantic_priority(
+    *,
+    packet: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+) -> int:
+    route_impact = _mapping(packet.get("route_impact"))
+    priority = 0
+    if _first_non_empty_text(
+        packet.get("paper_facing_delta_ref"),
+        route_impact.get("paper_facing_delta_ref"),
+        route_back.get("paper_facing_delta_ref"),
+    ) is not None:
+        priority += 2
+    if _first_non_empty_text(
+        packet.get("progress_events_ref"),
+        route_back.get("progress_events_ref"),
+    ) is not None:
+        priority += 1
+    if _first_non_empty_text(
+        route_impact.get("stage_log_summary"),
+        route_impact.get("user_stage_log"),
+        route_impact.get("human_stage_log"),
+    ) is not None:
+        priority += 1
+    if _first_non_empty_text(
+        route_back.get("owner_gate_verdict"),
+        route_back.get("next_forced_paper_action"),
+        route_back.get("source_readiness_checklist_ref"),
+        route_back.get("remaining_blocker"),
+    ) is not None:
+        priority += 1
+    if _mapping(route_back.get("source_evidence")):
+        priority += 1
+    return priority
 
 
 def _first_non_empty_text(*values: object) -> str | None:

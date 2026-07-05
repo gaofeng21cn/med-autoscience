@@ -262,6 +262,107 @@ def test_align_carrier_readback_projects_owner_consumed_current_attempt() -> Non
     )
 
 
+def test_materialize_receipt_owner_consumption_prefers_current_carrier_route_back_closeout(
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_closeout_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        "sat-current-followthrough/stage_attempt_closeout_packet.json"
+    )
+    readback = {
+        "surface_kind": "paper_mission_materialized_readback",
+        "schema_version": 1,
+        "study_id": study_id,
+        "next_action": {
+            "action_family": "paper.stage_closure.owner_consumption",
+            "outcome_ref": "/tmp/stale-stage-closure.json",
+        },
+        "stage_closure_decision": {
+            "decision_ref": "/tmp/stale-stage-closure.json",
+            "stage_id": "write",
+            "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            "opl_closeout": {
+                "stage_attempt_id": "sat-stale-write",
+                "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            },
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+        },
+        "current_package": {
+            "status": "missing",
+            "can_submit": False,
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-stale-write",
+                "closeout_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-stale-write/stage_attempt_closeout_packet.json"
+                ),
+            },
+        },
+        "current_opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current-followthrough",
+                "closeout_ref": current_closeout_ref,
+                "stage_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            },
+            "receipt_evidence": {
+                "receipt_ref": "opl://stage-attempts/sat-current-followthrough",
+                "stage_attempt_ref": "opl://stage-attempts/sat-current-followthrough",
+                "runtime_closeout_ref": current_closeout_ref,
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current-followthrough/route_back_evidence_packet.json"
+                ),
+            },
+            "opl_transition_receipt": {
+                "surface_kind": "opl_transition_receipt",
+                "receipt_status": "route_back_evidence_closeout_observed",
+                "stage_attempt_id": "sat-current-followthrough",
+                "stage_attempt_ref": "opl://stage-attempts/sat-current-followthrough",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current-followthrough/route_back_evidence_packet.json"
+                ),
+                "can_claim_paper_progress": False,
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "next_legal_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+                "can_claim_paper_progress": False,
+                "can_claim_publication_ready": False,
+            },
+        },
+    }
+
+    applied = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref="/tmp/profile.toml",
+        apply_mode="route_checkpoint",
+        source="test",
+    )
+
+    assert applied["status"] == "owner_consumption_applied"
+    assert applied["receipt_evidence"]["runtime_closeout_ref"] == current_closeout_ref
+    assert applied["opl_transition_receipt"]["stage_attempt_id"] == (
+        "sat-current-followthrough"
+    )
+    assert applied["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current-followthrough"
+    )
+    assert applied["mas_receipt_consumption"]["route_checkpoint_evidence_ref"] == (
+        current_closeout_ref
+    )
+
+
 def test_receipt_owner_consumption_classifies_dm002_typed_blocker_without_authority_write(
     tmp_path: Path,
     capsys,

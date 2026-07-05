@@ -108,7 +108,7 @@ def materialize_dm002_external_validation_story_surface(
         grouped_inputs_path = paper_root / DM002_GROUPED_CALIBRATION_INPUTS_RELATIVE_PATH
         if _write_json_if_changed(grouped_inputs_path, grouped_inputs):
             changed_paths.append(str(grouped_inputs_path.resolve()))
-    title = "External validation of a China-derived diabetes mortality score in NHANES"
+    title = "External validation of a fixed China-derived 5-year diabetes mortality score in NHANES"
     manuscript = "\n\n".join(
         section
         for section in (
@@ -530,7 +530,7 @@ def _dm002_abstract_section(values: Mapping[str, Any]) -> str:
         "validation used 10 NHANES cycles (1999-2018), restricted to adults with doctor-diagnosed diabetes "
         "(DIQ010 == 1), linked 2019 public-use mortality follow-up, and complete records for the shared predictors; "
         f"the retained analysis sample included {values['nhanes_n']} adults and {values['nhanes_events']} deaths "
-        "within 5 years. The fixed penalized Cox model used age, sex, smoking status, HbA1c, HDL cholesterol, "
+        "within 5 years. The fixed Cox risk equation used age, sex, smoking status, HbA1c, HDL cholesterol, "
         "systolic blood pressure, and diastolic blood pressure. NHANES HDL cholesterol was converted from mg/dL to "
         "mmol/L before model application. The model was applied without NHANES refitting or recalibration. We reported "
         "c-index, mean predicted 5-year risk, observed 5-year mortality, observed-to-expected ratio, Brier score, "
@@ -544,8 +544,8 @@ def _dm002_abstract_section(values: Mapping[str, Any]) -> str:
         f"{values['absolute_gap']} percentage points, indicating substantial underprediction of absolute mortality "
         f"risk. {_dm002_group_range_sentence(values)}\n\n"
         "**Conclusions:** The China-derived score retained moderate mortality risk ordering in NHANES adults with "
-        "diabetes but substantially underestimated absolute 5-year mortality. It should be interpreted as a transported "
-        "ranking signal; population-specific recalibration or model updating is required before absolute-risk use."
+        "diabetes but substantially underestimated absolute 5-year mortality. It should not be used for absolute-risk "
+        "communication or threshold-based decisions in NHANES-like populations without recalibration or model updating."
     )
 
 
@@ -558,6 +558,11 @@ def _dm002_introduction_section() -> str:
         "therefore needs to report discrimination and absolute calibration separately. Preserved risk ordering alone "
         "does not establish that predicted probabilities are suitable for clinical risk communication or threshold-based "
         "decisions.\n\n"
+        "Cross-population transport is especially relevant for diabetes risk models because baseline mortality, "
+        "treatment access, cardiovascular and renal comorbidity burden, and measurement practices differ across health "
+        "systems. A model may therefore preserve relative ranking while producing systematically biased absolute "
+        "probabilities. Such miscalibration is clinically consequential when predictions are used for patient "
+        "counseling, trial enrichment, follow-up intensity, or service thresholds.\n\n"
         "This study evaluated whether a fixed seven-predictor China-derived Cox score for 5-year all-cause mortality "
         "retained useful risk ordering in a US diabetes cohort from NHANES, and whether its absolute risk estimates were "
         "calibrated for that cohort without refitting or recalibration."
@@ -591,12 +596,12 @@ def _dm002_methods_section(values: Mapping[str, Any]) -> str:
         "treatment gaps or treatment effects. HDL cholesterol was represented on the model scale in mmol/L. HDL cholesterol "
         f"was converted from mg/dL to mmol/L using {values['hdl_factor']} for NHANES before applying the fixed model.\n\n"
         "### Source model specification\n\n"
-        "The transported model was the fixed China-derived penalized Cox proportional hazards model preserved in the "
-        "study analysis archive and applied unchanged in NHANES. "
-        f"The baseline survival at 5 years was {values['baseline_survival']}, the prediction horizon was 5 years, and "
-        f"the archived rerun recorded a penalizer of {values['penalizer']}. The surviving analysis record did not "
-        "identify whether that penalty was ridge, lasso, or elastic net. No NHANES coefficient updating, baseline-hazard "
-        "updating, recalibration, or predictor selection was performed before validation.\n\n"
+        "The source model was a fixed Cox risk equation derived in the China diabetes cohort and applied unchanged in "
+        "NHANES. The archived model specification provided the seven predictor coefficients and the 5-year baseline "
+        f"survival ({values['baseline_survival']}) required to generate absolute 5-year mortality risk. The archived "
+        f"rerun recorded a penalizer value of {values['penalizer']}, but the external validation did not depend on "
+        "re-estimating the penalized model. No NHANES coefficient updating, baseline-hazard updating, recalibration, "
+        "or predictor selection was performed before validation.\n\n"
         f"{_dm002_coefficient_table(values)}\n\n"
         "### Statistical analysis\n\n"
         "Discrimination was assessed "
@@ -634,8 +639,10 @@ def _dm002_results_section(values: Mapping[str, Any]) -> str:
         f"{values['calibration_intercept_ci']}, and the calibration slope was {values['calibration_slope_ci']}. "
         "The slope greater than 1 indicates that the transported predicted-risk distribution was too compressed in "
         f"NHANES. {grouped_sentence} Figure 3 shows the grouped-calibration pattern directly as predicted and observed "
-        "5-year risk across NHANES deciles. These results indicate that the score ranked patients by mortality risk, but its "
-        "absolute risk scale was too low for NHANES without recalibration."
+        "5-year risk across NHANES deciles. This pattern indicates that the transported model retained monotonic "
+        "ordering but mapped most NHANES participants to a narrow low-risk probability range. These results indicate "
+        "that the score ranked patients by mortality risk, but its absolute risk scale was too low for NHANES without "
+        "recalibration."
     )
 
 
@@ -688,13 +695,17 @@ def _dm002_limitations_section() -> str:
         "The NHANES analysis was unweighted and should not be interpreted as a national prevalence estimate. Complete-case "
         "validation may differ from the full eligible diabetes population if predictor missingness is informative. The "
         "surviving study archive does not preserve a full stepwise NHANES exclusion ledger from all screened participants "
-        "to the retained 5,659-person complete-case sample, and the archived rerun records the penalizer value but not "
-        "the exact penalty form. "
-        "analysis used shared predictors available in both sources and did not evaluate additional biomarkers, treatments, "
-        "competing risks, cause-specific mortality, or model updating. The fixed-horizon implementation did not "
-        "estimate IPCW Brier score, Uno c-index, integrated calibration index, or threshold-specific net benefit. "
-        "Calibration was evaluated at a fixed 5-year horizon; additional time horizons, survey-weighted analyses, "
-        "recalibration studies, and external cohorts would be needed before broader clinical deployment."
+        "to the retained 5,659-person complete-case sample. The source model was available as a fixed archived risk "
+        "equation rather than a fully documented development package; although the coefficients, 5-year baseline "
+        "survival, and penalizer value were preserved, the exact penalty form and full development provenance were not. "
+        "The analysis used only the shared predictors available in both sources and therefore did not evaluate additional "
+        "risk factors such as chronic kidney disease, cardiovascular disease, body mass index, diabetes duration, or "
+        "medication variables. It also did not evaluate competing risks, cause-specific mortality, or model updating. "
+        "The fixed-horizon implementation did "
+        "not estimate IPCW Brier score, Uno c-index, integrated calibration index, or threshold-specific net benefit, "
+        "and no formal recalibration analysis was performed. Calibration was evaluated at a fixed 5-year horizon; "
+        "additional time horizons, survey-weighted analyses, recalibration studies, and external cohorts would be needed "
+        "before broader clinical deployment."
     )
 
 
@@ -703,8 +714,8 @@ def _dm002_conclusion_section(values: Mapping[str, Any]) -> str:
         "## Conclusion\n\n"
         f"A fixed China-derived seven-predictor Cox score achieved a NHANES c-index of {values['nhanes_c_index_ci']} but "
         f"underpredicted 5-year mortality by {values['absolute_gap']} percentage points at the cohort level. The score "
-        "should be treated as a transportable ranking model that needs recalibration before absolute-risk interpretation "
-        "in NHANES-like diabetes populations."
+        "should not be used for absolute-risk communication or threshold-based decisions in NHANES-like diabetes "
+        "populations without recalibration or model updating."
     )
 
 
