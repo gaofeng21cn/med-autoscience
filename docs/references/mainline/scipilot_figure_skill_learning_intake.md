@@ -4,10 +4,10 @@ Status: `owner_surface_and_docs_landed`
 Date: `2026-07-05`
 Owner: `MedAutoScience Medical Display + Stage-Led Autonomy`
 Purpose: 记录 `scipilot-figure-skill` 中可学习的科研数据可视化模式如何折回 MAS 文档层、Stage/Skill/Tool 分工和 no-authority 边界。
-State: `reference_only_pattern_mapped; owner_surface_landed; no_runtime_import; no_authority_import`
+State: `reference_only_pattern_mapped; owner_surface_landed; refs_only_sidecar_tool_shape_landed; no_runtime_import; no_authority_import`
 Machine boundary: 本文是人读学习记录。它不新增 runtime provider、默认 skill source、tool dependency、renderer contract、publication authority、owner receipt、typed blocker、human gate、current package、submission package 或 paper truth。机器真相仍归 MAS owner surfaces、Display Pack contracts、ScholarSkills source pack、quality gates、runtime/readback 和真实 workspace artifacts。
 
-Landing boundary: 本轮停止条件是把可学习点同时落到 MAS figure contract / workflow packet / Stage quality pack / medical-display docs / ScholarSkills professional skill。本文声明的是 non-authority owner-surface 和 docs/professional-skill landing；不声明可执行 worker、tool adapter、owner receipt 或 production/runtime landing。
+Landing boundary: 本轮停止条件是把可学习点同时落到 MAS figure contract / workflow packet / Stage quality pack / medical-display docs / ScholarSkills professional skill，并把 SciPilot 可执行小工具优势登记为 MAS refs-only sidecar/tool-shape landing。本文声明的是 non-authority owner-surface、docs/professional-skill 和 sidecar/tool-shape metadata landing；不声明导入 SciPilot worker、tool adapter、owner receipt 或 production/runtime landing。
 
 ## 2026-07-05 Source Evidence
 
@@ -35,7 +35,9 @@ Source of truth: `/tmp/scipilot-figure-skill` at commit `43098ddb9e6a6d142218540
 | 主动拦截 bad chart choices | `adopt_as_quality_lens` | 进入 QA gates、figure contract 和 Stage quality pack：均值柱掩盖分布、双 Y 轴、饼图、Y 轴截断、rainbow、分类折线、一图多论点等作为 visual / semantic critique candidates。 | `contract_projection_landed` | finding 只能成为 review note、route-back candidate 或 typed blocker candidate；正式 blocker 仍由 MAS owner surface 产出。 |
 | 最终尺寸、矢量优先、字体、灰度/色盲、误差说明 | `adapt` | 落到专业 skill / medical-display 指南 / workflow packet 的 publication-form QA 口径；MAS 已有 display lock、style profile、visual audit 和 PDF 实物复核。 | `professional_skill_and_docs_landed` | 不以外部 checklist 签 publication readiness。 |
 | PNG preview + 程序布局审计 + AI 读图闭环 | `adapt` | 对齐现有 `paper/figure_visual_audit_receipt.json` 和 Visual Audit Protocol，并在 workflow packet 中拆出 `qa_split`。 | `owner_surface_landed` | 不用外部 visual_qa 替代 MAS visual audit receipt、owner receipt 或 publication gate。 |
-| Python matplotlib / seaborn / plotly scripts | `watch_only` | 可作为未来 ScholarSkills tool inspiration：profile/check/export 小工具形状可观察。 | `watch_only` | 当前不导入依赖，不新增 MAS tool adapter，不改变 R/ggplot2-first evidence path。 |
+| `profile_data.py` / `chart_selection.md` advisor shape | `adapt_as_refs_only_sidecar_tool_shape` | 映射为 `figure_advisor_probe`：读取 current figure brief、claim/data refs、data profile refs、样本量/分布/缺失/异常/分组 refs，输出 plot-selection rationale 与 warning refs。 | `refs_only_sidecar_tool_shape_landed` | 不运行 SciPilot 脚本，不导入 pandas/scipy/matplotlib 依赖；输出只能进入 figure brief、Stage quality pack、review note、route-back hint 或 typed blocker candidate。 |
+| `check_figure.py` / `export_figure.py` export lint shape | `adapt_as_refs_only_sidecar_tool_shape` | 映射为 `figure_export_lint`：读取 rendered artifact refs、layout/display lock、export/profile refs，检查 DPI、最终尺寸、字体嵌入、JPEG 禁用、SVG 位图嵌入、CJK 字体和负号风险。 | `refs_only_sidecar_tool_shape_landed` | 不替代 Display Pack renderer、visual audit receipt、owner receipt、publication gate、submission readiness 或 PDF 实物验收。 |
+| Python matplotlib / seaborn / plotly scripts | `reject_runtime_import` | SciPilot scripts 只作为上述两个 tool-shape 的 provenance，不作为 MAS runnable dependency。 | `reject` | 不导入依赖，不新增 SciPilot runtime，不改变 R/ggplot2-first evidence path。 |
 | 外部 skill 作为默认 figure skill source | `reject` | MAS stage prompt 仍归本仓，professional skill / display source pack 归 `mas-scholar-skills`。 | `reject` | 不复制 SciPilot skill、prompt、scripts 或 requirements，不作为 default skill pack。 |
 | 外部 runtime / graceful fallback behavior | `reject` | MAS 不接受外部 plotting runtime 或 optional dependency fallback 作为 paper progress substrate。 | `reject` | 不导入外部 runner、provider、queue、runtime、currentness 或 authority。 |
 
@@ -43,10 +45,17 @@ Source of truth: `/tmp/scipilot-figure-skill` at commit `43098ddb9e6a6d142218540
 
 | MAS layer | What to learn | What not to import |
 | --- | --- | --- |
-| MAS base / runtime | 只保留 progress-first 与 no-authority 读法，并通过 `contracts/scipilot_figure_skill_learning_adoption.json` 记录 source commit、adoption / reject 边界。缺 SciPilot advisory 不阻断 existing current owner action。 | 不新增 scheduler、worker、sidecar、default advisory scan 或 Python plotting runtime。 |
+| MAS base / runtime | 只保留 progress-first 与 no-authority 读法，并通过 `contracts/scipilot_figure_skill_learning_adoption.json` 记录 source commit、adoption / reject 边界。`figure_advisor_probe` 与 `figure_export_lint` 是 refs-only sidecar/tool shapes；缺 SciPilot advisory 不阻断 existing current owner action。 | 不新增 scheduler、默认 advisory scan、SciPilot Python plotting runtime、scripts import 或 dependency import。 |
 | MAS Stage | 在 `figure_evidence_contract_pack` 与 `scipilot_visualization_advisor_ref_floor` 中要求 figure question、variable/sample-size refs、plot-selection rationale、warning ref、deterministic QC ref、AI visual review ref。 | 不把 SciPilot 选图建议写成 owner route 或 hard gate。 |
 | Professional skill | `medical-figure-design` 已把“advisor-first、主动拦截、投稿形式 QA、AI 读图闭环”作为 refs-only 教学和 reviewer lens。 | 不复制 SciPilot Skill 正文，不把它变成第二套 ScholarSkills catalog。 |
-| Tool / pack | 未来若需要，ScholarSkills / OPL Pack 可以参考 profile/check/export 的工具形状，产出 refs-only execution receipt candidate。 | 当前不接入 matplotlib / seaborn / plotly scripts，不修改 Display Pack source pack。 |
+| Tool / pack | `figure_advisor_probe` 和 `figure_export_lint` 可以作为 MAS/OPL refs-only sidecar/tool-shape：只输出 advisory refs、warning refs、missing route-required refs 或 typed blocker candidate，不写 authority surface。 | 当前不接入 matplotlib / seaborn / plotly scripts，不修改 Display Pack source pack，不把 lint pass 写成 publication readiness。 |
+
+## Refs-Only Sidecar Tool Shapes
+
+| tool shape | SciPilot provenance | MAS owner-surface mapping | output boundary | fail-open policy |
+| --- | --- | --- | --- | --- |
+| `figure_advisor_probe` | `scripts/profile_data.py`、`references/data_profiling.md`、`references/chart_selection.md`、`references/viz_pitfalls.md` | Display Pack `figure_intent` / `figure_workflow_packet`、Stage `scipilot_visualization_advisor_ref_floor`、ScholarSkills `medical-figure-design` critique refs | data profile refs、plot-selection rationale、small-n / skew / missingness / grouping / misleading-chart warning refs、route-back hint 或 typed blocker candidate | 缺 probe、probe timeout 或非 route-required ref 缺失默认 fail-open；只有 claim/data/source/evidence ref 是当前 route-required 且影响 hard gate 时才升级 candidate。 |
+| `figure_export_lint` | `scripts/check_figure.py`、`scripts/export_figure.py`、`references/publication_checklist.md`、`references/journal_specs.md` | Display Pack export/QC refs、layout sidecar / display lock、visual audit protocol、publication manifest refs preservation | DPI/final-size/font/JPEG/SVG-raster/CJK/negative-sign warning refs、export-QA note、route-back hint 或 typed blocker candidate | lint 缺失、失败、低置信或超时不阻断 ordinary progress；lint pass 不签 visual-audit clear、owner receipt、publication readiness、submission readiness 或 PDF 实物验收。 |
 
 ## Difference From Nature-Skills Figure Absorption
 
@@ -63,8 +72,8 @@ SciPilot 的补位不同：
 
 SciPilot-derived checklist 是 acceleration layer，不是 admission layer。
 
-- 若 MAS 已有 current owner action、claim/data refs 和 Display Pack route，缺 SciPilot advisory 不阻断 render / audit / owner handoff。
-- 若图型选择缺少 route-required source/data/evidence refs，只能生成 route-back hint 或 typed blocker candidate；正式 blocker 必须由 MAS owner surface、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。
+- 若 MAS 已有 current owner action、claim/data refs 和 Display Pack route，缺 `figure_advisor_probe` / `figure_export_lint` 不阻断 render / audit / owner handoff。
+- 若图型选择或导出 lint 缺少 route-required source/data/evidence/export refs，只能生成 route-back hint 或 typed blocker candidate；正式 blocker 必须由 MAS owner surface、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。
 - AI/VLM 或人读 visual finding 不能修改 claim、data、statistics、artifact authority、paper body、publication eval、controller decisions、owner receipt、human gate、current package 或 submission package。
 - 外部脚本检查通过，只能说明外部脚本检查通过；不能证明 MAS visual audit clear、publication readiness、submission readiness 或 paper closure。
 
@@ -77,10 +86,11 @@ SciPilot-derived checklist 是 acceleration layer，不是 admission layer。
 | MAS base owner surface | Plot-selection floor, bad-chart warnings, QA split | figure contract / workflow packet / QA gates | Expose consumable refs without authority | `done` | `100%` | `figure_contract_policy`, `build_figure_workflow_packet`, `qa_gates.json` | no worker/tool adapter by design | none |
 | Stage quality pack | Figure evidence ref floor | `stage_quality_contract_parts/pack_data.py` | Add `scipilot_visualization_advisor_ref_floor` | `done` | `100%` | Stage contract tests | none | none |
 | Professional skill | Figure advisor discipline | `mas-scholar-skills/skills/medical-figure-design/SKILL.md` | refs-only critique and QA language | `done` | `100%` | ScholarSkills skill/contract checks | repo-wide ScholarSkills verify has unrelated display-pack descriptor residual | keep residual separate |
-| Runtime / tool import | External Python stack and scripts | MAS runtime / ScholarSkills / OPL Pack | Do not import; keep watch-only | `done` | `100%` | reject/watch rows in adoption contract and this file | no tool adapter by design | revisit only with explicit owner request |
+| Refs-only sidecar tool shape | `figure_advisor_probe` / `figure_export_lint` metadata | MAS runtime / Display Pack / Stage quality pack | Map SciPilot executable-tool advantages without importing scripts/dependencies | `done` | `100%` | sidecar/tool-shape rows in adoption contract and this file | no SciPilot script import by design | code-side sidecar may consume these refs-only shapes only under no-authority / fail-open boundary |
+| Runtime / dependency import | External Python stack and scripts | MAS runtime / ScholarSkills / OPL Pack | Reject SciPilot runtime import | `done` | `100%` | reject rows in adoption contract and this file | no runtime dependency by design | revisit only with explicit owner request |
 
 ## Current Claim
 
-可声明：`scipilot-figure-skill` 的学习结论已按 MAS docs taxonomy、figure contract / workflow packet、Stage quality pack 和 ScholarSkills `medical-figure-design` refs-only skill 折回；它是 non-authority advisor-quality landing。
+可声明：`scipilot-figure-skill` 的学习结论已按 MAS docs taxonomy、figure contract / workflow packet、Stage quality pack、ScholarSkills `medical-figure-design` refs-only skill，以及 `figure_advisor_probe` / `figure_export_lint` refs-only sidecar/tool-shape metadata 折回；它是 non-authority advisor-quality / export-lint-quality landing。
 
 不可声明：SciPilot 已成为 MAS dependency、runtime provider、default skill source、Display Pack renderer、quality gate、owner receipt、publication authority、submission readiness authority 或 paper progress evidence。

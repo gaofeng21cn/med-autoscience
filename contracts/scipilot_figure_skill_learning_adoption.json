@@ -28,7 +28,107 @@
     "small_n_and_misleading_chart_warning_floor",
     "final_size_export_and_font_glyph_qc",
     "programmatic_qc_then_ai_visual_review_split",
-    "cjk_and_negative_glyph_publication_export_caution"
+    "cjk_and_negative_glyph_publication_export_caution",
+    "figure_advisor_probe_refs_only_tool_shape",
+    "figure_export_lint_refs_only_tool_shape"
+  ],
+  "runtime_sidecar_policy": {
+    "landing_scope": "refs_only_sidecar_tool_shape_metadata",
+    "nonblocking": true,
+    "fail_open_unless_route_required_evidence_missing": true,
+    "imports_external_scripts_or_dependencies": false,
+    "ordinary_progress_waits_for_sidecar": false,
+    "owner_receipt_or_publication_readiness_authority": false
+  },
+  "sidecar_tool_shapes": [
+    {
+      "tool_shape_id": "figure_advisor_probe",
+      "classification": "adapt_as_refs_only_sidecar_tool_shape",
+      "source_provenance": [
+        "scripts/profile_data.py",
+        "references/data_profiling.md",
+        "references/chart_selection.md",
+        "references/viz_pitfalls.md"
+      ],
+      "accepted_inputs": [
+        "current_owner_delta_ref",
+        "figure_brief_ref",
+        "claim_ref",
+        "data_profile_ref",
+        "sample_size_ref",
+        "distribution_ref",
+        "missingness_ref",
+        "grouping_ref"
+      ],
+      "output_refs": [
+        "plot_selection_rationale_ref",
+        "data_profile_warning_ref",
+        "misleading_chart_warning_ref",
+        "route_back_hint_ref",
+        "typed_blocker_candidate_ref"
+      ],
+      "maps_to_owner_surfaces": [
+        "display_pack_agent_figure_contract_policy",
+        "display_pack_figure_workflow_packet",
+        "stage_quality_pack.scipilot_visualization_advisor_ref_floor",
+        "scholarskills.medical_figure_design.critique_refs"
+      ],
+      "forbidden_authority": [
+        "owner_receipt_authority",
+        "typed_blocker_authority",
+        "source_readiness_authority",
+        "analysis_owner_authority",
+        "default_renderer_runtime_dependency"
+      ],
+      "progress_policy": "nonblocking refs-only advisory; missing route-required claim/data/source/evidence refs may emit route-back or typed-blocker candidate only"
+    },
+    {
+      "tool_shape_id": "figure_export_lint",
+      "classification": "adapt_as_refs_only_sidecar_tool_shape",
+      "source_provenance": [
+        "scripts/check_figure.py",
+        "scripts/export_figure.py",
+        "references/publication_checklist.md",
+        "references/journal_specs.md"
+      ],
+      "accepted_inputs": [
+        "rendered_artifact_ref",
+        "layout_sidecar_ref",
+        "display_pack_lock_ref",
+        "publication_manifest_ref",
+        "journal_export_profile_ref"
+      ],
+      "lint_refs": [
+        "dpi_ref",
+        "final_size_ref",
+        "font_embedding_ref",
+        "jpeg_forbidden_ref",
+        "svg_raster_embed_ref",
+        "cjk_font_ref",
+        "negative_sign_ref"
+      ],
+      "output_refs": [
+        "export_lint_warning_ref",
+        "export_quality_note_ref",
+        "route_back_hint_ref",
+        "typed_blocker_candidate_ref"
+      ],
+      "maps_to_owner_surfaces": [
+        "display_pack_export_qc_refs",
+        "layout_sidecar_or_display_lock",
+        "visual_audit_protocol_refs",
+        "publication_manifest_refs_preservation"
+      ],
+      "forbidden_authority": [
+        "renderer_authority",
+        "visual_audit_replacement",
+        "owner_receipt_authority",
+        "publication_readiness_authority",
+        "submission_readiness_authority",
+        "current_package_authority"
+      ],
+      "progress_policy": "nonblocking refs-only export lint; pass/fail cannot sign publication readiness or replace PDF readback"
+    }
   ],
   "adoptions": [
     {
@@ -87,6 +187,34 @@
         "external_skill_runner_as_provider"
       ],
       "reason": "MAS already owns renderer contracts, Display Pack surfaces, and authority gates; external scripts are useful references but would create a second runtime and weaken progress-first routing."
+    },
+    {
+      "pattern_id": "figure_advisor_probe_refs_only_tool_shape",
+      "classification": "adapt_as_refs_only_sidecar_tool_shape",
+      "landing_status": "refs_only_sidecar_tool_shape_landed",
+      "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
+      "target_landing": "figure_advisor_probe",
+      "consumable_surfaces": [
+        "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_advisor_probe",
+        "docs/references/mainline/scipilot_figure_skill_learning_intake.md#refs-only-sidecar-tool-shapes",
+        "docs/runtime/control/external_learning_adoption_closure.md"
+      ],
+      "evidence_gate": "docs_contract_smoke_and_meta_verification",
+      "progress_policy": "nonblocking refs-only; fail-open unless route-required claim/data/source/evidence refs are missing"
+    },
+    {
+      "pattern_id": "figure_export_lint_refs_only_tool_shape",
+      "classification": "adapt_as_refs_only_sidecar_tool_shape",
+      "landing_status": "refs_only_sidecar_tool_shape_landed",
+      "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
+      "target_landing": "figure_export_lint",
+      "consumable_surfaces": [
+        "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_export_lint",
+        "docs/delivery/medical-display/README.md",
+        "docs/runtime/control/external_learning_adoption_closure.md"
+      ],
+      "evidence_gate": "docs_contract_smoke_and_meta_verification",
+      "progress_policy": "nonblocking refs-only; fail-open unless route-required export evidence is missing; no owner receipt or publication readiness authority"
     }
   ],
   "global_forbidden_authority": [
