@@ -253,9 +253,11 @@ built <- ggplot2::ggplot_build(plot)
 stopifnot(is.null(built$plot$labels$title))
 layout <- build_candidate_layout_override("treatment_gap_alignment_figure", payload)
 stopifnot(identical(layout$metrics$source_renderer, "MAS/DPCC::treatment_gap_alignment_figure"))
-stopifnot(identical(layout$metrics$figure_purpose, "guideline_linked_treatment_gap_burden_small_multiples"))
+stopifnot(identical(layout$metrics$figure_purpose, "recorded_treatment_review_gap_burden_small_multiples"))
 stopifnot(identical(layout$metrics$rendered_title_policy, "figure_title_metadata_only_not_drawn_inside_plot"))
 stopifnot(length(layout$panel_boxes) == 4)
+built_labels <- unique(unlist(lapply(built$data, function(layer) layer$label %||% character())))
+stopifnot(any(grepl("^72.0% [(]n=720[)]$", built_labels)))
 """
 
     result = subprocess.run(

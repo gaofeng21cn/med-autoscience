@@ -194,6 +194,95 @@ def test_materialize_display_surface_generates_dpcc_compact_table_shells(tmp_pat
         "table_shell_id"
     ] == full_id("table3_transition_site_support_summary")
 
+
+def test_materialize_display_surface_preserves_dpcc_medication_capture_t3(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T3",
+                    "table_shell_id": full_id("table3_transition_site_support_summary"),
+                    "pack_id": "fenggaolab.org.medical-display-core",
+                    "paper_role": "main_text",
+                    "input_schema_id": "transition_site_support_summary_schema_v1",
+                    "title": "Medication-capture sensitivity analysis of recorded mismatch signals",
+                    "caption": "Overall and medication-field-present summaries for the core recorded mismatch indicators.",
+                    "asset_paths": ["paper/tables/generated/T3_medication_capture_sensitivity.md"],
+                    "source_paths": ["paper/tables/generated/T3_medication_capture_sensitivity.md"],
+                },
+                {
+                    "table_id": "S6",
+                    "paper_role": "supplementary",
+                    "title": "Transition stability and site-level support summary",
+                    "caption": "Transition stability and site-level support summaries moved to the supplementary material.",
+                    "asset_paths": ["paper/tables/generated/S6_transition_site_support_summary.md"],
+                    "source_paths": ["paper/tables/generated/S6_transition_site_support_summary.md"],
+                },
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "transition_site_support_summary",
+                    "display_kind": "table",
+                    "requirement_key": "table3_transition_site_support_summary",
+                    "catalog_id": "T3",
+                    "shell_path": "paper/tables/transition_site_support_summary.shell.json",
+                },
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "transition_site_support_summary_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table3_transition_site_support_summary",
+            "display_id": "transition_site_support_summary",
+            "group_columns": ["Section", "Metric"],
+            "variables": ["Value"],
+        },
+    )
+    (paper_root / "tables" / "generated").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables" / "generated" / "T3_medication_capture_sensitivity.md").write_text(
+        "# Medication-capture sensitivity analysis\n\n"
+        "| Indicator | Overall recorded mismatch | Medication-field-present mismatch |\n"
+        "| --- | --- | --- |\n"
+        "| Severe glycemia low-intensity gap | 200,306 of 342,025 (58.6%) | 156,219 of 186,347 (83.8%) |\n",
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "generated" / "S6_transition_site_support_summary.md").write_text(
+        "# Transition stability and site-level support\n\n"
+        "| Section | Metric | Value |\n| --- | --- | --- |\n| Transition support | Same-phenotype stability | 45.45% |\n",
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "T3_transition_site_support_summary.csv").write_text(
+        "Section,Metric,Value\nTransition support,Same-phenotype stability,45.45%\n",
+        encoding="utf-8",
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["tables_materialized"] == ["T3"]
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {entry["table_id"]: entry for entry in table_catalog["tables"]}
+    assert tables_by_id["T3"]["title"] == "Medication-capture sensitivity analysis of recorded mismatch signals"
+    assert tables_by_id["T3"]["asset_paths"] == ["paper/tables/generated/T3_medication_capture_sensitivity.md"]
+    assert (paper_root / "tables" / "generated" / "S6_transition_site_support_summary.md").exists()
+
 def test_materialize_display_surface_hydrates_current_body_display_sources(
     tmp_path: Path,
     monkeypatch,

@@ -327,7 +327,7 @@ def _dpcc_treatment_gap_sidecar(template_id: str) -> dict[str, object]:
         "guide_boxes": [],
         "metrics": {
             "source_renderer": "MAS/DPCC::treatment_gap_alignment_figure",
-            "figure_purpose": "guideline_linked_treatment_gap_burden_small_multiples",
+            "figure_purpose": "recorded_treatment_review_gap_burden_small_multiples",
             "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
             "rows": [{"phenotype_label": "Glycemic-dominant diabetes", "index_patients": 1000}],
             "panels": [

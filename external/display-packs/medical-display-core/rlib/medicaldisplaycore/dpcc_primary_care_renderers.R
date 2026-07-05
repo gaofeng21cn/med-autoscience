@@ -55,23 +55,40 @@ dpcc_treatment_rows_df <- function(rows) {
       phenotype_label = candidate_non_empty(item$phenotype_label, sprintf("Phenotype %d", index)),
       index_patients = candidate_numeric(item$index_patients, 0),
       severe_glycemia_low_intensity_gap_patients = candidate_numeric(item$severe_glycemia_low_intensity_gap_patients, 0),
+      severe_glycemia_low_intensity_gap_rate = if (is.null(item$severe_glycemia_low_intensity_gap_rate)) NA_real_ else candidate_numeric(item$severe_glycemia_low_intensity_gap_rate, NA_real_),
       uncontrolled_glycemia_no_drug_gap_patients = candidate_numeric(item$uncontrolled_glycemia_no_drug_gap_patients, 0),
+      uncontrolled_glycemia_no_drug_gap_rate = if (is.null(item$uncontrolled_glycemia_no_drug_gap_rate)) NA_real_ else candidate_numeric(item$uncontrolled_glycemia_no_drug_gap_rate, NA_real_),
       hypertension_no_antihypertensive_gap_patients = candidate_numeric(item$hypertension_no_antihypertensive_gap_patients, 0),
+      hypertension_no_antihypertensive_gap_rate = if (is.null(item$hypertension_no_antihypertensive_gap_rate)) NA_real_ else candidate_numeric(item$hypertension_no_antihypertensive_gap_rate, NA_real_),
       dyslipidemia_no_lipid_lowering_gap_patients = candidate_numeric(item$dyslipidemia_no_lipid_lowering_gap_patients, 0),
+      dyslipidemia_no_lipid_lowering_gap_rate = if (is.null(item$dyslipidemia_no_lipid_lowering_gap_rate)) NA_real_ else candidate_numeric(item$dyslipidemia_no_lipid_lowering_gap_rate, NA_real_),
       stringsAsFactors = FALSE
     )
   }))
 }
 
 dpcc_treatment_long_df <- function(rows_df) {
+  rate_field_map <- c(
+    severe_glycemia_low_intensity_gap_patients = "severe_glycemia_low_intensity_gap_rate",
+    uncontrolled_glycemia_no_drug_gap_patients = "uncontrolled_glycemia_no_drug_gap_rate",
+    hypertension_no_antihypertensive_gap_patients = "hypertension_no_antihypertensive_gap_rate",
+    dyslipidemia_no_lipid_lowering_gap_patients = "dyslipidemia_no_lipid_lowering_gap_rate"
+  )
   do.call(rbind, lapply(names(dpcc_gap_patient_fields), function(field) {
+    rate_field <- rate_field_map[[field]]
+    explicit_rate <- if (!is.null(rate_field) && rate_field %in% names(rows_df)) rows_df[[rate_field]] else NA_real_
+    gap_percent <- ifelse(
+      !is.na(explicit_rate),
+      explicit_rate * 100,
+      ifelse(rows_df$index_patients > 0, rows_df[[field]] / rows_df$index_patients * 100, 0)
+    )
     data.frame(
       phenotype_label = rows_df$phenotype_label,
       gap_field = field,
       gap_label = unname(dpcc_gap_patient_fields[[field]]),
       gap_patients = rows_df[[field]],
       index_patients = rows_df$index_patients,
-      gap_percent = ifelse(rows_df$index_patients > 0, rows_df[[field]] / rows_df$index_patients * 100, 0),
+      gap_percent = gap_percent,
       stringsAsFactors = FALSE
     )
   }))
@@ -237,7 +254,15 @@ dpcc_plot_treatment_gap_alignment <- function(payload) {
   ggplot(long_df, aes(x = gap_percent, y = phenotype_label_wrapped)) +
     geom_col(fill = palette$primary, width = 0.62) +
     geom_text(
-      aes(label = ifelse(gap_patients > 0, format(round(gap_patients), big.mark = ",", scientific = FALSE), "0")),
+      aes(label = ifelse(
+        gap_patients > 0,
+        sprintf(
+          "%.1f%% (n=%s)",
+          gap_percent,
+          format(round(gap_patients), big.mark = ",", scientific = FALSE)
+        ),
+        "0"
+      )),
       hjust = -0.08,
       size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.22,
       colour = palette$text
@@ -246,7 +271,7 @@ dpcc_plot_treatment_gap_alignment <- function(payload) {
     coord_cartesian(xlim = c(0, max(1, max(long_df$gap_percent, na.rm = TRUE) * 1.18)), clip = "off") +
     labs(
       title = NULL,
-      x = "Patients with gap (% of phenotype)",
+      x = "Recorded review signal (% of panel denominator)",
       y = candidate_non_empty(payload$y_label, "DPCC phenotype")
     ) +
     candidate_theme(payload) +
@@ -343,7 +368,7 @@ dpcc_layout_override <- function(template_id, display_payload) {
       guide_boxes = list(),
       metrics = list(
         source_renderer = dpcc_source_renderer(template_id),
-        figure_purpose = "guideline_linked_treatment_gap_burden_small_multiples",
+        figure_purpose = "recorded_treatment_review_gap_burden_small_multiples",
         rendered_title_policy = "figure_title_metadata_only_not_drawn_inside_plot",
         rows = dpcc_metric_rows(display_payload$rows),
         panels = lapply(names(dpcc_gap_patient_fields), function(field) {

@@ -237,6 +237,7 @@ def _materialize_submission_figure_entry(
     entry: Mapping[str, Any],
     paper_root: Path,
     workspace_root: Path,
+    label_root: Path,
     figures_output_dir: Path,
     pack_summary_by_id: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -272,6 +273,7 @@ def _materialize_submission_figure_entry(
         source_paths=export_paths,
         output_dir=figures_output_dir,
         basename=basename,
+        label_root=label_root,
     )
     pack_id = _resolve_pack_id(dict(entry), id_field="template_id")
     figure_entry = {
@@ -307,12 +309,12 @@ def _supplementary_table_label(table_id: str) -> str:
 def _markdown_output_path_for_table_entry(
     *,
     entry: Mapping[str, Any],
-    workspace_root: Path,
+    label_root: Path,
 ) -> Path | None:
     for output_path in entry.get("output_paths") or []:
         normalized = str(output_path or "").strip()
         if normalized and Path(normalized).suffix.lower() == ".md":
-            return resolve_relpath(workspace_root, normalized)
+            return resolve_relpath(label_root, normalized)
     return None
 
 
@@ -346,7 +348,7 @@ def _markdown_without_front_matter(markdown_text: str) -> str:
 def _figure_markdown_image_path(
     *,
     entry: Mapping[str, Any],
-    workspace_root: Path,
+    label_root: Path,
     submission_root: Path,
 ) -> str:
     preferred_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".pdf", ".svg")
@@ -355,13 +357,13 @@ def _figure_markdown_image_path(
         for raw_path in output_paths:
             if not raw_path.lower().endswith(suffix):
                 continue
-            resolved = resolve_relpath(workspace_root, raw_path)
+            resolved = resolve_relpath(label_root, raw_path)
             if not resolved.exists():
                 continue
             try:
                 return resolved.resolve().relative_to(submission_root.resolve()).as_posix()
             except ValueError:
-                return relpath_from_workspace(resolved, workspace_root)
+                return relpath_from_workspace(resolved, label_root)
     return ""
 
 
@@ -369,7 +371,7 @@ def _build_supplementary_figures_markdown(
     *,
     figure_entries: list[dict[str, Any]],
     submission_root: Path,
-    workspace_root: Path,
+    label_root: Path,
 ) -> Path | None:
     supplementary_entries = [entry for entry in figure_entries if _is_supplementary_figure(entry)]
     if not supplementary_entries:
@@ -398,7 +400,7 @@ def _build_supplementary_figures_markdown(
             lines.extend([caption, ""])
         image_path = _figure_markdown_image_path(
             entry=entry,
-            workspace_root=workspace_root,
+            label_root=label_root,
             submission_root=submission_root,
         )
         if image_path:
@@ -413,7 +415,7 @@ def _build_supplementary_tables_markdown(
     *,
     table_entries: list[dict[str, Any]],
     submission_root: Path,
-    workspace_root: Path,
+    label_root: Path,
 ) -> Path | None:
     supplementary_entries = [entry for entry in table_entries if _is_supplementary_table(entry)]
     if not supplementary_entries:
@@ -444,7 +446,7 @@ def _build_supplementary_tables_markdown(
             lines.extend([caption, ""])
         markdown_path = _markdown_output_path_for_table_entry(
             entry=entry,
-            workspace_root=workspace_root,
+            label_root=label_root,
         )
         if markdown_path is not None and markdown_path.exists():
             lines.extend([_table_markdown_body(markdown_path.read_text(encoding="utf-8")), ""])
@@ -579,6 +581,7 @@ def create_submission_minimal_package(
             paper_root=str(paper_root),
         )
     workspace_root = workspace_root_from_paper_root(paper_root)
+    label_root = delivery_label_root_from_paper_root(paper_root)
     clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
         study_root=study_root,
     )
@@ -728,7 +731,7 @@ def create_submission_minimal_package(
                     compiled_markdown_path=compiled_markdown_path,
                     staging_root=staging_submission_root,
                     target_root=target_submission_root,
-                    workspace_root=workspace_root,
+                    label_root=label_root,
                 )
         source_contract_markdown_path = compiled_markdown_path
         if source_markdown_alias_path is not None:
@@ -752,6 +755,7 @@ def create_submission_minimal_package(
                 entry=entry,
                 paper_root=paper_root,
                 workspace_root=workspace_root,
+                label_root=label_root,
                 figures_output_dir=figures_output_dir,
                 pack_summary_by_id=pack_summary_by_id,
             )
@@ -770,6 +774,7 @@ def create_submission_minimal_package(
                 entry=entry,
                 paper_root=paper_root,
                 workspace_root=workspace_root,
+                label_root=label_root,
                 figures_output_dir=figures_output_dir,
                 pack_summary_by_id=pack_summary_by_id,
             )
@@ -805,6 +810,7 @@ def create_submission_minimal_package(
                 source_paths=asset_paths,
                 output_dir=tables_output_dir,
                 basename=basename,
+                label_root=label_root,
             )
             table_naming_map[str(entry["table_id"])] = basename
             pack_id = _resolve_pack_id(entry, id_field="table_shell_id")
@@ -833,7 +839,7 @@ def create_submission_minimal_package(
             supplementary_tables_markdown_path = _build_supplementary_tables_markdown(
                 table_entries=table_entries,
                 submission_root=staging_submission_root,
-                workspace_root=workspace_root,
+                label_root=label_root,
             )
             if supplementary_tables_markdown_path is None:
                 supplementary_tables_markdown_path = build_general_medical_inline_supplementary_section_markdown(
@@ -850,7 +856,7 @@ def create_submission_minimal_package(
             supplementary_figures_markdown_path = _build_supplementary_figures_markdown(
                 figure_entries=figure_entries,
                 submission_root=staging_submission_root,
-                workspace_root=workspace_root,
+                label_root=label_root,
             )
             if supplementary_figures_markdown_path is None:
                 supplementary_figures_markdown_path = build_general_medical_inline_supplementary_section_markdown(
@@ -911,6 +917,7 @@ def create_submission_minimal_package(
             paper_root=paper_root,
             submission_root=staging_submission_root,
             workspace_root=workspace_root,
+            label_root=label_root,
             source_markdown_path=source_markdown_path,
         )
 
@@ -990,10 +997,10 @@ def create_submission_minimal_package(
             "generated_at": utc_now(),
             "publication_profile": resolved_publication_profile,
             "citation_style": profile_config.citation_style,
-            "output_root": relpath_from_workspace(target_submission_root, workspace_root),
+            "output_root": relpath_from_workspace(target_submission_root, label_root),
             "delivery_layout": build_package_layout_block(
                 package_root=target_submission_root,
-                workspace_root=workspace_root,
+                workspace_root=label_root,
                 package_role="controller_authorized_package_source",
                 source_package_root=target_submission_root,
                 legacy_input_status="v2_generated",
@@ -1005,10 +1012,10 @@ def create_submission_minimal_package(
                         staging_root=staging_submission_root,
                         target_root=target_submission_root,
                     ),
-                    workspace_root,
+                    label_root,
                 ),
-                "pdf_path": relpath_from_workspace(target_submission_root / "paper.pdf", workspace_root),
-                "docx_path": relpath_from_workspace(target_submission_root / "manuscript.docx", workspace_root),
+                "pdf_path": relpath_from_workspace(target_submission_root / "paper.pdf", label_root),
+                "docx_path": relpath_from_workspace(target_submission_root / "manuscript.docx", label_root),
                 "csl_path": str(profile_config.csl_path.resolve()),
                 "pdf_rendering": default_pdf_rendering_profile(),
                 "surface_qc": manuscript_surface_qc,
@@ -1023,7 +1030,7 @@ def create_submission_minimal_package(
                     "output_paths": [
                         remap_staging_relpath_to_target(
                             relpath=path,
-                            workspace_root=workspace_root,
+                            workspace_root=label_root,
                             staging_root=staging_submission_root,
                             target_root=target_submission_root,
                         )
@@ -1038,7 +1045,7 @@ def create_submission_minimal_package(
                     "output_paths": [
                         remap_staging_relpath_to_target(
                             relpath=path,
-                            workspace_root=workspace_root,
+                            workspace_root=label_root,
                             staging_root=staging_submission_root,
                             target_root=target_submission_root,
                         )
@@ -1055,7 +1062,7 @@ def create_submission_minimal_package(
             "source_hydration": source_hydration_result,
         }
         if input_compiled_pdf_path.exists():
-            manifest["input_compiled_pdf_path"] = relpath_from_workspace(input_compiled_pdf_path, workspace_root)
+            manifest["input_compiled_pdf_path"] = relpath_from_workspace(input_compiled_pdf_path, label_root)
         else:
             manifest["input_compiled_pdf_path"] = None
             manifest["input_compiled_pdf_status"] = "not_required_rebuilt_from_submission_source"
@@ -1064,7 +1071,7 @@ def create_submission_minimal_package(
                 **references_manifest,
                 "output_path": remap_staging_relpath_to_target(
                     relpath=str(references_manifest["output_path"]),
-                    workspace_root=workspace_root,
+                    workspace_root=label_root,
                     staging_root=staging_submission_root,
                     target_root=target_submission_root,
                 ),
@@ -1077,11 +1084,11 @@ def create_submission_minimal_package(
                     staging_root=staging_submission_root,
                     target_root=target_submission_root,
                 ),
-                workspace_root,
+                label_root,
             )
             manifest["manuscript"]["source_markdown_alias_role"] = "authority_note"
         if pack_lock_path is not None:
-            manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
+            manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, label_root)
             manifest["enabled_display_packs"] = list(pack_summary_by_id.values())
             publication_figure_quality_refs = pack_lock_payload[1].get("publication_figure_quality_refs")
             if publication_figure_quality_refs is not None:
@@ -1104,7 +1111,7 @@ def create_submission_minimal_package(
             profile_config=profile_config,
             staging_submission_root=staging_submission_root,
             target_submission_root=target_submission_root,
-            workspace_root=workspace_root,
+            workspace_root=label_root,
         )
         if supplementary_material is not None:
             manifest["supplementary_material"] = supplementary_material
@@ -1121,7 +1128,7 @@ def create_submission_minimal_package(
             readme_path,
             build_submission_minimal_readme(publication_profile=resolved_publication_profile),
         )
-        manifest["readme_path"] = relpath_from_workspace(target_submission_root / "README.md", workspace_root)
+        manifest["readme_path"] = relpath_from_workspace(target_submission_root / "README.md", label_root)
         submission_manifest_path = layout_submission_manifest_path(staging_submission_root)
         dump_json(submission_manifest_path, manifest)
         evidence_ledger_source = paper_root / "evidence_ledger.json"
@@ -1155,7 +1162,7 @@ def create_submission_minimal_package(
     _apply_controller_authorized_delivery_layout(
         manifest=manifest,
         target_submission_root=target_submission_root,
-        workspace_root=workspace_root,
+        workspace_root=label_root,
         source_contract=refreshed_source_contract,
     )
     dump_json(submission_manifest_path, manifest)
@@ -1173,7 +1180,7 @@ def create_submission_minimal_package(
     )
     if archived_surface_roots:
         manifest["archived_reference_only_submission_surface_roots"] = [
-            relpath_from_workspace(surface_root, workspace_root) for surface_root in archived_surface_roots
+            relpath_from_workspace(surface_root, label_root) for surface_root in archived_surface_roots
         ]
         dump_json(submission_manifest_path, manifest)
     delivery_sync_result: dict[str, Any] | None = None
@@ -1204,7 +1211,7 @@ def create_submission_minimal_package(
         _apply_controller_authorized_delivery_layout(
             manifest=manifest,
             target_submission_root=target_submission_root,
-            workspace_root=workspace_root,
+            workspace_root=label_root,
             source_contract=refreshed_source_contract,
         )
         dump_json(submission_manifest_path, manifest)

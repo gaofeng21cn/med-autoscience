@@ -663,3 +663,54 @@ def make_authoritative_worktree_source_workspace(tmp_path: Path) -> Path:
         },
     )
     return paper_root
+
+
+def make_stage_native_current_body_workspace(tmp_path: Path) -> Path:
+    seed_paper_root = make_current_draft_workspace(tmp_path / "seed")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "003-dpcc"
+    paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    shutil.copytree(seed_paper_root, paper_root, dirs_exist_ok=True)
+    dump_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "status": "supported",
+                    "evidence_refs": ["paper/draft.md"],
+                }
+            ],
+        },
+    )
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text(
+        "\n".join(
+            [
+                "schema_version: 1",
+                "study_id: 003-dpcc",
+                "quest_id: 003-dpcc-managed",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    quest_root = workspace_root / "runtime" / "quests" / "003-dpcc-managed"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 003-dpcc-managed\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 003-dpcc\n",
+        encoding="utf-8",
+    )
+    write_open_authority_snapshots(study_root)
+    return paper_root

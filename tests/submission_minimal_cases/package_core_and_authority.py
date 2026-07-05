@@ -801,6 +801,37 @@ def test_create_submission_minimal_package_canonicalizes_authoritative_worktree_
     assert authority["status"] == "current"
 
 
+def test_create_submission_minimal_package_supports_stage_native_current_body_source(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_stage_native_current_body_workspace(tmp_path)
+    study_root = paper_root.parents[5]
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = study_root / "submission"
+    source_note = (submission_root / "manuscript_source.md").read_text(encoding="utf-8")
+
+    assert manifest["output_root"] == "submission"
+    assert manifest["manuscript"]["source_markdown_path"] == "submission/manuscript_submission.md"
+    assert manifest["manuscript"]["source_markdown_alias_path"] == "submission/manuscript_source.md"
+    assert manifest["manuscript"]["pdf_path"] == "submission/paper.pdf"
+    assert manifest["manuscript"]["docx_path"] == "submission/manuscript.docx"
+    assert (
+        "Canonical full manuscript surface: "
+        "artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/draft.md."
+    ) in source_note
+    assert "Export-ready submission projection: submission/manuscript_submission.md." in source_note
+    assert "Manifest and source signature surface: submission/audit/submission_manifest.json#source_signature." in source_note
+
+    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    assert authority["status"] == "current"
+
+
 def test_create_submission_minimal_package_defaults_to_ama_citation_style(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")

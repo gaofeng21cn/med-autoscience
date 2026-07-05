@@ -19,6 +19,25 @@ from .submission_graphical_abstract import _materialize_submission_graphical_abs
 from .validation_tables import _validate_cohort_flow_payload
 
 
+def _existing_table_catalog_entry(*, table_catalog: dict[str, Any], table_id: str) -> dict[str, Any] | None:
+    for entry in table_catalog.get("tables", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("table_id") or "").strip() == table_id:
+            return entry
+    return None
+
+
+def _dpcc_medication_capture_markdown_path(*, paper_root: Path) -> Path | None:
+    for path in (
+        paper_root / "tables" / "generated" / "T3_medication_capture_sensitivity.md",
+        paper_root / "tables" / "T3_medication_capture_sensitivity.md",
+    ):
+        if path.exists():
+            return path
+    return None
+
+
 def _render_evidence_figure_by_template_runtime(
     *,
     template_id: str,
@@ -546,6 +565,62 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
             table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
+            existing_entry = _existing_table_catalog_entry(table_catalog=table_catalog, table_id=table_id)
+            if (
+                requirement_short_id == "table3_transition_site_support_summary"
+                and table_id == "T3"
+                and isinstance(existing_entry, dict)
+            ):
+                existing_title = str(existing_entry.get("title") or "").strip()
+                existing_paths = [
+                    str(path).strip()
+                    for path in (
+                        list(existing_entry.get("asset_paths") or [])
+                        + list(existing_entry.get("source_paths") or [])
+                    )
+                    if str(path).strip()
+                ]
+                if existing_title == "Medication-capture sensitivity analysis of recorded mismatch signals" or any(
+                    "T3_medication_capture_sensitivity" in path for path in existing_paths
+                ):
+                    output_md_path = _dpcc_medication_capture_markdown_path(paper_root=resolved_paper_root)
+                    if output_md_path is not None:
+                        claim_ids = _claim_ids_for_table(
+                            table_catalog=table_catalog,
+                            claim_evidence_map=claim_evidence_map,
+                            table_id=table_id,
+                        )
+                        entry = dict(existing_entry)
+                        entry.update(
+                            {
+                                "table_id": table_id,
+                                "title": existing_title or "Medication-capture sensitivity analysis of recorded mismatch signals",
+                                "caption": str(existing_entry.get("caption") or "").strip()
+                                or "Overall and medication-field-present summaries for the core recorded mismatch indicators.",
+                                "asset_paths": [_paper_relative_path(output_md_path, paper_root=resolved_paper_root)],
+                                "source_paths": [_paper_relative_path(output_md_path, paper_root=resolved_paper_root)],
+                                "claim_ids": claim_ids,
+                            }
+                        )
+                        render_result = entry.get("render_result")
+                        if isinstance(render_result, dict):
+                            patched_render_result = dict(render_result)
+                        else:
+                            patched_render_result = {}
+                        patched_render_result["title"] = entry["title"]
+                        patched_render_result["caption"] = entry["caption"]
+                        patched_render_result["table_layout_policy"] = "pre_materialized_markdown_owner_surface"
+                        patched_render_result.pop("source_table_path", None)
+                        entry["render_result"] = patched_render_result
+                        table_catalog["tables"] = _replace_catalog_entry(
+                            list(table_catalog.get("tables") or []),
+                            key="table_id",
+                            value=table_id,
+                            entry=entry,
+                        )
+                        tables_materialized.append(table_id)
+                        written_files.append(str(output_md_path))
+                        continue
             output_csv_path: Path | None = None
             if requirement_short_id == "table2_time_to_event_performance_summary":
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_time_to_event_performance_summary.md"

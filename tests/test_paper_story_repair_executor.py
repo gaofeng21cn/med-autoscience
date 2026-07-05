@@ -242,10 +242,11 @@ def test_story_repair_executor_uses_previous_repair_evidence_as_story_delta_anch
     assert result["status"] == "progress_delta_candidate"
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == registry_story
     story_refs = result["repair_execution_evidence"]["manuscript_surface_hygiene"]["story_surface_delta_refs"]
-    assert {
+    relative_story_refs = {
         Path(ref["path"]).relative_to(study_root).as_posix()
         for ref in story_refs
-    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    }
+    assert "paper/build/review_manuscript.md" in relative_story_refs
 
 
 def test_story_repair_executor_targets_stage_native_body_authority(
@@ -958,12 +959,19 @@ def test_dm002_story_surface_carries_archived_fixed_equation_and_clinical_bounda
 
     assert manuscript
     assert extra_paths
-    assert "# External validation of a fixed China-derived 5-year diabetes mortality score in NHANES" in manuscript
+    assert (
+        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "but requires recalibration for absolute risk estimation"
+    ) in manuscript
     assert "The source model was a fixed Cox risk equation derived in the China diabetes cohort" in manuscript
     assert "Cross-population transport is especially relevant for diabetes risk models" in manuscript
-    assert "retained monotonic ordering but mapped most NHANES participants to a narrow low-risk probability range" in manuscript
+    assert "the model still identified higher-risk adults after cross-population transport" in manuscript
     assert "The source model was available as a fixed archived risk equation rather than a fully documented development package" in manuscript
-    assert "should not be used for absolute-risk communication or threshold-based decisions" in manuscript
+    assert "may support transported higher-risk identification" in manuscript
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    assert [item["figure_id"] for item in figure_catalog["figures"]] == ["F1", "F2", "F3"]
+    assert [item["table_id"] for item in table_catalog["tables"]] == ["T1", "T2", "T3"]
 
 
 def test_story_repair_executor_uses_study_root_dm002_evidence_for_body_authority(

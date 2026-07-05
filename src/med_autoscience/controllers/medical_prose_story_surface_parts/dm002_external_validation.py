@@ -60,6 +60,12 @@ DM002_GROUPED_CALIBRATION_TABLE_RELATIVE_PATH = (
 DM002_GROUPED_CALIBRATION_INPUTS_RELATIVE_PATH = Path("time_to_event_grouped_inputs.json")
 DM002_BASELINE_CHARACTERISTICS_SCHEMA_RELATIVE_PATH = Path("baseline_characteristics_schema.json")
 DM002_PERFORMANCE_SUMMARY_INPUTS_RELATIVE_PATH = Path("time_to_event_performance_summary.json")
+DM002_FIGURE_CATALOG_RELATIVE_PATH = Path("figures") / "figure_catalog.json"
+DM002_TABLE_CATALOG_RELATIVE_PATH = Path("tables") / "table_catalog.json"
+DM002_CURRENT_TITLE = (
+    "A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+    "but requires recalibration for absolute risk estimation"
+)
 
 
 def materialize_dm002_external_validation_story_surface(
@@ -108,7 +114,23 @@ def materialize_dm002_external_validation_story_surface(
         grouped_inputs_path = paper_root / DM002_GROUPED_CALIBRATION_INPUTS_RELATIVE_PATH
         if _write_json_if_changed(grouped_inputs_path, grouped_inputs):
             changed_paths.append(str(grouped_inputs_path.resolve()))
-    title = "External validation of a fixed China-derived 5-year diabetes mortality score in NHANES"
+    repaired_figure_catalog = _dm002_figure_catalog_payload(
+        existing_payload=_read_json_object(paper_root / DM002_FIGURE_CATALOG_RELATIVE_PATH),
+    )
+    if repaired_figure_catalog and _write_json_if_changed(
+        paper_root / DM002_FIGURE_CATALOG_RELATIVE_PATH,
+        repaired_figure_catalog,
+    ):
+        changed_paths.append(str((paper_root / DM002_FIGURE_CATALOG_RELATIVE_PATH).resolve()))
+    repaired_table_catalog = _dm002_table_catalog_payload(
+        existing_payload=_read_json_object(paper_root / DM002_TABLE_CATALOG_RELATIVE_PATH),
+    )
+    if repaired_table_catalog and _write_json_if_changed(
+        paper_root / DM002_TABLE_CATALOG_RELATIVE_PATH,
+        repaired_table_catalog,
+    ):
+        changed_paths.append(str((paper_root / DM002_TABLE_CATALOG_RELATIVE_PATH).resolve()))
+    title = DM002_CURRENT_TITLE
     manuscript = "\n\n".join(
         section
         for section in (
@@ -440,6 +462,130 @@ def _dm002_grouped_calibration_display_payload(*, values: Mapping[str, Any], pap
     }
 
 
+def _dm002_figure_catalog_payload(*, existing_payload: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(existing_payload)
+    existing_by_id = {
+        _text(item.get("figure_id")): dict(item)
+        for item in payload.get("figures") or []
+        if isinstance(item, Mapping) and _text(item.get("figure_id"))
+    }
+    figures = []
+    for figure_id, title, caption, template_id, export_paths, source_paths in (
+        (
+            "F1",
+            "Fixed-score external-validation design",
+            "China model derivation and NHANES external validation used the same seven-predictor score and 5-year "
+            "all-cause mortality endpoint; NHANES predictions were generated after HDL unit harmonization without "
+            "coefficient updating, baseline-hazard updating, refitting, or recalibration.",
+            "fenggaolab.org.medical-display-core::cohort_flow_figure",
+            [
+                "paper/figures/generated/F1_cohort_flow.png",
+                "paper/figures/generated/F1_cohort_flow.pdf",
+            ],
+            ["paper/cohort_flow.json"],
+        ),
+        (
+            "F2",
+            "External discrimination and cohort-level calibration",
+            "Discrimination and cohort-level 5-year mortality calibration for the China-derived score in the China "
+            "cohort and the NHANES external-validation cohort after unit harmonization.",
+            "fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel",
+            [
+                "paper/figures/generated/F2_time_to_event_discrimination_calibration_panel.png",
+                "paper/figures/generated/F2_time_to_event_discrimination_calibration_panel.pdf",
+            ],
+            ["paper/time_to_event_discrimination_calibration_inputs.json"],
+        ),
+        (
+            "F3",
+            "Grouped calibration across NHANES transported-score deciles",
+            "Mean predicted and observed 5-year mortality risk across within-NHANES deciles of the transported "
+            "China-derived score. Deciles are descriptive validation groups and are not treatment thresholds.",
+            "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+            [
+                "paper/figures/generated/F3_time_to_event_risk_group_summary.png",
+                "paper/figures/generated/F3_time_to_event_risk_group_summary.pdf",
+            ],
+            ["paper/time_to_event_grouped_inputs.json"],
+        ),
+    ):
+        item = existing_by_id.get(figure_id, {})
+        item["figure_id"] = figure_id
+        item["title"] = title
+        item["caption"] = caption
+        item["template_id"] = _text(item.get("template_id")) or template_id
+        item["paper_role"] = "main_text"
+        item["export_paths"] = export_paths
+        item["source_paths"] = source_paths
+        figures.append(item)
+    payload["schema_version"] = 1
+    payload["figures"] = figures
+    payload.pop("deferred_figures", None)
+    return payload
+
+
+def _dm002_table_catalog_payload(*, existing_payload: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(existing_payload)
+    existing_by_id = {
+        _text(item.get("table_id")): dict(item)
+        for item in payload.get("tables") or []
+        if isinstance(item, Mapping) and _text(item.get("table_id"))
+    }
+    tables = []
+    for table_id, title, caption, table_shell_id, input_schema_id, qc_profile, asset_paths, source_paths in (
+        (
+            "T1",
+            "Baseline characteristics of the China and NHANES diabetes cohorts",
+            "Continuous variables are reported as mean (SD), and binary variables are reported as n (%). "
+            "The table is descriptive and does not present a statistical test or causal comparison.",
+            "fenggaolab.org.medical-display-core::table1_baseline_characteristics",
+            "baseline_characteristics_schema_v1",
+            "publication_table_baseline",
+            [
+                "paper/tables/generated/T1_baseline_characteristics.csv",
+                "paper/tables/generated/T1_baseline_characteristics.md",
+            ],
+            ["paper/baseline_characteristics_schema.json"],
+        ),
+        (
+            "T2",
+            "Prediction performance and calibration summary",
+            "The China-derived 5-year all-cause mortality score is summarized in the China cohort and the NHANES "
+            "external-validation cohort. Discrimination and cohort-level calibration are interpreted separately.",
+            "fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary",
+            "time_to_event_performance_summary_v1",
+            "publication_table_performance",
+            ["paper/tables/generated/T2_time_to_event_performance_summary.md"],
+            ["paper/time_to_event_performance_summary.json"],
+        ),
+        (
+            "T3",
+            "Grouped calibration in NHANES by transported-score decile",
+            "Mean predicted and observed 5-year mortality risk across within-NHANES transported-score deciles. "
+            "Deciles are descriptive validation groups and are not treatment thresholds.",
+            "fenggaolab.org.medical-display-core::table3_grouped_calibration",
+            "time_to_event_grouped_inputs_v1",
+            "publication_table_calibration",
+            ["paper/tables/generated/T3_grouped_calibration.md"],
+            ["paper/time_to_event_grouped_inputs.json"],
+        ),
+    ):
+        item = existing_by_id.get(table_id, {})
+        item["table_id"] = table_id
+        item["title"] = title
+        item["caption"] = caption
+        item["table_shell_id"] = _text(item.get("table_shell_id")) or table_shell_id
+        item["paper_role"] = "main_text"
+        item["input_schema_id"] = _text(item.get("input_schema_id")) or input_schema_id
+        item["qc_profile"] = _text(item.get("qc_profile")) or qc_profile
+        item["asset_paths"] = asset_paths
+        item["source_paths"] = source_paths
+        tables.append(item)
+    payload["schema_version"] = 1
+    payload["tables"] = tables
+    return payload
+
+
 def _display_item_for_requirement(payload: Mapping[str, Any], *, requirement_key: str) -> dict[str, Any] | None:
     displays = payload.get("displays")
     if not isinstance(displays, list):
@@ -520,11 +666,11 @@ def _dm002_grouped_calibration_table(values: Mapping[str, Any]) -> str:
 def _dm002_abstract_section(values: Mapping[str, Any]) -> str:
     return (
         "## Abstract\n\n"
-        "**Background:** Mortality prediction models developed in one diabetes population require external validation "
-        "before their absolute-risk estimates can be interpreted in another population. Discrimination and calibration "
-        "can diverge, so preserved risk ordering alone is insufficient for clinical risk communication.\n\n"
-        "**Objective:** To evaluate discrimination and calibration of a fixed China-derived 5-year all-cause mortality "
-        "score in adults with diabetes from NHANES.\n\n"
+        "**Background:** Diabetes mortality scores transported between populations may retain clinically useful risk "
+        "ordering even when baseline mortality differs. External validation should therefore distinguish cross-population "
+        "risk stratification from absolute-risk calibration.\n\n"
+        "**Objective:** To assess whether a fixed China-derived 5-year all-cause mortality score still identifies "
+        "higher-risk adults with diabetes in NHANES, and whether its absolute-risk scale requires recalibration.\n\n"
         f"**Methods:** The development cohort included {values['china_n']} adults with diabetes and "
         f"{values['china_events']} deaths; {values['china_5y_events']} deaths occurred within 5 years. External "
         "validation used 10 NHANES cycles (1999-2018), restricted to adults with doctor-diagnosed diabetes "
@@ -537,15 +683,16 @@ def _dm002_abstract_section(values: Mapping[str, Any]) -> str:
         f"logistic calibration intercept and slope, and grouped calibration across {values['group_count']} "
         "within-NHANES predicted-risk deciles.\n\n"
         f"**Results:** The China cohort c-index was {values['china_c_index']}. In NHANES, the c-index was "
-        f"{values['nhanes_c_index_ci']}. Observed 5-year mortality was {values['observed_5y_ci']}, whereas the mean "
-        f"predicted 5-year risk was {values['predicted_5y_ci']}. The O:E ratio was {values['oe_ci']}, the Brier score "
-        f"was {values['brier_ci']}, the calibration intercept was {values['calibration_intercept_ci']}, and the "
+        f"{values['nhanes_c_index_ci']}, indicating retained cross-population risk stratification. "
+        f"{_dm002_group_range_sentence(values)} The O:E ratio was {values['oe_ci']}, the Brier score was "
+        f"{values['brier_ci']}, the calibration intercept was {values['calibration_intercept_ci']}, and the "
         f"calibration slope was {values['calibration_slope_ci']}. The cohort-level residual calibration gap was "
         f"{values['absolute_gap']} percentage points, indicating substantial underprediction of absolute mortality "
-        f"risk. {_dm002_group_range_sentence(values)}\n\n"
-        "**Conclusions:** The China-derived score retained moderate mortality risk ordering in NHANES adults with "
-        "diabetes but substantially underestimated absolute 5-year mortality. It should not be used for absolute-risk "
-        "communication or threshold-based decisions in NHANES-like populations without recalibration or model updating."
+        f"risk.\n\n"
+        "**Conclusions:** The China-derived score retained cross-population risk stratification in NHANES and still "
+        "identified higher-risk adults across predicted-risk deciles, but it substantially underestimated absolute "
+        "5-year mortality. The score may therefore support transported risk ranking or higher-risk identification, "
+        "whereas absolute-risk communication and threshold-based decisions require population-specific recalibration."
     )
 
 
@@ -564,8 +711,8 @@ def _dm002_introduction_section() -> str:
         "probabilities. Such miscalibration is clinically consequential when predictions are used for patient "
         "counseling, trial enrichment, follow-up intensity, or service thresholds.\n\n"
         "This study evaluated whether a fixed seven-predictor China-derived Cox score for 5-year all-cause mortality "
-        "retained useful risk ordering in a US diabetes cohort from NHANES, and whether its absolute risk estimates were "
-        "calibrated for that cohort without refitting or recalibration."
+        "remained informative for higher-risk identification in a US diabetes cohort from NHANES, and whether its "
+        "absolute risk estimates were calibrated for that cohort without refitting or recalibration."
     )
 
 
@@ -597,7 +744,9 @@ def _dm002_methods_section(values: Mapping[str, Any]) -> str:
         f"was converted from mg/dL to mmol/L using {values['hdl_factor']} for NHANES before applying the fixed model.\n\n"
         "### Source model specification\n\n"
         "The source model was a fixed Cox risk equation derived in the China diabetes cohort and applied unchanged in "
-        "NHANES. The archived model specification provided the seven predictor coefficients and the 5-year baseline "
+        "NHANES. The China-derived score was developed before the NHANES validation analysis and treated as locked for "
+        "this external validation. The archived model specification provided the seven predictor coefficients and the "
+        "5-year baseline "
         f"survival ({values['baseline_survival']}) required to generate absolute 5-year mortality risk. The archived "
         f"rerun recorded a penalizer value of {values['penalizer']}, but the external validation did not depend on "
         "re-estimating the penalized model. No NHANES coefficient updating, baseline-hazard updating, recalibration, "
@@ -630,19 +779,20 @@ def _dm002_results_section(values: Mapping[str, Any]) -> str:
         f"{values['nhanes_n']} adults with diagnosed diabetes and {values['nhanes_5y_events']} deaths within 5 years.\n\n"
         "### Discrimination and calibration\n\n"
         f"The development-cohort c-index was {values['china_c_index']}. In NHANES, the c-index was "
-        f"{values['nhanes_c_index_ci']}, indicating moderate preservation of risk ordering. Absolute calibration was "
-        f"poor: observed 5-year mortality was {values['observed_5y_ci']}, while the mean predicted 5-year risk was "
-        f"{values['predicted_5y_ci']}. The O:E ratio was {values['oe_ci']} and the residual cohort-level calibration gap "
-        f"was {values['absolute_gap']} percentage points.\n\n"
+        f"{values['nhanes_c_index_ci']}, indicating retained cross-population risk stratification. "
+        f"{_dm002_group_range_sentence(values)} Absolute calibration was poor: observed 5-year mortality was "
+        f"{values['observed_5y_ci']}, while the mean predicted 5-year risk was {values['predicted_5y_ci']}. "
+        f"The O:E ratio was {values['oe_ci']} and the residual cohort-level calibration gap was "
+        f"{values['absolute_gap']} percentage points.\n\n"
         "### Error and grouped calibration\n\n"
         f"The Brier score was {values['brier_ci']}. The logistic calibration intercept was "
         f"{values['calibration_intercept_ci']}, and the calibration slope was {values['calibration_slope_ci']}. "
         "The slope greater than 1 indicates that the transported predicted-risk distribution was too compressed in "
         f"NHANES. {grouped_sentence} Figure 3 shows the grouped-calibration pattern directly as predicted and observed "
-        "5-year risk across NHANES deciles. This pattern indicates that the transported model retained monotonic "
-        "ordering but mapped most NHANES participants to a narrow low-risk probability range. These results indicate "
-        "that the score ranked patients by mortality risk, but its absolute risk scale was too low for NHANES without "
-        "recalibration."
+        "5-year risk across NHANES deciles. This pattern indicates that the transported model still separated lower- "
+        "from higher-risk adults, but mapped most NHANES participants to a narrow low-risk probability range. These "
+        "results support retained ranking utility, while showing that the absolute risk scale requires local "
+        "recalibration before direct absolute-risk use."
     )
 
 
@@ -667,25 +817,33 @@ def _dm002_tables_figures_section(*, t1: str, t2: str, t3: str) -> str:
 def _dm002_discussion_section(values: Mapping[str, Any]) -> str:
     return (
         "## Discussion\n\n"
-        "In this external-validation study, a China-derived diabetes mortality score retained moderate risk ordering in "
-        "NHANES but substantially underestimated absolute 5-year mortality. This combination is clinically important: "
-        "the model may still separate lower-risk from higher-risk patients, yet the predicted probabilities cannot be "
-        "used as calibrated absolute risks in the validation cohort without recalibration.\n\n"
+        "In this external-validation study, a China-derived diabetes mortality score retained clinically interpretable "
+        "risk stratification in NHANES. Participants in the highest transported-score decile had markedly higher "
+        "observed 5-year mortality than those in the lowest decile, showing that the model still identified "
+        "higher-risk adults after cross-population transport.\n\n"
         f"The magnitude of miscalibration was large. The observed 5-year mortality rate was {values['observed_5y_ci']}, "
         f"compared with a mean predicted risk of {values['predicted_5y_ci']} and an O:E ratio of {values['oe_ci']}. "
         "Grouped calibration showed a narrow predicted-risk range despite a wide observed-risk gradient. The calibration "
         "slope is consistent with risk-scale compression: the transported score preserved some ordering but did not "
-        "spread predicted risks enough for the mortality gradient observed in NHANES.\n\n"
-        "Several explanations are plausible, but this analysis does not identify a single mechanism. Differences in cohort "
-        "age, follow-up structure, mortality ascertainment, case mix, treatment context, unmeasured comorbidity, and "
-        "health-system setting could all contribute to the absolute-risk mismatch. Predictor harmonization also matters: "
-        "HDL unit harmonization was required before the fixed model could be applied on a common predictor scale, "
-        "illustrating that cross-cohort transport can be sensitive to measurement units even when predictor names match.\n\n"
-        "These findings support a restrained interpretation. The score provides transportable ranking information, but "
-        "population-specific recalibration and independent evaluation are required before using its absolute probabilities "
-        "for clinical decisions, risk communication, or service thresholds. The validation did not evaluate a diabetes "
-        "subtype, treatment gap, medication effect, causal contrast, competing-risk model, or prespecified threshold-utility "
-        "analysis."
+        "spread predicted risks enough for the mortality gradient observed in NHANES. This pattern is more consistent "
+        "with the same relative risk signal operating on a different baseline-risk background than with complete model "
+        "failure.\n\n"
+        "Several explanations are plausible, but this analysis does not identify a single mechanism. Differences in "
+        "baseline mortality, follow-up structure, mortality ascertainment, case mix, treatment context, unmeasured "
+        "comorbidity, and health-system setting could all contribute to the absolute-risk mismatch. Predictor "
+        "harmonization also matters: HDL unit harmonization was required before the fixed model could be applied on a "
+        "common predictor scale, illustrating that cross-cohort transport can be sensitive to measurement units even "
+        "when predictor names match.\n\n"
+        "These findings support a practical interpretation. The score may be useful as a transported risk-ranking or "
+        "risk-stratification tool in NHANES-like cohorts, particularly for identifying adults who warrant closer "
+        "assessment, more intensive follow-up, or enrichment into higher-risk observational samples. However, the "
+        "original absolute probability should not be reported directly to patients or used as a treatment threshold "
+        "without recalibration.\n\n"
+        "The need for recalibration should not be interpreted as complete model failure. Rather, it reflects a common "
+        "requirement when a prognostic model is transported across health systems with different baseline hazards and "
+        "case mix. Local recalibration can preserve the ranking information while aligning predicted probabilities with "
+        "the target population's observed risk. The validation did not evaluate a diabetes subtype, treatment gap, "
+        "medication effect, causal contrast, competing-risk model, or prespecified threshold-utility analysis."
     )
 
 
@@ -712,10 +870,11 @@ def _dm002_limitations_section() -> str:
 def _dm002_conclusion_section(values: Mapping[str, Any]) -> str:
     return (
         "## Conclusion\n\n"
-        f"A fixed China-derived seven-predictor Cox score achieved a NHANES c-index of {values['nhanes_c_index_ci']} but "
+        f"A fixed China-derived seven-predictor Cox score achieved a NHANES c-index of {values['nhanes_c_index_ci']}, "
+        f"identified higher-risk adults across NHANES deciles, and retained cross-population risk stratification, but "
         f"underpredicted 5-year mortality by {values['absolute_gap']} percentage points at the cohort level. The score "
-        "should not be used for absolute-risk communication or threshold-based decisions in NHANES-like diabetes "
-        "populations without recalibration or model updating."
+        "may support transported higher-risk identification, while absolute-risk communication and threshold-based "
+        "decisions require local recalibration or model updating."
     )
 
 
@@ -744,11 +903,21 @@ def _dm002_group_range_sentence(values: Mapping[str, Any]) -> str:
     last_predicted = _percent_value(last_group.get("mean_predicted_5y_risk"), digits=2)
     first_observed = _percent_value(first_group.get("observed_5y_rate"), digits=2)
     last_observed = _percent_value(last_group.get("observed_5y_rate"), digits=2)
+    observed_fold = _approx_fold_change(first_group.get("observed_5y_rate"), last_group.get("observed_5y_rate"))
+    fold_text = f", an approximately {observed_fold}-fold gradient," if observed_fold else ","
     return (
-        "Across within-NHANES deciles, mean predicted risk changed only from "
-        f"{first_predicted} in the lowest decile to {last_predicted} in the highest decile, while observed mortality "
-        f"increased from {first_observed} to {last_observed}."
+        "Across within-NHANES deciles, observed 5-year mortality increased from "
+        f"{first_observed} in the lowest decile to {last_observed} in the highest decile{fold_text} whereas mean "
+        f"predicted risk increased only from {first_predicted} to {last_predicted}."
     )
+
+
+def _approx_fold_change(lower: object, upper: object) -> str:
+    lower_value = _float(lower)
+    upper_value = _float(upper)
+    if lower_value is None or upper_value is None or lower_value <= 0:
+        return ""
+    return str(int(round(upper_value / lower_value)))
 
 
 def _dm002_coefficient_table(values: Mapping[str, Any]) -> str:

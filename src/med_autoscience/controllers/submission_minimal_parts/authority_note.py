@@ -44,19 +44,19 @@ def write_submission_source_authority_note(
     compiled_markdown_path: Path,
     staging_root: Path,
     target_root: Path,
-    workspace_root: Path,
+    label_root: Path,
 ) -> None:
-    canonical_full_surface = relpath_from_workspace(compiled_markdown_path, workspace_root)
+    canonical_full_surface = relpath_from_workspace(compiled_markdown_path, label_root)
     submission_projection = relpath_from_workspace(
         remap_staging_path_to_target(
             path=source_markdown_path,
             staging_root=staging_root,
             target_root=target_root,
         ),
-        workspace_root,
+        label_root,
     )
     manifest_surface = (
-        f"{relpath_from_workspace(submission_manifest_path(target_root), workspace_root)}#source_signature"
+        f"{relpath_from_workspace(submission_manifest_path(target_root), label_root)}#source_signature"
     )
     write_text(
         output_path,

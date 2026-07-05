@@ -101,6 +101,15 @@ def workspace_root_from_paper_root(paper_root: Path) -> Path:
     return paper_root.resolve().parent
 
 
+def delivery_label_root_from_paper_root(paper_root: Path) -> Path:
+    resolved_paper_root = paper_root.expanduser().resolve()
+    try:
+        _, study_root = resolve_study_root_from_paper_root(resolved_paper_root)
+    except (FileNotFoundError, ValueError):
+        return workspace_root_from_paper_root(resolved_paper_root)
+    return Path(study_root).expanduser().resolve()
+
+
 def _canonical_authority_relative_path(value: str | Path) -> str | None:
     parts = Path(str(value).strip()).parts
     authority_indexes = [
@@ -406,9 +415,11 @@ def copy_with_renamed_targets(
     source_paths: list[str],
     output_dir: Path,
     basename: str,
+    label_root: Path | None = None,
 ) -> list[str]:
     output_relpaths: list[str] = []
     output_dir.mkdir(parents=True, exist_ok=True)
+    resolved_label_root = (label_root or workspace_root).expanduser().resolve()
     for source_rel in source_paths:
         source_path = resolve_submission_source_path(
             workspace_root=workspace_root,
@@ -420,7 +431,7 @@ def copy_with_renamed_targets(
         suffix = source_path.suffix
         target_path = output_dir / f"{basename}{suffix}"
         shutil.copy2(source_path, target_path)
-        output_relpaths.append(relpath_from_workspace(target_path, workspace_root))
+        output_relpaths.append(relpath_from_workspace(target_path, resolved_label_root))
     return output_relpaths
 
 
@@ -762,6 +773,7 @@ def materialize_submission_references(
     paper_root: Path,
     submission_root: Path,
     workspace_root: Path,
+    label_root: Path | None = None,
 ) -> dict[str, Any] | None:
     source_path, source_kind = resolve_submission_references_source(paper_root=paper_root)
     if source_path is None:
@@ -773,7 +785,7 @@ def materialize_submission_references(
         "_source_abs_path": str(source_path.resolve()),
         "source_path": _path_label_from_workspace(path=source_path, workspace_root=workspace_root),
         "source_kind": source_kind,
-        "output_path": relpath_from_workspace(target_path, workspace_root),
+        "output_path": relpath_from_workspace(target_path, label_root or workspace_root),
         "entry_count": entry_count,
     }
 
@@ -783,12 +795,14 @@ def materialize_and_validate_submission_references(
     paper_root: Path,
     submission_root: Path,
     workspace_root: Path,
+    label_root: Path | None = None,
     source_markdown_path: Path,
 ) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any]]:
     references_manifest = materialize_submission_references(
         paper_root=paper_root,
         submission_root=submission_root,
         workspace_root=workspace_root,
+        label_root=label_root,
     )
     references_source_path = _references_source_path_from_manifest(references_manifest)
     try:
@@ -809,6 +823,7 @@ def materialize_and_validate_submission_references(
             paper_root=paper_root,
             submission_root=submission_root,
             workspace_root=workspace_root,
+            label_root=label_root,
         )
         references_source_path = _references_source_path_from_manifest(references_manifest)
         references_coverage = validate_submission_references_coverage(

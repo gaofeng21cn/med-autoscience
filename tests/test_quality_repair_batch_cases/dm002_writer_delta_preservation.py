@@ -59,6 +59,28 @@ def _previous_blocked_batch(
     }
 
 
+def _previous_progress_delta_batch(
+    *,
+    source_eval_id: str,
+    surface_refs: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "source_eval_id": source_eval_id,
+        "status": "executed",
+        "repair_execution_evidence": {
+            "status": "progress_delta_candidate",
+            "manuscript_surface_hygiene": {
+                "status": "clear",
+                "surface_refs": list(surface_refs),
+                "story_surface_delta_required": True,
+                "story_surface_delta_present": True,
+                "story_surface_delta_refs": list(surface_refs),
+            },
+        },
+    }
+
+
 def _dm002_writer_story() -> str:
     return "\n\n".join(
         [
@@ -347,10 +369,11 @@ def test_dm002_after_story_repair_regenerates_latest_external_validation_story_s
         study_root=study_root,
     )
 
-    assert {
+    changed_set = {
         Path(path).relative_to(study_root).as_posix()
         for path in changed_paths
-    } == {
+    }
+    assert {
         "paper/draft.md",
         "paper/build/review_manuscript.md",
         "paper/baseline_characteristics_schema.json",
@@ -358,15 +381,93 @@ def test_dm002_after_story_repair_regenerates_latest_external_validation_story_s
         "paper/tables/generated/T1_baseline_characteristics.csv",
         "paper/tables/generated/T2_time_to_event_performance_summary.md",
         "paper/tables/generated/T3_grouped_calibration.md",
-    }
+    }.issubset(changed_set)
     regenerated_story = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert regenerated_story != preserved_writer_story
     assert regenerated_story.startswith(
-        "# External validation of a fixed China-derived 5-year diabetes mortality score in NHANES"
+        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "but requires recalibration for absolute risk estimation"
     )
     assert "fixed Cox risk equation" in regenerated_story
-    assert "should not be used for absolute-risk communication or threshold-based decisions" in regenerated_story
+    assert "retained cross-population risk stratification" in regenerated_story
+    assert "absolute-risk communication and threshold-based decisions require local recalibration" in regenerated_story
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == regenerated_story
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    assert [item["figure_id"] for item in figure_catalog["figures"]] == ["F1", "F2", "F3"]
+    assert [item["table_id"] for item in table_catalog["tables"]] == ["T1", "T2", "T3"]
+
+
+def test_dm002_reviewer_revision_reframe_forces_story_refresh_over_preserved_negative_surface(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "002-dm-china-us-mortality-attribution"
+    paper_root = study_root / "paper"
+    stale_story = "\n\n".join(
+        [
+            "# External validation of a fixed China-derived 5-year diabetes mortality score in NHANES",
+            "## Abstract",
+            "**Conclusions:** The China-derived score retained moderate mortality risk ordering in NHANES adults with diabetes but substantially underestimated absolute 5-year mortality. It should not be used for absolute-risk communication or threshold-based decisions in NHANES-like populations without recalibration or model updating.",
+            "## Conclusion",
+            "The score should not be used for absolute-risk communication or threshold-based decisions in NHANES-like diabetes populations without recalibration or model updating.",
+        ]
+    ) + "\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(stale_story, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str((paper_root / relative_path).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": _fingerprint(paper_root / relative_path),
+        }
+        for relative_path in ("draft.md", "build/review_manuscript.md")
+    ]
+    _write_dm002_template_inputs(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "task_id": "study-task::002::20260705T102124Z",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": (
+                "Reframe DM002 around retained cross-population risk stratification, "
+                "promote what remains usable, and require recalibration only for "
+                "absolute-risk communication."
+            ),
+            "constraints": [
+                "Prefer MAS-native revision surfaces.",
+                "Refresh canonical paper source first, then package.",
+            ],
+        },
+    )
+    source_eval_id = "publication-eval::dm002::after-story-repair"
+
+    changed_paths = medical_prose_story_surface.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id=DM002_AFTER_STORY_REPAIR_WORK_UNIT,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=_previous_progress_delta_batch(
+            source_eval_id=source_eval_id,
+            surface_refs=old_refs,
+        ),
+        study_root=study_root,
+    )
+
+    changed_set = {Path(path).relative_to(study_root).as_posix() for path in changed_paths}
+    assert "paper/draft.md" in changed_set
+    assert "paper/build/review_manuscript.md" in changed_set
+    refreshed_story = (paper_root / "draft.md").read_text(encoding="utf-8")
+    assert refreshed_story != stale_story
+    assert refreshed_story.startswith(
+        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "but requires recalibration for absolute risk estimation"
+    )
+    assert "retained cross-population risk stratification in NHANES" in refreshed_story
+    assert "may support transported higher-risk identification" in refreshed_story
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    assert [item["table_id"] for item in table_catalog["tables"]] == ["T1", "T2", "T3"]
 
 
 def test_dm002_display_table_repair_preserves_ai_reviewer_bound_current_manuscript_without_closing(
