@@ -17,6 +17,9 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _mapping,
     _optional_text,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.receipt_owner_consumption import (
+    receipt_owner_consumption_output_root,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff import (
     build_direct_next_action_handoff,
 )
@@ -55,6 +58,9 @@ from med_autoscience.controllers.owner_route_handoff_parts.paper_mission_consump
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
+)
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
+    materialize_receipt_owner_consumption,
 )
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
@@ -657,6 +663,7 @@ def _drive_next_action_source_readback(
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
     enable_opl_live_probe: bool = False,
+    auto_apply_route_checkpoint: bool = True,
 ) -> dict[str, Any] | None:
     inspect_readback = consume_candidate_readback_builder(
         profile=profile,
@@ -671,7 +678,102 @@ def _drive_next_action_source_readback(
         return None
     if _optional_text(next_action.get("work_unit_id")) is None:
         return None
+    if auto_apply_route_checkpoint:
+        inspect_readback = _drive_route_checkpoint_owner_consumption_refresh(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            source=source,
+            consume_candidate_readback_builder=consume_candidate_readback_builder,
+            inspect_readback=inspect_readback,
+            enable_opl_live_probe=enable_opl_live_probe,
+        )
     return inspect_readback
+
+
+def _drive_route_checkpoint_owner_consumption_refresh(
+    *,
+    profile: Any,
+    profile_ref: str | Path,
+    study_id: str,
+    source: str,
+    consume_candidate_readback_builder: Callable[..., dict[str, Any]],
+    inspect_readback: Mapping[str, Any],
+    enable_opl_live_probe: bool,
+) -> dict[str, Any]:
+    readback = dict(inspect_readback)
+    apply_mode = _drive_auto_receipt_owner_consumption_apply_mode(readback)
+    if apply_mode != "route_checkpoint":
+        return readback
+    output_root = receipt_owner_consumption_output_root(
+        profile=profile,
+        output_root=None,
+    )
+    receipt_owner_consumption = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref=str(profile_ref),
+        output_root=output_root,
+        apply_mode=apply_mode,
+        source=f"{source}:drive:auto-receipt-owner-consumption",
+    )
+    if _optional_text(receipt_owner_consumption.get("status")) != "owner_consumption_applied":
+        return readback
+    refreshed = _drive_next_action_source_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        source=f"{source}:drive:post-route-checkpoint",
+        consume_candidate_readback_builder=consume_candidate_readback_builder,
+        enable_opl_live_probe=enable_opl_live_probe,
+        auto_apply_route_checkpoint=False,
+    )
+    if refreshed is None:
+        return {
+            **readback,
+            "receipt_owner_consumption_readback": receipt_owner_consumption,
+        }
+    refreshed_payload = dict(refreshed)
+    refreshed_payload.setdefault(
+        "receipt_owner_consumption_readback",
+        receipt_owner_consumption,
+    )
+    return refreshed_payload
+
+
+def _drive_auto_receipt_owner_consumption_apply_mode(
+    readback: Mapping[str, Any],
+) -> str | None:
+    if _drive_route_checkpoint_owner_consumption_already_applied(readback):
+        return None
+    current_consumption = _drive_current_opl_owner_consumption(readback)
+    if _optional_text(current_consumption.get("next_legal_action")) == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    ):
+        return "route_checkpoint"
+    next_action = _mapping(readback.get("next_action"))
+    if _optional_text(next_action.get("action_family")) == (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return "route_checkpoint"
+    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
+    if _optional_text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint":
+        return "route_checkpoint"
+    return None
+
+
+def _drive_route_checkpoint_owner_consumption_already_applied(
+    readback: Mapping[str, Any],
+) -> bool:
+    for applied in _drive_applied_receipt_owner_consumptions(readback):
+        if _optional_text(applied.get("status")) == "owner_consumed_route_checkpoint":
+            return True
+    current = _mapping(
+        _mapping(readback.get("current_opl_runtime_carrier_readback")).get(
+            "mas_receipt_consumption"
+        )
+    )
+    return _optional_text(current.get("status")) == "owner_consumed_route_checkpoint"
 
 
 def _drive_canonical_next_action_source_readback(

@@ -1391,6 +1391,11 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
             value = _mapping(readback.get(key))
             if value:
                 carrier[key] = value
+    if not _has_consumable_receipt(carrier):
+        synthetic = _synthetic_stage_closure_route_checkpoint_carrier(readback)
+        for key in ("terminal_closeout", "opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption"):
+            if not _mapping(carrier.get(key)) and _mapping(synthetic.get(key)):
+                carrier[key] = _mapping(synthetic.get(key))
     return carrier
 
 
@@ -1399,6 +1404,69 @@ def _has_consumable_receipt(carrier: Mapping[str, Any]) -> bool:
         _mapping(carrier.get(key))
         for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption")
     )
+
+
+def _synthetic_stage_closure_route_checkpoint_carrier(
+    readback: Mapping[str, Any],
+) -> dict[str, Any]:
+    next_action = _mapping(readback.get("next_action"))
+    if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
+        return {}
+    decision = _effective_stage_closure_decision(readback)
+    outcome = _mapping(decision.get("outcome"))
+    if _text(outcome.get("kind")) != "next_stage_transition":
+        return {}
+    if _text(outcome.get("transition_kind")) != "route_back_candidate_checkpoint":
+        return {}
+    opl_closeout = _mapping(decision.get("opl_closeout"))
+    stage_attempt_id = _first_text(opl_closeout.get("stage_attempt_id"))
+    stage_attempt_ref = _first_text(
+        decision.get("receipt_evidence_ref"),
+        outcome.get("receipt_evidence_ref"),
+        f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None,
+    )
+    route_checkpoint_evidence_ref = _first_text(
+        decision.get("route_checkpoint_evidence_ref"),
+        outcome.get("route_checkpoint_evidence_ref"),
+        _route_checkpoint_evidence_ref_from_opl_closeout(
+            readback=readback,
+            stage_attempt_id=stage_attempt_id,
+        ),
+    )
+    if stage_attempt_ref is None and route_checkpoint_evidence_ref is None:
+        return {}
+    return {
+        **({"terminal_closeout": dict(opl_closeout)} if opl_closeout else {}),
+        "opl_transition_receipt": {
+            "surface_kind": "opl_transition_receipt",
+            "receipt_status": "terminal_closeout_observed",
+            "role": "transport_receipt_only",
+            "stage_attempt_id": stage_attempt_id,
+            "stage_attempt_ref": stage_attempt_ref,
+            "can_claim_paper_progress": False,
+        },
+        "receipt_evidence": {
+            "receipt_kind": "opl_transition_receipt",
+            "receipt_ref": stage_attempt_ref,
+            "stage_attempt_ref": stage_attempt_ref,
+            "runtime_closeout_ref": route_checkpoint_evidence_ref,
+            "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
+            "can_claim_paper_progress": False,
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+            "next_legal_action": (
+                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+            ),
+            "receipt_ref": stage_attempt_ref,
+            "runtime_closeout_ref": route_checkpoint_evidence_ref,
+            "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
+            "durable_stop_allowed": False,
+            "can_claim_paper_progress": False,
+            "can_claim_publication_ready": False,
+        },
+    }
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

@@ -1500,6 +1500,70 @@ def test_receipt_owner_consumption_route_checkpoint_uses_domain_transition_succe
     )
 
 
+def test_receipt_owner_consumption_route_checkpoint_succeeds_from_stage_closure_only_readback(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    study_root.mkdir(parents=True)
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback={
+            **_readback(
+                study_id=study_id,
+                stage_outcome="next_stage_transition",
+                transition_kind="route_back_candidate_checkpoint",
+                package_kind="current_package",
+                can_submit=False,
+            ),
+            "study_root": str(study_root),
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "paper.stage_closure.owner_consumption",
+                "action_kind": "owner_consumption",
+                "action_type": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+                "owner": "MedAutoScience",
+                "outcome_ref": "ops/medautoscience/paper_mission_stage_closure/dm002.json",
+            },
+            "stage_closure_decision": {
+                "decision_ref": f"mas://paper-mission/{study_id}/stage-closure",
+                "stage_id": "write",
+                "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+                "opl_closeout": {
+                    "status": "opl_runtime_terminal_readback_observed",
+                    "stage_attempt_id": "sat-dm002-write",
+                    "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+                },
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
+                },
+            },
+            "opl_runtime_carrier_readback": {
+                "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+                "carrier_status": "waiting_for_opl_runtime_live_readback",
+                "runtime_readback_status": "terminal_closeout_superseded",
+                "dispatch_status": "transition_request_pending",
+                "domain_ready_verdict": "authority_consumed_candidate_supersedes_terminal_closeout",
+                "can_claim_paper_progress": False,
+            },
+        },
+        study_id=study_id,
+        profile_ref="/tmp/dm002.local.toml",
+        output_root=tmp_path / "receipt-owner-consumption",
+        apply_mode="route_checkpoint",
+        source="pytest",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )
+    assert payload["receipt_evidence"]["route_checkpoint_evidence_ref"].endswith(
+        "sat-dm002-write/stage_attempt_closeout_packet.json"
+    )
+
+
 def test_receipt_owner_consumption_apply_mode_mismatch_fails_closed(
     tmp_path: Path,
     capsys,

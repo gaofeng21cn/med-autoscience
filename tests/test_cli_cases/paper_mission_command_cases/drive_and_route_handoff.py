@@ -616,6 +616,160 @@ def test_paper_mission_drive_stops_when_route_back_checkpoint_owner_action_ready
     assert not output_root.exists()
 
 
+def test_paper_mission_drive_auto_consumes_route_back_checkpoint_before_direct_write_handoff(
+    tmp_path: Path,
+) -> None:
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    calls: list[str] = []
+
+    def fake_readback_builder(**kwargs):
+        calls.append(kwargs["source"])
+        if len(calls) == 1:
+            return {
+                "surface_kind": "paper_mission_materialized_readback",
+                "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+                "objective": "Resume DM002 write revision after reviewer feedback.",
+                "study_id": study_id,
+                "paper_mission_current_transaction_source": (
+                    "paper_mission_consumption_ledger"
+                ),
+                "next_action": {
+                    "surface_kind": "mas_next_action_envelope",
+                    "action_family": "paper.stage_closure.owner_consumption",
+                    "action_kind": "owner_consumption",
+                    "action_type": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                    "owner": "MedAutoScience",
+                    "stage_id": "write",
+                    "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+                },
+                "stage_closure_decision": {
+                    "stage_id": "write",
+                    "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+                    "opl_closeout": {
+                        "status": "opl_runtime_terminal_readback_observed",
+                        "stage_attempt_id": "sat-dm002-write",
+                        "work_unit_id": (
+                            "dm002_after_story_repair_medical_prose_hardening"
+                        ),
+                    },
+                    "outcome": {
+                        "kind": "next_stage_transition",
+                        "transition_kind": "route_back_candidate_checkpoint",
+                        "next_action": (
+                            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                        ),
+                        "next_owner": "MedAutoScience",
+                    },
+                },
+                "current_package": {
+                    "package_kind": "current_package",
+                    "can_submit": False,
+                },
+                "current_opl_runtime_carrier_readback": {
+                    "opl_transition_receipt": {
+                        "surface_kind": "opl_transition_receipt",
+                        "receipt_status": "terminal_closeout_observed",
+                        "role": "transport_receipt_only",
+                        "stage_attempt_id": "sat-dm002-write",
+                        "stage_attempt_ref": "opl://stage-attempts/sat-dm002-write",
+                        "can_claim_paper_progress": False,
+                    },
+                    "receipt_evidence": {
+                        "stage_attempt_ref": "opl://stage-attempts/sat-dm002-write",
+                        "receipt_ref": "opl://stage-attempts/sat-dm002-write",
+                        "runtime_closeout_ref": (
+                            "opl://stage-attempts/sat-dm002-write/runtime-closeout"
+                        ),
+                        "route_checkpoint_evidence_ref": (
+                            "ops/medautoscience/paper_mission_stage_attempts/"
+                            "sat-dm002-write/stage_attempt_closeout_packet.json"
+                        ),
+                    },
+                    "mas_receipt_consumption": {
+                        "surface_kind": "mas_receipt_consumption_projection",
+                        "status": "requires_mas_owner_consumption",
+                        "next_legal_action": (
+                            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                        ),
+                        "receipt_ref": "opl://stage-attempts/sat-dm002-write",
+                        "runtime_closeout_ref": (
+                            "opl://stage-attempts/sat-dm002-write/runtime-closeout"
+                        ),
+                        "can_claim_paper_progress": False,
+                    },
+                },
+            }
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Resume DM002 write revision after reviewer feedback.",
+            "study_id": study_id,
+            "canonical_next_action_source": "domain_transition.next_action",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-dm002-write",
+                "study_id": study_id,
+                "stage_id": "write",
+                "action_family": "paper.write.prose_repair",
+                "action_kind": "repair",
+                "action_type": "request_opl_stage_attempt",
+                "owner": "write",
+                "work_unit_id": "dm002_after_story_repair_medical_prose_hardening",
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::"
+                    "dm002_after_story_repair_medical_prose_hardening"
+                ),
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        output_root=workspace_root / "ops" / "medautoscience" / "drive",
+        run_id=None,
+        submit_opl_runtime=False,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    receipt_packet = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+        / study_id
+        / "receipt_owner_consumption.json"
+    )
+
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["next_action"]["action_type"] == "request_opl_stage_attempt"
+    assert payload["opl_route_handoff"]["route_target"] == "write"
+    assert payload["opl_route_handoff"]["work_unit_id"] == (
+        "dm002_after_story_repair_medical_prose_hardening"
+    )
+    assert receipt_packet.exists()
+    assert len(calls) == 2
+    assert calls[0].endswith(":drive:canonical-next-action-inspect")
+    assert calls[1].endswith(":drive:post-route-checkpoint:drive:canonical-next-action-inspect")
+
+
 def test_paper_mission_drive_does_not_stop_runtime_route_on_stale_owner_gate(
     tmp_path: Path,
 ) -> None:
