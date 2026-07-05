@@ -895,7 +895,10 @@ def create_submission_minimal_package(
                     if path is not None
                 ],
                 submission_root=staging_submission_root,
-                force_combined_output=True,
+                force_combined_output=(
+                    inline_supplementary_fallback_used
+                    or supplementary_tables_markdown_path is not None
+                ),
             )
             if supplementary_source_markdown_path is not None:
                 supplementary_output_pdf_path = staging_submission_root / f"{supplementary_source_markdown_path.stem}.pdf"
