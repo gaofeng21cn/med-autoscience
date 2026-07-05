@@ -7,6 +7,10 @@ from med_autoscience.display_pack_agent_parts.composition_recipe_route import (
     composition_recipe_payload,
     select_composition_recipe,
 )
+from med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor import (
+    build_figure_advisor_probe,
+    build_figure_export_lint,
+)
 from med_autoscience.medical_figure_family_catalog import load_medical_figure_family_catalog
 
 
@@ -233,6 +237,8 @@ def build_figure_workflow_packet(
     catalog = load_medical_figure_family_catalog()
     composition_recipe = select_composition_recipe(request, catalog)
     composition = composition_recipe_payload(composition_recipe)
+    advisor_probe = build_figure_advisor_probe(compiled_request=request, figure_contract=contract)
+    export_lint = build_figure_export_lint(compiled_request=request, receipt_refs=receipt_refs)
     supporting_roles = [composition_recipe.hero_panel_role, *composition_recipe.supporting_panel_roles]
     if not supporting_roles:
         supporting_roles = _supporting_panel_roles(request, archetype)
@@ -282,6 +288,7 @@ def build_figure_workflow_packet(
                     "blocks_unrelated_progress": False,
                     "missing_items_route": "repair_hint_or_current_delta_typed_repair_only",
                 },
+                "figure_advisor_probe": advisor_probe,
                 "storyboard": {
                     "composition_recipe": composition,
                     "hero_panel": supporting_roles[0],
@@ -325,6 +332,7 @@ def build_figure_workflow_packet(
                         ],
                         "both_are_evidence_refs_not_publication_authority": True,
                     },
+                    "figure_export_lint": export_lint,
                     "revision_record_required": True,
                     "next_action": "display-pack-render" if not missing_refs else "display-pack-repair",
                     "receipt_refs": dict(receipt_refs or {}),

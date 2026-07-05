@@ -451,6 +451,70 @@ def test_compile_display_figure_intent_carries_scipilot_plot_selection_and_visua
     assert qa_split["both_are_evidence_refs_not_publication_authority"] is True
 
 
+def test_compile_display_figure_intent_emits_scipilot_runtime_advisor_and_export_lint_refs() -> None:
+    payload = compile_display_figure_intent(
+        intent="Show biomarker distribution by response group.",
+        claim_ref="claim:response-biomarker",
+        data_ref="data:response-biomarker",
+        figure_request={
+            "query": "small n mean bar biomarker response",
+            "chart_type": "mean_bar",
+            "variable_type_profile": {
+                "variables": [
+                    {"name": "response_group", "type": "categorical"},
+                    {"name": "biomarker", "type": "continuous"},
+                ]
+            },
+            "sample_size_profile": {
+                "groups": [
+                    {"label": "responder", "n": 6},
+                    {"label": "non_responder", "n": 8},
+                ]
+            },
+            "error_bars": True,
+            "palette": "jet",
+            "artifact_export_profile": {
+                "formats": ["png", "jpg"],
+                "dpi": 200,
+                "width_mm": 70,
+                "fonts_embedded": False,
+                "cjk_text_present": True,
+                "negative_sign_verified": False,
+            },
+        },
+    )
+
+    workflow_figure = payload["figure_workflow_packet"]["figures"][0]
+    advisor = workflow_figure["figure_advisor_probe"]
+    export_lint = workflow_figure["render_inspect_revise"]["figure_export_lint"]
+
+    assert advisor["surface_kind"] == "figure_advisor_probe"
+    assert advisor["advisory_only"] is True
+    assert advisor["blocks_unrelated_progress"] is False
+    assert advisor["data_profile_summary"]["variable_type_counts"] == {"categorical": 1, "continuous": 1}
+    assert advisor["data_profile_summary"]["sample_size"]["min_group_n"] == 6
+    assert advisor["recommended_plot_family"] == "distribution_or_interval_plot_by_group"
+    assert "small_n_mean_bar_without_points" in advisor["misleading_chart_warning_ids"]
+    assert "rainbow_or_jet_for_ordered_scientific_data" in advisor["misleading_chart_warning_ids"]
+    assert "error_bar_or_interval_type_missing_from_caption" in advisor["misleading_chart_warning_ids"]
+    assert advisor["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+    assert export_lint["surface_kind"] == "figure_export_lint"
+    assert export_lint["advisory_only"] is True
+    assert export_lint["blocks_unrelated_progress"] is False
+    assert export_lint["checked_dimensions"]["formats"] == ["png", "jpg"]
+    assert {
+        "jpeg_export_not_preferred_for_line_art_or_text",
+        "vector_export_missing",
+        "raster_dpi_below_300",
+        "final_width_below_single_column_floor",
+        "font_embedding_missing_or_unverified",
+        "cjk_or_missing_glyph_review_required",
+        "negative_sign_glyph_review_required",
+    }.issubset(set(export_lint["warning_ids"]))
+    assert export_lint["authority_boundary"]["can_authorize_quality_verdict"] is False
+
+
 @pytest.mark.parametrize(
     ("query", "template_id", "audit_family"),
     [
