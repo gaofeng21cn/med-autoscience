@@ -218,6 +218,7 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "Phenotype derivation and assignment" in story_text
     assert "recorded treatment-review gap" in story_text
     assert "Data quality assessment" in story_text
+
     assert "Baseline characteristics" in story_text
     assert "first qualifying diabetes-coded visit" in story_text
     assert "reproducible without model fitting" in story_text
@@ -287,6 +288,97 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (paper_root / "submission_minimal").exists()
+
+
+def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+    )
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    (study_root / "artifacts" / "controller").mkdir(parents=True)
+    campaign_tables = (
+        study_root
+        / "artifacts"
+        / "reviewer_revision"
+        / "20260704_sci_upgrade"
+        / "bounded_analysis_campaign"
+        / "tables"
+    )
+    campaign_tables.mkdir(parents=True)
+    (campaign_tables / "medication_field_present_sensitivity.md").write_text(
+        "\n".join(
+            [
+                "| indicator | denominator_mode | eligible_denominator | gap_n | gap_pct | interpretation_boundary |",
+                "| --- | --- | --- | --- | --- | --- |",
+                "| Hypertension context with no recorded antihypertensive | all_eligible | 342025 | 200306 | 58.6 | recorded medication-coverage gap |",
+                "| Hypertension context with no recorded antihypertensive | medication_field_present | 239565 | 97846 | 40.8 | recorded medication-coverage gap |",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (campaign_tables / "site_gap_variability_summary.md").write_text(
+        "\n".join(
+            [
+                "| indicator | site_denominator_minimum | eligible_sites | median_gap_pct | iqr_gap_pct | range_gap_pct | site_interpretation_boundary |",
+                "| --- | --- | --- | --- | --- | --- | --- |",
+                "| Hypertension context with no recorded antihypertensive | 50 | 452 | 58.6 | 40.5-76.7 | 8.1-100.0 | anonymous-site variability only |",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (campaign_tables / "risk_treatment_mismatch_matrix.csv").write_text(
+        "\n".join(
+            [
+                "phenotype,index_patients,share_of_index_cohort,hypertension_context_no_recorded_antihypertensive_pct",
+                "Glycemic-dominant diabetes,104508,15.1,68.8",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root / "draft.md").write_text(
+        "# Previous draft\n\n## Supplementary Tables\n\n### Supplementary Table S9. Old table\n\n| A | B |\n| --- | --- |\n| stale | stale |\n",
+        encoding="utf-8",
+    )
+
+    assert module._study_root_from_paper_root(paper_root) == study_root
+    supplementary = module._read_supplementary_tables_text(
+        paper_root=paper_root,
+        study_root=study_root,
+    )
+    assert "Supplementary Table S2. Medication-record sensitivity" in supplementary
+    assert "Previous draft" not in supplementary
+    sensitivity = module._medication_sensitivity_values(
+        module._supplementary_table_rows(
+            supplementary,
+            "Supplementary Table S2. Medication-record sensitivity for core review signals",
+        )
+    )
+    assert sensitivity["Hypertension context with no recorded antihypertensive"]["All eligible"]["Gap %"] == "58.6"
+    t2 = module._apply_bounded_t2_revisions(
+        t2="\n".join(
+            [
+                "| Phenotype | Measure | Value |",
+                "| --- | --- | --- |",
+                "| Glycemic-dominant diabetes | Index patients | 104029 |",
+                "| Glycemic-dominant diabetes | Share of index cohort | 15.02% |",
+                "| Glycemic-dominant diabetes | Hypertension with no antihypertensive | 71.52% |",
+            ]
+        ),
+        study_root=study_root,
+    )
+    assert "| Glycemic-dominant diabetes | Index patients | 104,508 |" in t2
+    assert "| Glycemic-dominant diabetes | Share of index cohort | 15.1% |" in t2
+    assert "| Glycemic-dominant diabetes | Hypertension with no antihypertensive | 68.8% |" in t2
 
 
 def test_quality_repair_upstream_targets_stage_native_body_authority(

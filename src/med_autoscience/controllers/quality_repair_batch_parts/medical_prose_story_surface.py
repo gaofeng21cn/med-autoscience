@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import csv
 import json
 import re
 from pathlib import Path
@@ -384,6 +385,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
     )
+    t2 = _apply_bounded_t2_revisions(t2=t2, study_root=study_root)
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
@@ -519,7 +521,7 @@ def _abstract_section(
         f"severe-glycemia low-intensity signal from {_percent_value(severe_low_intensity.get('Gap %'))} to "
         f"{_percent_value(severe_field_present.get('Gap %'))}. Support analyses showed partial repeated-visit "
         f"persistence ({transition['same_phenotype_stability']}) and wide site-level variation, with a median "
-        f"dyslipidemia gap of {_text(site_gap.get('Median gap %')) or 'NA'}.\n\n"
+        f"dyslipidemia gap of {_percent_value(site_gap.get('Median gap %'))}.\n\n"
         "**Conclusions:** The DPCC network showed phenotype-specific recorded risk-treatment mismatch signals rather "
         "than a single uniform diabetes treatment gap. The findings identify local chart-review and service-review "
         "priorities, while supporting prospective validation and documentation/care-pathway review rather than "
@@ -769,12 +771,12 @@ def _results_section(
         "glycemia low-intensity signal (43.5%) despite the highest mean HbA1c, but the uncontrolled-glycemia no-drug "
         "rate was lower than in glycemic-dominant diabetes (29.1%).\n\n"
         "A second service-review pattern involved cardiometabolic prevention signals. Hypertension context without a "
-        f"recorded antihypertensive was {_text(hypertension.get('Gap n'))} of {_text(hypertension.get('Eligible denominator'))} "
+        f"recorded antihypertensive was {_format_count(hypertension.get('Gap n'))} of {_format_count(hypertension.get('Eligible denominator'))} "
         f"eligible patients ({_percent_value(hypertension.get('Gap %'))}) overall. Dyslipidemia context without "
-        f"recorded lipid-lowering therapy was {_text(dyslipidemia.get('Gap n'))} of "
-        f"{_text(dyslipidemia.get('Eligible denominator'))} ({_percent_value(dyslipidemia.get('Gap %'))}) overall. "
+        f"recorded lipid-lowering therapy was {_format_count(dyslipidemia.get('Gap n'))} of "
+        f"{_format_count(dyslipidemia.get('Eligible denominator'))} ({_percent_value(dyslipidemia.get('Gap %'))}) overall. "
         f"Exploratory renal-risk context without recorded SGLT2 inhibitor or GLP-1 receptor agonist was "
-        f"{_text(renal.get('Gap n'))} of {_text(renal.get('Eligible denominator'))} "
+        f"{_format_count(renal.get('Gap n'))} of {_format_count(renal.get('Eligible denominator'))} "
         f"({_percent_value(renal.get('Gap %'))}). These counts use phenotype- and indicator-specific denominators; "
         "Not assessed cells mark indicators outside the scoped denominator rather than absence of risk.\n\n"
         "### Medication-capture sensitivity\n\n"
@@ -800,11 +802,11 @@ def _results_section(
         f"surface included {transition['eligible_sites']} eligible site partitions and covered "
         f"{transition['visit_coverage']} of release visit episodes. Separately, anonymous source-site-code "
         "variability was wide among source-site codes with at least 50 eligible patients per indicator: median "
-        f"severe-glycemia low-intensity gap was {_text(severe_site.get('Median gap %')) or 'NA'} "
-        f"(IQR {_text(severe_site.get('IQR')) or 'NA'}), median hypertension no-antihypertensive gap was "
-        f"{_text(hypertension_site.get('Median gap %')) or 'NA'} (IQR {_text(hypertension_site.get('IQR')) or 'NA'}), "
-        f"and median dyslipidemia no-lipid-lowering gap was {_text(dyslipidemia_site.get('Median gap %')) or 'NA'} "
-        f"(IQR {_text(dyslipidemia_site.get('IQR')) or 'NA'}). These findings indicate within-network coverage, "
+        f"severe-glycemia low-intensity gap was {_percent_value(severe_site.get('Median gap %'))} "
+        f"(IQR {_percent_range_value(severe_site.get('IQR'))}), median hypertension no-antihypertensive gap was "
+        f"{_percent_value(hypertension_site.get('Median gap %'))} (IQR {_percent_range_value(hypertension_site.get('IQR'))}), "
+        f"and median dyslipidemia no-lipid-lowering gap was {_percent_value(dyslipidemia_site.get('Median gap %'))} "
+        f"(IQR {_percent_range_value(dyslipidemia_site.get('IQR'))}). These findings indicate within-network coverage, "
         "partial phenotype persistence, and site-sensitive review priorities only; they do not establish external "
         "transportability, causal trajectory, treatment response, or site performance."
     )
@@ -920,16 +922,26 @@ def _conclusion_section() -> str:
 
 
 def _study_root_from_paper_root(paper_root: Path) -> Path:
-    return paper_root.expanduser().resolve().parent
+    resolved = paper_root.expanduser().resolve()
+    for candidate in (resolved.parent, *resolved.parents):
+        if (candidate / "artifacts").is_dir() and (
+            (candidate / "artifacts" / "controller").exists()
+            or (candidate / "artifacts" / "reviewer_revision").exists()
+            or (candidate / "submission").exists()
+        ):
+            return candidate
+    return resolved.parent
 
 
 def _read_supplementary_tables_text(*, paper_root: Path, study_root: Path) -> str:
+    reviewer_revision_supplement = _bounded_supplementary_tables_text(study_root)
+    if reviewer_revision_supplement:
+        return reviewer_revision_supplement
     candidates = (
         study_root / "submission" / "supplementary_tables.md",
         study_root / "submission" / "supplementary_material.md",
         paper_root / "submission_minimal" / "supplementary_tables.md",
         paper_root / "submission_minimal" / "supplementary_material.md",
-        paper_root / "draft.md",
     )
     for path in candidates:
         if path.exists() and path.is_file():
@@ -939,15 +951,142 @@ def _read_supplementary_tables_text(*, paper_root: Path, study_root: Path) -> st
     return ""
 
 
+def _latest_bounded_analysis_campaign_dir(study_root: Path) -> Path | None:
+    root = study_root / "artifacts" / "reviewer_revision"
+    if not root.exists():
+        return None
+    candidates = [
+        path
+        for path in root.glob("*/bounded_analysis_campaign")
+        if path.is_dir() and (path / "tables").is_dir()
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: (path.stat().st_mtime, str(path)))
+
+
+def _bounded_table_text(study_root: Path, filename: str) -> str:
+    campaign_dir = _latest_bounded_analysis_campaign_dir(study_root)
+    if campaign_dir is None:
+        return ""
+    path = campaign_dir / "tables" / filename
+    if not path.exists() or not path.is_file():
+        return ""
+    return path.read_text(encoding="utf-8").strip()
+
+
+def _bounded_supplementary_tables_text(study_root: Path) -> str:
+    sections: list[str] = []
+    for title, filename in (
+        (
+            "Supplementary Table S1. Missingness and plausibility atlas for phenotype-defining variables",
+            "missingness_plausibility_atlas.md",
+        ),
+        (
+            "Supplementary Table S2. Medication-record sensitivity for core review signals",
+            "medication_field_present_sensitivity.md",
+        ),
+        (
+            "Supplementary Table S3. Anonymous source-site-code variability in recorded medication-review signals",
+            "site_gap_variability_summary.md",
+        ),
+        (
+            "Supplementary Table S4. Adult/plausible-age boundary sensitivity",
+            "adult_boundary_sensitivity.md",
+        ),
+        (
+            "Supplementary Table S5. Diagnostic variable ascertainment",
+            "diagnostic_variable_ascertainment_table.md",
+        ),
+    ):
+        table = _bounded_table_text(study_root, filename)
+        if not table:
+            continue
+        sections.append(f"### {title}\n\n{_submission_safe_supplementary_text(_strip_table_heading(table))}")
+    if not sections:
+        return ""
+    return "## Supplementary Tables\n\n" + "\n\n".join(sections)
+
+
+def _submission_safe_supplementary_text(text: str) -> str:
+    return text.replace("糖尿病", "the Chinese diabetes term")
+
+
+def _apply_bounded_t2_revisions(*, t2: str, study_root: Path) -> str:
+    risk_rows = _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv")
+    if not t2 or not risk_rows:
+        return t2
+    values_by_phenotype: dict[str, dict[str, str]] = {}
+    for row in risk_rows:
+        phenotype = _text(row.get("phenotype"))
+        if phenotype is None:
+            continue
+        values_by_phenotype[phenotype] = row
+    measure_to_field = {
+        "Index patients": "index_patients",
+        "Share of index cohort": "share_of_index_cohort",
+        "Severe glycemia low-intensity gap": "severe_glycemia_low_recorded_glucose_lowering_intensity_pct",
+        "Uncontrolled glycemia with no diabetes drug": "uncontrolled_glycemia_no_recorded_diabetes_medication_pct",
+        "Hypertension with no antihypertensive": "hypertension_context_no_recorded_antihypertensive_pct",
+        "Dyslipidemia with no lipid-lowering": "dyslipidemia_context_no_recorded_lipid_lowering_pct",
+    }
+    changed = False
+    output: list[str] = []
+    for line in t2.splitlines():
+        if not line.strip().startswith("|") or line.count("|") < 4:
+            output.append(line)
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or cells[0] in {"---", "Phenotype"}:
+            output.append(line)
+            continue
+        phenotype, measure, old_value = cells
+        field = measure_to_field.get(measure)
+        bounded_row = values_by_phenotype.get(phenotype)
+        if field is None or bounded_row is None:
+            output.append(line)
+            continue
+        new_value = _format_bounded_t2_value(bounded_row.get(field), percent=field.endswith("_pct") or field == "share_of_index_cohort")
+        if new_value and new_value != old_value:
+            cells[2] = new_value
+            line = "| " + " | ".join(cells) + " |"
+            changed = True
+        output.append(line)
+    return "\n".join(output) if changed else t2
+
+
+def _bounded_table_rows(study_root: Path, filename: str) -> list[dict[str, str]]:
+    campaign_dir = _latest_bounded_analysis_campaign_dir(study_root)
+    if campaign_dir is None:
+        return []
+    path = campaign_dir / "tables" / filename
+    if not path.exists() or not path.is_file():
+        return []
+    if path.suffix == ".csv":
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            return [dict(row) for row in csv.DictReader(handle)]
+    return _markdown_table_rows(path.read_text(encoding="utf-8"))
+
+
+def _format_bounded_t2_value(value: object, *, percent: bool) -> str:
+    text = _text(value)
+    if text is None or text in {"", "NA", "Not assessed"}:
+        return "NA"
+    if percent:
+        return text if text.endswith("%") else f"{text}%"
+    return _format_count(text)
+
+
 def _extract_markdown_section(text: str, heading: str) -> str:
     if not text or heading not in text:
         return ""
+    heading_title = heading.lstrip("#").strip()
     lines = text.splitlines()
     start: int | None = None
     heading_level = 3
     for index, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == heading:
+        if stripped == heading or stripped.lstrip("#").strip() == heading_title:
             start = index
             heading_level = len(stripped.split(" ", 1)[0])
             break
@@ -974,12 +1113,32 @@ def _medication_sensitivity_values(
 ) -> dict[str, dict[str, dict[str, str]]]:
     result: dict[str, dict[str, dict[str, str]]] = {}
     for row in rows:
-        indicator = _text(row.get("Indicator"))
-        denominator_mode = _text(row.get("Denominator mode"))
+        normalized = _normalize_sensitivity_row(row)
+        indicator = _text(normalized.get("Indicator"))
+        denominator_mode = _text(normalized.get("Denominator mode"))
         if indicator is None or denominator_mode is None:
             continue
-        result.setdefault(indicator, {})[denominator_mode] = dict(row)
+        result.setdefault(indicator, {})[denominator_mode] = normalized
     return result
+
+
+def _normalize_sensitivity_row(row: Mapping[str, str]) -> dict[str, str]:
+    indicator = _text(row.get("Indicator") or row.get("indicator"))
+    denominator_mode = _text(row.get("Denominator mode") or row.get("denominator_mode"))
+    if denominator_mode == "all_eligible":
+        denominator_mode = "All eligible"
+    elif denominator_mode == "medication_field_present":
+        denominator_mode = "Medication field present"
+    elif denominator_mode == "any_recorded_medication_class":
+        denominator_mode = "Any recorded medication class"
+    return {
+        "Indicator": indicator or "",
+        "Denominator mode": denominator_mode or "",
+        "Eligible denominator": _text(row.get("Eligible denominator") or row.get("eligible_denominator")) or "",
+        "Gap n": _text(row.get("Gap n") or row.get("gap_n")) or "",
+        "Gap %": _text(row.get("Gap %") or row.get("gap_pct")) or "",
+        "Interpretation boundary": _text(row.get("Interpretation boundary") or row.get("interpretation_boundary")) or "",
+    }
 
 
 def _site_variability_values(
@@ -987,11 +1146,24 @@ def _site_variability_values(
 ) -> dict[str, dict[str, str]]:
     result: dict[str, dict[str, str]] = {}
     for row in rows:
-        indicator = _text(row.get("Indicator"))
+        normalized = _normalize_site_variability_row(row)
+        indicator = _text(normalized.get("Indicator"))
         if indicator is None:
             continue
-        result[indicator] = dict(row)
+        result[indicator] = normalized
     return result
+
+
+def _normalize_site_variability_row(row: Mapping[str, str]) -> dict[str, str]:
+    return {
+        "Indicator": _text(row.get("Indicator") or row.get("indicator")) or "",
+        "Site denominator minimum": _text(row.get("Site denominator minimum") or row.get("site_denominator_minimum")) or "",
+        "Eligible sites": _text(row.get("Eligible sites") or row.get("eligible_sites")) or "",
+        "Median gap %": _text(row.get("Median gap %") or row.get("median_gap_pct")) or "",
+        "IQR": _text(row.get("IQR") or row.get("iqr_gap_pct")) or "",
+        "Range": _text(row.get("Range") or row.get("range_gap_pct")) or "",
+        "Interpretation boundary": _text(row.get("Interpretation boundary") or row.get("site_interpretation_boundary")) or "",
+    }
 
 
 def _sensitivity_lookup(
@@ -1096,6 +1268,18 @@ def _percent_value(value: object) -> str:
     return text if text.endswith("%") else f"{text}%"
 
 
+def _percent_range_value(value: object) -> str:
+    text = _text(value)
+    if text is None:
+        return "NA"
+    if "%" in text:
+        return text
+    if "-" in text:
+        left, right = text.split("-", 1)
+        return f"{left.strip()}%-{right.strip()}%"
+    return _percent_value(text)
+
+
 def _float_from_text(value: object) -> float | None:
     text = _text(value)
     if text is None:
@@ -1124,18 +1308,26 @@ def _cohort_values(*, methods: Mapping[str, Any], flow: Mapping[str, Any], t1: s
     cohort_definition = _text(design.get("cohort_definition")) or ""
     steps = [dict(item) for item in flow.get("steps") or [] if isinstance(item, Mapping)]
     t1_values = _t1_value_map(t1)
+    index_denominator = _step_n(steps, "index_analysis_cohort") or 692702
+    adult_plausible_age = t1_values.get("Adult/plausible-age patients") or 691992
+    medication_field_present = _count_from_summary(
+        t1_values.get("Index patients with nonempty medication fields")
+    ) or "378,383"
+    any_recorded_medication = _count_from_summary(
+        t1_values.get("Index patients with any parsed medication class")
+    ) or "377,032"
     return {
         "processed_records": _format_count(
             _step_n(steps, "deidentified_release_visits") or _first_int(cohort_definition) or 1779360
         ),
         "unique_patients": _format_count(_step_n(steps, "processed_patients") or 861778),
-        "index_patients": _format_count(_step_n(steps, "index_analysis_cohort") or 692702),
+        "index_patients": _format_count(index_denominator),
         "adult_plausible_age": _format_count(
-            t1_values.get("Adult/plausible-age patients") or 691992
+            adult_plausible_age
         ),
         "adult_plausible_age_share": _format_share(
-            numerator=t1_values.get("Adult/plausible-age patients"),
-            denominator=_step_n(steps, "index_analysis_cohort") or 692702,
+            numerator=adult_plausible_age,
+            denominator=index_denominator,
         ),
         "repeated_visit_patients": _format_count(_step_n(steps, "repeated_visit_support_panel") or 291788),
         "transition_eligible": _format_count(_step_n(steps, "transition_eligible_support_set") or 291084),
@@ -1151,18 +1343,18 @@ def _cohort_values(*, methods: Mapping[str, Any], flow: Mapping[str, Any], t1: s
         "fasting_glucose_excluded": _format_count(
             t1_values.get("Fasting glucose excluded rows") or 2166
         ),
-        "medication_field_present": _count_from_summary(
-            t1_values.get("Index patients with nonempty medication fields")
-        ) or "378,383",
+        "medication_field_present": medication_field_present,
         "medication_field_present_share": _share_from_summary(
             t1_values.get("Index patients with nonempty medication fields")
-        ),
-        "any_recorded_medication": _count_from_summary(
-            t1_values.get("Index patients with any parsed medication class")
-        ) or "377,032",
+        )
+        if _share_from_summary(t1_values.get("Index patients with nonempty medication fields")) != "NA"
+        else _format_share(numerator=medication_field_present, denominator=index_denominator),
+        "any_recorded_medication": any_recorded_medication,
         "any_recorded_medication_share": _share_from_summary(
             t1_values.get("Index patients with any parsed medication class")
-        ),
+        )
+        if _share_from_summary(t1_values.get("Index patients with any parsed medication class")) != "NA"
+        else _format_share(numerator=any_recorded_medication, denominator=index_denominator),
     }
 
 
@@ -1232,6 +1424,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
     )
+    t2 = _apply_bounded_t2_revisions(t2=t2, study_root=study_root)
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
@@ -1266,7 +1459,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         if relpath == Path("cohort_flow.json"):
             updated = _repair_dpcc_cohort_flow_payload(updated, t1=t1)
         elif relpath == Path("dpcc_treatment_gap_alignment.json") or relpath.name == "F4.render_request.json":
-            updated = _repair_dpcc_treatment_gap_alignment_payload(updated, t2=t2)
+            updated = _repair_dpcc_treatment_gap_alignment_payload(updated, t2=t2, study_root=study_root)
         elif relpath in {Path("table_catalog.json"), Path("tables") / "table_catalog.json"}:
             updated = _repair_dpcc_table_catalog_payload(updated)
         elif relpath == Path("figure_semantics_manifest.json"):
@@ -1278,6 +1471,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
     changed_paths.extend(
         _materialize_dpcc_support_tables(
             paper_root=paper_root,
+            t2=t2,
             sensitivity=sensitivity,
             transition_table=t3_transition,
         )
@@ -1369,6 +1563,7 @@ def _repair_dpcc_treatment_gap_alignment_payload(
     payload: Mapping[str, Any],
     *,
     t2: str,
+    study_root: Path,
 ) -> dict[str, Any]:
     updated = _replace_dpcc_display_metadata_text(payload)
     rows = updated.get("rows")
@@ -1379,18 +1574,20 @@ def _repair_dpcc_treatment_gap_alignment_payload(
             display["rows"] = _dpcc_rows_with_explicit_rates(
                 rows=display.get("rows"),
                 t2=t2,
+                study_root=study_root,
             )
             displays[0] = display
             updated = dict(updated)
             updated["displays"] = displays
             return updated
     updated = dict(updated)
-    updated["rows"] = _dpcc_rows_with_explicit_rates(rows=rows, t2=t2)
+    updated["rows"] = _dpcc_rows_with_explicit_rates(rows=rows, t2=t2, study_root=study_root)
     return updated
 
 
-def _dpcc_rows_with_explicit_rates(*, rows: object, t2: str) -> list[dict[str, Any]]:
+def _dpcc_rows_with_explicit_rates(*, rows: object, t2: str, study_root: Path) -> list[dict[str, Any]]:
     rate_map = _gap_rate_map_from_t2(t2)
+    count_map = _bounded_gap_count_map(study_root)
     result: list[dict[str, Any]] = []
     if not isinstance(rows, list):
         return result
@@ -1399,10 +1596,35 @@ def _dpcc_rows_with_explicit_rates(*, rows: object, t2: str) -> list[dict[str, A
             continue
         item = dict(row)
         phenotype = _text(item.get("phenotype_label"))
+        if phenotype in count_map:
+            item.update(count_map[phenotype])
         phenotype_rates = rate_map.get(phenotype or "", {})
         for key, value in phenotype_rates.items():
             item[key] = value
         result.append(item)
+    return result
+
+
+def _bounded_gap_count_map(study_root: Path) -> dict[str, dict[str, int]]:
+    field_map = {
+        "index_patients": "index_patients",
+        "severe_glycemia_low_recorded_glucose_lowering_intensity_gap": "severe_glycemia_low_intensity_gap_patients",
+        "uncontrolled_glycemia_no_recorded_diabetes_medication_gap": "uncontrolled_glycemia_no_drug_gap_patients",
+        "hypertension_context_no_recorded_antihypertensive_gap": "hypertension_no_antihypertensive_gap_patients",
+        "dyslipidemia_context_no_recorded_lipid_lowering_gap": "dyslipidemia_no_lipid_lowering_gap_patients",
+    }
+    result: dict[str, dict[str, int]] = {}
+    for row in _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv"):
+        phenotype = _text(row.get("phenotype"))
+        if phenotype is None:
+            continue
+        values: dict[str, int] = {}
+        for source_key, target_key in field_map.items():
+            parsed = _int_from_numeric_text(row.get(source_key))
+            if parsed is not None:
+                values[target_key] = parsed
+        if values:
+            result[phenotype] = values
     return result
 
 
@@ -1534,10 +1756,19 @@ def _repair_dpcc_manuscript_blueprint_payload(payload: Mapping[str, Any]) -> dic
 def _materialize_dpcc_support_tables(
     *,
     paper_root: Path,
+    t2: str,
     sensitivity: Mapping[str, Mapping[str, Mapping[str, str]]],
     transition_table: str,
 ) -> list[str]:
     changed_paths: list[str] = []
+    if t2:
+        for relpath in (
+            Path("tables") / "T2_phenotype_gap_summary.md",
+            Path("tables") / "generated" / "T2_phenotype_gap_summary.md",
+        ):
+            path = paper_root / relpath
+            if _write_text_if_changed(path, t2):
+                changed_paths.append(str(path.resolve()))
     t3_markdown = _build_medication_capture_sensitivity_table(sensitivity)
     if t3_markdown:
         for relpath in (
@@ -1679,6 +1910,16 @@ def _first_int(text: str) -> int | None:
         elif digits:
             break
     return int("".join(digits)) if digits else None
+
+
+def _int_from_numeric_text(value: object) -> int | None:
+    text = _text(value)
+    if text is None:
+        return None
+    try:
+        return int(text.replace(",", ""))
+    except ValueError:
+        return None
 
 
 def _format_count(value: object) -> str:

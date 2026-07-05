@@ -836,23 +836,23 @@ def create_submission_minimal_package(
 
         if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
             inline_supplementary_fallback_used = False
-            supplementary_tables_markdown_path = _build_supplementary_tables_markdown(
-                table_entries=table_entries,
+            supplementary_tables_markdown_path = build_general_medical_inline_supplementary_section_markdown(
+                compiled_markdown_path=compiled_markdown_path,
                 submission_root=staging_submission_root,
-                label_root=label_root,
+                section_heading="Supplementary Tables",
+                output_name="supplementary_tables.md",
+                intro_text=(
+                    "This file contains supplementary tables preserved from the canonical manuscript source."
+                ),
+                compiled_markdown_text=compiled_markdown_text,
             )
+            inline_supplementary_fallback_used = supplementary_tables_markdown_path is not None
             if supplementary_tables_markdown_path is None:
-                supplementary_tables_markdown_path = build_general_medical_inline_supplementary_section_markdown(
-                    compiled_markdown_path=compiled_markdown_path,
+                supplementary_tables_markdown_path = _build_supplementary_tables_markdown(
+                    table_entries=table_entries,
                     submission_root=staging_submission_root,
-                    section_heading="Supplementary Tables",
-                    output_name="supplementary_tables.md",
-                    intro_text=(
-                        "This file contains supplementary tables preserved from the canonical manuscript source."
-                    ),
-                    compiled_markdown_text=compiled_markdown_text,
+                    label_root=label_root,
                 )
-                inline_supplementary_fallback_used = supplementary_tables_markdown_path is not None
             supplementary_figures_markdown_path = _build_supplementary_figures_markdown(
                 figure_entries=figure_entries,
                 submission_root=staging_submission_root,
