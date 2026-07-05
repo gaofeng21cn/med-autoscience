@@ -69,6 +69,19 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     }
     assert gate_bundle["surfaces"]["manuscript_consistency_meta_review"]["status"] == "clear"
     assert all(payload["authority_boundary"][flag] is False for flag in FORBIDDEN_AUTHORITY_FLAGS)
+    assert payload["paper_mission_subordination"] == {
+        "surface_kind": "mas_paper_mission_subordination",
+        "authority_owner": "MedAutoScience",
+        "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker",
+        ],
+        "control_plane_role": "subordinate_input_or_advisory_only",
+        "can_start_parallel_mainline": False,
+        "can_bypass_submission_authority": False,
+        "can_close_without_owner_gate_or_typed_blocker": False,
+    }
 
     obligation = payload["stage_obligation"]
     assert obligation["obligation_level"] == "mandatory"
@@ -78,6 +91,7 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     ]
     assert obligation["mandatory_gate_input"] is True
     assert obligation["live_owner_consumption_claimed"] is False
+    assert obligation["paper_mission_subordination"] == payload["paper_mission_subordination"]
     assert obligation["triggered_action"] == "research-integrity-reference-verification"
     assert payload["target_stage_ids"] == obligation["target_stage_ids"]
     assert payload["triggered_opl_connect_provider_lookup_contract"] == obligation[
@@ -103,6 +117,7 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert launch_required_input["required_before_owner_receipt_or_typed_blocker"] is True
     assert launch_required_input["mandatory_gate_input"] is True
     assert launch_required_input["live_owner_consumption_claimed"] is False
+    assert launch_required_input["paper_mission_subordination"] == payload["paper_mission_subordination"]
     assert launch_required_input["triggered_action"] == "research-integrity-reference-verification"
     assert launch_required_input["required_gate_input_surfaces"] == list(
         payload["required_gate_input_surfaces"]
@@ -128,6 +143,11 @@ def test_stage_control_plane_declares_mandatory_research_integrity_stage_hook_ob
         "finalize_and_publication_handoff",
     ]
     assert contract_obligation["live_owner_consumption_claimed"] is False
+    assert contract_obligation["paper_mission_subordination"]["mainline_route"] == [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ]
     assert contract_obligation["stage_launch_required_input"]["launch_surface"] == (
         "codex_cli_launch_packet"
     )
@@ -157,6 +177,9 @@ def test_stage_control_plane_declares_mandatory_research_integrity_stage_hook_ob
         assert obligation["triggered_action"] == "research-integrity-reference-verification"
         assert obligation["mandatory_gate_input"] is True
         assert obligation["live_owner_consumption_claimed"] is False
+        assert obligation["paper_mission_subordination"] == contract_obligation[
+            "paper_mission_subordination"
+        ]
         assert obligation["authority_boundary"]["can_write_publication_eval_latest"] is False
         assert obligation["authority_boundary"]["can_write_controller_decisions"] is False
         assert obligation["authority_boundary"]["can_mutate_current_package"] is False
@@ -191,6 +214,9 @@ def test_stage_control_plane_declares_mandatory_research_integrity_stage_hook_ob
         assert pre_gate_check["required_before_owner_receipt_or_typed_blocker"] is True
         assert pre_gate_check["mandatory_gate_input"] is True
         assert pre_gate_check["live_owner_consumption_claimed"] is False
+        assert pre_gate_check["paper_mission_subordination"] == contract_obligation[
+            "paper_mission_subordination"
+        ]
         assert pre_gate_check["authority_boundary"]["can_write_publication_eval_latest"] is False
         assert pre_gate_check["authority_boundary"]["can_write_controller_decisions"] is False
         assert pre_gate_check["authority_boundary"]["can_write_runtime_queue_or_provider_attempt"] is False

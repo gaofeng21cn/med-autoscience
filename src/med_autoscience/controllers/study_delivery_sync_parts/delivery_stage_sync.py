@@ -54,7 +54,7 @@ from .staging_and_sources import (
     build_authority_source_relative_root,
     build_current_package_readme,
 )
-from .current_package_projection import sync_current_package_projection
+from .current_package_projection import augment_submission_surface_in_place, sync_current_package_projection
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     build_submission_delivery_signature_block,
@@ -76,6 +76,23 @@ from .authority_refs import build_delivery_authority_ref_block
 from .promoted_journal_delivery import sync_promoted_journal_delivery
 
 
+def _submission_root(study_root: Path) -> Path:
+    return study_root / "submission"
+
+
+def _submission_zip(study_root: Path) -> Path:
+    return study_root / "submission.zip"
+
+
+def _write_study_delivery_manifest(
+    *,
+    manifest_root: Path,
+    manifest: dict[str, Any],
+) -> None:
+    manifest_root.mkdir(parents=True, exist_ok=True)
+    dump_json(manifest_root / "delivery_manifest.json", manifest)
+
+
 def sync_draft_handoff_delivery(
     *,
     paper_root: Path,
@@ -85,8 +102,8 @@ def sync_draft_handoff_delivery(
     known_blockers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     manuscript_root = study_root / "manuscript"
-    current_package_root = manuscript_root / "current_package"
-    current_package_zip = manuscript_root / "current_package.zip"
+    submission_root = _submission_root(study_root)
+    submission_zip = _submission_zip(study_root)
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
@@ -105,16 +122,16 @@ def sync_draft_handoff_delivery(
         source_root=paper_root,
     )
 
-    reset_directory(manuscript_root)
+    reset_directory(submission_root)
     _copy_relative_files(
         source_root=paper_root,
         relative_paths=relative_paths,
-        target_root=current_package_root,
+        target_root=submission_root,
         category="draft_handoff",
         copied_files=copied_files,
     )
 
-    readme_path = manuscript_root / "README.md"
+    readme_path = submission_root / "README.md"
     write_text(readme_path, build_draft_handoff_readme(study_id=study_id))
     generated_files.append(
         {
@@ -122,7 +139,7 @@ def sync_draft_handoff_delivery(
             "path": str(readme_path.resolve()),
         }
     )
-    current_package_readme_path = current_package_root / "README.md"
+    current_package_readme_path = submission_root / "README.md"
     write_text(
         current_package_readme_path,
         build_current_package_readme(
@@ -139,11 +156,11 @@ def sync_draft_handoff_delivery(
             "path": str(current_package_readme_path.resolve()),
         }
     )
-    build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
+    build_zip_from_directory(source_root=submission_root, output_path=submission_zip)
     generated_files.append(
         {
-            "category": "current_package",
-            "path": str(current_package_zip.resolve()),
+            "category": "submission_surface",
+            "path": str(submission_zip.resolve()),
         }
     )
 
@@ -167,36 +184,29 @@ def sync_draft_handoff_delivery(
         **build_delivery_authority_ref_block(study_root=study_root),
         "surface_roles": build_delivery_surface_roles(
             paper_root=paper_root,
-            source_root=paper_root,
-            manuscript_root=manuscript_root,
-            current_package_root=current_package_root,
-            current_package_zip=current_package_zip,
+            source_root=submission_root,
+            manuscript_root=submission_root,
+            current_package_root=submission_root,
+            current_package_zip=submission_zip,
         ),
         "targets": {
             "study_root": str(study_root),
             "manuscript_root": str(manuscript_root),
-            "current_package_root": str(current_package_root),
-            "current_package_zip": str(current_package_zip),
+            "submission_root": str(submission_root),
+            "current_package_root": str(submission_root),
+            "current_package_zip": str(submission_zip),
         },
         "copied_files": copied_files,
         "generated_files": generated_files,
         "artifact_lifecycle": build_study_delivery_lifecycle_hook(
             study_root=study_root,
-            current_package_root=current_package_root,
-            current_package_zip=current_package_zip,
+            current_package_root=submission_root,
+            current_package_zip=submission_zip,
             copied_files=copied_files,
             generated_files=generated_files,
         ),
     }
-    dump_json(manuscript_root / "delivery_manifest.json", manifest)
-    _sync_user_delivery_entry(
-        study_root=study_root,
-        study_id=study_id,
-        stage="draft_handoff",
-        source_relative_root=source_relative_root,
-        current_package_root=current_package_root,
-        current_package_zip=current_package_zip,
-    )
+    _write_study_delivery_manifest(manifest_root=manuscript_root, manifest=manifest)
     return manifest
 
 
@@ -211,15 +221,14 @@ def sync_general_delivery(
     known_blockers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     manuscript_root = study_root / "manuscript"
+    submission_root = _submission_root(study_root)
+    submission_zip = _submission_zip(study_root)
     artifacts_final_root = study_root / "artifacts" / "final"
-    staging_manuscript_root = create_staging_root(target_root=manuscript_root)
     staging_artifacts_final_root = (
         create_staging_root(target_root=artifacts_final_root)
         if normalized_stage == "finalize"
         else None
     )
-    current_package_root = staging_manuscript_root / "current_package"
-    current_package_zip = staging_manuscript_root / "current_package.zip"
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
     try:
@@ -240,45 +249,7 @@ def sync_general_delivery(
             relative_paths=source_relative_paths,
         )
 
-        copy_file(
-            source=resolve_submission_manifest_path(source_root),
-            target=audit_path(staging_manuscript_root, "submission_manifest"),
-            category="manifest",
-            copied_files=copied_files,
-        )
-        evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
-        if evidence_ledger_source.exists():
-            copy_file(
-                source=evidence_ledger_source,
-                target=audit_path(staging_manuscript_root, "evidence_ledger"),
-                category="evidence_ledger",
-                copied_files=copied_files,
-            )
         if normalized_stage == "finalize":
-            copy_file(
-                source=worktree_root / "SUMMARY.md",
-                target=staging_manuscript_root / "SUMMARY.md",
-                category="closeout",
-                copied_files=copied_files,
-            )
-            copy_file(
-                source=worktree_root / "status.md",
-                target=staging_manuscript_root / "status.md",
-                category="closeout",
-                copied_files=copied_files,
-            )
-            copy_file(
-                source=paper_root / "final_claim_ledger.md",
-                target=staging_manuscript_root / "final_claim_ledger.md",
-                category="closeout",
-                copied_files=copied_files,
-            )
-            copy_file(
-                source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
-                target=staging_manuscript_root / "finalize_resume_packet.md",
-                category="closeout",
-                copied_files=copied_files,
-            )
             assert staging_artifacts_final_root is not None
             copy_file(
                 source=paper_root / "paper_bundle_manifest.json",
@@ -293,21 +264,6 @@ def sync_general_delivery(
                 copied_files=copied_files,
             )
 
-        readme_path = staging_manuscript_root / "README.md"
-        write_text(
-            readme_path,
-            build_general_delivery_readme(
-                study_id=study_id,
-                stage=normalized_stage,
-                source_relative_root=source_relative_root,
-            ),
-        )
-        generated_files.append(
-            {
-                "category": "delivery_readme",
-                "path": str(readme_path.resolve()),
-            }
-        )
         if normalized_stage == "finalize":
             assert staging_artifacts_final_root is not None
             artifacts_readme_path = staging_artifacts_final_root / "README.md"
@@ -322,59 +278,48 @@ def sync_general_delivery(
                 }
             )
 
-        current_package_readme_payload = sync_current_package_projection(
-            paper_root=paper_root,
-            source_root=source_root,
-            current_package_root=current_package_root,
-            current_package_zip=current_package_zip,
-            projected_current_package_root=manuscript_root / "current_package",
-            primary_artifact_delivery_root=staging_manuscript_root,
-            study_id=study_id,
-            stage=normalized_stage,
-            source_relative_root=source_relative_root,
-            status_line="human-facing manuscript handoff surface",
-            copied_files=copied_files,
-            generated_files=generated_files,
-            review_ledger_source=paper_root / "review" / "review_ledger.json",
-            charter_contract_linkage=charter_contract_linkage,
-            quality_gate_status="blocked" if known_blockers else "not_blocked",
-            known_blockers=known_blockers,
-            source_signature=source_signature,
-        )
-        copy_review_ledger_to_delivery_root(
-            paper_root=paper_root,
-            target_root=staging_manuscript_root,
-            category="review_surface",
-            copied_files=copied_files,
-        )
-
-        remapped_copied_files = remap_staging_file_records(
-            records=copied_files,
-            staging_root=staging_manuscript_root,
-            target_root=manuscript_root,
-        )
-        remapped_generated_files = remap_staging_file_records(
-            records=generated_files,
-            staging_root=staging_manuscript_root,
-            target_root=manuscript_root,
-        )
-        if normalized_stage == "finalize":
-            assert staging_artifacts_final_root is not None
-            remapped_copied_files = remap_staging_file_records(
-                records=remapped_copied_files,
-                staging_root=staging_artifacts_final_root,
-                target_root=artifacts_final_root,
+        if source_root.resolve() == submission_root.resolve():
+            current_package_readme_payload = augment_submission_surface_in_place(
+                paper_root=paper_root,
+                source_root=source_root,
+                submission_zip=submission_zip,
+                study_id=study_id,
+                stage=normalized_stage,
+                source_relative_root=source_relative_root,
+                copied_files=copied_files,
+                generated_files=generated_files,
+                review_ledger_source=paper_root / "review" / "review_ledger.json",
+                charter_contract_linkage=charter_contract_linkage,
+                quality_gate_status="blocked" if known_blockers else "not_blocked",
+                known_blockers=known_blockers,
+                source_signature=source_signature,
             )
-            remapped_generated_files = remap_staging_file_records(
-                records=remapped_generated_files,
-                staging_root=staging_artifacts_final_root,
-                target_root=artifacts_final_root,
+        else:
+            current_package_readme_payload = sync_current_package_projection(
+                paper_root=paper_root,
+                source_root=source_root,
+                current_package_root=submission_root,
+                current_package_zip=submission_zip,
+                projected_current_package_root=submission_root,
+                primary_artifact_delivery_root=submission_root,
+                study_id=study_id,
+                stage=normalized_stage,
+                source_relative_root=source_relative_root,
+                status_line="controller-generated submission package",
+                copied_files=copied_files,
+                generated_files=generated_files,
+                review_ledger_source=paper_root / "review" / "review_ledger.json",
+                charter_contract_linkage=charter_contract_linkage,
+                quality_gate_status="blocked" if known_blockers else "not_blocked",
+                known_blockers=known_blockers,
+                source_signature=source_signature,
             )
         targets = {
             "study_root": str(study_root),
             "manuscript_root": str(manuscript_root),
-            "current_package_root": str(manuscript_root / "current_package"),
-            "current_package_zip": str(manuscript_root / "current_package.zip"),
+            "submission_root": str(submission_root),
+            "current_package_root": str(submission_root),
+            "current_package_zip": str(submission_zip),
         }
         if normalized_stage == "finalize":
             targets["artifacts_final_root"] = str(artifacts_final_root)
@@ -395,8 +340,8 @@ def sync_general_delivery(
                 source_signature=source_signature,
                 source_relative_paths=source_relative_paths,
                 source_package_root=source_root,
-                human_package_root=manuscript_root / "current_package",
-                package_role="human_facing_mirror",
+                human_package_root=submission_root,
+                package_role="human_facing_submission_root",
             ),
             "source": {
                 "paper_root": str(paper_root),
@@ -407,28 +352,24 @@ def sync_general_delivery(
             **build_delivery_authority_ref_block(study_root=study_root),
             "surface_roles": build_delivery_surface_roles(
                 paper_root=paper_root,
-                source_root=source_root,
-                manuscript_root=manuscript_root,
-                current_package_root=manuscript_root / "current_package",
-                current_package_zip=manuscript_root / "current_package.zip",
+                source_root=submission_root,
+                manuscript_root=submission_root,
+                current_package_root=submission_root,
+                current_package_zip=submission_zip,
                 auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
             ),
             "targets": targets,
-            "copied_files": remapped_copied_files,
-            "generated_files": remapped_generated_files,
+            "copied_files": copied_files,
+            "generated_files": generated_files,
             "artifact_lifecycle": build_study_delivery_lifecycle_hook(
                 study_root=study_root,
-                current_package_root=manuscript_root / "current_package",
-                current_package_zip=manuscript_root / "current_package.zip",
-                copied_files=remapped_copied_files,
-                generated_files=remapped_generated_files,
+                current_package_root=submission_root,
+                current_package_zip=submission_zip,
+                copied_files=copied_files,
+                generated_files=generated_files,
             ),
         }
-        dump_json(staging_manuscript_root / "delivery_manifest.json", manifest)
-        replace_directory_atomically(
-            staging_root=staging_manuscript_root,
-            target_root=manuscript_root,
-        )
+        _write_study_delivery_manifest(manifest_root=manuscript_root, manifest=manifest)
         if normalized_stage == "finalize":
             assert staging_artifacts_final_root is not None
             replace_directory_atomically(
@@ -436,7 +377,6 @@ def sync_general_delivery(
                 target_root=artifacts_final_root,
             )
     except Exception:
-        shutil.rmtree(staging_manuscript_root, ignore_errors=True)
         if staging_artifacts_final_root is not None:
             shutil.rmtree(staging_artifacts_final_root, ignore_errors=True)
         raise
@@ -444,14 +384,6 @@ def sync_general_delivery(
     if normalized_stage != "finalize":
         remove_directory(artifacts_final_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
-    _sync_user_delivery_entry(
-        study_root=study_root,
-        study_id=study_id,
-        stage=normalized_stage,
-        source_relative_root=source_relative_root,
-        current_package_root=manuscript_root / "current_package",
-        current_package_zip=manuscript_root / "current_package.zip",
-    )
     return manifest
 
 

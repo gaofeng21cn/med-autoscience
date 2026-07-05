@@ -9,6 +9,13 @@ import yaml
 
 from .layout import build_workspace_runtime_layout
 
+PREFERRED_STUDY_AUTHORITY_ROOT_NAME = "manuscript"
+LEGACY_STUDY_AUTHORITY_ROOT_NAME = "paper"
+STUDY_AUTHORITY_ROOT_NAMES = (
+    PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
+    LEGACY_STUDY_AUTHORITY_ROOT_NAME,
+)
+
 
 @dataclass(frozen=True)
 class PaperRootContext:
@@ -84,7 +91,7 @@ def _extract_declared_study_id(payload: dict[str, Any], *, quest_yaml_path: Path
 
 def _resolve_authoritative_paper_root_from_projected_quest_paper(paper_root: Path) -> Path | None:
     resolved_paper_root = _resolve_path(paper_root)
-    if resolved_paper_root.name != "paper":
+    if resolved_paper_root.name not in STUDY_AUTHORITY_ROOT_NAMES:
         return None
     quest_root = resolved_paper_root.parent
     try:
@@ -104,7 +111,7 @@ def _resolve_authoritative_paper_root_from_projected_quest_paper(paper_root: Pat
     if not candidate_value:
         return None
     candidate = Path(candidate_value).expanduser().resolve()
-    if candidate.name != "paper":
+    if candidate.name not in STUDY_AUTHORITY_ROOT_NAMES:
         return None
     worktree_root = candidate.parent
     if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
@@ -127,7 +134,7 @@ def _resolve_stage_native_body_authority_binding(
     paper_root: Path,
 ) -> tuple[Path, Path, Path, str, str, Path] | None:
     resolved_paper_root = _resolve_path(paper_root)
-    if resolved_paper_root.name != "paper":
+    if resolved_paper_root.name not in STUDY_AUTHORITY_ROOT_NAMES:
         return None
     if len(resolved_paper_root.parents) < 6:
         return None
@@ -194,8 +201,10 @@ def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
     authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(resolved)
     if authoritative_paper_root is not None:
         resolved = authoritative_paper_root
-    if resolved.name != "paper":
-        raise ValueError(f"paper_root must end with /paper: {paper_root}")
+    if resolved.name not in STUDY_AUTHORITY_ROOT_NAMES:
+        raise ValueError(
+            f"paper_root must end with /{' or /'.join(STUDY_AUTHORITY_ROOT_NAMES)}: {paper_root}"
+        )
     if _is_canonical_quest_paper_root(resolved):
         return resolved.parent
     worktree_root = resolved.parent

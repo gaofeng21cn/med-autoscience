@@ -372,6 +372,8 @@
     },
     "feedback_capture_requires_developer_mode": false,
     "feedbackops_event_kind": "target_agent_feedback_external_suite",
+    "must_follow_target_domain_mainline": true,
+    "must_not_compete_with_target_domain_mainline": true,
     "policy_id": "standard_agent_feedback_self_evolution_trigger.v1",
     "repo_fix_execution_requires_opl_developer_mode": true,
     "required_trigger_fields": [
@@ -386,6 +388,7 @@
     ],
     "standard_status_projection_ref": "contracts/opl-framework/agent-lab-contract.json#/domain_feedback_self_evolution_surface",
     "surface_kind": "opl_foundry_agent_standard_feedback_self_evolution_trigger_policy",
+    "target_domain_terminal_route": "owner_gate_or_typed_blocker",
     "trigger_chain": [
       "domain_or_package_thin_feedback_adapter",
       "opl_feedbackops_agent_lab_status_projection",

@@ -383,8 +383,8 @@ def describe_submission_delivery(
     manuscript_root = study_root / "manuscript"
     delivery_manifest_path = manuscript_root / "delivery_manifest.json"
     normalized_publication_profile = normalize_publication_profile(publication_profile)
-    current_package_root = manuscript_root / "current_package"
-    current_package_zip = manuscript_root / "current_package.zip"
+    current_package_root = study_root / "submission"
+    current_package_zip = study_root / "submission.zip"
     if not delivery_manifest_path.exists():
         return {
             "applicable": True,
@@ -529,7 +529,17 @@ def describe_submission_delivery(
             and not Path(str(item.get("source_path"))).expanduser().exists()
         }
     )
-    if missing_source_paths:
+    if not current_package_root.exists() or not current_package_zip.exists():
+        status = "stale_projection_missing"
+        stale_reason = "delivery_projection_missing"
+    elif not _current_package_pdf_visual_audit_current(
+        expected_manifest_path=expected_manifest_path,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+    ):
+        status = "stale_projection_missing"
+        stale_reason = "delivery_pdf_visual_audit_missing_or_stale"
+    elif missing_source_paths:
         status = "stale_source_missing"
         stale_reason = "delivery_manifest_sources_missing"
     elif (
@@ -546,16 +556,6 @@ def describe_submission_delivery(
             authority_stale_reason=str(submission_authority.get("stale_reason") or "").strip() or None,
         )
         assert status is not None
-    elif not current_package_root.exists() or not current_package_zip.exists():
-        status = "stale_projection_missing"
-        stale_reason = "delivery_projection_missing"
-    elif not _current_package_pdf_visual_audit_current(
-        expected_manifest_path=expected_manifest_path,
-        current_package_root=current_package_root,
-        current_package_zip=current_package_zip,
-    ):
-        status = "stale_projection_missing"
-        stale_reason = "delivery_pdf_visual_audit_missing_or_stale"
     elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
@@ -631,8 +631,8 @@ def materialize_submission_delivery_stale_notice(
     study_id = context["study_id"]
     manuscript_root = study_root / "manuscript"
     normalized_publication_profile = normalize_publication_profile(publication_profile)
-    current_package_root = manuscript_root / "current_package"
-    current_package_zip = manuscript_root / "current_package.zip"
+    current_package_root = study_root / "submission"
+    current_package_zip = study_root / "submission.zip"
     delivery_manifest_path = manuscript_root / "delivery_manifest.json"
     delivery_status_path = manuscript_root / "delivery_status.json"
     _resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
@@ -642,7 +642,6 @@ def materialize_submission_delivery_stale_notice(
             current_package_root,
             current_package_zip,
             delivery_status_path,
-            study_root / "delivery",
         ],
     )
     if not bool(authority_route_gate.get("authorized")):
@@ -652,7 +651,7 @@ def materialize_submission_delivery_stale_notice(
             study_root=str(study_root),
             delivery_status_path=str(delivery_status_path),
         )
-    cleared_paths = clear_directory_contents(manuscript_root, keep_names=("delivery_manifest.json",))
+    cleared_paths = clear_directory_contents(current_package_root)
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
 
@@ -664,7 +663,6 @@ def materialize_submission_delivery_stale_notice(
         paper_root=resolved_paper_root,
         source_root=expected_source_root,
     )
-    manuscript_root.mkdir(parents=True, exist_ok=True)
     current_package_root.mkdir(parents=True, exist_ok=True)
     charter_contract_linkage = build_charter_contract_linkage(
         study_root=study_root,
@@ -675,31 +673,35 @@ def materialize_submission_delivery_stale_notice(
     for name in ("manuscript.docx", "paper.pdf"):
         if _copy_optional_file(
             source=expected_source_root / name,
-            target=manuscript_root / name,
-            category="preview_delivery_root",
+            target=current_package_root / name,
+            category="preview_submission_root",
             copied_files=copied_files,
         ):
             preview_file_count += 1
-            copy_file(
-                source=manuscript_root / name,
-                target=current_package_root / name,
-                category="preview_current_package",
-                copied_files=copied_files,
-            )
     source_manifest_path = resolve_submission_manifest_path(expected_source_root)
     if _copy_optional_file(
         source=source_manifest_path,
-        target=audit_path(manuscript_root, "submission_manifest"),
-        category="preview_delivery_root",
+        target=audit_path(current_package_root, "submission_manifest"),
+        category="preview_submission_root",
         copied_files=copied_files,
     ):
         preview_file_count += 1
-        copy_file(
-            source=audit_path(manuscript_root, "submission_manifest"),
-            target=audit_path(current_package_root, "submission_manifest"),
-            category="preview_current_package",
-            copied_files=copied_files,
-        )
+    write_text(
+        current_package_root / "README.md",
+        build_current_package_readme(
+            study_id=study_id,
+            stage="submission_preview",
+            source_relative_root=source_relative_root,
+            status_line="audit preview only; not submission-ready",
+            charter_contract_linkage=charter_contract_linkage,
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "preview_submission_root",
+            "path": str((current_package_root / "README.md").resolve()),
+        }
+    )
     preview_file_count += int(
         _copy_optional_file(
             source=resolved_paper_root / "build" / "review_manuscript.md",
@@ -763,37 +765,6 @@ def materialize_submission_delivery_stale_notice(
         copied_files=copied_files,
         ignore_filenames=("README.md",),
     )
-    write_text(
-        manuscript_root / "README.md",
-        build_preview_general_delivery_readme(
-            study_id=study_id,
-            stale_reason=stale_reason,
-            source_relative_root=source_relative_root,
-        ),
-    )
-    generated_files.append(
-        {
-            "category": "preview_delivery_readme",
-            "path": str((manuscript_root / "README.md").resolve()),
-        }
-    )
-    current_package_readme_path = current_package_root / "README.md"
-    write_text(
-        current_package_readme_path,
-        build_current_package_readme(
-            study_id=study_id,
-            stage="submission_preview",
-            source_relative_root=source_relative_root,
-            status_line="audit preview only; not submission-ready",
-            charter_contract_linkage=charter_contract_linkage,
-        ),
-    )
-    generated_files.append(
-        {
-            "category": "preview_current_package",
-            "path": str(current_package_readme_path.resolve()),
-        }
-    )
     build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     generated_files.append(
         {
@@ -831,14 +802,6 @@ def materialize_submission_delivery_stale_notice(
         }
     )
     dump_json(delivery_status_path, status_payload)
-    _sync_user_delivery_entry(
-        study_root=study_root,
-        study_id=study_id,
-        stage="submission_preview",
-        source_relative_root=source_relative_root,
-        current_package_root=current_package_root,
-        current_package_zip=current_package_zip,
-    )
     return {
         "applicable": True,
         **status_payload,

@@ -5,13 +5,21 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
-## 2026-07-05：用户只看 `delivery/`，`paper/` 与 `manuscript/` 退回内部角色名
+## 2026-07-05：用户只看 `delivery/`，`paper/` 与 `manuscript/` 退回内部角色名（已被同日三层收口决策取代）
 
 - 决策：study root 新增稳定浅层入口 `delivery/`。对人暴露的默认路径固定为 `delivery/current/` 与 `delivery/current.zip`；它们只是指向 `manuscript/current_package` 与 `manuscript/current_package.zip` 的浅层 alias，不新增第二套 truth surface。
 - 决策：`paper/` 与 `manuscript/` 继续保留原物理路径，避免打断既有 contracts、read models、tests、authority gate、workspace git boundary 和 historical refs。语义上重新分账：`paper/` 是 canonical authority/build source，`manuscript/` 是 MAS/runtime compatibility mirror，`delivery/` 才是用户默认入口。
 - 决策：所有由 study delivery sync、current-package projection、journal package mirror 或 stale-preview materialization 生成的人读 README，必须显式提示“人从 `delivery/current/` 开始，编辑从 `paper/` 开始，不要把 `manuscript/` 当编辑源”。`paper/submission_minimal/` 继续保留为 controller-authorized package source，不再承担对人导航职责。
 - 理由：用户反馈表明 `paper/`、`paper/submission_minimal/`、`manuscript/`、`manuscript/current_package/` 在认知上过于接近，尤其 `paper` 和 `manuscript` 名字都像正文目录，导致“权威源”“投稿包源”“人读镜像”三层混在一起。真正要解决的是对外导航，而不是鲁莽重命名内部 contract path。
-- 影响：这是 human-facing shallow entry / docs / git-boundary 优化，不改变 MAS authority owner、publication gate、currentness proof、owner receipt、typed blocker、human gate、submission-ready 判定，也不手写 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 `current_package` authority。后续若要物理重命名 `paper/` 或 `manuscript/`，必须先做 contracts/read-model 全链路迁移设计。
+- 影响：该方案只作为历史尝试保留，用来解释为什么后续改成 `manuscript/`、`submission/`、`artifacts/` 三层物理收口。当前用户与维护者都应以下一节三层模型为准。
+
+## 2026-07-05：study root 路径最终收敛为 `manuscript/`、`submission/`、`artifacts/`
+
+- 决策：study root 的默认用户认知固定为三层：`manuscript/` 是唯一可编辑论文权威源，`submission/` 是唯一对外投稿/导出/交付包入口，`artifacts/` 是机器、运行时、审计和控制面产物。`paper/` 只允许作为 legacy compatibility alias；`delivery/` 与 `manuscript/current_package/` 不再作为推荐入口。
+- 决策：`study_delivery_sync` 生成 general package 时，优先把产物落到 `submission/` 与 `submission.zip`，并把 `paper_root` 解释为当前 canonical `manuscript/`。读面允许 legacy `paper/` 与 `paper/submission_minimal/` fallback，但新 workspace / 新 refresh 不再依赖它们作为 primary path。
+- 决策：workspace 与 study 的人读 README、startup brief、status entry、package status ref、surface role 和 git boundary，必须统一按这三层表达，不再把 `current_package` 或 `delivery/current` 当用户入口文案。保留的 compatibility alias 只服务历史 refs 和旧 read-model，不服务新用户导航。
+- 理由：前一轮只做浅 alias 仍然留下四套几乎同名的目录，用户仍需要判断 `paper/`、`paper/submission_minimal/`、`manuscript/current_package/`、`delivery/current/` 谁才是真的“现在应该打开的地方”。这不是文案问题，而是物理 layout 仍然把 authority 与 generated package 混在一起。
+- 影响：这次收口允许 workspace 物理迁移 `paper/ -> manuscript/`、`submission_minimal/current_package -> submission/`，并通过 legacy alias 保持老 refs 可读。它不改变 MAS publication authority、owner receipt、typed blocker、human gate、`publication_eval/latest.json`、`controller_decisions/latest.json` 或运行时所有权。
 
 ## 2026-07-04：医学论文 final prose polish 收口到 AI reviewer prose gate
 
@@ -38,6 +46,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：`paper-mission receipt-owner-consumption` 在读取 `paper-mission inspect --request-opl-runtime-readback` 时，不能无条件优先使用 `current_opl_runtime_carrier_readback`。如果该 projection 只是 running/stale attempt 且缺少 `opl_transition_receipt`、`receipt_evidence` 或 `mas_receipt_consumption`，而同一 readback 的 `opl_runtime_carrier_readback` 已包含可消费 terminal closeout receipt，则必须消费 terminal carrier。
 - 理由：Obesity paper line 暴露出 fresh OPL stage attempt 已 terminalized，并在 `opl_runtime_carrier_readback` 中带有完整 terminal receipt；但 readback 同时残留旧 running projection，owner-consumption selector 抢先选中 running projection，错误返回 `blocked_missing_consumable_opl_receipt`。这是 receipt carrier currentness/selection 缺陷，不是论文包缺失，也不是合法 human gate 本身。
 - 影响：该修复只改变 MAS receipt-owner-consumption 的 readback selector。当前 carrier 若本身有完整 receipt 仍优先当前 carrier；只有当前 carrier 不可消费且 terminal carrier 可消费时才切换。不得手写 Yang authority、`current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 paper body。
+
+## 2026-07-05：Research Integrity gate、SciPilot sidecar 与 FeedbackOps trigger 必须从属于 PaperMission submission authority 主线
+
+- 决策：`research_integrity_gate_input_bundle`、`research_integrity_review_publication_gate_stage_hook`、SciPilot `figure_advisor_probe` / `figure_export_lint`，以及 reviewer-revision / agent-lab 的 FeedbackOps trigger，统一声明 `paper_mission_subordination`，固定主线为 `PaperMission -> submission_authority -> submission_authority_owner_gate_or_typed_blocker`。这些 surface 只能作为 gate input、advisory、route-back hint、blocker candidate、external suite ref 或 work-order trigger，不能自起第二条 paper mainline。
+- 决策：Research Integrity 不能绕过 submission authority 直接把 blocker candidate、provider lookup 或 meta review 升格为 owner receipt、typed blocker、publication verdict、submission-ready 或 current-package authority；SciPilot sidecar 不能把 plotting advice / export lint 升格为 figure owner gate、publication authority 或独立 figure mainline；FeedbackOps trigger 不能以 OPL Agent Lab / OMA work-order 状态替代 PaperMission currentness、submission authority closeout、owner gate 或 stable typed blocker。
+- 决策：reviewer revision / first-draft quality 的 FeedbackOps acceptance readback 收紧到 `medautosci paper-mission inspect --study-id <study_id> --format json`，避免把 `study progress` 的一般状态展示误读成独立 closeout authority。`default_route` 只表达附属修复链，不表达第二条论文推进主线。
+- 理由：三条线本质上都是输入增强或修复加速层，但若 contract 只强调“non-authority / refs-only”而不强调“从属哪条主线”，后续读面和自动化很容易把 Research Integrity、SciPilot 或 FeedbackOps 当成平行控制面，重新制造 competing owner。
+- 影响：后续所有相关 contract、docs、workflow packet、suite trigger 和 focused tests，都必须明确 `can_start_parallel_mainline=false`、`can_bypass_submission_authority=false`、`can_close_without_owner_gate_or_typed_blocker=false`。这不会新增调度器、不会新增 gate、不会改变既有 fail-open/nonblocking 规则；只收紧主导权归属。
 
 ## 2026-07-04：PaperMission stage-route queue identity 必须携带 advancing delta
 

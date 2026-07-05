@@ -1008,6 +1008,19 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
     assert trigger["writes_study_truth"] is False
     assert trigger["status"] == "runnable_after_suite_materialized"
     assert trigger["adapter_role"] == "domain_thin_feedback_adapter"
+    assert trigger["paper_mission_subordination"] == {
+        "surface_kind": "mas_paper_mission_subordination",
+        "authority_owner": "MedAutoScience",
+        "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker",
+        ],
+        "control_plane_role": "subordinate_input_or_advisory_only",
+        "can_start_parallel_mainline": False,
+        "can_bypass_submission_authority": False,
+        "can_close_without_owner_gate_or_typed_blocker": False,
+    }
     assert trigger["oma_evolution_skill_ref"] == "opl-meta-agent:oma-agent-evolution"
     assert trigger["contract_itself_triggers_execution"] is False
     assert trigger["target_route"] == {
@@ -1026,6 +1039,11 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
     assert trigger["target_action_contracts"]["oma_improve"] == (
         "opl-meta-agent.improve-from-external-agent-lab-suite"
     )
+    assert trigger["owner_closeout_readback_refs"] == [
+        "paper_mission_readback_ref",
+        "submission_authority_owner_gate_readback_ref",
+        "target_owner_receipt_or_typed_blocker_ref",
+    ]
     assert trigger["opl_app_status_projection"]["should_register_stage_run"] is True
     assert trigger["authority_boundary"]["can_write_domain_truth"] is False
     assert trigger["authority_boundary"]["can_authorize_quality_verdict"] is False

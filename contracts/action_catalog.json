@@ -952,6 +952,19 @@
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes",
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "surface_authority": "research_integrity_gate_input_only"
       },
       "effect": "read_only",
@@ -963,7 +976,7 @@
         "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
         "surface_kind": "research_integrity_gate_input_bundle"
       },
-      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_gate_input"
@@ -1043,6 +1056,19 @@
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes",
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "surface_authority": "research_integrity_reference_verification_gate_input_only"
       },
       "effect": "read_only",
@@ -1054,7 +1080,7 @@
         "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
         "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
       },
-      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_reference_verification"
@@ -1125,6 +1151,19 @@
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes",
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "stage_hook_consumers": [
           "review_gate",
           "publication_gate"
@@ -1141,7 +1180,7 @@
         "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
         "surface_kind": "research_integrity_review_publication_gate_stage_hook"
       },
-      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_review_publication_gate_stage_hook"

@@ -145,8 +145,8 @@ def sync_study_delivery(
         action="delivery_sync",
         context=write_route_context,
         default_paths=[
-            study_root / "manuscript" / "current_package",
-            study_root / "delivery",
+            study_root / "submission",
+            study_root / "submission.zip",
         ],
     )
     submission_authority_blocked = _explicit_submission_authority_blocked(authority_route_gate)

@@ -4,6 +4,19 @@
   "owner": "MedAutoScience",
   "purpose": "Clean-room adoption record for Haojae/scipilot-figure-skill patterns that MAS may consume as non-authority figure planning, Stage quality-pack, specialist-skill, and export-QA refs without importing the external runtime.",
   "machine_boundary": "This contract records refs-only learning surfaces. It is not a renderer, Python dependency declaration, visual-audit receipt, owner receipt, typed blocker, current-package authority, publication verdict, or submission-readiness surface.",
+  "paper_mission_subordination": {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+      "PaperMission",
+      "submission_authority",
+      "submission_authority_owner_gate_or_typed_blocker"
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": false,
+    "can_bypass_submission_authority": false,
+    "can_close_without_owner_gate_or_typed_blocker": false
+  },
   "source": {
     "repository": "https://github.com/Haojae/scipilot-figure-skill",
     "observed_head": "43098ddb9e6a6d142218540c114f9ed38922fc42",
@@ -38,7 +51,8 @@
     "fail_open_unless_route_required_evidence_missing": true,
     "imports_external_scripts_or_dependencies": false,
     "ordinary_progress_waits_for_sidecar": false,
-    "owner_receipt_or_publication_readiness_authority": false
+    "owner_receipt_or_publication_readiness_authority": false,
+    "paper_mission_submission_authority_subordinate": true
   },
   "sidecar_tool_shapes": [
     {

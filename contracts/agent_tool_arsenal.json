@@ -2381,7 +2381,7 @@
             "research integrity gate input",
             "authority_operation"
           ],
-          "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+          "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
         },
         "fit_signal": {
           "capability_tags": [
@@ -2476,7 +2476,7 @@
           "requires_stage_attempt": false
         },
         "tool_id": "research_integrity_gate_input",
-        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       {
         "action_id": "research_integrity_reference_verification",
@@ -2564,7 +2564,7 @@
             "research integrity reference verification",
             "authority_operation"
           ],
-          "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+          "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
         },
         "fit_signal": {
           "capability_tags": [
@@ -2639,7 +2639,7 @@
           "requires_stage_attempt": false
         },
         "tool_id": "research_integrity_reference_verification",
-        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       {
         "action_id": "research_integrity_review_publication_gate_stage_hook",
@@ -2727,7 +2727,7 @@
             "research integrity review publication gate stage hook",
             "authority_operation"
           ],
-          "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+          "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
         },
         "fit_signal": {
           "capability_tags": [
@@ -2834,7 +2834,7 @@
           "requires_stage_attempt": false
         },
         "tool_id": "research_integrity_review_publication_gate_stage_hook",
-        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       {
         "action_id": "mainline_status",
@@ -17954,6 +17954,19 @@
         "opl_owns_capability_invocation_runtime": true,
         "opl_owns_capability_selection_runtime": true,
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "resolve_or_plan_can_authorize_provider_admission": false,
         "resolve_or_plan_can_invoke_tool": false,
         "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -18008,7 +18021,7 @@
           "research integrity gate input",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "executor_receipt_ref_policy": {
@@ -18227,6 +18240,19 @@
           "opl_owns_capability_invocation_runtime": true,
           "opl_owns_capability_selection_runtime": true,
           "outputs_are_gate_inputs": true,
+          "paper_mission_subordination": {
+            "authority_owner": "MedAutoScience",
+            "can_bypass_submission_authority": false,
+            "can_close_without_owner_gate_or_typed_blocker": false,
+            "can_start_parallel_mainline": false,
+            "control_plane_role": "subordinate_input_or_advisory_only",
+            "mainline_route": [
+              "PaperMission",
+              "submission_authority",
+              "submission_authority_owner_gate_or_typed_blocker"
+            ],
+            "surface_kind": "mas_paper_mission_subordination"
+          },
           "resolve_or_plan_can_authorize_provider_admission": false,
           "resolve_or_plan_can_invoke_tool": false,
           "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -18366,7 +18392,7 @@
         "structured_payload_matches_output_schema",
         "no_forbidden_authority_claim"
       ],
-      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": [
         "ai_sdk",
         "cli",
@@ -18379,7 +18405,7 @@
       "title": "Build Research Integrity gate input",
       "tool_id": "research_integrity_gate_input",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
-      "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "research_integrity_reference_verification",
@@ -18460,6 +18486,19 @@
         "opl_owns_capability_invocation_runtime": true,
         "opl_owns_capability_selection_runtime": true,
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "resolve_or_plan_can_authorize_provider_admission": false,
         "resolve_or_plan_can_invoke_tool": false,
         "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -18514,7 +18553,7 @@
           "research integrity reference verification",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "executor_receipt_ref_policy": {
@@ -18703,6 +18742,19 @@
           "opl_owns_capability_invocation_runtime": true,
           "opl_owns_capability_selection_runtime": true,
           "outputs_are_gate_inputs": true,
+          "paper_mission_subordination": {
+            "authority_owner": "MedAutoScience",
+            "can_bypass_submission_authority": false,
+            "can_close_without_owner_gate_or_typed_blocker": false,
+            "can_start_parallel_mainline": false,
+            "control_plane_role": "subordinate_input_or_advisory_only",
+            "mainline_route": [
+              "PaperMission",
+              "submission_authority",
+              "submission_authority_owner_gate_or_typed_blocker"
+            ],
+            "surface_kind": "mas_paper_mission_subordination"
+          },
           "resolve_or_plan_can_authorize_provider_admission": false,
           "resolve_or_plan_can_invoke_tool": false,
           "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -18812,7 +18864,7 @@
         "structured_payload_matches_output_schema",
         "no_forbidden_authority_claim"
       ],
-      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": [
         "ai_sdk",
         "cli",
@@ -18825,7 +18877,7 @@
       "title": "Build Research Integrity reference verification payload",
       "tool_id": "research_integrity_reference_verification",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
-      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "research_integrity_review_publication_gate_stage_hook",
@@ -18907,6 +18959,19 @@
         "opl_owns_capability_invocation_runtime": true,
         "opl_owns_capability_selection_runtime": true,
         "outputs_are_gate_inputs": true,
+        "paper_mission_subordination": {
+          "authority_owner": "MedAutoScience",
+          "can_bypass_submission_authority": false,
+          "can_close_without_owner_gate_or_typed_blocker": false,
+          "can_start_parallel_mainline": false,
+          "control_plane_role": "subordinate_input_or_advisory_only",
+          "mainline_route": [
+            "PaperMission",
+            "submission_authority",
+            "submission_authority_owner_gate_or_typed_blocker"
+          ],
+          "surface_kind": "mas_paper_mission_subordination"
+        },
         "resolve_or_plan_can_authorize_provider_admission": false,
         "resolve_or_plan_can_invoke_tool": false,
         "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -18966,7 +19031,7 @@
           "research integrity review publication gate stage hook",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "executor_receipt_ref_policy": {
@@ -19204,6 +19269,19 @@
           "opl_owns_capability_invocation_runtime": true,
           "opl_owns_capability_selection_runtime": true,
           "outputs_are_gate_inputs": true,
+          "paper_mission_subordination": {
+            "authority_owner": "MedAutoScience",
+            "can_bypass_submission_authority": false,
+            "can_close_without_owner_gate_or_typed_blocker": false,
+            "can_start_parallel_mainline": false,
+            "control_plane_role": "subordinate_input_or_advisory_only",
+            "mainline_route": [
+              "PaperMission",
+              "submission_authority",
+              "submission_authority_owner_gate_or_typed_blocker"
+            ],
+            "surface_kind": "mas_paper_mission_subordination"
+          },
           "resolve_or_plan_can_authorize_provider_admission": false,
           "resolve_or_plan_can_invoke_tool": false,
           "resolve_or_plan_can_replace_owner_receipt_or_typed_blocker": false,
@@ -19366,7 +19444,7 @@
         "structured_payload_matches_output_schema",
         "no_forbidden_authority_claim"
       ],
-      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package.",
+      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
       "supported_surfaces": [
         "ai_sdk",
         "cli",
@@ -19379,7 +19457,7 @@
       "title": "Trigger Research Integrity review/publication gate hook",
       "tool_id": "research_integrity_review_publication_gate_stage_hook",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
-      "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "mainline_status",
@@ -22844,7 +22922,7 @@
           "research integrity gate input",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "fit_signal": {
@@ -22935,7 +23013,7 @@
         "reporting_guideline_expectations"
       ],
       "tool_id": "research_integrity_gate_input",
-      "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_gate_input when an autonomous agent needs this capability from the current_owner_delta path: Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "research_integrity_reference_verification",
@@ -22978,7 +23056,7 @@
           "research integrity reference verification",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "fit_signal": {
@@ -23049,7 +23127,7 @@
         "manuscript_ref"
       ],
       "tool_id": "research_integrity_reference_verification",
-      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_reference_verification when an autonomous agent needs this capability from the current_owner_delta path: Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "research_integrity_review_publication_gate_stage_hook",
@@ -23092,7 +23170,7 @@
           "research integrity review publication gate stage hook",
           "authority_operation"
         ],
-        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+        "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
       },
       "effect": "read_only",
       "fit_signal": {
@@ -23195,7 +23273,7 @@
         "reporting_guideline_expectations"
       ],
       "tool_id": "research_integrity_review_publication_gate_stage_hook",
-      "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+      "when_to_use": "Use research_integrity_review_publication_gate_stage_hook when an autonomous agent needs this capability from the current_owner_delta path: Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
     },
     {
       "action_id": "mainline_status",

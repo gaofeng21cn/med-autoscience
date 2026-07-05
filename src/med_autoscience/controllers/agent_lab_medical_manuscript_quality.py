@@ -49,6 +49,19 @@ DEVELOPER_MODE_EXECUTION_GATE_REFS = [
     "workspace-profile-ref:github_username",
     "workspace-profile-ref:mas_developer_github_usernames",
 ]
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
@@ -283,6 +296,7 @@ def _feedback_self_evolution_trigger(
         "study_id": study_id,
         "feedback_ref": feedback_ref,
         "adapter_role": "domain_thin_feedback_adapter",
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
         "contract_itself_triggers_execution": False,
         "external_suite_path": str(suite_path),
@@ -311,6 +325,11 @@ def _feedback_self_evolution_trigger(
             "oma_execute": "opl-meta-agent.execute-external-work-order",
             "mas_readback": "medautosci paper-mission inspect --study-id <study_id> --format json",
         },
+        "owner_closeout_readback_refs": [
+            "paper_mission_readback_ref",
+            "submission_authority_owner_gate_readback_ref",
+            "target_owner_receipt_or_typed_blocker_ref",
+        ],
         "required_status_refs": [
             "agent_lab_suite_result_ref",
             "structured_ai_reviewer_evaluation_ref",

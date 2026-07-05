@@ -4,6 +4,19 @@
   "state": "active_contract",
   "owner": "MedAutoScience",
   "purpose": "Bind OPL/provider lookup, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
+  "paper_mission_subordination": {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+      "PaperMission",
+      "submission_authority",
+      "submission_authority_owner_gate_or_typed_blocker"
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": false,
+    "can_bypass_submission_authority": false,
+    "can_close_without_owner_gate_or_typed_blocker": false
+  },
   "target_state": {
     "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the hook requests OPL/provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
     "is_independent_professional_skill": false,
@@ -215,6 +228,19 @@
     ],
     "mandatory_gate_input": true,
     "live_owner_consumption_claimed": false,
+    "paper_mission_subordination": {
+      "surface_kind": "mas_paper_mission_subordination",
+      "authority_owner": "MedAutoScience",
+      "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker"
+      ],
+      "control_plane_role": "subordinate_input_or_advisory_only",
+      "can_start_parallel_mainline": false,
+      "can_bypass_submission_authority": false,
+      "can_close_without_owner_gate_or_typed_blocker": false
+    },
     "authority_boundary": {
       "outputs_are_gate_inputs": true,
       "surface_authority": "mandatory_stage_hook_gate_input_only",
@@ -584,11 +610,24 @@
       "can_write_provider_attempt": false,
       "can_write_runtime_queue": false
     },
-    "mandatory_before_stage_completion": true,
-    "required_before_owner_receipt_or_typed_blocker": true,
-    "mandatory_gate_input": true,
-    "live_owner_consumption_claimed": false,
-    "authority_boundary": {
+      "mandatory_before_stage_completion": true,
+      "required_before_owner_receipt_or_typed_blocker": true,
+      "mandatory_gate_input": true,
+      "live_owner_consumption_claimed": false,
+      "paper_mission_subordination": {
+        "surface_kind": "mas_paper_mission_subordination",
+        "authority_owner": "MedAutoScience",
+        "mainline_route": [
+          "PaperMission",
+          "submission_authority",
+          "submission_authority_owner_gate_or_typed_blocker"
+        ],
+        "control_plane_role": "subordinate_input_or_advisory_only",
+        "can_start_parallel_mainline": false,
+        "can_bypass_submission_authority": false,
+        "can_close_without_owner_gate_or_typed_blocker": false
+      },
+      "authority_boundary": {
       "outputs_are_gate_inputs": true,
       "surface_authority": "mandatory_stage_hook_gate_input_only",
       "can_request_provider_lookup": true,

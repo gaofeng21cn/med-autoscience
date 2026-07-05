@@ -315,12 +315,11 @@ def _build_paper_surface_readmes(
             - This directory is the canonical paper-authority source for the active study line.
             - Figures: `paper/figures/figure_catalog.json` + `paper/figures/generated/`
             - Tables: `paper/tables/table_catalog.json` + `paper/tables/generated/`
-            - Canonical submission package: `paper/submission_minimal/`
-            - Preferred human-facing entry: `../delivery/current/`
-            - MAS/runtime compatibility mirror: `../manuscript/`
+            - Preferred editable authority root: `../manuscript/`
+            - Preferred human-facing package root: `../submission/`
             - Auxiliary finalize/runtime evidence only: `../artifacts/`
 
-            Edit from `paper/`. For the latest readable package, open `../delivery/current/`.
+            Edit from `../manuscript/`. For the latest readable package, open `../submission/`.
             """
         ),
         paper_root / "figures" / "README.md": textwrap.dedent(

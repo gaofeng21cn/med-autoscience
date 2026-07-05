@@ -18,6 +18,19 @@ SURFACE_KIND = "research_integrity_gate_input_bundle"
 SCHEMA_VERSION = 1
 REFERENCE_HARD_STATUSES = frozenset(("contradicted", "retracted"))
 REFERENCE_REVIEW_STATUSES = frozenset(("needs_review", "unresolved"))
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def build_research_integrity_gate_input_bundle(
@@ -70,6 +83,7 @@ def build_research_integrity_gate_input_bundle(
         },
         "blocker_candidates": blocker_candidates,
         "review_candidates": review_candidates,
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authority_boundary": authority_boundary(),
     }
 

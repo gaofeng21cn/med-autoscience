@@ -50,6 +50,7 @@ def _build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
 
 
 __all__ = [
+    "augment_submission_surface_in_place",
     "sync_current_package_projection",
 ]
 
@@ -406,3 +407,79 @@ def sync_current_package_projection(
     _build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     _append_generated_file(generated_files, category="current_package", path=current_package_zip)
     return readme_payload
+
+
+def augment_submission_surface_in_place(
+    *,
+    paper_root: Path | None,
+    source_root: Path,
+    submission_zip: Path,
+    study_id: str,
+    stage: str,
+    source_relative_root: str,
+    copied_files: list[dict[str, str]],
+    generated_files: list[dict[str, str]],
+    review_ledger_source: Path | None = None,
+    charter_contract_linkage: dict[str, Any] | None = None,
+    quality_gate_status: str = "not_blocked",
+    known_blockers: tuple[str, ...] = (),
+    source_signature: str | None = None,
+) -> dict[str, Any]:
+    resolved_source_root = Path(source_root).expanduser().resolve()
+    linkage_payload, source_manifest_path = _copy_current_package_audit_surfaces(
+        paper_root=paper_root,
+        source_root=resolved_source_root,
+        current_package_root=resolved_source_root,
+        resolved_projected_current_package_root=resolved_source_root,
+        copied_files=copied_files,
+        review_ledger_source=review_ledger_source,
+        charter_contract_linkage=charter_contract_linkage,
+    )
+    readme_path = resolved_source_root / "README.md"
+    write_text(
+        readme_path,
+        build_current_package_readme(
+            study_id=study_id,
+            stage=stage,
+            source_relative_root=source_relative_root,
+            status_line="controller-generated submission package",
+            charter_contract_linkage=linkage_payload,
+        ),
+    )
+    _append_generated_file(generated_files, category="submission_surface", path=readme_path)
+    submission_todo = build_submission_todo_from_manifest(
+        manifest_path=resolve_submission_manifest_path(resolved_source_root),
+    )
+    if submission_todo is not None:
+        todo_path = resolved_source_root / "SUBMISSION_TODO.md"
+        write_text(todo_path, submission_todo)
+        _append_generated_file(
+            generated_files,
+            category="submission_surface_todo",
+            path=todo_path,
+        )
+    source_signature_payload = _source_signature_payload_with_fallback(
+        source_signature_payload=_source_signature_payload_from_manifest(source_manifest_path),
+        source_signature=source_signature,
+    )
+    _overlay_current_package_manifest_metadata(
+        current_package_root=resolved_source_root,
+        source_signature_payload=source_signature_payload,
+        source_signature=source_signature,
+        quality_gate_status=quality_gate_status,
+        known_blockers=known_blockers,
+    )
+    _write_current_package_reproducibility_documents(
+        current_package_root=resolved_source_root,
+        source_signature_payload=source_signature_payload,
+        generated_files=generated_files,
+    )
+    _build_zip_from_directory(source_root=resolved_source_root, output_path=submission_zip)
+    _append_generated_file(generated_files, category="submission_surface", path=submission_zip)
+    return {
+        "authority": "controller_authorized_delivery_sync_apply_only",
+        "controller_authorized": True,
+        "readme_path": str(readme_path.resolve()),
+        "written": True,
+        "editable_source": False,
+    }

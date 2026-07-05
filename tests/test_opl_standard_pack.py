@@ -150,6 +150,9 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         ],
         "feedbackops_event_kind": "target_agent_feedback_external_suite",
         "accepted_feedback_profile": "target_agent_feedback_external_suite",
+        "must_follow_target_domain_mainline": True,
+        "must_not_compete_with_target_domain_mainline": True,
+        "target_domain_terminal_route": "owner_gate_or_typed_blocker",
         "trigger_chain": [
             "domain_or_package_thin_feedback_adapter",
             "opl_feedbackops_agent_lab_status_projection",

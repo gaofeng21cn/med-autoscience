@@ -31,6 +31,9 @@ USER_ENTRY_REFS = {
     "current_stage": Path("control/current_stage.json"),
     "stage_index": Path("control/stage_index.json"),
     "blockers": Path("control/blockers.json"),
+    "current_package_status": Path("submission/STATUS.json"),
+}
+LEGACY_USER_ENTRY_REFS = {
     "current_package_status": Path("publication/current_package/STATUS.json"),
 }
 WORKSPACE_ENTRY_REFS = {
@@ -41,7 +44,9 @@ WORKSPACE_ENTRY_REFS = {
     "reports_latest_status": Path("reports/latest_status.json"),
 }
 PRODUCT_VIEW_DIRS = (
-    Path("paper"),
+    Path("manuscript"),
+    Path("submission"),
+    Path("artifacts"),
     Path("analysis"),
     Path("evidence"),
     Path("publication"),

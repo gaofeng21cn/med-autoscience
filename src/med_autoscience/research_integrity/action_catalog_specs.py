@@ -71,6 +71,19 @@ RESEARCH_INTEGRITY_MCP_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
         },
     },
 }
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def research_integrity_action_specs(
@@ -87,7 +100,8 @@ def research_integrity_action_specs(
                 "claim, manuscript, and provider-evidence payloads. It only produces evidence, "
                 "gate input, and blocker candidates; it does not write publication authority, "
                 "owner receipts, typed blockers, human gates, runtime queues, provider attempts, "
-                "publication_eval, controller_decisions, or current_package."
+                "publication_eval, controller_decisions, or current_package. It remains subordinate "
+                "to PaperMission -> submission authority -> owner gate / typed blocker."
             ),
             "effect": "read_only",
             "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
@@ -109,7 +123,8 @@ def research_integrity_action_specs(
                 "Trigger the complete-reference verification lane for supplied manuscript or reference "
                 "manager refs. It only returns a Research Integrity gate input or evidence bundle; it "
                 "does not write publication authority, owner receipts, typed blockers, human gates, "
-                "runtime queues, provider attempts, publication_eval, controller_decisions, or current_package."
+                "runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. "
+                "It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
             ),
             "effect": "read_only",
             "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
@@ -135,7 +150,8 @@ def research_integrity_action_specs(
                 "research-integrity-reference-verification and return the gate input bundle, "
                 "including manuscript consistency / meta review. It cannot write publication "
                 "authority, owner receipts, typed blockers, human gates, runtime queues, "
-                "provider attempts, publication_eval, controller_decisions, or current_package."
+                "provider attempts, publication_eval, controller_decisions, or current_package. "
+                "It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker."
             ),
             "effect": "read_only",
             "command": (
@@ -190,6 +206,7 @@ def _authority_boundary(
         "can_authorize_publication_quality": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_submission_readiness": False,
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authoritative_truth_refs": list(authoritative_truth_refs),
     }
 

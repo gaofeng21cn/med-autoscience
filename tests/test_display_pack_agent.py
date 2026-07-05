@@ -233,6 +233,11 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     workflow = payload["figure_workflow_packet"]
     assert workflow["policy_ref"] == "mas_nature_skills_figure_workflow_lifecycle.v1"
     assert workflow["nonblocking_progress_policy"]["blocks_default_evidence_progress"] is False
+    assert workflow["paper_mission_subordination"]["mainline_route"] == [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ]
     assert workflow["figures"][0]["figure_brief"]["core_conclusion"]
     assert workflow["figures"][0]["storyboard"]["starter_template"]["template_id"] == "roc_curve_binary"
     composition = workflow["figures"][0]["storyboard"]["composition_recipe"]
@@ -491,6 +496,7 @@ def test_compile_display_figure_intent_emits_scipilot_runtime_advisor_and_export
     assert advisor["surface_kind"] == "figure_advisor_probe"
     assert advisor["advisory_only"] is True
     assert advisor["blocks_unrelated_progress"] is False
+    assert advisor["paper_mission_subordination"]["can_start_parallel_mainline"] is False
     assert advisor["data_profile_summary"]["variable_type_counts"] == {"categorical": 1, "continuous": 1}
     assert advisor["data_profile_summary"]["sample_size"]["min_group_n"] == 6
     assert advisor["recommended_plot_family"] == "distribution_or_interval_plot_by_group"
@@ -502,6 +508,7 @@ def test_compile_display_figure_intent_emits_scipilot_runtime_advisor_and_export
     assert export_lint["surface_kind"] == "figure_export_lint"
     assert export_lint["advisory_only"] is True
     assert export_lint["blocks_unrelated_progress"] is False
+    assert export_lint["paper_mission_subordination"]["can_bypass_submission_authority"] is False
     assert export_lint["checked_dimensions"]["formats"] == ["png", "jpg"]
     assert {
         "jpeg_export_not_preferred_for_line_art_or_text",

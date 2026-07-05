@@ -460,6 +460,11 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert suite_payload["feedback_self_evolution_trigger"]["oma_evolution_skill_ref"] == (
         "opl-meta-agent:oma-agent-evolution"
     )
+    assert suite_payload["feedback_self_evolution_trigger"]["owner_closeout_readback_refs"] == [
+        "paper_mission_readback_ref",
+        "submission_authority_owner_gate_readback_ref",
+        "target_owner_receipt_or_typed_blocker_ref",
+    ]
     assert written_payload["revision_intake"]["handoff_required"] is True
     assert "Revision Intake Checklist" in latest_markdown_text
     assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text

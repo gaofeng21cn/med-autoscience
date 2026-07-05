@@ -5,6 +5,19 @@ from typing import Any
 
 
 SCIPILOT_SOURCE_REF = "Haojae/scipilot-figure-skill@43098ddb9e6a6d142218540c114f9ed38922fc42"
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def _text(value: object) -> str:
@@ -148,6 +161,7 @@ def build_figure_advisor_probe(
             "can_replace_visual_audit": False,
             "can_replace_owner_receipt": False,
         },
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "question_or_claim": _text(
             request.get("figure_question")
             or request.get("query")
@@ -239,4 +253,5 @@ def build_figure_export_lint(
             "can_replace_visual_audit": False,
             "can_replace_owner_receipt": False,
         },
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
     }

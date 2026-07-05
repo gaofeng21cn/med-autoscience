@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
-from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
+from med_autoscience.runtime_protocol.topology import (
+    LEGACY_STUDY_AUTHORITY_ROOT_NAME,
+    PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
+    resolve_study_root_from_quest_root,
+)
 
 from .artifact_authority import artifact_authority_record
 from .submission_package_layout import (
@@ -131,7 +135,8 @@ def _bound_study_paper_roots(study_root: Path) -> tuple[Path, ...]:
     resolved_study_root = _resolve_path(study_root)
     return (
         resolved_study_root / _STAGE_NATIVE_BODY_PAPER_ROOT_RELPATH,
-        resolved_study_root / "paper",
+        resolved_study_root / PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
+        resolved_study_root / LEGACY_STUDY_AUTHORITY_ROOT_NAME,
     )
 
 
@@ -261,11 +266,16 @@ def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
 def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:
     if paper_bundle_manifest_path is None:
         return None
-    candidate = resolve_package_submission_manifest_path(
-        _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
-        / "submission_minimal"
-    )
-    return candidate if candidate.exists() else None
+    paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
+    candidates = [
+        paper_root.parent / "submission" / "audit" / "submission_manifest.json",
+        paper_root.parent / "submission" / "submission_manifest.json",
+        resolve_package_submission_manifest_path(paper_root / "submission_minimal"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return None
 
 
 def resolve_submission_checklist_path(paper_bundle_manifest_path: Path | None) -> Path | None:
@@ -691,9 +701,12 @@ def resolve_managed_submission_surface_roots(paper_root: Path) -> tuple[Path, ..
         return tuple()
 
     roots: list[Path] = []
+    preferred_submission_root = resolved_paper_root.parent / "submission"
+    if preferred_submission_root.is_dir():
+        roots.append(preferred_submission_root.resolve())
     submission_minimal_root = resolved_paper_root / "submission_minimal"
     if submission_minimal_root.is_dir():
-        roots.append(submission_minimal_root)
+        roots.append(submission_minimal_root.resolve())
 
     journal_submissions_root = resolved_paper_root / "journal_submissions"
     if journal_submissions_root.is_dir():
@@ -703,7 +716,18 @@ def resolve_managed_submission_surface_roots(paper_root: Path) -> tuple[Path, ..
             if is_supported_publication_profile(candidate.name):
                 roots.append(candidate.resolve())
 
-    return tuple(root.resolve() for root in roots)
+    preferred_journal_root = preferred_submission_root / "journal_packages"
+    if preferred_journal_root.is_dir():
+        for candidate in sorted(preferred_journal_root.iterdir()):
+            if not candidate.is_dir():
+                continue
+            if is_supported_publication_profile(candidate.name):
+                roots.append(candidate.resolve())
+
+    deduped: dict[str, Path] = {}
+    for root in roots:
+        deduped[str(root.resolve())] = root.resolve()
+    return tuple(deduped.values())
 
 
 def resolve_archived_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:

@@ -28,6 +28,19 @@ AUTHORITY_BOUNDARY = {
     "can_replace_visual_audit": False,
     "can_replace_owner_receipt": False,
 }
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 WORKFLOW_STATES = (
     "figure_brief",
@@ -189,6 +202,7 @@ def figure_workflow_policy() -> dict[str, Any]:
         ],
         "composition_recipe_policy_ref": COMPOSITION_POLICY_ID,
         "composition_recipes_are_floor_not_ceiling": True,
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -263,6 +277,7 @@ def build_figure_workflow_packet(
             "missing_refs_route_to_typed_repair": True,
             "paper_use_acceptance_required_before_final_claim": True,
         },
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "figures": [
             {
                 "figure_id": figure_id,
@@ -409,6 +424,7 @@ def build_rendered_figure_workflow_packet(
             "manual_template_browsing_required": False,
             "paper_use_acceptance_required_before_final_claim": True,
         },
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "figures": figures,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }

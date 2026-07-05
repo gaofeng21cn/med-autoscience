@@ -387,9 +387,9 @@ def _stage_ref(*, study_root: Path, stage_root: Path) -> dict[str, Any]:
 
 
 def _stage_product_refs(*, stage_id: str) -> list[str]:
-    refs = ["paper/draft.md", "paper/claim_evidence_map.json", "evidence/evidence_ledger.json"]
+    refs = ["manuscript/draft.md", "manuscript/claim_evidence_map.json", "manuscript/evidence_ledger.json"]
     if "publication" in stage_id or "handoff" in stage_id or "package" in stage_id:
-        refs.append("publication/current_package/STATUS.json")
+        refs.append(USER_ENTRY_REFS["current_package_status"].as_posix())
     return refs
 
 
@@ -465,9 +465,9 @@ def _current_package_status(
 ) -> dict[str, Any]:
     status_path = study_root / USER_ENTRY_REFS["current_package_status"]
     candidate_roots = [
+        study_root / "submission",
         study_root / "publication" / "current_package",
         study_root / "artifacts" / "submission_minimal" / "current",
-        study_root / "manuscript" / "current_package",
         study_root / "artifacts" / "delivery" / "paper",
     ]
     candidates = [
@@ -488,10 +488,10 @@ def _current_package_status(
         "schema_version": 1,
         "surface_kind": "study_current_package_status",
         "status": "not_ready",
-        "reason": "current_package_not_promoted_by_publication_gate",
+        "reason": "submission_package_not_promoted_by_publication_gate",
         "recorded_at": recorded_at,
         "status_path": str(status_path),
-        "current_package_root": str(study_root / "publication" / "current_package"),
+        "current_package_root": str(study_root / "submission"),
         "candidate_package_refs": candidates,
         "current_paper_inputs_ready": manuscript_ready,
         "promotion_allowed": False,

@@ -113,6 +113,7 @@ def test_study_workspace_status_apply_materializes_stage_index_and_manifest(tmp_
     assert (study_root / "STUDY_STATUS.md").is_file()
     assert (study_root / "paper.yaml").is_file()
     assert not (study_root / "control" / "next_action.json").exists()
+    assert (study_root / "submission" / "STATUS.json").is_file()
     assert (study_root / "publication" / "current_package" / "STATUS.json").is_file()
     assert (study_root / "_archive" / "migration_manifest" / "current_truth_map.json").is_file()
     assert (study_root / "_archive" / "migration_manifest" / "legacy_provenance_map.json").is_file()
@@ -234,7 +235,7 @@ def test_study_workspace_status_apply_materializes_workspace_index_and_migration
     workspace_index = json.loads((profile.workspace_root / "workspace_index.json").read_text(encoding="utf-8"))
     stage_index = json.loads((study_root / "control" / "stage_index.json").read_text(encoding="utf-8"))
     blocker = json.loads((stage_root / "receipts" / "typed_blocker.json").read_text(encoding="utf-8"))
-    package_status = json.loads((study_root / "publication" / "current_package" / "STATUS.json").read_text())
+    package_status = json.loads((study_root / "submission" / "STATUS.json").read_text())
 
     assert study["status"] == "typed_blocked"
     assert study["blockers"] == ["workspace_target_state_migration_required"]
@@ -243,6 +244,9 @@ def test_study_workspace_status_apply_materializes_workspace_index_and_migration
     assert blocker["blocker_id"] == "workspace_target_state_migration_required"
     assert blocker["authority_boundary"]["paper_body_mutation_allowed"] is False
     assert package_status["status"] == "not_ready"
+    assert package_status["current_package_root"].endswith(f"{study_id}/submission")
+    assert workspace_index["studies"][0]["paper_entry_ref"] == "manuscript/draft.md"
+    assert workspace_index["studies"][0]["publication_package_status_ref"] == "submission/STATUS.json"
     assert workspace_index["schema_version"] == "mas.workspace_index.v1"
     assert workspace_index["studies"][0]["canonical_study_root"] == f"studies/{study_id}"
     assert workspace_index["studies"][0]["runtime_root_is_current_paper_truth"] is False

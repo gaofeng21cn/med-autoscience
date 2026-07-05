@@ -32,6 +32,7 @@ from med_autoscience.runtime_protocol.paper_artifacts import (
     materialize_archived_reference_only_submission_surface_manifests,
     resolve_managed_submission_surface_roots,
 )
+from med_autoscience.runtime_protocol.topology import resolve_study_root_from_paper_root
 
 from .export_renderers import export_docx, export_pdf
 from .profile_config import (
@@ -100,12 +101,15 @@ def workspace_root_from_paper_root(paper_root: Path) -> Path:
     return paper_root.resolve().parent
 
 
-def _canonical_paper_relative_path(value: str | Path) -> str | None:
+def _canonical_authority_relative_path(value: str | Path) -> str | None:
     parts = Path(str(value).strip()).parts
-    paper_indexes = [index for index, part in enumerate(parts) if part == "paper"]
-    if not paper_indexes:
+    authority_indexes = [
+        index for index, part in enumerate(parts) if part in {"paper", "manuscript"}
+    ]
+    if not authority_indexes:
         return None
-    return Path(*parts[paper_indexes[-1] :]).as_posix()
+    root_name = parts[authority_indexes[-1]]
+    return Path(root_name, *parts[authority_indexes[-1] + 1 :]).as_posix()
 
 
 def resolve_relpath(workspace_root: Path, value: str) -> Path:
@@ -113,14 +117,22 @@ def resolve_relpath(workspace_root: Path, value: str) -> Path:
     candidate_path = Path(raw_value).expanduser()
     if candidate_path.is_absolute():
         return candidate_path
-    canonical_paper_relpath = _canonical_paper_relative_path(raw_value)
-    if canonical_paper_relpath is not None:
-        canonical_candidate = workspace_root / canonical_paper_relpath
+    canonical_authority_relpath = _canonical_authority_relative_path(raw_value)
+    if canonical_authority_relpath is not None:
+        canonical_candidate = workspace_root / canonical_authority_relpath
         try:
             if canonical_candidate.exists():
                 return canonical_candidate
         except OSError:
             pass
+        authority_tail = Path(canonical_authority_relpath).parts[1:]
+        for authority_root_name in ("manuscript", "paper"):
+            alias_candidate = workspace_root / authority_root_name / Path(*authority_tail)
+            try:
+                if alias_candidate.exists():
+                    return alias_candidate
+            except OSError:
+                pass
     return workspace_root / raw_value
 
 
@@ -419,9 +431,9 @@ def resolve_submission_source_path(
     candidate_path: str,
 ) -> Path:
     normalized_candidate = str(candidate_path).strip()
-    canonical_paper_relpath = _canonical_paper_relative_path(normalized_candidate)
-    if canonical_paper_relpath is not None:
-        canonical_candidate = (paper_root.parent / canonical_paper_relpath).resolve()
+    canonical_authority_relpath = _canonical_authority_relative_path(normalized_candidate)
+    if canonical_authority_relpath is not None:
+        canonical_candidate = (paper_root.parent / canonical_authority_relpath).resolve()
         if canonical_candidate.exists():
             return canonical_candidate
     return resolve_relpath(workspace_root, normalized_candidate).resolve()
@@ -626,9 +638,16 @@ def _attach_pack_provenance(
 
 def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
     normalized_profile = normalize_publication_profile(publication_profile)
+    try:
+        _, study_root = resolve_study_root_from_paper_root(paper_root)
+    except (FileNotFoundError, ValueError):
+        if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+            return paper_root / "submission_minimal"
+        return paper_root / "journal_submissions" / normalized_profile
+    preferred_root = study_root / "submission"
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
-        return paper_root / "submission_minimal"
-    return paper_root / "journal_submissions" / normalized_profile
+        return preferred_root
+    return preferred_root / "journal_packages" / normalized_profile
 
 
 def create_staging_output_root(*, target_root: Path) -> Path:
@@ -687,21 +706,19 @@ def replace_directory_atomically(*, staging_root: Path, target_root: Path) -> No
 def build_submission_minimal_readme(*, publication_profile: str) -> str:
     normalized_profile = normalize_publication_profile(publication_profile)
     canonical_package_root = (
-        "paper/submission_minimal/"
+        "submission/"
         if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
-        else f"paper/journal_submissions/{normalized_profile}/"
+        else f"submission/journal_packages/{normalized_profile}/"
     )
     return (
         "# Canonical Submission Package\n\n"
         f"- Publication profile: `{normalized_profile}`\n"
-        "- Canonical authority surface: `paper/`\n"
-        "- Canonical rendered assets: `paper/figures/generated/` and `paper/tables/generated/`\n"
+        "- Canonical authority surface: `manuscript/`\n"
+        "- Canonical rendered assets: `manuscript/figures/generated/` and `manuscript/tables/generated/`\n"
         f"- Canonical package root: `{canonical_package_root}`\n"
-        "- Preferred human-facing entry refreshed from this package: `../delivery/current/`\n"
-        "- MAS/runtime compatibility mirror refreshed from this package: `manuscript/`\n"
         "- Auxiliary finalize/runtime evidence, when needed: `artifacts/`\n\n"
-        "Use this directory as the fixed paper-owned submission-package lookup path. "
-        "`delivery/current/` is the only recommended human-facing entry; `manuscript/` remains the compatibility mirror and `artifacts/` stays auxiliary evidence only.\n"
+        "Use this directory as the only submission/export surface. "
+        "Edit the manuscript in `manuscript/`; treat `submission/` as controller-generated handoff output and `artifacts/` as auxiliary machine evidence.\n"
     )
 
 

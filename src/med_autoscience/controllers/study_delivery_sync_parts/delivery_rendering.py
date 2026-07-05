@@ -54,14 +54,13 @@ def build_general_delivery_readme(*, study_id: str, stage: str, source_relative_
         f"# Study Final Delivery\n\n"
         f"- Study: `{study_id}`\n"
         f"- Sync stage: `{stage}`\n"
-        f"- Canonical authority surface: `paper/`\n"
+        f"- Canonical authority surface: `manuscript/`\n"
         f"- Controller-authorized package source: `{source_relative_root}/`\n"
-        f"- Preferred human-facing entry: `delivery/current/`\n"
-        f"- This directory: `manuscript/` (compatibility mirror root)\n"
-        f"- Compatibility mirror entry: `manuscript/current_package/`\n"
+        f"- Preferred human-facing entry: `submission/`\n"
+        f"- This directory: `manuscript/` (editable authority root)\n"
+        f"- Submission package root: `submission/`\n"
         f"- Delivery manifest: `manuscript/delivery_manifest.json`\n\n"
-        f"This directory is refreshed automatically from the controller-authorized paper package. "
-        f"Humans should start at `delivery/current/`; `manuscript/` stays as the MAS/runtime compatibility mirror.\n"
+        f"The editable manuscript lives in `manuscript/`. Humans should open `submission/` for the latest package and keep `artifacts/` for machine/runtime/audit surfaces.\n"
     )
 
 
@@ -110,9 +109,9 @@ def build_preview_general_delivery_readme(
         f"- Study: `{study_id}`\n"
         "- Status: audit preview only; not submission-ready\n"
         f"- Reason formal delivery is blocked: {_submission_delivery_stale_reason_label(stale_reason)}\n"
-        "- Canonical authority surface: `paper/`\n"
+        "- Canonical authority surface: `manuscript/`\n"
         f"- Expected package root inside the authority surface: `{source_relative_root}/`\n"
-        "- Human-facing review root: `manuscript/`\n\n"
+        "- Human-facing review root: `submission/`\n\n"
         "This directory now exposes the latest auditable manuscript-facing materials that are still available from the authority surface. "
         "Treat it as a user review package only, not as a handoff-ready submission package.\n"
     )
@@ -120,26 +119,25 @@ def build_preview_general_delivery_readme(
 
 def build_manuscript_root_readme() -> str:
     return (
-        "# Manuscript Compatibility Mirror\n\n"
-        "- Canonical authority surface: `paper/`\n"
-        "- Preferred human-facing entry: `delivery/current/`\n"
-        "- This directory: `manuscript/` (compatibility mirror root)\n"
-        "- Compatibility mirror entry: `manuscript/current_package/`\n"
+        "# Manuscript Authority Surface\n\n"
+        "- Canonical editable authority surface: `manuscript/`\n"
+        "- Preferred human-facing entry: `submission/`\n"
+        "- This directory: `manuscript/` (editable manuscript root)\n"
+        "- Compatibility alias, when present: `paper/`\n"
         "- Delivery manifest: `manuscript/delivery_manifest.json`\n\n"
-        "Humans should open `delivery/current/` first. "
-        "`manuscript/` remains the MAS/runtime mirror surface; edit or regenerate from `paper/`, not from this projection.\n"
+        "Edit and revise from `manuscript/`. Open `submission/` for the latest package, and keep `artifacts/` for machine/runtime/audit surfaces.\n"
     )
 
 
 def build_artifacts_root_readme() -> str:
     return (
         "# Artifact Auxiliary Surface\n\n"
-        "- Canonical authority surface: `paper/`\n"
-        "- Preferred human-facing delivery surface: `delivery/current/`\n"
-        "- Compatibility mirror root: `manuscript/`\n"
+        "- Canonical authority surface: `manuscript/`\n"
+        "- Preferred human-facing delivery surface: `submission/`\n"
+        "- Compatibility alias, when present: `paper/`\n"
         "- This directory is reserved for machine-generated auxiliary/runtime/finalization evidence.\n"
         "- Figures/tables are no longer mirrored here during normal submission sync.\n\n"
-        "Use `delivery/current/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
+        "Use `submission/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
     )
 
 
@@ -150,9 +148,9 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
         f"- Sync stage: `{stage}`\n"
         "- This directory is not part of the human-facing final delivery surface.\n"
         "- Expected contents: finalize/manuscript build evidence such as `paper_bundle_manifest.json` and `compile_report.json`.\n"
-        "- Preferred human-facing package entry remains `delivery/current/`.\n"
-        "- Compatibility mirror entry remains `manuscript/current_package/`.\n"
-        "- Figures/tables remain in `delivery/current/` for human review, and in `paper/` as authority.\n\n"
+        "- Preferred human-facing package entry remains `submission/`.\n"
+        "- Editable authority remains `manuscript/`.\n"
+        "- Figures/tables remain in `submission/` for human review, and in `manuscript/` as authority.\n\n"
         "Use this directory only for machine-generated finalization evidence only, not for human-facing display lookup.\n"
     )
 
@@ -163,10 +161,10 @@ def build_unavailable_submission_package_readme(*, study_id: str, stale_reason: 
         f"- Study: `{study_id}`\n"
         "- Status: current submission package mirror is unavailable\n"
         f"- Reason: {_submission_delivery_stale_reason_label(stale_reason)}\n"
-        "- Canonical authority surface: `paper/submission_minimal/`\n"
+        "- Canonical authority surface: `manuscript/`\n"
         "- This directory no longer represents a current handoff-ready package.\n\n"
         "The previous mirror was cleared because the active authority package disappeared or no longer matches. "
-        "Wait for a fresh submission-minimal export before using this path for review or handoff.\n"
+        "Wait for a fresh controller-authorized submission export before using this path for review or handoff.\n"
     )
 
 
@@ -212,8 +210,8 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str, s
         f"- Sync stage: `{publication_profile}_submission`\n"
         f"- Publication profile: `{publication_profile}`\n"
         f"- Controller-authorized package source: `{source_relative_root}/`\n"
-        f"- Preferred human-facing entry: `delivery/current/`\n"
-        f"- Compatibility mirror root: `manuscript/`\n"
+        f"- Preferred human-facing entry: `submission/`\n"
+        f"- Editable manuscript root: `manuscript/`\n"
         f"- Contents:\n"
         f"  - `manuscript.docx`\n"
         f"  - `paper.pdf`\n"
@@ -221,8 +219,6 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str, s
         f"  - `audit/evidence_ledger.json`\n"
         f"  - `reproducibility/source_signature.json`\n"
         f"  - `Supplementary_Material.docx` (when generated)\n"
-        f"  - `current_package/`\n"
-        f"  - `current_package.zip`\n"
         f"  - `journal_package_mirrors/{publication_profile}/`\n\n"
         f"This study-level final delivery is assembled automatically from the primary journal package so the canonical shallow handoff stays aligned with the active target-journal surface.\n"
     )
@@ -241,25 +237,25 @@ def build_user_delivery_entry_readme(
         "",
         f"- Study: `{study_id}`",
         f"- Active sync stage: `{stage}`",
-        "- Preferred package entry: `delivery/current/`",
-        "- Preferred zip entry: `delivery/current.zip`",
-        "- Canonical authority surface: `paper/`",
+        "- Preferred package entry: `submission/`",
+        "- Preferred zip entry: `submission.zip`",
+        "- Canonical authority surface: `manuscript/`",
         f"- Controller-authorized package source: `{source_relative_root}/`",
-        "- Compatibility mirror for MAS/runtime: `manuscript/current_package/`",
+        "- MAS/runtime/audit surfaces: `artifacts/`",
         "",
-        "This directory exists to keep the human-facing entry shallow and stable. Open `current/`; edit or regenerate from `paper/`.",
+        "Open `submission/` for the latest package. Edit and regenerate from `manuscript/`.",
     ]
     if has_journal_packages:
         lines.extend(
             [
                 "",
-                "- Target-journal package aliases, when materialized: `delivery/journal_packages/`",
+                "- Target-journal package aliases, when materialized: `submission/journal_packages/`",
             ]
         )
     if has_journal_package_mirrors:
         lines.extend(
             [
-                "- Promoted journal mirrors, when materialized: `delivery/journal_package_mirrors/`",
+                "- Promoted journal mirrors, when materialized: `submission/journal_package_mirrors/`",
             ]
         )
     lines.append("")
@@ -368,31 +364,31 @@ def build_current_package_readme(
     charter_contract_linkage: dict[str, Any] | None = None,
 ) -> str:
     lines = [
-        "# Current Human Package",
+        "# Submission Package",
         "",
         f"- Study: `{study_id}`",
         f"- Active sync stage: `{stage}`",
         f"- Status: {status_line}",
-        "- Preferred human-facing alias: `../delivery/current/`",
-        "- current_package/ is a human-facing mirror, not an edit source.",
+        "- Canonical editable source: `../manuscript/`",
+        "- This directory is controller-generated output, not an edit source.",
         "",
         "## Submission files",
         "",
-        "- Open this directory for the latest human-facing manuscript package.",
+        "- Open this directory for the latest handoff-ready manuscript package.",
         "- Expected primary files: `manuscript.docx`, `paper.pdf`, `figures/`, and `tables/` when present.",
-        "- Target-journal exports under `submission_packages/<journal_slug>/` are derived projections and require explicit target confirmation before final journal-ready use.",
+        "- Target-journal variants, when present, live under `journal_packages/<journal_slug>/`.",
         "",
         "## Audit and reproducibility",
         "",
         f"- Delivery layout: `{SUBMISSION_PACKAGE_LAYOUT_VERSION}`",
         "- Audit material: `audit/`",
         "- Reproducibility material: `reproducibility/`",
-        "- Canonical authority surface: `paper/`",
+        "- Canonical authority surface: `manuscript/`",
         f"- Controller-authorized source: `{source_relative_root}`",
         "",
         "## Delivery status",
         "",
-        "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.",
+        "- This directory is the stable, stage-agnostic entry point for the latest submission package.",
         "- Publication quality and submission readiness remain owned by MAS durable quality and controller surfaces.",
     ]
     linkage = charter_contract_linkage or {}
@@ -419,11 +415,11 @@ def build_current_package_readme(
             "",
             "## Next controller-authorized sync",
             "",
-            "- Refresh this mirror only through controller-authorized delivery sync/apply.",
+            "- Refresh this package only through controller-authorized delivery sync/apply.",
             "- Do not patch files in this directory as the source of truth.",
             "",
-            "Use this directory when a human wants the latest readable package without first deciding which stage-specific mirror to open. "
-            "Regenerate from the controller-authorized source, not from this projection.",
+            "Use this directory when a human wants the latest readable package. "
+            "Regenerate from the controller-authorized source in `manuscript/`, not from this projection.",
             "",
         ]
     )

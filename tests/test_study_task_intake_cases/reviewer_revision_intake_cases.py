@@ -221,12 +221,28 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
     assert trigger["refs_only"] is True
     assert trigger["writes_study_truth"] is False
+    assert trigger["paper_mission_subordination"]["mainline_route"] == [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ]
+    assert trigger["default_route"] == (
+        "paper_mission_to_submission_authority_to_agent_lab_to_oma_then_owner_gate_or_typed_blocker"
+    )
     assert trigger["owner_chain"] == [
         "med-autoscience:reviewer_revision_intake",
         "med-autoscience:agent_lab_medical_manuscript_quality_suite",
         "one-person-lab:feedbackops_agent_lab_projection",
         "opl-meta-agent:oma-agent-evolution",
         "med-autoscience:owner_closeout_readback",
+    ]
+    assert trigger["target_actions"]["mas_acceptance_readback"] == (
+        "medautosci paper-mission inspect --study-id <study_id> --format json"
+    )
+    assert trigger["owner_closeout_readback_refs"] == [
+        "paper_mission_readback_ref",
+        "submission_authority_owner_gate_readback_ref",
+        "target_owner_receipt_or_typed_blocker_ref",
     ]
     assert trigger["authority_boundary"]["can_write_study_truth"] is False
     assert trigger["authority_boundary"]["can_write_typed_blocker"] is False

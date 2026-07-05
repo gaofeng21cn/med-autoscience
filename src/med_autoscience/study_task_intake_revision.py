@@ -86,6 +86,19 @@ DEVELOPER_MODE_EXECUTION_GATE_REFS = [
     "workspace-profile-ref:github_username",
     "workspace-profile-ref:mas_developer_github_usernames",
 ]
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -233,7 +246,8 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
         "trigger_kind": "reviewer_revision_quality_gap",
         "study_id": study_id,
         "adapter_role": "domain_thin_feedback_adapter",
-        "default_route": "mas_to_opl_agent_lab_to_oma_work_order",
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
+        "default_route": "paper_mission_to_submission_authority_to_agent_lab_to_oma_then_owner_gate_or_typed_blocker",
         "owner_chain": [
             "med-autoscience:reviewer_revision_intake",
             "med-autoscience:agent_lab_medical_manuscript_quality_suite",
@@ -263,8 +277,13 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
             "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
             "oma_materialization": "opl-meta-agent.improve-from-external-agent-lab-suite",
             "opl_work_order_execution": "opl-meta-agent.execute-external-work-order",
-            "mas_acceptance_readback": "medautosci study progress --study-id <study_id> --format json",
+            "mas_acceptance_readback": "medautosci paper-mission inspect --study-id <study_id> --format json",
         },
+        "owner_closeout_readback_refs": [
+            "paper_mission_readback_ref",
+            "submission_authority_owner_gate_readback_ref",
+            "target_owner_receipt_or_typed_blocker_ref",
+        ],
         "required_packet_refs": [
             "agent_lab_suite_result_ref",
             "structured_ai_reviewer_evaluation_ref",

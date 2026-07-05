@@ -10,6 +10,7 @@ import yaml
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.study_workspace_status_parts import (
     AUTHORITY_BOUNDARY,
+    LEGACY_USER_ENTRY_REFS,
     MIGRATION_HISTORY_ROOT_RELPATH,
     MIGRATION_MANIFEST_ROOT_RELPATH,
     PAPER_CLEAN_ROOM_DESCRIPTOR_RELPATH,
@@ -48,6 +49,7 @@ def materialize_study_workspace_status(*, study: Mapping[str, Any], recorded_at:
     _write_json(study_root / USER_ENTRY_REFS["stage_index"], stage_index)
     _write_json(study_root / USER_ENTRY_REFS["blockers"], blockers_payload)
     _write_json(study_root / USER_ENTRY_REFS["current_package_status"], package_status)
+    _write_json(study_root / LEGACY_USER_ENTRY_REFS["current_package_status"], package_status)
     _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "current_truth_map.json", study["current_truth_map"])
     _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "legacy_provenance_map.json", study["legacy_provenance_map"])
     _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "target_path_map.json", study["target_path_map"])
@@ -253,7 +255,7 @@ def _workspace_migration_stage_manifest(*, study: Mapping[str, Any], recorded_at
         "product_refs": [
             "STUDY_STATUS.md",
             "control/stage_index.json",
-            "publication/current_package/STATUS.json",
+            USER_ENTRY_REFS["current_package_status"].as_posix(),
         ],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
@@ -387,10 +389,10 @@ def _render_status_markdown(*, study: Mapping[str, Any]) -> str:
         f"- Current manuscript: `{_selected_ref(refs, 'current_manuscript')}`",
         f"- Evidence ledger: `{_selected_ref(refs, 'evidence_ledger')}`",
         f"- Review ledger: `{_selected_ref(refs, 'review_ledger')}`",
-        f"- Current package: `{package_status.get('status')}`",
+        f"- Submission package: `{package_status.get('status')}`",
         f"- Next action: `{next_action.get('action_id')}`",
         "",
-        "Runtime, legacy `.ds`, MDS archive, and submission mirrors are provenance or projections, not the user-facing paper root.",
+        "Editable authority lives under `manuscript/`; `submission/` is the only user-facing package root. Runtime, legacy `.ds`, and archive roots are provenance or projections.",
         "",
     ]
     return "\n".join(lines)
@@ -411,8 +413,8 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
         "current_stage_status": current_stage.get("status"),
         "stage_index_ref": "control/stage_index.json",
         "study_status_ref": "STUDY_STATUS.md",
-        "paper_entry_ref": "paper/draft.md",
-        "publication_package_status_ref": "publication/current_package/STATUS.json",
+        "paper_entry_ref": "manuscript/draft.md",
+        "publication_package_status_ref": USER_ENTRY_REFS["current_package_status"].as_posix(),
         "package_status": study["current_truth_map"]["package_status"].get("status"),
         "blockers": list(study.get("blockers") or []),
         "runtime_root_is_current_paper_truth": False,

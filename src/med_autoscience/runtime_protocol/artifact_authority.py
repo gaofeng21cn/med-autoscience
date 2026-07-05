@@ -11,6 +11,8 @@ GENERATED_AUTHORITY_SURFACE_NAMES = frozenset(
         "current_package",
         "current_package.zip",
         "submission_minimal",
+        "submission",
+        "submission.zip",
     }
 )
 GENERATED_AUTHORITY_SUFFIXES = frozenset({".zip", ".pdf", ".docx"})
@@ -59,6 +61,10 @@ def classify_artifact_role(
     if _path_contains(parts, ("artifacts", "runtime")) or _path_contains(parts, ("artifacts", "publication_eval")):
         return "audit_log"
     if is_generated_authority_surface_path(resolved_path) or is_generated_authority_suffix(resolved_path):
+        return "derived_projection"
+    if _is_relative_to(resolved_path, resolved_study_root / "manuscript"):
+        return "canonical_source"
+    if _path_contains(parts, ("submission",)):
         return "derived_projection"
     if _path_contains(parts, ("manuscript",)):
         return "human_handoff_mirror"

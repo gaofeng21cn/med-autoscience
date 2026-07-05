@@ -10,7 +10,12 @@ from med_autoscience.publication_profiles import (
     is_supported_publication_profile,
     normalize_publication_profile,
 )
-from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.runtime_protocol.topology import (
+    LEGACY_STUDY_AUTHORITY_ROOT_NAME,
+    PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
+    STUDY_AUTHORITY_ROOT_NAMES,
+    resolve_paper_root_context,
+)
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
 
@@ -149,7 +154,7 @@ def can_sync_study_delivery(*, paper_root: Path) -> bool:
 
 def _resolve_study_owned_paper_context(paper_root: Path) -> tuple[Path, Path, str] | None:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
-    if resolved_paper_root.name != "paper":
+    if resolved_paper_root.name not in STUDY_AUTHORITY_ROOT_NAMES:
         return None
     study_root = resolved_paper_root.parent
     if study_root.parent.name != "studies":
@@ -190,13 +195,44 @@ def build_submission_source_root(*, paper_root: Path, publication_profile: str) 
     normalized_profile = normalize_publication_profile(publication_profile)
     if not is_supported_publication_profile(normalized_profile):
         raise ValueError(f"unsupported publication profile: {publication_profile}")
+    try:
+        context = _resolve_delivery_context(Path(paper_root).expanduser().resolve())
+    except (FileNotFoundError, ValueError):
+        context = None
+    if context is not None:
+        study_root = Path(context["study_root"]).expanduser().resolve()
+        preferred_root = study_root / "submission"
+        legacy_root = (
+            paper_root / "submission_minimal"
+            if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
+            else paper_root / "journal_submissions" / normalized_profile
+        )
+        if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+            if (preferred_root / "audit" / "submission_manifest.json").exists() or preferred_root.exists():
+                return preferred_root
+            return legacy_root
+        preferred_journal_root = preferred_root / "journal_packages" / normalized_profile
+        if (preferred_journal_root / "audit" / "submission_manifest.json").exists() or preferred_journal_root.exists():
+            return preferred_journal_root
+        return legacy_root
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return paper_root / "submission_minimal"
     return paper_root / "journal_submissions" / normalized_profile
 
 
 def build_authority_source_relative_root(*, paper_root: Path, source_root: Path) -> str:
-    return source_root.resolve().relative_to(paper_root.resolve().parent).as_posix()
+    resolved_source_root = source_root.resolve()
+    resolved_paper_root = paper_root.resolve()
+    candidate_bases = [
+        resolved_paper_root.parent,
+        resolved_paper_root.parent.parent,
+    ]
+    for base in candidate_bases:
+        try:
+            return resolved_source_root.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    return str(resolved_source_root)
 
 
 def resolve_finalize_resume_packet_source(*, paper_root: Path, worktree_root: Path) -> Path:

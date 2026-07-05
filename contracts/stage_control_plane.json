@@ -4725,6 +4725,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [
@@ -5014,6 +5027,19 @@
           "live_owner_consumption_claimed": false,
           "mandatory_gate_input": true,
           "obligation_level": "mandatory",
+          "paper_mission_subordination": {
+            "authority_owner": "MedAutoScience",
+            "can_bypass_submission_authority": false,
+            "can_close_without_owner_gate_or_typed_blocker": false,
+            "can_start_parallel_mainline": false,
+            "control_plane_role": "subordinate_input_or_advisory_only",
+            "mainline_route": [
+              "PaperMission",
+              "submission_authority",
+              "submission_authority_owner_gate_or_typed_blocker"
+            ],
+            "surface_kind": "mas_paper_mission_subordination"
+          },
           "required_gate_input_surfaces": [
             "reference_verification_attestations",
             "claim_citation_support_matrix_v2",
@@ -5047,6 +5073,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [
@@ -5548,6 +5587,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [
@@ -6195,6 +6247,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [
@@ -6483,6 +6548,19 @@
           "live_owner_consumption_claimed": false,
           "mandatory_gate_input": true,
           "obligation_level": "mandatory",
+          "paper_mission_subordination": {
+            "authority_owner": "MedAutoScience",
+            "can_bypass_submission_authority": false,
+            "can_close_without_owner_gate_or_typed_blocker": false,
+            "can_start_parallel_mainline": false,
+            "control_plane_role": "subordinate_input_or_advisory_only",
+            "mainline_route": [
+              "PaperMission",
+              "submission_authority",
+              "submission_authority_owner_gate_or_typed_blocker"
+            ],
+            "surface_kind": "mas_paper_mission_subordination"
+          },
           "required_gate_input_surfaces": [
             "reference_verification_attestations",
             "claim_citation_support_matrix_v2",
@@ -6516,6 +6594,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [
@@ -7018,6 +7109,19 @@
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
             "readback_surface": "stage_contract.mandatory_pre_gate_checks",
             "required_before_owner_receipt_or_typed_blocker": true,
             "required_gate_input_surfaces": [

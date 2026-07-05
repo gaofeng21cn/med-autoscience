@@ -41,6 +41,7 @@ def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descr
     assert boundary["can_authorize_publication_quality"] is False
     assert boundary["can_authorize_publication_readiness"] is False
     assert boundary["can_authorize_submission_readiness"] is False
+    assert boundary["paper_mission_subordination"]["can_start_parallel_mainline"] is False
 
 
 def test_action_catalog_exposes_research_integrity_reference_verification_descriptor() -> None:
@@ -79,6 +80,7 @@ def test_action_catalog_exposes_research_integrity_reference_verification_descri
     assert boundary["can_authorize_publication_quality"] is False
     assert boundary["can_authorize_publication_readiness"] is False
     assert boundary["can_authorize_submission_readiness"] is False
+    assert boundary["paper_mission_subordination"]["can_bypass_submission_authority"] is False
 
 
 def test_action_catalog_exposes_research_integrity_stage_hook_descriptor() -> None:
@@ -120,6 +122,7 @@ def test_action_catalog_exposes_research_integrity_stage_hook_descriptor() -> No
     assert boundary["can_authorize_publication_quality"] is False
     assert boundary["can_authorize_publication_readiness"] is False
     assert boundary["can_authorize_submission_readiness"] is False
+    assert boundary["paper_mission_subordination"]["can_close_without_owner_gate_or_typed_blocker"] is False
 
 
 def test_domain_entry_contract_exposes_research_integrity_gate_input_without_workspace() -> None:

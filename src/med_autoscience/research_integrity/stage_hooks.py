@@ -52,6 +52,19 @@ FORBIDDEN_AUTHORITY_FLAGS = (
     "can_authorize_publication_readiness",
     "can_authorize_submission_readiness",
 )
+PAPER_MISSION_SUBORDINATION = {
+    "surface_kind": "mas_paper_mission_subordination",
+    "authority_owner": "MedAutoScience",
+    "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker",
+    ],
+    "control_plane_role": "subordinate_input_or_advisory_only",
+    "can_start_parallel_mainline": False,
+    "can_bypass_submission_authority": False,
+    "can_close_without_owner_gate_or_typed_blocker": False,
+}
 
 
 def build_review_publication_gate_stage_hook_payload(
@@ -87,6 +100,7 @@ def build_review_publication_gate_stage_hook_payload(
         "gate_input_bundle": gate_input,
         "blocker_candidates": reference_verification["blocker_candidates"],
         "review_candidates": reference_verification["review_candidates"],
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authority_boundary": authority_boundary(),
     }
 
@@ -109,6 +123,7 @@ def stage_obligation() -> dict[str, Any]:
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
         "mandatory_gate_input": True,
         "live_owner_consumption_claimed": False,
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authority_boundary": authority_boundary(),
         "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
         "completion_boundary": completion_boundary(),
@@ -135,6 +150,7 @@ def stage_launch_required_input(*, stage_id: str | None = None) -> dict[str, Any
         "required_before_owner_receipt_or_typed_blocker": True,
         "mandatory_gate_input": True,
         "live_owner_consumption_claimed": False,
+        "paper_mission_subordination": dict(PAPER_MISSION_SUBORDINATION),
         "authority_boundary": authority_boundary(),
     }
     if stage_id is not None:
