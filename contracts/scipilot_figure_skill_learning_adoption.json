@@ -33,7 +33,7 @@
     "figure_export_lint_refs_only_tool_shape"
   ],
   "runtime_sidecar_policy": {
-    "landing_scope": "refs_only_sidecar_tool_shape_metadata",
+    "landing_scope": "refs_only_sidecar_tool_shape_metadata_and_display_pack_workflow_projection",
     "nonblocking": true,
     "fail_open_unless_route_required_evidence_missing": true,
     "imports_external_scripts_or_dependencies": false,
@@ -68,6 +68,8 @@
         "typed_blocker_candidate_ref"
       ],
       "maps_to_owner_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_advisor_probe",
+        "display_pack_figure_workflow_packet.figures[].figure_advisor_probe",
         "display_pack_agent_figure_contract_policy",
         "display_pack_figure_workflow_packet",
         "stage_quality_pack.scipilot_visualization_advisor_ref_floor",
@@ -114,6 +116,8 @@
         "typed_blocker_candidate_ref"
       ],
       "maps_to_owner_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_export_lint",
+        "display_pack_figure_workflow_packet.figures[].render_inspect_revise.figure_export_lint",
         "display_pack_export_qc_refs",
         "layout_sidecar_or_display_lock",
         "visual_audit_protocol_refs",
@@ -195,11 +199,13 @@
       "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
       "target_landing": "figure_advisor_probe",
       "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_advisor_probe",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
         "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_advisor_probe",
         "docs/references/mainline/scipilot_figure_skill_learning_intake.md#refs-only-sidecar-tool-shapes",
         "docs/runtime/control/external_learning_adoption_closure.md"
       ],
-      "evidence_gate": "docs_contract_smoke_and_meta_verification",
+      "evidence_gate": "focused_display_pack_agent_tests_and_docs_contract_smoke",
       "progress_policy": "nonblocking refs-only; fail-open unless route-required claim/data/source/evidence refs are missing"
     },
     {
@@ -209,11 +215,13 @@
       "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
       "target_landing": "figure_export_lint",
       "consumable_surfaces": [
+        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_export_lint",
+        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
         "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_export_lint",
         "docs/delivery/medical-display/README.md",
         "docs/runtime/control/external_learning_adoption_closure.md"
       ],
-      "evidence_gate": "docs_contract_smoke_and_meta_verification",
+      "evidence_gate": "focused_display_pack_agent_tests_and_docs_contract_smoke",
       "progress_policy": "nonblocking refs-only; fail-open unless route-required export evidence is missing; no owner receipt or publication readiness authority"
     }
   ],
