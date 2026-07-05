@@ -31,6 +31,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Template catalog](./catalogs/medical_display_template_catalog.md)
 - [ScholarSkills Display gallery](/Users/gaofeng/workspace/mas-scholar-skills/docs/gallery/display-gallery.md)
+- [SciPilot figure-skill learning intake](../../references/mainline/scipilot_figure_skill_learning_intake.md)
 - [MAS examples boundary](./examples/README.md)
 - [Display Pack v2 E2E skeleton](./examples/display_pack_v2_e2e_skeleton.md)
 
@@ -53,6 +54,8 @@ Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/
 ## Quality Floor 与重构边界
 
 通用科研做图策略按 ScholarSkills gallery quality-audit refs 读取。模板库提供质量下限和可审阅起点，不锁死图型、布局、panel hierarchy、后端或候选数量；AI executor 应从 figure brief、reference/style brief、preserve list、candidate generation、critic review 和 owner gate 反推图件，而不是复用单个模板来声明完成。
+
+`scipilot-figure-skill` 的可学习点只作为前置 advisor discipline：先看数据形态、样本量、分布、分组结构、缺失/异常和论证目标，再决定图型；主动拦截均值柱掩盖分布、双 Y 轴、饼图/3D、Y 轴误导截断、rainbow 色图、分类折线、一图多论点、中文/符号缺字、裁切和子图标签错位。这个折回只增强 figure brief、专业 skill critique 和 visual audit 语言，不导入 SciPilot 的 Python runtime、脚本、依赖或默认 skill source，也不新增阻塞 gate。缺少 SciPilot advisory 不阻断已有 MAS current owner action；只有当前 route-required claim/data/source refs 缺失时，才可形成 route-back hint 或 typed blocker candidate。
 
 “彻底重构”的边界按图件角色区分：design shell、graphical abstract 和 reporting-flow 图可以在 brief 与 owner gate 支持下重构到更强视觉系统；R/ggplot2 证据图主要通过统一 theme、尺寸、QC、critic gate、参考驱动和 source/data/statistics refs preservation 提升，不默认全部手工重画。任何 Gallery、模板、参考风格或质量审计都不得 claim publication ready。
 

@@ -64,6 +64,16 @@ MAS 对该模式的 adoption classification 是：
 
 另一个关键改造点是少堆模板、多学图页组织。MAS 当前默认面保留少量 canonical evidence primitives；真正向 Nature-Skills 学的是页面级构图纪律：hero panel hierarchy、shared legends、direct labels、schematic-led composite、dark image plate、asymmetric genomics figure 和 render-inspect-revise。后续扩展默认先问“是否需要新的 composition recipe 或 style / QA rule”，只有计算 workflow 或图型语义确实不同，才新增单图 primitive。
 
+## 2026-07-05 SciPilot Figure Skill Comparison
+
+`scipilot-figure-skill` 的 foldback 记录在 [SciPilot Figure Skill Learning Intake](./scipilot_figure_skill_learning_intake.md)。它不改变本文件的 Nature-Skills closeout：Nature-Skills figure absorption 已经落到 figure contract、workflow packet、composition recipe、publication polish policy 和 QA gates；SciPilot 只补充前置 advisor discipline。
+
+区别固定为：
+
+- Nature-Skills 学的是 `figure contract / page organization / backend-export QA / render-inspect-revise workflow`；SciPilot 学的是 `data profiling / chart-choice advisor / bad-chart interception / publication-form self-check`。
+- Nature-Skills 的可用面已经进入 MAS-owned display contracts 和 focused tests；SciPilot 本轮只做 docs foldback，不声明 executable surface landed。
+- 两者都保持 progress-first、refs-only、no-authority：不导入外部 runtime、skill source、runner、scripts、publication authority 或 owner receipt。
+
 ## 2026-06-18 Paper Mainline Landing
 
 本轮按用户主线约束补齐三条可直接被论文推进流程消费的 MAS-native surface。它们的共同边界是：`refs_only=true`、`fail_open=true`、不写 paper body、不写 runtime/study truth、不授权 quality verdict 或 publication readiness，缺口只转为 typed blocker candidate 或 owner action hint。
