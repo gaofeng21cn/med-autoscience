@@ -395,6 +395,13 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
     assert "research-pdf-evidence-explorer" not in profile_readback["synced_skill_ids"]
     assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
+    helper_policy = profile_readback["skill_local_deterministic_helper_policy"]
+    assert helper_policy["helper_file_name"] == "kernel.py"
+    assert helper_policy["expected_helper_skill_ids"] == list(
+        install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS
+    )
+    assert helper_policy["helper_body_included"] is False
+    assert helper_policy["helpers_can_write_authority"] is False
     assert profile_readback["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )

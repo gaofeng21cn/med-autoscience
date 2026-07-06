@@ -43,6 +43,8 @@ professional specialist skill 单源在外部 `mas-scholar-skills` 仓库。MAS 
 
 外部 `mas-scholar-skills` source 还维护 optional advanced / medical-method specialist skills，例如 structural biology、protein design、genomics foundation models、single-cell modeling、indication dossier、PDF evidence exploration、scientific compute diagnostics、protocol/SAP、cohort phenotyping、claim map、reference integrity、rebuttal strategy、display QC、causal inference 和 survival analysis。MAS profile / bootstrap / registry 只在 `optional_skill_ids` 与 optional target path templates 中暴露这些真实 skill 的本地发现路径；它们不是默认 core，不复制 skill 正文，不是第二 catalog truth，也不写 MAS owner receipt、typed blocker、publication readiness 或 paper truth。
 
+其中一部分专业 Skill 会随带 `kernel.py` 作为 skill-local deterministic helper。helper 只做重复、可验证的小动作，例如 schema skeleton、identifier normalization、table/package/data lint、PDF evidence scan、env intent 或 log/receipt shaping；它不替代 AI 专业判断，也不管理 provider、credential、endpoint、SLURM/Modal/cloud resource lifecycle。MAS 只暴露 helper policy/readback，不复制 helper body，不把 helper 输出写成 owner acceptance。
+
 当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 决定当前工作能不能推进和交给谁；专业 Skill 做专业候选产物；工具/Fabric 做检索、渲染、检查和候选包生成。前三者都不写 MAS truth；最终接受、退回、阻塞或 human gate 只由 MAS owner surface 决定。
 
 默认先用 `mas-scholar-skills` 八个 active module 覆盖常规医学论文需求；Display module 下的 `medical-figure-style` / `medical-figure-composer` 只算 dedicated 子 Skill。罕见重型专科工具缺口才通过 `external-scientific-skills` 走 OPL Connect `external-skills search -> inspect -> sync`，触发条件限于用户显式点名工具/数据库、核心 Skill route-back 命名缺口、stage policy 判定八个 active module 不足，或联网/云计算/敏感数据路径需要 policy/approval。K-Dense 和其他外部目录只作为 refs-only pattern/advisory，不是 MAS 权威源。

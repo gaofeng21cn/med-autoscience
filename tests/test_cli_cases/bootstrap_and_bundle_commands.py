@@ -122,6 +122,13 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert "medical-protocol-and-sap-planner" in optional_skill_ids
     assert "medical-structural-biology" not in default_skill_ids
     assert "medical-protocol-and-sap-planner" not in default_skill_ids
+    helper_policy = payload["scholarskills_local_install"]["skill_local_deterministic_helper_policy"]
+    assert helper_policy["expected_helper_skill_ids"] == list(
+        install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS
+    )
+    assert "medical-table-design" in helper_policy["expected_helper_skill_ids"]
+    assert "scientific-compute-runner" in helper_policy["expected_helper_skill_ids"]
+    assert helper_policy["helper_body_included"] is False
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]
     assert workspace_install["target_skill_path"] == str(

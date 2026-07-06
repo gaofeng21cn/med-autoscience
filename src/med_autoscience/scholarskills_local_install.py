@@ -43,6 +43,30 @@ SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
     *SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS,
     *SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS,
 )
+SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS = (
+    "medical-research-lit",
+    "medical-manuscript-writing",
+    "medical-manuscript-review",
+    "medical-figure-style",
+    "medical-figure-composer",
+    "medical-statistical-review",
+    "medical-table-design",
+    "medical-submission-prep",
+    "medical-data-governance",
+    "medical-protocol-and-sap-planner",
+    "medical-cohort-phenotyping",
+    "medical-evidence-synthesis-and-claim-map",
+    "medical-reference-integrity-auditor",
+    "medical-causal-inference-plan",
+    "medical-survival-analysis-plan",
+    "medical-structural-biology",
+    "medical-protein-design",
+    "medical-genomics-foundation-models",
+    "medical-single-cell-modeling",
+    "medical-indication-dossier",
+    "research-pdf-evidence-explorer",
+    "scientific-compute-runner",
+)
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"
 SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS = "physically_retired"
@@ -85,6 +109,7 @@ def build_scholarskills_local_install_template() -> dict[str, Any]:
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
         "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
         "optional_skill_policy": _optional_skill_policy(),
+        "skill_local_deterministic_helper_policy": _skill_local_deterministic_helper_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
         "workspace": {
@@ -143,6 +168,7 @@ def build_scholarskills_local_install_readback(
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
         "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
         "optional_skill_policy": _optional_skill_policy(),
+        "skill_local_deterministic_helper_policy": _skill_local_deterministic_helper_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
         "status": "command_shape_ready",
@@ -254,6 +280,26 @@ def _optional_skill_policy() -> dict[str, Any]:
     }
 
 
+def _skill_local_deterministic_helper_policy() -> dict[str, Any]:
+    return {
+        "surface": "skill_local_deterministic_helpers",
+        "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
+        "source_contract_ref": (
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/professional_skill_quality_upgrade_policy"
+        ),
+        "helper_file_name": "kernel.py",
+        "expected_helper_skill_ids": list(SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS),
+        "materialization_owner": "one-person-lab",
+        "sync_path": "opl_connect_source_materialization",
+        "refs_only": True,
+        "helper_body_included": False,
+        "default_core": False,
+        "missing_helpers_block_mas_ordinary_progress": False,
+        "helpers_can_write_authority": False,
+    }
+
+
 def _mas_program_repo_mirror() -> dict[str, Any]:
     return {
         "default_execution_source": False,
@@ -289,6 +335,7 @@ __all__ = [
     "SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_SKILL_IDS",
+    "SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS",
     "SCHOLARSKILLS_SKILL_ID",
     "SCHOLARSKILLS_SOURCE_REPO_REF",
     "build_scholarskills_local_install_readback",

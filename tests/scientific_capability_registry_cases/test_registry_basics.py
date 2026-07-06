@@ -146,6 +146,27 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert "medical-rebuttal-strategy" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "scientific-compute-runner" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert "medical-rebuttal-strategy" not in registry["scholarskills_local_install"]["synced_skill_ids"]
+    helper_policy = registry["scholarskills_local_install"]["skill_local_deterministic_helper_policy"]
+    assert helper_policy == {
+        "surface": "skill_local_deterministic_helpers",
+        "source_repo_ref": "external:mas-scholar-skills",
+        "source_contract_ref": (
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/professional_skill_quality_upgrade_policy"
+        ),
+        "helper_file_name": "kernel.py",
+        "expected_helper_skill_ids": list(install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS),
+        "materialization_owner": "one-person-lab",
+        "sync_path": "opl_connect_source_materialization",
+        "refs_only": True,
+        "helper_body_included": False,
+        "default_core": False,
+        "missing_helpers_block_mas_ordinary_progress": False,
+        "helpers_can_write_authority": False,
+    }
+    assert "medical-statistical-review" in helper_policy["expected_helper_skill_ids"]
+    assert "medical-reference-integrity-auditor" in helper_policy["expected_helper_skill_ids"]
+    assert "scientific-compute-runner" in helper_policy["expected_helper_skill_ids"]
     assert registry["scholarskills_local_install"]["optional_skill_policy"] == {
         "surface": "optional_advanced_and_medical_method_specialist_skills",
         "source_repo_ref": "external:mas-scholar-skills",

@@ -85,6 +85,13 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert "medical-cohort-phenotyping" in scholarskills_install["optional_skill_ids"]
     assert "medical-single-cell-modeling" not in scholarskills_install["synced_skill_ids"]
     assert "medical-cohort-phenotyping" not in scholarskills_install["synced_skill_ids"]
+    helper_policy = scholarskills_install["skill_local_deterministic_helper_policy"]
+    assert helper_policy["expected_helper_skill_ids"] == list(
+        install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS
+    )
+    assert "medical-data-governance" in helper_policy["expected_helper_skill_ids"]
+    assert "medical-causal-inference-plan" in helper_policy["expected_helper_skill_ids"]
+    assert helper_policy["missing_helpers_block_mas_ordinary_progress"] is False
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
