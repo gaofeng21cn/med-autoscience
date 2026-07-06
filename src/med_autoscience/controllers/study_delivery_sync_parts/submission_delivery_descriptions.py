@@ -307,19 +307,6 @@ def _current_package_pdf_visual_audit_current(
         return False
 
 
-def _submission_manifest_is_generated_authority_source(source_root: Path) -> bool:
-    manifest = _load_json_file(audit_path(source_root, "submission_manifest"))
-    if not isinstance(manifest, dict):
-        return False
-    layout = manifest.get("delivery_layout")
-    if not isinstance(layout, dict):
-        return False
-    return (
-        str(layout.get("package_role") or "").strip() == "controller_authorized_package_source"
-        and str(layout.get("legacy_input_status") or "").strip() == "v2_generated"
-    )
-
-
 def _submission_authority_status_overrides_delivery(
     *,
     authority_status: str,
@@ -327,6 +314,8 @@ def _submission_authority_status_overrides_delivery(
     source_root: Path,
 ) -> bool:
     if authority_status in {"missing", "invalid"}:
+        if audit_path(source_root, "submission_manifest").exists():
+            return False
         return True
     return False
 
@@ -454,6 +443,17 @@ def describe_submission_delivery(
             ),
         }
 
+    recorded_surface_roles = manifest.get("surface_roles") or {}
+    if isinstance(recorded_surface_roles, dict):
+        recorded_current_package_root = str(
+            recorded_surface_roles.get("human_facing_current_package_root") or ""
+        ).strip()
+        recorded_current_package_zip = str(recorded_surface_roles.get("human_facing_current_package_zip") or "").strip()
+        if recorded_current_package_root:
+            current_package_root = Path(recorded_current_package_root).expanduser().resolve()
+        if recorded_current_package_zip:
+            current_package_zip = Path(recorded_current_package_zip).expanduser().resolve()
+
     expected_source_root = build_submission_source_root(
         paper_root=resolved_paper_root,
         publication_profile=normalized_publication_profile,
@@ -503,7 +503,6 @@ def describe_submission_delivery(
         paper_root=resolved_paper_root,
         publication_profile=normalized_publication_profile,
     )
-    recorded_surface_roles = manifest.get("surface_roles") or {}
     recorded_source_root = (
         str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
         or str(((manifest.get("source") or {}) if isinstance(manifest.get("source"), dict) else {}).get("package_source_root") or "").strip()
@@ -558,7 +557,14 @@ def describe_submission_delivery(
             authority_stale_reason=str(submission_authority.get("stale_reason") or "").strip() or None,
         )
         assert status is not None
-    elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
+    elif (
+        recorded_source_root
+        and recorded_source_root != str(expected_source_root.resolve())
+        and not (
+            recorded_source_signature == source_signature
+            and recorded_authority_source_signature == source_signature
+        )
+    ):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
     elif not _submission_projection_matches_source(

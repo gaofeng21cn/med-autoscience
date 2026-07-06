@@ -386,6 +386,69 @@ def test_delivery_inspector_uses_fresh_current_package_proof_for_v2_human_mirror
     assert verdict == "current"
 
 
+def test_delivery_inspector_keeps_fresh_delivery_current_when_manifest_source_role_points_at_human_root(
+    tmp_path: Path,
+) -> None:
+    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "repo"
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "manuscript"
+    source_root = paper_root / "submission_minimal"
+    human_root = study_root / "submission"
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile_for_workspace(profile_path, workspace_root=workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 003-dpcc-primary-care-phenotype-treatment-gap\n")
+    write_text(source_root / "manuscript.docx", "docx")
+    write_text(source_root / "paper.pdf", "%PDF-1.4\n")
+    dump_json(
+        source_root / "audit" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "generated_at": "2026-07-06T14:18:39+00:00",
+        },
+    )
+    dump_json(paper_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
+    dump_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::dm003::fresh",
+            "study_id": study_root.name,
+        },
+    )
+
+    manifest = sync_module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    manifest_path = study_root / "manuscript" / "delivery_manifest.json"
+    manifest["surface_roles"]["controller_authorized_package_source_root"] = str(human_root)
+    dump_json(manifest_path, manifest)
+    (source_root / "audit" / "submission_manifest.json").touch()
+
+    result = inspector.inspect_study_delivery(
+        profile=profiles.load_profile(profile_path),
+        profile_ref=profile_path,
+        study_id=study_root.name,
+    )
+
+    signature = manifest["source_signature"]
+    assert result["source_signature"] == {
+        "evaluated": signature,
+        "authority": signature,
+        "delivery": signature,
+        "source_package": signature,
+        "human_package": signature,
+    }
+    assert result["freshness"]["current_package_freshness"]["status"] == "fresh"
+    assert result["freshness"]["current_package_freshness"]["current_package_root"] == str(human_root)
+    assert result["freshness"]["delivery_status"] == "current"
+    assert result["freshness"]["stale_reason"] is None
+    assert result["freshness"]["verdict"] == "current"
+
+
 def test_delivery_inspector_cli_supports_public_publication_alias_json(tmp_path: Path, capsys) -> None:
     sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     cli = importlib.import_module("med_autoscience.cli")

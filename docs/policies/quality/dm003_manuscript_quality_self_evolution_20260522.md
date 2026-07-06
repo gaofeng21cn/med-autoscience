@@ -136,6 +136,14 @@ The DPCC display repair now materializes the bounded-analysis rate-count priorit
 
 Future reviewer-revision handling must treat package mirror freshness as part of the figure/table materialization check: current-package and legacy mirror roots are delivery projections, not evidence that the newly generated controller source was consumed. Supplementary retention must be verified from the generated package, not inferred from manuscript text alone.
 
+## 2026-07-06 Delivery Role Currentness Readback Landing
+
+DM003 then exposed a readback-level freshness bug after the package itself had been regenerated correctly: the delivery manifest could carry matching evaluated, authority, delivery, source-package, and human-package signatures, while an older `surface_roles.controller_authorized_package_source_root` value still pointed at the human-facing `submission/` root. The delivery inspector treated that role-path mismatch as `stale_source_mismatch` even when the content signatures and current-package freshness proof showed the package was current.
+
+Delivery inspection now resolves the current package root and zip from the manifest's human-facing roles, and it does not let a role-path mismatch override matching source signatures. This keeps the freshness verdict tied to content identity and package proof, while still reporting the recorded source root as diagnostic context. It prevents MAS from telling the user a freshly synced package is stale solely because a legacy role label was stale.
+
+This readback repair is still not a submission-authority decision. If the publication gate reports `authority_snapshot_missing`, the manuscript package can be current for review while `can_submit=false` remains the correct submission boundary.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
