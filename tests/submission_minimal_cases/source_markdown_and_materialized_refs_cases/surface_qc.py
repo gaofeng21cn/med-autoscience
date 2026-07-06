@@ -1,13 +1,18 @@
 from tests.submission_minimal_cases.shared import *
+from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+    build_submission_manuscript_surface_qc,
+)
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
 
 
 def test_build_submission_manuscript_surface_qc_flags_stale_docx_and_pdf_against_newer_source_markdown(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -26,7 +31,7 @@ def test_build_submission_manuscript_surface_qc_flags_stale_docx_and_pdf_against
     os.utime(pdf_path, (1000, 1000))
     os.utime(source_markdown_path, (2000, 2000))
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown_path,
         docx_path=docx_path,
@@ -47,7 +52,6 @@ def test_build_submission_manuscript_surface_qc_flags_stale_docx_and_pdf_against
 def test_build_submission_manuscript_surface_qc_flags_duplicate_sections_and_internal_instructions(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_source.md"
     write_text(
         source_markdown,
@@ -87,7 +91,7 @@ The manuscript should open with this burden-architecture figure. Use as the main
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -106,7 +110,6 @@ The manuscript should open with this burden-architecture figure. Use as the main
 def test_build_submission_manuscript_surface_qc_flags_display_directive_in_legends(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_source.md"
     write_text(
         source_markdown,
@@ -126,7 +129,7 @@ The first display should account for the cohort before phenotype interpretation.
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -144,7 +147,6 @@ The first display should account for the cohort before phenotype interpretation.
 def test_build_submission_manuscript_surface_qc_blocks_engineering_prose_residue_in_legends(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -170,7 +172,7 @@ Calibration and decision-curve evidence across candidate packages within the pre
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -188,7 +190,6 @@ Calibration and decision-curve evidence across candidate packages within the pre
 def test_build_submission_manuscript_surface_qc_blocks_registry_burden_figure_wording(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -214,7 +215,7 @@ PHQ-9 and GAD-7 availability is not interpreted as whole-alliance psychobehavior
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -236,7 +237,6 @@ PHQ-9 and GAD-7 availability is not interpreted as whole-alliance psychobehavior
 def test_build_submission_manuscript_surface_qc_allows_population_burden_boundary_caveat(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -254,7 +254,7 @@ Source counts do not establish population-level burden or national representativ
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -275,7 +275,6 @@ Source counts do not establish population-level burden or national representativ
 def test_build_submission_manuscript_surface_qc_blocks_internal_quality_record_language(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -297,7 +296,7 @@ The exact source-code environment remains a source-documentation gap that requir
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
@@ -326,7 +325,6 @@ The exact source-code environment remains a source-documentation gap that requir
 def test_build_submission_manuscript_surface_qc_blocks_invalid_analysis_history_story(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -341,7 +339,7 @@ was a unit-harmonization lesson rather than a stable clinical finding.
 """,
     )
 
-    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
         publication_profile="general_medical_journal",
         source_markdown_path=source_markdown,
         docx_path=tmp_path / "manuscript.docx",
