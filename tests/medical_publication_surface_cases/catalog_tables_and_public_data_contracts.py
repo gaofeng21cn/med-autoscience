@@ -1,7 +1,9 @@
 from .shared import *
 
+from med_autoscience.controllers.medical_publication_surface_parts import reporting, shared_base
+
+
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -14,7 +16,7 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     payload["figures"][0].pop("template_id", None)
     figure_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "figure_catalog_missing_or_incomplete" in report["blockers"]
@@ -22,7 +24,6 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     assert "template_id" in excerpts
 
 def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -52,7 +53,7 @@ def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_pa
     )
     dump_json(table_catalog_path, payload)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -61,7 +62,6 @@ def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_pa
 
 
 def test_build_report_does_not_scan_non_table3_markdown_body(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -75,14 +75,13 @@ def test_build_report_does_not_scan_non_table3_markdown_body(tmp_path: Path) -> 
         encoding="utf-8",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert report["top_hits"] == []
 
 
 def test_build_report_does_not_scan_non_markdown_table3_assets(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -117,14 +116,13 @@ def test_build_report_does_not_scan_non_markdown_table3_assets(tmp_path: Path) -
     )
     table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert report["top_hits"] == []
 
 
 def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -154,14 +152,13 @@ def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> N
     )
     table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert report["top_hits"] == []
 
 
 def test_build_report_blocks_cross_endpoint_residue_in_figure_catalog(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -175,7 +172,7 @@ def test_build_report_blocks_cross_endpoint_residue_in_figure_catalog(tmp_path: 
     )
     dump_json(figure_catalog_path, payload)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -187,7 +184,6 @@ def test_build_report_blocks_cross_endpoint_residue_in_figure_catalog(tmp_path: 
 
 
 def test_build_report_blocks_process_instruction_in_supplement_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -201,7 +197,7 @@ def test_build_report_blocks_process_instruction_in_supplement_surface(tmp_path:
     )
     dump_json(reproducibility_path, payload)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -213,7 +209,6 @@ def test_build_report_blocks_process_instruction_in_supplement_surface(tmp_path:
 
 
 def test_build_report_blocks_engineering_residue_in_table_catalog(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -225,7 +220,7 @@ def test_build_report_blocks_engineering_residue_in_table_catalog(tmp_path: Path
     payload["tables"][0]["note"] = "Confirmed historical specification; monitor comparator drift."
     dump_json(table_catalog_path, payload)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -238,16 +233,15 @@ def test_build_report_blocks_public_data_without_surface_decision(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
     )
-    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _attach_public_anchor_study_context(monkeypatch, shared_base, tmp_path, quest_root)
     _inject_public_data_surface_mentions(quest_root)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "public_evidence_decisions_missing_or_incomplete" in report["blockers"]
@@ -260,13 +254,12 @@ def test_build_report_blocks_public_data_when_decisions_drop_from_manuscript(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
     )
-    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _attach_public_anchor_study_context(monkeypatch, shared_base, tmp_path, quest_root)
     _inject_public_data_surface_mentions(quest_root)
     _write_public_evidence_decisions(
         quest_root,
@@ -281,7 +274,7 @@ def test_build_report_blocks_public_data_when_decisions_drop_from_manuscript(
         ],
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "paper_facing_public_data_without_earned_evidence" in report["blockers"]
@@ -293,13 +286,12 @@ def test_build_report_allows_public_data_after_appendix_earned_decision(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
     )
-    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _attach_public_anchor_study_context(monkeypatch, shared_base, tmp_path, quest_root)
     _inject_public_data_surface_mentions(quest_root)
     _write_public_evidence_decisions(
         quest_root,
@@ -318,7 +310,7 @@ def test_build_report_allows_public_data_after_appendix_earned_decision(
         ],
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert report["public_evidence_decision_count"] == 1
@@ -598,7 +590,6 @@ def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:
 
 
 def test_build_report_blocks_single_panel_label_without_layout_evidence(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -625,8 +616,8 @@ def test_build_report_blocks_single_panel_label_without_layout_evidence(tmp_path
         },
     )
 
-    state = module.build_surface_state(quest_root)
-    report = module.build_surface_report(state)
+    state = shared_base.build_surface_state(quest_root)
+    report = reporting.build_surface_report(state)
 
     assert report["status"] == "blocked"
     assert "figure_layout_sidecar_missing_or_incomplete" in report["blockers"]

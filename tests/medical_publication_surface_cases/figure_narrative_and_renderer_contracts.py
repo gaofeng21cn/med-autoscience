@@ -1,7 +1,13 @@
 from .shared import *
 
+from med_autoscience.controllers.medical_publication_surface_parts import (
+    catalog_checks,
+    reporting,
+    shared_base,
+)
+
+
 def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrative_map(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -13,7 +19,7 @@ def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrat
         section["supporting_display_items"] = ["T1"]
     narrative_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
@@ -21,7 +27,6 @@ def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrat
 
 
 def test_build_report_allows_supplementary_cohort_flow_without_results_narrative_reference(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -48,7 +53,7 @@ def test_build_report_allows_supplementary_cohort_flow_without_results_narrative
         section["supporting_display_items"] = supporting_items or ["T1"]
     narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "figure_catalog_missing_or_incomplete" not in report["blockers"]
@@ -61,7 +66,6 @@ def test_build_report_allows_supplementary_cohort_flow_without_results_narrative
 
 
 def test_build_report_blocks_when_results_sections_are_supported_only_by_setup_displays(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -120,7 +124,7 @@ def test_build_report_blocks_when_results_sections_are_supported_only_by_setup_d
         section["supporting_display_items"] = ["F1", "T1"]
     narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "results_display_surface_incomplete" in report["blockers"]
@@ -128,7 +132,6 @@ def test_build_report_blocks_when_results_sections_are_supported_only_by_setup_d
 
 
 def test_build_report_allows_leading_setup_section_when_later_sections_use_result_figures(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     paper_root = tmp_path / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
@@ -188,8 +191,8 @@ def test_build_report_allows_leading_setup_section_when_later_sections_use_resul
     }
     narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    display_story_roles = module.load_display_catalog_story_roles(reporting_contract_path)
-    hits = module.inspect_results_display_surface_coverage(
+    display_story_roles = catalog_checks.load_display_catalog_story_roles(reporting_contract_path)
+    hits = catalog_checks.inspect_results_display_surface_coverage(
         path=narrative_path,
         payload=narrative_payload,
         display_story_roles=display_story_roles,
@@ -206,7 +209,6 @@ def test_build_report_allows_leading_setup_section_when_later_sections_use_resul
 
 
 def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -214,7 +216,7 @@ def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_p
     )
     _write_time_to_event_direct_migration_surface(quest_root, include_f5=False)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "required_display_catalog_coverage_incomplete" in report["blockers"]
@@ -225,7 +227,6 @@ def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_p
 
 
 def test_build_report_blocks_when_main_text_claim_binding_is_missing_from_catalog(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -236,7 +237,7 @@ def test_build_report_blocks_when_main_text_claim_binding_is_missing_from_catalo
     payload["claims"][0]["display_bindings"] = ["F5", "T1"]
     claim_map_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "claim_evidence_map_missing_or_incomplete" in report["blockers"]
@@ -244,7 +245,6 @@ def test_build_report_blocks_when_main_text_claim_binding_is_missing_from_catalo
 
 
 def test_build_report_accepts_complete_required_display_catalog_coverage(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -252,14 +252,13 @@ def test_build_report_accepts_complete_required_display_catalog_coverage(tmp_pat
     )
     _write_time_to_event_direct_migration_surface(quest_root, include_f5=True)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "required_display_catalog_coverage_incomplete" not in report["blockers"]
 
 
 def test_build_report_blocks_invalid_or_overlapping_figure_layout_sidecar(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -300,7 +299,7 @@ def test_build_report_blocks_invalid_or_overlapping_figure_layout_sidecar(tmp_pa
         },
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "figure_layout_sidecar_missing_or_incomplete" in report["blockers"]
@@ -309,7 +308,6 @@ def test_build_report_blocks_invalid_or_overlapping_figure_layout_sidecar(tmp_pa
 
 
 def test_build_report_accepts_required_display_catalog_coverage_for_supplementary_figure(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -368,14 +366,13 @@ def test_build_report_accepts_required_display_catalog_coverage_for_supplementar
         encoding="utf-8",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "required_display_catalog_coverage_incomplete" not in report["blockers"]
 
 
 def test_build_report_blocks_when_later_results_section_is_incomplete(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -383,15 +380,14 @@ def test_build_report_blocks_when_later_results_section_is_incomplete(tmp_path: 
         include_complete_results_sections=False,
     )
 
-    state = module.build_surface_state(quest_root)
-    report = module.build_surface_report(state)
+    state = shared_base.build_surface_state(quest_root)
+    report = reporting.build_surface_report(state)
 
     assert report["status"] == "blocked"
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
 
 
 def test_build_report_blocks_analysis_plane_jargon_on_manuscript_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -417,7 +413,7 @@ def test_build_report_blocks_analysis_plane_jargon_on_manuscript_surface(tmp_pat
     )
     narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "analysis_plane_jargon_present_on_manuscript_surface" in report["blockers"]
@@ -426,7 +422,6 @@ def test_build_report_blocks_analysis_plane_jargon_on_manuscript_surface(tmp_pat
 
 
 def test_build_report_accepts_medical_publication_native_terms_on_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -446,14 +441,13 @@ def test_build_report_accepts_medical_publication_native_terms_on_surface(tmp_pa
         encoding="utf-8",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "analysis_plane_jargon_present_on_manuscript_surface" not in report["blockers"]
 
 
 def test_build_report_blocks_when_evidence_figure_uses_html_svg_renderer(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -467,7 +461,7 @@ def test_build_report_blocks_when_evidence_figure_uses_html_svg_renderer(tmp_pat
         },
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
@@ -478,7 +472,6 @@ def test_build_report_blocks_when_evidence_figure_uses_html_svg_renderer(tmp_pat
 
 
 def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -492,7 +485,7 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
         },
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
@@ -501,7 +494,6 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
 
 
 def test_build_report_blocks_when_figure_catalog_breaks_renderer_contract_alignment(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -514,7 +506,7 @@ def test_build_report_blocks_when_figure_catalog_breaks_renderer_contract_alignm
     figure_catalog["figures"][0]["template_id"] = "pr_curve_binary"
     figure_catalog_path.write_text(json.dumps(figure_catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
@@ -522,7 +514,6 @@ def test_build_report_blocks_when_figure_catalog_breaks_renderer_contract_alignm
 
 
 def test_build_report_allows_submission_companion_renderer_contract_in_figure_semantics_manifest(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -593,7 +584,7 @@ def test_build_report_allows_submission_companion_renderer_contract_in_figure_se
     )
     figure_semantics_path.write_text(json.dumps(figure_semantics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "figure_semantics_manifest_missing_or_incomplete" not in report["blockers"]
