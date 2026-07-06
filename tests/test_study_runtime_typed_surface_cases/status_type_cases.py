@@ -16,6 +16,15 @@ def test_study_runtime_types_reexports_status_surfaces_from_progress_projection(
     assert typed_surface.ProgressProjectionStatus.__module__ == status_surface.__name__
     assert not hasattr(typed_surface, "StudyRuntimeExecutionContext")
     assert not hasattr(typed_surface, "StudyRuntimeExecutionOutcome")
+
+
+def test_study_runtime_decision_facade_does_not_export_loader_helper() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+
+    assert not hasattr(module, "import_module")
+    assert "import_module" not in module.__all__
+
+
 def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")

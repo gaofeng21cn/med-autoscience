@@ -25,7 +25,7 @@ def _reexport(module: ModuleType) -> None:
 for _module_name in _PART_MODULES:
     _reexport(import_module(f"{__package__}.study_runtime_decision_parts.{_module_name}"))
 
-del ModuleType
+del import_module, ModuleType
 
 __all__ = tuple(name for name in globals() if not name.startswith("_"))
 
