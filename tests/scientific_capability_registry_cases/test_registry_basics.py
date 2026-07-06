@@ -142,14 +142,22 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["optional_skill_ids"] == list(
         install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
     )
+    assert "scientific-compute-runner" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "medical-rebuttal-strategy" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "scientific-compute-runner" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert "medical-rebuttal-strategy" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert registry["scholarskills_local_install"]["optional_skill_policy"] == {
-        "surface": "optional_medical_method_specialist_skills",
+        "surface": "optional_advanced_and_medical_method_specialist_skills",
         "source_repo_ref": "external:mas-scholar-skills",
-        "source_contract_ref": (
+        "source_contract_refs": [
             "external:mas-scholar-skills/contracts/"
-            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy"
+            "scholar-skills-capability-modules.json#/advanced_specialist_pack_policy",
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy",
+        ],
+        "optional_advanced_skill_ids": list(install_readback.SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS),
+        "optional_medical_method_skill_ids": list(
+            install_readback.SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS
         ),
         "materialization_owner": "one-person-lab",
         "sync_path": "opl_connect_source_materialization",

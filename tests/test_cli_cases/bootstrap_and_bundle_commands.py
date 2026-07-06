@@ -118,7 +118,9 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     optional_skill_ids = install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
     assert payload["scholarskills_local_install"]["synced_skill_ids"] == list(default_skill_ids)
     assert payload["scholarskills_local_install"]["optional_skill_ids"] == list(optional_skill_ids)
+    assert "medical-structural-biology" in optional_skill_ids
     assert "medical-protocol-and-sap-planner" in optional_skill_ids
+    assert "medical-structural-biology" not in default_skill_ids
     assert "medical-protocol-and-sap-planner" not in default_skill_ids
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]

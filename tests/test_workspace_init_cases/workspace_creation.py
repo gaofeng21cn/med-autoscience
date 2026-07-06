@@ -81,7 +81,9 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
     assert scholarskills_install["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
     assert scholarskills_install["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
+    assert "medical-single-cell-modeling" in scholarskills_install["optional_skill_ids"]
     assert "medical-cohort-phenotyping" in scholarskills_install["optional_skill_ids"]
+    assert "medical-single-cell-modeling" not in scholarskills_install["synced_skill_ids"]
     assert "medical-cohort-phenotyping" not in scholarskills_install["synced_skill_ids"]
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"

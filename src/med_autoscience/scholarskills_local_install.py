@@ -20,7 +20,16 @@ SCHOLARSKILLS_DEFAULT_SKILL_IDS = (
     "medical-submission-prep",
     "medical-data-governance",
 )
-SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
+SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS = (
+    "medical-structural-biology",
+    "medical-protein-design",
+    "medical-genomics-foundation-models",
+    "medical-single-cell-modeling",
+    "medical-indication-dossier",
+    "research-pdf-evidence-explorer",
+    "scientific-compute-runner",
+)
+SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS = (
     "medical-protocol-and-sap-planner",
     "medical-cohort-phenotyping",
     "medical-evidence-synthesis-and-claim-map",
@@ -29,6 +38,10 @@ SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
     "medical-display-qc",
     "medical-causal-inference-plan",
     "medical-survival-analysis-plan",
+)
+SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
+    *SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS,
+    *SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS,
 )
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"
@@ -221,12 +234,16 @@ def _target_skill_path_templates(root_token: str, *, skill_ids: tuple[str, ...])
 
 def _optional_skill_policy() -> dict[str, Any]:
     return {
-        "surface": "optional_medical_method_specialist_skills",
+        "surface": "optional_advanced_and_medical_method_specialist_skills",
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
-        "source_contract_ref": (
+        "source_contract_refs": [
             "external:mas-scholar-skills/contracts/"
-            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy"
-        ),
+            "scholar-skills-capability-modules.json#/advanced_specialist_pack_policy",
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy",
+        ],
+        "optional_advanced_skill_ids": list(SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS),
+        "optional_medical_method_skill_ids": list(SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS),
         "materialization_owner": "one-person-lab",
         "sync_path": "opl_connect_source_materialization",
         "refs_only": True,
@@ -269,6 +286,8 @@ __all__ = [
     "SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF",
     "SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS",
     "SCHOLARSKILLS_DEFAULT_SKILL_IDS",
+    "SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS",
+    "SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_SKILL_IDS",
     "SCHOLARSKILLS_SKILL_ID",
     "SCHOLARSKILLS_SOURCE_REPO_REF",

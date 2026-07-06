@@ -391,7 +391,9 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     profile_readback = contract["scholarskills_local_install"]
     assert profile_readback["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
     assert profile_readback["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
+    assert "research-pdf-evidence-explorer" in profile_readback["optional_skill_ids"]
     assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
+    assert "research-pdf-evidence-explorer" not in profile_readback["synced_skill_ids"]
     assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
     assert profile_readback["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
