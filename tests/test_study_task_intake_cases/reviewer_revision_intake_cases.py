@@ -62,6 +62,10 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
     assert trigger["status_projection"]["opl_app_should_show"] is True
     assert trigger["authority_boundary"]["can_write_owner_receipt"] is False
     assert trigger["authority_boundary"]["can_mutate_current_package"] is False
+    selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
+    assert selected_lane["lane_id"] == "reviewer_revision_general"
+    assert selected_lane["agent_lab_suite_required"] is True
+    assert selected_lane["agent_lab_suite_status"] == "pending"
 
 
 def test_methodology_correction_routes_reviewer_revision_back_to_analysis() -> None:
@@ -88,7 +92,56 @@ def test_methodology_correction_routes_reviewer_revision_back_to_analysis() -> N
     assert override["current_required_action"] == "return_to_analysis_campaign"
     assert override["paper_stage"] == "analysis-campaign"
     assert override["quality_execution_lane"]["route_target"] == "analysis-campaign"
+    assert override["quality_execution_lane"]["lane_id"] == "reviewer_revision_general"
+    assert (
+        override["quality_execution_lane"]["selected_revision_execution_lane"]["lane_id"]
+        == "reviewer_revision_general"
+    )
     assert override["same_line_route_truth"]["same_line_state"] == "bounded_analysis"
+
+
+def test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_callable_foreground(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-risk"
+    payload = {
+        "task_intake_kind": "reviewer_revision",
+        "study_root": str(study_root),
+        "task_intent": "Structural and first-draft-quality reviewer revision feedback.",
+        "agent_lab_suite_materialization": {
+            "status": "materialized",
+            "suite_path": "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+        },
+    }
+
+    summary = module.summarize_task_intake(payload)
+    selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
+    assert selected_lane["lane_id"] == "oma_self_evolution_pending"
+    assert selected_lane["contract_itself_triggers_execution"] is False
+    override = module.build_task_intake_progress_override(payload, study_root=study_root)
+    assert override["quality_execution_lane"]["lane_id"] == "oma_self_evolution_pending"
+
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapter_receipts"
+        / "latest.json",
+        {
+            "surface": "owner_callable_adapter_receipt_study_latest",
+            "executions": [{"execution_status": "executed", "work_unit_id": "reviewer_revision"}],
+        },
+    )
+
+    foreground_override = module.build_task_intake_progress_override(payload, study_root=study_root)
+    foreground_lane = foreground_override["quality_execution_lane"]["selected_revision_execution_lane"]
+    assert foreground_override["quality_execution_lane"]["lane_id"] == "owner_callable_foreground"
+    assert foreground_lane["owner_callable_receipt_ref"].endswith(
+        "owner_callable_adapter_receipts/latest.json"
+    )
+    assert "not a full OPL stage execution claim" in foreground_lane["summary"]
 
 
 def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:

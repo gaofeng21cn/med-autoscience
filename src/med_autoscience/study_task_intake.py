@@ -37,6 +37,7 @@ from med_autoscience.study_task_intake_manual_hold import (
     task_intake_requests_manual_hold,
 )
 from med_autoscience.study_task_intake_revision import (
+    build_reviewer_revision_execution_lane_projection,
     build_reviewer_revision_intake,
     submission_revision_operating_state,
     task_intake_is_reviewer_revision,
@@ -683,6 +684,14 @@ def build_task_intake_progress_override(
         return None
     if task_intake_requests_manuscript_fast_lane(payload):
         return build_manuscript_fast_lane_progress_override(payload)
+    selected_revision_execution_lane = (
+        build_reviewer_revision_execution_lane_projection(
+            payload,
+            owner_callable_receipt_ref=_owner_callable_receipt_ref(study_root=study_root),
+        )
+        if task_intake_is_reviewer_revision(payload)
+        else None
+    )
     route_target = "analysis-campaign" if _task_intake_contains_any(payload, _ANALYSIS_ROUTE_MARKERS) else "write"
     route_target_label = {
         "analysis-campaign": "补充分析与稳健性验证",
@@ -732,16 +741,30 @@ def build_task_intake_progress_override(
             "summary": quality_closure_summary,
             "current_required_action": current_required_action,
             "route_target": route_target,
+            **(
+                {"selected_revision_execution_lane": selected_revision_execution_lane}
+                if selected_revision_execution_lane is not None
+                else {}
+            ),
         },
         "submission_revision_operating_contract": submission_revision_operating_contract,
         "quality_execution_lane": {
-            "lane_id": "general_quality_repair",
+            "lane_id": (
+                selected_revision_execution_lane["lane_id"]
+                if selected_revision_execution_lane is not None
+                else "general_quality_repair"
+            ),
             "lane_label": "质量修复",
             "repair_mode": same_line_state,
             "route_target": route_target,
             "route_key_question": current_focus,
             "summary": execution_summary,
             "why_now": blocker_summary,
+            **(
+                {"selected_revision_execution_lane": selected_revision_execution_lane}
+                if selected_revision_execution_lane is not None
+                else {}
+            ),
         },
         "same_line_route_truth": {
             "surface_kind": "same_line_route_truth",
@@ -764,8 +787,27 @@ def build_task_intake_progress_override(
             "why_now": blocker_summary,
             "current_required_action": current_required_action,
             "closure_state": "quality_repair_required",
+            **(
+                {"selected_revision_execution_lane": selected_revision_execution_lane}
+                if selected_revision_execution_lane is not None
+                else {}
+            ),
         },
     }
+
+
+def _owner_callable_receipt_ref(*, study_root: Path | None) -> str | None:
+    if study_root is None:
+        return None
+    from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
+        latest_owner_callable_receipt_payload,
+    )
+
+    payload, receipt_ref = latest_owner_callable_receipt_payload(
+        study_root=study_root,
+        allow_legacy_fallback=True,
+    )
+    return receipt_ref if payload is not None else None
 
 
 def render_task_intake_markdown(payload: dict[str, Any]) -> str:
@@ -843,6 +885,7 @@ def write_task_intake(
     suite_materialization = _materialize_reviewer_revision_agent_lab_suite_if_required(payload)
     if suite_materialization is not None:
         payload["agent_lab_suite_materialization"] = suite_materialization
+        payload["revision_intake"] = build_reviewer_revision_intake(payload)
         payload.setdefault("artifact_refs", {})["agent_lab_medical_manuscript_quality_suite"] = (
             suite_materialization["suite_path"]
         )

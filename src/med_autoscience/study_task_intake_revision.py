@@ -171,9 +171,11 @@ def submission_revision_operating_state(payload: dict[str, Any] | None) -> str |
 def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if not task_intake_is_reviewer_revision(payload):
         return None
+    selected_lane = build_reviewer_revision_execution_lane_projection(payload)
     revision_payload = {
         "kind": "reviewer_revision",
         "status": "active",
+        "selected_revision_execution_lane": selected_lane,
         "checklist": [item_id for item_id, _, _ in REVISION_INTAKE_CHECKLIST],
         "checklist_items": [
             {"id": item_id, "label": label, "status": "pending", "requirement": requirement}
@@ -220,6 +222,70 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
     if fast_lane is not None:
         revision_payload["manuscript_fast_lane"] = fast_lane
     return revision_payload
+
+
+def build_reviewer_revision_execution_lane_projection(
+    payload: dict[str, Any] | None,
+    *,
+    owner_callable_receipt_ref: str | None = None,
+) -> dict[str, Any]:
+    if _task_intake_requests_manuscript_fast_lane(payload):
+        return {
+            "surface_kind": "mas_selected_reviewer_revision_execution_lane",
+            "lane_id": "manuscript_fast_lane",
+            "selected_by": "MAS task_intake",
+            "agent_lab_suite_required": False,
+            "agent_lab_suite_status": "bypassed",
+            "summary": (
+                "MAS task_intake selected manuscript_fast_lane: small-scope existing-evidence-only "
+                "manuscript repair; Agent Lab is not run for this lane."
+            ),
+        }
+
+    materialization = payload.get("agent_lab_suite_materialization") if isinstance(payload, dict) else None
+    suite_status = _non_empty_text(materialization.get("status")) if isinstance(materialization, dict) else None
+    trigger = build_reviewer_revision_self_evolution_trigger(payload)
+    contract_triggers_execution = (
+        trigger["agent_lab_suite_materialization"]["contract_itself_triggers_execution"] is True
+    )
+    if _non_empty_text(owner_callable_receipt_ref) is not None:
+        return {
+            "surface_kind": "mas_selected_reviewer_revision_execution_lane",
+            "lane_id": "owner_callable_foreground",
+            "selected_by": "MAS owner callable receipt/evidence",
+            "agent_lab_suite_required": True,
+            "agent_lab_suite_status": suite_status or "pending",
+            "owner_callable_receipt_ref": owner_callable_receipt_ref,
+            "summary": (
+                "MAS readback selected owner_callable_foreground: this is a foreground MAS owner callable "
+                "repair receipt/evidence path, not a full OPL stage execution claim."
+            ),
+        }
+    if suite_status == "materialized" and not contract_triggers_execution:
+        return {
+            "surface_kind": "mas_selected_reviewer_revision_execution_lane",
+            "lane_id": "oma_self_evolution_pending",
+            "selected_by": "MAS Agent Lab suite materialization",
+            "agent_lab_suite_required": True,
+            "agent_lab_suite_status": "materialized",
+            "contract_itself_triggers_execution": False,
+            "suite_path": materialization.get("suite_path") if isinstance(materialization, dict) else None,
+            "summary": (
+                "MAS materialized the Agent Lab suite and selected oma_self_evolution_pending: OMA has a "
+                "pending action; the contract itself does not mean the suite was executed."
+            ),
+        }
+    return {
+        "surface_kind": "mas_selected_reviewer_revision_execution_lane",
+        "lane_id": "reviewer_revision_general",
+        "selected_by": "MAS task_intake",
+        "agent_lab_suite_required": True,
+        "agent_lab_suite_status": suite_status or "pending",
+        "summary": (
+            "MAS task_intake selected reviewer_revision_general: same-line write/analysis revision; "
+            "Agent Lab suite must be materialized or remain explicitly pending before OMA execution."
+        ),
+    }
 
 
 def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | None) -> dict[str, Any]:

@@ -118,6 +118,17 @@ def build_manuscript_fast_lane_contract(payload: dict[str, Any] | None) -> dict[
 def build_manuscript_fast_lane_progress_override(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if not task_intake_requests_manuscript_fast_lane(payload):
         return None
+    selected_revision_execution_lane = {
+        "surface_kind": "mas_selected_reviewer_revision_execution_lane",
+        "lane_id": "manuscript_fast_lane",
+        "selected_by": "MAS task_intake",
+        "agent_lab_suite_required": False,
+        "agent_lab_suite_status": "bypassed",
+        "summary": (
+            "MAS task_intake selected manuscript_fast_lane: small-scope existing-evidence-only "
+            "manuscript repair; Agent Lab is not run for this lane."
+        ),
+    }
     first_cycle_outputs = _normalized_strings((payload or {}).get("first_cycle_outputs") or [])
     current_focus = (
         first_cycle_outputs[0]
@@ -153,6 +164,7 @@ def build_manuscript_fast_lane_progress_override(payload: dict[str, Any] | None)
             "summary": blocker_summary,
             "current_required_action": "run_manuscript_fast_lane",
             "route_target": "write",
+            "selected_revision_execution_lane": selected_revision_execution_lane,
         },
         "quality_execution_lane": {
             "lane_id": "manuscript_fast_lane",
@@ -162,6 +174,7 @@ def build_manuscript_fast_lane_progress_override(payload: dict[str, Any] | None)
             "route_key_question": current_focus,
             "summary": execution_summary,
             "why_now": blocker_summary,
+            "selected_revision_execution_lane": selected_revision_execution_lane,
         },
         "same_line_route_truth": {
             "surface_kind": "same_line_route_truth",
@@ -184,6 +197,7 @@ def build_manuscript_fast_lane_progress_override(payload: dict[str, Any] | None)
             "why_now": blocker_summary,
             "current_required_action": "run_manuscript_fast_lane",
             "closure_state": "manuscript_fast_lane_requested",
+            "selected_revision_execution_lane": selected_revision_execution_lane,
         },
     }
 

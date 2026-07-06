@@ -102,6 +102,18 @@ def render_task_intake_markdown(
         lines.extend(["", "## Revision Intake Checklist", ""])
         for item in revision_intake["checklist_items"]:
             lines.append(f"- [{item['status']}] {item['label']}: {item['requirement']}")
+        selected_lane = revision_intake.get("selected_revision_execution_lane")
+        if isinstance(selected_lane, dict):
+            lines.extend(
+                [
+                    "",
+                    "## MAS-selected Revision Execution Lane",
+                    "",
+                    f"- Lane: `{selected_lane.get('lane_id')}`",
+                    f"- Agent Lab suite: {selected_lane.get('agent_lab_suite_status')}",
+                    f"- Meaning: {selected_lane.get('summary')}",
+                ]
+            )
         lines.extend(
             [
                 "",
@@ -163,6 +175,12 @@ def render_task_intake_runtime_context(
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )
+        selected_lane = revision_intake.get("selected_revision_execution_lane")
+        if isinstance(selected_lane, dict):
+            lines.append(
+                "MAS-selected revision execution lane: "
+                f"{selected_lane.get('lane_id')} ({selected_lane.get('summary')})"
+            )
     lines.extend(render_manual_hold_lines(payload))
     lines.extend(render_stop_loss_lines(payload))
     lines.extend(render_manuscript_fast_lane_lines(payload))

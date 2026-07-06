@@ -56,6 +56,14 @@ def test_manuscript_fast_lane_intake_exposes_controller_visible_contract() -> No
     assert summary["manuscript_fast_lane"]["execution_owner"] == "codex_foreground_under_mas_controller"
     assert "runtime_inactive_or_takeover_allowed" in summary["manuscript_fast_lane"]["required_conditions"]
     assert summary["revision_intake"]["manuscript_fast_lane"]["status"] == "requested"
+    selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
+    assert selected_lane["lane_id"] == "manuscript_fast_lane"
+    assert selected_lane["agent_lab_suite_required"] is False
+    assert selected_lane["agent_lab_suite_status"] == "bypassed"
     assert override["current_required_action"] == "run_manuscript_fast_lane"
     assert override["quality_execution_lane"]["lane_id"] == "manuscript_fast_lane"
+    assert (
+        override["quality_execution_lane"]["selected_revision_execution_lane"]["lane_id"]
+        == "manuscript_fast_lane"
+    )
     assert override["manuscript_fast_lane"]["canonical_write_surface"] == "paper/"
