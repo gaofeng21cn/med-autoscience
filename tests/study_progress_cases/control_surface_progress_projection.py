@@ -97,7 +97,7 @@ def test_study_progress_freshness_does_not_treat_control_surface_as_artifact_del
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 9, 7, 5, 55, tzinfo=timezone.utc),
     )
@@ -237,7 +237,7 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 9, 8, 12, tzinfo=timezone.utc),
     )
@@ -482,7 +482,7 @@ def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 13, 15, 0, tzinfo=timezone.utc),
     )

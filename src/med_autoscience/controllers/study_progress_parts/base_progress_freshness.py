@@ -124,10 +124,9 @@ def _progress_freshness(
             "seconds_since_latest_progress": None,
         }
 
-    progress_freshness_now = _controller_override("_progress_freshness_now", _progress_freshness_now)
     age_seconds = max(
         0,
-        int((progress_freshness_now() - datetime.fromisoformat(str(latest_signal["timestamp"]))).total_seconds()),
+        int((_shared._progress_freshness_now() - datetime.fromisoformat(str(latest_signal["timestamp"]))).total_seconds()),
     )
     if age_seconds > _PROGRESS_STALE_AFTER_SECONDS:
         summary = (

@@ -42,10 +42,9 @@ def _freshness_from_timestamp(
             "latest_progress_summary": summary,
             "seconds_since_latest_progress": None,
         }
-    progress_freshness_now = _controller_override("_progress_freshness_now", _progress_freshness_now)
     age_seconds = max(
         0,
-        int((progress_freshness_now() - datetime.fromisoformat(normalized)).total_seconds()),
+        int((_shared._progress_freshness_now() - datetime.fromisoformat(normalized)).total_seconds()),
     )
     status = "stale" if age_seconds > stale_after_seconds else "fresh"
     return {
@@ -363,8 +362,7 @@ def _new_run_activity_grace(
     artifact_at = _timestamp_value(artifact_delta_at)
     if artifact_at is not None and artifact_at >= observed_at:
         return None
-    progress_freshness_now = _controller_override("_progress_freshness_now", _progress_freshness_now)
-    age_seconds = max(0, int((progress_freshness_now() - observed_at).total_seconds()))
+    age_seconds = max(0, int((_shared._progress_freshness_now() - observed_at).total_seconds()))
     if age_seconds > _NEW_RUN_ACTIVITY_GRACE_SECONDS:
         return None
     return {

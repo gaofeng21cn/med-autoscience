@@ -832,8 +832,7 @@ def _evaluation_module_surface(
         )
     if not evaluation_summary_path.exists():
         return None
-    read_evaluation_summary_fn = _controller_override("read_evaluation_summary", read_evaluation_summary)
-    summary = read_evaluation_summary_fn(study_root=study_root, ref=evaluation_summary_path)
+    summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
     return _evaluation_module_surface_from_summary(
         summary=summary,
         evaluation_summary_path=evaluation_summary_path,

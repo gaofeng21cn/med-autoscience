@@ -220,7 +220,7 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )

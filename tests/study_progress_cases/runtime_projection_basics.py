@@ -686,7 +686,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
     )
@@ -976,7 +976,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
     )

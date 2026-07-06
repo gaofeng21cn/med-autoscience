@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import re
 import shlex
-import sys
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
@@ -46,17 +45,9 @@ from med_autoscience.study_task_intake import (
 from med_autoscience.lazy_module_proxy import lazy_controller_module
 
 
-def _controller_override(name: str, default: Any) -> Any:
-    controller_module = sys.modules.get("med_autoscience.controllers.study_progress")
-    if controller_module is None:
-        return default
-    return getattr(controller_module, name, default)
-
-
 def _build_same_line_route_truth(*, quality_closure_truth: Mapping[str, Any], quality_execution_lane: Mapping[str, Any]):
     evaluation_summary = import_module("med_autoscience.evaluation_summary")
-    build_truth = _controller_override("build_same_line_route_truth", evaluation_summary.build_same_line_route_truth)
-    return build_truth(
+    return evaluation_summary.build_same_line_route_truth(
         quality_closure_truth=quality_closure_truth,
         quality_execution_lane=quality_execution_lane,
     )
@@ -76,11 +67,7 @@ def materialize_evaluation_summary_artifacts(
     runtime_escalation_ref: str | Path | dict[str, Any],
     publishability_gate_report_ref: str | Path,
 ) -> dict[str, dict[str, str]]:
-    materialize = _controller_override(
-        "materialize_evaluation_summary_artifacts",
-        import_module("med_autoscience.evaluation_summary").materialize_evaluation_summary_artifacts,
-    )
-    return materialize(
+    return import_module("med_autoscience.evaluation_summary").materialize_evaluation_summary_artifacts(
         study_root=study_root,
         runtime_escalation_ref=runtime_escalation_ref,
         publishability_gate_report_ref=publishability_gate_report_ref,
@@ -92,11 +79,7 @@ def read_evaluation_summary(
     study_root: Path,
     ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    read_summary = _controller_override(
-        "read_evaluation_summary",
-        import_module("med_autoscience.evaluation_summary").read_evaluation_summary,
-    )
-    return read_summary(study_root=study_root, ref=ref)
+    return import_module("med_autoscience.evaluation_summary").read_evaluation_summary(study_root=study_root, ref=ref)
 
 
 SCHEMA_VERSION = 1

@@ -423,7 +423,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.publication_runtime"),
         "read_evaluation_summary",
         lambda *, study_root, ref: {
             "schema_version": 1,
@@ -608,7 +608,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.publication_runtime"),
         "read_evaluation_summary",
         lambda *, study_root, ref: {
             "schema_version": 1,
@@ -781,7 +781,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.publication_runtime"),
         "read_evaluation_summary",
         lambda *, study_root, ref: {
             "schema_version": 1,

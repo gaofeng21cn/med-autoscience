@@ -358,7 +358,7 @@ def test_gate_specificity_takes_priority_over_live_activity_timeout(
         },
     )
     monkeypatch.setattr(
-        module,
+        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 10, 40, tzinfo=timezone.utc),
     )
