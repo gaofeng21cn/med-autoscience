@@ -17,6 +17,8 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.dpcc_tables i
     _build_supplementary_tables_section,
     _burden_contrast_lookup,
     _burden_contrast_values,
+    _calendar_year_2025_sentence,
+    _calendar_year_sensitivity_values,
     _cohort_values,
     _format_adjusted_or_ci,
     _format_count,
@@ -90,6 +92,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
     sensitivity = _medication_sensitivity_values(sensitivity_rows)
     site_variability = _site_variability_values(site_variability_rows)
     burden_contrasts = _burden_contrast_values(study_root=study_root)
+    calendar_year_sensitivity = _calendar_year_sensitivity_values(study_root=study_root)
     adjusted_model_rows = _bounded_table_rows(study_root, "dyslipidemia_adjusted_site_model.csv")
     adjusted_model = _adjusted_model_values(adjusted_model_rows)
     t3 = _build_medication_capture_sensitivity_table(sensitivity)
@@ -113,6 +116,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 transition=transition,
                 site_variability=site_variability,
                 burden_contrasts=burden_contrasts,
+                calendar_year_sensitivity=calendar_year_sensitivity,
                 adjusted_model=adjusted_model,
             ),
             _introduction_section(),
@@ -125,6 +129,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 transition=transition,
                 site_variability=site_variability,
                 burden_contrasts=burden_contrasts,
+                calendar_year_sensitivity=calendar_year_sensitivity,
                 adjusted_model=adjusted_model,
             ),
             _tables_section(t1=t1, t2=t2, t3=t3, t4=t4),
@@ -134,6 +139,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 sensitivity=sensitivity,
                 transition=transition,
                 burden_contrasts=burden_contrasts,
+                calendar_year_sensitivity=calendar_year_sensitivity,
                 adjusted_model=adjusted_model,
             ),
             _limitations_section(),
@@ -150,6 +156,7 @@ def _abstract_section(
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    calendar_year_sensitivity: Mapping[str, Mapping[str, str]],
     adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     phenotype_sentence = _phenotype_distribution_sentence(phenotype_rows)
@@ -199,6 +206,7 @@ def _abstract_section(
             "glycemic-dominant diabetes retained higher adjusted odds of the dyslipidemia no-lipid-lowering signal "
             f"than adiposity-linked multimorbidity ({_format_adjusted_or_ci(glycemic_adjusted)})."
         )
+    calendar_year_sentence = _calendar_year_2025_sentence(calendar_year_sensitivity)
     return (
         "## Abstract\n\n"
         "**Background:** Primary-care diabetes management increasingly requires integrated glycemic, "
@@ -225,7 +233,7 @@ def _abstract_section(
         "documentation-sensitive glycemic no-drug signals from more persistent cardiometabolic prevention signals: "
         f"uncontrolled glycemia without recorded diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} "
         f"to {_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia medication-coverage signals "
-        "remained large and the renal-risk organ-protection signal was retained as exploratory. The phenotype with "
+        f"remained large and the renal-risk organ-protection signal was retained as exploratory.{calendar_year_sentence} The phenotype with "
         "the highest proportional dyslipidemia signal "
         f"({dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}) was not "
         "the same as the largest absolute dyslipidemia review workload "
@@ -383,8 +391,13 @@ def _methods_section(
         "sampling from a target national population. To address uncertainty about medication-record completeness, we "
         "repeated core gap summaries among patients with a nonempty medication field and among patients with any "
         "parsed medication class. We also summarized anonymous source-site-code gap variability for source-site codes "
-        "with at least 50 eligible patients per indicator and performed adult/plausible-age sensitivity. Sensitivity "
-        "analyses were implemented in Python using sqlite3, numpy, scipy, statsmodels, and matplotlib."
+        "with at least 50 eligible patients per indicator and performed adult/plausible-age sensitivity. Rate-count "
+        "priority mapping plotted each phenotype-indicator pair by denominator-scoped gap rate and absolute recorded "
+        "gap count to separate proportional targeting from service workload. A bounded renal-risk calendar-year "
+        "sensitivity analysis summarized index-year medication capture for SGLT2 inhibitor or GLP-1 receptor agonist "
+        "records; it was not designed to estimate prescribing uptake, guideline adherence, treatment quality, or "
+        "temporal trend. Sensitivity analyses were implemented in Python using sqlite3, numpy, scipy, statsmodels, "
+        "and matplotlib."
         f"{model_scope} No causal model, p-value-driven main hypothesis test, individualized prediction model, "
         "or blood-pressure target attainment analysis was used for the main manuscript."
     )
@@ -398,6 +411,7 @@ def _results_section(
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    calendar_year_sensitivity: Mapping[str, Mapping[str, str]],
     adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     uncontrolled = _sensitivity_lookup(
@@ -479,6 +493,7 @@ def _results_section(
         "dyslipidemia_context_no_recorded_lipid_lowering",
     )
     adjusted_results = _adjusted_model_results_sentence(adjusted_model)
+    calendar_year_sentence = _calendar_year_2025_sentence(calendar_year_sensitivity)
     return (
         "## Results\n\n"
         "### Cohort and analytic support\n\n"
@@ -554,7 +569,7 @@ def _results_section(
         f"{_percent_value(renal_present.get('Gap %'))}. This attenuation shows that medication-field missingness "
         "contributes materially to glycemic no-drug indicators, while lipid-lowering signals remain large even in "
         "the medication-field-present denominator; renal-risk organ-protection coverage remains a secondary "
-        f"exploratory review signal.{adjusted_results}\n\n"
+        f"exploratory review signal.{calendar_year_sentence}{adjusted_results}\n\n"
         "### Transition stability and site support\n\n"
         "Repeated-visit and site summaries supported the phenotype narrative without converting it into a prediction "
         f"or external-validation claim. Among {transition['transition_eligible']} transition-eligible repeated-visit "
@@ -594,6 +609,7 @@ def _discussion_section(
     sensitivity: Mapping[str, Mapping[str, str]],
     transition: Mapping[str, str],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    calendar_year_sensitivity: Mapping[str, Mapping[str, str]],
     adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     largest = phenotype_rows[0] if phenotype_rows else {}
@@ -627,6 +643,7 @@ def _discussion_section(
         "dyslipidemia_context_no_recorded_lipid_lowering",
     )
     adjusted_discussion = _adjusted_model_discussion_sentence(adjusted_model)
+    calendar_year_sentence = _calendar_year_2025_sentence(calendar_year_sensitivity)
     return (
         "## Discussion\n\n"
         "### Principal findings\n\n"
@@ -671,7 +688,7 @@ def _discussion_section(
         f"quality measure. In particular, the {_percent_value(renal.get('Gap %'))} rate does not account for ACEI/ARB "
         "use, albuminuria-defined eligibility, eGFR-based contraindications, or calendar-year prescribing context, "
         "and therefore should be read as an organ-protection review prompt rather than a definitive renal-care "
-        "performance metric.\n\n"
+        f"performance metric.{calendar_year_sentence}\n\n"
         "### Phenotype stability and network support\n\n"
         f"The repeated-visit stability estimate of {transition['same_phenotype_stability']} suggests that phenotypes "
         "are partly persistent but clinically dynamic. Movement from severe glycemic multimorbidity to "

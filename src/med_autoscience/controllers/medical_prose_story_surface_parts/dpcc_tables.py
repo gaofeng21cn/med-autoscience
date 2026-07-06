@@ -84,6 +84,14 @@ def _bounded_supplementary_tables_text(study_root: Path) -> str:
             "Supplementary Table S5. Diagnostic variable ascertainment",
             "diagnostic_variable_ascertainment_table.md",
         ),
+        (
+            "Supplementary Table S6. Rate-count priority map for recorded medication-review signals",
+            "rate_count_priority_map.md",
+        ),
+        (
+            "Supplementary Table S7. Renal-risk calendar-year medication-capture sensitivity",
+            "renal_risk_calendar_year_sensitivity.md",
+        ),
     ):
         table = _bounded_table_text(study_root, filename)
         if not table:
@@ -438,6 +446,36 @@ def _burden_contrast_values(study_root: Path) -> dict[str, dict[str, str]]:
             result[indicator_id] = values
     return result
 
+def _calendar_year_sensitivity_values(study_root: Path) -> dict[str, dict[str, str]]:
+    rows = _bounded_table_rows(study_root, "renal_risk_calendar_year_sensitivity.csv")
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        year = _text(row.get("index_calendar_year"))
+        denominator_mode = _text(row.get("denominator_mode"))
+        if year is None or denominator_mode is None:
+            continue
+        result[f"{year}:{denominator_mode}"] = row
+    return result
+
+
+def _calendar_year_2025_sentence(calendar_year_sensitivity: Mapping[str, Mapping[str, str]]) -> str:
+    all_eligible = _mapping(calendar_year_sensitivity.get("2025:all_eligible"))
+    medication_present = _mapping(calendar_year_sensitivity.get("2025:medication_field_present"))
+    if not all_eligible or not medication_present:
+        return ""
+    return (
+        " In the index-calendar-year sensitivity analysis, the exploratory renal-risk no-recorded-SGLT2i/GLP-1RA "
+        "signal in 2025 was "
+        f"{_percent_value(all_eligible.get('no_recorded_sglt2_or_glp1_pct'))} "
+        f"({_format_count(all_eligible.get('no_recorded_sglt2_or_glp1_n'))}/"
+        f"{_format_count(all_eligible.get('eligible_denominator'))}) among all eligible renal-risk records and "
+        f"{_percent_value(medication_present.get('no_recorded_sglt2_or_glp1_pct'))} "
+        f"({_format_count(medication_present.get('no_recorded_sglt2_or_glp1_n'))}/"
+        f"{_format_count(medication_present.get('eligible_denominator'))}) among records with medication fields present; "
+        "these values are medication-capture sensitivity checks, not prescribing uptake, temporal trend, guideline-adherence, "
+        "or treatment-quality estimates."
+    )
+
 def _burden_contrast_lookup(
     burden_contrasts: Mapping[str, Mapping[str, str]],
     indicator_id: str,
@@ -596,11 +634,11 @@ def _build_supplementary_tables_section(*, supplementary_text: str, transition_t
     if base:
         if "## Supplementary Tables" not in base:
             base = "## Supplementary Tables\n\n" + base
-        if transition and "Supplementary Table S6. Transition stability and site-level support" not in base:
+        if transition and "Transition stability and site-level support" not in base:
             if not base.endswith("\n"):
                 base += "\n"
             base += (
-                "\n### Supplementary Table S6. Transition stability and site-level support\n\n"
+                "\n### Supplementary Table S8. Transition stability and site-level support\n\n"
                 + transition
             )
         return base
@@ -608,7 +646,7 @@ def _build_supplementary_tables_section(*, supplementary_text: str, transition_t
         return ""
     return (
         "## Supplementary Tables\n\n"
-        "### Supplementary Table S6. Transition stability and site-level support\n\n"
+        "### Supplementary Table S8. Transition stability and site-level support\n\n"
         + transition
     )
 
