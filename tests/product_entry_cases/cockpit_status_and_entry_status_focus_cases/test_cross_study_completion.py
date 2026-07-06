@@ -159,7 +159,11 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
             "progress_freshness": {"status": "fresh"},
         }
 
-    monkeypatch.setattr(module.study_progress, "read_study_progress", _fake_progress)
+    monkeypatch.setattr(
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
+        _fake_progress,
+    )
 
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     markdown = module.render_workspace_cockpit_markdown(payload)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
@@ -78,8 +79,8 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
 
     _patch_ready_workspace(module, monkeypatch)
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
@@ -186,8 +187,8 @@ def test_product_entry_status_projects_workspace_v5_ops_health(monkeypatch, tmp_
 
     _patch_ready_workspace(module, monkeypatch)
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 

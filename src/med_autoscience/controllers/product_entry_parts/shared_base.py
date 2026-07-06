@@ -142,7 +142,6 @@ from .shared_labels import (
 )
 
 
-study_progress = lazy_controller_module("study_progress")
 domain_status_projection = lazy_controller_module("domain_status_projection")
 ai_first_cross_study_completion = lazy_controller_module("ai_first_cross_study_completion")
 

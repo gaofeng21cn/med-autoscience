@@ -273,8 +273,8 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",

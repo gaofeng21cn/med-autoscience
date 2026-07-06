@@ -92,8 +92,8 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",
@@ -169,8 +169,8 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",
@@ -288,8 +288,8 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
     stale_projection["summary"] = "delivery status: stale_source_changed"
     stale_projection["layout_migration_pending_sync"] = True
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",
@@ -337,8 +337,8 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
     legacy_projection["status"] = "legacy_layout_pending_sync"
     legacy_projection["legacy_layout_pending_sync"] = True
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",

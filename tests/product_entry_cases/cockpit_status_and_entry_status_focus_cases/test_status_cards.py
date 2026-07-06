@@ -205,8 +205,8 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",

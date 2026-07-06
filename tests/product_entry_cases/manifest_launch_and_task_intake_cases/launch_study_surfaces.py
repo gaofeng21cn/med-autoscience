@@ -34,7 +34,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
         },
     )
     monkeypatch.setattr(
-        launch_surface.study_progress,
+        launch_surface,
         "build_study_progress_projection",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -96,12 +96,6 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
             },
         },
     )
-    monkeypatch.setattr(
-        launch_surface.study_progress,
-        "read_study_progress",
-        lambda **kwargs: (_ for _ in ()).throw(AssertionError("launch_study should reuse the runtime status payload")),
-    )
-
     payload = module.launch_study(
         profile=profile,
         profile_ref=profile_ref,

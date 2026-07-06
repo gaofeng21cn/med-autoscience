@@ -638,7 +638,11 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             },
         }
 
-    monkeypatch.setattr(module.study_progress, "read_study_progress", fake_progress)
+    monkeypatch.setattr(
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
+        fake_progress,
+    )
 
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
@@ -870,7 +874,11 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             "progress_freshness": {"status": "fresh", "summary": "fresh"},
         }
 
-    monkeypatch.setattr(module.study_progress, "read_study_progress", fake_progress)
+    monkeypatch.setattr(
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
+        fake_progress,
+    )
 
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 

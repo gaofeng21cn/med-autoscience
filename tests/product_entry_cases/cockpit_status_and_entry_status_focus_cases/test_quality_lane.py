@@ -65,8 +65,8 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
             "current_stage": "publication_supervision",

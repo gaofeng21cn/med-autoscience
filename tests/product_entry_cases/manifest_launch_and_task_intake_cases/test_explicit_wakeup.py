@@ -63,7 +63,7 @@ def test_launch_study_explicit_wakeup_records_truth_resume(
         },
     )
     monkeypatch.setattr(
-        launch_surface.study_progress,
+        launch_surface,
         "build_study_progress_projection",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -257,7 +257,7 @@ def test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff(
 
     monkeypatch.setattr(launch_surface.domain_status_projection, "progress_projection", fake_progress_projection)
     monkeypatch.setattr(
-        launch_surface.study_progress,
+        launch_surface,
         "build_study_progress_projection",
         lambda **kwargs: {"study_id": "001-risk", "current_stage": "publication_supervision"},
     )

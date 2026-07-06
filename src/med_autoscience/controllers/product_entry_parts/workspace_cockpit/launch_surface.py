@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_truth_kernel
+from med_autoscience.controllers.study_progress_parts.projection import build_study_progress_projection
 from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
     SUPPORTED_DIRECT_ENTRY_MODES,
@@ -23,7 +24,6 @@ from med_autoscience.controllers.product_entry_parts.shared import (
     _study_selector,
     _utc_now,
     domain_status_projection,
-    study_progress,
 )
 
 
@@ -95,7 +95,7 @@ def launch_study(
     ):
         runtime_status["product_entry_launch_policy"]["source_runtime_decision"] = runtime_status["decision"]
         runtime_status["decision"] = "blocked"
-    progress_payload = study_progress.build_study_progress_projection(
+    progress_payload = build_study_progress_projection(
         profile=profile,
         profile_ref=profile_ref,
         study_id=resolved_study_id,

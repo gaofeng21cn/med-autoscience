@@ -17,3 +17,9 @@ from tests.study_runtime_test_helpers import (
     write_study,
     write_text,
 )
+
+
+def product_entry_cockpit_payload_module():
+    return importlib.import_module(
+        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload"
+    )

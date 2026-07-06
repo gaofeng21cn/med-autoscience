@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
@@ -235,8 +236,8 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
@@ -299,8 +300,8 @@ def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
@@ -351,8 +352,8 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
+        _shared.product_entry_cockpit_payload_module(),
+        "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
