@@ -95,6 +95,44 @@ def test_mas_capability_map_keeps_scholar_skills_refs_only_boundary() -> None:
     assert policy["scholar_skills_may_write_mas_truth"] is False
     owner_closeout = capability_map["owner_closeout_boundary"]
     assert owner_closeout["scholar_skills_or_oma_may_close_out_owner_loop"] is False
+
+
+def test_mas_capability_map_declares_academicforge_skill_first_boundary() -> None:
+    capability_map_path = Path(__file__).resolve().parents[2] / "contracts" / "capability_map.json"
+    capability_map = json.loads(capability_map_path.read_text(encoding="utf-8"))
+    policy = capability_map["consumer_policy"]["skill_first_capability_policy"]
+    external_policy = capability_map["consumer_policy"]["external_specialist_library_policy"]
+    owner_closeout = capability_map["owner_closeout_boundary"]
+    mappings = {
+        item["feedback_target"]: item
+        for item in capability_map["feedback_target_mappings"]
+    }
+    failure_mappings = {
+        item["failure_type"]: item
+        for item in capability_map["medical_failure_type_mappings"]
+    }
+    registry_ref = "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
+
+    assert "contracts/academicforge_claude_science_learning_adoption.json" in (
+        capability_map["source_of_truth"]
+    )
+    assert policy == {
+        "professional_skill_is_first_class_capability_entry": True,
+        "scripts_are_optional_deterministic_helpers": True,
+        "contract_light_boundary_only": True,
+        "ops_modularity_does_not_replace_skill_judgment": True,
+        "missing_optional_specialist_skill_blocks_ordinary_progress": False,
+        "mas_registry_exposes_descriptor_refs_not_runtime_ownership": True,
+    }
+    assert external_policy["skill_first_external_specialists"][
+        "default_behavior"
+    ] == "sync_only_when_current_delta_or_user_request_declares_specialist_need"
+    assert external_policy["skill_first_external_specialists"]["bulk_load_allowed"] is False
+    assert external_policy["skill_first_external_specialists"][
+        "outputs_are_refs_only_candidates"
+    ] is True
+    assert "AlphaFold2" in external_policy["example_specialist_gaps"]
+    assert "scientific compute runner" in external_policy["example_specialist_gaps"]
     assert "mas_owner_receipt_ref" in owner_closeout["closeout_requires_one_of"]
     assert "stable_typed_blocker_ref" in owner_closeout["closeout_requires_one_of"]
     assert mappings["figure_quality"]["target_skill_ref"] == (

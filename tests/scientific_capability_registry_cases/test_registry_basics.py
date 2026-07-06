@@ -184,6 +184,60 @@ def test_scholarskills_registry_summary_uses_active_mas_scholar_skill_ids() -> N
     assert "opl.scholarskills.data" not in summary["capability_ids"]
 
 
+def test_academicforge_claude_science_skills_are_descriptor_only_and_fail_open() -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+
+    registry = module.build_scientific_capability_registry()
+    capabilities = {item["capability_id"]: item for item in registry["capabilities"]}
+    expected_ids = {
+        "academicforge_claude_science_skill_first_pack",
+        "academicforge_life_science_specialist_skills",
+        "academicforge_scientific_compute_runner_skill",
+    }
+
+    assert expected_ids <= set(capabilities)
+    for capability_id in expected_ids:
+        capability = capabilities[capability_id]
+        assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+        assert capability["descriptor_only"] is True
+        assert capability["refs_only"] is True
+        assert capability["fail_open"] is True
+        assert capability["mainline_waits_for_capability"] is False
+        assert capability["external_runtime_dependency"] is False
+        assert capability["external_runner_invocation_allowed"] is False
+        assert capability["authority_boundary"]["can_write_domain_truth"] is False
+        assert capability["authority_boundary"]["can_write_owner_receipt"] is False
+        assert (
+            capability["authority_boundary"]["capability_or_sidecar_can_be_admission_gate"]
+            is False
+        )
+    assert "figure-style/SKILL.md" in " ".join(
+        capabilities["academicforge_claude_science_skill_first_pack"]["descriptor_refs"]
+    )
+    assert "scientific-compute-runner/SKILL.md" in " ".join(
+        capabilities["academicforge_scientific_compute_runner_skill"]["descriptor_refs"]
+    )
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "analysis_specialist_evidence_required",
+            "capability_families": [
+                "life_science_specialist_skill_pack",
+                "scientific_compute_runner",
+            ],
+            "requested_refs": ["single-cell", "remote compute", "model endpoint"],
+        }
+    )
+    selected = {item["capability_id"]: item for item in resolution["selected_capabilities"]}
+    assert {
+        "academicforge_life_science_specialist_skills",
+        "academicforge_scientific_compute_runner_skill",
+    } <= set(selected)
+    for item in selected.values():
+        assert item["can_block_current_owner_action"] is False
+        assert item["readback"]["can_execute_external_runner"] is False
+
+
 def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request() -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
 

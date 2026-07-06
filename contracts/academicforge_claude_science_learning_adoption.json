@@ -1,0 +1,181 @@
+{
+  "contract_id": "academicforge_claude_science_learning_adoption.v1",
+  "schema_version": "1.0.0",
+  "owner": "MedAutoScience",
+  "state": "active_refs_only_learning_landing",
+  "source": {
+    "project": "HughYau/AcademicForge",
+    "observed_head": "54a2f333973147a1fd703caea6f12252e1f227d6",
+    "observed_date": "2026-07-06",
+    "evidence_commands": [
+      "gh repo view HughYau/AcademicForge --json nameWithOwner,description,defaultBranchRef,stargazerCount,pushedAt,updatedAt,url",
+      "git clone --depth 1 https://github.com/HughYau/AcademicForge.git /tmp/AcademicForge",
+      "git -C /tmp/AcademicForge rev-parse HEAD"
+    ],
+    "inspected_refs": [
+      "README.md",
+      "skills/claude-science/*/SKILL.md",
+      "skills/claude-science/figure-style/SKILL.md",
+      "skills/claude-science/figure-composer/SKILL.md",
+      "skills/claude-science/paper-narrative/SKILL.md",
+      "skills/claude-science/literature-review/SKILL.md",
+      "skills/claude-science/pdf-explore/SKILL.md",
+      "skills/claude-science/indication-dossier/SKILL.md",
+      "skills/claude-science/compute-env-setup/SKILL.md",
+      "skills/claude-science/remote-compute-ssh/SKILL.md",
+      "skills/claude-science/remote-compute-modal/SKILL.md",
+      "skills/claude-science/managed-model-endpoints/SKILL.md",
+      "skills/claude-science/using-model-endpoint/SKILL.md"
+    ]
+  },
+  "purpose": "Record how MAS learns the useful Claude Science skill patterns from AcademicForge without downgrading AI-first Skill playbooks into rigid MAS scripts.",
+  "machine_boundary": "This contract is a refs-only learning and routing surface. It is not a default skill source, execution runtime, cloud provider manager, model endpoint registry, study truth writer, owner receipt, typed blocker, publication verdict, current package authority, or generated prompt loader.",
+  "principles": {
+    "ai_first": true,
+    "contract_light": true,
+    "skill_is_first_class_capability_entry": true,
+    "scripts_are_optional_deterministic_helpers": true,
+    "ops_modularity_does_not_replace_professional_skill_judgment": true,
+    "progress_first_fail_open_default": true,
+    "missing_specialist_skill_blocks_ordinary_progress": false
+  },
+  "landing_rules": {
+    "skill_layer": "Owns the professional playbook, diagnosis, route choice, failure interpretation, repair guidance, and user-facing problem solving.",
+    "helper_layer": "May own deterministic parsing, rendering, linting, smoke probes, environment spec normalization, receipt parsing, hashing, and manifest checks.",
+    "substrate_layer": "OPL Runway / Connect owns provider credentials, submit/wait/harvest, endpoint lifecycle, install/sync, and execution/readback receipts.",
+    "mas_authority_layer": "MAS consumes refs-only candidate outputs and decides acceptance through owner receipt, reviewer receipt, route-back evidence, stable typed blocker, or human gate.",
+    "forbidden_downgrade": "Do not turn a professional Skill into the only executable script path when the capability depends on AI judgment, environment diagnosis, or scientific interpretation."
+  },
+  "core_adoption_items": [
+    {
+      "item_id": "publication_figures",
+      "source_skills": [
+        "figure-style",
+        "figure-composer"
+      ],
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "mas-scholar-skills.display / medical-figure-design and MAS Display Pack quality contracts",
+      "target_landing": "Skill-first figure contract, data fidelity checklist, multi-panel outline, render-then-verify visual QA, and refs-only figure execution receipts",
+      "must_not_replace": [
+        "paper_specific_visual_audit_receipt",
+        "publication_figure_quality_verdict",
+        "artifact_authority"
+      ]
+    },
+    {
+      "item_id": "paper_narrative",
+      "source_skills": [
+        "paper-narrative"
+      ],
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "mas-scholar-skills.write / review / display and MAS paper-mission stage prompts",
+      "target_landing": "Handling-editor figure arc, Fig 1 hook verdict, figure moves, missing panels, kill list, and defensible next figure claim as candidate refs",
+      "must_not_replace": [
+        "independent_reviewer_receipt",
+        "publication_gate",
+        "MAS owner receipt"
+      ]
+    },
+    {
+      "item_id": "literature_and_pdf_evidence",
+      "source_skills": [
+        "literature-review",
+        "pdf-explore"
+      ],
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "mas-scholar-skills.lit / research-pdf-evidence-explorer and MAS source/evidence refs",
+      "target_landing": "Retrieve-first DOI/retraction/citation-expansion workflow plus parse-once PDF outline/scan/grep/crop extraction refs",
+      "must_not_replace": [
+        "source_readiness_verdict",
+        "claim_evidence_owner_acceptance",
+        "data_access_authority"
+      ]
+    },
+    {
+      "item_id": "life_science_specialists",
+      "source_skills": [
+        "alphafold2",
+        "openfold3",
+        "boltz",
+        "chai1",
+        "esmfold2",
+        "diffdock",
+        "proteinmpnn",
+        "ligandmpnn",
+        "solublempnn",
+        "fair-esm2",
+        "borzoi",
+        "evo2",
+        "scgpt",
+        "scvi-tools",
+        "indication-dossier"
+      ],
+      "classification": "adopt_template",
+      "landing_status": "owner_surface_landed",
+      "local_owner_surface": "MAS Scholar Skills optional advanced specialist skill pack",
+      "target_landing": "Optional specialist Skills for structure, protein design, genomics foundation models, single-cell modeling, and indication dossiers",
+      "must_not_replace": [
+        "MAS default eight core professional skills",
+        "study truth",
+        "analysis result owner acceptance"
+      ]
+    },
+    {
+      "item_id": "scientific_compute_runner",
+      "source_skills": [
+        "compute-env-setup",
+        "remote-compute-ssh",
+        "remote-compute-modal",
+        "managed-model-endpoints",
+        "using-model-endpoint"
+      ],
+      "classification": "adopt_template",
+      "landing_status": "read_model_landed",
+      "local_owner_surface": "OPL Runway / Connect substrate with MAS capability registry descriptor refs",
+      "target_landing": "Skill-first compute diagnosis and operation playbook plus OPL-owned provider, endpoint, submit/wait/harvest, and execution receipt boundaries",
+      "must_not_replace": [
+        "OPL provider credential owner",
+        "OPL execution receipt",
+        "MAS owner-gated interpretation"
+      ]
+    }
+  ],
+  "watch_only_or_reject_items": [
+    {
+      "source_skills": [
+        "self-awareness",
+        "customize",
+        "product-self-knowledge"
+      ],
+      "classification": "watch_only",
+      "reason": "These depend on Claude Science / Anthropic host semantics and should not become MAS truth or runtime assumptions."
+    },
+    {
+      "source_skills": [
+        "algorithmic-art",
+        "web-artifacts-builder",
+        "learn"
+      ],
+      "classification": "watch_only",
+      "reason": "Useful as general artifact or teaching inspiration, but not MAS paper authority or required scientific capability."
+    }
+  ],
+  "forbidden_authority": {
+    "can_write_study_truth": false,
+    "can_write_paper_body": false,
+    "can_write_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_authorize_publication_readiness": false,
+    "can_write_current_package": false,
+    "can_manage_cloud_credentials": false,
+    "can_claim_runtime_ready_without_opl_readback": false
+  },
+  "verification_floor": [
+    "MAS scientific capability registry exposes descriptor-only refs for AcademicForge / Claude Science learning",
+    "MAS Scholar Skills exposes Codex-discoverable SKILL.md entries for adopted professional skills",
+    "Verification asserts no-authority, refs-only, fail-open, and no cloud credential ownership boundaries"
+  ]
+}

@@ -12,7 +12,9 @@
     "external_repo:K-Dense-AI/scientific-agent-skills@1e024ea8547ada12039edbe8197aaa959d97763f",
     "contracts/kdense_byok_external_intake.json",
     "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
-    "external_repo:mas-scholar-skills/contracts/capability_map.json"
+    "external_repo:mas-scholar-skills/contracts/capability_map.json",
+    "external_repo:HughYau/AcademicForge@54a2f333973147a1fd703caea6f12252e1f227d6",
+    "contracts/academicforge_claude_science_learning_adoption.json"
   ],
   "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
   "external_capability_pack_target": {
@@ -76,11 +78,47 @@
         "DeepChem",
         "pydicom",
         "imaging-data-commons",
-        "PyHealth"
+        "PyHealth",
+        "AlphaFold2",
+        "OpenFold3",
+        "Boltz",
+        "Chai-1",
+        "ESMFold2",
+        "DiffDock",
+        "ProteinMPNN",
+        "LigandMPNN",
+        "SolubleMPNN",
+        "ESM-2",
+        "Borzoi",
+        "Evo2",
+        "scGPT",
+        "scVI-tools",
+        "indication-dossier",
+        "PDF evidence explorer",
+        "scientific compute runner",
+        "remote SSH/SLURM compute",
+        "Modal compute",
+        "managed model endpoint"
       ],
       "selected_allowlist_ref": "contracts/kdense_byok_external_intake.json#/external_skill_library_policy/selected_allowlist",
       "kdense_authority": false,
-      "external_skill_outputs_are_refs_only_candidates": true
+      "external_skill_outputs_are_refs_only_candidates": true,
+      "academicforge_claude_science_ref": "contracts/academicforge_claude_science_learning_adoption.json",
+      "skill_first_external_specialists": {
+        "default_behavior": "sync_only_when_current_delta_or_user_request_declares_specialist_need",
+        "bulk_load_allowed": false,
+        "outputs_are_refs_only_candidates": true,
+        "provider_runtime_owner": "one-person-lab Runway / Connect",
+        "mas_authority_owner": "MedAutoScience owner surface"
+      }
+    },
+    "skill_first_capability_policy": {
+      "professional_skill_is_first_class_capability_entry": true,
+      "scripts_are_optional_deterministic_helpers": true,
+      "contract_light_boundary_only": true,
+      "ops_modularity_does_not_replace_skill_judgment": true,
+      "missing_optional_specialist_skill_blocks_ordinary_progress": false,
+      "mas_registry_exposes_descriptor_refs_not_runtime_ownership": true
     }
   },
   "owner_closeout_boundary": {

@@ -79,6 +79,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：Stage prompt 维护口径收薄为 `stage owner / inputs / output refs / route-back / owner gate / specialist skill routes`。医学写作、独立审稿、figure 设计、文献、统计、表格、投稿包和数据治理的方法正文分别归 `medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`；MAS stage prompt 只能引用这些专业 Skill 的 refs-only candidate / route-back / owner-gate handoff，不能复制成长篇专业 playbook。
 - 影响：后续 overlay / docs 更新必须把 `write`、`review`、`figure`、`figure-polish`、`journal-resolution` 等读成 MAS stage/runtime projection，而不是专业 specialist skill 的 source of truth。专业 Skill 可产出 candidate、refs、review notes 或 route-back；MAS owner surface 才能接受为 paper truth、owner receipt、typed blocker、human gate、current package 或 publication / submission readiness。
 
+## 2026-07-06：AcademicForge / Claude Science 学习采用 Skill-first，不脚本降级
+
+- 决策：AcademicForge 当前 `site-first` HEAD `54a2f333973147a1fd703caea6f12252e1f227d6` 收录的 Claude Science 32 个 skill 进入 MAS / OPL 时采用 `Skill first, helper second, contract light`。专业 Skill 继续持有 AI 判断、环境诊断、失败分层、路线选择和现场修复；脚本 / kernel 只能做确定性小动作，例如 PDF 解析、图件 lint、receipt 解析、hash、env smoke 或 manifest check；contract / registry 只声明输入输出、allowed/forbidden writes、receipt 和 owner-gate 边界。
+- 决策：MAS `scientific_capability_registry` 只暴露三类 descriptor-only capability：`academicforge_claude_science_skill_first_pack`、`academicforge_life_science_specialist_skills` 和 `academicforge_scientific_compute_runner_skill`。它们全部 refs-only、fail-open、不能阻断 ordinary progress，不能执行外部 runner，也不能写 MAS truth、owner receipt、typed blocker、publication eval、controller decisions、current package 或 provider attempt。
+- 决策：compute / SSH / SLURM / Modal / endpoint lifecycle 的学习落到 OPL Runway / Connect substrate，而不是 MAS 私有 runtime。`scientific-compute-runner` 可以作为专业 Skill 保留操作 playbook 和诊断经验；provider credential、submit/wait/harvest、endpoint registration、execution receipt 和 live readiness 仍由 OPL owner surface 证明。
+- 理由：Claude Science 的维护优势来自 Skill 的弹性，而不是脚本替代 AI。把专业 workflow 硬转成 MAS 脚本会降低低门槛、高上限和现场修复能力；把运维底座模块化则能保留统一凭据 / receipt / readback，同时不砍掉 AI-first 专业判断。
+- 影响：`contracts/academicforge_claude_science_learning_adoption.json` 成为 MAS 侧学习落点；外部专业正文继续归 MAS Scholar Skills 或后续 OPL capability pack。descriptor / docs / tests 只能证明 repo-level capability surface landed，不证明 external skill 已同步、provider 已运行、GPU job 成功、模型 endpoint 可用、owner 接受或论文进展。
+
 ## 2026-07-02：Reviewer revision 质量反馈默认触发 OPL Agent Lab / OMA 自进化
 
 - 决策：`reviewer_revision` intake 不再只登记同线稿件返修；当反馈超过 text-only fast lane，涉及科学性、引用、正文体量、表图、结果临床价值、figure skill 一致性、claim-evidence 或文风质量时，MAS 必须输出 `mas_reviewer_revision_self_evolution_trigger`，并通过 `agent-lab-medical-manuscript-quality-suite` 生成 refs-only external suite，交给 OPL Agent Lab 与 OMA developer work-order 路由。MAS 仍持有 study truth、publication quality、artifact authority、owner receipt 和 gate readback。

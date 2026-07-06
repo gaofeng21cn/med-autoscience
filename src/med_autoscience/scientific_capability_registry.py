@@ -57,6 +57,7 @@ INVOCATION_SURFACE_KIND = "mas_scientific_capability_invocation"
 SCHEMA_VERSION = 1
 DEFAULT_CURRENT_DELTA_TRIGGER = "current_delta_declares_or_implies_affordance_need"
 NATURE_SKILLS_SOURCE_HEAD = "1cb9070fdd94929d5f267ce6585ac87e2cba60b3"
+ACADEMICFORGE_SOURCE_HEAD = "54a2f333973147a1fd703caea6f12252e1f227d6"
 OPENSCIENCE_SOURCE_HEAD = "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
 NATURE_FIGURE_CONTRACT_REFS = (
     (
@@ -167,6 +168,109 @@ OPENSCIENCE_ARTIFACT_PROVENANCE_TRIGGER_TERMS = (
     "data flow",
     "data-flow",
     "source lineage",
+)
+ACADEMICFORGE_SKILL_FIRST_REFS = (
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/figure-style/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/figure-composer/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/paper-narrative/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/literature-review/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/pdf-explore/SKILL.md"
+    ),
+    "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/research-pdf-evidence-explorer/SKILL.md",
+)
+ACADEMICFORGE_LIFE_SCIENCE_SPECIALIST_REFS = (
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/alphafold2/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/boltz/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/scgpt/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/scvi-tools/SKILL.md"
+    ),
+    "external_repo:mas-scholar-skills/skills/medical-structural-biology/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-protein-design/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-genomics-foundation-models/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-single-cell-modeling/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-indication-dossier/SKILL.md",
+)
+ACADEMICFORGE_COMPUTE_SKILL_REFS = (
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/compute-env-setup/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/remote-compute-ssh/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/remote-compute-modal/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/managed-model-endpoints/SKILL.md"
+    ),
+    (
+        "external:AcademicForge@"
+        f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/using-model-endpoint/SKILL.md"
+    ),
+    "external_repo:mas-scholar-skills/skills/scientific-compute-runner/SKILL.md",
+    "opl:runway:execution-receipt",
+    "opl:connect:provider-or-endpoint-receipt",
+)
+ACADEMICFORGE_TRIGGER_TERMS = (
+    "claude science",
+    "AcademicForge",
+    "skill first",
+    "skill-first",
+    "AI First",
+    "contract light",
+    "figure composer",
+    "paper narrative",
+    "pdf explore",
+)
+LIFE_SCIENCE_SPECIALIST_TRIGGER_TERMS = (
+    "structure prediction",
+    "protein design",
+    "protein embedding",
+    "single-cell",
+    "scRNA",
+    "genomics foundation model",
+    "indication dossier",
+)
+COMPUTE_SKILL_TRIGGER_TERMS = (
+    "remote compute",
+    "SLURM",
+    "Modal",
+    "model endpoint",
+    "weight cache",
+    "compute environment",
 )
 
 
@@ -705,6 +809,101 @@ def _capabilities() -> list[dict[str, Any]]:
             output_refs=["readback:mas_reviewer_repair_action_projection"],
             contract_refs=list(NATURE_PAPER_MAINLINE_REVIEWER_REPAIR_REFS),
             role="ai_reviewer_comment_to_typed_repair_action_candidate_projection",
+        ),
+        _capability(
+            capability_id="academicforge_claude_science_skill_first_pack",
+            capability_family="skill_first_professional_capability_pack",
+            source_frameworks=[
+                f"HughYau/AcademicForge@{ACADEMICFORGE_SOURCE_HEAD}",
+                "Claude Science built-in skills",
+                "MAS Scholar Skills",
+            ],
+            action_triggers=[
+                "draft_manuscript_section",
+                "run_quality_repair_batch",
+                "return_to_ai_reviewer_workflow",
+                "artifact_display_surface_materialization_required",
+            ],
+            current_delta_trigger_terms=list(ACADEMICFORGE_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_skill_first_professional_capability_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:academicforge_claude_science_skill_first_pack",
+            output_refs=[
+                "external_repo:mas-scholar-skills/skills/<skill_id>/SKILL.md",
+                "readback:mas_scholarskills_local_install",
+            ],
+            contract_refs=[
+                "contracts/academicforge_claude_science_learning_adoption.json",
+                "docs/runtime/control/external_learning_adoption_closure.md#academicforge-claude-science",
+            ],
+            descriptor_refs=list(ACADEMICFORGE_SKILL_FIRST_REFS),
+            role=(
+                "skill_first_ai_playbook_for_publication_figures_literature_pdf_"
+                "paper_narrative_and_professional_specialist_handoff"
+            ),
+        ),
+        _capability(
+            capability_id="academicforge_life_science_specialist_skills",
+            capability_family="life_science_specialist_skill_pack",
+            source_frameworks=[
+                f"HughYau/AcademicForge@{ACADEMICFORGE_SOURCE_HEAD}",
+                "Claude Science structural biology / genomics / single-cell skills",
+                "MAS Scholar Skills optional specialist pack",
+            ],
+            action_triggers=[
+                "unit_harmonized_external_validation_rerun",
+                "source_specialist_evidence_required",
+                "analysis_specialist_evidence_required",
+            ],
+            current_delta_trigger_terms=list(LIFE_SCIENCE_SPECIALIST_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_life_science_specialist_skill_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:academicforge_life_science_specialist_skills",
+            output_refs=[
+                "candidate:structure_or_omics_artifact_refs",
+                "candidate:specialist_execution_receipt_refs",
+                "candidate:owner_gate_handoff_ref",
+            ],
+            contract_refs=[
+                "contracts/academicforge_claude_science_learning_adoption.json#/specialist_skill_pack",
+            ],
+            descriptor_refs=list(ACADEMICFORGE_LIFE_SCIENCE_SPECIALIST_REFS),
+            role=(
+                "optional_external_specialist_skills_for_structure_prediction_"
+                "protein_design_genomics_single_cell_and_indication_dossiers"
+            ),
+        ),
+        _capability(
+            capability_id="academicforge_scientific_compute_runner_skill",
+            capability_family="scientific_compute_runner",
+            source_frameworks=[
+                f"HughYau/AcademicForge@{ACADEMICFORGE_SOURCE_HEAD}",
+                "Claude Science compute / endpoint skills",
+                "OPL Runway / Connect",
+            ],
+            action_triggers=[
+                "unit_harmonized_external_validation_rerun",
+                "analysis_specialist_evidence_required",
+                "remote_compute_required",
+            ],
+            current_delta_trigger_terms=list(COMPUTE_SKILL_TRIGGER_TERMS),
+            current_delta_trigger_reason="current_delta_declared_scientific_compute_runner_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:opl_runway_connect_scientific_compute_runner_skill",
+            output_refs=[
+                "candidate:opl_runway_execution_receipt_ref",
+                "candidate:opl_connect_provider_receipt_ref",
+                "candidate:dependency_profile_ref",
+            ],
+            contract_refs=[
+                "contracts/academicforge_claude_science_learning_adoption.json#/compute_substrate",
+                "docs/runtime/projections/runtime_capability_matrix.md#opl-capability-runtime--scholarskills-投影",
+            ],
+            descriptor_refs=list(ACADEMICFORGE_COMPUTE_SKILL_REFS),
+            role=(
+                "skill_first_compute_diagnostic_playbook_with_opl_owned_provider_"
+                "credential_submit_wait_harvest_and_endpoint_receipts"
+            ),
         ),
         _capability(
             capability_id="display_pack_visual_capability",

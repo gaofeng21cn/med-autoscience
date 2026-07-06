@@ -220,6 +220,15 @@
         },
         {
           "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:academicforge_claude_science_skill_first_pack:run_quality_repair_batch",
+          "capability_family": "skill_first_professional_capability_pack",
+          "capability_id": "academicforge_claude_science_skill_first_pack",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
           "candidate_ref": "scientific-capability:mas-scholar-skills.lit:run_quality_repair_batch",
           "capability_family": "scholarskills_lit",
           "capability_id": "mas-scholar-skills.lit",
@@ -237,7 +246,7 @@
           "requires_explicit_invoke": true
         }
       ],
-      "selected_count": 8,
+      "selected_count": 9,
       "status": "resolved"
     },
     "status": "ready_for_hosted_consumption",

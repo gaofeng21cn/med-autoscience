@@ -72,6 +72,29 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
         "claim_citation_support_matrix",
         "reviewer_repair_action_projection",
     } <= set(frameworks["nature_skills"]["absorbed_pattern_ids"])
+    academicforge = frameworks["academicforge_claude_science"]
+    assert academicforge["closure_status"] == "owner_surface_landed"
+    assert "HughYau/AcademicForge" in academicforge["source_project"]
+    assert any("54a2f333973147a1fd703caea6f12252e1f227d6" in ref for ref in academicforge["source_refs"])
+    assert {
+        "skill_first_capability_pack",
+        "publication_figure_style_and_composer_loop",
+        "paper_narrative_handling_editor_loop",
+        "retrieve_first_literature_review",
+        "pdf_parse_once_exploration",
+        "life_science_optional_specialist_skills",
+        "compute_skill_playbook_with_opl_substrate",
+        "ai_first_contract_light_boundary",
+    } <= set(academicforge["absorbed_pattern_ids"])
+    assert "Skill remains the AI playbook" in academicforge["worker_or_executor_landing"]
+    assert "OPL Runway / Connect owns provider credentials" in academicforge[
+        "worker_or_executor_landing"
+    ]
+    assert "academicforge_scientific_compute_runner_skill" in academicforge[
+        "next_landing_path"
+    ]
+    assert academicforge["friction_policy"]["can_block_current_owner_action"] is False
+    assert academicforge["authority_boundary"]["can_write_owner_receipt"] is False
     for framework_id in (
         "academic_research_skills",
         "autosci_omegawiki",
@@ -120,7 +143,7 @@ def test_external_learning_adoption_closure_separates_contracts_from_worker_land
     )
     assert openscience["friction_policy"]["can_block_current_owner_action"] is False
     assert openscience["authority_boundary"]["can_write_artifact_authority"] is False
-    assert closure["counts"]["framework_count"] == 12
+    assert closure["counts"]["framework_count"] == 13
     assert closure["counts"]["sidecar_execution_slot_count"] == 9
     assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
     assert closure["counts"]["not_landed_gap_count"] == 0

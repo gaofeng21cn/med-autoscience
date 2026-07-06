@@ -31,6 +31,10 @@ OPENSCIENCE_SOURCE_REF = (
     "external_repo:ai4s-research/open-science@"
     "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
 )
+ACADEMICFORGE_SOURCE_REF = (
+    "external_repo:HughYau/AcademicForge@"
+    "54a2f333973147a1fd703caea6f12252e1f227d6"
+)
 FORBIDDEN_WRITES = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
@@ -265,6 +269,57 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "nature_reviewer_repair_action_projection, or "
                 "nature_figure_display_contract_refs from current_owner_delta; keep "
                 "them refs-only/readback-only instead of adding a Nature-skills sidecar worker"
+            ),
+        ),
+        _framework(
+            framework_id="academicforge_claude_science",
+            source_project="HughYau/AcademicForge Claude Science skill collection",
+            source_refs=[
+                ACADEMICFORGE_SOURCE_REF,
+                "contracts/academicforge_claude_science_learning_adoption.json",
+                "med_autoscience.scientific_capability_registry."
+                "academicforge_claude_science_skill_first_pack",
+                "external_repo:mas-scholar-skills/skills/mas-scholar-skills/SKILL.md",
+                "external_repo:mas-scholar-skills/skills/scientific-compute-runner/SKILL.md",
+            ],
+            absorbed_pattern_ids=[
+                "skill_first_capability_pack",
+                "publication_figure_style_and_composer_loop",
+                "paper_narrative_handling_editor_loop",
+                "retrieve_first_literature_review",
+                "pdf_parse_once_exploration",
+                "life_science_optional_specialist_skills",
+                "compute_skill_playbook_with_opl_substrate",
+                "ai_first_contract_light_boundary",
+            ],
+            local_execution_state=(
+                "skill_first_professional_capability_pack_landed_as_descriptor_"
+                "and_external_scholar_skill_source"
+            ),
+            closure_status="owner_surface_landed",
+            owner_surface=(
+                "scientific_capability_registry_descriptor_refs_and_"
+                "mas_scholar_skills_skill_first_external_pack"
+            ),
+            worker_or_executor_landing=(
+                "AcademicForge / Claude Science learning is landed as skill-first "
+                "descriptor refs plus MAS Scholar Skills external skill sources. "
+                "The Skill remains the AI playbook; helper scripts may only do "
+                "deterministic parsing, receipt, lint, render, or smoke actions. "
+                "OPL Runway / Connect owns provider credentials, submit/wait/harvest, "
+                "endpoint lifecycle, and execution receipts; MAS consumes only refs-only "
+                "candidate packages and owner-gate requests."
+            ),
+            missing_landing_work=[
+                "real provider execution, model endpoint registration, and cloud credentials remain OPL Runway / Connect live evidence",
+                "real study acceptance still requires MAS owner receipt, reviewer receipt, route-back evidence, stable typed blocker, or human gate",
+            ],
+            next_landing_path=(
+                "resolve academicforge_claude_science_skill_first_pack, "
+                "academicforge_life_science_specialist_skills, or "
+                "academicforge_scientific_compute_runner_skill from current_owner_delta; "
+                "then let OPL Connect sync the relevant professional Skill into the workspace "
+                "or quest while MAS keeps authority-gated refs-only consumption"
             ),
         ),
         _framework_from_projection(
