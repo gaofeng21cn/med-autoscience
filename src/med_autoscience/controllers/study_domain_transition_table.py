@@ -21,18 +21,14 @@ SCHEMA_VERSION = 1
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = story_surface_recheck_transition.REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH
-PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = (
-    publication_gate_lifecycle_transitions.PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH
-)
+PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = publication_gate_lifecycle_transitions.PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH
 _BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
-_FINALIZE_WORK_UNIT_IDS = frozenset(
-    {
-        "publication_gate_replay",
-        "submission_authority_sync_closure",
-        "submission_delivery_sync_closure",
-        "submission_minimal_refresh",
-    }
-)
+_FINALIZE_WORK_UNIT_IDS = frozenset({
+    "publication_gate_replay",
+    "submission_authority_sync_closure",
+    "submission_delivery_sync_closure",
+    "submission_minimal_refresh",
+})
 
 
 def project_domain_transition(
