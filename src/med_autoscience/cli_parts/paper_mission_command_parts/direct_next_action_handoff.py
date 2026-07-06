@@ -344,15 +344,25 @@ def _append_task_intake_refs_to_transaction(
 
 
 def _current_owner_consumption(inspect_readback: Mapping[str, Any]) -> dict[str, Any]:
-    current_carrier = _mapping(inspect_readback.get("current_opl_runtime_carrier_readback"))
-    current_owner_consumption = _mapping(current_carrier.get("mas_receipt_consumption"))
-    if current_owner_consumption:
-        return current_owner_consumption
-    return _mapping(
+    receipt_owner_consumption = _mapping(
         _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
             "mas_receipt_consumption"
         )
     )
+    if _owner_consumption_is_materialized(receipt_owner_consumption):
+        return receipt_owner_consumption
+    current_carrier = _mapping(
+        inspect_readback.get("current_opl_runtime_carrier_readback")
+    )
+    current_owner_consumption = _mapping(current_carrier.get("mas_receipt_consumption"))
+    if current_owner_consumption:
+        return current_owner_consumption
+    return receipt_owner_consumption
+
+
+def _owner_consumption_is_materialized(owner_consumption: Mapping[str, Any]) -> bool:
+    status = _optional_text(owner_consumption.get("status"))
+    return bool(status and status.startswith("owner_consumed_"))
 
 
 def _direct_next_action_successor_epoch(
@@ -366,25 +376,24 @@ def _direct_next_action_successor_epoch(
     )
     if not status or not status.startswith("owner_consumed_"):
         return None
-    current_carrier = _mapping(inspect_readback.get("current_opl_runtime_carrier_readback"))
-    return (
+    current_carrier = _mapping(
+        inspect_readback.get("current_opl_runtime_carrier_readback")
+    )
+    receipt_readback = _mapping(inspect_readback.get("receipt_owner_consumption_readback"))
+    owner_readback_ref = (
         _optional_text(current_carrier.get("owner_consumption_readback_ref"))
-        or _optional_text(
-            _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
-                "source_ref"
-            )
-        )
-        or _optional_text(
-            _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
-                "decision_ref"
-            )
-        )
-        or _optional_text(owner_consumption.get("route_checkpoint_evidence_ref"))
+        or _optional_text(receipt_readback.get("source_ref"))
+        or _optional_text(receipt_readback.get("decision_ref"))
+    )
+    evidence_ref = (
+        _optional_text(owner_consumption.get("route_checkpoint_evidence_ref"))
         or _optional_text(owner_consumption.get("receipt_evidence_ref"))
         or _optional_text(owner_consumption.get("typed_runtime_blocker_ref"))
         or _optional_text(owner_consumption.get("route_back_evidence_ref"))
-        or status
     )
+    if owner_readback_ref is not None and evidence_ref is not None:
+        return f"{owner_readback_ref}::{evidence_ref}"
+    return owner_readback_ref or evidence_ref or status
 
 
 __all__ = [

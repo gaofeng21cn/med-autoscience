@@ -89,8 +89,11 @@ def test_direct_next_action_transaction_rotates_idempotency_after_owner_consumed
     assert initial["idempotency"]["idempotency_key"] != successor["idempotency"][
         "idempotency_key"
     ]
+    successor_epoch = (
+        "/tmp/receipt_owner_consumption.json::/tmp/stage_attempt_closeout_packet.json"
+    )
     assert successor["idempotency"]["idempotency_key"].endswith(
-        f"::successor::{direct_handoff._stable_sha256('/tmp/receipt_owner_consumption.json')[:12]}"
+        f"::successor::{direct_handoff._stable_sha256(successor_epoch)[:12]}"
     )
 
 
@@ -162,6 +165,61 @@ def test_direct_next_action_runtime_request_carries_owner_consumption_successor_
     assert successor_request["payload"]["advancing_delta_identity"][
         "route_checkpoint_evidence_ref"
     ] == "/tmp/stage_attempt_closeout_packet.json"
+
+
+def test_direct_next_action_uses_latest_consumed_receipt_when_current_carrier_is_stale() -> None:
+    next_action = {
+        "stage_id": "write",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "medical_prose_write_repair::source::4e2a1295ce4c3eae"
+        ),
+        "action_type": "request_opl_stage_attempt",
+        "action_family": "paper.write.prose_repair",
+        "outcome_ref": (
+            "domain-transition::route_back_same_line::"
+            "medical_prose_write_repair::source::4e2a1295ce4c3eae"
+        ),
+    }
+    handoff = direct_handoff.build_direct_next_action_handoff(
+        profile=SimpleNamespace(workspace_root="/tmp/dm003"),
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        inspect_readback={
+            "mission_id": "paper-mission::dm003::domain-transition",
+            "current_opl_runtime_carrier_readback": {
+                "mas_receipt_consumption": {
+                    "status": "requires_mas_owner_consumption",
+                    "route_checkpoint_evidence_ref": "/tmp/old-closeout.json",
+                },
+            },
+            "receipt_owner_consumption_readback": {
+                "status": "owner_consumption_applied",
+                "source_ref": "/tmp/receipt_owner_consumption.json",
+                "mas_receipt_consumption": {
+                    "status": "owner_consumed_route_checkpoint",
+                    "route_checkpoint_evidence_ref": "/tmp/new-closeout.json",
+                },
+            },
+        },
+        next_action=next_action,
+    )
+    request = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+        handoff
+    )
+
+    assert request is not None
+    assert handoff["owner_consumption_status"] == "owner_consumed_route_checkpoint"
+    assert handoff["route_checkpoint_evidence_ref"] == "/tmp/new-closeout.json"
+    assert request["payload"]["advancing_delta_identity"][
+        "route_checkpoint_evidence_ref"
+    ] == "/tmp/new-closeout.json"
+    successor_epoch = "/tmp/receipt_owner_consumption.json::/tmp/new-closeout.json"
+    assert request["payload"]["request_idempotency_key"].endswith(
+        "::successor::"
+        f"{direct_handoff._stable_sha256(successor_epoch)[:12]}::opl-request"
+    )
 
 
 def test_direct_next_action_runtime_request_carries_latest_task_intake_scope(
