@@ -449,6 +449,9 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert payload["revision_intake"]["kind"] == "reviewer_revision"
     assert payload["revision_intake"]["reactivation_required"] is True
     assert payload["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
+    assert payload["revision_intake"]["closeout_acceptance_requirements"]["coverage_audit"][
+        "required_for_closeout"
+    ] is True
     suite_path = Path(payload["artifacts"]["agent_lab_medical_manuscript_quality_suite"])
     dispatch_path = Path(payload["artifacts"]["reviewer_revision_feedbackops_dispatch_request"])
     suite_payload = json.loads(suite_path.read_text(encoding="utf-8"))
@@ -478,6 +481,17 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
         "submission_authority_owner_gate_readback_ref",
         "target_owner_receipt_or_typed_blocker_ref",
     ]
+    assert "reviewer_revision_coverage_audit_ref" in dispatch_payload["required_packet_refs"]
+    assert dispatch_payload["closeout_acceptance_requirements"]["stage_attempt_readback"][
+        "missing_reason_policy"
+    ] == "typed_missing_reason_required; do_not_coerce_to_zero"
+    suite_task = suite_payload["tasks"][0]
+    assert suite_task["closeout_acceptance_requirements"]["coverage_audit"][
+        "closeout_without_audit_allowed"
+    ] is False
+    assert suite_task["trajectory"]["stage_attempt_readback_requirement"][
+        "must_preserve_professional_skill_invocation_refs"
+    ] is True
     assert written_payload["revision_intake"]["handoff_required"] is True
     assert "Revision Intake Checklist" in latest_markdown_text
     assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text

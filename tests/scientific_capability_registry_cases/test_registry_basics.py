@@ -62,6 +62,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
         "evo_scientist_progress_sidecar",
         "light_external_skill_content_advisory",
         "co_scientist_current_owner_affordance",
+        "reviewer_revision_feedbackops_oma_work_order",
         "nature_figure_display_contract_refs",
         "display_pack_visual_capability",
     } <= capability_ids
@@ -102,6 +103,28 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
         "requires_explicit_capability_request": True,
         "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
     }
+
+
+def test_registry_resolves_reviewer_revision_feedbackops_oma_descriptor() -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+
+    resolution = module.resolve_scientific_capabilities(
+        current_owner_delta={
+            "action_type": "reviewer_revision",
+            "task_intent": "Major revision with OMA FeedbackOps coverage audit requirement.",
+        }
+    )
+
+    selected = {item["capability_id"]: item for item in resolution["selected_capabilities"]}
+    capability = selected["reviewer_revision_feedbackops_oma_work_order"]
+    assert capability["capability_family"] == "feedbackops_oma_work_order"
+    assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+    assert capability["descriptor_only"] is True
+    assert capability["external_runner_invocation_allowed"] is False
+    assert "candidate:reviewer_revision_coverage_audit_ref" in capability["output_refs"]
+    assert "candidate:stage_attempt_readback_ref" in capability["output_refs"]
+    assert capability["authority_boundary"]["can_write_domain_truth"] is False
+    assert capability["authority_boundary"]["can_write_owner_receipt"] is False
 
 
 def test_scholarskills_registry_declares_workspace_local_install_boundary() -> None:

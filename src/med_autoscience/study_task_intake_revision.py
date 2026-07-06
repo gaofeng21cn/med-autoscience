@@ -20,6 +20,8 @@ REVIEWER_REVISION_MARKERS = (
     "reviewer comment",
     "review comments",
     "reviewer revision",
+    "major revision",
+    "major revisions",
     "reviewer-first revision",
     "reviewer first revision",
     "manuscript revision",
@@ -39,6 +41,7 @@ REVIEWER_REVISION_MARKERS = (
     "论文修改",
     "稿件修改",
     "修改意见",
+    "大修改",
     "显式重新激活同一论文线",
     "重新激活同一论文线",
     "结构性返修",
@@ -64,8 +67,44 @@ REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
     ("tables_figures", "tables/figures", "表格、图片、图注和补充材料改动范围已列明。"),
     ("follow_up_evidence", "follow-up evidence", "后续证据、补充结果和不可完成项有明确状态。"),
     ("discussion_claim_guardrails", "discussion/claim guardrails", "讨论、结论和 claim 边界没有越过当前证据包。"),
+    ("coverage_audit", "coverage audit", "大修改 closeout 必须逐条覆盖反馈、修订动作、证据 refs、未完成项和 owner/readback 状态。"),
     ("handoff_evidence_surface", "handoff/evidence surface", "durable handoff 写明数据源、脚本入口、输出表图、改动范围、claim guardrails 与 canonical source 回灌状态。"),
 )
+REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT = {
+    "surface_kind": "mas_reviewer_revision_coverage_audit_requirement",
+    "required_for_closeout": True,
+    "minimum_fields": [
+        "feedback_item_id",
+        "requested_change",
+        "revision_action",
+        "status",
+        "evidence_refs",
+        "remaining_gap_or_not_applicable_reason",
+        "owner_readback_ref",
+    ],
+    "accepted_statuses": ["covered", "not_applicable_with_reason", "blocked_with_owner"],
+    "closeout_without_audit_allowed": False,
+}
+REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT = {
+    "surface_kind": "mas_reviewer_revision_stage_attempt_readback_requirement",
+    "required_for_closeout": True,
+    "must_preserve_professional_skill_invocation_refs": True,
+    "professional_skill_ref_families": [
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-figure-design",
+        "medical-submission-prep",
+    ],
+    "required_observability_fields": ["duration", "token_usage", "cost"],
+    "missing_reason_fields": [
+        "missing_duration_reason",
+        "missing_token_usage_reason",
+        "missing_cost_reason",
+    ],
+    "missing_reason_policy": "typed_missing_reason_required; do_not_coerce_to_zero",
+}
 REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY = {
     "mas": "study_truth_publication_quality_and_artifact_authority",
     "opl": "agent_lab_runtime_and_work_order_status_projection",
@@ -217,6 +256,10 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
                 "next owner: MAS controller or MDS paper surface",
             ],
         },
+        "closeout_acceptance_requirements": {
+            "coverage_audit": dict(REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT),
+            "stage_attempt_readback": dict(REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT),
+        },
         "self_evolution_trigger": build_reviewer_revision_self_evolution_trigger(payload),
     }
     fast_lane = _build_manuscript_fast_lane_contract(payload)
@@ -359,8 +402,14 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
             "structured_ai_reviewer_evaluation_ref",
             "developer_patch_work_order_ref",
             "opl_work_order_status_ref",
+            "reviewer_revision_coverage_audit_ref",
+            "stage_attempt_readback_ref",
             "target_owner_receipt_or_typed_blocker_ref",
         ],
+        "closeout_acceptance_requirements": {
+            "coverage_audit": dict(REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT),
+            "stage_attempt_readback": dict(REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT),
+        },
         "status_projection": {
             "opl_app_should_show": True,
             "queued_status": "queued_for_agent_lab_external_suite",
@@ -449,6 +498,7 @@ def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any]
         ],
         "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
         "required_packet_refs": list(trigger["required_packet_refs"]),
+        "closeout_acceptance_requirements": dict(trigger["closeout_acceptance_requirements"]),
         "authority_boundary": dict(REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY),
     }
 

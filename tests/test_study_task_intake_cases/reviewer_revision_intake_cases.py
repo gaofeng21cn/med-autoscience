@@ -60,6 +60,18 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
         "opl-meta-agent.execute-external-work-order"
     )
     assert trigger["status_projection"]["opl_app_should_show"] is True
+    assert "reviewer_revision_coverage_audit_ref" in trigger["required_packet_refs"]
+    assert "stage_attempt_readback_ref" in trigger["required_packet_refs"]
+    assert trigger["closeout_acceptance_requirements"]["coverage_audit"][
+        "closeout_without_audit_allowed"
+    ] is False
+    assert trigger["closeout_acceptance_requirements"]["stage_attempt_readback"][
+        "missing_reason_fields"
+    ] == [
+        "missing_duration_reason",
+        "missing_token_usage_reason",
+        "missing_cost_reason",
+    ]
     assert trigger["authority_boundary"]["can_write_owner_receipt"] is False
     assert trigger["authority_boundary"]["can_mutate_current_package"] is False
     selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
@@ -273,6 +285,7 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "tables_figures",
         "follow_up_evidence",
         "discussion_claim_guardrails",
+        "coverage_audit",
         "handoff_evidence_surface",
     ]
     assert summary["revision_intake"]["reactivation_required"] is True
@@ -315,6 +328,12 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "submission_authority_owner_gate_readback_ref",
         "target_owner_receipt_or_typed_blocker_ref",
     ]
+    assert summary["revision_intake"]["closeout_acceptance_requirements"]["coverage_audit"][
+        "required_for_closeout"
+    ] is True
+    assert summary["revision_intake"]["closeout_acceptance_requirements"]["stage_attempt_readback"][
+        "required_observability_fields"
+    ] == ["duration", "token_usage", "cost"]
     assert trigger["authority_boundary"]["can_write_study_truth"] is False
     assert trigger["authority_boundary"]["can_write_typed_blocker"] is False
     assert (
@@ -326,6 +345,7 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     markdown = module.render_task_intake_markdown(payload)
     assert "## Revision Intake Checklist" in markdown
     assert "text revisions" in markdown
+    assert "coverage audit" in markdown
     assert "handoff/evidence surface" in markdown
     assert "stopped/submission-ready/finalize" in markdown
     assert "先通过 OPL current_control_state 按 MAS owner refs 接管 stage attempt" in markdown

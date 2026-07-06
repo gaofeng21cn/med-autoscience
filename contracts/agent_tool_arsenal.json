@@ -9742,6 +9742,76 @@
       },
       {
         "action_triggers": [
+          "reviewer_revision",
+          "return_to_ai_reviewer_workflow",
+          "run_quality_repair_batch"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_provider_admission": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "capability_or_sidecar_can_be_admission_gate": false,
+          "failed_capability_blocks_owner_action": false,
+          "low_confidence_capability_blocks_owner_action": false,
+          "missing_capability_blocks_owner_action": false,
+          "sidecar_completion_required_for_stage_closeout": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "descriptor_only:mas_reviewer_revision_feedbackops_dispatch_request",
+        "capability_family": "feedbackops_oma_work_order",
+        "capability_id": "reviewer_revision_feedbackops_oma_work_order",
+        "capability_ref": "scientific-capability:reviewer_revision_feedbackops_oma_work_order",
+        "contract_refs": [
+          "docs/decisions.md#2026-07-02reviewer-revision-质量反馈默认触发-opl-agent-lab--oma-自进化",
+          "contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism",
+          "src/med_autoscience/study_task_intake_revision.py"
+        ],
+        "current_delta_trigger_reason": "current_delta_declared_reviewer_revision_feedbackops_or_oma_need",
+        "current_delta_trigger_terms": [
+          "reviewer_revision",
+          "major revision",
+          "大修改",
+          "coverage audit",
+          "FeedbackOps",
+          "OMA"
+        ],
+        "descriptor_only": true,
+        "external_runner_invocation_allowed": false,
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+          "artifacts/agent_lab/medical_manuscript_quality/feedbackops_dispatch_request.json",
+          "candidate:developer_patch_work_order_ref",
+          "candidate:reviewer_revision_coverage_audit_ref",
+          "candidate:stage_attempt_readback_ref"
+        ],
+        "refs_only": true,
+        "role": "reviewer_revision_feedbackops_dispatch_oma_work_order_and_coverage_audit_readback_refs_only_descriptor",
+        "source_frameworks": [
+          "MAS reviewer_revision intake",
+          "OPL FeedbackOps",
+          "OPL Agent Lab",
+          "OPL Meta Agent / OMA",
+          "MAS Scholar Skills"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
           "display_pack_orchestrate",
           "display_pack_figure_plan",
           "display_pack_preflight",
@@ -11729,7 +11799,7 @@
         "trigger": "current_delta_declares_or_implies_affordance_need"
       }
     ],
-    "capability_count": 22,
+    "capability_count": 23,
     "default_policy": {
       "always_on_scan": false,
       "external_runtime_dependency": false,

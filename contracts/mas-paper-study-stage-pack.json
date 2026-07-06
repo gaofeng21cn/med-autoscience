@@ -405,6 +405,82 @@
       "canary_can_claim_runtime_ready": false
     }
   },
+  "reviewer_revision_default_mechanism": {
+    "surface_kind": "mas_reviewer_revision_default_mechanism",
+    "schema_version": 1,
+    "trigger": {
+      "task_intake_kind": "reviewer_revision",
+      "large_revision_not_fast_lane": true,
+      "fast_lane_allowed_only_for": [
+        "typo_or_local_wording",
+        "single_formatting_or_caption_microfix",
+        "existing_evidence_text_only_microfix"
+      ],
+      "large_revision_routes": [
+        "structured_revision_checklist",
+        "agent_lab_external_suite",
+        "OPL FeedbackOps",
+        "OMA developer work order or refs-only improvement proposal",
+        "PaperMission owner closeout readback"
+      ]
+    },
+    "structured_revision_checklist_required_items": [
+      "text_revisions",
+      "methods_completeness",
+      "statistical_analysis",
+      "tables_figures",
+      "follow_up_evidence",
+      "discussion_claim_guardrails",
+      "coverage_audit",
+      "handoff_evidence_surface"
+    ],
+    "stage_attempt_readback_contract": {
+      "must_preserve_professional_skill_invocation_refs": true,
+      "professional_skill_ref_families": [
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-figure-design",
+        "medical-submission-prep"
+      ],
+      "required_observability_fields": [
+        "duration",
+        "token_usage",
+        "cost"
+      ],
+      "missing_reason_fields": [
+        "missing_duration_reason",
+        "missing_token_usage_reason",
+        "missing_cost_reason"
+      ],
+      "missing_reason_policy": "typed_missing_reason_required; do_not_coerce_to_zero"
+    },
+    "coverage_audit_closeout_requirement": {
+      "required_for_closeout": true,
+      "minimum_fields": [
+        "feedback_item_id",
+        "requested_change",
+        "revision_action",
+        "status",
+        "evidence_refs",
+        "remaining_gap_or_not_applicable_reason",
+        "owner_readback_ref"
+      ],
+      "accepted_statuses": [
+        "covered",
+        "not_applicable_with_reason",
+        "blocked_with_owner"
+      ],
+      "closeout_without_audit_allowed": false
+    },
+    "authority_boundary": {
+      "mas_keeps_study_truth_and_publication_authority": true,
+      "feedbackops_or_oma_can_write_study_truth": false,
+      "feedbackops_or_oma_can_authorize_publication_ready": false,
+      "coverage_audit_is_acceptance_evidence_not_owner_receipt": true
+    }
+  },
   "stages": [
     {
       "stage_id": "01-study_intake",

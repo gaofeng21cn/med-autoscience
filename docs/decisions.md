@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-06：大修改意见默认进入 reviewer_revision + FeedbackOps/OMA + 覆盖审计
+
+- 决策：用户、导师或审稿层面的大修改意见默认识别为 `reviewer_revision` task intake；大改、补分析、扩正文、补表图、claim-evidence / 方法 / 统计 / 参考文献 / 投稿包影响面均不得走 text-only fast lane。fast lane 只保留错字、局部措辞、单个格式或 caption 微修，并且仍需 MAS 格式记录。
+- 决策：`reviewer_revision` intake 的 structured checklist 必须包含 text revisions、methods completeness、statistical analysis、tables/figures、follow-up evidence、discussion/claim guardrails、coverage audit 与 handoff/evidence surface。coverage audit 是修订 closeout 验收项，必须逐条记录反馈、修订动作、状态、证据 refs、未完成/不适用理由和 owner readback ref。
+- 决策：超过 fast lane 的 reviewer revision 必须物化 Agent Lab suite 与 FeedbackOps dispatch request，并通过 OPL FeedbackOps / OMA 形成 developer work order 或 refs-only improvement proposal；该链路只作为改进与接力 refs，不写 study truth、paper body、publication verdict、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package authority。
+- 决策：stage attempt / suite readback 必须保留专业 skill 调用 refs，并对 duration、token usage、cost 采用 observed-or-missing-with-typed-reason 语义。缺失时写 `missing_duration_reason`、`missing_token_usage_reason`、`missing_cost_reason`，不得用 0、估算、elapsed time 或 transport success 冒充真实用时/token/cost。
+- 影响：本规则落点是 `study_task_intake_revision`、`agent_lab_medical_manuscript_quality`、`scientific_capability_registry` 与 `contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism`。它只固化默认机制，不构成任何 OPL/OMA live acceptance；真实接受仍要看 OPL FeedbackOps/OMA work order status 与 MAS `paper-mission inspect` owner closeout readback。
+
 ## 2026-07-06：MAS 过度设计退役按 OPL-hosted 标准 Agent 边界执行
 
 - 决策：MAS 继续按 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions` 收口。MAS 保留医学研究 truth、stage semantics、AI reviewer / auditor quality gate、publication route、source readiness、artifact authority、owner receipt、typed blocker 和 safe action refs；generic runtime、queue、attempt、lifecycle、workspace shell、package/install、observability 与 generated UI/API 默认上收到 OPL。

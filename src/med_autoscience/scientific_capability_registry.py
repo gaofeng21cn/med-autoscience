@@ -908,6 +908,49 @@ def _capabilities() -> list[dict[str, Any]]:
             ),
         ),
         _capability(
+            capability_id="reviewer_revision_feedbackops_oma_work_order",
+            capability_family="feedbackops_oma_work_order",
+            source_frameworks=[
+                "MAS reviewer_revision intake",
+                "OPL FeedbackOps",
+                "OPL Agent Lab",
+                "OPL Meta Agent / OMA",
+                "MAS Scholar Skills",
+            ],
+            action_triggers=[
+                "reviewer_revision",
+                "return_to_ai_reviewer_workflow",
+                "run_quality_repair_batch",
+            ],
+            current_delta_trigger_terms=[
+                "reviewer_revision",
+                "major revision",
+                "大修改",
+                "coverage audit",
+                "FeedbackOps",
+                "OMA",
+            ],
+            current_delta_trigger_reason="current_delta_declared_reviewer_revision_feedbackops_or_oma_need",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:mas_reviewer_revision_feedbackops_dispatch_request",
+            output_refs=[
+                "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+                "artifacts/agent_lab/medical_manuscript_quality/feedbackops_dispatch_request.json",
+                "candidate:developer_patch_work_order_ref",
+                "candidate:reviewer_revision_coverage_audit_ref",
+                "candidate:stage_attempt_readback_ref",
+            ],
+            contract_refs=[
+                "docs/decisions.md#2026-07-02reviewer-revision-质量反馈默认触发-opl-agent-lab--oma-自进化",
+                "contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism",
+                "src/med_autoscience/study_task_intake_revision.py",
+            ],
+            role=(
+                "reviewer_revision_feedbackops_dispatch_oma_work_order_and_"
+                "coverage_audit_readback_refs_only_descriptor"
+            ),
+        ),
+        _capability(
             capability_id="display_pack_visual_capability",
             capability_family="display_pack",
             source_frameworks=["MAS Display Pack"],

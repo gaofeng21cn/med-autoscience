@@ -229,6 +229,15 @@
         },
         {
           "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:reviewer_revision_feedbackops_oma_work_order:run_quality_repair_batch",
+          "capability_family": "feedbackops_oma_work_order",
+          "capability_id": "reviewer_revision_feedbackops_oma_work_order",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
           "candidate_ref": "scientific-capability:mas-scholar-skills.lit:run_quality_repair_batch",
           "capability_family": "scholarskills_lit",
           "capability_id": "mas-scholar-skills.lit",
@@ -246,7 +255,7 @@
           "requires_explicit_invoke": true
         }
       ],
-      "selected_count": 9,
+      "selected_count": 10,
       "status": "resolved"
     },
     "status": "ready_for_hosted_consumption",

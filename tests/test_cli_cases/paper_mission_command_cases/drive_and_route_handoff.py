@@ -1864,6 +1864,95 @@ def test_paper_mission_drive_submits_current_paper_mission_next_action_envelope_
     _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
 
 
+def test_paper_mission_drive_submits_authoritative_runtime_route_after_route_checkpoint(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+
+    def fake_readback_builder(**kwargs):
+        assert kwargs["paper_mission_command"] == "inspect"
+        return {
+            "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
+            "mission_id": f"paper-mission::{study_id}::reviewer-revision",
+            "objective": "Resume the current write repair work unit.",
+            "study_id": study_id,
+            "paper_mission_current_transaction_source": (
+                "paper_mission_consumption_ledger"
+            ),
+            "selected_outcome": "accepted_submission_milestone_candidate",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "transaction_state": "accepted_submission_milestone_candidate",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "schema_version": 1,
+                "action_id": "next-action-current-write",
+                "study_id": study_id,
+                "stage_id": "write",
+                "outcome_ref": "route-back:paper-mission-terminal-owner-gate",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": (
+                    "domain-transition::route_back_same_line::"
+                    "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+                ),
+                "authority_source": "mas_next_action_compiler",
+                "authority_boundary": {
+                    "projection_only": True,
+                    "next_action_authority": True,
+                    "action_family_authority": True,
+                    "can_submit_to_opl_runtime": True,
+                    "can_write_runtime_queue": False,
+                    "can_write_provider_attempt": False,
+                },
+            },
+            "stage_closure_decision": {
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                    "next_action": (
+                        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                    ),
+                }
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        output_root=workspace_root / "ops" / "medautoscience" / "drive",
+        run_id=None,
+        submit_opl_runtime=True,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert payload["drive_mode"] == "domain_transition_direct_stage_attempt"
+    assert payload["drive_result"]["can_submit_to_opl_runtime"] is True
+    assert payload["drive_result"]["reason"] == "domain_transition_direct_stage_attempt"
+    assert payload["next_action"]["action_kind"] == "submit_to_opl_runtime"
+    assert payload["opl_route_handoff"]["route_target"] == "write"
+    assert payload["opl_route_handoff"]["work_unit_id"] == work_unit_id
+    assert payload["output_manifest"]["candidate_package"] is None
+    assert payload["output_manifest"]["consumption_ledger"] is None
+
+
 def test_paper_mission_drive_submits_domain_transition_owner_workflow_after_route_back_checkpoint(
     tmp_path: Path,
 ) -> None:

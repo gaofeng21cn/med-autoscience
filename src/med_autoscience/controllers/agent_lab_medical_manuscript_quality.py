@@ -62,6 +62,41 @@ PAPER_MISSION_SUBORDINATION = {
     "can_bypass_submission_authority": False,
     "can_close_without_owner_gate_or_typed_blocker": False,
 }
+REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT = {
+    "surface_kind": "mas_reviewer_revision_coverage_audit_requirement",
+    "required_for_closeout": True,
+    "minimum_fields": [
+        "feedback_item_id",
+        "requested_change",
+        "revision_action",
+        "status",
+        "evidence_refs",
+        "remaining_gap_or_not_applicable_reason",
+        "owner_readback_ref",
+    ],
+    "accepted_statuses": ["covered", "not_applicable_with_reason", "blocked_with_owner"],
+    "closeout_without_audit_allowed": False,
+}
+REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT = {
+    "surface_kind": "mas_reviewer_revision_stage_attempt_readback_requirement",
+    "required_for_closeout": True,
+    "must_preserve_professional_skill_invocation_refs": True,
+    "professional_skill_ref_families": [
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-figure-design",
+        "medical-submission-prep",
+    ],
+    "required_observability_fields": ["duration", "token_usage", "cost"],
+    "missing_reason_fields": [
+        "missing_duration_reason",
+        "missing_token_usage_reason",
+        "missing_cost_reason",
+    ],
+    "missing_reason_policy": "typed_missing_reason_required; do_not_coerce_to_zero",
+}
 
 
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
@@ -188,6 +223,9 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "repair_refs": blocker_refs,
             "trace_refs": ["trace-ref:agent-lab/mas-high-quality-medical-manuscript"],
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            "stage_attempt_readback_requirement": dict(
+                REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT
+            ),
         },
         "mechanism_evolution_inputs": mechanism_inputs,
         "scorecard": {
@@ -228,6 +266,10 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "gate_ref": promotion_gate_ref,
             "gate_status": "passed" if scorecard_passed else "blocked",
             "required_refs": [scorecard_ref, "owner-receipt:mas/ai-reviewer-publication-eval"],
+            "closeout_acceptance_refs": [
+                "reviewer_revision_coverage_audit_ref",
+                "stage_attempt_readback_ref",
+            ],
             "regression_suite_refs": [
                 "regression-suite:mas/ai-first-quality-boundary",
                 "regression-suite:mas/paper-authority-clean-migration",
@@ -246,6 +288,10 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "owner_or_human_gate_refs": owner_route_refs,
             "failure_delta_refs": failure_delta_refs,
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+        "closeout_acceptance_requirements": {
+            "coverage_audit": dict(REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT),
+            "stage_attempt_readback": dict(REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT),
         },
     }
     task["patch_loop_closeout_bundle"] = build_refs_only_patch_loop_closeout_bundle(
@@ -335,8 +381,14 @@ def _feedback_self_evolution_trigger(
             "structured_ai_reviewer_evaluation_ref",
             "developer_patch_work_order_ref",
             "opl_work_order_status_ref",
+            "reviewer_revision_coverage_audit_ref",
+            "stage_attempt_readback_ref",
             "target_owner_receipt_or_typed_blocker_ref",
         ],
+        "closeout_acceptance_requirements": {
+            "coverage_audit": dict(REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT),
+            "stage_attempt_readback": dict(REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT),
+        },
         "opl_app_status_projection": {
             "should_register_stage_run": True,
             "status_surface_kind": "opl_agent_lab_domain_feedback_self_evolution_status",

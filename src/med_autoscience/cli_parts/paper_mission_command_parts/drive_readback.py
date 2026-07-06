@@ -446,6 +446,13 @@ def _drive_should_submit_direct_next_action(
         and (
             canonical_source == "paper_mission_next_action_envelope"
             or bool(_mapping(readback.get("terminal_owner_gate")))
+            or (
+                _drive_readback_has_submission_route_checkpoint(readback)
+                and _drive_next_action_has_submit_authority(
+                    next_action=next_action,
+                    authority_boundary=authority_boundary,
+                )
+            )
         )
     ):
         return True
@@ -461,6 +468,30 @@ def _drive_should_submit_direct_next_action(
         and _optional_text(next_action.get("work_unit_id")) is not None
         and not _drive_direct_next_action_already_owner_consumed(readback, next_action)
     )
+
+
+def _drive_next_action_has_submit_authority(
+    *,
+    next_action: Mapping[str, Any],
+    authority_boundary: Mapping[str, Any],
+) -> bool:
+    if authority_boundary.get("can_submit_to_opl_runtime") is not True:
+        return False
+    return _optional_text(next_action.get("authority_source")) == "mas_next_action_compiler"
+
+
+def _drive_readback_has_submission_route_checkpoint(readback: Mapping[str, Any]) -> bool:
+    transaction_state = _optional_text(readback.get("transaction_state"))
+    consume_status = _optional_text(readback.get("consume_candidate_status"))
+    selected_outcome = _optional_text(readback.get("selected_outcome"))
+    if "accepted_submission_milestone_candidate" not in {
+        transaction_state,
+        consume_status,
+        selected_outcome,
+    }:
+        return False
+    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
+    return _optional_text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint"
 
 
 def _drive_direct_next_action_already_owner_consumed(
