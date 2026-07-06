@@ -9980,7 +9980,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10217,7 +10218,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10456,7 +10458,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10694,7 +10697,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -10931,7 +10935,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -11168,7 +11173,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -11406,7 +11412,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -11673,7 +11680,8 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_path": "plugins/mas-scholar-skills",
+          "mas_program_repo_mirror_status": "physically_retired",
+          "mas_program_repo_mirror_must_exist": false,
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
@@ -12291,8 +12299,9 @@
       "mas_program_repo_mirror": {
         "default_execution_source": false,
         "paper_execution_available": false,
-        "path": "plugins/mas-scholar-skills",
-        "role": "dev_review_only_or_retired"
+        "physical_status": "retired_absent",
+        "must_exist_in_mas_repo": false,
+        "role": "tombstone_only"
       },
       "mas_program_repo_plugin_is_execution_source": false,
       "quest": {

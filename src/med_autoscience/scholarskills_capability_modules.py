@@ -8,7 +8,7 @@ from med_autoscience.scholarskills_package_consumption import (
 )
 from med_autoscience.scholarskills_local_install import (
     SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF,
-    SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH,
+    SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS,
     SCHOLARSKILLS_SOURCE_REPO_REF,
     build_scholarskills_local_install_template,
 )
@@ -731,7 +731,8 @@ def _capability_payload(
             "install_scopes": ["workspace", "quest"],
             "workspace": build_scholarskills_local_install_template()["workspace"],
             "quest": build_scholarskills_local_install_template()["quest"],
-            "mas_program_repo_mirror_path": SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH,
+            "mas_program_repo_mirror_status": SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS,
+            "mas_program_repo_mirror_must_exist": False,
             "mas_program_repo_plugin_is_execution_source": False,
             "owner_gated_refs_consumption": True,
         },

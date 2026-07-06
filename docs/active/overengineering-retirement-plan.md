@@ -32,6 +32,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 | P0 | Wildcard-import facade | 迁移 active callers 到真实模块，删除/收薄 `controllers/submission_minimal.py`、`study_progress.py`、`study_runtime_decision.py`、`product_entry.py`、`medical_publication_surface.py` 等 facade tail。 | `rg` 无 active import 依赖退役 facade；focused CLI/domain-handler tests。 |
 | P1 | Display pack vendoring / `setup.py` projection | 明确 display-pack 版本化来源；删除自定义复制路径，或把它降为显式 dev/provenance helper。 | package/build smoke；display focused tests；no hidden generated resource inventory。 |
 | P1 | Root demo artifacts | 删除或移入 history/assets 未被 active tests/source 引用的 `Rplots.pdf`、`visual_qa_demo.png`。 | `rg` 引用证明；git diff sanity；visual/paper tests 不依赖 root artifact。 |
+| P1 | ScholarSkills repo-local mirror | 保持 MAS 仓内 ScholarSkills mirror 物理退役 / 缺席；外部 `mas-scholar-skills` repo 与 workspace/quest `.codex/skills` 同步链路继续作为 canonical source / install path。 | `git ls-files 'plugins/*scholar*'` 无 tracked mirror；focused ScholarSkills capability / arsenal tests；no forbidden MAS runtime writes。 |
 | P2 | 超大测试 / fixture | 将 narrative/compat/alias assertions 收敛成 semantic case modules；删除重复实现细节。 | line budget；focused tests；`scripts/verify.sh` appropriate lane。 |
 
 ## P0 runtime/control-plane tail 执行注记
@@ -67,6 +68,12 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - Follow-up cleanup：`sync_agent_entry_assets` no longer writes the deleted template YAML; public-entry tests, preflight classification refs, skeleton mapping, and docs now point to canonical `agent/stages/stage_route_contract.yaml` plus packaged `src/med_autoscience/resources/stage_route_contract.yaml`.
 - Follow-up verification：`rg -n "templates/stage_route_contract\.yaml" . --glob '!uv.lock'` -> no matches；`rtk proxy scripts/run-python-clean.sh -m pytest tests/test_stage_route_assets.py tests/test_stage_route_contract.py tests/test_stage_route_ordinary_progress_handoff_contract.py tests/test_cli_cases/public_entry_commands.py tests/test_dev_preflight_contract.py tests/dev_preflight_contract_cases/classification_and_surface_cases.py tests/test_opl_family_persistence_adapter.py -k 'stage_route or sync_agent_entry_assets or preflight or skeleton'` -> 123 passed, 37 deselected；`rtk proxy scripts/run-build-clean.sh --outdir /tmp/mas-stage-route-lane-c-dist-v2` -> sdist/wheel built；archive readback confirms package resource present and deleted template absent.
 - 本 lane 只收薄 stage-route contract packaging/source duplication；不写 study truth、paper body、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+
+## 2026-07-06 P1 ScholarSkills repo-local mirror retirement evidence
+
+- 两个 legacy ScholarSkills plugin mirror 目录在本 lane checkout 中均无 tracked 文件；MAS 程序仓不再携带 ScholarSkills repo-local mirror。
+- `docs/decisions.md` 与 `docs/runtime/designs/mas_opl_capability_module_operating_model.md` 已把 mirror 口径从 `dev/review` 改为 `physically retired / tombstone-only`；外部 `mas-scholar-skills` repo、`scientific_capability_registry`、capability map truth 和 workspace/quest `.codex/skills/<skill_id>` 同步链路保持 canonical。
+- `src/med_autoscience/scholarskills_local_install.py`、`src/med_autoscience/scholarskills_capability_modules.py` 与 `contracts/agent_tool_arsenal.json` 中的 ScholarSkills local install surface 已把 MAS program repo mirror 标为 `physically_retired` / `must_exist=false`；该 readback 只表达 no-authority install/tombstone 边界，不授权 MAS 复制、安装或执行 repo-local mirror，也不输出应存在的 repo-local mirror path。
 
 ## 2026-07-06 P2 test surface cleanup evidence
 

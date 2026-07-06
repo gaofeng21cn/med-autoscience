@@ -195,7 +195,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "enable_autofigure_edit" not in profile_text
     assert "autofigure_edit_bootstrap_mode" not in profile_text
     assert "autofigure_edit_service_url" not in profile_text
-    assert "plugins/mas-scholar-skills" not in profile_text
+    assert not ("plugins/" in profile_text and "scholar-skills" in profile_text)
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
     med_shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"

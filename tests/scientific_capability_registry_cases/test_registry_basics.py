@@ -213,9 +213,18 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     ] == "<quest_root>/.codex/skills/medical-survival-analysis-plan"
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
+    assert registry["scholarskills_local_install"]["mas_program_repo_mirror"] == {
+        "default_execution_source": False,
+        "paper_execution_available": False,
+        "physical_status": "retired_absent",
+        "must_exist_in_mas_repo": False,
+        "role": "tombstone_only",
+    }
 
     assert candidate["source_repo_ref"] == "external:mas-scholar-skills"
     assert candidate["local_install"]["install_scopes"] == ["workspace", "quest"]
+    assert candidate["local_install"]["mas_program_repo_mirror_status"] == "physically_retired"
+    assert candidate["local_install"]["mas_program_repo_mirror_must_exist"] is False
     assert candidate["local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert candidate["local_install"]["workspace"]["target_skill_path_template"] == (
         "<workspace_root>/.codex/skills/mas-scholar-skills"

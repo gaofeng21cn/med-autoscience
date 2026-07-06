@@ -32,7 +32,7 @@ SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
 )
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"
-SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH = "plugins/mas-scholar-skills"
+SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS = "physically_retired"
 SCHEMA_VERSION = 1
 
 
@@ -239,10 +239,11 @@ def _optional_skill_policy() -> dict[str, Any]:
 
 def _mas_program_repo_mirror() -> dict[str, Any]:
     return {
-        "path": SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH,
-        "role": "dev_review_only_or_retired",
         "default_execution_source": False,
         "paper_execution_available": False,
+        "physical_status": "retired_absent",
+        "must_exist_in_mas_repo": False,
+        "role": "tombstone_only",
     }
 
 
@@ -266,7 +267,7 @@ def _authority_boundary() -> dict[str, bool]:
 __all__ = [
     "SCHOLARSKILLS_DOMAIN",
     "SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF",
-    "SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH",
+    "SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS",
     "SCHOLARSKILLS_DEFAULT_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_SKILL_IDS",
     "SCHOLARSKILLS_SKILL_ID",
