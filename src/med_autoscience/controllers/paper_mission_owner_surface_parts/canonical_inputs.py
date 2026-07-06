@@ -5,9 +5,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_macro_state, study_progress, domain_status_projection
+from med_autoscience.controllers import study_macro_state, domain_status_projection
 from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -20,7 +21,7 @@ def read_study_projection_inputs(
     progress_reader: Any | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], str | None, dict[str, Any]]:
     resolved_status_reader = status_reader or domain_status_projection.progress_projection
-    resolved_progress_reader = progress_reader or study_progress.read_study_progress
+    resolved_progress_reader = progress_reader or read_study_progress
     status = resolved_status_reader(
         profile=profile,
         study_id=study_id,

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import current_execution_envelope, domain_status_projection, study_progress
+from med_autoscience.controllers import current_execution_envelope, domain_status_projection
 from med_autoscience.controllers.paper_mission_owner_surface_parts import action_projection, artifact_freshness
 from med_autoscience.controllers.paper_mission_owner_surface_parts import ai_reviewer, canonical_inputs
 from med_autoscience.controllers.paper_mission_owner_surface_parts import block_state as block_state_part, completion_evidence
@@ -27,6 +27,7 @@ from med_autoscience.controllers.paper_mission_owner_surface_parts import story_
 from med_autoscience.controllers.paper_mission_owner_surface_parts import submission_milestone_parking
 from med_autoscience.controllers.paper_mission_owner_surface_parts import submission_milestone_projection, workspace_daemon
 from med_autoscience.controllers.paper_mission_owner_surface_parts import supervision_surfaces
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import opl_state_index_source_adapter
@@ -257,7 +258,7 @@ def _read_study_projection_inputs(
         study_id=study_id,
         study_root=study_root,
         status_reader=domain_status_projection.progress_projection,
-        progress_reader=study_progress.read_study_progress,
+        progress_reader=read_study_progress,
     )
 
 
@@ -440,7 +441,7 @@ def _study_projection(
         )
         if submission_milestone_projection.applied(submission_milestone_parked_refresh):
             progress_payload = _mapping(
-                study_progress.read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
+                read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
             )
             status_payload, progress_payload = _attach_study_macro_state(
                 study_id=study_id,
