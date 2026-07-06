@@ -351,6 +351,11 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
         terminal_carrier=terminal_carrier,
     ):
         carrier = terminal_carrier
+    if _terminal_carrier_is_newer_consumable_than_current(
+        current_carrier=current_carrier,
+        terminal_carrier=terminal_carrier,
+    ):
+        carrier = terminal_carrier
     if not _has_consumable_receipt(carrier) and _has_consumable_receipt(terminal_carrier):
         carrier = terminal_carrier
     if not carrier:
@@ -383,6 +388,50 @@ def _terminal_carrier_requires_consumption_after_current_consumed(
             "owner_consumption_applied",
         }
         and _consumption_status(terminal_carrier) == "requires_mas_owner_consumption"
+    )
+
+
+def _terminal_carrier_is_newer_consumable_than_current(
+    *,
+    current_carrier: Mapping[str, Any],
+    terminal_carrier: Mapping[str, Any],
+) -> bool:
+    if not (_has_consumable_receipt(current_carrier) and _has_consumable_receipt(terminal_carrier)):
+        return False
+    if _consumption_status(current_carrier) != "requires_mas_owner_consumption":
+        return False
+    if _consumption_status(terminal_carrier) != "requires_mas_owner_consumption":
+        return False
+    current_attempt_id = _carrier_stage_attempt_id(current_carrier)
+    terminal_attempt_id = _carrier_stage_attempt_id(terminal_carrier)
+    if current_attempt_id is None or terminal_attempt_id is None:
+        return False
+    if current_attempt_id == terminal_attempt_id:
+        return False
+    return _ref_newer(
+        candidate=_carrier_closeout_ref(terminal_carrier),
+        current=_carrier_closeout_ref(current_carrier),
+    )
+
+
+def _carrier_stage_attempt_id(carrier: Mapping[str, Any]) -> str | None:
+    return _first_text(
+        _mapping(carrier.get("terminal_closeout")).get("stage_attempt_id"),
+        _mapping(carrier.get("opl_transition_receipt")).get("stage_attempt_id"),
+        _mapping(carrier.get("receipt_evidence")).get("stage_attempt_id"),
+    )
+
+
+def _carrier_closeout_ref(carrier: Mapping[str, Any]) -> str | None:
+    receipt = _mapping(carrier.get("opl_transition_receipt"))
+    evidence = _mapping(carrier.get("receipt_evidence"))
+    closeout = _mapping(carrier.get("terminal_closeout"))
+    return _first_currentness_ref(
+        evidence.get("runtime_closeout_ref"),
+        evidence.get("route_checkpoint_evidence_ref"),
+        receipt.get("runtime_closeout_ref"),
+        receipt.get("runtime_closeout_readback_ref"),
+        closeout.get("closeout_ref"),
     )
 
 
