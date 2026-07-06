@@ -9980,11 +9980,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -10020,6 +10030,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -10218,11 +10238,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -10258,6 +10288,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -10458,11 +10498,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -10498,6 +10548,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -10697,11 +10757,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -10737,6 +10807,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -10935,11 +11015,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -10975,6 +11065,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -11173,11 +11273,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -11213,6 +11323,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -11412,11 +11532,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -11452,6 +11582,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -11680,11 +11820,21 @@
             "workspace",
             "quest"
           ],
-          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_mirror_must_exist": false,
+          "mas_program_repo_mirror_status": "physically_retired",
           "mas_program_repo_plugin_is_execution_source": false,
           "owner_gated_refs_consumption": true,
           "quest": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "quest",
             "sync_command_template": {
               "argv": [
@@ -11720,6 +11870,16 @@
           },
           "source_repo_ref": "external:mas-scholar-skills",
           "workspace": {
+            "optional_target_skill_path_templates": {
+              "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+              "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+              "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+              "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+              "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+              "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+              "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+              "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+            },
             "scope": "workspace",
             "sync_command_template": {
               "argv": [
@@ -12298,13 +12458,45 @@
       "install_owner": "one-person-lab",
       "mas_program_repo_mirror": {
         "default_execution_source": false,
+        "must_exist_in_mas_repo": false,
         "paper_execution_available": false,
         "physical_status": "retired_absent",
-        "must_exist_in_mas_repo": false,
         "role": "tombstone_only"
       },
       "mas_program_repo_plugin_is_execution_source": false,
+      "optional_skill_ids": [
+        "medical-protocol-and-sap-planner",
+        "medical-cohort-phenotyping",
+        "medical-evidence-synthesis-and-claim-map",
+        "medical-reference-integrity-auditor",
+        "medical-rebuttal-strategy",
+        "medical-display-qc",
+        "medical-causal-inference-plan",
+        "medical-survival-analysis-plan"
+      ],
+      "optional_skill_policy": {
+        "body_included": false,
+        "default_core": false,
+        "materialization_owner": "one-person-lab",
+        "missing_optional_skills_block_mas_ordinary_progress": false,
+        "refs_only": true,
+        "source_contract_ref": "external:mas-scholar-skills/contracts/scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy",
+        "source_repo_ref": "external:mas-scholar-skills",
+        "surface": "optional_medical_method_specialist_skills",
+        "sync_path": "opl_connect_source_materialization",
+        "writes_authority": false
+      },
       "quest": {
+        "optional_target_skill_path_templates": {
+          "medical-causal-inference-plan": "<quest_root>/.codex/skills/medical-causal-inference-plan",
+          "medical-cohort-phenotyping": "<quest_root>/.codex/skills/medical-cohort-phenotyping",
+          "medical-display-qc": "<quest_root>/.codex/skills/medical-display-qc",
+          "medical-evidence-synthesis-and-claim-map": "<quest_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+          "medical-protocol-and-sap-planner": "<quest_root>/.codex/skills/medical-protocol-and-sap-planner",
+          "medical-rebuttal-strategy": "<quest_root>/.codex/skills/medical-rebuttal-strategy",
+          "medical-reference-integrity-auditor": "<quest_root>/.codex/skills/medical-reference-integrity-auditor",
+          "medical-survival-analysis-plan": "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+        },
         "scope": "quest",
         "sync_command_template": {
           "argv": [
@@ -12356,6 +12548,16 @@
         "medical-data-governance"
       ],
       "workspace": {
+        "optional_target_skill_path_templates": {
+          "medical-causal-inference-plan": "<workspace_root>/.codex/skills/medical-causal-inference-plan",
+          "medical-cohort-phenotyping": "<workspace_root>/.codex/skills/medical-cohort-phenotyping",
+          "medical-display-qc": "<workspace_root>/.codex/skills/medical-display-qc",
+          "medical-evidence-synthesis-and-claim-map": "<workspace_root>/.codex/skills/medical-evidence-synthesis-and-claim-map",
+          "medical-protocol-and-sap-planner": "<workspace_root>/.codex/skills/medical-protocol-and-sap-planner",
+          "medical-rebuttal-strategy": "<workspace_root>/.codex/skills/medical-rebuttal-strategy",
+          "medical-reference-integrity-auditor": "<workspace_root>/.codex/skills/medical-reference-integrity-auditor",
+          "medical-survival-analysis-plan": "<workspace_root>/.codex/skills/medical-survival-analysis-plan"
+        },
         "scope": "workspace",
         "sync_command_template": {
           "argv": [
