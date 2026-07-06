@@ -246,7 +246,7 @@ def _archive_names(path: Path) -> set[str]:
         return set(archive.getnames())
 
 
-def test_build_projects_stage_route_contract_without_display_pack_resource_inventory(tmp_path: Path) -> None:
+def test_build_packages_tracked_stage_route_contract_without_setup_hook(tmp_path: Path) -> None:
     fixture_root = tmp_path / "sdist-fixture"
     ignored_roots = {
         ".codegraph",
@@ -263,6 +263,7 @@ def test_build_projects_stage_route_contract_without_display_pack_resource_inven
         return set(names) & ignored_roots
 
     shutil.copytree(REPO_ROOT, fixture_root, ignore=ignore)
+    assert not (fixture_root / "setup.py").exists()
 
     result = subprocess.run(
         [
@@ -287,6 +288,7 @@ def test_build_projects_stage_route_contract_without_display_pack_resource_inven
     for archive_path in archives:
         names = _archive_names(archive_path)
         assert any(name.endswith("med_autoscience/resources/stage_route_contract.yaml") for name in names)
+        assert not any(name.endswith("/setup.py") or name == "setup.py" for name in names)
         assert not any("/display_pack_repo/" in name or name.endswith("/display_pack_repo") for name in names)
 
 

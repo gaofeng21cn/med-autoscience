@@ -54,7 +54,6 @@ def test_repo_public_agent_entry_assets_match_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     expected_assets = {
         repo_root / "docs" / "runtime" / "contracts" / "stage_route_contract.md": render_stage_route_contract_guide(),
-        repo_root / "templates" / "stage_route_contract.yaml": render_public_yaml(),
         repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
         repo_root / "src" / "med_autoscience" / "resources" / "stage_route_contract.yaml": render_public_yaml(),
@@ -63,17 +62,16 @@ def test_repo_public_agent_entry_assets_match_renderers() -> None:
     for output_path, expected_content in expected_assets.items():
         assert output_path.is_file()
         assert output_path.read_text(encoding="utf-8") == expected_content
+    assert not (repo_root / "templates" / "stage_route_contract.yaml").exists()
 
 
-def test_packaged_and_template_stage_route_contracts_match_canonical_payload() -> None:
+def test_packaged_stage_route_contract_matches_canonical_payload_without_template_copy() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     expected_payload = load_stage_route_contract_payload()
 
-    for path in (
-        repo_root / "templates" / "stage_route_contract.yaml",
-        repo_root / "src" / "med_autoscience" / "resources" / "stage_route_contract.yaml",
-    ):
-        assert yaml.safe_load(path.read_text(encoding="utf-8")) == expected_payload
+    packaged_resource = repo_root / "src" / "med_autoscience" / "resources" / "stage_route_contract.yaml"
+    assert yaml.safe_load(packaged_resource.read_text(encoding="utf-8")) == expected_payload
+    assert not (repo_root / "templates" / "stage_route_contract.yaml").exists()
 
 
 def test_render_public_yaml_round_trip_matches_canonical_payload() -> None:

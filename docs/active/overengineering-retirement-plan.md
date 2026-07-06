@@ -57,6 +57,15 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `study_runtime_decision.py`：已把 `domain_status_projection.py` 的 `_status_payload` / `_status_state` / `_record_quest_runtime_audits` 迁到真实 parts；facade 仍被 publication runtime / gate dynamic import 和 parts `__name__` guard 使用，typed blocker 为 `facade_active_runtime_controller_identity`.
 - `study_progress.py`、`product_entry.py`、`medical_publication_surface.py`：production surface 仍存在 controller identity / `sys.modules` 依赖，测试 exact facade imports 分别为 71 / 38 / 11 个文件；本轮不做批量 public surface 删除，typed blocker 为 `facade_active_public_import_surface`.
 
+## 2026-07-06 P1 stage route contract source cleanup evidence
+
+- `stage_route_contract` loader 真实路径：源码 checkout 优先读取 `agent/stages/stage_route_contract.yaml`；安装包环境回落到 `med_autoscience.resources/stage_route_contract.yaml`。两者 YAML payload 等价，package resource 是显式 tracked package-data，不再靠 build hook 从 `agent/stages` 私下复制。
+- 已删除 `setup.py` 私有 `build_py` / `sdist` copy hook；`pyproject.toml` 现有 `[tool.setuptools.package-data]` 继续声明 `med_autoscience.resources = ["stage_route_contract.yaml"]`，`MANIFEST.in` 显式包含 package resource 与 canonical agent source。
+- 已删除 repo-tracked `templates/stage_route_contract.yaml` 第三份同内容 YAML；当前保留口径是一个 canonical source (`agent/stages/stage_route_contract.yaml`) 加一个 packaged resource (`src/med_autoscience/resources/stage_route_contract.yaml`)。
+- Fresh verification：`rtk proxy scripts/run-python-clean.sh -m pytest tests/test_stage_route_assets.py tests/test_stage_route_contract.py tests/test_stage_route_ordinary_progress_handoff_contract.py tests/test_release_workflow.py` -> 47 passed；`rtk proxy scripts/run-build-clean.sh` -> sdist/wheel built；`rtk proxy git diff --check` -> clean。
+- Archive readback from `/tmp/mas-stage-route-lane-c-dist`：wheel/sdist both contain `med_autoscience/resources/stage_route_contract.yaml`; neither contains `setup.py` nor `templates/stage_route_contract.yaml`; sdist still contains `agent/stages/stage_route_contract.yaml`.
+- 本 lane 只收薄 stage-route contract packaging/source duplication；不写 study truth、paper body、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+
 ## 2026-07-06 P2 test surface cleanup evidence
 
 - `tests/test_cli_cases/paper_mission_command_cases/materialized_readback.py` 已把 stage-closure-ledger 相关 case 拆到 `tests/test_cli_cases/paper_mission_command_cases/materialized_readback_cases/test_stage_closure_ledger_readback.py`；原入口从约 1705 行降到约 1471 行，回到 preferred boundary advisory 范围。
