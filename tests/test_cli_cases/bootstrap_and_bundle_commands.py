@@ -113,19 +113,13 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
     payload = json.loads(captured.out)
-    assert payload["scholarskills_local_install"]["synced_skill_ids"] == [
-        "mas-scholar-skills",
-        "medical-research-lit",
-        "medical-manuscript-writing",
-        "medical-manuscript-review",
-        "medical-figure-design",
-        "medical-figure-style",
-        "medical-figure-composer",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-submission-prep",
-        "medical-data-governance",
-    ]
+    install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
+    default_skill_ids = install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS
+    optional_skill_ids = install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
+    assert payload["scholarskills_local_install"]["synced_skill_ids"] == list(default_skill_ids)
+    assert payload["scholarskills_local_install"]["optional_skill_ids"] == list(optional_skill_ids)
+    assert "medical-protocol-and-sap-planner" in optional_skill_ids
+    assert "medical-protocol-and-sap-planner" not in default_skill_ids
     workspace_install = payload["scholarskills_local_install"]["workspace"]
     quest_install = payload["scholarskills_local_install"]["quest"]
     assert workspace_install["target_skill_path"] == str(
@@ -143,6 +137,10 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert workspace_install["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"
     )
+    assert workspace_install["optional_target_skill_paths"]["medical-protocol-and-sap-planner"] == str(
+        workspace_root / ".codex" / "skills" / "medical-protocol-and-sap-planner"
+    )
+    assert "medical-protocol-and-sap-planner" not in workspace_install["target_skill_paths"]
     assert workspace_install["sync_command"]["argv"] == [
         "opl",
         "connect",
@@ -163,6 +161,15 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     assert quest_install["target_skill_path_templates"]["medical-table-design"] == str(
         workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-table-design"
+    )
+    assert quest_install["optional_target_skill_path_templates"]["medical-survival-analysis-plan"] == str(
+        workspace_root
+        / "runtime"
+        / "quests"
+        / "<quest_id>"
+        / ".codex"
+        / "skills"
+        / "medical-survival-analysis-plan"
     )
     assert payload["scholarskills_local_install"]["authority_boundary"]["writes_yang_authority"] is False
     assert not install_service.exists()

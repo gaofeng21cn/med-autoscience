@@ -78,19 +78,11 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert strategy_seed["authority_boundary"]["can_score_or_select_route"] is False
     assert str(workspace_root / "studies") not in layout["body_plane"]["root"]
     scholarskills_install = result["scholarskills_local_install"]
-    assert scholarskills_install["synced_skill_ids"] == [
-        "mas-scholar-skills",
-        "medical-research-lit",
-        "medical-manuscript-writing",
-        "medical-manuscript-review",
-        "medical-figure-design",
-        "medical-figure-style",
-        "medical-figure-composer",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-submission-prep",
-        "medical-data-governance",
-    ]
+    install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
+    assert scholarskills_install["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
+    assert scholarskills_install["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
+    assert "medical-cohort-phenotyping" in scholarskills_install["optional_skill_ids"]
+    assert "medical-cohort-phenotyping" not in scholarskills_install["synced_skill_ids"]
     assert scholarskills_install["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
@@ -106,6 +98,10 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert scholarskills_install["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"
     )
+    assert scholarskills_install["workspace"]["optional_target_skill_paths"]["medical-cohort-phenotyping"] == str(
+        workspace_root / ".codex" / "skills" / "medical-cohort-phenotyping"
+    )
+    assert "medical-cohort-phenotyping" not in scholarskills_install["workspace"]["target_skill_paths"]
     assert scholarskills_install["workspace"]["sync_command"]["argv"] == [
         "opl",
         "connect",
@@ -126,6 +122,9 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     )
     assert scholarskills_install["quest"]["target_skill_path_templates"]["medical-submission-prep"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-submission-prep")
+    )
+    assert scholarskills_install["quest"]["optional_target_skill_path_templates"]["medical-display-qc"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-display-qc")
     )
     assert scholarskills_install["authority_boundary"]["writes_yang_authority"] is False
     assert scholarskills_install["authority_boundary"]["writes_runtime_authority"] is False

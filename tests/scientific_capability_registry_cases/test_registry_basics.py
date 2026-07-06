@@ -129,25 +129,36 @@ def test_registry_resolves_reviewer_revision_feedbackops_oma_descriptor() -> Non
 
 def test_scholarskills_registry_declares_workspace_local_install_boundary() -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
 
     registry = module.build_scientific_capability_registry()
     capabilities = {item["capability_id"]: item for item in registry["capabilities"]}
     candidate = capabilities["mas-scholar-skills.write"]
 
     assert registry["scholarskills_local_install"]["install_owner"] == "one-person-lab"
-    assert registry["scholarskills_local_install"]["synced_skill_ids"] == [
-        "mas-scholar-skills",
-        "medical-research-lit",
-        "medical-manuscript-writing",
-        "medical-manuscript-review",
-        "medical-figure-design",
-        "medical-figure-style",
-        "medical-figure-composer",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-submission-prep",
-        "medical-data-governance",
-    ]
+    assert registry["scholarskills_local_install"]["synced_skill_ids"] == list(
+        install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS
+    )
+    assert registry["scholarskills_local_install"]["optional_skill_ids"] == list(
+        install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
+    )
+    assert "medical-rebuttal-strategy" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-rebuttal-strategy" not in registry["scholarskills_local_install"]["synced_skill_ids"]
+    assert registry["scholarskills_local_install"]["optional_skill_policy"] == {
+        "surface": "optional_medical_method_specialist_skills",
+        "source_repo_ref": "external:mas-scholar-skills",
+        "source_contract_ref": (
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy"
+        ),
+        "materialization_owner": "one-person-lab",
+        "sync_path": "opl_connect_source_materialization",
+        "refs_only": True,
+        "body_included": False,
+        "default_core": False,
+        "missing_optional_skills_block_mas_ordinary_progress": False,
+        "writes_authority": False,
+    }
     assert registry["scholarskills_local_install"]["workspace"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
@@ -172,6 +183,13 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
         "medical-figure-composer"
     ] == "<workspace_root>/.codex/skills/medical-figure-composer"
+    assert registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"][
+        "medical-rebuttal-strategy"
+    ] == "<workspace_root>/.codex/skills/medical-rebuttal-strategy"
+    assert (
+        "medical-rebuttal-strategy"
+        not in registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"]
+    )
     assert registry["scholarskills_local_install"]["quest"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",
@@ -190,6 +208,9 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["quest"]["target_skill_path_templates"][
         "medical-statistical-review"
     ] == "<quest_root>/.codex/skills/medical-statistical-review"
+    assert registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"][
+        "medical-survival-analysis-plan"
+    ] == "<quest_root>/.codex/skills/medical-survival-analysis-plan"
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
 

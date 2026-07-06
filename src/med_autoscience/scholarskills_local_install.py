@@ -20,6 +20,16 @@ SCHOLARSKILLS_DEFAULT_SKILL_IDS = (
     "medical-submission-prep",
     "medical-data-governance",
 )
+SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
+    "medical-protocol-and-sap-planner",
+    "medical-cohort-phenotyping",
+    "medical-evidence-synthesis-and-claim-map",
+    "medical-reference-integrity-auditor",
+    "medical-rebuttal-strategy",
+    "medical-display-qc",
+    "medical-causal-inference-plan",
+    "medical-survival-analysis-plan",
+)
 SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF = "readback:mas_scholarskills_local_install"
 SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH = "plugins/mas-scholar-skills"
@@ -60,15 +70,21 @@ def build_scholarskills_local_install_template() -> dict[str, Any]:
         "domain": SCHOLARSKILLS_DOMAIN,
         "skill_id": SCHOLARSKILLS_SKILL_ID,
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
+        "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
+        "optional_skill_policy": _optional_skill_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
         "workspace": {
             "scope": "workspace",
             "target_skill_path_template": f"<workspace_root>/.codex/skills/{SCHOLARSKILLS_SKILL_ID}",
-            "target_skill_path_templates": {
-                skill_id: f"<workspace_root>/.codex/skills/{skill_id}"
-                for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
-            },
+            "target_skill_path_templates": _target_skill_path_templates(
+                "<workspace_root>",
+                skill_ids=SCHOLARSKILLS_DEFAULT_SKILL_IDS,
+            ),
+            "optional_target_skill_path_templates": _target_skill_path_templates(
+                "<workspace_root>",
+                skill_ids=SCHOLARSKILLS_OPTIONAL_SKILL_IDS,
+            ),
             "sync_command_template": build_scholarskills_sync_command(
                 scope="workspace",
                 target="<workspace_root>",
@@ -77,10 +93,14 @@ def build_scholarskills_local_install_template() -> dict[str, Any]:
         "quest": {
             "scope": "quest",
             "target_skill_path_template": f"<quest_root>/.codex/skills/{SCHOLARSKILLS_SKILL_ID}",
-            "target_skill_path_templates": {
-                skill_id: f"<quest_root>/.codex/skills/{skill_id}"
-                for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
-            },
+            "target_skill_path_templates": _target_skill_path_templates(
+                "<quest_root>",
+                skill_ids=SCHOLARSKILLS_DEFAULT_SKILL_IDS,
+            ),
+            "optional_target_skill_path_templates": _target_skill_path_templates(
+                "<quest_root>",
+                skill_ids=SCHOLARSKILLS_OPTIONAL_SKILL_IDS,
+            ),
             "sync_command_template": build_scholarskills_sync_command(
                 scope="quest",
                 target="<quest_root>",
@@ -108,6 +128,8 @@ def build_scholarskills_local_install_readback(
         "domain": SCHOLARSKILLS_DOMAIN,
         "skill_id": SCHOLARSKILLS_SKILL_ID,
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
+        "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
+        "optional_skill_policy": _optional_skill_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
         "status": "command_shape_ready",
@@ -119,6 +141,10 @@ def build_scholarskills_local_install_readback(
             "target_skill_paths": {
                 skill_id: str(_target_skill_path(resolved_workspace_root, skill_id=skill_id))
                 for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
+            },
+            "optional_target_skill_paths": {
+                skill_id: str(_target_skill_path(resolved_workspace_root, skill_id=skill_id))
+                for skill_id in SCHOLARSKILLS_OPTIONAL_SKILL_IDS
             },
             "sync_command": build_scholarskills_sync_command(
                 scope="workspace",
@@ -134,6 +160,10 @@ def build_scholarskills_local_install_readback(
             "target_skill_path_templates": {
                 skill_id: str(resolved_runtime_quests_root / "<quest_id>" / ".codex" / "skills" / skill_id)
                 for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
+            },
+            "optional_target_skill_path_templates": {
+                skill_id: str(resolved_runtime_quests_root / "<quest_id>" / ".codex" / "skills" / skill_id)
+                for skill_id in SCHOLARSKILLS_OPTIONAL_SKILL_IDS
             },
             "sync_command_template": build_scholarskills_sync_command(
                 scope="quest",
@@ -153,6 +183,10 @@ def build_scholarskills_local_install_readback(
                 "target_skill_paths": {
                     skill_id: str(_target_skill_path(resolved_quest_root, skill_id=skill_id))
                     for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
+                },
+                "optional_target_skill_paths": {
+                    skill_id: str(_target_skill_path(resolved_quest_root, skill_id=skill_id))
+                    for skill_id in SCHOLARSKILLS_OPTIONAL_SKILL_IDS
                 },
                 "sync_command": build_scholarskills_sync_command(
                     scope="quest",
@@ -179,6 +213,28 @@ def build_scholarskills_local_install_readback_for_profile(
 
 def _target_skill_path(root: Path, *, skill_id: str = SCHOLARSKILLS_SKILL_ID) -> Path:
     return root / ".codex" / "skills" / skill_id
+
+
+def _target_skill_path_templates(root_token: str, *, skill_ids: tuple[str, ...]) -> dict[str, str]:
+    return {skill_id: f"{root_token}/.codex/skills/{skill_id}" for skill_id in skill_ids}
+
+
+def _optional_skill_policy() -> dict[str, Any]:
+    return {
+        "surface": "optional_medical_method_specialist_skills",
+        "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
+        "source_contract_ref": (
+            "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy"
+        ),
+        "materialization_owner": "one-person-lab",
+        "sync_path": "opl_connect_source_materialization",
+        "refs_only": True,
+        "body_included": False,
+        "default_core": False,
+        "missing_optional_skills_block_mas_ordinary_progress": False,
+        "writes_authority": False,
+    }
 
 
 def _mas_program_repo_mirror() -> dict[str, Any]:
@@ -212,6 +268,7 @@ __all__ = [
     "SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF",
     "SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_PATH",
     "SCHOLARSKILLS_DEFAULT_SKILL_IDS",
+    "SCHOLARSKILLS_OPTIONAL_SKILL_IDS",
     "SCHOLARSKILLS_SKILL_ID",
     "SCHOLARSKILLS_SOURCE_REPO_REF",
     "build_scholarskills_local_install_readback",

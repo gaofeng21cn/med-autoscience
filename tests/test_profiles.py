@@ -389,19 +389,10 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     quest_root = profile.runtime_root / "quest-001"
 
     profile_readback = contract["scholarskills_local_install"]
-    assert profile_readback["synced_skill_ids"] == [
-        "mas-scholar-skills",
-        "medical-research-lit",
-        "medical-manuscript-writing",
-        "medical-manuscript-review",
-        "medical-figure-design",
-        "medical-figure-style",
-        "medical-figure-composer",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-submission-prep",
-        "medical-data-governance",
-    ]
+    assert profile_readback["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
+    assert profile_readback["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
+    assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
+    assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
     assert profile_readback["workspace"]["target_skill_path"] == str(
         workspace_root / ".codex" / "skills" / "mas-scholar-skills"
     )
@@ -417,6 +408,10 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert profile_readback["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"
     )
+    assert profile_readback["workspace"]["optional_target_skill_paths"]["medical-reference-integrity-auditor"] == str(
+        workspace_root / ".codex" / "skills" / "medical-reference-integrity-auditor"
+    )
+    assert "medical-reference-integrity-auditor" not in profile_readback["workspace"]["target_skill_paths"]
     assert profile_readback["workspace"]["sync_command"]["argv"] == [
         "opl",
         "connect",
@@ -445,6 +440,17 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert profile_readback["quest"]["target_skill_path_templates"]["medical-submission-prep"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-submission-prep")
     )
+    assert profile_readback["quest"]["optional_target_skill_path_templates"]["medical-causal-inference-plan"] == (
+        str(
+            workspace_root
+            / "runtime"
+            / "quests"
+            / "<quest_id>"
+            / ".codex"
+            / "skills"
+            / "medical-causal-inference-plan"
+        )
+    )
     assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
     assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
 
@@ -458,6 +464,9 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
     assert quest_readback["quest"]["target_skill_paths"]["medical-manuscript-writing"] == str(
         quest_root / ".codex" / "skills" / "medical-manuscript-writing"
+    )
+    assert quest_readback["quest"]["optional_target_skill_paths"]["medical-causal-inference-plan"] == str(
+        quest_root / ".codex" / "skills" / "medical-causal-inference-plan"
     )
     assert quest_readback["quest"]["sync_command"]["argv"] == [
         "opl",
