@@ -11,7 +11,6 @@ from tests.test_cli_cases.paper_mission_commands_cases.stage_closure_terminalize
 )
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
-
 def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_consumption(
     tmp_path: Path,
     capsys,
@@ -366,7 +365,6 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
     )
     assert inspect_projection["next_action"]["action_family"] == "paper.delivery.sync"
 
-
 def test_terminalize_stage_prefers_domain_transition_direct_closeout_without_materialized_mission(
     tmp_path: Path,
     capsys,
@@ -535,7 +533,6 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_without_mat
         "stage_attempt_id"
     ] == "sat-ai-reviewer"
 
-
 def test_terminalize_stage_route_back_autodiscovery_reads_nested_attempt_packets(
     tmp_path: Path,
 ) -> None:
@@ -615,7 +612,6 @@ def test_terminalize_stage_route_back_autodiscovery_reads_nested_attempt_packets
     assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
         "stage_attempt_id"
     ] == "sat-new"
-
 
 def test_terminalize_stage_prefers_latest_route_back_packet_over_old_live_write_closeout(
     tmp_path: Path,
@@ -768,7 +764,6 @@ def test_terminalize_stage_prefers_latest_route_back_packet_over_old_live_write_
         "stage_attempt_id"
     ] == "sat-a924"
 
-
 def test_terminalize_stage_prefers_current_transaction_stage_closure_over_stale_direct(
     tmp_path: Path,
     monkeypatch,
@@ -865,7 +860,6 @@ def test_terminalize_stage_prefers_current_transaction_stage_closure_over_stale_
         "submission_milestone_candidate::followthrough::followthrough-01"
     )
     assert decision["opl_closeout"]["stage_attempt_id"] == "sat-current-followthrough"
-
 
 def test_terminalize_stage_prefers_newer_workspace_stage_packet_over_matching_source_closeout(
     tmp_path: Path,
@@ -972,7 +966,6 @@ def test_terminalize_stage_prefers_newer_workspace_stage_packet_over_matching_so
     assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
         "stage_attempt_id"
     ] == "sat-new"
-
 
 def test_terminalize_stage_prefers_route_back_identity_when_closeout_packet_fields_are_sparse(
     tmp_path: Path,
@@ -1111,7 +1104,6 @@ def test_terminalize_stage_prefers_route_back_identity_when_closeout_packet_fiel
         "stage_attempt_id"
     ] == "sat-new"
 
-
 def test_terminalize_stage_prefers_richer_followthrough_closeout_over_newer_sparse_packet(
     tmp_path: Path,
     monkeypatch,
@@ -1246,7 +1238,6 @@ def test_terminalize_stage_prefers_richer_followthrough_closeout_over_newer_spar
     assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
         "stage_attempt_id"
     ] == "sat-richer"
-
 
 def test_terminalize_stage_prefers_route_back_with_owner_gate_context_over_newer_plain_packet(
     tmp_path: Path,
@@ -1386,7 +1377,6 @@ def test_terminalize_stage_prefers_route_back_with_owner_gate_context_over_newer
     assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
         "stage_attempt_id"
     ] == "sat-owner-gate-context"
-
 
 def test_latest_stage_attempt_route_back_source_readback_prefers_current_terminal_attempt_over_newer_stale_packet(
     tmp_path: Path,
