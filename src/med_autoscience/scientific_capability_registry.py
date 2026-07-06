@@ -509,6 +509,18 @@ def invoke_scientific_capability(
                 ),
             }
         )
+    if capability["invocation_kind"] == "mas_cli_feedbackops_dispatch_readback":
+        invocation.update(
+            {
+                "status": "mas_cli_feedbackops_dispatch_available",
+                "request_only": False,
+                "descriptor_only": False,
+                "mas_local_capability_actuator": True,
+                "mas_can_invoke_capability_sidecar": True,
+                "opl_capability_runtime_required": True,
+                "external_runner_invocation_allowed": True,
+            }
+        )
     return invocation
 
 
@@ -931,11 +943,15 @@ def _capabilities() -> list[dict[str, Any]]:
                 "OMA",
             ],
             current_delta_trigger_reason="current_delta_declared_reviewer_revision_feedbackops_or_oma_need",
-            invocation_kind="descriptor_only_current_owner_input_refs",
-            callable_surface="descriptor_only:mas_reviewer_revision_feedbackops_dispatch_request",
+            invocation_kind="mas_cli_feedbackops_dispatch_readback",
+            callable_surface=(
+                "medautosci reviewer-revision-feedbackops-dispatch "
+                "--request <feedbackops_dispatch_request.json> --format json"
+            ),
             output_refs=[
                 "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
                 "artifacts/agent_lab/medical_manuscript_quality/feedbackops_dispatch_request.json",
+                "artifacts/agent_lab/medical_manuscript_quality/feedbackops_execution_readback.json",
                 "candidate:developer_patch_work_order_ref",
                 "candidate:reviewer_revision_coverage_audit_ref",
                 "candidate:stage_attempt_readback_ref",
@@ -944,10 +960,11 @@ def _capabilities() -> list[dict[str, Any]]:
                 "docs/decisions.md#2026-07-02reviewer-revision-质量反馈默认触发-opl-agent-lab--oma-自进化",
                 "contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism",
                 "src/med_autoscience/study_task_intake_revision.py",
+                "src/med_autoscience/reviewer_revision_feedbackops_dispatch.py",
             ],
             role=(
                 "reviewer_revision_feedbackops_dispatch_oma_work_order_and_"
-                "coverage_audit_readback_refs_only_descriptor"
+                "coverage_audit_readback_refs_only_cli_dispatch"
             ),
         ),
         _capability(

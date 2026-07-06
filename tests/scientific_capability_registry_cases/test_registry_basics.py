@@ -105,7 +105,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     }
 
 
-def test_registry_resolves_reviewer_revision_feedbackops_oma_descriptor() -> None:
+def test_registry_resolves_reviewer_revision_feedbackops_oma_cli_dispatch() -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
 
     resolution = module.resolve_scientific_capabilities(
@@ -118,9 +118,12 @@ def test_registry_resolves_reviewer_revision_feedbackops_oma_descriptor() -> Non
     selected = {item["capability_id"]: item for item in resolution["selected_capabilities"]}
     capability = selected["reviewer_revision_feedbackops_oma_work_order"]
     assert capability["capability_family"] == "feedbackops_oma_work_order"
-    assert capability["invocation_kind"] == "descriptor_only_current_owner_input_refs"
-    assert capability["descriptor_only"] is True
-    assert capability["external_runner_invocation_allowed"] is False
+    assert capability["invocation_kind"] == "mas_cli_feedbackops_dispatch_readback"
+    assert capability.get("descriptor_only") is not True
+    assert "reviewer-revision-feedbackops-dispatch" in capability["callable_surface"]
+    assert "artifacts/agent_lab/medical_manuscript_quality/feedbackops_execution_readback.json" in capability[
+        "output_refs"
+    ]
     assert "candidate:reviewer_revision_coverage_audit_ref" in capability["output_refs"]
     assert "candidate:stage_attempt_readback_ref" in capability["output_refs"]
     assert capability["authority_boundary"]["can_write_domain_truth"] is False

@@ -9768,14 +9768,15 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "descriptor_only:mas_reviewer_revision_feedbackops_dispatch_request",
+        "callable_surface": "medautosci reviewer-revision-feedbackops-dispatch --request <feedbackops_dispatch_request.json> --format json",
         "capability_family": "feedbackops_oma_work_order",
         "capability_id": "reviewer_revision_feedbackops_oma_work_order",
         "capability_ref": "scientific-capability:reviewer_revision_feedbackops_oma_work_order",
         "contract_refs": [
           "docs/decisions.md#2026-07-02reviewer-revision-质量反馈默认触发-opl-agent-lab--oma-自进化",
           "contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism",
-          "src/med_autoscience/study_task_intake_revision.py"
+          "src/med_autoscience/study_task_intake_revision.py",
+          "src/med_autoscience/reviewer_revision_feedbackops_dispatch.py"
         ],
         "current_delta_trigger_reason": "current_delta_declared_reviewer_revision_feedbackops_or_oma_need",
         "current_delta_trigger_terms": [
@@ -9786,21 +9787,20 @@
           "FeedbackOps",
           "OMA"
         ],
-        "descriptor_only": true,
-        "external_runner_invocation_allowed": false,
         "external_runtime_dependency": false,
         "fail_open": true,
-        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "invocation_kind": "mas_cli_feedbackops_dispatch_readback",
         "mainline_waits_for_capability": false,
         "output_refs": [
           "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
           "artifacts/agent_lab/medical_manuscript_quality/feedbackops_dispatch_request.json",
+          "artifacts/agent_lab/medical_manuscript_quality/feedbackops_execution_readback.json",
           "candidate:developer_patch_work_order_ref",
           "candidate:reviewer_revision_coverage_audit_ref",
           "candidate:stage_attempt_readback_ref"
         ],
         "refs_only": true,
-        "role": "reviewer_revision_feedbackops_dispatch_oma_work_order_and_coverage_audit_readback_refs_only_descriptor",
+        "role": "reviewer_revision_feedbackops_dispatch_oma_work_order_and_coverage_audit_readback_refs_only_cli_dispatch",
         "source_frameworks": [
           "MAS reviewer_revision intake",
           "OPL FeedbackOps",
