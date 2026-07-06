@@ -67,7 +67,17 @@ def matches_carrier(
             carrier=carrier,
             route_back=route_back,
         )
-        or closeout_idempotency_mismatches_carrier(closeout=closeout, carrier=carrier)
+        or (
+            not closeout_binds_exact_route_identity(
+                closeout=closeout,
+                carrier=carrier,
+                route_back=route_back,
+            )
+            and closeout_idempotency_mismatches_carrier(
+                closeout=closeout,
+                carrier=carrier,
+            )
+        )
         or closeout_lacks_current_candidate_binding(
             closeout=closeout,
             carrier=carrier,

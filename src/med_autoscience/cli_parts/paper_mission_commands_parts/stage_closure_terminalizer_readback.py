@@ -10,6 +10,9 @@ from med_autoscience.paper_mission_consumption_readback import (
 )
 from med_autoscience.paper_mission_opl_readback import attach_opl_runtime_carrier_readback
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_opl_readback_parts.route_identity import (
+    route_ref_matches,
+)
 from med_autoscience.paper_mission_transaction import PaperMissionTransactionContractError
 from med_autoscience.paper_mission_stage_closure_ledger import (
     write_paper_mission_stage_closure_decision,
@@ -92,6 +95,13 @@ def _build_stage_closure_terminalizer_readback(
             source=f"{source}:terminalize-stage:inspect",
         )
     existing_decision = _mapping(source_readback.get("stage_closure_decision"))
+    existing_decision_uses_stale_terminal_closeout = (
+        _stage_closure_decision_uses_stale_terminal_closeout(
+            existing_decision=existing_decision,
+            source_readback=source_readback,
+            workspace_root=Path(profile.workspace_root),
+        )
+    )
     if (
         existing_decision
         and not stage_closure_decision_missing(existing_decision)
@@ -99,11 +109,20 @@ def _build_stage_closure_terminalizer_readback(
             existing_decision,
             current_package=_mapping(source_readback.get("current_package")),
         )
+        and not existing_decision_uses_stale_terminal_closeout
     ):
         decision = existing_decision
         terminalizer_status = "terminalizer_outcome_already_observed"
     else:
-        decision = _terminalize_stage_closure_from_readback(source_readback)
+        terminalizer_source_readback = source_readback
+        if existing_decision_uses_stale_terminal_closeout:
+            terminalizer_source_readback = {
+                **source_readback,
+                "stage_closure_decision": {},
+                "stage_closure_decision_ref": None,
+                "stage_closure_outcome": None,
+            }
+        decision = _terminalize_stage_closure_from_readback(terminalizer_source_readback)
         terminalizer_status = (
             "legacy_terminalizer_outcome_superseded"
             if existing_decision
@@ -228,6 +247,11 @@ def _build_terminalizer_source_readback(
             workspace_root=Path(profile.workspace_root),
         ):
             return source_readback
+        if _readback_has_current_transaction_terminal_closeout(
+            source_readback,
+            workspace_root=Path(profile.workspace_root),
+        ):
+            return source_readback
         direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
             materialized_readback=source_readback,
             study_root=Path(profile.studies_root) / study_id,
@@ -266,6 +290,11 @@ def _build_terminalizer_source_readback(
             source=source,
             enable_opl_live_probe=True,
         )
+        if _readback_has_current_transaction_terminal_closeout(
+            generic_source_readback,
+            workspace_root=Path(profile.workspace_root),
+        ):
+            return generic_source_readback
         direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
             materialized_readback=generic_source_readback,
             study_root=Path(profile.studies_root) / study_id,
@@ -404,6 +433,65 @@ def _stage_closure_matches_current_transaction_with_terminal_closeout(
         and stage_attempt_id == live_stage_attempt_id
         and _optional_text(opl_closeout.get("status"))
         == "opl_runtime_terminal_readback_observed"
+    )
+
+
+def _readback_has_current_transaction_terminal_closeout(
+    readback: Mapping[str, Any],
+    *,
+    workspace_root: Path,
+) -> bool:
+    if _optional_text(readback.get("consume_candidate_status")) in {
+        "not_consumed",
+        "not_applicable",
+    }:
+        return False
+    if _optional_text(readback.get("mission_state")) in {"planned", "draft"}:
+        return False
+    transaction_ref = _optional_text(
+        _mapping(readback.get("paper_mission_transaction")).get("transaction_id")
+    )
+    if transaction_ref is None:
+        return False
+    terminal_closeout = _mapping(
+        _mapping(readback.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+    )
+    if not _terminal_closeout_uses_stage_attempt_packet(terminal_closeout):
+        return False
+    if _terminal_closeout_mtime(terminal_closeout, workspace_root=workspace_root) is None:
+        return False
+    closeout_transaction_ref = _first_non_empty_text(
+        terminal_closeout.get("paper_mission_transaction_ref"),
+        terminal_closeout.get("stage_packet_ref"),
+    )
+    return route_ref_matches(closeout_transaction_ref, transaction_ref)
+
+
+def _stage_closure_decision_uses_stale_terminal_closeout(
+    *,
+    existing_decision: Mapping[str, Any],
+    source_readback: Mapping[str, Any],
+    workspace_root: Path,
+) -> bool:
+    if not _readback_has_current_transaction_terminal_closeout(
+        source_readback,
+        workspace_root=workspace_root,
+    ):
+        return False
+    current_stage_attempt_id = _optional_text(
+        _mapping(
+            _mapping(source_readback.get("opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ).get("stage_attempt_id")
+    )
+    existing_stage_attempt_id = _optional_text(
+        _mapping(existing_decision.get("opl_closeout")).get("stage_attempt_id")
+    )
+    return (
+        current_stage_attempt_id is not None
+        and existing_stage_attempt_id is not None
+        and current_stage_attempt_id != existing_stage_attempt_id
     )
 
 

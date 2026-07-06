@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from tests.test_cli_cases.paper_mission_command_helpers import _write_profile_with_study
 
@@ -203,3 +204,128 @@ def test_terminalize_stage_autodiscovers_route_back_stage_packet_before_stale_co
         "route_back_candidate_checkpoint"
     )
     assert payload["stage_closure_decision"].get("counts_as_typed_blocker") is not True
+
+
+def test_terminalizer_source_prefers_current_live_closeout_over_stale_domain_transition(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands_parts."
+        "stage_closure_terminalizer_readback"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    transaction_ref = (
+        f"paper-mission-transaction::{study_id}::write::paper-mission::{study_id}"
+        "::medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+        "::followthrough::08c2efa65b67"
+    )
+    closeout_ref = (
+        tmp_path
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current"
+        / "stage_attempt_closeout_packet.json"
+    )
+    closeout_ref.parent.mkdir(parents=True)
+    closeout_ref.write_text("{}", encoding="utf-8")
+    source_readback = {
+        "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
+        "study_id": study_id,
+        "mission_state": "route_back",
+        "consume_candidate_status": "accepted_submission_milestone_candidate",
+        "paper_mission_transaction": {"transaction_id": transaction_ref},
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current",
+                "closeout_ref": str(closeout_ref),
+                "paper_mission_transaction_ref": transaction_ref,
+            }
+        },
+    }
+    profile = SimpleNamespace(
+        workspace_root=tmp_path,
+        studies_root=tmp_path / "studies",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_build_materialized_mission_readback_if_available",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_paper_mission_readback",
+        lambda **kwargs: source_readback,
+    )
+    monkeypatch.setattr(
+        module,
+        "_latest_stage_attempt_route_back_source_readback",
+        lambda **kwargs: None,
+    )
+
+    def stale_domain_transition(**kwargs):
+        raise AssertionError("stale domain-transition direct readback should not win")
+
+    monkeypatch.setattr(
+        module,
+        "_domain_transition_direct_terminal_source_readback",
+        stale_domain_transition,
+    )
+
+    assert (
+        module._build_terminalizer_source_readback(
+            profile=profile,
+            profile_ref=tmp_path / "profile.toml",
+            study_id=study_id,
+            source="test",
+        )
+        is source_readback
+    )
+
+
+def test_terminalizer_reterminalizes_stale_closure_when_current_live_closeout_differs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands_parts."
+        "stage_closure_terminalizer_readback"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    transaction_ref = (
+        f"paper-mission-transaction::{study_id}::write::paper-mission::{study_id}"
+        "::medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+        "::followthrough::08c2efa65b67"
+    )
+    closeout_ref = (
+        tmp_path
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-current"
+        / "stage_attempt_closeout_packet.json"
+    )
+    closeout_ref.parent.mkdir(parents=True)
+    closeout_ref.write_text("{}", encoding="utf-8")
+    source_readback = {
+        "mission_state": "route_back",
+        "consume_candidate_status": "accepted_submission_milestone_candidate",
+        "paper_mission_transaction": {"transaction_id": transaction_ref},
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current",
+                "closeout_ref": str(closeout_ref),
+                "paper_mission_transaction_ref": transaction_ref,
+            }
+        },
+    }
+    existing_decision = {
+        "opl_closeout": {"stage_attempt_id": "sat-stale"},
+    }
+
+    assert module._stage_closure_decision_uses_stale_terminal_closeout(
+        existing_decision=existing_decision,
+        source_readback=source_readback,
+        workspace_root=tmp_path,
+    )
