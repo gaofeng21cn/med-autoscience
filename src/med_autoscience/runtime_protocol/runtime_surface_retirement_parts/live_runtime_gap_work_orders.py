@@ -4,6 +4,11 @@ from collections.abc import Mapping
 import re
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.surface_helpers import (
+    _text,
+    _text_list as _base_text_list,
+)
+
 
 SURFACE_KIND = "mas_live_runtime_gap_work_orders"
 VERSION = "mas-live-runtime-gap-work-orders.v1"
@@ -502,10 +507,7 @@ def _gap_id(gap: str) -> str:
 
 
 def _text_list(value: Any) -> list[str]:
-    if isinstance(value, list):
-        return sorted(text for item in value if (text := _text(item)) is not None)
-    text = _text(value)
-    return [text] if text is not None else []
+    return _base_text_list(value, sort=True)
 
 
 def _authority_outcome_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:
@@ -637,11 +639,6 @@ def _malformed_record_indexes(evidence_records: list[Any]) -> list[int]:
     return [
         index for index, record in enumerate(evidence_records) if not isinstance(record, Mapping)
     ]
-
-
-def _text(value: Any) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:

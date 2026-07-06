@@ -11,6 +11,10 @@ from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runt
 from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders import (
     live_tail_evidence_intake_summary,
 )
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.surface_helpers import (
+    _text,
+    _text_list as _base_text_list,
+)
 
 
 SURFACE_KIND = "mas_live_runtime_evidence_rollup"
@@ -822,10 +826,7 @@ def _work_order_ids(contract: Mapping[str, Any], key: str) -> list[str]:
 
 
 def _text_list(value: Any) -> list[str]:
-    if isinstance(value, list):
-        return sorted(text for item in value if (text := _text(item)) is not None)
-    text = _text(value)
-    return [text] if text is not None else []
+    return _base_text_list(value, sort=True)
 
 
 def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -834,11 +835,6 @@ def _evidence_record_schema(contract: Mapping[str, Any]) -> Mapping[str, Any]:
         return {}
     schema = boundary.get("evidence_record_schema")
     return schema if isinstance(schema, Mapping) else {}
-
-
-def _text(value: Any) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 def _load_json_object(path: Path) -> dict[str, Any]:

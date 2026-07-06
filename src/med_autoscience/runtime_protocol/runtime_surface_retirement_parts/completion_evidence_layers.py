@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.surface_helpers import _text
+
 
 def completion_evidence_layers(
     open_surfaces: list[Mapping[str, Any]],
@@ -368,11 +370,6 @@ def _completion_interpretation_containers(surface: Mapping[str, Any]) -> list[Ma
         if isinstance(value, Mapping):
             containers.append(value)
     return containers
-
-
-def _text(value: Any) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 __all__ = ["completion_evidence_layers"]

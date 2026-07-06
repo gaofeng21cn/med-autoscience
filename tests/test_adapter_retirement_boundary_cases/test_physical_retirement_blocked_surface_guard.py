@@ -77,6 +77,15 @@ def test_any_false_physical_delete_allowed_field_blocks_retirement() -> None:
             "physical_delete_gate_open": False,
             "physical_delete_allowed": False,
             "forbidden_completion_interpretations": [],
+            "evidence_gate": {
+                "gate_kind": "live_runtime_readiness_tail",
+                "next_owner": "one-person-lab runtime owner",
+                "repo_source_retirement_blocked": False,
+                "live_runtime_readiness_claim_allowed": False,
+                "acceptable_evidence_ref_families": ["live_readback_ref"],
+                "forbidden_evidence_substitutes": [],
+                "missing_evidence_status": "evidence_required",
+            },
             "surface_violation_reasons": [],
         }
     ]
