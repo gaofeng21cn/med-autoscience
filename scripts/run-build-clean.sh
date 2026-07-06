@@ -34,6 +34,7 @@ mkdir -p "${source_root}" "${build_outdir}"
 
 rsync -a \
   --exclude '.git' \
+  --exclude '.codegraph' \
   --exclude '.venv' \
   --exclude '.worktree' \
   --exclude '.worktrees' \
