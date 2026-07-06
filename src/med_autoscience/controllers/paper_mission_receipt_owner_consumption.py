@@ -1117,6 +1117,10 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
         carrier_terminal_closeout=carrier_terminal_closeout,
         carrier_consumption=carrier_consumption,
         decision_opl_closeout=opl_closeout,
+        decision_source_ref=_first_text(
+            decision.get("source_ref"),
+            _mapping(decision.get("inputs")).get("source_ref"),
+        ),
         carrier_receipt_evidence=_mapping(carrier.get("receipt_evidence")),
         carrier_receipt=_mapping(carrier.get("opl_transition_receipt")),
     ):
@@ -1188,6 +1192,7 @@ def _carrier_route_back_closeout_supersedes_stage_closure_decision(
     carrier_terminal_closeout: Mapping[str, Any],
     carrier_consumption: Mapping[str, Any],
     decision_opl_closeout: Mapping[str, Any],
+    decision_source_ref: str | None,
     carrier_receipt_evidence: Mapping[str, Any],
     carrier_receipt: Mapping[str, Any],
 ) -> bool:
@@ -1200,6 +1205,16 @@ def _carrier_route_back_closeout_supersedes_stage_closure_decision(
         return False
     decision_attempt_id = _first_text(decision_opl_closeout.get("stage_attempt_id"))
     if decision_attempt_id == carrier_attempt_id:
+        return False
+    carrier_closeout_ref = _first_text(
+        carrier_receipt_evidence.get("runtime_closeout_ref"),
+        carrier_receipt_evidence.get("route_checkpoint_evidence_ref"),
+        carrier_terminal_closeout.get("closeout_ref"),
+    )
+    if decision_attempt_id is not None and _ref_newer(
+        candidate=decision_source_ref,
+        current=carrier_closeout_ref,
+    ):
         return False
     return _first_text(
         carrier_receipt_evidence.get("route_back_evidence_ref"),
@@ -1485,6 +1500,26 @@ def _first_text(*values: object) -> str | None:
         if text:
             return text
     return None
+
+
+def _ref_newer(*, candidate: str | None, current: str | None) -> bool:
+    candidate_mtime = _ref_mtime(candidate)
+    current_mtime = _ref_mtime(current)
+    if candidate_mtime is None:
+        return False
+    if current_mtime is None:
+        return True
+    return candidate_mtime > current_mtime
+
+
+def _ref_mtime(ref: str | None) -> float | None:
+    text = _first_text(ref)
+    if text is None or text.startswith(("opl://", "temporal://")):
+        return None
+    try:
+        return Path(text).expanduser().stat().st_mtime
+    except OSError:
+        return None
 
 
 def _text_list(value: object) -> list[str]:

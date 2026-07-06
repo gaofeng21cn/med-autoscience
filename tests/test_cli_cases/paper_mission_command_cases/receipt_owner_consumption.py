@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
@@ -1084,6 +1085,97 @@ def test_receipt_owner_consumption_route_checkpoint_prefers_stage_closure_checkp
     )
     assert payload["owner_consumption_verdict"]["receipt_ref"] == (
         "opl://stage-attempts/sat-current-write"
+    )
+
+
+def test_receipt_owner_consumption_keeps_newer_stage_closure_over_stale_route_back_carrier(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-newer-stage-closure-readback.json"
+    stale_closeout = tmp_path / "stale" / "stage_attempt_closeout_packet.json"
+    current_closeout = tmp_path / "current" / "stage_attempt_closeout_packet.json"
+    stale_closeout.parent.mkdir(parents=True)
+    current_closeout.parent.mkdir(parents=True)
+    stale_closeout.write_text("{}", encoding="utf-8")
+    current_closeout.write_text("{}", encoding="utf-8")
+    os.utime(stale_closeout, (1_000, 1_000))
+    os.utime(current_closeout, (2_000, 2_000))
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    work_unit_id = "submission_blocker_degraded_handoff_or_quality_repair"
+    readback["next_action"] = {
+        "action_family": "paper.stage_closure.owner_consumption",
+        "outcome_ref": str(current_closeout),
+    }
+    readback["stage_closure_decision"].update(
+        {
+            "source_ref": str(current_closeout),
+            "stage_id": "submission_milestone_candidate",
+            "work_unit_id": work_unit_id,
+            "opl_closeout": {
+                "status": "opl_runtime_terminal_readback_observed",
+                "stage_attempt_id": "sat-current",
+                "work_unit_id": work_unit_id,
+            },
+        }
+    )
+    stale_carrier = readback["opl_runtime_carrier_readback"]
+    stale_carrier["terminal_closeout"] = {
+        "status": "completed",
+        "stage_attempt_id": "sat-stale",
+        "work_unit_id": work_unit_id,
+        "closeout_ref": str(stale_closeout),
+    }
+    stale_carrier["opl_transition_receipt"].update(
+        {
+            "stage_attempt_id": "sat-stale",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale",
+            "work_unit_id": work_unit_id,
+            "route_back_evidence_ref": "ops/stale/route_back_evidence_packet.json",
+        }
+    )
+    stale_carrier["receipt_evidence"].update(
+        {
+            "receipt_ref": "opl://stage-attempts/sat-stale",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale",
+            "runtime_closeout_ref": str(stale_closeout),
+            "route_back_evidence_ref": "ops/stale/route_back_evidence_packet.json",
+        }
+    )
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current"
+    )
+    assert payload["owner_consumption_verdict"]["receipt_ref"] == (
+        "opl://stage-attempts/sat-current"
     )
 
 
