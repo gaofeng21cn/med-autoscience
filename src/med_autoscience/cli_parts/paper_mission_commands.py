@@ -89,7 +89,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_termina
 from med_autoscience.cli_parts.paper_mission_commands_parts import (
     stage_closure_terminalizer_readback as _stage_closure_terminalizer_readback,
 )
-from med_autoscience.cli_parts.paper_mission_commands_parts import (
+from med_autoscience.cli_parts.paper_mission_command_parts import (
     consumption_ledger_readback as _consumption_ledger_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.typed_blocker_resolution import (
