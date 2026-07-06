@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_authority_snapshot, study_progress, study_truth_kernel
+from med_autoscience.controllers import domain_authority_snapshot, study_truth_kernel
+from med_autoscience.controllers.study_progress_parts.projection import build_study_progress_projection
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 
 
@@ -30,7 +31,7 @@ def attach_status_read_model_projections(
     )
     if include_progress_projection:
         status.record_progress_projection(
-            study_progress.build_study_progress_projection(
+            build_study_progress_projection(
                 profile=profile,
                 study_id=study_id,
                 study_root=study_root,
