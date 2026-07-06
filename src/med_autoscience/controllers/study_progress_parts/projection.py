@@ -1,26 +1,14 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import (
-    ai_first_observability,
-    ai_reviewer_publication_eval_records,
-    paper_authority_migration,
-    domain_action_request_lifecycle,
-    artifact_runtime_proof,
-    opl_runtime_refs,
-    medical_paper_ops_health,
-    medical_paper_readiness,
-    open_auto_research_projection,
-    paper_progress_stall,
-    outer_supervision_slo,
-)
-from med_autoscience.reviewer_revision_feedbackops_dispatch import (
-    read_reviewer_revision_feedbackops_execution_readback,
-)
+from med_autoscience.controllers import ai_first_observability, ai_reviewer_publication_eval_records
+from med_autoscience.controllers import artifact_runtime_proof, domain_action_request_lifecycle
+from med_autoscience.controllers import medical_paper_ops_health, medical_paper_readiness
+from med_autoscience.controllers import open_auto_research_projection, opl_runtime_refs
+from med_autoscience.controllers import outer_supervision_slo, paper_authority_migration, paper_progress_stall
+from med_autoscience.reviewer_revision_feedbackops_dispatch import read_reviewer_revision_feedbackops_execution_readback
 from . import existing_projection_refresh as _existing_projection_refresh
-from .delivery_inspection import (
-    attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
-    read_delivery_inspection_projection as _read_delivery_inspection_projection,
-)
+from .delivery_inspection import attach_delivery_inspection_projection as _attach_delivery_inspection_projection
+from .delivery_inspection import read_delivery_inspection_projection as _read_delivery_inspection_projection
 from .medical_writing_surfaces import medical_writing_quality_surface_status
 from .mission_summary import (
     attach_artifact_first_mission_summary,
@@ -34,37 +22,24 @@ from .parked_projection import (
     parked_text_override,
     projected_current_stage,
 )
-from .opl_current_control_state_handoff import (
-    build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
-    current_status_publication_gate_stationary as _current_status_publication_gate_stationary,
-    current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
-    merge_live_attempt_observability_into_handoff as _merge_live_attempt_observability_into_handoff,
-    opl_current_control_state_live_attempt_handoff_projection as _opl_current_control_state_live_attempt_handoff_projection,
-    opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection,
-    read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
-)
-from .current_domain_truth_projection import (
-    _current_blockers_respecting_controller_closure,
-    domain_truth_supersedes_ai_repair_lifecycle as _domain_truth_supersedes_ai_repair_lifecycle,
-    progress_projection_with_canonical_domain_next_action as _progress_projection_with_canonical_domain_next_action,
-    progress_projection_respecting_current_domain_truth as _progress_projection_respecting_current_domain_truth,
-)
-from .projection_sources import (
-    _attach_existing_autonomy_slo_projection,
-    _read_gate_specificity_request,
-    _read_or_materialize_autonomy_slo_status,
-    _supervision_active_run_id,
-)
+from .opl_current_control_state_handoff import build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection
+from .opl_current_control_state_handoff import current_status_publication_gate_stationary as _current_status_publication_gate_stationary
+from .opl_current_control_state_handoff import current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle
+from .opl_current_control_state_handoff import merge_live_attempt_observability_into_handoff as _merge_live_attempt_observability_into_handoff
+from .opl_current_control_state_handoff import opl_current_control_state_live_attempt_handoff_projection as _opl_current_control_state_live_attempt_handoff_projection
+from .opl_current_control_state_handoff import opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection
+from .opl_current_control_state_handoff import read_ai_repair_lifecycle as _read_ai_repair_lifecycle
+from .current_domain_truth_projection import _current_blockers_respecting_controller_closure
+from .current_domain_truth_projection import domain_truth_supersedes_ai_repair_lifecycle as _domain_truth_supersedes_ai_repair_lifecycle
+from .current_domain_truth_projection import progress_projection_respecting_current_domain_truth as _progress_projection_respecting_current_domain_truth
+from .current_domain_truth_projection import progress_projection_with_canonical_domain_next_action as _progress_projection_with_canonical_domain_next_action
+from .projection_sources import _attach_existing_autonomy_slo_projection, _read_gate_specificity_request
+from .projection_sources import _read_or_materialize_autonomy_slo_status, _supervision_active_run_id
 from .projection_eval_surface import read_projection_surface_payloads
 from .projection_inputs import resolve_projection_input_paths
-from .projection_payload_assembly import (
-    assemble_study_progress_payload,
-    build_projection_refs,
-)
+from .projection_payload_assembly import assemble_study_progress_payload, build_projection_refs
 from .projection_quality_surfaces import build_quality_projection_surfaces as _quality_projection_surfaces
-from .projection_runtime_surfaces import (
-    supervision_health_status as _supervision_health_status,
-)
+from .projection_runtime_surfaces import supervision_health_status as _supervision_health_status
 from .runtime_medical_publication_surface import build_runtime_medical_publication_surface_projection
 from .runtime_closeout_invalidation import status_with_invalidated_closed_runtime_attempt
 from .projection_status_context import build_projection_status_context
