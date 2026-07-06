@@ -313,15 +313,15 @@
       "verified_by": [
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed",
+        "tests/test_adapter_retirement_boundary_cases/domain_authority_refs_index.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_no_active_legacy_helper_scan_keeps_physical_delete_tail_open",
+        "tests/test_adapter_retirement_boundary_cases/domain_authority_refs_index.py::test_retired_domain_authority_refs_index_preserves_provenance_scans",
         "tests/test_cli_cases/stage_artifact_materialize_command.py::test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index",
         "tests/test_stage_outcome_authority_currentness_selectors.py::test_paper_recovery_successor_dispatch_uses_current_successor_surface",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
+        "tests/test_adapter_retirement_boundary_cases/domain_authority_refs_index.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed"
       ]
     },
     {
@@ -1044,10 +1044,10 @@
         "tests/test_adapter_retirement_boundary.py::test_current_owner_callable_readers_do_not_consume_legacy_latest_wire",
         "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_execution_latest_payload_requires_explicit_legacy_opt_in",
         "tests/test_adapter_retirement_boundary.py::test_domain_owner_dispatch_persist_merges_legacy_wire_only_as_provenance",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression",
         "tests/test_adapter_retirement_boundary.py::test_owner_callable_adapter_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only",
         "tests/test_adapter_retirement_boundary.py::test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#legacy_stage_run_abi_violation"
       ]
     },
     {
@@ -1419,7 +1419,7 @@
       "validator_module": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.readback_result_validator",
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
         "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
         "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py::test_domain_diagnostic_report_apply_accepts_opl_provider_admission_result_as_closed_outcome",
         "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback",
@@ -1692,7 +1692,8 @@
       "surface_id": "progress_portal_study_workbench_overview_action_projection",
       "verified_by": [
         "tests/test_adapter_retirement_boundary.py",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py",
+        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py"
       ]
     },
     {
@@ -1781,7 +1782,7 @@
       "surface_id": "agent_tool_arsenal_scientific_capability_registry",
       "verified_by": [
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request",
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
       ],
       "wildcard_action_trigger_boundary": {
         "explicit_request_fields": [
