@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-
 from med_autoscience.display_pack_e2e_runtime import _run_subprocess_renderer
 from med_autoscience.display_pack_dependency_environment import (
     dependency_environment_finding,
@@ -12,6 +10,7 @@ from med_autoscience.controllers import display_pack_surface_sync
 
 from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _evidence_payload_path, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
 from .materialize_parts.contract_figures import _materialize_contract_backed_figure
+from .materialize_parts.pre_materialized_tables import _dpcc_medication_capture_markdown_path, _existing_table_catalog_entry, _materialize_pre_materialized_markdown_table, _pre_materialized_markdown_table_path
 from .materialize_parts.visual_audit import _write_catalog_visual_audit_receipt, materialize_display_visual_audit
 from .materialize_parts.workspace import _active_generated_illustration_paths_from_catalog, _claim_ids_for_table, _is_known_requirement_key, _load_display_shell_payload, _purpose_first_renderer_fields, _resolve_contract_backed_figure_contract_path, _resolve_requirement_key_from_shell
 from .payload_loader import _load_evidence_display_payload
@@ -19,125 +18,6 @@ from .renderers import _load_layout_sidecar_or_raise, _prepare_python_illustrati
 from .source_hydration import hydrate_display_surface_sources_from_current_body
 from .submission_graphical_abstract import _materialize_submission_graphical_abstract
 from .validation_tables import _validate_cohort_flow_payload
-
-
-def _existing_table_catalog_entry(*, table_catalog: dict[str, Any], table_id: str) -> dict[str, Any] | None:
-    for entry in table_catalog.get("tables", []) or []:
-        if not isinstance(entry, dict):
-            continue
-        if str(entry.get("table_id") or "").strip() == table_id:
-            return entry
-    return None
-
-
-def _dpcc_medication_capture_markdown_path(*, paper_root: Path) -> Path | None:
-    for path in (
-        paper_root / "tables" / "generated" / "T3_medication_capture_sensitivity.md",
-        paper_root / "tables" / "T3_medication_capture_sensitivity.md",
-    ):
-        if path.exists():
-            return path
-    return None
-
-
-def _markdown_table_to_rows(markdown: str) -> list[list[str]]:
-    rows: list[list[str]] = []
-    for raw_line in markdown.splitlines():
-        line = raw_line.strip()
-        if not line.startswith("|") or not line.endswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if not cells:
-            continue
-        if all(cell and set(cell.replace(":", "").replace("-", "").strip()) == set() for cell in cells):
-            continue
-        rows.append(cells)
-    return rows
-
-
-def _write_markdown_table_csv_from_source(*, source_md_path: Path, output_csv_path: Path) -> None:
-    rows = _markdown_table_to_rows(source_md_path.read_text(encoding="utf-8"))
-    if not rows:
-        raise ValueError(f"pre-materialized table `{source_md_path}` does not contain a markdown table")
-    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerows(rows)
-
-
-def _pre_materialized_markdown_table_path(
-    *,
-    paper_root: Path,
-    requirement_short_id: str,
-    table_id: str,
-) -> Path | None:
-    if requirement_short_id == "table1_baseline_characteristics" and table_id == "T1":
-        path = paper_root / "tables" / "T1_baseline_characteristics.md"
-    elif requirement_short_id == "table2_phenotype_gap_summary" and table_id == "T2":
-        path = paper_root / "tables" / "T2_phenotype_gap_summary.md"
-    else:
-        return None
-    return path if path.exists() else None
-
-
-def _materialize_pre_materialized_markdown_table(
-    *,
-    paper_root: Path,
-    source_md_path: Path,
-    output_md_path: Path,
-    output_csv_path: Path,
-    table_catalog: dict[str, Any],
-    claim_evidence_map: dict[str, Any],
-    table_id: str,
-    table_shell_id: str,
-    pack_id: str,
-    paper_role: str,
-    input_schema_id: str,
-    qc_profile: str,
-    default_title: str,
-    default_caption: str,
-) -> dict[str, Any]:
-    output_md_path.parent.mkdir(parents=True, exist_ok=True)
-    output_md_path.write_text(source_md_path.read_text(encoding="utf-8"), encoding="utf-8")
-    _write_markdown_table_csv_from_source(source_md_path=source_md_path, output_csv_path=output_csv_path)
-    existing_entry = _existing_table_catalog_entry(table_catalog=table_catalog, table_id=table_id)
-    existing_title = str((existing_entry or {}).get("title") or "").strip()
-    existing_caption = str((existing_entry or {}).get("caption") or "").strip()
-    claim_ids = _claim_ids_for_table(
-        table_catalog=table_catalog,
-        claim_evidence_map=claim_evidence_map,
-        table_id=table_id,
-    )
-    render_result = {
-        "title": existing_title or default_title,
-        "caption": existing_caption or default_caption,
-        "table_layout_policy": "pre_materialized_markdown_owner_surface",
-        "source_table_path": _paper_relative_path(source_md_path, paper_root=paper_root),
-    }
-    return {
-        "table_id": table_id,
-        "table_shell_id": table_shell_id,
-        "pack_id": pack_id,
-        "paper_role": paper_role,
-        "input_schema_id": input_schema_id,
-        "qc_profile": qc_profile,
-        "qc_result": {
-            "status": "pass",
-            "issues": [],
-            "checked_at": utc_now(),
-        },
-        "title": render_result["title"],
-        "caption": render_result["caption"],
-        "asset_paths": [
-            _paper_relative_path(output_csv_path, paper_root=paper_root),
-            _paper_relative_path(output_md_path, paper_root=paper_root),
-        ],
-        "source_paths": [
-            _paper_relative_path(source_md_path, paper_root=paper_root),
-        ],
-        "claim_ids": claim_ids,
-        "render_result": render_result,
-    }
 
 
 def _render_evidence_figure_by_template_runtime(
