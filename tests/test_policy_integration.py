@@ -5,6 +5,10 @@ import json
 import re
 from pathlib import Path
 
+from med_autoscience.controllers.medical_publication_surface_parts import (
+    controller as medical_publication_surface_controller,
+)
+
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,7 +96,7 @@ def test_publication_gate_uses_policy_message_builder(tmp_path: Path, monkeypatc
 
 
 def test_medical_surface_uses_policy_forbidden_patterns_and_message_builder(tmp_path: Path, monkeypatch) -> None:
-    controller = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    controller = medical_publication_surface_controller
     quest_root = make_surface_quest(tmp_path)
 
     monkeypatch.setattr(
