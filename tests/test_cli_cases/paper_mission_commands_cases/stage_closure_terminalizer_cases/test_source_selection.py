@@ -617,6 +617,158 @@ def test_terminalize_stage_route_back_autodiscovery_reads_nested_attempt_packets
     ] == "sat-new"
 
 
+def test_terminalize_stage_prefers_latest_route_back_packet_over_old_live_write_closeout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    packets_root = (
+        workspace_root / "ops" / "medautoscience" / "paper_mission_stage_attempts"
+    )
+
+    def write_packet(
+        attempt_id: str,
+        *,
+        stage_id: str,
+        work_unit_id: str | None,
+        mtime: float,
+        rich_historical_context: bool = False,
+    ) -> Path:
+        root = packets_root / attempt_id
+        root.mkdir(parents=True, exist_ok=True)
+        route_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            "route_back_evidence_packet.json"
+        )
+        route_payload = {
+            "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+            "study_id": study_id,
+            "stage_id": stage_id,
+            "owner_answer_kind": "route_back_evidence_ref",
+        }
+        if work_unit_id is not None:
+            route_payload["work_unit_id"] = work_unit_id
+        if rich_historical_context:
+            route_payload.update(
+                {
+                    "paper_facing_delta_ref": (
+                        f"ops/medautoscience/paper_mission_stage_attempts/"
+                        f"{attempt_id}/paper_facing_write_repair_candidate.json"
+                    ),
+                    "progress_events_ref": (
+                        f"ops/medautoscience/paper_mission_stage_attempts/"
+                        f"{attempt_id}/progress_events.jsonl"
+                    ),
+                    "owner_gate_verdict": "historical write candidate",
+                    "remaining_blocker": "owner consumption pending",
+                    "source_evidence": {"legacy_attempt": attempt_id},
+                }
+            )
+        (workspace_root / route_ref).write_text(
+            json.dumps(route_payload),
+            encoding="utf-8",
+        )
+        packet_payload = {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "route_back_evidence_candidate_materialized",
+            "study_id": study_id,
+            "stage_id": stage_id,
+            "stage_attempt_id": attempt_id,
+            "route_back_evidence_ref": route_ref,
+            "owner_answer_kind": "route_back_evidence_ref",
+        }
+        if work_unit_id is not None:
+            packet_payload["work_unit_id"] = work_unit_id
+        if rich_historical_context:
+            packet_payload.update(
+                {
+                    "paper_facing_delta_ref": route_payload["paper_facing_delta_ref"],
+                    "progress_events_ref": route_payload["progress_events_ref"],
+                    "route_impact": {
+                        "stage_log_summary": "historical write closeout",
+                        "user_stage_log": "historical write closeout",
+                    },
+                }
+            )
+        packet_path = root / "stage_attempt_closeout_packet.json"
+        packet_path.write_text(json.dumps(packet_payload), encoding="utf-8")
+        os.utime(packet_path, (mtime, mtime))
+        return packet_path
+
+    old_packet = write_packet(
+        "sat-a293",
+        stage_id="write",
+        work_unit_id="medical_prose_write_repair",
+        mtime=1_000.0,
+        rich_historical_context=True,
+    )
+    latest_packet = write_packet(
+        "sat-a924",
+        stage_id="dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+        work_unit_id=None,
+        mtime=2_000.0,
+    )
+    source_readback = {
+        "study_id": study_id,
+        "mission_id": f"paper-mission::{study_id}::terminalize-test",
+        "mission_state": "route_back",
+        "consume_candidate_status": "route_back",
+        "paper_mission_transaction": {
+            "transaction_id": (
+                "paper-mission-transaction::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "submission_milestone_candidate::paper-mission::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "medical_prose_write_repair_publication_gate_replay::one-shot-migration"
+            ),
+            "stage_id": "submission_milestone_candidate",
+            "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        },
+        "next_action": {
+            "stage_id": "submission_milestone_candidate",
+            "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "status": "completed",
+                "stage_attempt_id": "sat-a293",
+                "closeout_ref": (
+                    "opl://family-runtime/tasks/frt-a293/terminal-closeout-readback"
+                ),
+                "runtime_readback_source": "opl_family_runtime_queue_inspect",
+                "closeout_refs": [str(old_packet)],
+            }
+        },
+    }
+    monkeypatch.setattr(
+        commands,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: source_readback,
+    )
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=workspace_root / "studies",
+        default_publication_profile="general_medical_journal",
+    )
+
+    readback = commands._build_terminalizer_source_readback(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=study_id,
+        source="test",
+    )
+
+    assert readback["source_ref"] == str(latest_packet)
+    assert readback["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-a924"
+
+
 def test_terminalize_stage_prefers_current_transaction_stage_closure_over_stale_direct(
     tmp_path: Path,
     monkeypatch,
