@@ -84,7 +84,6 @@ medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_rep
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
-study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 workspace_init = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
 workspace_literature = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
@@ -523,10 +522,11 @@ def _call_progress_projection(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
+    from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
     from med_autoscience.mcp_server_parts.projection_adapters import render_study_progress_result
 
     profile = profiles.load_profile(_require_string(arguments, "profile_path"))
-    result = study_progress.read_study_progress(
+    result = read_study_progress(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),

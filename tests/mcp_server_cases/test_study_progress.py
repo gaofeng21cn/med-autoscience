@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from med_autoscience.controllers.study_progress_parts import projection as study_progress_projection
 from tests.mcp_server_cases.profile import write_profile
 from tests.mcp_server_cases.result_envelope import _assert_tool_result_envelope, _structured_payload
 
@@ -72,7 +73,7 @@ def test_mcp_server_progress_projection_prefers_progress_projection_markdown_whe
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        module.study_progress,
+        study_progress_projection,
         "read_study_progress",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -260,12 +261,7 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
             },
         }
 
-    monkeypatch.setattr(module.study_progress, "read_study_progress", fake_read_study_progress)
-    monkeypatch.setattr(
-        module.study_progress,
-        "render_study_progress_markdown",
-        lambda payload: "# 研究进度\n\n托管运行时正在自动推进研究。\n",
-    )
+    monkeypatch.setattr(study_progress_projection, "read_study_progress", fake_read_study_progress)
 
     result = module.call_tool(
         "study_progress",
