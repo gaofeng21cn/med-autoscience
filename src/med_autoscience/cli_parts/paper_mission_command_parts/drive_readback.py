@@ -659,11 +659,7 @@ def _drive_route_checkpoint_owner_consumption_already_applied(
     for applied in _drive_applied_receipt_owner_consumptions(readback):
         if _optional_text(applied.get("status")) == "owner_consumed_route_checkpoint":
             return True
-    current = _mapping(
-        _mapping(readback.get("current_opl_runtime_carrier_readback")).get(
-            "mas_receipt_consumption"
-        )
-    )
+    current = _mapping(_drive_runtime_carrier_readback(readback).get("mas_receipt_consumption"))
     return _optional_text(current.get("status")) == "owner_consumed_route_checkpoint"
 
 
@@ -717,12 +713,17 @@ def _drive_owner_action_stop_readback(
         return None
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
     current_opl_owner_consumption = _drive_current_opl_owner_consumption(readback)
+    direct_next_action_already_consumed = _drive_direct_next_action_already_owner_consumed(
+        readback,
+        next_action,
+    )
     if _drive_should_submit_direct_next_action(readback):
         return None
-    if can_package_from_next_action:
+    if can_package_from_next_action and not direct_next_action_already_consumed:
         return None
     has_owner_stop = (
-        bool(current_opl_owner_consumption)
+        direct_next_action_already_consumed
+        or bool(current_opl_owner_consumption)
         or _drive_has_terminal_owner_consumption_action(readback)
         or (bool(_mapping(readback.get("typed_blocker_resolution_readback"))))
     )
@@ -849,7 +850,7 @@ def _drive_has_terminal_owner_consumption_action(
 def _drive_current_opl_owner_consumption(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
-    current_readback = _mapping(readback.get("current_opl_runtime_carrier_readback"))
+    current_readback = _drive_runtime_carrier_readback(readback)
     consumption = _mapping(current_readback.get("mas_receipt_consumption"))
     if _optional_text(consumption.get("status")) != "requires_mas_owner_consumption":
         return {}
@@ -867,6 +868,13 @@ def _drive_current_opl_owner_consumption(
     ):
         return {}
     return dict(consumption)
+
+
+def _drive_runtime_carrier_readback(readback: Mapping[str, Any]) -> Mapping[str, Any]:
+    current_readback = _mapping(readback.get("current_opl_runtime_carrier_readback"))
+    if current_readback:
+        return current_readback
+    return _mapping(readback.get("opl_runtime_carrier_readback"))
 
 
 def _drive_receipt_owner_consumption_already_applied(
@@ -934,6 +942,9 @@ def _drive_consumption_identity_matches(
 
 
 def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
+    next_action = _mapping(readback.get("next_action"))
+    if _drive_direct_next_action_already_owner_consumed(readback, next_action):
+        return "current_opl_route_back_checkpoint_already_owner_consumed_no_redrive"
     current_consumption = _drive_current_opl_owner_consumption(readback)
     if current_consumption:
         next_legal_action = _optional_text(current_consumption.get("next_legal_action"))

@@ -65,6 +65,264 @@ def test_paper_mission_drive_still_submits_same_work_unit_after_owner_consumed_r
     assert _drive_should_submit_direct_next_action(different_work_unit) is True
 
 
+def test_paper_mission_drive_does_not_resubmit_consumed_current_terminal_closeout() -> None:
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_type": "request_opl_stage_attempt",
+        "action_family": "paper.write.prose_repair",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+    }
+    readback = {
+        "surface_kind": "paper_mission_materialized_readback",
+        "canonical_next_action_source": "domain_transition.next_action",
+        "next_action": next_action,
+        "current_opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/route_back_evidence_packet.json"
+                ),
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/stage_attempt_closeout_packet.json"
+                ),
+            },
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_back_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/route_back_evidence_packet.json"
+            ),
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/stage_attempt_closeout_packet.json"
+            ),
+        },
+    }
+    different_work_unit = {
+        **readback,
+        "next_action": {
+            **next_action,
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        },
+    }
+
+    assert _drive_should_submit_direct_next_action(readback) is False
+    assert _drive_should_submit_direct_next_action(different_work_unit) is True
+
+
+def test_paper_mission_drive_does_not_resubmit_consumed_runtime_route_readback() -> None:
+    readback = {
+        "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
+        "source": "paper_mission_consumption_ledger",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "runtime.opl_route",
+            "action_kind": "submit_to_opl_runtime",
+            "owner": "one-person-lab",
+            "work_unit_id": "medical_prose_write_repair",
+            "authority_source": "mas_next_action_compiler",
+            "authority_boundary": {
+                "can_submit_to_opl_runtime": True,
+            },
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current",
+                "stage_id": "medical_prose_write_repair",
+                "work_unit_id": None,
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/route_back_evidence_packet.json"
+                ),
+            },
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_back_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/route_back_evidence_packet.json"
+            ),
+        },
+    }
+
+    assert _drive_should_submit_direct_next_action(readback) is False
+
+
+def test_paper_mission_drive_does_not_resubmit_owner_consumed_terminal_closeout() -> None:
+    readback = {
+        "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "action_family": "runtime.opl_route",
+            "action_kind": "submit_to_opl_runtime",
+            "owner": "one-person-lab",
+            "work_unit_id": "medical_prose_write_repair",
+            "authority_source": "mas_next_action_compiler",
+            "authority_boundary": {
+                "can_submit_to_opl_runtime": True,
+            },
+        },
+        "opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-current",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/route_back_evidence_packet.json"
+                ),
+            },
+        },
+    }
+
+    assert _drive_should_submit_direct_next_action(readback) is False
+
+
+def test_paper_mission_drive_stops_instead_of_repackaging_consumed_terminal_closeout(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    (Path(profile.studies_root) / study_id).mkdir(parents=True)
+    payload = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+        output_root=tmp_path / "workspace" / "ops" / "medautoscience" / "drive",
+        source="test",
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::domain-transition",
+            "canonical_next_action_source": "domain_transition.next_action",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_type": "request_opl_stage_attempt",
+                "action_family": "paper.write.prose_repair",
+                "owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+            "current_opl_runtime_carrier_readback": {
+                "terminal_closeout": {
+                    "stage_attempt_id": "sat-current",
+                    "work_unit_id": "medical_prose_write_repair",
+                },
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "requires_mas_owner_consumption",
+                    "route_back_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-current/route_back_evidence_packet.json"
+                    ),
+                    "route_checkpoint_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-current/stage_attempt_closeout_packet.json"
+                    ),
+                },
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/route_back_evidence_packet.json"
+                ),
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/stage_attempt_closeout_packet.json"
+                ),
+            },
+        },
+    )
+
+    assert payload is not None
+    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
+    assert payload["drive_result"]["reason"] == (
+        "current_opl_route_back_checkpoint_already_owner_consumed_no_redrive"
+    )
+    assert payload["drive_result"]["forbidden_next_action"] == (
+        "synonymous_route_back_redrive"
+    )
+
+
+def test_paper_mission_drive_stops_on_consumed_terminal_closeout_from_transaction_readback(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        studies_root=tmp_path / "workspace" / "studies",
+    )
+    (Path(profile.studies_root) / study_id).mkdir(parents=True)
+    payload = _drive_owner_action_stop_readback(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=study_id,
+        output_root=tmp_path / "workspace" / "ops" / "medautoscience" / "drive",
+        source="test",
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+        inspect_readback={
+            "mission_id": f"paper-mission::{study_id}::domain-transition",
+            "next_action": {
+                "surface_kind": "mas_next_action_envelope",
+                "action_family": "runtime.opl_route",
+                "action_kind": "submit_to_opl_runtime",
+                "owner": "one-person-lab",
+                "work_unit_id": "medical_prose_write_repair",
+                "authority_source": "mas_next_action_compiler",
+                "authority_boundary": {
+                    "can_submit_to_opl_runtime": True,
+                },
+            },
+            "opl_runtime_carrier_readback": {
+                "terminal_closeout": {
+                    "stage_attempt_id": "sat-current",
+                    "work_unit_id": "medical_prose_write_repair",
+                },
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "status": "requires_mas_owner_consumption",
+                    "route_back_evidence_ref": (
+                        "ops/medautoscience/paper_mission_stage_attempts/"
+                        "sat-current/route_back_evidence_packet.json"
+                    ),
+                },
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-current/route_back_evidence_packet.json"
+                ),
+            },
+        },
+    )
+
+    assert payload is not None
+    assert payload["drive_mode"] == "owner_action_ready_no_redrive"
+
+
 def test_direct_next_action_transaction_uses_domain_transition_mission_identity() -> None:
     transaction = direct_handoff.build_direct_next_action_transaction(
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
