@@ -9,12 +9,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync
+from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+    build_submission_manuscript_surface_qc,
+)
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
     load_journal_requirements,
     slugify_journal_name,
+)
+from med_autoscience.publication_profiles import (
+    FRONTIERS_FAMILY_HARVARD_PROFILE,
+    GENERAL_MEDICAL_JOURNAL_PROFILE,
 )
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
@@ -812,8 +819,8 @@ def infer_submission_publication_profile(submission_minimal_manifest: dict[str, 
         _non_empty_text(manuscript.get("pdf_path")),
     ]
     if any(candidate and "journal_submissions/frontiers_family_harvard/" in candidate for candidate in output_candidates):
-        return submission_minimal.FRONTIERS_FAMILY_HARVARD_PROFILE
-    return submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+        return FRONTIERS_FAMILY_HARVARD_PROFILE
+    return GENERAL_MEDICAL_JOURNAL_PROFILE
 
 
 def collect_submission_surface_qc_failures(
@@ -874,7 +881,7 @@ def collect_submission_surface_qc_failures(
             paper_bundle_manifest_path=paper_bundle_manifest_path,
             submission_minimal_manifest=submission_minimal_manifest,
         )
-        manuscript_surface_qc = submission_minimal.build_submission_manuscript_surface_qc(
+        manuscript_surface_qc = build_submission_manuscript_surface_qc(
             publication_profile=infer_submission_publication_profile(submission_minimal_manifest),
             source_markdown_path=source_markdown_path,
             docx_path=docx_path or Path(""),

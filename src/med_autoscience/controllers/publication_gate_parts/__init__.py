@@ -103,7 +103,6 @@ Path = discovery_and_drift.Path
 Any = discovery_and_drift.Any
 journal_package_controller = discovery_and_drift.journal_package_controller
 study_delivery_sync = discovery_and_drift.study_delivery_sync
-submission_minimal = discovery_and_drift.submission_minimal
 describe_journal_submission_package = discovery_and_drift.describe_journal_submission_package
 journal_requirements_json_path = discovery_and_drift.journal_requirements_json_path
 load_journal_requirements = discovery_and_drift.load_journal_requirements

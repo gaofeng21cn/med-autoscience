@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync
 from med_autoscience.controllers import medical_literature_hygiene
+from med_autoscience.controllers.submission_minimal_parts.authority import describe_submission_minimal_authority
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
@@ -305,7 +306,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     study_delivery_status = str(study_delivery.get("status") or "").strip() or "not_applicable"
     draft_handoff_delivery = state.draft_handoff_delivery or {}
     submission_minimal_authority = (
-        submission_minimal.describe_submission_minimal_authority(
+        describe_submission_minimal_authority(
             paper_root=state.paper_root,
             publication_profile=infer_submission_publication_profile(state.submission_minimal_manifest),
         )

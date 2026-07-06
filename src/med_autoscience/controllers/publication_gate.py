@@ -65,7 +65,6 @@ from .publication_gate_parts import (
     Any,
     journal_package_controller,
     study_delivery_sync,
-    submission_minimal,
     describe_journal_submission_package,
     journal_requirements_json_path,
     load_journal_requirements,

@@ -60,7 +60,7 @@ def test_build_gate_report_resolves_v2_submission_manifest_source_markdown_root(
         }
 
     monkeypatch.setattr(
-        module.submission_minimal,
+        module.discovery_and_drift,
         "build_submission_manuscript_surface_qc",
         fake_build_submission_manuscript_surface_qc,
     )

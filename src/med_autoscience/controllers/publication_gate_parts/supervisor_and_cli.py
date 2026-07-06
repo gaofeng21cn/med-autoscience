@@ -13,7 +13,6 @@ from med_autoscience.controllers import (
     gate_clearing_batch_package_freshness,
     journal_package as journal_package_controller,
     study_delivery_sync,
-    submission_minimal,
 )
 from med_autoscience.controllers.authority_route_context_call import call_with_authority_route_context
 from med_autoscience.controllers.authority_route_gate import authorize_authority_route
@@ -25,6 +24,7 @@ from med_autoscience.journal_requirements import (
     load_journal_requirements,
     slugify_journal_name,
 )
+from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import (
     paper_artifacts,
@@ -517,7 +517,7 @@ def _stale_submission_delivery_sync_profile(*, state: GateState, report: dict[st
         )
         if manifest_profile is not None:
             return manifest_profile
-    return submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+    return GENERAL_MEDICAL_JOURNAL_PROFILE
 
 
 def _current_publication_eval_id(*, state: GateState) -> str | None:

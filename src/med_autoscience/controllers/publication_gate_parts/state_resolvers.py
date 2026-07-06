@@ -10,13 +10,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
     load_journal_requirements,
     slugify_journal_name,
 )
+from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
 from med_autoscience.runtime_protocol import (
@@ -222,7 +223,7 @@ def _resolve_current_journal_source_manifest_path(
         return None
     publication_profile = (
         _non_empty_text(primary_target.get("publication_profile"))
-        or submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+        or GENERAL_MEDICAL_JOURNAL_PROFILE
     )
     try:
         source_root = study_delivery_sync.build_submission_source_root(
