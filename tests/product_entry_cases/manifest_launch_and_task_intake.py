@@ -15,11 +15,19 @@ _module_reexport(_attention_queue_and_cockpit_base)
 _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_launch_study_surfaces)
 
+def product_entry_manifest_rendering_module():
+    return importlib.import_module("med_autoscience.controllers.product_entry_parts.manifest_rendering")
+
+
+def product_entry_entry_runtime_module():
+    return importlib.import_module("med_autoscience.controllers.product_entry_parts.entry_runtime")
+
+
 def test_build_product_entry_manifest_projects_contract_bundle_with_product_entry_fields(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -42,7 +50,7 @@ def test_build_product_entry_manifest_projects_contract_bundle_with_product_entr
 def test_build_product_entry_manifest_exposes_source_provenance_refs_for_opl_projection(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -73,7 +81,7 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     manifest = {
@@ -216,7 +224,7 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
 
 
 def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_rendering_module()
 
     markdown = module.render_product_entry_status_markdown(
         {
@@ -389,7 +397,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
 
 
 def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     startup_brief_path = profile.workspace_root / "ops" / "med-deepscientist" / "startup_briefs" / "001-risk.md"
@@ -429,7 +437,7 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
 
 
 def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
 
@@ -498,7 +506,7 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
 
 
 def test_submit_study_task_honors_explicit_reviewer_revision_kind_without_text_marker(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "002-risk")
 
@@ -525,7 +533,7 @@ def test_submit_study_task_honors_explicit_reviewer_revision_kind_without_text_m
 
 
 def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "004-risk")
 
@@ -552,7 +560,7 @@ def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) 
 
 
 def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     study_root = write_study(profile.workspace_root, "001-risk")
