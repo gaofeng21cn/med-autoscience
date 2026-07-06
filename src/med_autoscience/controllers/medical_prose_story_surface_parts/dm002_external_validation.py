@@ -487,8 +487,9 @@ def _dm002_figure_catalog_payload(*, existing_payload: Mapping[str, Any]) -> dic
         (
             "F2",
             "External discrimination and cohort-level calibration",
-            "Discrimination and cohort-level 5-year mortality calibration for the China-derived score in the China "
-            "cohort and the NHANES external-validation cohort after unit harmonization.",
+            "Cohort-level overview of discrimination and 5-year mortality calibration for the China-derived score in "
+            "the China cohort and the NHANES external-validation cohort after unit harmonization. Grouped calibration "
+            "in Figure 3 is the primary calibration display.",
             "fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel",
             [
                 "paper/figures/generated/F2_time_to_event_discrimination_calibration_panel.png",
@@ -517,6 +518,25 @@ def _dm002_figure_catalog_payload(*, existing_payload: Mapping[str, Any]) -> dic
         item["paper_role"] = "main_text"
         item["export_paths"] = export_paths
         item["source_paths"] = source_paths
+        if figure_id == "F2":
+            item["direct_message"] = (
+                "The score retains moderate risk ordering in NHANES, but Figure 2 is a cohort-level overview; "
+                "Figure 3 carries the grouped calibration evidence."
+            )
+            item["interpretation_boundary"] = (
+                "The display supports a high-level discrimination and calibration summary, but it is not a "
+                "replacement for grouped calibration or a deployable risk-threshold display."
+            )
+            item["panel_level_messages"] = [
+                {
+                    "panel": "A",
+                    "message": "Risk ordering is evaluated separately from absolute-risk calibration.",
+                },
+                {
+                    "panel": "B",
+                    "message": "The cohort-level calibration point is an overview summary; grouped calibration is shown in Figure 3.",
+                },
+            ]
         figures.append(item)
     payload["schema_version"] = 1
     payload["figures"] = figures
@@ -616,8 +636,8 @@ def _dm002_performance_table(values: Mapping[str, Any]) -> str:
         ("C-index", values["china_c_index"], values["nhanes_c_index_ci"]),
         ("Observed-to-expected ratio", values["china_oe"], values["oe_ci"]),
         ("Brier score", values["china_brier"], values["brier_ci"]),
-        ("Calibration intercept", "Not estimated", values["calibration_intercept_ci"]),
-        ("Calibration slope", "Not estimated", values["calibration_slope_ci"]),
+        ("Calibration intercept", "Not applicable", values["calibration_intercept_ci"]),
+        ("Calibration slope", "Not applicable", values["calibration_slope_ci"]),
     ]
     body = "\n".join(f"| {metric} | {china} | {nhanes} |" for metric, china, nhanes in rows)
     return "\n".join(
@@ -766,29 +786,25 @@ def _dm002_methods_section(values: Mapping[str, Any]) -> str:
 
 
 def _dm002_results_section(values: Mapping[str, Any]) -> str:
-    grouped_sentence = _dm002_group_range_sentence(values)
-    if not grouped_sentence:
-        first_group = _dm002_group_sentence(values.get("first_group"), fallback_label="decile 1")
-        last_group = _dm002_group_sentence(values.get("last_group"), fallback_label="decile 10")
-        grouped_sentence = " ".join(text for text in (first_group, last_group) if text)
     return (
         "## Results\n\n"
         "### Cohorts\n\n"
         f"The China cohort included {values['china_n']} adults with diabetes; {values['china_events']} deaths were "
         f"observed, including {values['china_5y_events']} within 5 years. The NHANES validation cohort included "
         f"{values['nhanes_n']} adults with diagnosed diabetes and {values['nhanes_5y_events']} deaths within 5 years.\n\n"
-        "### Discrimination and calibration\n\n"
+        "### Discrimination and risk stratification\n\n"
         f"The development-cohort c-index was {values['china_c_index']}. In NHANES, the c-index was "
         f"{values['nhanes_c_index_ci']}, indicating retained cross-population risk stratification. "
-        f"{_dm002_group_range_sentence(values)} Absolute calibration was poor: observed 5-year mortality was "
+        f"{_dm002_group_range_sentence(values)}\n\n"
+        "### Absolute calibration and error\n\n"
+        f"Observed 5-year mortality was "
         f"{values['observed_5y_ci']}, while the mean predicted 5-year risk was {values['predicted_5y_ci']}. "
         f"The O:E ratio was {values['oe_ci']} and the residual cohort-level calibration gap was "
-        f"{values['absolute_gap']} percentage points.\n\n"
-        "### Error and grouped calibration\n\n"
-        f"The Brier score was {values['brier_ci']}. The logistic calibration intercept was "
+        f"{values['absolute_gap']} percentage points. The Brier score was {values['brier_ci']}. "
+        "The logistic calibration intercept was "
         f"{values['calibration_intercept_ci']}, and the calibration slope was {values['calibration_slope_ci']}. "
         "The slope greater than 1 indicates that the transported predicted-risk distribution was too compressed in "
-        f"NHANES. {grouped_sentence} Figure 3 shows the grouped-calibration pattern directly as predicted and observed "
+        "NHANES. Figure 3 shows the grouped-calibration pattern directly as predicted and observed "
         "5-year risk across NHANES deciles. This pattern indicates that the transported model still separated lower- "
         "from higher-risk adults, but mapped most NHANES participants to a narrow low-risk probability range. These "
         "results support retained ranking utility, while showing that the absolute risk scale requires local "
@@ -801,8 +817,10 @@ def _dm002_tables_figures_section(*, t1: str, t2: str, t3: str) -> str:
         "## Tables and figures\n\n"
         "Table 1 reports cohort characteristics for the China and NHANES diabetes cohorts. Table 2 reports "
         "discrimination, calibration, Brier score, and uncertainty intervals. Table 3 reports within-NHANES grouped "
-        "calibration. The main displays focus on cohort flow, discrimination, and NHANES decile grouped calibration; "
-        "cohort-level calibration is a summary metric rather than a deployable risk-threshold display. Threshold-specific clinical utility was not estimated for a prespecified action threshold "
+        "calibration. Figure 3 is the primary calibration display; Figure 2 is retained as a cohort-level overview, "
+        "not as a substitute for grouped calibration. The main displays focus on cohort flow, discrimination, and "
+        "NHANES decile grouped calibration; cohort-level calibration is a summary metric rather than a deployable "
+        "risk-threshold display. Threshold-specific clinical utility was not estimated for a prespecified action threshold "
         "and should not be used as a main evidence figure."
     ]
     if t1:
@@ -828,6 +846,9 @@ def _dm002_discussion_section(values: Mapping[str, Any]) -> str:
         "spread predicted risks enough for the mortality gradient observed in NHANES. This pattern is more consistent "
         "with the same relative risk signal operating on a different baseline-risk background than with complete model "
         "failure.\n\n"
+        "This interpretation is supported by baseline cohort differences: NHANES participants were older (62.0 vs "
+        "50.9 years), had a higher smoking-status positive proportion (50.6% vs 30.5%), and had much higher observed "
+        "5-year mortality (12.4% vs 2.0%) than the China cohort, despite lower mean HbA1c (7.5% vs 9.4%).\n\n"
         "Several explanations are plausible, but this analysis does not identify a single mechanism. Differences in "
         "baseline mortality, follow-up structure, mortality ascertainment, case mix, treatment context, unmeasured "
         "comorbidity, and health-system setting could all contribute to the absolute-risk mismatch. Predictor "

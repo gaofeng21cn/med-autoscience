@@ -1,12 +1,13 @@
 ---
-name: mas
+name: med-autoscience
 description: Use when Codex should operate MedAutoScience through its stable runtime, controller, overlay, and workspace contracts instead of ad-hoc scripts.
 ---
 
-# MAS App Skill
+# MedAutoScience App Skill
 
 Series: OPL Foundry Agent
-Agent id: mas
+Skill id: med-autoscience
+Legacy alias: mas
 Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff
 Executable command surface: `medautosci foundry status|inspect|interfaces|validate|doctor|peers --format json`
 Paper mission readback/control surface: `medautosci paper-mission inspect|drive|terminalize-stage`
@@ -18,7 +19,7 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 
 - `MedAutoScience` 的 direct domain entry / handler target；它把 Codex 调回 MAS owner surface，而不是让本仓长期拥有 Skill descriptor。
 - OPL generated descriptors 是 CLI、MCP、Skill、product-entry、status、workbench metadata 的统一 owner；MAS repo-local skill 文件只保留当前 direct path 约束、handler target 说明和 domain authority 护栏。
-- `medautosci foundry ...` 是 MAS 的只读 OPL Foundry Agent series identity / interface surface；顶层 `medautosci status|inspect|interfaces|validate|doctor` 是同一读面的薄 alias。`mas` 是 series agent id / brand shorthand，不作为本机 PATH readiness 的唯一证据，也不要用它判断 shell 命令是否安装；macOS 上 `/opt/homebrew/bin/mas` 通常是 Mac App Store CLI。旧 `runtime`、`index`、`stage-artifact`、裸 MCP/server 细节只作为 diagnostic 或 handler target，不是新用户 command surface。
+- `medautosci foundry ...` 是 MAS 的只读 OPL Foundry Agent series identity / interface surface；顶层 `medautosci status|inspect|interfaces|validate|doctor` 是同一读面的薄 alias。`med-autoscience` 是当前 Codex plugin / skill 机器名；`mas` 继续只保留为 series agent id / brand shorthand，不作为本机 PATH readiness 的唯一证据，也不要用它判断 shell 命令是否安装；macOS 上 `/opt/homebrew/bin/mas` 通常是 Mac App Store CLI。旧 `runtime`、`index`、`stage-artifact`、裸 MCP/server 细节只作为 diagnostic 或 handler target，不是新用户 command surface。
 - MAS 保留 `MedAutoScienceDomainEntry`、CLI/controller/workspace commands、study truth、publication quality、artifact gate、current package authority、memory writeback decision 和 owner receipt signer。
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是 MAS domain handler contract，供 OPL generated surfaces 或 direct path 调用。
 - `product-entry manifest` 暴露 MAS-owned domain action intents、handler target refs 与 authority boundaries；CLI、MCP、Skill、product/status/workbench descriptors 由 OPL 从同一份 pack/compiler input 生成或托管。
@@ -46,7 +47,7 @@ OPL series command surface: `opl foundry agents inspect mas --json`
 - `medautosci study progress --profile <profile> --study-id <study_id> --format json`
 - `medautosci domain-handler export --profile <profile> --format json`
 - `medautosci domain-handler dispatch --task <task.json> --format json`
-- plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
+- plugin-local MCP launcher: `plugins/med-autoscience/bin/medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：
 

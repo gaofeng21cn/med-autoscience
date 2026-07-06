@@ -18,7 +18,7 @@ command -v uv >/dev/null 2>&1
 export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
 export MAS_CLEAN_RUNNER_TMP_ROOT="${healthcheck_tmp_root}/python"
 clean_python=("${repo_root}/scripts/run-python-clean.sh")
-plugin_mcp_launcher=("${repo_root}/plugins/mas/bin/medautosci-mcp")
+plugin_mcp_launcher=("${repo_root}/plugins/med-autoscience/bin/medautosci-mcp")
 
 "${clean_python[@]}" -m med_autoscience.cli --help >/dev/null
 "${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null
@@ -39,21 +39,33 @@ import os
 from pathlib import Path
 
 repo_root = Path.cwd()
+plugin_root = repo_root / "plugins" / "med-autoscience"
+legacy_plugin_root = repo_root / "plugins" / "mas"
+skill_root = plugin_root / "skills" / "med-autoscience"
+legacy_skill_root = legacy_plugin_root / "skills" / "mas"
 required_paths = [
-    repo_root / "plugins" / "mas" / ".codex-plugin" / "plugin.json",
-    repo_root / "plugins" / "mas" / "bin" / "medautosci-mcp",
-    repo_root / "plugins" / "mas" / "skills" / "mas" / "SKILL.md",
-    repo_root / "plugins" / "mas" / "skills" / "mas" / "agents" / "openai.yaml",
+    plugin_root / ".codex-plugin" / "plugin.json",
+    plugin_root / "bin" / "medautosci-mcp",
+    skill_root / "SKILL.md",
+    skill_root / "agents" / "openai.yaml",
 ]
 missing = [str(path) for path in required_paths if not path.is_file()]
 if missing:
     raise SystemExit(f"Missing MedAutoScience OPL plugin files: {missing}")
 if not os.access(required_paths[1], os.X_OK):
     raise SystemExit("MedAutoScience plugin-local MCP launcher must be executable.")
+if not legacy_plugin_root.is_symlink():
+    raise SystemExit("Legacy plugins/mas compatibility path must remain a symlink to the canonical plugin root.")
+if legacy_plugin_root.resolve() != plugin_root.resolve():
+    raise SystemExit("Legacy plugins/mas compatibility path must resolve to plugins/med-autoscience.")
+if not legacy_skill_root.is_dir():
+    raise SystemExit("Legacy skills/mas compatibility path must remain available for lookup compatibility.")
+if legacy_skill_root.resolve() != skill_root.resolve():
+    raise SystemExit("Legacy skills/mas compatibility path must resolve to skills/med-autoscience.")
 
 manifest = json.loads(required_paths[0].read_text(encoding="utf-8"))
-if manifest.get("name") != "mas":
-    raise SystemExit("MedAutoScience plugin manifest name must be `mas`.")
+if manifest.get("name") != "med-autoscience":
+    raise SystemExit("MedAutoScience plugin manifest name must be `med-autoscience`.")
 if manifest.get("skills") != "./skills/":
     raise SystemExit("MedAutoScience plugin manifest must point to ./skills/.")
 if "mcpServers" in manifest:

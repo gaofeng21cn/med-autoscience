@@ -676,7 +676,7 @@ def test_tracked_action_catalog_and_tool_arsenal_demote_domain_handler_dispatch(
 
 
 def test_plugin_skill_ordinary_path_does_not_use_legacy_default_paper_mainline() -> None:
-    skill_text = (REPO_ROOT / "plugins/mas/skills/mas/SKILL.md").read_text(encoding="utf-8")
+    skill_text = (REPO_ROOT / "plugins/med-autoscience/skills/med-autoscience/SKILL.md").read_text(encoding="utf-8")
     ordinary_path_line = next(
         line for line in skill_text.splitlines() if line.startswith("Ordinary path:")
     )

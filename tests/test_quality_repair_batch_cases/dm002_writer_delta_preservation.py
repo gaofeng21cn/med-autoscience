@@ -391,6 +391,14 @@ def test_dm002_after_story_repair_regenerates_latest_external_validation_story_s
     assert "fixed Cox risk equation" in regenerated_story
     assert "retained cross-population risk stratification" in regenerated_story
     assert "absolute-risk communication and threshold-based decisions require local recalibration" in regenerated_story
+    results_section = regenerated_story.split("## Results", 1)[1].split("## Tables and figures", 1)[0]
+    assert results_section.count("approximately 16-fold gradient") == 1
+    assert "### Discrimination and risk stratification" in results_section
+    assert "### Absolute calibration and error" in results_section
+    assert "Figure 3 is the primary calibration display" in regenerated_story
+    assert "Calibration intercept | Not applicable" in regenerated_story
+    assert "Calibration slope | Not applicable" in regenerated_story
+    assert "NHANES participants were older (62.0 vs 50.9 years)" in regenerated_story
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == regenerated_story
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))

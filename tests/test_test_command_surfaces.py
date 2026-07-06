@@ -746,7 +746,8 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert '"${clean_python[@]}" -m med_autoscience.cli --help >/dev/null' in script
     assert '"${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null' in script
     assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
-    assert '"${clean_python[@]}" -m med_autoscience.mcp_server' in script
+    assert 'plugin_mcp_launcher=("${repo_root}/plugins/med-autoscience/bin/medautosci-mcp")' in script
+    assert 'mcp_tools_json="$(printf' in script
     assert "AUTHORITY_OPERATION_MCP_MODES" in script
     assert 'export AUTHORITY_OPERATION_MCP_MODES_JSON="${authority_operation_mcp_modes_json}"' in script
     assert 'if "product_entry" in mcp_tools:' in script
@@ -754,8 +755,12 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert 'required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))' in script
     assert 'retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}' in script
     assert "uv run --directory" not in script
-    assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
-    assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script
+    assert 'plugin_root = repo_root / "plugins" / "med-autoscience"' in script
+    assert 'legacy_plugin_root = repo_root / "plugins" / "mas"' in script
+    assert 'skill_root = plugin_root / "skills" / "med-autoscience"' in script
+    assert 'legacy_skill_root = legacy_plugin_root / "skills" / "mas"' in script
+    assert 'legacy_plugin_root.resolve() != plugin_root.resolve()' in script
+    assert 'legacy_skill_root.resolve() != skill_root.resolve()' in script
 
 
 def test_parallel_full_lane_script_covers_all_marker_groups() -> None:

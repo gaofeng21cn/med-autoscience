@@ -6,6 +6,10 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CANONICAL_PLUGIN_ROOT = REPO_ROOT / "plugins" / "med-autoscience"
+LEGACY_PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
+CANONICAL_SKILL_ROOT = CANONICAL_PLUGIN_ROOT / "skills" / "med-autoscience"
+LEGACY_SKILL_ROOT = LEGACY_PLUGIN_ROOT / "skills" / "mas"
 
 
 def test_install_repo_local_codex_plugin_uses_tracked_plugin_source_without_marketplace_write(tmp_path: Path) -> None:
@@ -30,17 +34,17 @@ def test_install_repo_local_codex_plugin_uses_tracked_plugin_source_without_mark
 
     plugin_link = home / "plugins" / "mas"
     skill_link = home / ".agents" / "skills" / "mas"
-    manifest_path = REPO_ROOT / "plugins" / "mas" / ".codex-plugin" / "plugin.json"
-    skill_path = REPO_ROOT / "plugins" / "mas" / "skills" / "mas" / "SKILL.md"
+    manifest_path = CANONICAL_PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
+    skill_path = CANONICAL_SKILL_ROOT / "SKILL.md"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert not legacy_plugin_link.exists()
     assert not legacy_skill_link.exists()
     assert legacy_marketplace_path.exists()
-    assert result["plugin_root"] == str(REPO_ROOT / "plugins" / "mas")
-    assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
-    assert result["plugin_manifest_path"] == str(manifest_path)
-    assert result["skill_path"] == str(skill_path)
+    assert result["plugin_root"] == str(LEGACY_PLUGIN_ROOT)
+    assert result["skill_root"] == str(LEGACY_SKILL_ROOT)
+    assert result["plugin_manifest_path"] == str(LEGACY_PLUGIN_ROOT / ".codex-plugin" / "plugin.json")
+    assert result["skill_path"] == str(LEGACY_SKILL_ROOT / "SKILL.md")
     assert result["marketplace_path"] == str(REPO_ROOT / ".agents" / "plugins" / "marketplace.json")
     assert result["repo_local_marketplace_written"] == "false"
     assert result["repo_local_marketplace_removed"] == "false"
@@ -48,10 +52,15 @@ def test_install_repo_local_codex_plugin_uses_tracked_plugin_source_without_mark
     assert not plugin_link.exists()
     assert not skill_link.exists()
     assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
-    assert manifest["name"] == "mas"
+    assert manifest["name"] == "med-autoscience"
     assert manifest["skills"] == "./skills/"
     assert "mcpServers" not in manifest
     assert skill_path.is_file()
+    assert LEGACY_PLUGIN_ROOT.is_symlink()
+    assert LEGACY_PLUGIN_ROOT.resolve() == CANONICAL_PLUGIN_ROOT.resolve()
+    assert LEGACY_SKILL_ROOT.resolve() == CANONICAL_SKILL_ROOT.resolve()
+    assert Path(result["plugin_manifest_path"]).resolve() == manifest_path.resolve()
+    assert Path(result["skill_path"]).resolve() == skill_path.resolve()
 
 
 def test_install_repo_local_codex_plugin_keeps_skill_repo_local(tmp_path: Path) -> None:
@@ -62,7 +71,7 @@ def test_install_repo_local_codex_plugin_keeps_skill_repo_local(tmp_path: Path) 
 
     assert not (home / ".agents" / "skills" / "mas").exists()
     assert not (home / ".codex" / "skills" / "mas").exists()
-    assert result["skill_root"] == str(REPO_ROOT / "plugins" / "mas" / "skills" / "mas")
+    assert result["skill_root"] == str(LEGACY_SKILL_ROOT)
 
 
 def test_install_repo_local_codex_plugin_removes_legacy_test_skill_stub(tmp_path: Path) -> None:

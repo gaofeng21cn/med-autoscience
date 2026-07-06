@@ -6,12 +6,13 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "med-autoscience"
+LEGACY_PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 PLUGIN_ICON_PATH = PLUGIN_ROOT / "assets" / "icon.png"
 PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
-PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
-PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
+PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "SKILL.md"
+PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "agents" / "openai.yaml"
 MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server.py"
 ACTION_CATALOG_PATH = REPO_ROOT / "src" / "med_autoscience" / "action_catalog.py"
 
@@ -20,7 +21,7 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
 
-    assert manifest["name"] == "mas"
+    assert manifest["name"] == "med-autoscience"
     assert manifest["version"] == pyproject_data["project"]["version"]
     assert manifest["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
     assert manifest["skills"] == "./skills/"
@@ -37,6 +38,9 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert 'stroke-width="44"' in icon_source
     assert 'stroke="#8AD6FF"' in icon_source
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
+    assert LEGACY_PLUGIN_ROOT.is_symlink()
+    assert LEGACY_PLUGIN_ROOT.resolve() == PLUGIN_ROOT.resolve()
+    assert (LEGACY_PLUGIN_ROOT / "skills" / "mas" / "SKILL.md").resolve() == PLUGIN_SKILL_PATH.resolve()
 
 
 def test_mas_plugin_skill_tracks_current_domain_handler_and_doc_boundaries() -> None:
@@ -69,7 +73,7 @@ def test_codex_plugin_marketplace_surface_is_opl_owned_not_repo_local() -> None:
     manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
 
     assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
-    assert manifest["name"] == "mas"
+    assert manifest["name"] == "med-autoscience"
     assert manifest["interface"]["displayName"] == "Med Auto Science"
     assert manifest["interface"]["category"] == "Research"
     assert manifest["skills"] == "./skills/"
@@ -80,7 +84,7 @@ def test_mas_skill_ui_metadata_tracks_plugin_display_contract() -> None:
     metadata_text = PLUGIN_SKILL_UI_METADATA_PATH.read_text(encoding="utf-8")
 
     assert 'display_name: "Med Auto Science"' in metadata_text
-    assert 'default_prompt: "Use $mas' in metadata_text
+    assert 'default_prompt: "Use $med-autoscience' in metadata_text
 
 
 def test_product_entry_tool_blocks_ad_hoc_execution_without_contract() -> None:

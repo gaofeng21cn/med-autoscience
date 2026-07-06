@@ -40,11 +40,12 @@ try_plugin_source() {
 try_repo_root "${MAS_REPO_ROOT:-}"
 try_repo_root "${MEDAUTOSCI_REPO_ROOT:-}"
 try_repo_root "${script_dir}/../../.."
+try_plugin_source "${HOME:-}/Library/Application Support/OPL/state/codex-plugin-marketplaces/med-autoscience-local/plugins/med-autoscience"
 try_plugin_source "${HOME:-}/Library/Application Support/OPL/state/codex-plugin-marketplaces/mas-local/plugins/mas"
 try_repo_root "${HOME:-}/workspace/med-autoscience"
 
 if [[ -z "${repo_root}" ]]; then
-  echo "medautosci-mcp: could not locate MedAutoScience repo root; set MAS_REPO_ROOT or refresh OPL mas-local marketplace." >&2
+  echo "medautosci-mcp: could not locate MedAutoScience repo root; set MAS_REPO_ROOT or refresh OPL med-autoscience-local/mas-local marketplace." >&2
   exit 127
 fi
 
