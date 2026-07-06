@@ -65,8 +65,8 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         _optional_text(stage_closure_ledger_readback.get("source_ref"))
         or _optional_text(stage_closure_ledger_readback.get("decision_ref"))
     )
-    if receipt_mtime is not None and stage_mtime is not None and stage_mtime > receipt_mtime:
-        return True
+    if receipt_mtime is not None and stage_mtime is not None:
+        return stage_mtime > receipt_mtime
     return _different_route_checkpoint_identity(
         decision,
         stage_closure_ledger_readback,

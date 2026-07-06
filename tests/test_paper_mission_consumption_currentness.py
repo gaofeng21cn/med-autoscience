@@ -547,7 +547,7 @@ def test_same_route_checkpoint_with_missing_refs_does_not_supersede_receipt(
     ) is False
 
 
-def test_mismatched_route_checkpoint_stage_closure_supersedes_later_stale_receipt(
+def test_older_mismatched_route_checkpoint_stage_closure_does_not_supersede_newer_receipt(
     tmp_path: Path,
 ) -> None:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -607,7 +607,7 @@ def test_mismatched_route_checkpoint_stage_closure_supersedes_later_stale_receip
                 "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
             },
         },
-    )
+    ) is False
 
 
 def test_consumption_route_handoff_rejects_cross_identity_carrier(
