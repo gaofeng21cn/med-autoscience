@@ -706,12 +706,12 @@ def _fresh_study_progress(
         if isinstance(current_progress, Mapping):
             return current_progress
     try:
-        from med_autoscience.controllers import study_progress
+        from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
     except ImportError:
         return {}
     study_root = Path(text(study.get("study_root")) or profile.studies_root / study_id)
     try:
-        return study_progress.read_study_progress(
+        return read_study_progress(
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
