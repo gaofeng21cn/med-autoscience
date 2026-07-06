@@ -1,17 +1,17 @@
 # Purpose-first renderers for the DPCC primary-care phenotype and treatment-gap paper.
 
 dpcc_gap_rate_fields <- c(
-  severe_glycemia_low_intensity_gap_rate = "Severe glycemia\nlow-intensity",
-  uncontrolled_glycemia_no_drug_gap_rate = "Uncontrolled glycemia\nno drug",
-  hypertension_no_antihypertensive_gap_rate = "Hypertension\nno antihypertensive",
-  dyslipidemia_no_lipid_lowering_gap_rate = "Dyslipidemia\nno lipid-lowering"
+  severe_glycemia_low_intensity_gap_rate = "Severe\nglycemia\nlow-int.",
+  uncontrolled_glycemia_no_drug_gap_rate = "Uncontrolled\nno DM drug",
+  hypertension_no_antihypertensive_gap_rate = "HTN\nno anti-HTN",
+  dyslipidemia_no_lipid_lowering_gap_rate = "Dyslipidemia\nno lipid Rx"
 )
 
 dpcc_gap_patient_fields <- c(
-  severe_glycemia_low_intensity_gap_patients = "Severe glycemia\nlow-intensity",
-  uncontrolled_glycemia_no_drug_gap_patients = "Uncontrolled glycemia\nno drug",
-  hypertension_no_antihypertensive_gap_patients = "Hypertension\nno antihypertensive",
-  dyslipidemia_no_lipid_lowering_gap_patients = "Dyslipidemia\nno lipid-lowering"
+  severe_glycemia_low_intensity_gap_patients = "Severe\nglycemia\nlow-int.",
+  uncontrolled_glycemia_no_drug_gap_patients = "Uncontrolled\nno DM drug",
+  hypertension_no_antihypertensive_gap_patients = "HTN\nno anti-HTN",
+  dyslipidemia_no_lipid_lowering_gap_patients = "Dyslipidemia\nno lipid Rx"
 )
 
 dpcc_rows_df <- function(rows) {
@@ -157,14 +157,20 @@ dpcc_plot_phenotype_gap_structure <- function(payload) {
       name = candidate_non_empty(payload$heatmap_scale_label, "Gap rate")
     ) +
     labs(
-      title = candidate_non_empty(payload$heatmap_panel_title, "Treatment-gap pattern"),
+      title = candidate_non_empty(payload$heatmap_panel_title, "Mismatch pattern"),
       x = "",
       y = ""
     ) +
     candidate_theme(payload) +
     theme_publication_colorbar(payload) +
     theme(
-      axis.text.x = element_text(angle = 28, hjust = 1, vjust = 1),
+      axis.text.x = element_text(
+        angle = 0,
+        hjust = 0.5,
+        vjust = 1,
+        lineheight = 0.86,
+        size = style_numeric(style_typography(payload), "tick_size", 10.0) * 0.50
+      ),
       axis.text.y = element_blank(),
       axis.ticks.y = element_blank(),
       legend.position = "right"

@@ -53,6 +53,14 @@ FORBIDDEN_MANUSCRIPT_TERMS = (
 )
 DPCC_DISPLAY_TEXT_REPLACEMENTS = (
     (
+        "Phenotype composition and treatment-gap profiles across the DPCC index cohort.",
+        "Phenotype composition and recorded risk-treatment mismatch profiles across the DPCC index cohort.",
+    ),
+    (
+        "Treatment-gap pattern",
+        "Mismatch pattern",
+    ),
+    (
         "Guideline-linked glycemia, antihypertensive, and lipid-lowering treatment gaps "
         "aligned to the six DPCC phenotypes.",
         "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
@@ -522,9 +530,9 @@ def _abstract_section(
         f"context without a recorded antihypertensive was {_percent_value(hypertension.get('Gap %'))}, dyslipidemia "
         f"context without recorded lipid-lowering therapy was {_percent_value(dyslipidemia.get('Gap %'))}, and "
         f"renal-risk context without recorded SGLT2 inhibitor or GLP-1 receptor agonist was "
-        f"{_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity analyses attenuated the "
-        f"severe-glycemia low-intensity signal from {_percent_value(severe_low_intensity.get('Gap %'))} to "
-        f"{_percent_value(severe_field_present.get('Gap %'))}. Site-level summaries showed wide variation, with "
+        f"{_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity analyses strongly attenuated "
+        "glycemic no-drug signals, whereas dyslipidemia and renal-risk medication-coverage signals remained large. "
+        f"Site-level summaries showed wide variation, with "
         f"a median dyslipidemia gap of {_percent_value(site_gap.get('Median gap %'))}; repeated-visit transition "
         "results were retained as support-only evidence.\n\n"
         "**Conclusions:** The DPCC network showed phenotype-specific recorded risk-treatment mismatch signals rather "
@@ -822,7 +830,10 @@ def _tables_section(*, t1: str, t2: str, t3: str) -> str:
     if t1:
         sections.append("### Table 1. Data source, cohort assembly, and quality-control summary\n\n" + _strip_table_heading(t1))
     if t2:
-        sections.append("### Table 2. Baseline characteristics and recorded treatment-review gaps by phenotype\n\n" + _strip_table_heading(t2))
+        sections.append(
+            "### Table 2. Baseline characteristics and recorded risk-treatment mismatch signals by phenotype\n\n"
+            + _strip_table_heading(_wide_phenotype_gap_summary_table(t2))
+        )
     if t3:
         sections.append("### Table 3. Medication-capture sensitivity analysis of recorded mismatch signals\n\n" + _strip_table_heading(t3))
     return "\n\n".join(sections)
@@ -1057,6 +1068,60 @@ def _apply_bounded_t2_revisions(*, t2: str, study_root: Path) -> str:
             line = "| " + " | ".join(cells) + " |"
             changed = True
         output.append(line)
+    updated = "\n".join(output) if changed else t2
+    return _apply_bounded_wide_t2_revisions(t2=updated, values_by_phenotype=values_by_phenotype)
+
+
+def _apply_bounded_wide_t2_revisions(
+    *,
+    t2: str,
+    values_by_phenotype: Mapping[str, Mapping[str, str]],
+) -> str:
+    rows = _markdown_table_rows(t2)
+    if not rows or "Measure" in rows[0]:
+        return t2
+    field_by_header = {
+        "n": ("index_patients", False),
+        "Index patients": ("index_patients", False),
+        "%": ("share_of_index_cohort", True),
+        "Share of index cohort": ("share_of_index_cohort", True),
+        "Severe glycemia / low intensity": ("severe_glycemia_low_recorded_glucose_lowering_intensity_pct", True),
+        "Severe glycemia low-intensity gap": ("severe_glycemia_low_recorded_glucose_lowering_intensity_pct", True),
+        "Uncontrolled / no diabetes drug": ("uncontrolled_glycemia_no_recorded_diabetes_medication_pct", True),
+        "Uncontrolled glycemia with no diabetes drug": ("uncontrolled_glycemia_no_recorded_diabetes_medication_pct", True),
+        "Hypertension / no antihypertensive": ("hypertension_context_no_recorded_antihypertensive_pct", True),
+        "Hypertension with no antihypertensive": ("hypertension_context_no_recorded_antihypertensive_pct", True),
+        "Dyslipidemia / no lipid-lowering": ("dyslipidemia_context_no_recorded_lipid_lowering_pct", True),
+        "Dyslipidemia with no lipid-lowering": ("dyslipidemia_context_no_recorded_lipid_lowering_pct", True),
+    }
+    changed = False
+    output: list[str] = []
+    for line in t2.splitlines():
+        if not line.strip().startswith("|") or line.count("|") < 4:
+            output.append(line)
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or cells[0] in {"---", "Phenotype"}:
+            output.append(line)
+            continue
+        bounded_row = values_by_phenotype.get(cells[0])
+        if bounded_row is None:
+            output.append(line)
+            continue
+        headers = _wide_t2_headers(t2)
+        if len(cells) != len(headers):
+            output.append(line)
+            continue
+        for index, header in enumerate(headers):
+            spec = field_by_header.get(header)
+            if spec is None:
+                continue
+            field, percent = spec
+            new_value = _format_bounded_t2_value(bounded_row.get(field), percent=percent)
+            if new_value and new_value != cells[index]:
+                cells[index] = new_value
+                changed = True
+        output.append("| " + " | ".join(cells) + " |")
     return "\n".join(output) if changed else t2
 
 
@@ -1448,7 +1513,7 @@ def _phenotype_rows(
     phenotype_structure: Mapping[str, Any],
     treatment_gap_alignment: Mapping[str, Any],
 ) -> list[dict[str, str]]:
-    rows = _markdown_table_rows(t2)
+    rows = _phenotype_summary_rows_from_t2(t2)
     if rows:
         return rows
     displays = phenotype_structure.get("displays")
@@ -1752,15 +1817,14 @@ def _bounded_gap_support_map(study_root: Path) -> dict[str, dict[str, int]]:
 
 
 def _phenotype_index_share_map_from_t2(t2: str) -> dict[str, float]:
-    rows = _markdown_table_rows(t2)
-    if not rows or "Measure" not in rows[0]:
+    rows = _phenotype_summary_rows_from_t2(t2)
+    if not rows:
         return {}
     result: dict[str, float] = {}
     for row in rows:
         phenotype = _text(row.get("Phenotype"))
-        measure = _text(row.get("Measure"))
-        value = _text(row.get("Value"))
-        if phenotype is None or measure != "Share of index cohort" or value is None:
+        value = _text(row.get("Share of index cohort"))
+        if phenotype is None or value is None:
             continue
         parsed = _rate_float(value)
         if parsed is not None:
@@ -1769,27 +1833,123 @@ def _phenotype_index_share_map_from_t2(t2: str) -> dict[str, float]:
 
 
 def _gap_rate_map_from_t2(t2: str) -> dict[str, dict[str, float | None]]:
-    rows = _markdown_table_rows(t2)
-    if not rows or "Measure" not in rows[0]:
+    rows = _phenotype_summary_rows_from_t2(t2)
+    if not rows:
         return {}
-    measure_map = {
+    column_map = {
         "Severe glycemia low-intensity gap": "severe_glycemia_low_intensity_gap_rate",
+        "Severe glycemia / low intensity": "severe_glycemia_low_intensity_gap_rate",
         "Uncontrolled glycemia with no diabetes drug": "uncontrolled_glycemia_no_drug_gap_rate",
+        "Uncontrolled / no diabetes drug": "uncontrolled_glycemia_no_drug_gap_rate",
         "Hypertension with no antihypertensive": "hypertension_no_antihypertensive_gap_rate",
+        "Hypertension / no antihypertensive": "hypertension_no_antihypertensive_gap_rate",
         "Dyslipidemia with no lipid-lowering": "dyslipidemia_no_lipid_lowering_gap_rate",
+        "Dyslipidemia / no lipid-lowering": "dyslipidemia_no_lipid_lowering_gap_rate",
     }
     result: dict[str, dict[str, float | None]] = {}
+    for row in rows:
+        phenotype = _text(row.get("Phenotype"))
+        if phenotype is None:
+            continue
+        for column, field in column_map.items():
+            if column in row:
+                result.setdefault(phenotype, {})[field] = _rate_float(row[column])
+    return result
+
+
+def _phenotype_summary_rows_from_t2(t2: str) -> list[dict[str, str]]:
+    rows = _markdown_table_rows(t2)
+    if not rows:
+        return []
+    if "Measure" not in rows[0]:
+        return [_canonical_wide_t2_row(row) for row in rows]
+    measure_to_column = {
+        "Index patients": "Index patients",
+        "Share of index cohort": "Share of index cohort",
+        "Mean age, y": "Mean age, y",
+        "Mean BMI": "Mean BMI",
+        "Mean HbA1c": "Mean HbA1c",
+        "Severe glycemia low-intensity gap": "Severe glycemia low-intensity gap",
+        "Uncontrolled glycemia with no diabetes drug": "Uncontrolled glycemia with no diabetes drug",
+        "Hypertension with no antihypertensive": "Hypertension with no antihypertensive",
+        "Dyslipidemia with no lipid-lowering": "Dyslipidemia with no lipid-lowering",
+    }
+    by_phenotype: dict[str, dict[str, str]] = {}
     for row in rows:
         phenotype = _text(row.get("Phenotype"))
         measure = _text(row.get("Measure"))
         value = _text(row.get("Value"))
         if phenotype is None or measure is None or value is None:
             continue
-        field = measure_map.get(measure)
-        if field is None:
-            continue
-        result.setdefault(phenotype, {})[field] = _rate_float(value)
+        column = measure_to_column.get(measure)
+        if column is not None:
+            by_phenotype.setdefault(phenotype, {"Phenotype": phenotype})[column] = value
+    return list(by_phenotype.values())
+
+
+def _canonical_wide_t2_row(row: Mapping[str, str]) -> dict[str, str]:
+    aliases = {
+        "n": "Index patients",
+        "%": "Share of index cohort",
+        "Severe glycemia / low intensity": "Severe glycemia low-intensity gap",
+        "Uncontrolled / no diabetes drug": "Uncontrolled glycemia with no diabetes drug",
+        "Hypertension / no antihypertensive": "Hypertension with no antihypertensive",
+        "Dyslipidemia / no lipid-lowering": "Dyslipidemia with no lipid-lowering",
+    }
+    result = dict(row)
+    for source, target in aliases.items():
+        if source in row and target not in result:
+            result[target] = row[source]
     return result
+
+
+def _wide_phenotype_gap_summary_table(t2: str) -> str:
+    rows = _phenotype_summary_rows_from_t2(t2)
+    if not rows:
+        return t2
+    headers = (
+        "Phenotype",
+        "n",
+        "%",
+        "Age, y",
+        "BMI",
+        "HbA1c",
+        "Severe glycemia / low intensity",
+        "Uncontrolled / no diabetes drug",
+        "Hypertension / no antihypertensive",
+        "Dyslipidemia / no lipid-lowering",
+    )
+    source_columns = {
+        "n": "Index patients",
+        "%": "Share of index cohort",
+        "Age, y": "Mean age, y",
+        "BMI": "Mean BMI",
+        "HbA1c": "Mean HbA1c",
+        "Severe glycemia / low intensity": "Severe glycemia low-intensity gap",
+        "Uncontrolled / no diabetes drug": "Uncontrolled glycemia with no diabetes drug",
+        "Hypertension / no antihypertensive": "Hypertension with no antihypertensive",
+        "Dyslipidemia / no lipid-lowering": "Dyslipidemia with no lipid-lowering",
+    }
+    output = [
+        "# Phenotype-level clinical characteristics and recorded risk-treatment mismatch signals",
+        "",
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join("---" for _ in headers) + " |",
+    ]
+    for row in rows:
+        cells = []
+        for header in headers:
+            source = source_columns.get(header, header)
+            cells.append(_text(row.get(source)) or "NA")
+        output.append("| " + " | ".join(cells) + " |")
+    return "\n".join(output)
+
+
+def _wide_t2_headers(t2: str) -> list[str]:
+    for line in t2.splitlines():
+        if line.strip().startswith("|"):
+            return [_clean_cell(cell) for cell in line.strip().strip("|").split("|")]
+    return []
 
 
 def _rate_float(value: str) -> float | None:
@@ -1911,12 +2071,13 @@ def _materialize_dpcc_support_tables(
             if _write_text_if_changed(path, t1):
                 changed_paths.append(str(path.resolve()))
     if t2:
+        t2_table = _wide_phenotype_gap_summary_table(t2)
         for relpath in (
             Path("tables") / "T2_phenotype_gap_summary.md",
             Path("tables") / "generated" / "T2_phenotype_gap_summary.md",
         ):
             path = paper_root / relpath
-            if _write_text_if_changed(path, t2):
+            if _write_text_if_changed(path, t2_table):
                 changed_paths.append(str(path.resolve()))
     t3_markdown = _build_medication_capture_sensitivity_table(sensitivity)
     if t3_markdown:

@@ -216,7 +216,7 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "paper/build/review_manuscript.md" in changed_paths
     story_text = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert "Phenotype derivation and assignment" in story_text
-    assert "recorded treatment-review gap" in story_text
+    assert "recorded risk-treatment mismatch" in story_text
     assert "Data quality assessment" in story_text
 
     assert "Baseline characteristics" in story_text
@@ -225,6 +225,10 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "Low recorded glucose-lowering intensity was defined as severe glycemia" in story_text
     assert "Medication-capture sensitivity analysis of recorded mismatch signals" in story_text
     assert "Medication-record sensitivity changed the magnitude but not the interpretation boundary" in story_text
+    assert "glycemic no-drug signals" in story_text
+    assert "renal-risk medication-coverage signals remained large" in story_text
+    assert "### Table 2. Baseline characteristics and recorded risk-treatment mismatch signals by phenotype" in story_text
+    assert "| Phenotype | n | % | Age, y | BMI | HbA1c | Severe glycemia / low intensity |" in story_text
     assert "Previous diabetes subclassification studies have primarily aimed to identify biologically or prognostically distinct subgroups" in story_text
     assert "ACEI/ARB use, albuminuria-defined eligibility, eGFR-based contraindications" in story_text
     assert "Missing values were not imputed" in story_text
@@ -379,6 +383,9 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     assert "| Glycemic-dominant diabetes | Index patients | 104,508 |" in t2
     assert "| Glycemic-dominant diabetes | Share of index cohort | 15.1% |" in t2
     assert "| Glycemic-dominant diabetes | Hypertension with no antihypertensive | 68.8% |" in t2
+    wide_t2 = module._wide_phenotype_gap_summary_table(t2)
+    assert "| Phenotype | n | % | Age, y | BMI | HbA1c | Severe glycemia / low intensity |" in wide_t2
+    assert "| Glycemic-dominant diabetes | 104,508 | 15.1% | NA | NA | NA | NA | NA | 68.8% | NA |" in wide_t2
     tables_root = paper_root / "tables" / "generated"
     tables_root.mkdir(parents=True, exist_ok=True)
     (tables_root / "T1_baseline_characteristics.md").write_text(
@@ -413,6 +420,8 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
             "displays": [
                 {
                     "display_id": "phenotype_gap_structure",
+                    "title": "Phenotype composition and treatment-gap profiles across the DPCC index cohort.",
+                    "heatmap_panel_title": "Treatment-gap pattern",
                     "rows": [
                         {
                             "phenotype_label": "Glycemic-dominant diabetes",
@@ -449,6 +458,10 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     changed_paths = module._materialize_dpcc_display_metadata_repairs(paper_root=paper_root)
 
     assert changed_paths
+    repaired_t2 = (tables_root / "T2_phenotype_gap_summary.md").read_text(encoding="utf-8")
+    assert "# Phenotype-level clinical characteristics and recorded risk-treatment mismatch signals" in repaired_t2
+    assert "| Phenotype | n | % | Age, y | BMI | HbA1c | Severe glycemia / low intensity |" in repaired_t2
+    assert "| Glycemic-dominant diabetes | 104,508 | 15.1% | NA | NA | NA | NA | NA | 68.8% | NA |" in repaired_t2
     assert "| Cohort definition — Index patients | Index patients | 104,508 |" in (
         tables_root / "T1_baseline_characteristics.md"
     ).read_text(encoding="utf-8")
@@ -458,6 +471,12 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     phenotype_rows = json.loads((paper_root / "dpcc_phenotype_gap_structure.json").read_text(encoding="utf-8"))[
         "displays"
     ][0]["rows"]
+    phenotype_payload = json.loads((paper_root / "dpcc_phenotype_gap_structure.json").read_text(encoding="utf-8"))[
+        "displays"
+    ][0]
+    assert phenotype_payload["title"] == (
+        "Phenotype composition and recorded risk-treatment mismatch profiles across the DPCC index cohort."
+    )
     assert phenotype_rows[0]["share_of_index_patients"] == pytest.approx(0.151)
     assert phenotype_rows[0]["hypertension_no_antihypertensive_gap_rate"] == pytest.approx(0.688)
     treatment_rows = json.loads((paper_root / "dpcc_treatment_gap_alignment.json").read_text(encoding="utf-8"))[
