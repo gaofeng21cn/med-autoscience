@@ -350,7 +350,7 @@ def _adjusted_model_discussion_sentence(adjusted_model: Mapping[str, Mapping[str
         " The site fixed-effect dyslipidemia sensitivity model supports the same service-review interpretation: "
         "the lipid-lowering signal remained phenotype-patterned after basic patient and anonymous-site adjustment, "
         f"with glycemic-dominant diabetes showing {_format_adjusted_or_ci(glycemic)} versus adiposity-linked "
-        "multimorbidity. This model is supportive rather than causal and should not be read as a site-performance "
+        "multimorbidity. Effect sizes were modest; this model is supportive rather than causal and should not be read as a site-performance "
         "or guideline-adherence estimate."
     )
 

@@ -165,19 +165,9 @@ def _abstract_section(
         "Uncontrolled glycemia with no recorded diabetes medication",
         "All eligible",
     )
-    hypertension = _sensitivity_lookup(
-        sensitivity,
-        "Hypertension context with no recorded antihypertensive",
-        "All eligible",
-    )
     dyslipidemia = _sensitivity_lookup(
         sensitivity,
         "Dyslipidemia context with no recorded lipid-lowering medication",
-        "All eligible",
-    )
-    renal = _sensitivity_lookup(
-        sensitivity,
-        "Renal-risk context with no recorded SGLT2 inhibitor or GLP-1RA",
         "All eligible",
     )
     site_gap = _site_variability_lookup(
@@ -187,6 +177,11 @@ def _abstract_section(
     uncontrolled_present = _sensitivity_lookup(
         sensitivity,
         "Uncontrolled glycemia with no recorded diabetes medication",
+        "Medication field present",
+    )
+    dyslipidemia_present = _sensitivity_lookup(
+        sensitivity,
+        "Dyslipidemia context with no recorded lipid-lowering medication",
         "Medication field present",
     )
     dyslipidemia_contrast = _burden_contrast_lookup(
@@ -203,10 +198,10 @@ def _abstract_section(
             " In the medication-field-present site fixed-effect sensitivity model "
             f"(n={_format_count(glycemic_adjusted.get('model_n'))}; "
             f"{_format_count(glycemic_adjusted.get('source_sites_in_model'))} source sites), "
-            "glycemic-dominant diabetes retained higher adjusted odds of the dyslipidemia no-lipid-lowering signal "
-            f"than adiposity-linked multimorbidity ({_format_adjusted_or_ci(glycemic_adjusted)})."
+            "the lipid-lowering prevention signal remained phenotype-patterned after basic patient and site "
+            f"adjustment; effect sizes were modest ({_format_adjusted_or_ci(glycemic_adjusted)} for "
+            "glycemic-dominant diabetes vs adiposity-linked multimorbidity)."
         )
-    calendar_year_sentence = _calendar_year_2025_sentence(calendar_year_sensitivity)
     return (
         "## Abstract\n\n"
         "**Background:** Primary-care diabetes management increasingly requires integrated glycemic, "
@@ -224,17 +219,15 @@ def _abstract_section(
         "not treatment-effect estimates, prescribing-quality judgments, or individualized treatment recommendations.\n\n"
         f"**Results:** {phenotype_sentence} Care-review signals were phenotype-specific rather than uniform. Severe "
         "glycemia with low recorded glucose-lowering intensity was 62.0% in glycemic-dominant diabetes and 43.5% "
-        "in severe glycemic multimorbidity. Across all eligible patients, uncontrolled glycemia "
-        f"without a recorded diabetes medication was {_percent_value(uncontrolled.get('Gap %'))}, hypertension "
-        f"context without a recorded antihypertensive was {_percent_value(hypertension.get('Gap %'))}, dyslipidemia "
-        f"context without recorded lipid-lowering therapy was {_percent_value(dyslipidemia.get('Gap %'))}, and "
-        "the secondary exploratory renal-risk context signal without recorded SGLT2 inhibitor or GLP-1 receptor "
-        f"agonist was {_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity separated "
-        "documentation-sensitive glycemic no-drug signals from more persistent cardiometabolic prevention signals: "
-        f"uncontrolled glycemia without recorded diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} "
-        f"to {_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia medication-coverage signals "
-        f"remained large and the renal-risk organ-protection signal was retained as exploratory.{calendar_year_sentence} The phenotype with "
-        "the highest proportional dyslipidemia signal "
+        "in severe glycemic multimorbidity. Medication-field-present sensitivity separated documentation-sensitive "
+        f"glycemic no-drug signals from more persistent cardiometabolic prevention signals: uncontrolled glycemia "
+        f"without recorded diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} to "
+        f"{_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia context without recorded "
+        f"lipid-lowering therapy remained high ({_percent_value(dyslipidemia.get('Gap %'))} overall and "
+        f"{_percent_value(dyslipidemia_present.get('Gap %'))} after medication-field restriction). "
+        "A 2025 index-year sensitivity analysis still showed a large exploratory renal-risk organ-protection "
+        "review signal, but it was interpreted as medication-capture sensitivity rather than prescribing quality. "
+        "The phenotype with the highest proportional dyslipidemia signal "
         f"({dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}) was not "
         "the same as the largest absolute dyslipidemia review workload "
         f"({dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}). "
@@ -569,7 +562,8 @@ def _results_section(
         f"{_percent_value(renal_present.get('Gap %'))}. This attenuation shows that medication-field missingness "
         "contributes materially to glycemic no-drug indicators, while lipid-lowering signals remain large even in "
         "the medication-field-present denominator; renal-risk organ-protection coverage remains a secondary "
-        f"exploratory review signal.{calendar_year_sentence}{adjusted_results}\n\n"
+        f"exploratory review signal.{calendar_year_sentence}{adjusted_results} Effect sizes were modest, consistent "
+        "with a supportive rather than causal sensitivity role.\n\n"
         "### Transition stability and site support\n\n"
         "Repeated-visit and site summaries supported the phenotype narrative without converting it into a prediction "
         f"or external-validation claim. Among {transition['transition_eligible']} transition-eligible repeated-visit "
@@ -671,7 +665,9 @@ def _discussion_section(
         "highlight preventive-medication documentation signals even when mean HbA1c is not the dominant feature. The "
         "medication-field-present sensitivity analysis is important for clinical interpretation: glycemic no-drug "
         "indicators were strongly attenuated when medication fields were present, whereas lipid-lowering signals "
-        f"remained large; renal-risk organ-protection coverage remained a secondary exploratory signal.{adjusted_discussion}\n\n"
+        "remained large; renal-risk organ-protection coverage remained a secondary exploratory signal. A site "
+        "fixed-effect sensitivity model supported that the lipid-lowering signal remained phenotype-patterned after "
+        f"basic patient and site adjustment.{adjusted_discussion}\n\n"
         "These priorities are deliberately phrased as review signals. The DPCC medication fields identify what was "
         "recorded in the primary-care release, not the complete medication history. A recorded gap may reflect "
         "incomplete capture, treatment outside the network, self-purchased drugs, contraindications, patient "

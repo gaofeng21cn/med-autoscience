@@ -229,7 +229,7 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "Medication-capture sensitivity analysis of recorded mismatch signals" in story_text
     assert "Medication-record sensitivity changed the magnitude but not the interpretation boundary" in story_text
     assert "glycemic no-drug signals" in story_text
-    assert "renal-risk organ-protection signal was retained as exploratory" in story_text
+    assert "renal-risk organ-protection coverage remains a secondary exploratory review signal" in story_text
     assert "### Table 2. Baseline characteristics and recorded risk-treatment mismatch signals by phenotype" in story_text
     assert "| Phenotype | n | % | Age, y | BMI | HbA1c | Severe glycemia / low intensity |" in story_text
     assert "Previous diabetes subclassification studies have primarily aimed to identify biologically or prognostically distinct subgroups" in story_text
@@ -274,16 +274,14 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert not any(term in story_text for term in forbidden_runtime_terms)
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["title"] == (
-        "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
-        "aligned to the six DPCC phenotypes."
+        "Rate-count priority map of recorded glycemic, cardiometabolic, and exploratory renal-risk care-review gaps across DPCC phenotypes."
     )
     assert figure_catalog["figures"][0]["figure_purpose"] == (
-        "recorded_treatment_review_gap_burden_small_multiples"
+        "rate_count_priority_map_recorded_care_review_gaps"
     )
     treatment_alignment = json.loads((paper_root / "dpcc_treatment_gap_alignment.json").read_text(encoding="utf-8"))
     assert treatment_alignment["displays"][0]["title"] == (
-        "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
-        "aligned to the six DPCC phenotypes."
+        "Rate-count priority map of recorded glycemic, cardiometabolic, and exploratory renal-risk care-review gaps across DPCC phenotypes."
     )
     assert treatment_alignment["displays"][0]["display_id"] == "treatment_gap_alignment"
     rendered_table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))

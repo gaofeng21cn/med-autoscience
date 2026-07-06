@@ -45,8 +45,16 @@ DPCC_DISPLAY_TEXT_REPLACEMENTS = (
     (
         "Guideline-linked glycemia, antihypertensive, and lipid-lowering treatment gaps "
         "aligned to the six DPCC phenotypes.",
+        "Rate-count priority map of recorded glycemic, cardiometabolic, and exploratory renal-risk care-review gaps across DPCC phenotypes.",
+    ),
+    (
         "Recorded glycemic, antihypertensive, and lipid-lowering treatment-review gaps "
         "aligned to the six DPCC phenotypes.",
+        "Rate-count priority map of recorded glycemic, cardiometabolic, and exploratory renal-risk care-review gaps across DPCC phenotypes.",
+    ),
+    (
+        "recorded_treatment_review_gap_burden_small_multiples",
+        "rate_count_priority_map_recorded_care_review_gaps",
     ),
     (
         "Guideline-linked treatment-gap burden across DPCC phenotypes",
@@ -58,7 +66,7 @@ DPCC_DISPLAY_TEXT_REPLACEMENTS = (
     ),
     (
         "guideline_linked_treatment_gap_burden_small_multiples",
-        "recorded_treatment_review_gap_burden_small_multiples",
+        "rate_count_priority_map_recorded_care_review_gaps",
     ),
 )
 
@@ -472,9 +480,9 @@ def _repair_dpcc_manuscript_blueprint_payload(payload: Mapping[str, Any]) -> dic
                     "Support analyses show partial repeated-visit persistence and broad within-network site coverage, but they remain secondary context."
                 )
             if item.get("section_id") == "guideline_linked_treatment_gap_alignment":
-                item["section_id"] = "recorded_medication_review_gap_burden"
+                item["section_id"] = "recorded_care_review_rate_count_priority_map"
                 item["clinical_finding"] = (
-                    "Recorded medication-review gap burden remains large across phenotype-specific glycemic and cardiometabolic domains."
+                    "The rate-count priority map separates proportional glycemic, cardiometabolic, and exploratory renal-risk review signals from absolute service workload."
                 )
     return updated
 

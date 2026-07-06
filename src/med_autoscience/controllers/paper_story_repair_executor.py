@@ -20,6 +20,7 @@ from med_autoscience.controllers.story_surface_work_units import (
     action_family_is_story_surface_write,
     is_story_surface_delta_write_work_unit,
 )
+from med_autoscience.study_task_intake_surfaces import read_latest_task_intake
 
 
 SURFACE = "paper_story_repair_executor"
@@ -61,6 +62,12 @@ def run_story_repair(
         resolved_study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
     )
     previous_repair_evidence = _read_json_object(previous_repair_evidence_path)
+    task_intake_path = resolved_study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+    latest_task_intake = read_latest_task_intake(study_root=resolved_study_root) or {}
+    reviewer_revision_context = _reviewer_revision_context(
+        task_intake_path=task_intake_path,
+        task_intake=latest_task_intake,
+    )
     source_eval_id = _text(publication_eval.get("eval_id"))
     story_delta_anchor = _story_delta_anchor(
         quality_batch=quality_batch,
@@ -95,6 +102,7 @@ def run_story_repair(
             previous_quality_repair_batch=story_delta_anchor,
             publication_eval_payload=publication_eval,
             study_root=resolved_study_root,
+            reviewer_revision_context=reviewer_revision_context,
         )
     except RuntimeError as exc:
         return _blocked_result(
@@ -168,12 +176,17 @@ def run_story_repair(
             "source_eval_id": source_eval_id,
             "source_quality_repair_batch": str(quality_batch_path) if quality_batch_path.exists() else None,
             "paper_root": str(paper_root),
+            "task_intake_ref": str(task_intake_path) if task_intake_path.exists() else None,
+            "task_id": _text(latest_task_intake.get("task_id")),
+            "task_intent": _text(latest_task_intake.get("task_intent")),
+            "trusted_inputs": _text_list(latest_task_intake.get("trusted_inputs")),
         },
         source_refs=_source_refs(
             publication_eval_path,
             quality_batch_path,
             quality_batch,
             previous_repair_evidence_path,
+            reviewer_revision_context=reviewer_revision_context,
         ),
         changed_artifact_refs=changed_refs,
         evidence_ledger_ref=evidence_ledger_ref,
@@ -763,6 +776,7 @@ def _source_refs(
     quality_batch_path: Path,
     quality_batch: Mapping[str, Any],
     previous_repair_evidence_path: Path | None = None,
+    reviewer_revision_context: Mapping[str, Any] | None = None,
 ) -> list[str]:
     refs = [str(publication_eval_path.resolve())]
     if quality_batch_path.exists():
@@ -771,7 +785,26 @@ def _source_refs(
         refs.append(str(previous_repair_evidence_path.resolve()))
     if ref := _text(quality_batch.get("repair_execution_evidence_path")):
         refs.append(ref)
-    return refs
+    context = dict(reviewer_revision_context) if isinstance(reviewer_revision_context, Mapping) else {}
+    refs.extend(_text_list(context.get("source_refs")))
+    return _dedupe_text(refs)
+
+
+def _reviewer_revision_context(*, task_intake_path: Path, task_intake: Mapping[str, Any] | None) -> dict[str, Any]:
+    payload = dict(task_intake) if isinstance(task_intake, Mapping) else {}
+    if not payload:
+        return {}
+    trusted_inputs = _text_list(payload.get("trusted_inputs"))
+    source_refs = [str(task_intake_path.resolve())] if task_intake_path.exists() else []
+    source_refs.extend(trusted_inputs)
+    return {
+        "task_intake_ref": str(task_intake_path.resolve()) if task_intake_path.exists() else None,
+        "task_id": _text(payload.get("task_id")),
+        "task_intake_kind": _text(payload.get("task_intake_kind")),
+        "task_intent": _text(payload.get("task_intent")),
+        "trusted_inputs": trusted_inputs,
+        "source_refs": _dedupe_text(source_refs),
+    }
 
 
 def _artifact_role(path: Path) -> str:
@@ -813,6 +846,12 @@ def _mappings(value: object) -> list[dict[str, Any]]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _dedupe_text(items: Iterable[str]) -> list[str]:

@@ -90,10 +90,23 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
             ),
         },
     )
+    trusted_input = tmp_path / "reviewer-feedback.txt"
+    trusted_input.write_text("shorten Abstract; Figure 4 rate-count priority map", encoding="utf-8")
+    task_intake_path = _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "task_id": "task-003-latest",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "shorten Abstract and update Figure 4 to a rate-count priority map",
+            "trusted_inputs": [str(trusted_input)],
+        },
+    )
 
     def fake_materialize(**kwargs: Any) -> list[str]:
         assert kwargs["paper_root"] == paper_root.resolve()
         assert kwargs["work_unit_id"] == "medical_prose_write_repair"
+        assert kwargs["reviewer_revision_context"]["task_id"] == "task-003-latest"
+        assert kwargs["reviewer_revision_context"]["trusted_inputs"] == [str(trusted_input)]
         new_text = "# Current manuscript\n\nStory repair body.\n"
         changed = []
         for relpath in (Path("draft.md"), Path("build/review_manuscript.md")):
@@ -127,6 +140,10 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
     assert evidence["execution_trace"]["invocation_mode"] == "foreground_owner_callable"
     assert evidence["execution_trace"]["not_full_stage_attempt"] is True
     assert evidence["execution_trace"]["token_usage"]["status"] == "not_recorded"
+    assert str(task_intake_path.resolve()) in evidence["source_refs"]
+    assert str(trusted_input) in evidence["source_refs"]
+    assert evidence["review_finding"]["task_id"] == "task-003-latest"
+    assert evidence["review_finding"]["trusted_inputs"] == [str(trusted_input)]
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
     assert evidence["ai_reviewer_recheck_done"] is True
     assert not evidence["blockers"]

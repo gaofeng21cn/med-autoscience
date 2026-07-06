@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.medical_prose_story_surface_parts.common import (
     FORBIDDEN_MANUSCRIPT_TERMS,
@@ -70,10 +70,23 @@ DM003_REVIEWER_REVISION_MARKERS = (
     "structured rather than uniform gaps",
     "documentation-sensitive glycemic gaps",
     "persistent lipid-lowering care-review gap",
+    "lipid-lowering prevention gap persistence",
+    "lipid-lowering prevention gap remained large",
     "renal-risk signal secondary/exploratory",
+    "reduce renal-risk prominence",
     "rate-count contrast",
+    "rate-count priority map",
     "proportional risk vs absolute workload",
+    "effect-size caveat",
+    "modest effect-size caveat",
+    "site fixed-effect model",
     "soften future-work wording",
+    "shorten abstract",
+)
+DM003_REVIEWER_REVISION_CURRENT_MARKERS = (
+    "lipid-lowering prevention gaps remained large after medication-field restriction",
+    "A 2025 index-year sensitivity analysis still showed a large exploratory renal-risk",
+    "Effect sizes were modest",
 )
 DM003_STALE_REVIEWER_REVISION_MARKERS = (
     "The highest-yield next analyses are",
@@ -91,6 +104,7 @@ def materialize_medical_prose_story_surfaces(
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
     publication_eval_payload: Mapping[str, Any] | None = None,
     study_root: Path | None = None,
+    reviewer_revision_context: Mapping[str, Any] | None = None,
 ) -> list[str]:
     force_dm002_story_refresh = _dm002_reviewer_revision_story_refresh_required(
         paper_root=paper_root,
@@ -228,22 +242,60 @@ def _dm003_reviewer_revision_story_refresh_required(
     paper_root: Path,
     work_unit_id: str,
     study_root: Path | None,
+    reviewer_revision_context: Mapping[str, Any] | None = None,
 ) -> bool:
     if study_root is None or work_unit_id != MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         return False
     resolved_study_root = Path(study_root).expanduser().resolve()
     if resolved_study_root.name != "003-dpcc-primary-care-phenotype-treatment-gap":
         return False
-    latest_task_intake = read_latest_task_intake(study_root=resolved_study_root)
+    latest_task_intake = _task_intake_payload_from_context(
+        reviewer_revision_context=reviewer_revision_context,
+        study_root=resolved_study_root,
+    )
     if not task_intake_is_reviewer_revision(latest_task_intake):
         return False
-    corpus = _task_intake_corpus(latest_task_intake)
-    if not any(marker in corpus for marker in DM003_REVIEWER_REVISION_MARKERS):
+    corpus = _task_intake_corpus(latest_task_intake, reviewer_revision_context=reviewer_revision_context)
+    if not _dm003_reviewer_revision_requests_story_refresh(corpus):
         return False
     for path in _current_story_surface_paths(paper_root=paper_root):
+        if _story_surface_missing_any_marker(Path(path), DM003_REVIEWER_REVISION_CURRENT_MARKERS):
+            return True
         if _story_surface_contains_any_marker(Path(path), DM003_STALE_REVIEWER_REVISION_MARKERS):
             return True
     return False
+
+
+def _task_intake_payload_from_context(
+    *,
+    reviewer_revision_context: Mapping[str, Any] | None,
+    study_root: Path,
+) -> dict[str, Any]:
+    context = dict(reviewer_revision_context) if isinstance(reviewer_revision_context, Mapping) else {}
+    payload = read_latest_task_intake(study_root=study_root)
+    if payload:
+        return payload
+    if not context:
+        return {}
+    return {
+        "task_intake_kind": context.get("task_intake_kind"),
+        "task_id": context.get("task_id"),
+        "task_intent": context.get("task_intent"),
+        "trusted_inputs": context.get("trusted_inputs") or [],
+    }
+
+
+def _dm003_reviewer_revision_requests_story_refresh(corpus: str) -> bool:
+    if any(marker in corpus for marker in DM003_REVIEWER_REVISION_MARKERS):
+        return True
+    token_groups = (
+        ("abstract", ("shorten", "compress", "tighten", "15%", "20%")),
+        ("renal-risk", ("de-emphasis", "downgrade", "secondary", "exploratory", "prominence")),
+        ("figure 4", ("rate-count", "priority map")),
+        ("effect", ("modest", "supportive")),
+        ("lipid-lowering", ("medication-field", "site adjustment", "site-adjusted", "persistent")),
+    )
+    return any(anchor in corpus and any(token in corpus for token in tokens) for anchor, tokens in token_groups)
 
 
 def _dm002_reviewer_revision_story_refresh_required(
@@ -266,7 +318,11 @@ def _dm002_reviewer_revision_story_refresh_required(
     return False
 
 
-def _task_intake_corpus(payload: Mapping[str, Any] | None) -> str:
+def _task_intake_corpus(
+    payload: Mapping[str, Any] | None,
+    *,
+    reviewer_revision_context: Mapping[str, Any] | None = None,
+) -> str:
     mapping = dict(payload) if isinstance(payload, Mapping) else {}
     values: list[str] = []
     for key in ("task_intent",):
@@ -278,6 +334,16 @@ def _task_intake_corpus(payload: Mapping[str, Any] | None) -> str:
             text = _text(item)
             if text:
                 values.append(text)
+    trusted_inputs = [*_text_list(mapping.get("trusted_inputs"))]
+    context = dict(reviewer_revision_context) if isinstance(reviewer_revision_context, Mapping) else {}
+    trusted_inputs.extend(_text_list(context.get("trusted_inputs")))
+    for path_text in _dedupe_text(trusted_inputs):
+        path = Path(path_text).expanduser()
+        if path.exists() and path.is_file():
+            try:
+                values.append(path.read_text(encoding="utf-8")[:12000])
+            except OSError:
+                continue
     return " ".join(values).lower()
 
 
@@ -290,6 +356,35 @@ def _story_surface_contains_any_marker(path: Path, markers: tuple[str, ...]) -> 
     except OSError:
         return False
     return any(marker.lower() in text for marker in markers)
+
+
+def _story_surface_missing_any_marker(path: Path, markers: tuple[str, ...]) -> bool:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return True
+    try:
+        text = resolved.read_text(encoding="utf-8").lower()
+    except OSError:
+        return True
+    return any(marker.lower() not in text for marker in markers)
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
+
+
+def _dedupe_text(items: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        text = item.strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def _dm002_side_surface_only_repair_is_allowed(

@@ -134,6 +134,8 @@ DM003 then exposed a package-materialization bug: the reviewer-revision rate-cou
 
 The DPCC display repair now materializes the bounded-analysis rate-count priority map into the canonical Figure 4 generated source (`figures/generated/F4_treatment_gap_alignment_figure.*`), and delivery sync now prefers the newer controller-authorized submission source when both `manuscript/submission_minimal` and the existing `submission/` mirror are present. This prevents post-export sync from overwriting a freshly generated package with stale mirror content.
 
+The latest pre-submission reviewer tightening exposed a narrower owner-callable gap: a `reviewer_revision` task intake can request abstract compression, renal-risk de-emphasis, a modest-effect-size caveat, and a Figure 4 rate-count title update without containing the older stale-story markers. The DM003 story refresh trigger now recognizes these reviewer-tightening intents and refreshes when the current story surface lacks the required compact renal-risk sentence or modest effect-size caveat, so minor but publication-facing reviewer advice is materialized through MAS rather than merely recorded as task intake.
+
 Future reviewer-revision handling must treat package mirror freshness as part of the figure/table materialization check: current-package and legacy mirror roots are delivery projections, not evidence that the newly generated controller source was consumed. Supplementary retention must be verified from the generated package, not inferred from manuscript text alone.
 
 ## 2026-07-06 Delivery Role Currentness Readback Landing
