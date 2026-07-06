@@ -37,7 +37,7 @@ def test_study_progress_json_surfaces_progress_first_user_visible_view(
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        cli.study_progress,
+        cli,
         "read_study_progress",
         lambda **kwargs: {
             "schema_version": 1,
@@ -115,7 +115,7 @@ def test_study_progress_json_preserves_typed_blocker_resolution_owner_action(
     }
 
     monkeypatch.setattr(
-        cli.study_progress,
+        cli,
         "read_study_progress",
         lambda **kwargs: {
             "schema_version": 1,
@@ -153,7 +153,7 @@ def test_study_progress_json_still_removes_legacy_owner_action(
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        cli.study_progress,
+        cli,
         "read_study_progress",
         lambda **kwargs: {
             "schema_version": 1,

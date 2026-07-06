@@ -82,7 +82,8 @@ def handle_study_read_command(
     parser: argparse.ArgumentParser,
     load_profile: Callable[[str], Any],
     serialize_study_runtime_result: Callable[[Any], dict[str, Any]],
-    study_progress: Any,
+    read_study_progress: Callable[..., dict[str, Any]],
+    render_study_progress_markdown: Callable[[dict[str, Any]], str],
     domain_status_projection: Any,
     study_state_matrix: Any,
     study_truth_kernel: Any,
@@ -91,7 +92,7 @@ def handle_study_read_command(
     if args.command == "study-progress":
         _require_one_study_ref(args, parser)
         profile = load_profile(args.profile)
-        result = study_progress.read_study_progress(
+        result = read_study_progress(
             profile=profile,
             profile_ref=Path(args.profile),
             study_id=args.study_id,
@@ -107,7 +108,7 @@ def handle_study_read_command(
             payload = serialize_study_runtime_result(result)
             print(json.dumps(_progress_first_status_payload(payload), ensure_ascii=False, indent=2))
         else:
-            print(study_progress.render_study_progress_markdown(result), end="")
+            print(render_study_progress_markdown(result), end="")
         return 0
 
     if args.command == "study-state-matrix":

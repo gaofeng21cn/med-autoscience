@@ -226,7 +226,7 @@ def test_study_progress_command_serializes_typed_controller_result(monkeypatch, 
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 
     monkeypatch.setattr(
-        cli.study_progress,
+        cli,
         "read_study_progress",
         lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
@@ -270,7 +270,7 @@ def test_study_progress_command_serializes_nested_path_values(monkeypatch, tmp_p
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        cli.study_progress,
+        cli,
         "read_study_progress",
         lambda **kwargs: {
             "decision": "blocked",

@@ -38,6 +38,10 @@ from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_owner_gate_commands import handle_study_owner_gate_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
+from med_autoscience.controllers.study_progress_parts.markdown_projection_rendering import (
+    render_study_progress_markdown,
+)
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
@@ -138,7 +142,6 @@ stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowled
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
-study_progress = _lazy_controller_module("study_progress")
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
 domain_status_projection = _lazy_controller_module("domain_status_projection")
 study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
@@ -291,7 +294,8 @@ def main(argv: list[str] | None = None) -> int:
         parser=parser,
         load_profile=load_profile,
         serialize_study_runtime_result=_serialize_study_runtime_result,
-        study_progress=study_progress,
+        read_study_progress=read_study_progress,
+        render_study_progress_markdown=render_study_progress_markdown,
         domain_status_projection=domain_status_projection,
         study_state_matrix=study_state_matrix,
         study_truth_kernel=study_truth_kernel,
