@@ -1,9 +1,32 @@
 from __future__ import annotations
 
-from .study_progress_parts.shared import *
-from .study_progress_parts.publication_runtime import *
-from .study_progress_parts.progression import *
-from .study_progress_parts.operator_view import *
-from .study_progress_parts.projection import *
-from .study_progress_parts.user_visible_projection import *
-from .study_progress_parts.markdown_projection import *
+from importlib import import_module
+from types import ModuleType
+
+_PART_MODULES = (
+    "shared",
+    "publication_runtime",
+    "progression",
+    "operator_view",
+    "projection",
+    "user_visible_projection",
+    "markdown_projection",
+)
+
+
+def _reexport(module: ModuleType) -> None:
+    names = getattr(module, "__all__", None)
+    if names is None:
+        names = tuple(name for name in vars(module) if not name.startswith("_"))
+    for name in names:
+        globals()[name] = getattr(module, name)
+
+
+for _module_name in _PART_MODULES:
+    _reexport(import_module(f"{__package__}.study_progress_parts.{_module_name}"))
+
+del import_module, ModuleType
+
+__all__ = tuple(name for name in globals() if not name.startswith("_"))
+
+del _PART_MODULES, _module_name, _reexport
