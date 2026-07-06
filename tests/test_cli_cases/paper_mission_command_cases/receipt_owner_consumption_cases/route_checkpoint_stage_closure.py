@@ -823,3 +823,108 @@ def test_receipt_owner_consumption_route_checkpoint_synthesizes_current_stage_cl
     assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
         "sat-current-write"
     )
+
+
+def test_receipt_owner_consumption_route_checkpoint_synthesizes_route_back_only_carrier(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    readback_file = tmp_path / "dm003-route-back-only-readback.json"
+    work_unit_id = "medical_prose_write_repair"
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        f"sat-current-write/{study_id}/route_back_evidence_packet.json"
+    )
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="",
+        transition_kind=None,
+        package_kind="current_package",
+        can_submit=False,
+        consumption_next_legal_action=(
+            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+        ),
+    )
+    readback["stage_closure_decision"] = {}
+    readback["next_action"] = {
+        "action_family": "paper.write.prose_repair",
+        "stage_id": "write",
+        "work_unit_id": work_unit_id,
+    }
+    readback["opl_runtime_carrier_readback"] = {
+        "terminal_closeout": {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "owner_answer_candidate_materialized",
+            "closeout_ref": route_back_ref,
+            "stage_attempt_id": "sat-current-write",
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+        },
+        "opl_transition_receipt": {
+            "surface_kind": "opl_transition_receipt",
+            "receipt_status": "route_back_evidence_closeout_observed",
+            "stage_attempt_id": "sat-current-write",
+            "stage_attempt_ref": "opl://stage-attempts/sat-current-write",
+            "runtime_closeout_ref": route_back_ref,
+            "route_back_evidence_ref": route_back_ref,
+            "can_claim_paper_progress": False,
+        },
+        "receipt_evidence": {
+            "surface_kind": "mas_receipt_evidence",
+            "receipt_ref": "opl://stage-attempts/sat-current-write",
+            "runtime_closeout_ref": route_back_ref,
+            "route_back_evidence_ref": route_back_ref,
+            "can_claim_paper_progress": False,
+            "can_claim_publication_ready": False,
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+            "next_legal_action": (
+                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+            ),
+            "receipt_evidence_ref": "opl://stage-attempts/sat-current-write",
+            "route_back_evidence_ref": route_back_ref,
+            "forbidden_next_action": "synonymous_route_back_redrive",
+            "can_claim_paper_progress": False,
+            "can_claim_publication_ready": False,
+            "can_claim_runtime_ready": False,
+        },
+    }
+    readback_file.write_text(json.dumps(readback), encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "receipt-owner-consumption",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--paper-mission-readback-file",
+            str(readback_file),
+            "--apply-route-checkpoint",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["owner_consumption_verdict"]["verdict_kind"] == (
+        "consume_route_back_checkpoint_owner_consumption_required"
+    )
+    assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
+    assert payload["stage_closure"]["transition_kind"] == "route_back_candidate_checkpoint"
+    assert payload["stage_closure_decision"]["stage_id"] == "write"
+    assert payload["stage_closure_decision"]["work_unit_id"] == work_unit_id
+    assert payload["stage_closure_decision"]["route_checkpoint_evidence_ref"] == (
+        route_back_ref
+    )
+    assert payload["mas_receipt_consumption"]["status"] == (
+        "owner_consumed_route_checkpoint"
+    )

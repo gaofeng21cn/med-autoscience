@@ -185,6 +185,16 @@ def _effective_stage_closure_decision(readback: Mapping[str, Any], *, synthesize
         and ledger_outcome.get("transition_kind") == "route_back_candidate_checkpoint"
     ):
         return ledger
+    decision_outcome = _mapping(decision.get("outcome"))
+    if (
+        decision_outcome.get("kind") == "next_stage_transition"
+        and decision_outcome.get("transition_kind") == "route_back_candidate_checkpoint"
+    ):
+        return decision
+    if synthesize:
+        carrier_decision = _synthesized_next_action_stage_closure_decision(readback)
+        if carrier_decision:
+            return carrier_decision
     return decision
 
 
