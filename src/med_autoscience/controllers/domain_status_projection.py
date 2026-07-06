@@ -21,10 +21,12 @@ from med_autoscience.controllers.study_runtime_completion import (
     _study_completion_state,
     _sync_study_completion,
 )
-from med_autoscience.controllers.study_runtime_decision import (
-    _record_quest_runtime_audits,
+from med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority import (
     _status_payload,
     _status_state,
+)
+from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
+    _record_quest_runtime_audits,
 )
 from med_autoscience.controllers.study_runtime_resolution import (
     _execution_payload,
