@@ -394,7 +394,11 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
     )
-    t2 = _apply_bounded_t2_revisions(t2=t2, study_root=study_root)
+    t2 = _apply_bounded_t2_revisions(
+        t2=t2,
+        study_root=study_root,
+        clinical_rows=_read_csv_rows(paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv"),
+    )
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
@@ -422,13 +426,14 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
     )
     sensitivity = _medication_sensitivity_values(sensitivity_rows)
     site_variability = _site_variability_values(site_variability_rows)
+    burden_contrasts = _burden_contrast_values(study_root=study_root)
     t3 = _build_medication_capture_sensitivity_table(sensitivity)
     supplementary_section = _build_supplementary_tables_section(
         supplementary_text=supplementary_text,
         transition_table=t3_transition,
     )
     title = (
-        "Phenotype-specific recorded risk-treatment mismatch signals "
+        "Phenotype-specific cardiometabolic care-review gaps "
         "in a regional primary-care diabetes network in Hunan, China"
     )
     return "\n\n".join(
@@ -441,6 +446,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 sensitivity=sensitivity,
                 transition=transition,
                 site_variability=site_variability,
+                burden_contrasts=burden_contrasts,
             ),
             _introduction_section(),
             _methods_section(cohort=cohort),
@@ -451,6 +457,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 sensitivity=sensitivity,
                 transition=transition,
                 site_variability=site_variability,
+                burden_contrasts=burden_contrasts,
             ),
             _tables_section(t1=t1, t2=t2, t3=t3),
             supplementary_section,
@@ -458,6 +465,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 phenotype_rows=phenotype_rows,
                 sensitivity=sensitivity,
                 transition=transition,
+                burden_contrasts=burden_contrasts,
             ),
             _limitations_section(),
             _conclusion_section(),
@@ -473,18 +481,9 @@ def _abstract_section(
     sensitivity: Mapping[str, Mapping[str, str]],
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
+    burden_contrasts: Mapping[str, Mapping[str, str]],
 ) -> str:
     phenotype_sentence = _phenotype_distribution_sentence(phenotype_rows)
-    severe_low_intensity = _sensitivity_lookup(
-        sensitivity,
-        "Severe glycemia with low recorded glucose-lowering intensity",
-        "All eligible",
-    )
-    severe_field_present = _sensitivity_lookup(
-        sensitivity,
-        "Severe glycemia with low recorded glucose-lowering intensity",
-        "Medication field present",
-    )
     uncontrolled = _sensitivity_lookup(
         sensitivity,
         "Uncontrolled glycemia with no recorded diabetes medication",
@@ -509,48 +508,65 @@ def _abstract_section(
         site_variability,
         "Dyslipidemia context with no recorded lipid-lowering medication",
     )
+    uncontrolled_present = _sensitivity_lookup(
+        sensitivity,
+        "Uncontrolled glycemia with no recorded diabetes medication",
+        "Medication field present",
+    )
+    dyslipidemia_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "dyslipidemia_context_no_recorded_lipid_lowering",
+    )
     return (
         "## Abstract\n\n"
-        "**Background:** Primary-care diabetes services need more than a list of patient subgroups: they need to "
-        "know where clinical risk and recorded medication coverage appear misaligned within routine records. A "
-        "reproducible phenotype atlas can therefore be medically informative when it links glycemic, adiposity, "
-        "cardiometabolic, and renal-risk profiles to denominator-defined treatment-review signals.\n\n"
-        "**Objective:** To map clinically interpretable diabetes phenotypes to phenotype-specific recorded "
-        "risk-treatment mismatch signals in the DPCC primary-care network in Hunan, China.\n\n"
+        "**Background:** Primary-care diabetes management increasingly requires integrated glycemic, "
+        "cardiometabolic, and renal-risk review rather than glycemic control alone. Routine-care phenotypes may be "
+        "useful if they identify which recorded care-review gaps are documentation-sensitive and which remain large "
+        "after medication-record restriction.\n\n"
+        "**Objective:** To determine whether clinically interpretable diabetes phenotypes identify distinct and "
+        "actionable patterns of recorded glycemic, cardiometabolic, and renal-protection care-review gaps in the "
+        "DPCC primary-care network in Hunan, China.\n\n"
         f"**Methods:** This retrospective descriptive study used {cohort['processed_records']} source records from "
         f"{cohort['unique_patients']} patients. The diabetes-coded index cohort included {cohort['index_patients']} "
         f"patients, of whom {cohort['adult_plausible_age']} had plausible adult age. Phenotypes were assigned by a "
         "deterministic, prespecified hierarchy based on glycemic burden, adiposity, cardiometabolic context, "
         "renal-risk context, and medication-coverage domains. Outcomes were recorded treatment-review indicators, "
         "not treatment-effect estimates, prescribing-quality judgments, or individualized treatment recommendations.\n\n"
-        f"**Results:** {phenotype_sentence} The strongest recorded mismatch signals clustered in different clinical "
-        "domains. Severe glycemia with low recorded glucose-lowering intensity was 62.0% in glycemic-dominant "
-        "diabetes and 43.5% in severe glycemic multimorbidity. Across all eligible patients, uncontrolled glycemia "
+        f"**Results:** {phenotype_sentence} Care-review signals were phenotype-specific rather than uniform. Severe "
+        "glycemia with low recorded glucose-lowering intensity was 62.0% in glycemic-dominant diabetes and 43.5% "
+        "in severe glycemic multimorbidity. Across all eligible patients, uncontrolled glycemia "
         f"without a recorded diabetes medication was {_percent_value(uncontrolled.get('Gap %'))}, hypertension "
         f"context without a recorded antihypertensive was {_percent_value(hypertension.get('Gap %'))}, dyslipidemia "
         f"context without recorded lipid-lowering therapy was {_percent_value(dyslipidemia.get('Gap %'))}, and "
         f"renal-risk context without recorded SGLT2 inhibitor or GLP-1 receptor agonist was "
-        f"{_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity analyses strongly attenuated "
-        "glycemic no-drug signals, whereas dyslipidemia and renal-risk medication-coverage signals remained large. "
+        f"{_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity separated "
+        "documentation-sensitive glycemic no-drug signals from more persistent cardiometabolic prevention signals: "
+        f"uncontrolled glycemia without recorded diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} "
+        f"to {_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia and renal-risk "
+        "medication-coverage signals remained large. The phenotype with the highest proportional dyslipidemia signal "
+        f"({dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}) was not "
+        "the same as the largest absolute dyslipidemia review workload "
+        f"({dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}). "
         f"Site-level summaries showed wide variation, with "
         f"a median dyslipidemia gap of {_percent_value(site_gap.get('Median gap %'))}; repeated-visit transition "
         "results were retained as support-only evidence.\n\n"
-        "**Conclusions:** The DPCC network showed phenotype-specific recorded risk-treatment mismatch signals rather "
-        "than a single uniform diabetes treatment gap. The findings identify local chart-review and service-review "
-        "priorities, while supporting prospective validation and documentation/care-pathway review rather than "
-        "national prevalence inference, guideline nonadherence claims, treatment-effect estimation, or individualized "
-        "treatment allocation."
+        "**Conclusions:** Primary-care diabetes care-review gaps in the DPCC network were not a single glycemic "
+        "treatment deficit. Glycemic gaps were phenotype-concentrated and documentation-sensitive, whereas "
+        "cardiometabolic prevention gaps were persistent, high-burden, and site-sensitive. The findings support "
+        "local chart review and care-pathway evaluation rather than national prevalence inference, guideline "
+        "nonadherence claims, treatment-effect estimation, or individualized treatment allocation."
     )
 
 
 def _introduction_section() -> str:
     return (
         "## Introduction\n\n"
-        "Primary-care diabetes populations are clinically heterogeneous. Patients may share the diagnostic label of "
-        "diabetes while differing in glycemic burden, adiposity, blood-pressure and lipid context, renal-risk "
-        "context, comorbidity, medication documentation, and follow-up opportunities. For regional service planning, "
-        "the practical question is not only whether subgroups can be named, but whether those subgroups reveal "
-        "actionable patterns of recorded risk-treatment mismatch that can be checked in routine care.\n\n"
+        "Primary-care diabetes management has moved beyond glycemic control alone toward integrated "
+        "cardiometabolic and renal-risk prevention. Patients may share the diagnostic label of diabetes while "
+        "differing in glycemic burden, adiposity, blood-pressure and lipid context, renal-risk context, comorbidity, "
+        "medication documentation, and follow-up opportunities. For regional service planning, the practical "
+        "question is whether these clinical contexts reveal distinct care-review gaps that can be audited in routine "
+        "records.\n\n"
         "Prior diabetes subclassification studies show that phenotypes can carry different clinical risks, but many "
         "primary-care quality-improvement settings require simpler and auditable rules than latent clustering or "
         "individualized prediction models. A deterministic phenotype hierarchy can be useful when it converts routine "
@@ -563,9 +579,9 @@ def _introduction_section() -> str:
         "treatment-review or documentation-review signals, not as proof of non-treatment, nonadherence, treatment "
         "failure, or guideline nonadherence.\n\n"
         "The DPCC primary-care network offers a large regional setting to ask whether routine data can generate a "
-        "clinically meaningful service-priority map. We evaluated whether reproducible diabetes phenotypes identify "
-        "different recorded risk-treatment mismatch patterns across glycemic, adiposity-linked, and cardiometabolic "
-        "domains. Repeated-visit transitions and site-level support were used as support-only evidence for "
+        "clinically meaningful service-priority map. We aimed to determine whether reproducible diabetes phenotypes "
+        "identify distinct and actionable patterns of recorded glycemic, cardiometabolic, and renal-protection "
+        "care-review gaps. Repeated-visit transitions and site-level support were used as support-only evidence for "
         "within-network stability and coverage, rather than as external validation or treatment-effect evidence."
     )
 
@@ -683,6 +699,7 @@ def _results_section(
     sensitivity: Mapping[str, Mapping[str, str]],
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
+    burden_contrasts: Mapping[str, Mapping[str, str]],
 ) -> str:
     uncontrolled = _sensitivity_lookup(
         sensitivity,
@@ -746,6 +763,22 @@ def _results_section(
         site_variability,
         "Dyslipidemia context with no recorded lipid-lowering medication",
     )
+    severe_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "severe_glycemia_low_recorded_glucose_lowering_intensity",
+    )
+    uncontrolled_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "uncontrolled_glycemia_no_recorded_diabetes_medication",
+    )
+    hypertension_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "hypertension_context_no_recorded_antihypertensive",
+    )
+    dyslipidemia_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "dyslipidemia_context_no_recorded_lipid_lowering",
+    )
     return (
         "## Results\n\n"
         "### Cohort and analytic support\n\n"
@@ -776,7 +809,7 @@ def _results_section(
         "glycemic burden without the same multimorbidity pattern, adiposity-linked phenotypes carried the highest BMI "
         "context, and cardiometabolic-risk dominant diabetes was older on average. This structure created a "
         "phenotype map for asking where recorded medication coverage appeared discordant with the clinical context.\n\n"
-        "### Recorded risk-treatment mismatch signals\n\n"
+        "### Phenotype-specific glycemic and cardiometabolic care-review gaps\n\n"
         "Recorded treatment-review gaps differed sharply across phenotypes, producing a risk-treatment mismatch map "
         "rather than a uniform gap rate. The clearest glycemic mismatch appeared in glycemic-dominant diabetes, "
         "where severe glycemia with low recorded glucose-lowering intensity was 62.0% and uncontrolled glycemia "
@@ -792,6 +825,21 @@ def _results_section(
         f"{_format_count(renal.get('Gap n'))} of {_format_count(renal.get('Eligible denominator'))} "
         f"({_percent_value(renal.get('Gap %'))}). These counts use phenotype- and indicator-specific denominators; "
         "Not assessed cells mark indicators outside the scoped denominator rather than absence of risk.\n\n"
+        "The highest proportional phenotype was not always the largest service workload phenotype. For severe "
+        f"glycemia with low recorded glucose-lowering intensity, the highest rate was in "
+        f"{severe_contrast.get('highest_rate_phenotype', 'glycemic-dominant diabetes')} "
+        f"({_percent_value(severe_contrast.get('highest_rate_pct'))}), whereas the largest absolute count was in "
+        f"{severe_contrast.get('highest_count_phenotype', 'severe glycemic multimorbidity')} "
+        f"({_format_count(severe_contrast.get('highest_count_n'))} patients). For uncontrolled glycemia without "
+        f"recorded diabetes medication, {uncontrolled_contrast.get('highest_count_phenotype', 'glycemic-dominant diabetes')} "
+        f"contributed the largest count ({_format_count(uncontrolled_contrast.get('highest_count_n'))}). For "
+        f"hypertension and dyslipidemia recorded medication-coverage gaps, the highest rates occurred in "
+        f"{hypertension_contrast.get('highest_rate_phenotype', 'severe glycemic multimorbidity')} and "
+        f"{dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}, respectively, "
+        f"but the largest absolute counts were in "
+        f"{hypertension_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')} and "
+        f"{dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}. This rate-count "
+        "contrast separates high-risk phenotype targeting from service-capacity planning.\n\n"
         "### Medication-capture sensitivity\n\n"
         "Medication-record sensitivity changed the magnitude but not the interpretation boundary. Among patients with "
         f"a nonempty medication field, severe glycemia with low recorded glucose-lowering intensity decreased from "
@@ -820,8 +868,8 @@ def _results_section(
         f"{_percent_value(hypertension_site.get('Median gap %'))} (IQR {_percent_range_value(hypertension_site.get('IQR'))}), "
         f"and median dyslipidemia no-lipid-lowering gap was {_percent_value(dyslipidemia_site.get('Median gap %'))} "
         f"(IQR {_percent_range_value(dyslipidemia_site.get('IQR'))}). These findings indicate within-network coverage, "
-        "partial phenotype persistence, and site-sensitive review priorities only; they do not establish external "
-        "transportability, causal trajectory, treatment response, or site performance."
+        "partial phenotype persistence, and site-sensitive review priorities beyond patient phenotype alone; they do "
+        "not establish external transportability, causal trajectory, treatment response, or site performance."
     )
 
 
@@ -844,6 +892,7 @@ def _discussion_section(
     phenotype_rows: list[dict[str, str]],
     sensitivity: Mapping[str, Mapping[str, str]],
     transition: Mapping[str, str],
+    burden_contrasts: Mapping[str, Mapping[str, str]],
 ) -> str:
     largest = phenotype_rows[0] if phenotype_rows else {}
     renal = _sensitivity_lookup(
@@ -851,17 +900,46 @@ def _discussion_section(
         "Renal-risk context with no recorded SGLT2 inhibitor or GLP-1RA",
         "All eligible",
     )
+    uncontrolled = _sensitivity_lookup(
+        sensitivity,
+        "Uncontrolled glycemia with no recorded diabetes medication",
+        "All eligible",
+    )
+    uncontrolled_present = _sensitivity_lookup(
+        sensitivity,
+        "Uncontrolled glycemia with no recorded diabetes medication",
+        "Medication field present",
+    )
+    dyslipidemia_present = _sensitivity_lookup(
+        sensitivity,
+        "Dyslipidemia context with no recorded lipid-lowering medication",
+        "Medication field present",
+    )
+    renal_present = _sensitivity_lookup(
+        sensitivity,
+        "Renal-risk context with no recorded SGLT2 inhibitor or GLP-1RA",
+        "Medication field present",
+    )
+    dyslipidemia_contrast = _burden_contrast_lookup(
+        burden_contrasts,
+        "dyslipidemia_context_no_recorded_lipid_lowering",
+    )
     return (
         "## Discussion\n\n"
         "### Principal findings\n\n"
-        "This regional primary-care study reframes a descriptive diabetes phenotype atlas as a recorded "
-        "risk-treatment mismatch map. Six deterministic phenotypes separated glycemic-dominant, severe glycemic "
-        "multimorbidity, adiposity-linked, cardiometabolic-risk, adiposity-dominant, and lower-burden profiles. The "
-        "medically important finding was not the existence of six groups alone, but the way different groups "
-        "concentrated different service-review signals: glycemic-dominant diabetes had the highest severe-glycemia "
-        "low-intensity rate, severe glycemic multimorbidity combined the highest HbA1c with a large low-intensity "
-        f"signal, and {largest.get('Phenotype', 'Adiposity-linked multimorbidity')} carried the largest absolute "
-        "counts of several recorded medication-coverage gaps.\n\n"
+        "This regional primary-care study has three main findings. First, recorded diabetes care-review gaps were "
+        "phenotype-specific rather than uniform: glycemic-dominant diabetes carried the highest proportional severe "
+        "glycemia low-intensity signal, while severe glycemic multimorbidity combined the highest HbA1c with a large "
+        "low-intensity signal. Second, medication-record sensitivity separated documentation-sensitive glycemic "
+        f"signals from more persistent cardiometabolic prevention signals: uncontrolled glycemia without recorded "
+        f"diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} to "
+        f"{_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia and renal-risk medication "
+        f"coverage gaps remained {_percent_value(dyslipidemia_present.get('Gap %'))} and "
+        f"{_percent_value(renal_present.get('Gap %'))}, respectively, in the medication-field-present denominator. "
+        f"Third, the largest service burden was concentrated in {largest.get('Phenotype', 'Adiposity-linked multimorbidity')}; "
+        f"for dyslipidemia, the highest proportional phenotype was "
+        f"{dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}, but the "
+        f"largest absolute review workload was {dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}.\n\n"
         "### Clinical and service interpretation\n\n"
         "The phenotype map suggests three practical review priorities for a regional primary-care network. First, "
         "patients in glycemic-dominant and severe glycemic multimorbidity profiles may warrant chart-level review of "
@@ -900,10 +978,11 @@ def _discussion_section(
         "### Implications for future work\n\n"
         "The results provide a service-priority scaffold for follow-up studies. Prospective work should test whether "
         "phenotype-specific chart review improves medication documentation completeness, treatment-intensification "
-        "assessment, follow-up scheduling, or cardiometabolic risk-management processes. Future analyses should add "
-        "calendar-year sensitivity, age/sex/site stratification, chart-audit confirmation of recorded gaps, and "
-        "richer cardiometabolic-renal protection definitions before any stronger service-performance or guideline-based "
-        "claims are made."
+        "assessment, follow-up scheduling, or cardiometabolic risk-management processes. The highest-yield next "
+        "analyses are a patient-phenotype plus site model to quantify how much variation is associated with patient "
+        "phenotype versus service site, calendar-year sensitivity for SGLT2 inhibitor and GLP-1 receptor agonist "
+        "coverage, and repeated-visit gap-resolution analyses to distinguish persistent from resolved review "
+        "signals. These additions should precede any stronger service-performance or guideline-based claims."
     )
 
 
@@ -927,13 +1006,13 @@ def _limitations_section() -> str:
 def _conclusion_section() -> str:
     return (
         "## Conclusion\n\n"
-        "A deterministic clinical phenotype hierarchy applied to the DPCC primary-care network identified "
-        "phenotype-specific recorded risk-treatment mismatch signals. The main contribution is a reproducible "
-        "regional service-priority map: severe glycemic profiles with low recorded glucose-lowering intensity, "
-        "adiposity-linked multimorbidity with large absolute medication-review counts, and cardiometabolic contexts "
-        "with low recorded preventive-medication coverage. The atlas supports local documentation review, chart "
-        "audit, and prospective care-pathway evaluation while avoiding treatment-effect, guideline-nonadherence, "
-        "individualized prescribing, and national-generalization claims."
+        "A deterministic clinical phenotype hierarchy applied to the DPCC primary-care network showed that recorded "
+        "diabetes care-review gaps were phenotype-specific, medication-capture sensitive, and site-sensitive rather "
+        "than a single uniform treatment gap. Glycemic profiles identified concentrated review groups, whereas "
+        "cardiometabolic and renal-risk contexts highlighted persistent preventive-medication coverage signals. The "
+        "atlas supports local documentation review, chart audit, and prospective care-pathway evaluation while "
+        "avoiding treatment-effect, guideline-nonadherence, individualized prescribing, and national-generalization "
+        "claims."
     )
 
 
@@ -1028,7 +1107,12 @@ def _submission_safe_supplementary_text(text: str) -> str:
     return text.replace("糖尿病", "the Chinese diabetes term")
 
 
-def _apply_bounded_t2_revisions(*, t2: str, study_root: Path) -> str:
+def _apply_bounded_t2_revisions(
+    *,
+    t2: str,
+    study_root: Path,
+    clinical_rows: list[dict[str, str]] | None = None,
+) -> str:
     risk_rows = _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv")
     if not t2 or not risk_rows:
         return t2
@@ -1038,9 +1122,23 @@ def _apply_bounded_t2_revisions(*, t2: str, study_root: Path) -> str:
         if phenotype is None:
             continue
         values_by_phenotype[phenotype] = row
+    for row in clinical_rows or []:
+        phenotype = _text(row.get("Phenotype"))
+        if phenotype is None or phenotype not in values_by_phenotype:
+            continue
+        values_by_phenotype[phenotype].update(
+            {
+                "Mean age, y": _text(row.get("Mean age, y") or row.get("Age, y")) or "",
+                "Mean BMI": _text(row.get("Mean BMI") or row.get("BMI")) or "",
+                "Mean HbA1c": _text(row.get("Mean HbA1c") or row.get("HbA1c")) or "",
+            }
+        )
     measure_to_field = {
         "Index patients": "index_patients",
         "Share of index cohort": "share_of_index_cohort",
+        "Mean age, y": "Mean age, y",
+        "Mean BMI": "Mean BMI",
+        "Mean HbA1c": "Mean HbA1c",
         "Severe glycemia low-intensity gap": "severe_glycemia_low_recorded_glucose_lowering_intensity_pct",
         "Uncontrolled glycemia with no diabetes drug": "uncontrolled_glycemia_no_recorded_diabetes_medication_pct",
         "Hypertension with no antihypertensive": "hypertension_context_no_recorded_antihypertensive_pct",
@@ -1085,6 +1183,12 @@ def _apply_bounded_wide_t2_revisions(
         "Index patients": ("index_patients", False),
         "%": ("share_of_index_cohort", True),
         "Share of index cohort": ("share_of_index_cohort", True),
+        "Age, y": ("Mean age, y", False),
+        "Mean age, y": ("Mean age, y", False),
+        "BMI": ("Mean BMI", False),
+        "Mean BMI": ("Mean BMI", False),
+        "HbA1c": ("Mean HbA1c", False),
+        "Mean HbA1c": ("Mean HbA1c", False),
         "Severe glycemia / low intensity": ("severe_glycemia_low_recorded_glucose_lowering_intensity_pct", True),
         "Severe glycemia low-intensity gap": ("severe_glycemia_low_recorded_glucose_lowering_intensity_pct", True),
         "Uncontrolled / no diabetes drug": ("uncontrolled_glycemia_no_recorded_diabetes_medication_pct", True),
@@ -1198,6 +1302,71 @@ def _bounded_table_rows(study_root: Path, filename: str) -> list[dict[str, str]]
         with path.open("r", encoding="utf-8", newline="") as handle:
             return [dict(row) for row in csv.DictReader(handle)]
     return _markdown_table_rows(path.read_text(encoding="utf-8"))
+
+
+def _read_csv_rows(path: Path) -> list[dict[str, str]]:
+    if not path.exists() or not path.is_file():
+        return []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def _burden_contrast_values(study_root: Path) -> dict[str, dict[str, str]]:
+    specs = {
+        "severe_glycemia_low_recorded_glucose_lowering_intensity": (
+            "severe_glycemia_low_recorded_glucose_lowering_intensity_gap",
+            "severe_glycemia_low_recorded_glucose_lowering_intensity_pct",
+        ),
+        "uncontrolled_glycemia_no_recorded_diabetes_medication": (
+            "uncontrolled_glycemia_no_recorded_diabetes_medication_gap",
+            "uncontrolled_glycemia_no_recorded_diabetes_medication_pct",
+        ),
+        "hypertension_context_no_recorded_antihypertensive": (
+            "hypertension_context_no_recorded_antihypertensive_gap",
+            "hypertension_context_no_recorded_antihypertensive_pct",
+        ),
+        "dyslipidemia_context_no_recorded_lipid_lowering": (
+            "dyslipidemia_context_no_recorded_lipid_lowering_gap",
+            "dyslipidemia_context_no_recorded_lipid_lowering_pct",
+        ),
+        "renal_risk_no_recorded_sglt2_or_glp1": (
+            "renal_risk_no_recorded_sglt2_or_glp1_gap",
+            "renal_risk_no_recorded_sglt2_or_glp1_pct",
+        ),
+    }
+    rows = _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv")
+    result: dict[str, dict[str, str]] = {}
+    for indicator_id, (count_field, rate_field) in specs.items():
+        highest_count: tuple[int, str] | None = None
+        highest_rate: tuple[float, str] | None = None
+        for row in rows:
+            phenotype = _text(row.get("phenotype"))
+            if phenotype is None:
+                continue
+            count = _int_from_numeric_text(row.get(count_field))
+            rate = _float_from_text(row.get(rate_field))
+            if count is not None and count > 0 and (highest_count is None or count > highest_count[0]):
+                highest_count = (count, phenotype)
+            if rate is not None and (highest_rate is None or rate > highest_rate[0]):
+                highest_rate = (rate, phenotype)
+        values: dict[str, str] = {}
+        if highest_count is not None:
+            values["highest_count_n"] = str(highest_count[0])
+            values["highest_count_phenotype"] = highest_count[1]
+        if highest_rate is not None:
+            values["highest_rate_pct"] = f"{highest_rate[0]:.1f}"
+            values["highest_rate_phenotype"] = highest_rate[1]
+        if values:
+            result[indicator_id] = values
+    return result
+
+
+def _burden_contrast_lookup(
+    burden_contrasts: Mapping[str, Mapping[str, str]],
+    indicator_id: str,
+) -> dict[str, str]:
+    row = burden_contrasts.get(indicator_id)
+    return dict(row) if isinstance(row, Mapping) else {}
 
 
 def _format_bounded_t2_value(value: object, *, percent: bool) -> str:
@@ -1557,7 +1726,11 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
     )
-    t2 = _apply_bounded_t2_revisions(t2=t2, study_root=study_root)
+    t2 = _apply_bounded_t2_revisions(
+        t2=t2,
+        study_root=study_root,
+        clinical_rows=_read_csv_rows(paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv"),
+    )
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
@@ -1891,6 +2064,9 @@ def _canonical_wide_t2_row(row: Mapping[str, str]) -> dict[str, str]:
     aliases = {
         "n": "Index patients",
         "%": "Share of index cohort",
+        "Age, y": "Mean age, y",
+        "BMI": "Mean BMI",
+        "HbA1c": "Mean HbA1c",
         "Severe glycemia / low intensity": "Severe glycemia low-intensity gap",
         "Uncontrolled / no diabetes drug": "Uncontrolled glycemia with no diabetes drug",
         "Hypertension / no antihypertensive": "Hypertension with no antihypertensive",

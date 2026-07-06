@@ -314,6 +314,23 @@ def sync_general_delivery(
                 known_blockers=known_blockers,
                 source_signature=source_signature,
             )
+        compatibility_mirrors = _sync_general_delivery_compatibility_mirrors(
+            paper_root=paper_root,
+            worktree_root=worktree_root,
+            study_root=study_root,
+            source_root=source_root,
+            source_relative_root=source_relative_root,
+            study_id=study_id,
+            stage=normalized_stage,
+            copied_files=copied_files,
+            generated_files=generated_files,
+            review_ledger_source=paper_root / "review" / "review_ledger.json",
+            charter_contract_linkage=charter_contract_linkage,
+            quality_gate_status="blocked" if known_blockers else "not_blocked",
+            known_blockers=known_blockers,
+            source_signature=source_signature,
+        )
+
         targets = {
             "study_root": str(study_root),
             "manuscript_root": str(manuscript_root),
@@ -359,6 +376,7 @@ def sync_general_delivery(
                 auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
             ),
             "targets": targets,
+            "compatibility_mirrors": compatibility_mirrors,
             "copied_files": copied_files,
             "generated_files": generated_files,
             "artifact_lifecycle": build_study_delivery_lifecycle_hook(
@@ -385,6 +403,87 @@ def sync_general_delivery(
         remove_directory(artifacts_final_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
     return manifest
+
+
+def _sync_general_delivery_compatibility_mirrors(
+    *,
+    paper_root: Path,
+    worktree_root: Path,
+    study_root: Path,
+    source_root: Path,
+    source_relative_root: str,
+    study_id: str,
+    stage: str,
+    copied_files: list[dict[str, str]],
+    generated_files: list[dict[str, str]],
+    review_ledger_source: Path | None,
+    charter_contract_linkage: dict[str, Any],
+    quality_gate_status: str,
+    known_blockers: tuple[str, ...],
+    source_signature: str,
+) -> list[dict[str, str]]:
+    """Keep pre-existing legacy package aliases from remaining stale."""
+    mirrors: list[dict[str, str]] = []
+    resolved_source_root = source_root.resolve()
+
+    legacy_submission_root = paper_root / "submission_minimal"
+    if legacy_submission_root.exists() and legacy_submission_root.resolve() != resolved_source_root:
+        reset_directory(legacy_submission_root)
+        copy_tree(
+            source_root=source_root,
+            target_root=legacy_submission_root,
+            category="legacy_submission_minimal_alias",
+            copied_files=copied_files,
+            preserve_metadata=False,
+        )
+        mirrors.append(
+            {
+                "role": "legacy_submission_minimal_alias",
+                "root": str(legacy_submission_root),
+                "source_root": str(source_root),
+            }
+        )
+
+    current_package_roots = (
+        worktree_root / "manuscript" / "current_package",
+        study_root / "manuscript" / "current_package",
+    )
+    seen_current_package_roots: set[Path] = set()
+    for current_package_root in current_package_roots:
+        resolved_current_package_root = current_package_root.resolve()
+        if resolved_current_package_root in seen_current_package_roots:
+            continue
+        seen_current_package_roots.add(resolved_current_package_root)
+        if not current_package_root.exists() or resolved_current_package_root == resolved_source_root:
+            continue
+        current_package_zip = current_package_root.parent / "current_package.zip"
+        sync_current_package_projection(
+            paper_root=paper_root,
+            source_root=source_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
+            study_id=study_id,
+            stage=stage,
+            source_relative_root=source_relative_root,
+            status_line="compatibility current-package mirror; not a submission-ready package",
+            copied_files=copied_files,
+            generated_files=generated_files,
+            review_ledger_source=review_ledger_source,
+            charter_contract_linkage=charter_contract_linkage,
+            quality_gate_status=quality_gate_status,
+            known_blockers=known_blockers,
+            source_signature=source_signature,
+        )
+        mirrors.append(
+            {
+                "role": "legacy_current_package_mirror",
+                "root": str(current_package_root),
+                "zip": str(current_package_zip),
+                "source_root": str(source_root),
+            }
+        )
+
+    return mirrors
 
 
 def _sync_current_package_mirror_delivery(

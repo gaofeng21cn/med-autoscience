@@ -84,6 +84,47 @@ def test_sync_study_delivery_writes_v2_layout_and_freshness_proof_for_submission
     assert proof["source_signature"] == manifest["source_signature"]
 
 
+def test_sync_study_delivery_refreshes_existing_legacy_package_aliases(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    legacy_submission_root = paper_root / "submission_minimal"
+    worktree_current_package_root = paper_root.parent / "manuscript" / "current_package"
+    fresh_references = "@article{fresh,title={Hong Kong and U.S. adults}}\n"
+
+    write_text(legacy_submission_root / "references.bib", "@article{old,title={stale}}\n")
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    write_text(study_root / "submission" / "references.bib", fresh_references)
+    write_text(legacy_submission_root / "references.bib", "@article{old,title={stale}}\n")
+    write_text(worktree_current_package_root / "references.bib", "@article{old,title={stale}}\n")
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (legacy_submission_root / "references.bib").read_text(encoding="utf-8") == fresh_references
+    assert (worktree_current_package_root / "references.bib").read_text(encoding="utf-8") == fresh_references
+    assert (paper_root.parent / "manuscript" / "current_package.zip").exists()
+    assert manifest["compatibility_mirrors"] == [
+        {
+            "role": "legacy_submission_minimal_alias",
+            "root": str(legacy_submission_root),
+            "source_root": str(study_root / "submission"),
+        },
+        {
+            "role": "legacy_current_package_mirror",
+            "root": str(worktree_current_package_root),
+            "zip": str(paper_root.parent / "manuscript" / "current_package.zip"),
+            "source_root": str(study_root / "submission"),
+        },
+    ]
+
+
 def test_describe_submission_delivery_uses_submission_root_and_detects_staleness(
     tmp_path: Path,
 ) -> None:
