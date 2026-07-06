@@ -39,25 +39,9 @@ MEDICAL_MANUSCRIPT_BLUEPRINT_BASENAME = "medical_manuscript_blueprint.json"
 MEDICAL_PROSE_REVIEW_BASENAME = "medical_prose_review.json"
 STATISTICAL_REVIEWER_AUDIT_BASENAME = "statistical_reviewer_audit.json"
 PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
-PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
-    {
-        "main_text_earned",
-        "appendix_earned",
-        "drop_from_manuscript",
-    }
-)
-PUBLIC_EVIDENCE_EARNED_DECISIONS = frozenset(
-    {
-        "main_text_earned",
-        "appendix_earned",
-    }
-)
-_SETUP_STORY_ROLE_ALIASES = frozenset(
-    {
-        "study_setup",
-        "study_population_and_design_anchor",
-    }
-)
+PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset({"main_text_earned", "appendix_earned", "drop_from_manuscript"})
+PUBLIC_EVIDENCE_EARNED_DECISIONS = frozenset({"main_text_earned", "appendix_earned"})
+_SETUP_STORY_ROLE_ALIASES = frozenset({"study_setup", "study_population_and_design_anchor"})
 INTRODUCTION_REQUIRED_PARAGRAPH_COUNT = 3
 METHODS_REQUIRED_SUBSECTION_HEADINGS = (
     "Study design and cohort",
