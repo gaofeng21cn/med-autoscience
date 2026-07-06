@@ -94,7 +94,7 @@ def test_external_caller_can_consume_domain_entry_contract_without_repo_local_he
             "current_stage_summary": "当前由 MAS 监管论文推进。",
         }
 
-    monkeypatch.setattr(domain_entry_module.study_progress, "read_study_progress", fake_read_study_progress)
+    monkeypatch.setattr(domain_entry_module, "read_study_progress", fake_read_study_progress)
 
     request = _build_request_from_contract(
         contract,

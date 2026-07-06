@@ -11,9 +11,9 @@ from med_autoscience.controllers import (
     continuous_soak_summary,
     delivery_authority_backfill_apply,
     product_entry,
-    study_progress,
     workspace_authority_migration_audit,
 )
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 from med_autoscience.cli_parts.paper_mission_commands import build_paper_mission_readback
 from med_autoscience.profiles import WorkspaceProfile, load_profile
@@ -149,7 +149,7 @@ def _dispatch_profile_command(
     profile_ref: Path,
 ) -> dict[str, Any]:
     handlers = {
-        "study-progress": lambda: study_progress.read_study_progress(
+        "study-progress": lambda: read_study_progress(
             profile=profile,
             profile_ref=profile_ref,
             study_id=str(request["study_id"]),
