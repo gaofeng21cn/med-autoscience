@@ -116,3 +116,9 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - 旧 private runtime residue aggregate fixture 已删除；`contracts/runtime/mas-runtime-surface-retirement-inventory.json` 与 `contracts/paper_progress_transition_runtime_completion_audit.json` 的 evidence refs 改指 `runtime_surface_no_authority_audit.py` 与 `domain_authority_refs_index.py` surviving concrete cases。
 - `quality_repair_batch.py` 直接从 `med_autoscience.lazy_module_proxy` import `lazy_controller_module`，旧 controller proxy wrapper 已删除。
 - 本 lane 只做 test/helper/wrapper 收薄与 evidence ref 更新，不写 study truth、paper body、owner receipts、typed blockers、human gates、runtime queues 或 provider attempts。
+
+## 2026-07-06 source empty package marker cleanup evidence
+
+- 已删除源码树中无内容、无导出、无 package-data 语义的 0 字节 `__init__.py` marker；保留 `src/med_autoscience/resources/__init__.py`，因为该 package 承载 tracked resource 边界。
+- 删除范围只覆盖 PEP 420 namespace package 可承载的源码空 marker，不改 CLI/controller/test discovery 语义，不触碰有 `from __future__`、显式导出或 resource 边界的 `__init__.py`。测试目录 marker 不删除，因为现有 case 使用相对 import，pytest collection 依赖 package identity。
+- 本 lane 只做包 marker 收薄；focused import / pytest / diff checks 不声明 runtime readiness、publication-ready、paper progress、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
