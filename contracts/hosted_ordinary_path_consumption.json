@@ -232,7 +232,7 @@
           "candidate_ref": "scientific-capability:reviewer_revision_feedbackops_oma_work_order:run_quality_repair_batch",
           "capability_family": "feedbackops_oma_work_order",
           "capability_id": "reviewer_revision_feedbackops_oma_work_order",
-          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "invocation_kind": "mas_cli_feedbackops_dispatch_readback",
           "refs_only": true,
           "requires_explicit_invoke": true
         },
