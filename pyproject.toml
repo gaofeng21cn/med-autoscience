@@ -53,7 +53,7 @@ dev = [
 [tool.setuptools.package-data]
 "med_autoscience.styles" = ["*.csl"]
 "med_autoscience.overlay.templates" = ["*.md"]
-"med_autoscience.resources" = ["stage_route_contract.yaml", "display_pack_repo/config/*.toml", "display_pack_repo/external/display-packs/**/*"]
+"med_autoscience.resources" = ["stage_route_contract.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
