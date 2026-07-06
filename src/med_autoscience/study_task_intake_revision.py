@@ -66,7 +66,22 @@ REVISION_INTAKE_CHECKLIST: tuple[tuple[str, str, str], ...] = (
     ("statistical_analysis", "statistical analysis", "新增或修订统计分析、敏感性/亚组/稳健性需求已绑定证据来源。"),
     ("tables_figures", "tables/figures", "表格、图片、图注和补充材料改动范围已列明。"),
     ("follow_up_evidence", "follow-up evidence", "后续证据、补充结果和不可完成项有明确状态。"),
+    (
+        "scientific_finding_pattern",
+        "scientific finding pattern",
+        "描述性结果必须提升为结构化 phenotype pattern、rate-count/service-priority contrast 或等价医学发现问题。",
+    ),
+    (
+        "analysis_gap_route_back",
+        "analysis gap route-back",
+        "calendar-year、repeated-visit、site variance 等未有证据的问题必须登记为 analysis-campaign gap，不能编入结果。",
+    ),
     ("discussion_claim_guardrails", "discussion/claim guardrails", "讨论、结论和 claim 边界没有越过当前证据包。"),
+    (
+        "figure_table_terminology_retention",
+        "Figure/Table terminology and supplementary retention",
+        "Figure/Table 术语、rate/count 分离、supplementary retention 与图表证据边界进入质量门禁。",
+    ),
     ("coverage_audit", "coverage audit", "大修改 closeout 必须逐条覆盖反馈、修订动作、证据 refs、未完成项和 owner/readback 状态。"),
     ("handoff_evidence_surface", "handoff/evidence surface", "durable handoff 写明数据源、脚本入口、输出表图、改动范围、claim guardrails 与 canonical source 回灌状态。"),
 )

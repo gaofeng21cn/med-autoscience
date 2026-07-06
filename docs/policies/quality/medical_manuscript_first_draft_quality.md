@@ -92,7 +92,10 @@ Before a first full draft is treated as generated:
 - diagnostic ascertainment：当 uncontrolled disease、hypertension、dyslipidemia、complication burden 或 phenotype assignment 来自结构化字段时，必须物化诊断/测量变量 ascertainment table；
 - variable quality atlas：phenotype-defining variables 的 missingness、plausibility、semantic field checks 和 claim impact 必须进入 table 或 supplement；
 - site/trajectory robustness：如果稿件要有“医学发现感”，优先检查 site-level variation、transition category、calendar-year / threshold / adult-known-age / age sensitivity；不要用 p-value pile-up 替代稳健性；
+- unsupported evidence gap：calendar-year、repeated-visit、site variance 或中心差异没有当前证据时，必须成为 analysis-campaign gap 或 typed waiver，不能写成 Results 发现；
+- service-priority contrast：gap 结果必须区分 rate、count 和 service-priority burden，避免把高比例小人群与低比例大人群混成同一结论；
 - figure argument：cohort flow、phenotype/gap matrix、transition/site display 和 gap rate/count display 必须服务中心医学论点，rate 和 count 不得混成一个不可解释图；
+- figure/table terminology and retention：Figure/Table、main/supplementary、rate/count、gap/coverage/review-signal 等术语必须一致；补充表图不能因主文压缩被静默丢弃，应保留在 supplement 或记录 typed blocker；
 - terminology guardrail：没有 guideline-specific eligibility、contraindication、age/eGFR target 和 citation contract 时，不得把 recorded gap 写成 guideline nonadherence；优先用 recorded medication-coverage gap、treatment-review signal、burden-medication discordance。
 
 ### 预测模型外部验证初稿门槛

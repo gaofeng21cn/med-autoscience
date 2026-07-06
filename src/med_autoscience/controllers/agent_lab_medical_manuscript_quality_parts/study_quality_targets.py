@@ -365,6 +365,10 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
             "bp-and-data-quality-assessment",
             "baseline-characteristics-table",
             "formal-figures-and-tables",
+            "structured-phenotype-pattern-service-priority-contrast",
+            "medication-record-sensitivity-interpretation",
+            "unsupported-temporal-visit-site-variance-gap",
+            "figure-table-terminology-supplementary-retention",
             "numeric-abstract-results-with-uncertainty",
             "restrained-discussion-and-prose",
             "reference-and-journal-style",
@@ -411,6 +415,38 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                 "requirement": (
                     "make main figures and tables journal-facing displays, not proof-of-concept, "
                     "internal QA, or unsupported summary panels"
+                ),
+                "route_target": "figure-polish",
+            },
+            {
+                "target_id": "structured_phenotype_pattern_service_priority_contrast",
+                "requirement": (
+                    "promote descriptive phenotype counts into a structured phenotype pattern with rate-count "
+                    "separation and service-priority contrast; otherwise route back before drafting a light atlas"
+                ),
+                "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "medication_record_sensitivity_interpretation",
+                "requirement": (
+                    "interpret recorded medication gaps with medication-field-present or any-recorded-medication "
+                    "sensitivity when records are incomplete, and retain documentation-sensitive claim guardrails"
+                ),
+                "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "unsupported_temporal_visit_site_variance_gap",
+                "requirement": (
+                    "calendar-year, repeated-visit, and site-variance findings require current evidence; missing "
+                    "support becomes an analysis-campaign gap, not manuscript Results prose"
+                ),
+                "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "figure_table_terminology_supplementary_retention",
+                "requirement": (
+                    "Figure/Table terminology, rate versus count labels, main/supplementary placement, and retained "
+                    "supplementary evidence are checked before quality-gate closeout"
                 ),
                 "route_target": "figure-polish",
             },
