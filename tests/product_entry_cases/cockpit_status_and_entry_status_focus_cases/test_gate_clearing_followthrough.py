@@ -33,7 +33,7 @@ def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_a
     next_signal = "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -52,7 +52,7 @@ def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_a
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",

@@ -26,7 +26,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -86,7 +86,7 @@ def test_product_entry_progress_projection_defaults_to_next_action_envelope(monk
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,

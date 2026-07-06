@@ -18,7 +18,7 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_product_entry_manifest",
         lambda **kwargs: {
             "surface_kind": "product_entry_manifest",
@@ -196,7 +196,7 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
         },
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
         lambda **kwargs: {
             "operator_brief": {
@@ -249,7 +249,7 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_product_entry_manifest",
         lambda **kwargs: {
             "surface_kind": "product_entry_manifest",
@@ -319,7 +319,7 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
         },
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
         lambda **kwargs: {
             "operator_brief": {
@@ -379,7 +379,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: {
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "build_product_entry_manifest", lambda **kwargs: {
         "surface_kind": "product_entry_manifest",
         "manifest_version": 2,
         "manifest_kind": "med_autoscience_product_entry_manifest",
@@ -414,7 +414,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"},
         "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
     })
-    monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
             "surface_kind": "workspace_operator_brief",
             "verdict": "monitor_only",
@@ -448,7 +448,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
     followthrough_summary = "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。"
     next_signal = "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
 
-    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: {
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "build_product_entry_manifest", lambda **kwargs: {
         "surface_kind": "product_entry_manifest",
         "manifest_version": 2,
         "manifest_kind": "med_autoscience_product_entry_manifest",
@@ -483,7 +483,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"},
         "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
     })
-    monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
             "surface_kind": "workspace_operator_brief",
             "verdict": "attention_required",

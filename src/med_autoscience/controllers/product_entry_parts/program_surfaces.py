@@ -42,8 +42,7 @@ def _build_phase5_platform_target(mainline_payload: Mapping[str, Any] | None = N
         )
         for item in source_landing_sequence
     ]
-    build_platform_target = _controller_override("_build_shared_platform_target", _build_shared_platform_target)
-    return build_platform_target(
+    return _build_shared_platform_target(
         summary=str(source_payload.get("summary") or ""),
         sequence_scope=str(source_payload.get("sequence_scope") or ""),
         current_step_id=str(source_payload.get("current_step_id") or ""),
@@ -165,8 +164,7 @@ def _build_phase3_clearance_lane(
         profile_arg,
         "--study-id <study_id>",
     )
-    build_clearance_lane = _controller_override("_build_shared_clearance_lane", _build_shared_clearance_lane)
-    return build_clearance_lane(
+    return _build_shared_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
         summary=(
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
@@ -266,11 +264,7 @@ def _build_phase3_clearance_lane(
 
 
 def _build_phase4_backend_deconstruction() -> dict[str, Any]:
-    build_backend_deconstruction_lane = _controller_override(
-        "_build_backend_deconstruction_lane",
-        mainline_program_surfaces.build_backend_deconstruction_lane,
-    )
-    return build_backend_deconstruction_lane(
+    return mainline_program_surfaces.build_backend_deconstruction_lane(
         summary="Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
         substrate_targets=[
             _build_shared_program_capability(

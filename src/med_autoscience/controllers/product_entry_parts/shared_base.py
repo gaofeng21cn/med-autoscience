@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-import sys
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
@@ -148,13 +147,6 @@ ai_first_cross_study_completion = lazy_controller_module("ai_first_cross_study_c
 
 def build_doctor_report(*args: Any, **kwargs: Any) -> Any:
     return import_module("med_autoscience.doctor").build_doctor_report(*args, **kwargs)
-
-
-def _controller_override(name: str, default: Any) -> Any:
-    controller_module = sys.modules.get("med_autoscience.controllers.product_entry")
-    if controller_module is None:
-        return default
-    return getattr(controller_module, name, default)
 
 
 SCHEMA_VERSION = 1
@@ -585,8 +577,7 @@ def _build_product_entry_preflight(
         else first_blocking_summary
         or "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime/supervision contract 再进入 research entry_status。"
     )
-    build_preflight = _controller_override("_build_shared_product_entry_preflight", _build_shared_product_entry_preflight)
-    return build_preflight(
+    return _build_shared_product_entry_preflight(
         summary=summary,
         recommended_check_command=doctor_command,
         recommended_start_command=start_command,
@@ -609,8 +600,7 @@ def _build_product_entry_guardrails(
     )
     del profile
     refresh_command = _json_surface_command(_paper_mission_inspect_command(profile_ref))
-    build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
-    return build_guardrails(
+    return _build_shared_product_entry_guardrails(
         summary=(
             "把卡住、没进度、监管掉线、需要人工决策和质量阻塞显式投影成可执行恢复回路，"
             "避免研究主线失去监管。"

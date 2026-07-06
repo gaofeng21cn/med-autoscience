@@ -232,8 +232,8 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
         ],
     }
 
-    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
@@ -296,8 +296,9 @@ def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     write_study(profile.workspace_root, "001-risk")
     readiness = _v2_workflow_readiness()
 
-    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(_shared.product_entry_manifest_surfaces_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
@@ -348,8 +349,8 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
     write_study(profile.workspace_root, "001-risk")
     readiness = _v2_workflow_readiness()
 
-    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),

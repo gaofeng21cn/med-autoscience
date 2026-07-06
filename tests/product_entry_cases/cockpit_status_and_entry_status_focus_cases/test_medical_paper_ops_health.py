@@ -63,8 +63,8 @@ def _research_loop_readiness() -> dict[str, object]:
 
 
 def _patch_ready_workspace(module, monkeypatch) -> None:
-    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
 
 

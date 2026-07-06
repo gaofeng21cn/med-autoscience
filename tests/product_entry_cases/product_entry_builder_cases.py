@@ -65,7 +65,11 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
         captured.update(kwargs)
         return {"surface_kind": "product_entry_preflight", "checks": list(kwargs["checks"])}
 
-    monkeypatch.setattr(module, "_build_shared_product_entry_preflight", _fake_build_preflight)
+    monkeypatch.setattr(
+        product_entry_shared_base_module(),
+        "_build_shared_product_entry_preflight",
+        _fake_build_preflight,
+    )
 
     payload = module._build_product_entry_preflight(doctor_report=doctor_report, profile_ref=profile_ref)
 
@@ -92,7 +96,11 @@ def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_pat
             "recovery_loop": list(kwargs["recovery_loop"]),
         }
 
-    monkeypatch.setattr(module, "_build_shared_product_entry_guardrails", _fake_build_guardrails)
+    monkeypatch.setattr(
+        product_entry_shared_base_module(),
+        "_build_shared_product_entry_guardrails",
+        _fake_build_guardrails,
+    )
 
     payload = module._build_product_entry_guardrails(profile=profile, profile_ref=profile_ref)
 
@@ -110,7 +118,7 @@ def test_build_phase3_clearance_lane_uses_shared_builder(monkeypatch, tmp_path: 
         captured.update(kwargs)
         return {"surface_kind": "phase3_host_clearance_lane", "proof_surfaces": list(kwargs["proof_surfaces"])}
 
-    monkeypatch.setattr(module, "_build_shared_clearance_lane", _fake_build_lane)
+    monkeypatch.setattr(product_entry_program_surfaces_module(), "_build_shared_clearance_lane", _fake_build_lane)
 
     payload = module._build_phase3_clearance_lane(profile=profile, profile_ref=profile_ref)
 
@@ -130,7 +138,11 @@ def test_build_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) ->
         captured.update(kwargs)
         return {"surface_kind": "phase4_backend_deconstruction_lane", "substrate_targets": list(kwargs["substrate_targets"])}
 
-    monkeypatch.setattr(module, "_build_backend_deconstruction_lane", _fake_build_lane)
+    monkeypatch.setattr(
+        product_entry_program_surfaces_module().mainline_program_surfaces,
+        "build_backend_deconstruction_lane",
+        _fake_build_lane,
+    )
 
     payload = module._build_phase4_backend_deconstruction()
 
@@ -146,7 +158,7 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
         captured.update(kwargs)
         return {"surface_kind": "phase5_platform_target", "landing_sequence": list(kwargs["landing_sequence"])}
 
-    monkeypatch.setattr(module, "_build_shared_platform_target", _fake_build_platform)
+    monkeypatch.setattr(product_entry_program_surfaces_module(), "_build_shared_platform_target", _fake_build_platform)
 
     payload = module._build_phase5_platform_target()
 
@@ -241,7 +253,7 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         }
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "_build_shared_family_product_entry_orchestration",
         _fake_build_family_product_entry_orchestration,
     )

@@ -27,7 +27,7 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
     write_study(profile.workspace_root, "002-ready")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -46,7 +46,7 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",

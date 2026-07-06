@@ -71,7 +71,7 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -90,7 +90,7 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "_build_user_interaction_contract",
         lambda: {
             "surface_kind": "user_interaction_contract",

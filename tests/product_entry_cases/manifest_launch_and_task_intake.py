@@ -162,9 +162,9 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
         "phase5_platform_target": {"surface_kind": "phase5_platform_target"},
     }
 
-    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: manifest)
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "build_product_entry_manifest", lambda **kwargs: manifest)
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
         lambda **kwargs: {
             "operator_brief": {
@@ -197,7 +197,7 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
         },
     )
 
-    monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "_validate_product_entry_status_contract", lambda payload: None)
 
     payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 

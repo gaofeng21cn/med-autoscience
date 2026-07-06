@@ -21,7 +21,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -40,7 +40,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",

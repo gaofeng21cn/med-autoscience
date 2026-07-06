@@ -347,7 +347,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     write_study(profile.workspace_root, "002-risk")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -367,7 +367,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     )
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
@@ -759,7 +759,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
     write_study(profile.workspace_root, "002-risk")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -778,7 +778,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",

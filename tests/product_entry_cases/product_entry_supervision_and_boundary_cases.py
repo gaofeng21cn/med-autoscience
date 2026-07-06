@@ -44,7 +44,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     profile = make_profile(tmp_path)
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -63,7 +63,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
         lambda **kwargs: {
             "operator_brief": {
@@ -221,7 +221,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
     write_study(profile.workspace_root, "001-risk")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -240,7 +240,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
@@ -353,7 +353,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     profile = make_profile(tmp_path)
 
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -372,7 +372,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
         lambda **kwargs: {
             "operator_brief": {

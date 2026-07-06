@@ -25,7 +25,7 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
     write_study(profile.workspace_root, "002-running")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -44,7 +44,7 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",

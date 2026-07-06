@@ -466,9 +466,8 @@ def read_workspace_cockpit(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
-    inspect_workspace_supervision = _controller_override("_inspect_workspace_supervision", _inspect_workspace_supervision)
-    doctor_report = build_doctor_report_fn(profile)
+    doctor_report = build_doctor_report(profile)
+    inspect_workspace_supervision = _inspect_workspace_supervision
     workspace_alerts = _workspace_ready_alerts(doctor_report)
     studies: list[dict[str, Any]] = []
     study_roots = _study_roots(profile)

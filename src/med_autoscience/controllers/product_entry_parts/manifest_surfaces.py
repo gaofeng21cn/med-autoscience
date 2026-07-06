@@ -113,30 +113,13 @@ def build_product_entry_manifest(
 ) -> dict[str, Any]:
     mainline_payload = mainline_status.read_product_entry_mainline_projection()
     mainline_snapshot = _mainline_snapshot(mainline_payload)
-    build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
-    build_user_interaction_contract_fn = _controller_override(
-        "_build_user_interaction_contract",
-        _build_user_interaction_contract,
-    )
-    build_family_product_entry_orchestration = _controller_override(
-        "_build_shared_family_product_entry_orchestration",
-        _build_shared_family_product_entry_orchestration,
-    )
-    build_family_product_entry_manifest = _controller_override(
-        "_build_shared_family_product_entry_manifest",
-        _build_shared_family_product_entry_manifest,
-    )
-    validate_product_entry_manifest_contract = _controller_override(
-        "_validate_product_entry_manifest_contract",
-        _validate_product_entry_manifest_contract,
-    )
-    doctor_report = build_doctor_report_fn(profile)
+    doctor_report = build_doctor_report(profile)
     product_entry_preflight = _build_product_entry_preflight(
         doctor_report=doctor_report,
         profile_ref=profile_ref,
     )
     domain_entry_contract = _build_domain_entry_contract()
-    user_interaction_contract = build_user_interaction_contract_fn()
+    user_interaction_contract = _build_user_interaction_contract()
     _validate_domain_entry_contract_shape(
         domain_entry_contract,
         context="product_entry_manifest.domain_entry_contract",
@@ -155,7 +138,7 @@ def build_product_entry_manifest(
         action_catalog=action_catalog,
         mainline_payload=mainline_payload,
         mainline_snapshot=mainline_snapshot,
-        build_family_product_entry_orchestration=build_family_product_entry_orchestration,
+        build_family_product_entry_orchestration=_build_shared_family_product_entry_orchestration,
     )
     product_entry_shell = manifest_shell_surfaces["product_entry_shell"]
     shared_handoff = manifest_shell_surfaces["shared_handoff"]
@@ -350,7 +333,7 @@ def build_product_entry_manifest(
         product_entry_status=product_entry_status,
     )
 
-    payload = build_family_product_entry_manifest(
+    payload = _build_shared_family_product_entry_manifest(
         manifest_kind=PRODUCT_ENTRY_MANIFEST_KIND,
         target_domain_id=TARGET_DOMAIN_ID,
         formal_entry={
@@ -485,7 +468,7 @@ def build_product_entry_manifest(
             "family_stage_control_plane": family_stage_control_plane,
         },
     )
-    validate_product_entry_manifest_contract(payload)
+    _validate_product_entry_manifest_contract(payload)
     return _with_paper_mission_product_entry(payload, profile_ref=profile_ref)
 
 
@@ -567,17 +550,11 @@ def build_product_entry_status(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    build_product_entry_manifest_fn = _controller_override("build_product_entry_manifest", build_product_entry_manifest)
-    read_workspace_cockpit_fn = _controller_override("read_workspace_cockpit", read_workspace_cockpit)
-    validate_product_entry_status_contract = _controller_override(
-        "_validate_product_entry_status_contract",
-        _validate_product_entry_status_contract,
-    )
-    manifest = build_product_entry_manifest_fn(
+    manifest = build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
     )
-    workspace_cockpit = read_workspace_cockpit_fn(
+    workspace_cockpit = read_workspace_cockpit(
         profile=profile,
         profile_ref=profile_ref,
     )
@@ -588,7 +565,7 @@ def build_product_entry_status(
         product_entry_status_kind=PRODUCT_ENTRY_STATUS_KIND,
         product_entry_status_schema_ref=PRODUCT_ENTRY_STATUS_SCHEMA_REF,
     )
-    validate_product_entry_status_contract(payload)
+    _validate_product_entry_status_contract(payload)
     return payload
 
 
@@ -597,8 +574,7 @@ def build_product_entry_preflight(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
-    doctor_report = build_doctor_report_fn(profile)
+    doctor_report = build_doctor_report(profile)
     return _build_product_entry_preflight(
         doctor_report=doctor_report,
         profile_ref=profile_ref,
@@ -610,8 +586,7 @@ def build_product_entry_start(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    build_product_entry_manifest_fn = _controller_override("build_product_entry_manifest", build_product_entry_manifest)
-    manifest = build_product_entry_manifest_fn(
+    manifest = build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
     )

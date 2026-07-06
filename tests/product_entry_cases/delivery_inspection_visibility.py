@@ -48,7 +48,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -67,7 +67,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
@@ -153,7 +153,7 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -166,7 +166,7 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
             workspace_domain_route_contract={},
         ),
     )
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
+    monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
@@ -268,7 +268,7 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -281,7 +281,7 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
             workspace_domain_route_contract={},
         ),
     )
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
+    monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
     stale_projection = _delivery_inspection("001-risk")
     stale_projection["status"] = "stale"
@@ -317,7 +317,7 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -330,7 +330,7 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
             workspace_domain_route_contract={},
         ),
     )
-    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
+    monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
     monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
     legacy_projection = _delivery_inspection("001-risk")
     legacy_projection.pop("layout_migration_pending_sync", None)

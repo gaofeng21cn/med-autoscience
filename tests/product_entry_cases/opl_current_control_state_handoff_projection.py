@@ -104,9 +104,9 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
     }
     _write_json(handoff_path, handoff_payload)
 
-    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_report())
+    monkeypatch.setattr(product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_report())
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
@@ -153,7 +153,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
         },
     )
     monkeypatch.setattr(
-        module,
+        product_entry_manifest_surfaces_module(),
         "build_product_entry_manifest",
         lambda **kwargs: {
             "target_domain_id": "med-autoscience",
@@ -213,7 +213,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
             },
         },
     )
-    monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
+    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "_validate_product_entry_status_contract", lambda payload: None)
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)

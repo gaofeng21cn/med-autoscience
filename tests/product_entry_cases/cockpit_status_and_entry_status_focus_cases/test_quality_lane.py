@@ -26,7 +26,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     write_study(profile.workspace_root, "001-risk")
 
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "build_doctor_report",
         lambda profile: SimpleNamespace(
             workspace_exists=True,
@@ -45,7 +45,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
         ),
     )
     monkeypatch.setattr(
-        module,
+        product_entry_cockpit_payload_module(),
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
