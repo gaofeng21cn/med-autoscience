@@ -47,6 +47,9 @@ from med_autoscience.cli_parts.paper_mission_commands import handle_paper_missio
 from med_autoscience.cli_parts.public_root_commands import handle_public_root_command
 from med_autoscience.cli_parts.submission_delivery_commands import handle_submission_delivery_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
+from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+    dispatch_reviewer_revision_feedbackops,
+)
 
 
 def _load_module(module_name: str) -> Any:
@@ -659,6 +662,15 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 "authority_boundary": dict(agent_lab_medical_manuscript_quality.AUTHORITY_BOUNDARY),
             }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "reviewer-revision-feedbackops-dispatch":
+        result = dispatch_reviewer_revision_feedbackops(
+            request_path=Path(args.request),
+            opl_bin=args.opl_bin,
+            run_agent_lab=not bool(args.no_agent_lab),
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

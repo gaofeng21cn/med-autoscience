@@ -13,6 +13,9 @@ from med_autoscience.controllers import (
     paper_progress_stall,
     outer_supervision_slo,
 )
+from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+    read_reviewer_revision_feedbackops_execution_readback,
+)
 from . import existing_projection_refresh as _existing_projection_refresh
 from .delivery_inspection import (
     attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
@@ -173,6 +176,10 @@ def build_study_progress_projection(
             payload=refreshed_existing,
             profile=profile,
             study_id=study_id,
+        )
+        refreshed_existing = _attach_reviewer_revision_feedbackops_execution_readback(
+            payload=refreshed_existing,
+            study_root=study_root,
         )
         return _without_legacy_next_action_authority(refreshed_existing)
 
@@ -941,7 +948,37 @@ def build_study_progress_projection(
         publication_eval_payload=publication_eval_payload,
         payload=payload,
     )
+    payload = _attach_reviewer_revision_feedbackops_execution_readback(
+        payload=payload,
+        study_root=resolved_study_root,
+    )
     return _progress_projection_with_canonical_domain_next_action(payload)
+
+
+def _attach_reviewer_revision_feedbackops_execution_readback(
+    *,
+    payload: dict[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    readback = read_reviewer_revision_feedbackops_execution_readback(study_root=study_root)
+    if readback is None:
+        return payload
+    updated = dict(payload)
+    updated["reviewer_revision_feedbackops_execution_readback"] = readback
+    refs = dict(updated.get("refs") or {})
+    refs["reviewer_revision_feedbackops_execution_readback_path"] = readback.get("readback_path")
+    updated["refs"] = refs
+    task_intake = dict(updated.get("task_intake") or {})
+    revision_intake = dict(task_intake.get("revision_intake") or {})
+    selected_lane = dict(revision_intake.get("selected_revision_execution_lane") or {})
+    if selected_lane:
+        selected_lane["feedbackops_execution_status"] = readback.get("status")
+        selected_lane["feedbackops_execution_readback_ref"] = readback.get("readback_path")
+        selected_lane["next_owner"] = readback.get("next_owner") or selected_lane.get("next_owner")
+        revision_intake["selected_revision_execution_lane"] = selected_lane
+        task_intake["revision_intake"] = revision_intake
+        updated["task_intake"] = task_intake
+    return updated
 
 
 def read_study_progress(

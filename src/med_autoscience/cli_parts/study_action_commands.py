@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+    dispatch_reviewer_revision_feedbackops,
+)
+
 
 STUDY_ACTION_COMMANDS = frozenset({"launch-study", "submit-study-task"})
 
@@ -33,6 +37,9 @@ def register_study_action_parsers(subparsers: argparse._SubParsersAction) -> Non
     submit_study_task_parser.add_argument("--trusted-input", action="append", default=[])
     submit_study_task_parser.add_argument("--reference-paper", action="append", default=[])
     submit_study_task_parser.add_argument("--first-cycle-output", action="append", default=[])
+    submit_study_task_parser.add_argument("--opl-bin", default="opl")
+    submit_study_task_parser.add_argument("--no-feedbackops-dispatch", action="store_true")
+    submit_study_task_parser.add_argument("--no-feedbackops-agent-lab", action="store_true")
     submit_study_task_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
 
@@ -88,6 +95,13 @@ def handle_study_action_command(
             reference_papers=tuple(args.reference_paper or ()),
             first_cycle_outputs=tuple(args.first_cycle_output or ()),
         )
+        dispatch_path = _feedbackops_dispatch_path(result)
+        if dispatch_path is not None and not bool(args.no_feedbackops_dispatch):
+            result["feedbackops_auto_dispatch"] = dispatch_reviewer_revision_feedbackops(
+                request_path=dispatch_path,
+                opl_bin=args.opl_bin,
+                run_agent_lab=not bool(args.no_feedbackops_agent_lab),
+            )
         return _emit_result(
             result,
             args=args,
@@ -109,3 +123,9 @@ def _emit_result(
     else:
         print(markdown_renderer(result), end="")
     return 0
+
+
+def _feedbackops_dispatch_path(result: dict[str, Any]) -> Path | None:
+    artifacts = result.get("artifacts") if isinstance(result.get("artifacts"), dict) else {}
+    value = artifacts.get("reviewer_revision_feedbackops_dispatch_request")
+    return Path(value) if isinstance(value, str) and value.strip() else None

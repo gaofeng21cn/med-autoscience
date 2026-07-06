@@ -362,6 +362,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     agent_lab_medical_quality_mode.add_argument("--dry-run", action="store_true")
     agent_lab_medical_quality_mode.add_argument("--apply", action="store_true")
 
+    feedbackops_dispatch_parser = subparsers.add_parser("reviewer-revision-feedbackops-dispatch")
+    feedbackops_dispatch_parser.add_argument("--request", required=True)
+    feedbackops_dispatch_parser.add_argument("--opl-bin", default="opl")
+    feedbackops_dispatch_parser.add_argument("--no-agent-lab", action="store_true")
+    feedbackops_dispatch_parser.add_argument("--format", choices=("json",), default="json")
+
     paper_autonomy_stability_evidence_parser = subparsers.add_parser("paper-autonomy-stability-evidence")
     paper_autonomy_stability_evidence_parser.add_argument("--yang-root", default="/Users/gaofeng/workspace/Yang")
     paper_autonomy_stability_evidence_parser.add_argument("--profiles", nargs="+")
