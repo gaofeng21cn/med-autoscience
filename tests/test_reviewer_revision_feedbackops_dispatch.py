@@ -72,7 +72,87 @@ def test_feedbackops_dispatch_consumes_request_and_blocks_on_missing_ai_reviewer
     ]
     readback = json.loads((tmp_path / "feedbackops_execution_readback.json").read_text())
     assert readback["status"] == "blocked_missing_structured_ai_reviewer_evaluation"
+    assert readback["structured_ai_reviewer_evaluation_request_ref"].endswith(
+        "structured_ai_reviewer_evaluation_request.json"
+    )
+    eval_request = json.loads(
+        (tmp_path / "structured_ai_reviewer_evaluation_request.json").read_text(encoding="utf-8")
+    )
+    assert eval_request["status"] == "needs_independent_ai_reviewer_evaluation"
+    assert "critique" in eval_request["required_fields"]
+    assert "direct_evidence_refs" in eval_request["required_fields"]
     assert readback["feedbackops_read"]["stdout_summary"] == {"top_level_keys": ["ok"]}
+
+
+def test_feedbackops_dispatch_discovers_structured_ai_reviewer_eval(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+        dispatch_reviewer_revision_feedbackops,
+    )
+
+    request_path = tmp_path / "feedbackops_dispatch_request.json"
+    suite_path = tmp_path / "latest_suite.json"
+    suite_path.write_text('{"suite_id":"suite:mas/test"}\n', encoding="utf-8")
+    ai_eval = tmp_path / "ai_reviewer_evaluation_independent.json"
+    ai_eval.write_text(
+        json.dumps(
+            {
+                "reviewer_kind": "independent_ai_medical_manuscript_quality_reviewer",
+                "model_or_provider": "test-model",
+                "run_ref": "run:mas/test",
+                "execution_attempt_ref": "execution-attempt:test",
+                "review_attempt_ref": "review-attempt:test",
+                "no_shared_context": True,
+                "independent_attempt": True,
+                "critique": "The draft needs a finding-led clinical story.",
+                "suggestions": ["Require denominator and sensitivity evidence before headline claims."],
+                "source_refs": ["reviewer-feedback.md"],
+                "direct_evidence_refs": ["publication_eval/latest.json"],
+                "verdict": "valid_refs_only_independent_reviewer_input",
+                "predicted_impact": "Better first-draft quality.",
+                "provenance": {"created_by": "unit-test"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_reviewer_revision_feedbackops_dispatch_request",
+                "status": "ready_for_opl_feedbackops",
+                "study_id": "001-risk",
+                "suite_path": str(suite_path),
+                "opl_feedback_submit": {
+                    "argv": [
+                        "--target-agent",
+                        "mas",
+                        "--delivery-ref",
+                        str(suite_path),
+                        "--feedback-ref",
+                        "task-intake:latest",
+                        "--json",
+                    ]
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(argv, *, text, capture_output, check):
+        return subprocess.CompletedProcess(argv, 0, '{"ok":true}', "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = dispatch_reviewer_revision_feedbackops(request_path=request_path, opl_bin="opl")
+
+    assert result["status"] == "ready_for_oma_work_order_materialization"
+    assert result["ai_reviewer_evaluation_ref"] == str(ai_eval)
+    assert result["ai_reviewer_evaluation_status"] == "valid"
+    assert result["next_owner"] == "opl-meta-agent"
 
 
 def test_feedbackops_execution_readback_reader_compacts_command_outputs(tmp_path: Path) -> None:

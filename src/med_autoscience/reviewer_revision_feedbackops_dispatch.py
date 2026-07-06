@@ -45,17 +45,165 @@ def dispatch_reviewer_revision_feedbackops(
 
     if result.get("agent_lab_run", {}).get("returncode") not in (None, 0):
         result["status"] = "blocked_agent_lab_run_failed"
-    elif not _text(request.get("ai_reviewer_evaluation_ref")):
-        result["status"] = "blocked_missing_structured_ai_reviewer_evaluation"
-        result["next_owner"] = "opl-meta-agent"
-        result["blocked_reason"] = (
-            "OPL FeedbackOps and Agent Lab consumed the MAS suite, but OMA work-order "
-            "materialization requires a structured independent AI reviewer evaluation ref."
-        )
     else:
-        result["status"] = "ready_for_oma_work_order_materialization"
-        result["next_owner"] = "opl-meta-agent"
+        ai_reviewer_evaluation_ref = _resolve_ai_reviewer_evaluation_ref(
+            request=request,
+            request_path=request_path,
+            suite_path=suite_path,
+        )
+        if ai_reviewer_evaluation_ref:
+            result["ai_reviewer_evaluation_ref"] = ai_reviewer_evaluation_ref
+            result["ai_reviewer_evaluation_status"] = "valid"
+            result["status"] = "ready_for_oma_work_order_materialization"
+            result["next_owner"] = "opl-meta-agent"
+        else:
+            request_packet = _write_structured_ai_reviewer_evaluation_request(
+                request=request,
+                request_path=request_path,
+                suite_path=suite_path,
+            )
+            result["structured_ai_reviewer_evaluation_request_ref"] = str(request_packet)
+            result["status"] = "blocked_missing_structured_ai_reviewer_evaluation"
+            result["next_owner"] = "opl-meta-agent"
+            result["blocked_reason"] = (
+                "OPL FeedbackOps and Agent Lab consumed the MAS suite, but OMA work-order "
+                "materialization requires a structured independent AI reviewer evaluation ref."
+            )
     return _write_readback(request_path, result)
+
+
+def _resolve_ai_reviewer_evaluation_ref(
+    *,
+    request: dict[str, Any],
+    request_path: Path,
+    suite_path: str | None,
+) -> str | None:
+    explicit = _text(request.get("ai_reviewer_evaluation_ref"))
+    candidates: list[Path] = []
+    if explicit:
+        candidates.append(Path(explicit).expanduser())
+    base_dirs = [Path(request_path).expanduser().resolve().parent]
+    if suite_path:
+        base_dirs.append(Path(suite_path).expanduser().resolve().parent)
+    for base in base_dirs:
+        candidates.extend(sorted(base.glob("ai_reviewer_evaluation*.json")))
+        candidates.extend(sorted(base.glob("*ai_reviewer*evaluation*.json")))
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if resolved in seen or not resolved.exists():
+            continue
+        seen.add(resolved)
+        payload = _read_json(resolved)
+        if _valid_ai_reviewer_evaluation(payload):
+            return str(resolved)
+    return None
+
+
+def _valid_ai_reviewer_evaluation(payload: dict[str, Any]) -> bool:
+    required_strings = (
+        "reviewer_kind",
+        "model_or_provider",
+        "run_ref",
+        "execution_attempt_ref",
+        "review_attempt_ref",
+        "critique",
+        "verdict",
+        "predicted_impact",
+    )
+    if any(_text(payload.get(key)) is None for key in required_strings):
+        return False
+    if payload.get("no_shared_context") is not True or payload.get("independent_attempt") is not True:
+        return False
+    if _text(payload.get("execution_attempt_ref")) == _text(payload.get("review_attempt_ref")):
+        return False
+    for key in ("suggestions", "source_refs", "direct_evidence_refs"):
+        value = payload.get(key)
+        if not isinstance(value, list) or not value or any(_text(item) is None for item in value):
+            return False
+    provenance = payload.get("provenance")
+    return isinstance(provenance, dict) and bool(provenance)
+
+
+def _write_structured_ai_reviewer_evaluation_request(
+    *,
+    request: dict[str, Any],
+    request_path: Path,
+    suite_path: str | None,
+) -> Path:
+    output_path = Path(request_path).expanduser().resolve().with_name(
+        "structured_ai_reviewer_evaluation_request.json"
+    )
+    source_refs = _unique_texts(
+        [
+            suite_path,
+            request.get("feedback_ref"),
+            request.get("external_suite_ref"),
+            request.get("delivery_ref"),
+            request.get("source_trigger_ref"),
+            *_strings(request.get("required_packet_refs")),
+        ]
+    )
+    payload = {
+        "surface_kind": "mas_structured_ai_reviewer_evaluation_request",
+        "schema_version": 1,
+        "status": "needs_independent_ai_reviewer_evaluation",
+        "study_id": request.get("study_id"),
+        "target_agent_id": request.get("target_agent_id") or "med-autoscience",
+        "suite_path": suite_path,
+        "source_request_ref": str(Path(request_path).expanduser().resolve()),
+        "required_fields": [
+            "reviewer_kind",
+            "model_or_provider",
+            "run_ref",
+            "execution_attempt_ref",
+            "review_attempt_ref",
+            "no_shared_context",
+            "independent_attempt",
+            "critique",
+            "suggestions",
+            "source_refs",
+            "direct_evidence_refs",
+            "verdict",
+            "predicted_impact",
+            "provenance",
+        ],
+        "minimum_requirements": {
+            "no_shared_context": True,
+            "independent_attempt": True,
+            "execution_attempt_ref_must_differ_from_review_attempt_ref": True,
+            "suggestions": "non_empty_string_array",
+            "source_refs": "non_empty_string_array_with_reviewer_evidence_beyond_suite_only_refs",
+            "direct_evidence_refs": "non_empty_string_array_with_direct_manuscript_or_review_evidence",
+            "provenance": "non_empty_object",
+        },
+        "source_refs": source_refs,
+        "direct_evidence_ref_candidates": source_refs,
+        "oma_consumer": "opl-meta-agent.improve-from-external-agent-lab-suite",
+        "authority_boundary": {
+            "writes_domain_truth": False,
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_owner_receipt": False,
+            "writes_typed_blocker": False,
+            "writes_human_gate": False,
+            "writes_runtime_queue_or_provider_attempt": False,
+            "writes_manuscript_or_current_package": False,
+            "can_authorize_publication_ready": False,
+            "can_authorize_submission_ready": False,
+        },
+    }
+    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return output_path
+
+
+def _unique_texts(values: list[object]) -> list[str]:
+    items: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text is not None and text not in items:
+            items.append(text)
+    return items
 
 
 def reviewer_revision_feedbackops_execution_readback_path(*, study_root: Path) -> Path:
