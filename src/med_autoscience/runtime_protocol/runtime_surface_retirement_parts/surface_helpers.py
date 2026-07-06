@@ -22,6 +22,18 @@ REPO_SOURCE_ACCEPTED_ADAPTER_DISPOSITIONS = frozenset(
 )
 
 
+def _text_list(value: Any, *, sort: bool = False) -> list[str]:
+    if isinstance(value, list):
+        texts = [text for item in value if (text := _text(item)) is not None]
+        return sorted(texts) if sort else texts
+    text = _text(value)
+    return [text] if text is not None else []
+
+
+def _text_set(value: Any) -> set[str]:
+    return set(_text_list(value))
+
+
 def repo_source_retired(surface: Mapping[str, Any]) -> bool:
     disposition = _text(surface.get("current_disposition")) or ""
     if disposition == "physically_retired":

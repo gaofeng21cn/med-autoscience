@@ -4,6 +4,12 @@ from collections.abc import Mapping
 import re
 from typing import Any
 
+from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.surface_helpers import (
+    _text,
+    _text_list,
+    _text_set,
+)
+
 
 SURFACE_KIND = "mas_runtime_live_tail_work_orders"
 VERSION = "mas-runtime-live-tail-work-orders.v1"
@@ -456,25 +462,6 @@ def _work_order_from_tail(tail: Mapping[str, Any]) -> dict[str, Any]:
             for item in gate_mapping.get("forbidden_evidence_substitutes", [])
         ),
     }
-
-
-def _text(value: Any) -> str | None:
-    text = str(value or "").strip()
-    return text or None
-
-
-def _text_list(value: Any) -> list[str]:
-    if isinstance(value, list):
-        return [text for item in value if (text := _text(item)) is not None]
-    text = _text(value)
-    return [text] if text is not None else []
-
-
-def _text_set(value: Any) -> set[str]:
-    if isinstance(value, list):
-        return {text for item in value if (text := _text(item)) is not None}
-    text = _text(value)
-    return {text} if text is not None else set()
 
 
 def _concrete_evidence_ref_fields_present(evidence_record: Mapping[str, Any]) -> list[str]:

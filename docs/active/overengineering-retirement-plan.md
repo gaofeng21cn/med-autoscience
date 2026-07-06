@@ -34,6 +34,12 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 | P1 | Root demo artifacts | 删除或移入 history/assets 未被 active tests/source 引用的 `Rplots.pdf`、`visual_qa_demo.png`。 | `rg` 引用证明；git diff sanity；visual/paper tests 不依赖 root artifact。 |
 | P2 | 超大测试 / fixture | 将 narrative/compat/alias assertions 收敛成 semantic case modules；删除重复实现细节。 | line budget；focused tests；`scripts/verify.sh` appropriate lane。 |
 
+## P0 runtime/control-plane tail 执行注记
+
+- 2026-07-06 active caller proof：`runtime_surface_retirement_parts` 中仍有 active caller 的函数分为三类：`runtime_surface_retirement.py` 消费的 no-authority / minimal authority validator，`public_root_commands.py live-runtime-evidence-rollup` 消费的 refs-only rollup readback，以及 contract/focused tests 消费的 live-tail / live-gap typed-blocker validators。未发现可直接删除且不影响 active caller 的 runtime authority helper。
+- 本轮可安全删除的是空 package marker `runtime_surface_retirement_parts/__init__.py`；其余保留面只作为 minimal authority function、refs-only projection 或 live-tail typed-blocker guard，不写 study truth、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+- 本轮收薄把重复 text normalization helper 收回 `surface_helpers.py`，并补强 physical retirement blocked-surface test 对 `evidence_gate` 的断言，防止后续把 live-tail blocker 误读为可物理删除。
+
 ## 停止条件
 
 - 若某 facade 仍是唯一 public import 或 domain-handler target，先迁移 caller，再删除。
