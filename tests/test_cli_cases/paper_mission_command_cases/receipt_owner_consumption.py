@@ -600,6 +600,92 @@ def test_receipt_owner_consumption_prefers_unconsumed_terminal_over_consumed_cur
     )
 
 
+def test_receipt_owner_consumption_keeps_newer_consumed_current_over_older_terminal(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    old_closeout = tmp_path / "sat-terminal" / "stage_attempt_closeout_packet.json"
+    new_closeout = tmp_path / "sat-current" / "stage_attempt_closeout_packet.json"
+    old_closeout.parent.mkdir(parents=True)
+    new_closeout.parent.mkdir(parents=True)
+    old_closeout.write_text("{}", encoding="utf-8")
+    new_closeout.write_text("{}", encoding="utf-8")
+    os.utime(old_closeout, (1_000, 1_000))
+    os.utime(new_closeout, (2_000, 2_000))
+
+    terminal_carrier = readback["opl_runtime_carrier_readback"]
+    terminal_carrier["terminal_closeout"] = {
+        "stage_attempt_id": "sat-terminal",
+        "closeout_ref": str(old_closeout),
+    }
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-terminal"
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["receipt_evidence"]["runtime_closeout_ref"] = str(old_closeout)
+    terminal_carrier["mas_receipt_consumption"]["receipt_evidence_ref"] = (
+        "opl://stage-attempts/sat-terminal"
+    )
+    terminal_carrier["mas_receipt_consumption"]["route_checkpoint_evidence_ref"] = str(
+        old_closeout
+    )
+
+    current_carrier = json.loads(json.dumps(terminal_carrier))
+    current_carrier["terminal_closeout"]["stage_attempt_id"] = "sat-current"
+    current_carrier["terminal_closeout"]["closeout_ref"] = str(new_closeout)
+    current_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-current"
+    current_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-current"
+    )
+    current_carrier["receipt_evidence"]["runtime_closeout_ref"] = str(new_closeout)
+    current_carrier["mas_receipt_consumption"].update(
+        {
+            "status": "owner_consumed_route_checkpoint",
+            "receipt_evidence_ref": "opl://stage-attempts/sat-current",
+            "route_checkpoint_evidence_ref": str(new_closeout),
+        }
+    )
+    readback["current_opl_runtime_carrier_readback"] = current_carrier
+
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref="profile.toml",
+        output_root=tmp_path / "receipt_owner_consumption",
+        apply_mode="route_checkpoint",
+        source="test",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == "opl://stage-attempts/sat-current"
+    assert payload["opl_transition_receipt"]["stage_attempt_id"] == "sat-current"
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current"
+    )
+    assert payload["mas_receipt_consumption"]["route_checkpoint_evidence_ref"] == str(
+        new_closeout
+    )
+
+
 def test_receipt_owner_consumption_prefers_newer_unconsumed_terminal_over_unconsumed_current(
     tmp_path: Path,
 ) -> None:

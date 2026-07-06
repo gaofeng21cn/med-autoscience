@@ -378,6 +378,10 @@ def _terminal_carrier_requires_consumption_after_current_consumed(
     current_carrier: Mapping[str, Any],
     terminal_carrier: Mapping[str, Any],
 ) -> bool:
+    current_ref = _carrier_closeout_ref(current_carrier)
+    terminal_ref = _carrier_closeout_ref(terminal_carrier)
+    if _ref_newer(candidate=current_ref, current=terminal_ref):
+        return False
     return (
         _has_consumable_receipt(current_carrier)
         and _has_consumable_receipt(terminal_carrier)
