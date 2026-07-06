@@ -98,6 +98,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `tests/test_cli_cases/paper_mission_commands_cases/stage_closure_terminalizer_cases/test_source_selection.py` 和 `tests/submission_minimal_cases/package_core_and_authority.py` 已分别拆成 thin entrypoint + semantic case modules，两个入口均降到 4 行。
 - `src/med_autoscience/cli_parts/paper_mission_command_parts/stage_closure_terminalizer_readback.py` 已删除重复不可达 return，并收紧等价布尔 / transaction-stage helper 表达式；文件从 1506 行降到 1500 行，退出 clear `>1500` 超线范围。
 - `tests/test_paper_mission_opl_readback.py` 已把 route-back precedence case 拆到 `tests/test_paper_mission_opl_readback_cases/route_back_precedence_cases.py`；顶层从 1434 行降到 1195 行，保留 thin import 入口维持既有 discovery。
+- `tests/test_cli_cases/paper_mission_command_cases/materialized_readback.py` 已把 governed consumption ledger case 拆到 `tests/test_cli_cases/paper_mission_command_cases/materialized_readback_cases/test_governed_consumption_ledger.py`；顶层从 1471 行降到 1047 行，退出 preferred `>1000` advisory。
 - 当前 source/test morphology 完成口径：本轮目标文件均退出 clear `>1500` 超线范围，`paper_mission_commands.py` 与 `paper_mission_receipt_owner_consumption.py` 已回到 preferred boundary 内；`scripts/line_budget.py` 仍报告 preferred `>1000` advisories，作为后续 source-governance backlog，不是 runtime / publication / domain-ready blocker。
 
 ## 2026-07-06 MAS wildcard-import facade final slice
