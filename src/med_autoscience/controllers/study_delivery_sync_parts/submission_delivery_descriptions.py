@@ -495,7 +495,9 @@ def describe_submission_delivery(
             ),
         }
 
-    from med_autoscience.controllers.submission_minimal import describe_submission_minimal_authority
+    from med_autoscience.controllers.submission_minimal_parts.authority import (
+        describe_submission_minimal_authority,
+    )
 
     submission_authority = describe_submission_minimal_authority(
         paper_root=resolved_paper_root,

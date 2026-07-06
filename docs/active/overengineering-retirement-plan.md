@@ -39,3 +39,10 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - 若某 facade 仍是唯一 public import 或 domain-handler target，先迁移 caller，再删除。
 - 若某 runtime tail 仍签 MAS owner receipt、typed blocker、human gate 或 artifact authority，保留为 minimal authority function，不上收到 OPL。
 - 若 display pack 改造缺 packaging proof，只能先文档化边界与删除无引用 artifact，不能声明 display-pack release-ready。
+
+## 2026-07-06 P1 root artifact / facade cleanup evidence
+
+- `Rplots.pdf`、`visual_qa_demo.png`：`rg --hidden --glob '!.git/**' --glob '!*.pdf' --glob '!*.png' 'Rplots\.pdf|visual_qa_demo\.png' .` 仅命中本文 P1 清单；两者是未被 active source/tests 引用的 root demo artifact，已删除而非移入 history。
+- `submission_minimal.py`：已把 `study_delivery_sync_parts/submission_delivery_descriptions.py` 的 `describe_submission_minimal_authority` 迁到 `submission_minimal_parts.authority`；facade 仍被 `study_manual_finish.py` 作为 dynamic controller import 使用，且测试仍有 exact facade import，typed blocker 为 `facade_active_public_import_surface`。
+- `study_runtime_decision.py`：已把 `domain_status_projection.py` 的 `_status_payload` / `_status_state` / `_record_quest_runtime_audits` 迁到真实 parts；facade 仍被 publication runtime / gate dynamic import 和 parts `__name__` guard 使用，typed blocker 为 `facade_active_runtime_controller_identity`.
+- `study_progress.py`、`product_entry.py`、`medical_publication_surface.py`：production surface 仍存在 controller identity / `sys.modules` 依赖，测试 exact facade imports 分别为 71 / 38 / 11 个文件；本轮不做批量 public surface 删除，typed blocker 为 `facade_active_public_import_surface`.
