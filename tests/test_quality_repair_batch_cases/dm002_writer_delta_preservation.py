@@ -385,7 +385,7 @@ def test_dm002_after_story_repair_regenerates_latest_external_validation_story_s
     regenerated_story = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert regenerated_story != preserved_writer_story
     assert regenerated_story.startswith(
-        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "# A China-derived diabetes mortality score identifies higher-risk adults in NHANES "
         "but requires recalibration for absolute risk estimation"
     )
     assert "fixed Cox risk equation" in regenerated_story
@@ -399,6 +399,8 @@ def test_dm002_after_story_repair_regenerates_latest_external_validation_story_s
     assert "Calibration intercept | Not applicable" in regenerated_story
     assert "Calibration slope | Not applicable" in regenerated_story
     assert "NHANES participants were older (62.0 vs 50.9 years)" in regenerated_story
+    assert "locked archived risk equation with preserved coefficients and 5-year baseline survival" in regenerated_story
+    assert "exact penalty form" not in regenerated_story
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == regenerated_story
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
@@ -469,7 +471,7 @@ def test_dm002_reviewer_revision_reframe_forces_story_refresh_over_preserved_neg
     refreshed_story = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert refreshed_story != stale_story
     assert refreshed_story.startswith(
-        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "# A China-derived diabetes mortality score identifies higher-risk adults in NHANES "
         "but requires recalibration for absolute risk estimation"
     )
     assert "retained cross-population risk stratification in NHANES" in refreshed_story

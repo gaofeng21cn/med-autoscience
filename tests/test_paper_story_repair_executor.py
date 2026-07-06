@@ -960,13 +960,13 @@ def test_dm002_story_surface_carries_archived_fixed_equation_and_clinical_bounda
     assert manuscript
     assert extra_paths
     assert (
-        "# A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+        "# A China-derived diabetes mortality score identifies higher-risk adults in NHANES "
         "but requires recalibration for absolute risk estimation"
     ) in manuscript
     assert "The source model was a fixed Cox risk equation derived in the China diabetes cohort" in manuscript
     assert "Cross-population transport is especially relevant for diabetes risk models" in manuscript
     assert "the model still identified higher-risk adults after cross-population transport" in manuscript
-    assert "The source model was available as a fixed archived risk equation rather than a fully documented development package" in manuscript
+    assert "The source model was available as a locked archived risk equation with preserved coefficients and 5-year baseline survival" in manuscript
     assert "may support transported higher-risk identification" in manuscript
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))

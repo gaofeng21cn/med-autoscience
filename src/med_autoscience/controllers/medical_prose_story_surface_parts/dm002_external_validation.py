@@ -63,7 +63,7 @@ DM002_PERFORMANCE_SUMMARY_INPUTS_RELATIVE_PATH = Path("time_to_event_performance
 DM002_FIGURE_CATALOG_RELATIVE_PATH = Path("figures") / "figure_catalog.json"
 DM002_TABLE_CATALOG_RELATIVE_PATH = Path("tables") / "table_catalog.json"
 DM002_CURRENT_TITLE = (
-    "A fixed China-derived 5-year diabetes mortality score identifies higher-risk adults in NHANES "
+    "A China-derived diabetes mortality score identifies higher-risk adults in NHANES "
     "but requires recalibration for absolute risk estimation"
 )
 
@@ -874,9 +874,9 @@ def _dm002_limitations_section() -> str:
         "The NHANES analysis was unweighted and should not be interpreted as a national prevalence estimate. Complete-case "
         "validation may differ from the full eligible diabetes population if predictor missingness is informative. The "
         "surviving study archive does not preserve a full stepwise NHANES exclusion ledger from all screened participants "
-        "to the retained 5,659-person complete-case sample. The source model was available as a fixed archived risk "
-        "equation rather than a fully documented development package; although the coefficients, 5-year baseline "
-        "survival, and penalizer value were preserved, the exact penalty form and full development provenance were not. "
+        "to the retained 5,659-person complete-case sample. The source model was available as a locked archived risk "
+        "equation with preserved coefficients and 5-year baseline survival, but the full development package was not "
+        "available for reanalysis. "
         "The analysis used only the shared predictors available in both sources and therefore did not evaluate additional "
         "risk factors such as chronic kidney disease, cardiovascular disease, body mass index, diabetes duration, or "
         "medication variables. It also did not evaluate competing risks, cause-specific mortality, or model updating. "
@@ -891,7 +891,7 @@ def _dm002_limitations_section() -> str:
 def _dm002_conclusion_section(values: Mapping[str, Any]) -> str:
     return (
         "## Conclusion\n\n"
-        f"A fixed China-derived seven-predictor Cox score achieved a NHANES c-index of {values['nhanes_c_index_ci']}, "
+        f"A China-derived seven-predictor Cox score achieved a NHANES c-index of {values['nhanes_c_index_ci']}, "
         f"identified higher-risk adults across NHANES deciles, and retained cross-population risk stratification, but "
         f"underpredicted 5-year mortality by {values['absolute_gap']} percentage points at the cohort level. The score "
         "may support transported higher-risk identification, while absolute-risk communication and threshold-based "
