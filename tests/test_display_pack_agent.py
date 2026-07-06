@@ -18,6 +18,9 @@ from med_autoscience.publication_display_contract import seed_publication_displa
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE_ROOT = REPO_ROOT.parent.parent.parent if REPO_ROOT.parent.name == ".worktrees" else REPO_ROOT.parent
+SCHOLARSKILLS_CORE_PACK_ROOT = WORKSPACE_ROOT / "mas-scholar-skills" / "packs" / "medical-display-core"
+SCHOLARSKILLS_REQUIREMENT_PROFILE_REF = (SCHOLARSKILLS_CORE_PACK_ROOT / "renderer_dependency_profile.json").as_posix()
 
 
 def _write_roc_payload(path: Path) -> None:
@@ -58,9 +61,7 @@ def _write_prepared_dependency_environment(paper_root: Path) -> None:
                 "schema_version": 1,
                 "lock_id": "test-display-env-lock",
                 "lock_sha256": "sha256:test-display-env-lock",
-                "source_requirement_refs": [
-                    "external/display-packs/medical-display-core/renderer_dependency_profile.json"
-                ],
+                "source_requirement_refs": [SCHOLARSKILLS_REQUIREMENT_PROFILE_REF],
             },
             ensure_ascii=False,
             indent=2,
@@ -663,7 +664,7 @@ def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_
     assert payload["preflight"]["status"] == "ready"
     assert payload["preflight"]["dependency_environment"]["status"] == "prepared"
     assert payload["preflight"]["dependency_environment"]["requirement_profile_ref"] == (
-        "external/display-packs/medical-display-core/renderer_dependency_profile.json"
+        SCHOLARSKILLS_REQUIREMENT_PROFILE_REF
     )
     assert payload["preflight"]["dependency_environment"]["lock_ref"] == (
         "paper/build/dependency_environment_lock.json"
@@ -735,9 +736,7 @@ def test_display_pack_preflight_blocks_missing_dependency_environment_by_default
     assert payload["surface_kind"] == "display_pack_agent_preflight"
     assert payload["status"] == "blocked"
     assert payload["dependency_environment"]["status"] == "missing_prepared_receipt"
-    assert payload["dependency_environment"]["requirement_profile_ref"] == (
-        "external/display-packs/medical-display-core/renderer_dependency_profile.json"
-    )
+    assert payload["dependency_environment"]["requirement_profile_ref"] == SCHOLARSKILLS_REQUIREMENT_PROFILE_REF
     assert payload["dependency_environment"]["lock_ref"] == "paper/build/dependency_environment_lock.json"
     assert payload["dependency_environment"]["receipt_ref"] == "paper/build/dependency_environment_receipt.json"
     assert payload["dependency_environment"]["run_context_ref"] == "paper/build/dependency_run_context.json"

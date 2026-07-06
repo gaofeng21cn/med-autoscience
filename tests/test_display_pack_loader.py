@@ -13,7 +13,6 @@ from med_autoscience.display_pack_loader import (
     load_enabled_local_display_packs,
     resolve_display_pack_selection,
 )
-from med_autoscience.display_pack_paths import CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -30,7 +29,7 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 [[sources]]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
-path = "{CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH}"
+path = "test-display-packs/medical-display-core"
 version = "{version}"
 
 [[sources]]
@@ -127,10 +126,7 @@ def test_load_enabled_local_display_packs_reads_repo_config(tmp_path: Path) -> N
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
 
-    _write_pack_manifest(
-        repo_root / "external" / "display-packs" / "medical-display-core",
-        pack_id="fenggaolab.org.medical-display-core",
-    )
+    _write_pack_manifest(repo_root / "test-display-packs" / "medical-display-core", pack_id=CORE_PACK_ID)
 
     manifests = load_enabled_local_display_packs(repo_root)
 
@@ -223,7 +219,7 @@ def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
 
-    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    pack_root = repo_root / "test-display-packs" / "medical-display-core"
     _write_pack_manifest(
         pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -243,7 +239,7 @@ def test_load_enabled_local_display_pack_template_records_preserves_pack_root(tm
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
 
-    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    pack_root = repo_root / "test-display-packs" / "medical-display-core"
     _write_pack_manifest(
         pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -264,7 +260,7 @@ def test_load_enabled_local_display_packs_fails_on_pack_id_mismatch(tmp_path: Pa
     _write_display_pack_config(repo_root)
 
     _write_pack_manifest(
-        repo_root / "external" / "display-packs" / "medical-display-core",
+        repo_root / "test-display-packs" / "medical-display-core",
         pack_id="fenggaolab.org.other-pack",
     )
 
@@ -278,7 +274,7 @@ def test_load_enabled_local_display_packs_rejects_requested_version_mismatch(tmp
     _write_display_pack_config(repo_root, version="0.2.0")
 
     _write_pack_manifest(
-        repo_root / "external" / "display-packs" / "medical-display-core",
+        repo_root / "test-display-packs" / "medical-display-core",
         pack_id="fenggaolab.org.medical-display-core",
         version="0.1.0",
     )
@@ -291,7 +287,7 @@ def test_paper_display_pack_config_overrides_repo_source_and_version(tmp_path: P
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     _write_display_pack_config(repo_root, version="0.1.0")
-    repo_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    repo_pack_root = repo_root / "test-display-packs" / "medical-display-core"
     _write_pack_manifest(
         repo_pack_root,
         pack_id="fenggaolab.org.medical-display-core",
@@ -389,10 +385,9 @@ version = "0.2.0"
     assert records[0].source_config.resolved_source_root == git_repo_root.resolve()
 
 
-def test_display_pack_source_fallback_uses_first_available_source(tmp_path: Path) -> None:
+def test_display_pack_source_without_fallback_fails_when_external_source_is_missing(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    missing_git_repo_root = tmp_path / "missing-display-core-git"
     config_dir = repo_root / "config"
     config_dir.mkdir()
     (config_dir / "display_packs.toml").write_text(
@@ -408,40 +403,16 @@ version = "0.1.0"
 source_owner = "MAS Scholar Skills Display"
 source_role = "generic_template_renderer_pack"
 source_authority = false
-
-[[sources]]
-kind = "local_dir"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "external/display-packs/medical-display-core"
-version = "0.1.0"
-fallback = true
-source_owner = "MedAutoScience"
-source_role = "temporary_deprecated_bundled_migration_fallback"
-source_authority = false
 """.strip()
         + "\n",
         encoding="utf-8",
     )
-    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
-    _write_pack_manifest(
-        fallback_pack_root,
-        pack_id="fenggaolab.org.medical-display-core",
-        version="0.1.0",
-    )
-    _write_template_manifest(fallback_pack_root)
 
-    records = load_enabled_local_display_pack_records(repo_root)
-
-    assert missing_git_repo_root.exists() is False
-    assert len(records) == 1
-    assert records[0].pack_root == fallback_pack_root
-    assert records[0].source_config.kind == "local_dir"
-    assert records[0].source_config.fallback is True
-    assert records[0].source_config.source_owner == "MedAutoScience"
-    assert records[0].source_config.source_authority is False
+    with pytest.raises(ValueError, match="no enabled display pack sources could be loaded"):
+        load_enabled_local_display_pack_records(repo_root)
 
 
-def test_display_pack_source_fallback_prefers_external_pack_when_available(tmp_path: Path) -> None:
+def test_display_pack_source_uses_external_pack_when_available(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     git_repo_root = tmp_path / "display-core-git"
@@ -461,16 +432,6 @@ version = "0.1.0"
 source_owner = "MAS Scholar Skills Display"
 source_role = "generic_template_renderer_pack"
 source_authority = false
-
-[[sources]]
-kind = "local_dir"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "external/display-packs/medical-display-core"
-version = "0.1.0"
-fallback = true
-source_owner = "MedAutoScience"
-source_role = "temporary_deprecated_bundled_migration_fallback"
-source_authority = false
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -482,13 +443,6 @@ source_authority = false
         version="0.1.0",
     )
     _write_template_manifest(external_pack_root)
-    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
-    _write_pack_manifest(
-        fallback_pack_root,
-        pack_id="fenggaolab.org.medical-display-core",
-        version="0.1.0",
-    )
-    _write_template_manifest(fallback_pack_root)
     _git(git_repo_root, "init", "-b", "main")
     _git(git_repo_root, "config", "user.name", "Test User")
     _git(git_repo_root, "config", "user.email", "test@example.com")
@@ -523,15 +477,6 @@ pack_subdir = "packs/medical-display-core"
 version = "0.1.0"
 source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_role = "generic_template_renderer_pack"
-source_authority = false
-
-[[sources]]
-kind = "local_dir"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "external/display-packs/medical-display-core"
-version = "0.1.0"
-fallback = true
-source_role = "temporary_deprecated_bundled_migration_fallback"
 source_authority = false
 """.strip()
         + "\n",

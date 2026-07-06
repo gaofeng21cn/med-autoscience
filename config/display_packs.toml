@@ -12,16 +12,3 @@ source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_version = "0.1.0"
 source_role = "generic_template_renderer_pack"
 source_authority = false
-
-# Migration-only fallback: keeps offline/legacy checks runnable, but is not MAS authority.
-[[sources]]
-kind = "local_dir"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "external/display-packs/medical-display-core"
-version = "0.1.0"
-fallback = true
-source_owner = "MedAutoScience"
-source_ref = "med-autoscience:external/display-packs/medical-display-core"
-source_version = "0.1.0"
-source_role = "temporary_deprecated_bundled_migration_fallback"
-source_authority = false

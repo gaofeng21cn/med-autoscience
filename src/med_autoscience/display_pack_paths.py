@@ -6,7 +6,6 @@ import tomllib
 from med_autoscience.display_pack_loader import load_enabled_local_display_pack_records
 
 CORE_MEDICAL_DISPLAY_PACK_ID = "fenggaolab.org.medical-display-core"
-CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH = "external/display-packs/medical-display-core"
 PAPER_CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH = "paper-external/display-packs/medical-display-core"
 
 
@@ -25,11 +24,7 @@ def core_medical_display_pack_root(repo_root: Path | str) -> Path:
     direct_pack_root = _core_pack_root_if_manifest_matches(candidate)
     if direct_pack_root is not None:
         return direct_pack_root
-    for relative_pack_root in (
-        CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH,
-        PAPER_CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH,
-        "medical-display-core",
-    ):
+    for relative_pack_root in (PAPER_CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH, "medical-display-core"):
         direct_pack_root = _core_pack_root_if_manifest_matches(candidate / relative_pack_root)
         if direct_pack_root is not None:
             return direct_pack_root

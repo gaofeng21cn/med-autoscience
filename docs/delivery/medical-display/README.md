@@ -45,7 +45,9 @@ Medical Display 文档和 template pack 可以定义 renderer family、input sch
 
 ## MAS / ScholarSkills 分工
 
-`mas-scholar-skills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认优先消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 只保留为 temporary deprecated bundled migration fallback，用来保证旧论文和离线验证仍可运行。薄消费面的验收口径是 `config/display_packs.toml` 默认解析到 ScholarSkills source，`display_pack_lock.json` 保留 source/ref/role/fallback/authority provenance，且 fallback 不被写成 MAS publication authority。
+`mas-scholar-skills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认只消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 不再是默认解析、lock、agent preflight 或 repo-default test 的 hidden fallback。薄消费面的验收口径是 `config/display_packs.toml` 默认解析到 ScholarSkills source，`display_pack_lock.json` 保留 source/ref/role/authority provenance，且不会在外部 source 缺失时合成 MAS bundled fallback。
+
+`external/display-packs/medical-display-core/` 的物理目录仍作为 legacy tracked asset 暂存，原因是当前 `MANIFEST.in` 仍 graft `external/display-packs`，且若干 renderer-structure / R-style 历史测试仍直接 source 该路径；这些路径不属于本次允许写集。删除该目录的下一步最小替代是先把这些测试和 sdist manifest 改为 ScholarSkills pack ref 或显式 test fixture，然后再物理删除 `external/display-packs/**`。
 
 MAS package build 不再通过 `setup.py` 把 `config/display_packs.toml` 和 `external/display-packs/**` 复制进 `med_autoscience.resources.display_pack_repo`。安装态若要消费 Display Pack，必须通过显式 repo / paper config、ScholarSkills source 或后续 OPL Pack OS refs；wheel/sdist 里的隐藏资源库存不能作为 active pack source 或 publication-ready 证据。
 

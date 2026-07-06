@@ -57,38 +57,6 @@ version = "0.2.0"
     )
 
 
-def _write_primary_with_fallback_pack_config(repo_root: Path, *, primary_relative_repo_path: str) -> None:
-    config_dir = repo_root / "config"
-    config_dir.mkdir(parents=True)
-    (config_dir / "display_packs.toml").write_text(
-        f"""
-default_enabled_packs = ["fenggaolab.org.medical-display-core"]
-
-[[sources]]
-kind = "git_repo"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "{primary_relative_repo_path}"
-pack_subdir = "packs/medical-display-core"
-version = "0.1.0"
-source_ref = "mas-scholar-skills:packs/medical-display-core"
-source_role = "generic_template_renderer_pack"
-source_authority = false
-
-[[sources]]
-kind = "local_dir"
-pack_id = "fenggaolab.org.medical-display-core"
-path = "external/display-packs/medical-display-core"
-version = "0.1.0"
-fallback = true
-source_ref = "med-autoscience:external/display-packs/medical-display-core"
-source_role = "temporary_deprecated_bundled_migration_fallback"
-source_authority = false
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-
-
 def _write_pack_manifest(pack_root: Path, *, version: str) -> None:
     (pack_root / "templates" / "roc_curve_binary").mkdir(parents=True, exist_ok=True)
     (pack_root / "rlib" / "medicaldisplaycore").mkdir(parents=True, exist_ok=True)
@@ -330,22 +298,13 @@ def test_build_display_pack_lock_payload_preserves_scholarskills_consumer_bounda
     assert "/mas-scholar-skills/" in pack_entry["resolved_pack_root"]
 
 
-def test_build_display_pack_lock_payload_marks_bundled_fallback_non_authority(tmp_path: Path) -> None:
+def test_build_display_pack_lock_payload_does_not_synthesize_bundled_fallback(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    _write_primary_with_fallback_pack_config(repo_root, primary_relative_repo_path="../missing-mas-scholar-skills")
-    fallback_pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
-    _write_pack_manifest(fallback_pack_root, version="0.1.0")
-    _write_template_manifest(fallback_pack_root / "templates" / "roc_curve_binary")
+    _write_git_pack_config(repo_root, relative_repo_path="../missing-mas-scholar-skills")
 
-    payload = build_display_pack_lock_payload(repo_root=repo_root)
-    pack_entry = payload["enabled_packs"][0]
-
-    assert pack_entry["source_kind"] == "local_dir"
-    assert pack_entry["source_ref"] == "med-autoscience:external/display-packs/medical-display-core"
-    assert pack_entry["source_role"] == "temporary_deprecated_bundled_migration_fallback"
-    assert pack_entry["source_authority"] is False
-    assert pack_entry["fallback"] is True
+    with pytest.raises(ValueError, match="no enabled display pack sources could be loaded"):
+        build_display_pack_lock_payload(repo_root=repo_root)
 
 
 def test_build_display_pack_lock_payload_projects_canonical_default_renderers() -> None:
