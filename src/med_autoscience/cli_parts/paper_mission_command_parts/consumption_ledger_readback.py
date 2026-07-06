@@ -58,7 +58,6 @@ from med_autoscience.cli_parts.study_read_commands import (
     _progress_first_status_payload as _study_progress_status_payload,
 )
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers import study_progress as _study_progress
 from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
     receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
@@ -69,6 +68,9 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 )
 from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
+)
+from med_autoscience.controllers.study_progress_parts.projection import (
+    read_study_progress as _read_study_progress,
 )
 from med_autoscience.mcp_server_parts.projection_adapters import (
     serialize_study_runtime_result as _serialize_study_runtime_result,
@@ -458,7 +460,7 @@ def _study_progress_paper_mission_overlay(
     study_id: str,
 ) -> dict[str, Any]:
     try:
-        result = _study_progress.read_study_progress(
+        result = _read_study_progress(
             profile=profile,
             profile_ref=Path(profile_ref),
             study_id=study_id,
