@@ -459,6 +459,24 @@
       ],
       "missing_reason_policy": "typed_missing_reason_required; do_not_coerce_to_zero"
     },
+    "specialist_skill_writeback_contract": {
+      "surface_kind": "mas_reviewer_revision_specialist_skill_writeback_contract",
+      "route": "OMA developer work order or refs-only improvement proposal",
+      "target_source_of_truth": "external_repo:mas-scholar-skills",
+      "target_skill_ref_families": [
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-figure-design",
+        "medical-submission-prep"
+      ],
+      "mas_copies_professional_skill_body": false,
+      "writes_study_truth": false,
+      "writes_owner_receipt": false,
+      "writes_typed_blocker": false,
+      "writes_human_gate": false
+    },
     "coverage_audit_closeout_requirement": {
       "required_for_closeout": true,
       "minimum_fields": [

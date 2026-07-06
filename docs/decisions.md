@@ -17,6 +17,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：`reviewer_revision` intake 的 structured checklist 必须包含 text revisions、methods completeness、statistical analysis、tables/figures、follow-up evidence、discussion/claim guardrails、coverage audit 与 handoff/evidence surface。coverage audit 是修订 closeout 验收项，必须逐条记录反馈、修订动作、状态、证据 refs、未完成/不适用理由和 owner readback ref。
 - 决策：超过 fast lane 的 reviewer revision 必须物化 Agent Lab suite 与 FeedbackOps dispatch request，并通过 OPL FeedbackOps / OMA 形成 developer work order 或 refs-only improvement proposal；该链路只作为改进与接力 refs，不写 study truth、paper body、publication verdict、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package authority。
 - 决策：stage attempt / suite readback 必须保留专业 skill 调用 refs，并对 duration、token usage、cost 采用 observed-or-missing-with-typed-reason 语义。缺失时写 `missing_duration_reason`、`missing_token_usage_reason`、`missing_cost_reason`，不得用 0、估算、elapsed time 或 transport success 冒充真实用时/token/cost。
+- 决策：可复用的医学写作、审稿、统计、表格、图件或投稿准备经验，只能经 OMA developer work order / refs-only improvement proposal 回灌到 `mas-scholar-skills` 专业 skill source；MAS 只记录路由、target skill refs 与 authority boundary，不复制专业 skill 正文。
 - 影响：本规则落点是 `study_task_intake_revision`、`agent_lab_medical_manuscript_quality`、`scientific_capability_registry` 与 `contracts/mas-paper-study-stage-pack.json#/reviewer_revision_default_mechanism`。它只固化默认机制，不构成任何 OPL/OMA live acceptance；真实接受仍要看 OPL FeedbackOps/OMA work order status 与 MAS `paper-mission inspect` owner closeout readback。
 
 ## 2026-07-06：MAS 过度设计退役按 OPL-hosted 标准 Agent 边界执行

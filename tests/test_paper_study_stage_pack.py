@@ -178,6 +178,7 @@ def test_mission_first_non_advancing_route_back_policy_escalates_to_mas_codex_st
         "research_pivot": "pivot_decision_ref",
         "carry_forward_with_residual_risk": "carry_forward_decision_ref",
     }
+
     assert owner_decisions["can_authorize_submission_or_publication_ready"] is False
     assert owner_decisions["can_replace_owner_receipt_or_quality_gate"] is False
 
@@ -262,6 +263,63 @@ def test_mission_first_non_advancing_route_back_policy_escalates_to_mas_codex_st
         "canary_contract_can_write_runtime_or_authority": False,
         "fallback_contract_can_write_owner_receipt_or_gate": False,
     }
+
+
+def test_reviewer_revision_default_mechanism_routes_large_feedback_to_oma_and_scholar_skills() -> None:
+    contract = _json("contracts/mas-paper-study-stage-pack.json")
+    mechanism = contract["reviewer_revision_default_mechanism"]
+
+    trigger = mechanism["trigger"]
+    assert trigger["task_intake_kind"] == "reviewer_revision"
+    assert trigger["large_revision_not_fast_lane"] is True
+    assert trigger["fast_lane_allowed_only_for"] == [
+        "typo_or_local_wording",
+        "single_formatting_or_caption_microfix",
+        "existing_evidence_text_only_microfix",
+    ]
+    assert "OMA developer work order or refs-only improvement proposal" in trigger["large_revision_routes"]
+    assert "PaperMission owner closeout readback" in trigger["large_revision_routes"]
+
+    required_items = set(mechanism["structured_revision_checklist_required_items"])
+    assert {
+        "text_revisions",
+        "methods_completeness",
+        "statistical_analysis",
+        "tables_figures",
+        "follow_up_evidence",
+        "discussion_claim_guardrails",
+        "coverage_audit",
+        "handoff_evidence_surface",
+    } <= required_items
+
+    readback = mechanism["stage_attempt_readback_contract"]
+    assert readback["must_preserve_professional_skill_invocation_refs"] is True
+    assert {
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+    } <= set(readback["professional_skill_ref_families"])
+    assert readback["required_observability_fields"] == ["duration", "token_usage", "cost"]
+    assert readback["missing_reason_policy"] == "typed_missing_reason_required; do_not_coerce_to_zero"
+
+    writeback = mechanism["specialist_skill_writeback_contract"]
+    assert writeback["route"] == "OMA developer work order or refs-only improvement proposal"
+    assert writeback["target_source_of_truth"] == "external_repo:mas-scholar-skills"
+    assert {
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-statistical-review",
+    } <= set(writeback["target_skill_ref_families"])
+    assert writeback["mas_copies_professional_skill_body"] is False
+    assert writeback["writes_study_truth"] is False
+    assert writeback["writes_owner_receipt"] is False
+    assert writeback["writes_typed_blocker"] is False
+    assert writeback["writes_human_gate"] is False
+
+    boundary = mechanism["authority_boundary"]
+    assert boundary["feedbackops_or_oma_can_write_study_truth"] is False
+    assert boundary["feedbackops_or_oma_can_authorize_publication_ready"] is False
+    assert boundary["coverage_audit_is_acceptance_evidence_not_owner_receipt"] is True
 
 
 def test_foundry_agent_series_projects_non_advancing_policy_without_claiming_readiness() -> None:
