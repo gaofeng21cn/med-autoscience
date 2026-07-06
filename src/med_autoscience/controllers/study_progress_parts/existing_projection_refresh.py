@@ -434,36 +434,14 @@ def refresh_existing_projection_current_owner_surfaces(
     if current_action is not None:
         updated["current_executable_owner_action"] = current_action
         updated = reconcile_current_owner_action_projection(updated)
-    current_control_typed_blocker = _mapping_copy(currentness_handoff.get("typed_blocker"))
-    current_control_blocked_reason = _non_empty_text(currentness_handoff.get("blocked_reason"))
-    current_control_next_owner = _non_empty_text(currentness_handoff.get("next_owner"))
-    if current_action is not None and current_work_unit.action_supersedes_typed_blocker(
-        action=current_action,
-        blocker=current_control_typed_blocker,
-        progress=updated,
-    ):
-        current_control_typed_blocker = {}
-        current_control_blocked_reason = None
-        current_control_next_owner = None
     progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
     envelope_actions = current_execution_envelope_actions(
         handoff=currentness_handoff,
         current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
         paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
     )
-    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
     updated["current_work_unit"] = {}
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
-        progress=updated,
-        actions=envelope_actions,
-        blocked_reason=current_control_blocked_reason,
-        next_owner=current_control_next_owner,
-        typed_blocker=current_control_typed_blocker,
-        runtime_health=runtime_health_snapshot,
-        live_provider_attempt=currentness_handoff,
-        current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
-    )
+    updated["current_execution_envelope"] = {}
     updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
     updated.update(
         provider_admission_projection_fields(
@@ -583,12 +561,7 @@ def _typed_blocker_stop_projection(
         updated["paper_recovery_state"] = recovery
         updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
         updated["current_work_unit"] = {}
-        updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-            status={},
-            progress=updated,
-            actions=[],
-            current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
-        )
+        updated["current_execution_envelope"] = {}
         updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
         updated = _sync_owner_action_admission_into_monitoring(updated)
         updated = sync_current_execution_evidence(updated, handoff={})
@@ -701,36 +674,8 @@ def _refresh_current_owner_surfaces_from_existing_action(
     if not _repair_progress_owner_followup_action(current_action):
         return payload
     updated = dict(payload)
-    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
-    envelope_actions = current_execution_envelope_actions(
-        handoff=handoff,
-        current_executable_owner_action=current_action,
-        paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
-    )
-    current_control_typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
-    current_control_blocked_reason = _non_empty_text(handoff.get("blocked_reason"))
-    current_control_next_owner = _non_empty_text(handoff.get("next_owner"))
-    if current_work_unit.action_supersedes_typed_blocker(
-        action=current_action,
-        blocker=current_control_typed_blocker,
-        progress=updated,
-    ):
-        current_control_typed_blocker = {}
-        current_control_blocked_reason = None
-        current_control_next_owner = None
-    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
     updated["current_work_unit"] = {}
-    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
-        status=status,
-        progress=updated,
-        actions=envelope_actions,
-        blocked_reason=current_control_blocked_reason,
-        next_owner=current_control_next_owner,
-        typed_blocker=current_control_typed_blocker,
-        runtime_health=runtime_health_snapshot,
-        live_provider_attempt=handoff,
-        current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
-    )
+    updated["current_execution_envelope"] = {}
     return updated
 
 

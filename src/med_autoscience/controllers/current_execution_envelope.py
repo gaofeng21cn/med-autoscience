@@ -20,23 +20,6 @@ RETIRED_AUTHORITY_BOUNDARY = {
 }
 
 
-def build_current_execution_envelope(
-    *,
-    status: Mapping[str, Any] | None = None,
-    progress: Mapping[str, Any] | None = None,
-    actions: Sequence[Mapping[str, Any]] | None = None,
-    blocked_reason: str | None = None,
-    next_owner: str | None = None,
-    typed_blocker: Mapping[str, Any] | None = None,
-    runtime_health: Mapping[str, Any] | None = None,
-    live_provider_attempt: Mapping[str, Any] | None = None,
-    current_work_unit_payload: Mapping[str, Any] | None = None,
-    source_refs: Sequence[str] | None = None,
-    conflict_suppression_refs: Sequence[str] | None = None,
-) -> dict[str, Any]:
-    return {}
-
-
 def build_current_execution_evidence(
     *,
     action_queue: Sequence[Mapping[str, Any]] | None = None,
@@ -74,7 +57,6 @@ def _mapping(value: object) -> dict[str, Any]:
 
 __all__ = [
     "RETIRED_AUTHORITY_BOUNDARY",
-    "build_current_execution_envelope",
     "build_current_execution_evidence",
     "retired_authority_boundary",
 ]

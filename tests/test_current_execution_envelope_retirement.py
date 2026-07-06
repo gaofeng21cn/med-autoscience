@@ -3,26 +3,6 @@ from __future__ import annotations
 import importlib
 
 
-def test_current_execution_envelope_default_selector_is_retired_fail_closed() -> None:
-    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
-
-    result = module.build_current_execution_envelope(
-        actions=[
-            {
-                "action_type": "run_gate_clearing_batch",
-                "owner": "gate_clearing_batch",
-                "work_unit_id": "legacy-gate-replay",
-                "work_unit_fingerprint": "sha256:legacy-gate-replay",
-            }
-        ],
-        live_provider_attempt={"status": "running", "work_unit_id": "legacy-provider-attempt"},
-        blocked_reason="legacy_provider_attempt_running",
-        next_owner="gate_clearing_batch",
-    )
-
-    assert result == {}
-
-
 def test_current_execution_evidence_is_diagnostic_only() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 

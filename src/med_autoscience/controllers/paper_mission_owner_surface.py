@@ -773,16 +773,7 @@ def _study_projection(
     )
     runtime_health = provider_attempt_projection["runtime_health"]
     current_work_unit_payload: dict[str, Any] = {}
-    execution_envelope = current_execution_envelope.build_current_execution_envelope(
-        status=status_payload,
-        progress=progress_payload,
-        actions=actions,
-        blocked_reason=blocked_reason,
-        next_owner=next_owner,
-        runtime_health=runtime_health,
-        live_provider_attempt=live_provider_attempt,
-        current_work_unit_payload=current_work_unit_payload,
-    )
+    execution_envelope: dict[str, Any] = {}
     execution_evidence = current_execution_envelope.build_current_execution_evidence(
         action_queue=actions,
         runtime_health=runtime_health,

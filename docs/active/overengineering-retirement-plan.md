@@ -45,6 +45,8 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
   - `completion_evidence_layers.py` / `authority_flags.py` / `surface_helpers.py`：shared physical-delete gate helper；只服务 retirement audit 的 evidence-layer 分账和 forbidden-authority flag scan。
 - 本轮可安全删除的是旧 private runtime residue aggregate fixture；合同与测试引用已改为具体 case module：`runtime_surface_no_authority_audit.py`、`domain_authority_refs_index.py`。这只删除重复 collection/旧路径别名，不改变 runtime authority 语义。
 - 仍未删除的 runtime/control-plane helpers 均有 active caller 或 contract guard 作用；后续只能在对应 active caller 迁移、contract ref 改到 concrete module、focused tests 证明 no-forbidden-write 后继续物理收薄。
+- `current_execution_envelope.build_current_execution_envelope()` 已退役删除：该函数固定返回 `{}`，active callers 仅把其结果写回 legacy diagnostic projection；caller 已改为直接投影 `{}`，只保留 `build_current_execution_evidence()` 与 explicit retired authority boundary。
+- P0 runtime tail 复核结论：`runtime_surface_retirement.py` / validators、`live_runtime_evidence_rollup.py`、`live_tail_work_orders.py`、`live_runtime_gap_work_orders.py`、`current_work_unit.py` 和 legacy owner-callable receipt fallback 均仍有 active caller 或 fail-closed contract guard，不能按空 wrapper 删除。
 
 ## 停止条件
 
