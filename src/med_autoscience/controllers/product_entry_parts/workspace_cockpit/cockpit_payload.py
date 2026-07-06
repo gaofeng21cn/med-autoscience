@@ -27,6 +27,9 @@ from med_autoscience.controllers.runtime_continuity_projection import runtime_co
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
+from med_autoscience.controllers.study_progress_parts.projection import (
+    read_study_progress as _read_study_progress,
+)
 from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
@@ -340,7 +343,7 @@ def _workspace_cockpit_study_snapshot(
     study_root: Path,
 ) -> tuple[dict[str, Any], list[str]]:
     try:
-        progress_payload = study_progress.read_study_progress(
+        progress_payload = _read_study_progress(
             profile=profile,
             profile_ref=profile_ref,
             study_root=study_root,
