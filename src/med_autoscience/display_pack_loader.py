@@ -17,7 +17,6 @@ from med_autoscience.display_pack_renderer_policy import default_surface_allowed
 _VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
 _VALID_TEMPLATE_INVENTORY_SCOPES = frozenset(("canonical", "all"))
 _DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
-_PACKAGED_DISPLAY_PACK_REPO_ROOT = Path(__file__).resolve().parent / "resources" / "display_pack_repo"
 
 
 @dataclass(frozen=True)
@@ -131,11 +130,6 @@ def _load_toml_payload(path: Path) -> dict[str, object]:
 
 def _resolve_repo_config_root(repo_root: Path) -> Path:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
-    if (normalized_repo_root / "config" / "display_packs.toml").exists():
-        return normalized_repo_root
-    packaged_config_path = _PACKAGED_DISPLAY_PACK_REPO_ROOT / "config" / "display_packs.toml"
-    if normalized_repo_root == _DEFAULT_REPO_ROOT.resolve() and packaged_config_path.exists():
-        return _PACKAGED_DISPLAY_PACK_REPO_ROOT.resolve()
     return normalized_repo_root
 
 

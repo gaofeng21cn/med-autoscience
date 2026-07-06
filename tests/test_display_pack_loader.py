@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 import subprocess
 
 import pytest
@@ -139,33 +138,16 @@ def test_load_enabled_local_display_packs_reads_repo_config(tmp_path: Path) -> N
     assert manifests[0].version == "0.1.0"
 
 
-def test_load_enabled_local_display_packs_reads_packaged_default_config(
+def test_load_enabled_local_display_packs_requires_repo_config_for_installed_context(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    packaged_root = tmp_path / "packaged_default"
-    shutil.copytree(REPO_ROOT / "config", packaged_root / "config")
-    shutil.copytree(REPO_ROOT / "external" / "display-packs", packaged_root / "external" / "display-packs")
-    monkeypatch.setattr(display_pack_loader, "_PACKAGED_DISPLAY_PACK_REPO_ROOT", packaged_root)
-
     install_root = tmp_path / "installed"
     install_root.mkdir()
     monkeypatch.setattr(display_pack_loader, "_DEFAULT_REPO_ROOT", install_root)
-    manifests = load_enabled_local_display_packs(install_root)
-    template_records = load_enabled_local_display_pack_template_records(install_root)
-    r_renderer_source = (
-        packaged_root
-        / CORE_MEDICAL_DISPLAY_PACK_CONFIG_PATH
-        / "src"
-        / "fenggaolab_org_medical_display_core"
-        / "evidence_figures"
-        / "r_renderer.py"
-    )
 
-    assert [item.pack_id for item in manifests] == [CORE_PACK_ID]
-    assert manifests[0].version == "0.1.0"
-    assert template_records
-    assert r_renderer_source.is_file()
+    with pytest.raises(FileNotFoundError):
+        load_enabled_local_display_packs(install_root)
 
 
 def test_source_tree_does_not_keep_packaged_display_pack_projection() -> None:

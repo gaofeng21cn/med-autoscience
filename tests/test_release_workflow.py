@@ -4,7 +4,9 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tomllib
+import zipfile
 from pathlib import Path
 
 from packaging.requirements import Requirement
@@ -236,7 +238,15 @@ def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
     assert 'scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"' in quick_checks
 
 
-def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> None:
+def _archive_names(path: Path) -> set[str]:
+    if path.suffix == ".whl":
+        with zipfile.ZipFile(path) as archive:
+            return set(archive.namelist())
+    with tarfile.open(path) as archive:
+        return set(archive.getnames())
+
+
+def test_build_projects_stage_route_contract_without_display_pack_resource_inventory(tmp_path: Path) -> None:
     fixture_root = tmp_path / "sdist-fixture"
     ignored_roots = {
         ".codegraph",
@@ -261,6 +271,7 @@ def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> N
             "build",
             "--no-isolation",
             "--sdist",
+            "--wheel",
             "--outdir",
             str(tmp_path / "dist"),
         ],
@@ -271,6 +282,12 @@ def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> N
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+    archives = sorted((tmp_path / "dist").iterdir())
+    assert {item.suffix for item in archives} == {".gz", ".whl"}
+    for archive_path in archives:
+        names = _archive_names(archive_path)
+        assert any(name.endswith("med_autoscience/resources/stage_route_contract.yaml") for name in names)
+        assert not any("/display_pack_repo/" in name or name.endswith("/display_pack_repo") for name in names)
 
 
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:
