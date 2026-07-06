@@ -116,6 +116,18 @@ The latest DM003 reviewer_revision exposed a first-draft quality gap that was br
 
 This backfeed is MAS repo capability only. It does not write DM003 study truth, paper body, publication eval, controller decisions, owner receipts, typed blockers, human gates, runtime queues, provider attempts, current package, or submission authority.
 
+## 2026-07-06 Reviewer Revision Materialization Landing
+
+DM003 then exposed the next boundary: accepted bounded-analysis reviewer-revision evidence is not useful enough if the write materializer leaves it outside the canonical manuscript and supplement. The DPCC phenotype / treatment-gap story materializer now consumes bounded-analysis rate-count and renal-risk calendar-year sensitivity tables when present, and projects them into manuscript-native Abstract, Methods, Results, Discussion, and Supplementary Tables without changing submission-readiness authority.
+
+For this manuscript family, future first drafts and reviewer revisions should therefore materialize, not merely reference, these evidence surfaces when they exist:
+
+- rate-count service-priority contrast as both prose logic and a supplementary table;
+- renal-risk calendar-year medication-capture sensitivity as a bounded exploratory sensitivity, not as uptake, trend, guideline-adherence, or treatment-quality evidence;
+- supplementary table numbering that preserves prior supplement content instead of silently dropping or overwriting it.
+
+This is a write-surface materialization capability. It does not authorize publication quality, current-package readiness, owner receipts, typed blockers, human gates, runtime queues, provider attempts, or submission authority.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
