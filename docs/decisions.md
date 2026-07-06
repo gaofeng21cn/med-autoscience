@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-06：MAS 过度设计退役按 OPL-hosted 标准 Agent 边界执行
+
+- 决策：MAS 继续按 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions` 收口。MAS 保留医学研究 truth、stage semantics、AI reviewer / auditor quality gate、publication route、source readiness、artifact authority、owner receipt、typed blocker 和 safe action refs；generic runtime、queue、attempt、lifecycle、workspace shell、package/install、observability 与 generated UI/API 默认上收到 OPL。
+- 决策：私有 runtime/control-plane tail 只允许三种结局：active caller 迁移后删除；作为 MAS minimal authority function 保留；或 tombstone 为 refs-only/provenance。不得为了兼容旧路线继续维护 MAS-local scheduler、attempt loop、health/storage maintenance 或 workbench shell。
+- 决策：Display pack 不再靠隐藏 vendoring / `setup.py` custom projection 形成事实库存。Display Pack 的长期边界是版本化 pack/descriptor/gallery refs 与 MAS-owned visual/publication verdict；OPL generic Pack OS 仍归 OPL，display descriptor 或 lock 不授权 publication-ready。
+- 决策：wildcard-import facade、product-entry alias、root demo artifact 和超大 narrative tests 按 [MAS 过度设计退役与收薄计划](./active/overengineering-retirement-plan.md) 执行 active caller proof、迁移、删除或拆分。
+- 影响：该决策只授权功能/结构清理和 source morphology 收薄；不写真实 study truth、paper body、publication eval、controller decision、submission package、owner receipt、typed blocker、human gate、runtime queue/provider attempt，也不声明 paper progress、publication-ready、domain-ready 或 production-ready。
+
 ## 2026-07-05：用户只看 `delivery/`，`paper/` 与 `manuscript/` 退回内部角色名（已被同日三层收口决策取代）
 
 - 决策：study root 新增稳定浅层入口 `delivery/`。对人暴露的默认路径固定为 `delivery/current/` 与 `delivery/current.zip`；它们只是指向 `manuscript/current_package` 与 `manuscript/current_package.zip` 的浅层 alias，不新增第二套 truth surface。

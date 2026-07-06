@@ -12,6 +12,7 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 | Theme | Current entry / read rule |
 | --- | --- |
 | Active gap / completion plan | [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) |
+| Overengineering retirement | [MAS 过度设计退役与收薄计划](./active/overengineering-retirement-plan.md) |
 | Default paper mission route | `paper-mission` / `PaperMissionRun` / `PaperMissionTransaction` / `StageTerminalDecision` / Stage Closure Terminalizer |
 | Live study truth | Fresh `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts |
 | Stage outcome / next action / quality / evidence policy | [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md)、[Next Action Control Plane](./runtime/control/next_action_control_plane.md)、[Progress-First Quality Loop](./runtime/control/progress_first_quality_loop.md)、[Progress-First Evidence Gap Policy 目标设计](./runtime/designs/progress_first_evidence_gap_policy.md)、`contracts/mas-stage-closure-terminalizer.json`、`contracts/evidence-gap-decision-policy.json`、`contracts/evidence-gap-consumption-abi.json` |
@@ -147,6 +148,8 @@ DM002 / DM003 当前只按 live `study_progress`、owner-route、OPL current-con
 ## 当前源码形态收口
 
 MAS repo 的长期源码形态已经按 strict purity 口径收敛为标准 OPL Agent source shape：declarative pack、OPL generated/hosted surfaces、minimal authority functions、domain handler target、domain authority refs、owner receipt、typed blocker 和 refs-only evidence。
+
+过度设计退役当前读法：本轮清理按 [MAS 过度设计退役与收薄计划](./active/overengineering-retirement-plan.md) 执行。P0 是 active caller proof 后收薄私有 runtime/control-plane tail 与 wildcard-import facade；P1 是 Display pack vendoring / `setup.py` projection 和 root demo artifact；P2 是超大 narrative test / fixture。任何删除都必须保留 MAS minimal authority function：医学 truth、AI reviewer / auditor verdict、publication route、source readiness、artifact authority、owner receipt、typed blocker、human gate 和 safe action refs 不能上收或删除。该计划关闭 source/function structure gap，不声明 paper progress、publication-ready、domain-ready、provider long-soak 或 production-ready。
 
 PaperMission source/test morphology 当前只保留主题级读法：`paper-mission` CLI 已持续拆出 typed-blocker resolution、stage closure、receipt consumption、candidate package、materialized readback、parser registration、domain-handler dispatch、OPL runtime submission / route handoff、one-shot migration 和 materialized terminal closeout case 等自然边界 helper；PaperRecovery state 也已把 terminal closeout projection 拆入 parts。`paper_mission_commands.py`、`runtime_surface_retirement.py` 和 `paper_recovery_state.py` 这三处主要入口当前分别为 805、951、995 行。剩余大入口是 source/test structure advisory，不是 open functional gap；后续只有在 source-governance lane 被选中时，才 fresh-read line budget / focused tests 并继续按自然边界收薄。该 landing 是 source morphology cleanup / no-forbidden-write-preserving refactor，不写 MAS owner receipt、typed blocker authority、human gate、runtime queue/provider attempt、paper body、publication-ready、submission-ready、domain-ready 或 production-ready。
 
