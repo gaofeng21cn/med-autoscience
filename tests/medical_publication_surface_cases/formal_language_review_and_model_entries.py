@@ -1,7 +1,17 @@
 from .shared import *
 
+manuscript_checks = importlib.import_module(
+    "med_autoscience.controllers.medical_publication_surface_parts.manuscript_checks"
+)
+reporting = importlib.import_module(
+    "med_autoscience.controllers.medical_publication_surface_parts.reporting"
+)
+shared_base = importlib.import_module(
+    "med_autoscience.controllers.medical_publication_surface_parts.shared_base"
+)
+
+
 def test_build_report_surfaces_non_formal_question_sentence_as_ai_reviewer_evidence(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -9,7 +19,7 @@ def test_build_report_surfaces_non_formal_question_sentence_as_ai_reviewer_evide
         include_question_mark_prose=True,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "non_formal_question_sentence_present" not in report["blockers"]
@@ -22,7 +32,6 @@ def test_scan_non_formal_question_sentences_does_not_use_backtracking_question_r
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     manuscript_path = tmp_path / "paper" / "draft.md"
     manuscript_path.parent.mkdir(parents=True)
     manuscript_path.write_text(
@@ -36,9 +45,9 @@ def test_scan_non_formal_question_sentences_does_not_use_backtracking_question_r
         def finditer(self, text: str):
             raise AssertionError("question sentence scanning must not depend on the backtracking regex")
 
-    monkeypatch.setattr(module, "QUESTION_SENTENCE_RE", ExplodingQuestionRegex(), raising=False)
+    monkeypatch.setattr(manuscript_checks, "QUESTION_SENTENCE_RE", ExplodingQuestionRegex(), raising=False)
 
-    hits = module.scan_non_formal_question_sentences(manuscript_path)
+    hits = manuscript_checks.scan_non_formal_question_sentences(manuscript_path)
 
     assert len(hits) == 1
     assert hits[0]["pattern_id"] == "non_formal_question_sentence"
@@ -47,7 +56,6 @@ def test_scan_non_formal_question_sentences_does_not_use_backtracking_question_r
 
 
 def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -59,7 +67,7 @@ def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path:
         ),
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -68,7 +76,6 @@ def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path:
 
 
 def test_build_report_blocks_prediction_model_engineering_terms_in_manuscript_text(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -84,7 +91,7 @@ def test_build_report_blocks_prediction_model_engineering_terms_in_manuscript_te
         encoding="utf-8",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -98,7 +105,6 @@ def test_build_report_blocks_prediction_model_engineering_terms_in_manuscript_te
 
 
 def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -109,7 +115,7 @@ def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Pa
         ),
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -118,7 +124,6 @@ def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Pa
 
 
 def test_build_report_blocks_internal_project_writing_terms_from_manuscript(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -134,7 +139,7 @@ def test_build_report_blocks_internal_project_writing_terms_from_manuscript(tmp_
         encoding="utf-8",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terms_present" in report["blockers"]
@@ -150,13 +155,12 @@ def test_build_report_does_not_treat_ai_reviewer_provenance_as_manuscript_residu
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
     )
-    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    study_root = _attach_study_charter_context(monkeypatch, shared_base, tmp_path, quest_root)
     prose_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
     paper_prose_review_path = study_root / "paper" / "medical_prose_review.json"
     payload = json.loads(paper_prose_review_path.read_text(encoding="utf-8"))
@@ -167,7 +171,7 @@ def test_build_report_does_not_treat_ai_reviewer_provenance_as_manuscript_residu
     dump_json(prose_review_path, payload)
     paper_prose_review_path.unlink()
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "forbidden_manuscript_terms_present" not in report["blockers"]
@@ -180,7 +184,6 @@ def test_build_report_does_not_treat_ai_reviewer_provenance_as_manuscript_residu
 
 
 def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -188,15 +191,14 @@ def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: 
         include_complete_model_registry=False,
     )
 
-    state = module.build_surface_state(quest_root)
-    report = module.build_surface_report(state)
+    state = shared_base.build_surface_state(quest_root)
+    report = reporting.build_surface_report(state)
 
     assert report["status"] == "blocked"
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
 
 
 def test_build_report_blocks_when_model_entry_omits_input_scope_and_construction_details(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -204,7 +206,7 @@ def test_build_report_blocks_when_model_entry_omits_input_scope_and_construction
         include_model_method_details=False,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
@@ -215,7 +217,6 @@ def test_build_report_blocks_when_model_entry_omits_input_scope_and_construction
 
 
 def test_build_report_blocks_when_model_entry_omits_comparison_rationale(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -228,7 +229,7 @@ def test_build_report_blocks_when_model_entry_omits_comparison_rationale(tmp_pat
     payload["model_registry"][1].pop("comparison_rationale", None)
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
@@ -237,7 +238,6 @@ def test_build_report_blocks_when_model_entry_omits_comparison_rationale(tmp_pat
 
 
 def test_build_report_blocks_when_case_mix_and_applicability_boundary_are_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -245,7 +245,7 @@ def test_build_report_blocks_when_case_mix_and_applicability_boundary_are_missin
         include_case_mix_boundary_fields=False,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
@@ -255,7 +255,6 @@ def test_build_report_blocks_when_case_mix_and_applicability_boundary_are_missin
 
 
 def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -263,7 +262,7 @@ def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_p
         align_missing_data_policy_ids=False,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "missing_data_policy_inconsistent" in report["blockers"]
@@ -271,7 +270,6 @@ def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_p
 
 
 def test_build_report_blocks_when_review_ledger_is_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -279,7 +277,7 @@ def test_build_report_blocks_when_review_ledger_is_missing(tmp_path: Path) -> No
         include_review_ledger=False,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "review_ledger_missing_or_incomplete" in report["blockers"]
@@ -287,7 +285,6 @@ def test_build_report_blocks_when_review_ledger_is_missing(tmp_path: Path) -> No
 
 
 def test_build_report_blocks_when_review_ledger_shape_is_invalid(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -312,7 +309,7 @@ def test_build_report_blocks_when_review_ledger_shape_is_invalid(tmp_path: Path)
         },
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "review_ledger_missing_or_incomplete" in report["blockers"]
@@ -323,14 +320,13 @@ def test_build_report_blocks_when_review_ledger_shape_is_invalid(tmp_path: Path)
 
 
 def test_build_report_accepts_valid_review_ledger(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "review_ledger_missing_or_incomplete" not in report["blockers"]
