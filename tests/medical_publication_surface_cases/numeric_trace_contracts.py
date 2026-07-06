@@ -2,10 +2,11 @@ from .shared import *
 
 
 def test_build_report_projects_numeric_trace(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["numeric_trace_present"] is True
     assert report["numeric_trace_valid"] is True
@@ -73,12 +74,13 @@ def test_validate_claim_evidence_map_rejects_invalid_numeric_trace_refs(numeric_
 
 
 def test_build_report_blocks_missing_numeric_trace(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     numeric_trace_path = _paper_root_from_quest(quest_root) / "numeric_trace.json"
     numeric_trace_path.unlink(missing_ok=True)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "numeric_trace_missing_or_incomplete" in report["blockers"]

@@ -2,7 +2,8 @@ from .shared import *
 
 
 def test_build_report_blocks_when_manuscript_under_cites_reference_database(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -21,7 +22,7 @@ def test_build_report_blocks_when_manuscript_under_cites_reference_database(tmp_
     ]
     (paper_root / "references.bib").write_text("\n".join(reference_items), encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "reference_citation_coverage_incomplete" in report["blockers"]
