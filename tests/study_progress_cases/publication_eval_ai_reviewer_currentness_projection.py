@@ -520,7 +520,7 @@ def test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_
 def test_blocked_gate_projection_does_not_overwrite_current_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)

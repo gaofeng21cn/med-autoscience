@@ -97,7 +97,10 @@ def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() 
     )
     assert not hasattr(typed_surface.StudyRuntimeReason, "STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST")
 def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_target(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    progress_projection = importlib.import_module("med_autoscience.controllers.progress_projection")
+    runtime_summary = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.runtime_events.runtime_summary"
+    )
     study_root = tmp_path / "studies" / "001-risk"
     latest_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     latest_handoff_path.parent.mkdir(parents=True, exist_ok=True)
@@ -121,7 +124,7 @@ def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_ta
         + "\n",
         encoding="utf-8",
     )
-    status = module.ProgressProjectionStatus.from_payload(
+    status = progress_projection.ProgressProjectionStatus.from_payload(
         make_status_payload(
             study_root=str(study_root),
             quest_status="running",
@@ -141,11 +144,14 @@ def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_ta
         )
     )
 
-    assert module._should_materialize_opl_runtime_owner_handoff_from_status(status=status, study_root=study_root) is True
+    assert runtime_summary._should_materialize_opl_runtime_owner_handoff_from_status(status=status, study_root=study_root) is True
 
 
 def test_opl_runtime_owner_handoff_materialization_uses_runtime_health_recovery_target_for_strict_live_timeout(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    progress_projection = importlib.import_module("med_autoscience.controllers.progress_projection")
+    runtime_summary = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.runtime_events.runtime_summary"
+    )
     study_root = tmp_path / "studies" / "001-risk"
     latest_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     latest_handoff_path.parent.mkdir(parents=True, exist_ok=True)
@@ -169,7 +175,7 @@ def test_opl_runtime_owner_handoff_materialization_uses_runtime_health_recovery_
         + "\n",
         encoding="utf-8",
     )
-    status = module.ProgressProjectionStatus.from_payload(
+    status = progress_projection.ProgressProjectionStatus.from_payload(
         make_status_payload(
             study_root=str(study_root),
             quest_status="running",
@@ -192,7 +198,7 @@ def test_opl_runtime_owner_handoff_materialization_uses_runtime_health_recovery_
         )
     )
 
-    assert module._should_materialize_opl_runtime_owner_handoff_from_status(status=status, study_root=study_root) is True
+    assert runtime_summary._should_materialize_opl_runtime_owner_handoff_from_status(status=status, study_root=study_root) is True
 
 
 def test_progress_projection_round_trips_through_typed_state() -> None:
