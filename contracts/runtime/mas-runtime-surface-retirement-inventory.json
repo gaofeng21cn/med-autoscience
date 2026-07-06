@@ -313,7 +313,7 @@
       "verified_by": [
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest",
         "tests/test_paper_progress_transition_refs.py::test_transition_ref_default_authority_index_path_is_source_adapter_only",
-        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_adapter_retirement_boundary_cases/domain_authority_refs_index.py::test_retired_domain_authority_refs_index_preserves_provenance_scans",
         "tests/test_opl_family_persistence_adapter.py::test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs",
         "tests/test_adapter_retirement_boundary_cases/domain_authority_refs_index.py::test_domain_authority_refs_index_runtime_active_private_state_index_scan_is_closed",
         "tests/test_opl_state_index_kernel.py::test_state_index_kernel_rows_are_refs_only_and_rebuildable",
@@ -1419,7 +1419,7 @@
       "validator_module": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.readback_result_validator",
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
-        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py::test_private_runtime_residue_active_callers_are_no_authority_refs_or_consume_only",
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#obligation_actuator_tail_readback_false_completion_guard",
         "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_postcondition.py::test_obligation_actuator_transition_request_is_projection_not_success",
         "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/test_obligation_actuator_outcomes.py::test_domain_diagnostic_report_apply_accepts_opl_provider_admission_result_as_closed_outcome",
         "tests/test_paper_autonomy_supervisor.py::test_projection_helper_does_not_build_supervisor_decision_without_explicit_readback",
@@ -1693,7 +1693,7 @@
       "verified_by": [
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py",
-        "tests/test_adapter_retirement_boundary_cases/private_runtime_residue_active_callers.py"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py"
       ]
     },
     {

@@ -42,7 +42,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
   - `live_runtime_evidence_rollup.py::live_runtime_evidence_rollup_readback` 与 `public_root_commands.py live-runtime-evidence-rollup`：refs-only rollup readback；只能汇总 live-tail / live-gap evidence records 和 typed-blocker-required 状态，不能替代 live-runtime readiness、paper progress 或 production-ready evidence。
   - `live_tail_work_orders.py` / `live_runtime_gap_work_orders.py`：typed-blocker evidence guard；保留 duplicate / unknown / malformed / forbidden-source validator，防止 docs、focused tests、queue empty 或 repo-source retirement 被误读为 live runtime evidence。
   - `completion_evidence_layers.py` / `authority_flags.py` / `surface_helpers.py`：shared physical-delete gate helper；只服务 retirement audit 的 evidence-layer 分账和 forbidden-authority flag scan。
-- 本轮可安全删除的是旧 aggregate test fixture `test_private_runtime_residue_active_callers.py`；合同与测试引用已改为具体 case module：`private_runtime_residue_active_callers.py`、`runtime_surface_no_authority_audit.py`、`domain_authority_refs_index.py`。这只删除重复 collection/旧路径别名，不改变 runtime authority 语义。
+- 本轮可安全删除的是旧 private runtime residue aggregate fixture；合同与测试引用已改为具体 case module：`runtime_surface_no_authority_audit.py`、`domain_authority_refs_index.py`。这只删除重复 collection/旧路径别名，不改变 runtime authority 语义。
 - 仍未删除的 runtime/control-plane helpers 均有 active caller 或 contract guard 作用；后续只能在对应 active caller 迁移、contract ref 改到 concrete module、focused tests 证明 no-forbidden-write 后继续物理收薄。
 
 ## 停止条件
@@ -107,3 +107,10 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `pyproject.toml` 已删除 `mas` console-script alias，只保留 `medautosci` 与 `medautosci-mcp`；plugin installer 本来已删除本机 `mas` wrapper，本轮同步更新 scaffold assertion，避免把 `mas` 作为 PATH readiness 证据。
 - `assets/branding/medautoscience-hero.png` 与 `assets/branding/medautoscience-overview.png` 是未被 README/source active 引用的重复 raster；README 当前使用 `medautoscience-overview-v2.png`，branding preflight fixture 已改到 v2 后删除旧图。
 - 本 lane 只证明 repo-source packaging / CLI alias / asset surface 收薄；focused tests 与 `git diff --check` 不声明 runtime readiness、publication-ready、paper progress、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+
+## 2026-07-06 Lane D test helper / old fixture / wrapper thinning evidence
+
+- Display golden CH / DEG / F 三套重复 `shared_base.py` 与 `golden_json_helpers.py` 已收敛到 `tests/display_shared_golden_regression_helpers.py`；各 case 目录只保留 thin `shared.py`，pytest 入口 `tests/test_display_{ch,deg,f}_golden_regression.py` 维持原 discovery 形状。
+- 旧 private runtime residue aggregate fixture 已删除；`contracts/runtime/mas-runtime-surface-retirement-inventory.json` 与 `contracts/paper_progress_transition_runtime_completion_audit.json` 的 evidence refs 改指 `runtime_surface_no_authority_audit.py` 与 `domain_authority_refs_index.py` surviving concrete cases。
+- `quality_repair_batch.py` 直接从 `med_autoscience.lazy_module_proxy` import `lazy_controller_module`，旧 controller proxy wrapper 已删除。
+- 本 lane 只做 test/helper/wrapper 收薄与 evidence ref 更新，不写 study truth、paper body、owner receipts、typed blockers、human gates、runtime queues 或 provider attempts。
