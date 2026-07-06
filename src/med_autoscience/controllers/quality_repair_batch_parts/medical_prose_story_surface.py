@@ -89,6 +89,21 @@ DM002_STALE_NEGATIVE_STORY_MARKERS = (
     "# External validation of a fixed China-derived 5-year diabetes mortality score in NHANES",
     "should not be used for absolute-risk communication or threshold-based decisions",
 )
+DM003_REVIEWER_REVISION_MARKERS = (
+    "structured rather than uniform gaps",
+    "documentation-sensitive glycemic gaps",
+    "persistent lipid-lowering care-review gap",
+    "renal-risk signal secondary/exploratory",
+    "rate-count contrast",
+    "proportional risk vs absolute workload",
+    "soften future-work wording",
+)
+DM003_STALE_REVIEWER_REVISION_MARKERS = (
+    "The highest-yield next analyses are",
+    "These additions should precede any stronger service-performance or guideline-based claims",
+    "### Phenotype-specific glycemic and cardiometabolic care-review gaps",
+    "### Medication-capture sensitivity",
+)
 
 
 def materialize_medical_prose_story_surfaces(
@@ -105,7 +120,13 @@ def materialize_medical_prose_story_surfaces(
         work_unit_id=work_unit_id,
         study_root=study_root,
     )
-    if not force_dm002_story_refresh:
+    force_dm003_story_refresh = _dm003_reviewer_revision_story_refresh_required(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        study_root=study_root,
+    )
+    force_story_refresh = force_dm002_story_refresh or force_dm003_story_refresh
+    if not force_story_refresh:
         currentness_blocker = eval_bound_current_story_delta_blocker(
             paper_root=paper_root,
             work_unit_id=work_unit_id,
@@ -117,7 +138,7 @@ def materialize_medical_prose_story_surfaces(
         )
         if currentness_blocker:
             raise RuntimeError(str(currentness_blocker["blocked_reason"]))
-    if not force_dm002_story_refresh and _dm002_side_surface_only_repair_is_allowed(
+    if not force_story_refresh and _dm002_side_surface_only_repair_is_allowed(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
@@ -128,7 +149,7 @@ def materialize_medical_prose_story_surfaces(
             study_root=study_root,
         )
         return extra_changed_paths
-    if not force_dm002_story_refresh and eval_bound_current_story_delta_is_preservable(
+    if not force_story_refresh and eval_bound_current_story_delta_is_preservable(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
         medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
@@ -156,7 +177,7 @@ def materialize_medical_prose_story_surfaces(
             )
             if ref.get("path")
         ] + extra_changed_paths
-    if not force_dm002_story_refresh:
+    if not force_story_refresh:
         current_writer_delta_paths = materialize_current_writer_story_delta(
             paper_root=paper_root,
             work_unit_id=work_unit_id,
@@ -220,6 +241,29 @@ def materialize_medical_prose_story_surfaces(
     return changed_paths
 
 
+def _dm003_reviewer_revision_story_refresh_required(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    study_root: Path | None,
+) -> bool:
+    if study_root is None or work_unit_id != MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
+        return False
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    if resolved_study_root.name != "003-dpcc-primary-care-phenotype-treatment-gap":
+        return False
+    latest_task_intake = read_latest_task_intake(study_root=resolved_study_root)
+    if not task_intake_is_reviewer_revision(latest_task_intake):
+        return False
+    corpus = _task_intake_corpus(latest_task_intake)
+    if not any(marker in corpus for marker in DM003_REVIEWER_REVISION_MARKERS):
+        return False
+    for path in _current_story_surface_paths(paper_root=paper_root):
+        if _story_surface_contains_any_marker(Path(path), DM003_STALE_REVIEWER_REVISION_MARKERS):
+            return True
+    return False
+
+
 def _dm002_reviewer_revision_story_refresh_required(
     *,
     paper_root: Path,
@@ -231,7 +275,7 @@ def _dm002_reviewer_revision_story_refresh_required(
     latest_task_intake = read_latest_task_intake(study_root=Path(study_root).expanduser().resolve())
     if not task_intake_is_reviewer_revision(latest_task_intake):
         return False
-    corpus = _dm002_task_intake_corpus(latest_task_intake)
+    corpus = _task_intake_corpus(latest_task_intake)
     if not any(marker in corpus for marker in DM002_POSITIVE_REFRAME_MARKERS):
         return False
     for path in _current_story_surface_paths(paper_root=paper_root):
@@ -240,7 +284,7 @@ def _dm002_reviewer_revision_story_refresh_required(
     return False
 
 
-def _dm002_task_intake_corpus(payload: Mapping[str, Any] | None) -> str:
+def _task_intake_corpus(payload: Mapping[str, Any] | None) -> str:
     mapping = dict(payload) if isinstance(payload, Mapping) else {}
     values: list[str] = []
     for key in ("task_intent",):
@@ -538,23 +582,26 @@ def _abstract_section(
         f"without a recorded diabetes medication was {_percent_value(uncontrolled.get('Gap %'))}, hypertension "
         f"context without a recorded antihypertensive was {_percent_value(hypertension.get('Gap %'))}, dyslipidemia "
         f"context without recorded lipid-lowering therapy was {_percent_value(dyslipidemia.get('Gap %'))}, and "
-        f"renal-risk context without recorded SGLT2 inhibitor or GLP-1 receptor agonist was "
-        f"{_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity separated "
+        "the secondary exploratory renal-risk context signal without recorded SGLT2 inhibitor or GLP-1 receptor "
+        f"agonist was {_percent_value(renal.get('Gap %'))}. Medication-field-present sensitivity separated "
         "documentation-sensitive glycemic no-drug signals from more persistent cardiometabolic prevention signals: "
         f"uncontrolled glycemia without recorded diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} "
-        f"to {_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia and renal-risk "
-        "medication-coverage signals remained large. The phenotype with the highest proportional dyslipidemia signal "
+        f"to {_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia medication-coverage signals "
+        "remained large and the renal-risk organ-protection signal was retained as exploratory. The phenotype with "
+        "the highest proportional dyslipidemia signal "
         f"({dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}) was not "
         "the same as the largest absolute dyslipidemia review workload "
         f"({dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}). "
         f"Site-level summaries showed wide variation, with "
         f"a median dyslipidemia gap of {_percent_value(site_gap.get('Median gap %'))}; repeated-visit transition "
         "results were retained as support-only evidence.\n\n"
-        "**Conclusions:** Primary-care diabetes care-review gaps in the DPCC network were not a single glycemic "
-        "treatment deficit. Glycemic gaps were phenotype-concentrated and documentation-sensitive, whereas "
-        "cardiometabolic prevention gaps were persistent, high-burden, and site-sensitive. The findings support "
-        "local chart review and care-pathway evaluation rather than national prevalence inference, guideline "
-        "nonadherence claims, treatment-effect estimation, or individualized treatment allocation."
+        "**Conclusions:** In this regional primary-care diabetes network, care-review gaps were structured rather "
+        "than uniform. Glycemic gaps were concentrated in glycemic phenotypes and were highly medication-record "
+        "sensitive, whereas lipid-lowering prevention gaps remained large after medication-field restriction and "
+        "varied substantially across sites; renal-risk organ-protection signals should be read as secondary and "
+        "exploratory. These findings support phenotype-guided chart review and local care-pathway evaluation rather "
+        "than national prevalence inference, guideline nonadherence claims, treatment-effect estimation, or "
+        "individualized treatment allocation."
     )
 
 
@@ -579,9 +626,10 @@ def _introduction_section() -> str:
         "treatment-review or documentation-review signals, not as proof of non-treatment, nonadherence, treatment "
         "failure, or guideline nonadherence.\n\n"
         "The DPCC primary-care network offers a large regional setting to ask whether routine data can generate a "
-        "clinically meaningful service-priority map. We aimed to determine whether reproducible diabetes phenotypes "
-        "identify distinct and actionable patterns of recorded glycemic, cardiometabolic, and renal-protection "
-        "care-review gaps. Repeated-visit transitions and site-level support were used as support-only evidence for "
+        "clinically meaningful service-priority map. We tested whether a reproducible phenotype hierarchy could "
+        "separate documentation-sensitive glycemic gaps from more persistent cardiometabolic prevention gaps, and "
+        "whether proportional risk and absolute service workload identified the same or different priority groups. "
+        "Repeated-visit transitions and site-level support were used as support-only evidence for "
         "within-network stability and coverage, rather than as external validation or treatment-effect evidence."
     )
 
@@ -809,8 +857,8 @@ def _results_section(
         "glycemic burden without the same multimorbidity pattern, adiposity-linked phenotypes carried the highest BMI "
         "context, and cardiometabolic-risk dominant diabetes was older on average. This structure created a "
         "phenotype map for asking where recorded medication coverage appeared discordant with the clinical context.\n\n"
-        "### Phenotype-specific glycemic and cardiometabolic care-review gaps\n\n"
-        "Recorded treatment-review gaps differed sharply across phenotypes, producing a risk-treatment mismatch map "
+        "### Phenotypes separated glycemic-intensity gaps from cardiometabolic-prevention gaps\n\n"
+        "Recorded treatment-review gaps differed sharply across phenotypes, producing a care-review priority map "
         "rather than a uniform gap rate. The clearest glycemic mismatch appeared in glycemic-dominant diabetes, "
         "where severe glycemia with low recorded glucose-lowering intensity was 62.0% and uncontrolled glycemia "
         "with no recorded diabetes medication was 46.9%. Severe glycemic multimorbidity also showed a large severe "
@@ -840,7 +888,7 @@ def _results_section(
         f"{hypertension_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')} and "
         f"{dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}. This rate-count "
         "contrast separates high-risk phenotype targeting from service-capacity planning.\n\n"
-        "### Medication-capture sensitivity\n\n"
+        "### Medication-field restriction attenuated glycemic no-drug gaps but not cardiometabolic prevention gaps\n\n"
         "Medication-record sensitivity changed the magnitude but not the interpretation boundary. Among patients with "
         f"a nonempty medication field, severe glycemia with low recorded glucose-lowering intensity decreased from "
         f"{_percent_value(severe_all.get('Gap %'))} to {_percent_value(severe_present.get('Gap %'))}, uncontrolled "
@@ -852,8 +900,9 @@ def _results_section(
         f"{_percent_value(dyslipidemia_present.get('Gap %'))}, and renal-risk context without recorded SGLT2 "
         f"inhibitor or GLP-1 receptor agonist decreased from {_percent_value(renal.get('Gap %'))} to "
         f"{_percent_value(renal_present.get('Gap %'))}. This attenuation shows that medication-field missingness "
-        "contributes materially to glycemic no-drug indicators, while lipid-lowering and renal-risk organ-protection "
-        "signals remain large even in the medication-field-present denominator.\n\n"
+        "contributes materially to glycemic no-drug indicators, while lipid-lowering signals remain large even in "
+        "the medication-field-present denominator; renal-risk organ-protection coverage remains a secondary "
+        "exploratory review signal.\n\n"
         "### Transition stability and site support\n\n"
         "Repeated-visit and site summaries supported the phenotype narrative without converting it into a prediction "
         f"or external-validation claim. Among {transition['transition_eligible']} transition-eligible repeated-visit "
@@ -933,9 +982,10 @@ def _discussion_section(
         "low-intensity signal. Second, medication-record sensitivity separated documentation-sensitive glycemic "
         f"signals from more persistent cardiometabolic prevention signals: uncontrolled glycemia without recorded "
         f"diabetes medication fell from {_percent_value(uncontrolled.get('Gap %'))} to "
-        f"{_percent_value(uncontrolled_present.get('Gap %'))}, whereas dyslipidemia and renal-risk medication "
-        f"coverage gaps remained {_percent_value(dyslipidemia_present.get('Gap %'))} and "
-        f"{_percent_value(renal_present.get('Gap %'))}, respectively, in the medication-field-present denominator. "
+        f"{_percent_value(uncontrolled_present.get('Gap %'))}, whereas the dyslipidemia medication-coverage gap "
+        f"remained {_percent_value(dyslipidemia_present.get('Gap %'))} in the medication-field-present denominator; "
+        f"the renal-risk organ-protection signal remained {_percent_value(renal_present.get('Gap %'))} but was "
+        "treated as secondary and exploratory. "
         f"Third, the largest service burden was concentrated in {largest.get('Phenotype', 'Adiposity-linked multimorbidity')}; "
         f"for dyslipidemia, the highest proportional phenotype was "
         f"{dyslipidemia_contrast.get('highest_rate_phenotype', 'cardiometabolic-risk dominant diabetes')}, but the "
@@ -949,8 +999,8 @@ def _discussion_section(
         "lipid-lowering coverage gaps. Third, cardiometabolic-risk dominant diabetes and other scoped phenotypes "
         "highlight preventive-medication documentation signals even when mean HbA1c is not the dominant feature. The "
         "medication-field-present sensitivity analysis is important for clinical interpretation: glycemic no-drug "
-        "indicators were strongly attenuated when medication fields were present, whereas lipid-lowering and "
-        "renal-risk organ-protection coverage signals remained large.\n\n"
+        "indicators were strongly attenuated when medication fields were present, whereas lipid-lowering signals "
+        "remained large; renal-risk organ-protection coverage remained a secondary exploratory signal.\n\n"
         "These priorities are deliberately phrased as review signals. The DPCC medication fields identify what was "
         "recorded in the primary-care release, not the complete medication history. A recorded gap may reflect "
         "incomplete capture, treatment outside the network, self-purchased drugs, contraindications, patient "
@@ -976,13 +1026,13 @@ def _discussion_section(
         "that the profile is entirely dominated by one site, but it remains within-network support rather than "
         "external validation.\n\n"
         "### Implications for future work\n\n"
-        "The results provide a service-priority scaffold for follow-up studies. Prospective work should test whether "
-        "phenotype-specific chart review improves medication documentation completeness, treatment-intensification "
-        "assessment, follow-up scheduling, or cardiometabolic risk-management processes. The highest-yield next "
-        "analyses are a patient-phenotype plus site model to quantify how much variation is associated with patient "
-        "phenotype versus service site, calendar-year sensitivity for SGLT2 inhibitor and GLP-1 receptor agonist "
-        "coverage, and repeated-visit gap-resolution analyses to distinguish persistent from resolved review "
-        "signals. These additions should precede any stronger service-performance or guideline-based claims."
+        "The results provide a service-priority scaffold for follow-up studies. Future prospective and "
+        "implementation studies could extend this descriptive atlas by quantifying patient- and site-level "
+        "determinants, evaluating calendar-time changes in newer cardiometabolic agents, and testing whether "
+        "phenotype-guided chart review improves medication documentation completeness, treatment-intensification "
+        "assessment, follow-up scheduling, gap resolution, or cardiometabolic risk-management processes. These "
+        "extensions would support stronger service-performance or guideline-based claims only after direct "
+        "chart-review, eligibility, contraindication, and prescribing-context evidence is added."
     )
 
 
@@ -1009,7 +1059,8 @@ def _conclusion_section() -> str:
         "A deterministic clinical phenotype hierarchy applied to the DPCC primary-care network showed that recorded "
         "diabetes care-review gaps were phenotype-specific, medication-capture sensitive, and site-sensitive rather "
         "than a single uniform treatment gap. Glycemic profiles identified concentrated review groups, whereas "
-        "cardiometabolic and renal-risk contexts highlighted persistent preventive-medication coverage signals. The "
+        "cardiometabolic contexts highlighted persistent preventive-medication coverage signals, while renal-risk "
+        "context remained a secondary exploratory organ-protection review prompt. The "
         "atlas supports local documentation review, chart audit, and prospective care-pathway evaluation while "
         "avoiding treatment-effect, guideline-nonadherence, individualized prescribing, and national-generalization "
         "claims."
