@@ -55,7 +55,6 @@ CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
 display_surface_materialization = lazy_controller_module("display_surface_materialization")
 publication_gate = lazy_controller_module("publication_gate")
 study_delivery_sync = lazy_controller_module("study_delivery_sync")
-submission_minimal = lazy_controller_module("submission_minimal")
 domain_status_projection = lazy_controller_module("domain_status_projection")
 time_to_event_direct_migration = lazy_controller_module("time_to_event_direct_migration")
 
@@ -513,10 +512,10 @@ def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
 
 
 def _create_submission_minimal_package(**kwargs: Any) -> dict[str, Any]:
-    return create_submission_minimal_package_with_route(submission_minimal=submission_minimal, **kwargs)
+    return create_submission_minimal_package_with_route(**kwargs)
 
 def _sync_submission_minimal_delivery(**kwargs: Any) -> dict[str, Any]:
-    return sync_submission_minimal_delivery_with_route(study_delivery_sync=study_delivery_sync, **kwargs)
+    return sync_submission_minimal_delivery_with_route(**kwargs)
 
 
 def _controller_route_context_for_selected_work_unit(

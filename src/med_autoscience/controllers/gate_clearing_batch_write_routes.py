@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.authority_route_context_call import call_with_authority_route_context
+from med_autoscience.controllers.study_delivery_sync_parts.sync_orchestration import sync_study_delivery
+from med_autoscience.controllers.submission_minimal_parts.package_builder import create_submission_minimal_package
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -18,13 +20,12 @@ def route_bound_call(*, function, authority_route_context: dict[str, Any] | None
 
 def create_submission_minimal_package_with_route(
     *,
-    submission_minimal,
     paper_root: Path,
     profile: WorkspaceProfile,
     authority_route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return call_with_authority_route_context(
-        submission_minimal.create_submission_minimal_package,
+        create_submission_minimal_package,
         paper_root=paper_root,
         publication_profile=profile.default_publication_profile,
         citation_style=profile.default_citation_style,
@@ -34,13 +35,12 @@ def create_submission_minimal_package_with_route(
 
 def sync_submission_minimal_delivery_with_route(
     *,
-    study_delivery_sync,
     paper_root: Path,
     profile: WorkspaceProfile,
     authority_route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return call_with_authority_route_context(
-        study_delivery_sync.sync_study_delivery,
+        sync_study_delivery,
         paper_root=paper_root,
         stage="submission_minimal",
         publication_profile=profile.default_publication_profile,

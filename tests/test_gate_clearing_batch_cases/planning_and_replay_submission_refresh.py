@@ -61,8 +61,8 @@ def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_r
         lambda **_: (None, {}),
     )
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
     monkeypatch.setattr(
@@ -126,8 +126,8 @@ def test_run_gate_clearing_batch_refreshes_stale_submission_minimal_authority_wi
     )
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
     monkeypatch.setattr(
@@ -316,8 +316,8 @@ def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_
         lambda **_: {"status": "updated", "script_path": str(paper_root / "build" / "generate_display_exports.py")},
     )
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
     monkeypatch.setattr(
@@ -401,13 +401,13 @@ def test_run_gate_clearing_batch_syncs_stale_submission_delivery_after_bundle_re
         lambda **_: (None, {}),
     )
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
     monkeypatch.setattr(
-        module.study_delivery_sync,
-        "sync_study_delivery",
+        module,
+        "_sync_submission_minimal_delivery",
         lambda **_: {"status": "synced", "current_package_root": "studies/004-invasive-architecture/manuscript/current_package"},
     )
     monkeypatch.setattr(
@@ -476,8 +476,8 @@ def test_run_gate_clearing_batch_reuses_embedded_submission_delivery_sync_after_
     )
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {
             "output_root": "paper/submission_minimal",
             "status": "ready",

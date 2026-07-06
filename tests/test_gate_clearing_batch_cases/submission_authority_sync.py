@@ -40,8 +40,8 @@ def _stub_submission_hardening_gate(module: Any, monkeypatch: Any, *, study_root
         lambda **_: (_ for _ in ()).throw(AssertionError("submission hardening should not repair live paths")),
     )
     monkeypatch.setattr(
-        module.submission_minimal,
-        "create_submission_minimal_package",
+        module,
+        "_create_submission_minimal_package",
         lambda **_: {"output_root": "paper/submission_minimal", "status": "ready"},
     )
     monkeypatch.setattr(
@@ -154,8 +154,8 @@ def test_run_gate_clearing_batch_closes_submission_authority_sync_with_delivery_
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.submission_minimal, "create_submission_minimal_package", create_submission_minimal_package)
-    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", sync_study_delivery)
+    monkeypatch.setattr(module, "_create_submission_minimal_package", create_submission_minimal_package)
+    monkeypatch.setattr(module, "_sync_submission_minimal_delivery", sync_study_delivery)
     monkeypatch.setattr(
         module.publication_gate,
         "run_controller",
