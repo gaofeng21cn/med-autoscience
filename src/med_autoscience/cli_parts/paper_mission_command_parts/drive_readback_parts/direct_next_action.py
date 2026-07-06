@@ -127,15 +127,17 @@ def _terminal_closeout_matches_next_action(
     next_action: Mapping[str, Any],
 ) -> bool:
     next_work_unit = _optional_text(next_action.get("work_unit_id"))
+    next_fingerprint = _optional_text(next_action.get("work_unit_fingerprint"))
     terminal_closeout = _mapping(current.get("terminal_closeout"))
     current_work_unit = _optional_text(
         terminal_closeout.get("work_unit_id")
     ) or _optional_text(terminal_closeout.get("stage_id"))
-    return (
-        next_work_unit is not None
-        and current_work_unit is not None
-        and next_work_unit == current_work_unit
-    )
+    if next_fingerprint is not None:
+        current_fingerprint = _optional_text(
+            terminal_closeout.get("work_unit_fingerprint")
+        ) or _optional_text(current.get("work_unit_fingerprint"))
+        return current_fingerprint == next_fingerprint
+    return next_work_unit is not None and current_work_unit == next_work_unit
 
 
 def _current_terminal_closeout_consumed_for_next_action(
@@ -150,6 +152,12 @@ def _current_terminal_closeout_consumed_for_next_action(
         ):
             continue
         next_work_unit = _optional_text(next_action.get("work_unit_id"))
+        next_fingerprint = _optional_text(next_action.get("work_unit_fingerprint"))
+        current_fingerprint = _optional_text(
+            _mapping(current.get("terminal_closeout")).get("work_unit_fingerprint")
+        ) or _optional_text(current.get("work_unit_fingerprint"))
+        if next_fingerprint is not None and current_fingerprint != next_fingerprint:
+            continue
         current_work_unit = (
             _optional_text(_mapping(current.get("terminal_closeout")).get("work_unit_id"))
             or _optional_text(_mapping(current.get("terminal_closeout")).get("stage_id"))

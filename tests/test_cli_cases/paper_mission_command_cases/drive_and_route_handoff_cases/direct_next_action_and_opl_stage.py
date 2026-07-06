@@ -120,6 +120,57 @@ def test_paper_mission_drive_does_not_resubmit_consumed_current_terminal_closeou
     assert _drive_should_submit_direct_next_action(different_work_unit) is True
 
 
+def test_paper_mission_drive_resubmits_same_work_unit_when_next_action_fingerprint_changes() -> None:
+    next_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_type": "request_opl_stage_attempt",
+        "action_family": "paper.write.prose_repair",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "medical_prose_write_repair::source::fresh-task-intake"
+        ),
+    }
+    readback = {
+        "surface_kind": "paper_mission_materialized_readback",
+        "canonical_next_action_source": "domain_transition.next_action",
+        "next_action": next_action,
+        "current_opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-stale-write",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "requires_mas_owner_consumption",
+                "route_back_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-stale-write/route_back_evidence_packet.json"
+                ),
+                "route_checkpoint_evidence_ref": (
+                    "ops/medautoscience/paper_mission_stage_attempts/"
+                    "sat-stale-write/stage_attempt_closeout_packet.json"
+                ),
+            },
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_back_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-stale-write/route_back_evidence_packet.json"
+            ),
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-stale-write/stage_attempt_closeout_packet.json"
+            ),
+        },
+    }
+
+    assert _drive_should_submit_direct_next_action(readback) is True
+
+
 def test_paper_mission_drive_does_not_resubmit_consumed_runtime_route_readback() -> None:
     readback = {
         "surface_kind": "paper_mission_consumption_ledger_transaction_readback",
