@@ -209,6 +209,21 @@ def test_materialize_display_surface_preserves_deferred_figure_catalog_role_for_
                             "oe_ratio": 1.02,
                             "verdict": "stable",
                             "action": "Proceed with monitoring",
+                        },
+                        {
+                            "center_id": "us",
+                            "center_label": "US transport",
+                            "cohort_role": "transport_target",
+                            "support_count": 16420,
+                            "event_count": 1520,
+                            "metric_estimate": 0.73,
+                            "metric_lower": 0.71,
+                            "metric_upper": 0.75,
+                            "max_shift": 0.05,
+                            "slope": 0.91,
+                            "oe_ratio": 1.08,
+                            "verdict": "monitor",
+                            "action": "Monitor calibration drift",
                         }
                     ],
                 }
