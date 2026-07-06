@@ -1997,7 +1997,7 @@ def _latest_stage_attempt_route_back_source_readback(
         _mapping(source_readback.get("paper_mission_transaction")).get("transaction_id")
     )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
-    candidates: list[tuple[int, int, int, float, str, Path]] = []
+    candidates: list[tuple[int, int, int, float, int, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
         packet = _load_optional_json_object(packet_ref)
         if not isinstance(packet, Mapping):
@@ -2038,23 +2038,22 @@ def _latest_stage_attempt_route_back_source_readback(
             current_transaction_ref=current_transaction_ref,
             study_id=study_id,
         )
+        matches_expected_identity = (
+            (not expected["stage_ids"] or stage_id in expected["stage_ids"])
+            and (
+                not expected["work_unit_ids"]
+                or work_unit_id in expected["work_unit_ids"]
+            )
+        )
         bucket_priority = 0
         if (
             preferred_stage_attempt_ids
             and stage_attempt_id is not None
             and stage_attempt_id in preferred_stage_attempt_ids
+            and matches_expected_identity
         ):
             bucket_priority = 2
-        elif (
-            (
-                not expected["stage_ids"]
-                or stage_id in expected["stage_ids"]
-            )
-            and (
-                not expected["work_unit_ids"]
-                or work_unit_id in expected["work_unit_ids"]
-            )
-        ):
+        elif matches_expected_identity:
             bucket_priority = 1
         semantic_priority = _stage_packet_route_back_semantic_priority(
             packet=packet,
@@ -2063,9 +2062,10 @@ def _latest_stage_attempt_route_back_source_readback(
         candidates.append(
             (
                 transaction_priority,
-                semantic_priority,
                 bucket_priority,
+                semantic_priority if transaction_priority or bucket_priority else 0,
                 packet_ref.stat().st_mtime,
+                semantic_priority,
                 str(packet_ref),
                 packet_ref,
             )
