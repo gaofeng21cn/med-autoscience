@@ -1249,8 +1249,8 @@ def _route_checkpoint_evidence_ref_from_opl_closeout(
     )
 
 
-def _effective_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str, Any]:
-    next_action_decision = _next_action_stage_closure_decision(readback)
+def _effective_stage_closure_decision(readback: Mapping[str, Any], *, synthesize: bool = True) -> dict[str, Any]:
+    next_action_decision = _next_action_stage_closure_decision(readback, synthesize=synthesize)
     if next_action_decision:
         return next_action_decision
     decision = _mapping(readback.get("stage_closure_decision"))
@@ -1264,7 +1264,7 @@ def _effective_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str, 
     return decision
 
 
-def _next_action_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str, Any]:
+def _next_action_stage_closure_decision(readback: Mapping[str, Any], *, synthesize: bool = True) -> dict[str, Any]:
     next_action = _mapping(readback.get("next_action"))
     if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
         return {}
@@ -1282,6 +1282,8 @@ def _next_action_stage_closure_decision(readback: Mapping[str, Any]) -> dict[str
             == "route_back_candidate_checkpoint"
         ):
             return payload
+    if not synthesize:
+        return {}
     return _synthesized_next_action_stage_closure_decision(readback)
 
 
@@ -1412,7 +1414,7 @@ def _synthetic_stage_closure_route_checkpoint_carrier(
     next_action = _mapping(readback.get("next_action"))
     if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
         return {}
-    decision = _effective_stage_closure_decision(readback)
+    decision = _effective_stage_closure_decision(readback, synthesize=False)
     outcome = _mapping(decision.get("outcome"))
     if _text(outcome.get("kind")) != "next_stage_transition":
         return {}
