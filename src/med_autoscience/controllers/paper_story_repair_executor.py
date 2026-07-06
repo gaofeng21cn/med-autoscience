@@ -47,9 +47,10 @@ def run_story_repair(
     source: str = "med_autoscience",
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    started_at = datetime.now(timezone.utc)
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_id = quest_id or study_id
-    generated_at = _utc_now()
+    generated_at = _format_utc(started_at)
     publication_eval_path = resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
     publication_eval = _read_json_object(publication_eval_path)
     quality_batch_path = (
@@ -79,6 +80,7 @@ def run_story_repair(
             quest_id=resolved_quest_id,
             study_root=resolved_study_root,
             source=source,
+            started_at=started_at,
             publication_eval=publication_eval,
             quality_batch=quality_batch,
             typed_blocker=BLOCKER,
@@ -101,6 +103,7 @@ def run_story_repair(
             quest_id=resolved_quest_id,
             study_root=resolved_study_root,
             source=source,
+            started_at=started_at,
             publication_eval=publication_eval,
             quality_batch=quality_batch,
             typed_blocker=_text(exc) or BLOCKER,
@@ -181,6 +184,12 @@ def run_story_repair(
         previous_quality_repair_batch=story_delta_anchor,
         publication_eval_payload=publication_eval,
     )
+    completed_at = datetime.now(timezone.utc)
+    evidence["execution_trace"] = _execution_trace(
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
+    )
     evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=resolved_study_root,
         evidence=evidence,
@@ -196,6 +205,9 @@ def run_story_repair(
         evidence_path=evidence_path,
         gate_replay_ref=gate_replay_ref,
         ai_request_ref=ai_request.get("path"),
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
     )
     receipt_path = _write_owner_receipt(study_root=resolved_study_root, receipt=receipt)
     return {
@@ -578,6 +590,7 @@ def _blocked_result(
     quest_id: str,
     study_root: Path,
     source: str,
+    started_at: datetime,
     publication_eval: Mapping[str, Any],
     quality_batch: Mapping[str, Any],
     typed_blocker: str,
@@ -606,6 +619,12 @@ def _blocked_result(
         changed_artifact_refs=[],
     )
     evidence["retryable"] = True
+    completed_at = datetime.now(timezone.utc)
+    evidence["execution_trace"] = _execution_trace(
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
+    )
     evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=study_root,
         evidence=evidence,
@@ -621,6 +640,9 @@ def _blocked_result(
         evidence_path=evidence_path,
         gate_replay_ref=None,
         ai_request_ref=None,
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
     )
     receipt_path = _write_owner_receipt(study_root=study_root, receipt=receipt)
     return {
@@ -652,7 +674,15 @@ def _owner_receipt(
     evidence_path: Path,
     gate_replay_ref: Path | None,
     ai_request_ref: object | None,
+    source: str,
+    started_at: datetime,
+    completed_at: datetime,
 ) -> dict[str, Any]:
+    execution_trace = _execution_trace(
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
+    )
     return {
         "surface": "paper_story_repair_owner_receipt",
         "schema_version": SCHEMA_VERSION,
@@ -660,8 +690,25 @@ def _owner_receipt(
         "accepted": typed_blocker is None,
         "study_id": study_id,
         "quest_id": quest_id,
+        "stage_id": "write",
+        "route_target": "write",
+        "action_type": "paper_story_repair",
+        "invocation_mode": "foreground_owner_callable",
+        "executor_target": "mas_owner_callable",
+        "not_full_stage_attempt": True,
+        "stage_attempt_id": None,
         "work_unit_id": work_unit_id,
         "execution_status": execution_status,
+        "execution_trace": execution_trace,
+        "started_at": execution_trace["started_at"],
+        "completed_at": execution_trace["completed_at"],
+        "duration_seconds": execution_trace["duration_seconds"],
+        "token_usage": execution_trace["token_usage"],
+        "cost": execution_trace["cost"],
+        "skill_refs": execution_trace["skill_refs"],
+        "skill_usage_status": execution_trace["skill_usage_status"],
+        "prompt_refs": execution_trace["prompt_refs"],
+        "prompt_usage_status": execution_trace["prompt_usage_status"],
         "typed_blocker": typed_blocker,
         "blocked_reason": typed_blocker,
         "canonical_artifact_delta_refs": [dict(ref) for ref in changed_refs],
@@ -671,6 +718,35 @@ def _owner_receipt(
         "direct_current_package_write": False,
         "quality_authorized": False,
         "submission_authorized": False,
+    }
+
+
+def _execution_trace(*, source: str, started_at: datetime, completed_at: datetime) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_foreground_owner_callable_execution_trace",
+        "stage_id": "write",
+        "route_target": "write",
+        "action_type": "paper_story_repair",
+        "invocation_mode": "foreground_owner_callable",
+        "executor_target": "mas_owner_callable",
+        "not_full_stage_attempt": True,
+        "source": source,
+        "started_at": _format_utc(started_at),
+        "completed_at": _format_utc(completed_at),
+        "duration_seconds": round(max((completed_at - started_at).total_seconds(), 0.0), 3),
+        "stage_attempt_id": None,
+        "skill_refs": [],
+        "skill_usage_status": "not_applicable_deterministic_owner_callable",
+        "prompt_refs": [],
+        "prompt_usage_status": "not_applicable_deterministic_owner_callable",
+        "token_usage": {
+            "status": "not_recorded",
+            "reason": "deterministic_mas_owner_callable_no_llm_stage_attempt",
+        },
+        "cost": {
+            "status": "not_recorded",
+            "reason": "deterministic_mas_owner_callable_no_llm_stage_attempt",
+        },
     }
 
 
@@ -757,7 +833,11 @@ def _text(value: object) -> str | None:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return _format_utc(datetime.now(timezone.utc))
+
+
+def _format_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat()
 
 
 __all__ = ["run_story_repair"]

@@ -124,6 +124,9 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
     )
     assert evidence["status"] == "progress_delta_candidate"
     assert evidence["progress_delta_candidate"] is True
+    assert evidence["execution_trace"]["invocation_mode"] == "foreground_owner_callable"
+    assert evidence["execution_trace"]["not_full_stage_attempt"] is True
+    assert evidence["execution_trace"]["token_usage"]["status"] == "not_recorded"
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
     assert evidence["ai_reviewer_recheck_done"] is True
     assert not evidence["blockers"]
@@ -138,7 +141,15 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
     assert alignment["status"] == "ready"
     assert alignment["claim_count"] == 1
     assert alignment["aligned_claim_count"] == 1
-    assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
+    receipt = json.loads(
+        (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert receipt["stage_id"] == "write"
+    assert receipt["invocation_mode"] == "foreground_owner_callable"
+    assert receipt["not_full_stage_attempt"] is True
+    assert receipt["skill_usage_status"] == "not_applicable_deterministic_owner_callable"
 
 
 def test_story_repair_executor_uses_previous_repair_evidence_as_story_delta_anchor(
