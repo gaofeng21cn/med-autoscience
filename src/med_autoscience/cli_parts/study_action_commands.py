@@ -47,8 +47,11 @@ def handle_study_action_command(
     args: argparse.Namespace,
     *,
     parser: argparse.ArgumentParser,
-    study_domain_handlers: Any,
     load_profile: Callable[[str], Any],
+    launch_study: Callable[..., dict[str, Any]],
+    render_launch_study_markdown: Callable[[dict[str, Any]], str],
+    submit_study_task: Callable[..., dict[str, Any]],
+    render_submit_study_task_markdown: Callable[[dict[str, Any]], str],
 ) -> int | None:
     if args.command not in STUDY_ACTION_COMMANDS:
         return None
@@ -61,7 +64,7 @@ def handle_study_action_command(
 
     if args.command == "launch-study":
         try:
-            result = study_domain_handlers.launch_study(
+            result = launch_study(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=args.study_id,
@@ -76,11 +79,11 @@ def handle_study_action_command(
         return _emit_result(
             result,
             args=args,
-            markdown_renderer=study_domain_handlers.render_launch_study_markdown,
+            markdown_renderer=render_launch_study_markdown,
         )
 
     if args.command == "submit-study-task":
-        result = study_domain_handlers.submit_study_task(
+        result = submit_study_task(
             profile=profile,
             profile_ref=profile_ref,
             study_id=args.study_id,
@@ -105,7 +108,7 @@ def handle_study_action_command(
         return _emit_result(
             result,
             args=args,
-            markdown_renderer=study_domain_handlers.render_submit_study_task_markdown,
+            markdown_renderer=render_submit_study_task_markdown,
         )
 
     parser.error(f"unsupported study action command: {args.command}")

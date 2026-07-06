@@ -146,8 +146,8 @@ def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Pa
         called["force"] = force
         return {"surface": "launch_study", "study_id": study_id, "quest_id": study_id}
 
-    monkeypatch.setattr(cli.product_entry, "launch_study", fake_launch_study)
-    monkeypatch.setattr(cli.product_entry, "render_launch_study_markdown", lambda payload: json.dumps(payload))
+    monkeypatch.setattr(cli, "launch_study", fake_launch_study)
+    monkeypatch.setattr(cli, "render_launch_study_markdown", lambda payload: json.dumps(payload))
 
     exit_code = cli.main(
         [
@@ -689,7 +689,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
             "commands": {},
         }
 
-    monkeypatch.setattr(cli.product_entry, "launch_study", fake_launch)
+    monkeypatch.setattr(cli, "launch_study", fake_launch)
 
     exit_code = cli.main(
         [
@@ -763,7 +763,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
             "artifacts": {"latest_json": "/tmp/latest.json", "latest_markdown": "/tmp/latest.md"},
         }
 
-    monkeypatch.setattr(cli.product_entry, "submit_study_task", fake_submit)
+    monkeypatch.setattr(cli, "submit_study_task", fake_submit)
 
     exit_code = cli.main(
         [

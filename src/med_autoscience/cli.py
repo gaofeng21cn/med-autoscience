@@ -42,6 +42,14 @@ from med_autoscience.controllers.study_progress_parts.markdown_projection_render
     render_study_progress_markdown,
 )
 from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
+from med_autoscience.controllers.product_entry_parts.entry_runtime import (
+    render_submit_study_task_markdown,
+    submit_study_task,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import (
+    launch_study,
+    render_launch_study_markdown,
+)
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
 from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
@@ -135,7 +143,6 @@ continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
-product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_aftercare"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _lazy_controller_module("quality_repair_batch")
@@ -309,8 +316,11 @@ def main(argv: list[str] | None = None) -> int:
     study_action_result = handle_study_action_command(
         args,
         parser=parser,
-        study_domain_handlers=product_entry,
         load_profile=load_profile,
+        launch_study=launch_study,
+        render_launch_study_markdown=render_launch_study_markdown,
+        submit_study_task=submit_study_task,
+        render_submit_study_task_markdown=render_submit_study_task_markdown,
     )
     if study_action_result is not None:
         return study_action_result
