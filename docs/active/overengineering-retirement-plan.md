@@ -152,7 +152,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `study_progress.py`、`product_entry.py` 已删除 facade 内 `import *`，改为与 `submission_minimal.py` / `study_runtime_decision.py` 相同的固定 parts re-export；public module identity 保留，两个 facade 不再依赖 wildcard import 扩散 parts namespace。Focused verification：product-entry / truth projection / study progress import surfaces 159 passed；`rg -n "import \*" src/med_autoscience/controllers/study_progress.py src/med_autoscience/controllers/product_entry.py` 无命中；`scripts/line_budget.py` exit 0。
 - Active caller 收薄：CLI `export-submission-minimal` 与 `submission_targets.export_submission_targets()` 改为调用 `submission_minimal_parts.package_builder`；`study_manual_finish` 改为调用 `submission_minimal_parts.authority`；publication gate / study progress / stage outcome publication-eval materialization 改为函数内直连 `study_runtime_decision_parts.publication_and_submission`，避免恢复 facade import 依赖。
 - `study_runtime_decision.py` 已在生成 `__all__` 前删除 loader helper `import_module`，避免 facade 把 re-export 实现细节暴露为 public symbol；focused regression 覆盖该 symbol 不在 facade / `__all__` 中。
-- 剩余 blocker：`gate_clearing_batch` 仍把 submission package builder、profile config、fingerprint helper 和 authority helper 作为同一 controller 传入；publication gate parts 仍共享 submission profile/QC helpers；测试与 public module identity 仍直接 import facade modules。当前状态降为 `facade_public_identity_and_multi-part_controller_surface` / `dynamic_controller_identity_guard`，不再是 facade 内 wildcard import 或 loader-helper leak blocker。
+- 该批次后的剩余 blocker 已由 2026-07-07 gate / publication helper dependency thinning 继续收窄；以后一节的 current status 为准。
 
 ## 2026-07-07 Gate / publication helper dependency thinning
 
