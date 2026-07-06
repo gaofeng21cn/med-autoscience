@@ -33,7 +33,8 @@ def test_embedding_templates_use_feature_matrix_workflow_schema() -> None:
 def test_r_embedding_renderer_computes_pca_from_feature_matrix_without_reusing_points() -> None:
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 payload <- list(
   title = "PCA probe",
   x_label = "PC1",
@@ -72,6 +73,7 @@ stopifnot(identical(metrics$analysis_provenance$feature_count, 3L))
     result = subprocess.run(
         ["Rscript", "-e", r_script],
         cwd=REPO_ROOT,
+        env={**os.environ, "MAS_CORE_DISPLAY_PACK_ROOT": str(CORE_PACK_ROOT)},
         capture_output=True,
         text=True,
         check=False,
@@ -84,7 +86,8 @@ stopifnot(identical(metrics$analysis_provenance$feature_count, 3L))
 def test_r_embedding_renderer_requires_real_tsne_and_umap_backends() -> None:
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 payload <- list(
   title = "Embedding probe",
   x_label = "x",
@@ -110,6 +113,7 @@ if (!requireNamespace("uwot", quietly = TRUE)) {
     result = subprocess.run(
         ["Rscript", "-e", r_script],
         cwd=REPO_ROOT,
+        env={**os.environ, "MAS_CORE_DISPLAY_PACK_ROOT": str(CORE_PACK_ROOT)},
         capture_output=True,
         text=True,
         check=False,
@@ -131,7 +135,8 @@ def test_publication_embedding_gallery_payload_drives_distinct_reduction_workflo
         payload_path.write_text(json.dumps(payloads), encoding="utf-8")
         r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 med_autoscience_payloads <- jsonlite::fromJSON("__PAYLOAD_PATH__", simplifyVector = FALSE)
 pca_payload <- med_autoscience_payloads$pca_scatter_grouped
 tsne_payload <- med_autoscience_payloads$tsne_scatter_grouped
@@ -163,6 +168,7 @@ if (requireNamespace("Rtsne", quietly = TRUE) && requireNamespace("uwot", quietl
         result = subprocess.run(
             ["Rscript", "-e", r_script],
             cwd=REPO_ROOT,
+            env={**os.environ, "MAS_CORE_DISPLAY_PACK_ROOT": str(CORE_PACK_ROOT)},
             capture_output=True,
             text=True,
             check=False,
@@ -181,7 +187,8 @@ def test_embedding_layout_sidecar_preserves_nonzero_panel_and_point_positions() 
         payload_path.write_text(json.dumps(payload), encoding="utf-8")
         r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 payload <- jsonlite::fromJSON("__PAYLOAD_PATH__", simplifyVector = FALSE)
 plot <- build_evidence_plot("pca_scatter_grouped", payload)
 sidecar <- build_layout_sidecar(plot, "pca_scatter_grouped", payload)
@@ -199,6 +206,7 @@ stopifnot(length(unique(point_keys)) == length(point_keys))
         result = subprocess.run(
             ["Rscript", "-e", r_script],
             cwd=REPO_ROOT,
+            env={**os.environ, "MAS_CORE_DISPLAY_PACK_ROOT": str(CORE_PACK_ROOT)},
             capture_output=True,
             text=True,
             check=False,

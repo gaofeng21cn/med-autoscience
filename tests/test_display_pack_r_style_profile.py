@@ -1,8 +1,25 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import shutil
 import subprocess
+
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
+
+
+def _run_r_script(repo_root: Path, r_script: str, *, timeout: int = 60) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["MAS_CORE_DISPLAY_PACK_ROOT"] = str(core_medical_display_pack_root(repo_root))
+    return subprocess.run(
+        ["Rscript", "-e", r_script],
+        cwd=repo_root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=timeout,
+    )
 
 
 def test_core_r_helper_consumes_publication_style_profile_tokens() -> None:
@@ -10,8 +27,9 @@ def test_core_r_helper_consumes_publication_style_profile_tokens() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     r_script = """
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/candidate_renderer.R"))
 payload <- list(
   title = "Probe",
   x_label = "x",
@@ -111,14 +129,7 @@ stopifnot(publication_legend_guides(payload, c("a", "b", "c", "d"))$nrow == 2)
 stopifnot(publication_legend_guides(payload, c("a", "b", "c", "d", "e", "f", "g"))$nrow == 3)
 """
 
-    result = subprocess.run(
-        ["Rscript", "-e", r_script],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
+    result = _run_r_script(repo_root, r_script)
 
     assert result.returncode == 0, result.stderr
 
@@ -128,7 +139,8 @@ def test_lidocaineq_source_renderers_cover_existing_same_type_templates() -> Non
     repo_root = Path(__file__).resolve().parents[1]
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 payload <- list(
   title = "Probe",
   x_label = "x",
@@ -196,14 +208,7 @@ stopifnot(identical(table_layout$metrics$source_renderer, "LidocaineQ/Figure_Tem
 stopifnot(identical(table_layout$panel_boxes[[1]]$box_type, "table_region"))
 """
 
-    result = subprocess.run(
-        ["Rscript", "-e", r_script],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
+    result = _run_r_script(repo_root, r_script)
 
     assert result.returncode == 0, result.stderr
 
@@ -213,8 +218,9 @@ def test_dpcc_purpose_first_templates_use_metadata_title_policy() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/candidate_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/candidate_renderer.R"))
 payload <- list(
   title = "This manuscript caption title must not be drawn inside the plot",
   y_label = "DPCC phenotype",
@@ -253,22 +259,15 @@ built <- ggplot2::ggplot_build(plot)
 stopifnot(is.null(built$plot$labels$title))
 layout <- build_candidate_layout_override("treatment_gap_alignment_figure", payload)
 stopifnot(identical(layout$metrics$source_renderer, "MAS/DPCC::treatment_gap_alignment_figure"))
-stopifnot(identical(layout$metrics$figure_purpose, "recorded_treatment_review_gap_burden_small_multiples"))
+stopifnot(identical(layout$metrics$figure_purpose, "guideline_linked_treatment_gap_burden_small_multiples"))
 stopifnot(identical(layout$metrics$rendered_title_policy, "figure_title_metadata_only_not_drawn_inside_plot"))
 stopifnot(length(layout$panel_boxes) == 4)
-stopifnot(identical(built$plot$labels$x, "Recorded review signal (% of panel denominator)"))
+stopifnot(identical(built$plot$labels$x, "Recorded mismatch rate (% of eligible indicator denominator)"))
 built_labels <- unique(unlist(lapply(built$data, function(layer) layer$label %||% character())))
-stopifnot(any(grepl("^72.0% [(]n=720[)]$", built_labels)))
+stopifnot(any(grepl("^72.0% [(]720/1,000[)]$", built_labels)))
 """
 
-    result = subprocess.run(
-        ["Rscript", "-e", r_script],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
+    result = _run_r_script(repo_root, r_script)
 
     assert result.returncode == 0, result.stderr
 
@@ -278,7 +277,8 @@ def test_core_r_helper_writes_empty_render_context_as_json_object() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     r_script = r"""
 Sys.setenv(MAS_DISPLAY_RENDERER_SOURCE_ONLY = "1")
-source("external/display-packs/medical-display-core/rlib/medicaldisplaycore/evidence_renderer.R")
+core_pack_root <- normalizePath(Sys.getenv("MAS_CORE_DISPLAY_PACK_ROOT"), mustWork = TRUE)
+source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 payload <- list(
   title = "Probe",
   x_label = "x",
@@ -296,13 +296,6 @@ stopifnot(is.list(parsed$render_context))
 stopifnot(length(parsed$render_context) == 0)
 """
 
-    result = subprocess.run(
-        ["Rscript", "-e", r_script],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
+    result = _run_r_script(repo_root, r_script)
 
     assert result.returncode == 0, result.stderr
