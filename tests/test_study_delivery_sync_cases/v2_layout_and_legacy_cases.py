@@ -62,6 +62,34 @@ def test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package(
     assert not (current_package_root / "controller" / "study_charter.json").exists()
 
 
+def test_sync_study_delivery_prefers_newer_submission_minimal_source_over_stale_mirror(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_root = paper_root / "submission_minimal"
+    preferred_root = study_root / "submission"
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    (preferred_root / "figures" / "Figure1.png").write_bytes(b"stale-preferred-mirror\n")
+    (source_root / "figures" / "Figure1.png").write_bytes(b"fresh-controller-source\n")
+    source_manifest_path = source_root / "audit" / "submission_manifest.json"
+    source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    source_manifest["generated_at"] = "2099-01-01T00:00:00+00:00"
+    dump_json(source_manifest_path, source_manifest)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (preferred_root / "figures" / "Figure1.png").read_bytes() == b"fresh-controller-source\n"
+    assert manifest["delivery_layout"]["source_package_root"] == str(source_root)
+
+
 def test_sync_study_delivery_reads_legacy_source_manifest_but_writes_v2_mirror_layout(
     tmp_path: Path,
 ) -> None:

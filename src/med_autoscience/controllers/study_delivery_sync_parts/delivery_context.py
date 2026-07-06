@@ -191,6 +191,41 @@ def _resolve_delivery_context(paper_root: Path) -> dict[str, Any]:
     }
 
 
+def _submission_manifest_path(root: Path) -> Path:
+    audit_manifest = root / "audit" / "submission_manifest.json"
+    if audit_manifest.exists():
+        return audit_manifest
+    return root / "submission_manifest.json"
+
+
+def _submission_manifest_freshness_key(root: Path) -> tuple[str, float] | None:
+    manifest_path = _submission_manifest_path(root)
+    if not manifest_path.exists():
+        return None
+    generated_at = ""
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        payload = {}
+    if isinstance(payload, dict):
+        generated_at = str(payload.get("generated_at") or "").strip()
+    try:
+        mtime = manifest_path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    return generated_at, mtime
+
+
+def _prefer_legacy_source_over_preferred(*, legacy_root: Path, preferred_root: Path) -> bool:
+    legacy_key = _submission_manifest_freshness_key(legacy_root)
+    if legacy_key is None:
+        return False
+    preferred_key = _submission_manifest_freshness_key(preferred_root)
+    if preferred_key is None:
+        return False
+    return legacy_key > preferred_key
+
+
 def build_submission_source_root(*, paper_root: Path, publication_profile: str) -> Path:
     normalized_profile = normalize_publication_profile(publication_profile)
     if not is_supported_publication_profile(normalized_profile):
@@ -208,6 +243,11 @@ def build_submission_source_root(*, paper_root: Path, publication_profile: str) 
             else paper_root / "journal_submissions" / normalized_profile
         )
         if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+            if _prefer_legacy_source_over_preferred(
+                legacy_root=legacy_root,
+                preferred_root=preferred_root,
+            ):
+                return legacy_root
             if (preferred_root / "audit" / "submission_manifest.json").exists() or preferred_root.exists():
                 return preferred_root
             return legacy_root

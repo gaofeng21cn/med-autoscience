@@ -128,6 +128,14 @@ For this manuscript family, future first drafts and reviewer revisions should th
 
 This is a write-surface materialization capability. It does not authorize publication quality, current-package readiness, owner receipts, typed blockers, human gates, runtime queues, provider attempts, or submission authority.
 
+## 2026-07-06 Rate-Count Figure And Delivery Freshness Landing
+
+DM003 then exposed a package-materialization bug: the reviewer-revision rate-count priority map could be copied into the canonical figure source, but the delivery sync could still prefer an older human-facing `submission/` mirror over the just-generated controller source at `manuscript/submission_minimal`. That made Figure 4 regress during delivery even though the canonical figure source had been updated.
+
+The DPCC display repair now materializes the bounded-analysis rate-count priority map into the canonical Figure 4 generated source (`figures/generated/F4_treatment_gap_alignment_figure.*`), and delivery sync now prefers the newer controller-authorized submission source when both `manuscript/submission_minimal` and the existing `submission/` mirror are present. This prevents post-export sync from overwriting a freshly generated package with stale mirror content.
+
+Future reviewer-revision handling must treat package mirror freshness as part of the figure/table materialization check: current-package and legacy mirror roots are delivery projections, not evidence that the newly generated controller source was consumed. Supplementary retention must be verified from the generated package, not inferred from manuscript text alone.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`

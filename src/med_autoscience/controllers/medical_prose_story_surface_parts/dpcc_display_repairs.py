@@ -143,7 +143,41 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
             adjusted_model_rows=adjusted_model_rows,
         )
     )
+    _materialize_dpcc_rate_count_priority_figure(paper_root=paper_root, study_root=study_root)
     return changed_paths
+
+
+def _materialize_dpcc_rate_count_priority_figure(*, paper_root: Path, study_root: Path) -> list[str]:
+    figure_root = (
+        study_root
+        / "artifacts"
+        / "reviewer_revision"
+        / "20260704_sci_upgrade"
+        / "bounded_analysis_campaign"
+        / "figures"
+    )
+    output_root = paper_root / "figures" / "generated"
+    output_names = {
+        "png": "F4_treatment_gap_alignment_figure.png",
+        "pdf": "F4_treatment_gap_alignment_figure.pdf",
+    }
+    changed_paths: list[str] = []
+    for suffix, output_name in output_names.items():
+        source = figure_root / f"rate_count_priority_map.{suffix}"
+        if not source.exists() or not source.is_file():
+            continue
+        target = output_root / output_name
+        if _write_bytes_if_changed(target, source.read_bytes()):
+            changed_paths.append(str(target.resolve()))
+    return changed_paths
+
+
+def _write_bytes_if_changed(path: Path, content: bytes) -> bool:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() == content:
+        return False
+    path.write_bytes(content)
+    return True
 
 def _replace_dpcc_display_metadata_text(value: Any) -> Any:
     if isinstance(value, str):
