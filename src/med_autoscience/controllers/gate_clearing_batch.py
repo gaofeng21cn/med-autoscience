@@ -99,22 +99,6 @@ resolve_profile_for_study_root = runtime_paths.resolve_profile_for_study_root
 _current_workspace_root = runtime_paths.current_workspace_root
 
 
-def _submission_minimal_fingerprint_payload(
-    *,
-    paper_root: Path,
-    gate_report: dict[str, Any],
-    profile: WorkspaceProfile | None,
-) -> dict[str, Any]:
-    return gate_clearing_batch_repair_fingerprints.submission_minimal_fingerprint_payload(
-        paper_root=paper_root,
-        gate_report=gate_report,
-        profile=profile,
-        submission_minimal_controller=submission_minimal,
-        path_fingerprint=_path_fingerprint,
-        path_fingerprints=_path_fingerprints,
-    )
-
-
 def _repair_unit_fingerprint(
     *,
     unit_id: str,

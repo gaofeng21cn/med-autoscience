@@ -11,12 +11,13 @@ globals().update({
 def test_submission_minimal_fingerprint_payload_ignores_materialized_submission_source_from_compile_report(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_repair_fingerprints")
+    fingerprints = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_fingerprints")
     submission_minimal_tests = importlib.import_module("tests.test_submission_minimal")
     paper_root = submission_minimal_tests.make_materialized_submission_source_workspace(tmp_path)
     profile = make_profile(tmp_path)
 
-    payload = module._submission_minimal_fingerprint_payload(
+    payload = module.submission_minimal_fingerprint_payload(
         paper_root=paper_root,
         gate_report={
             "status": "blocked",
@@ -26,6 +27,8 @@ def test_submission_minimal_fingerprint_payload_ignores_materialized_submission_
             "study_delivery_status": "current",
         },
         profile=profile,
+        path_fingerprint=fingerprints.path_fingerprint,
+        path_fingerprints=fingerprints.path_fingerprints,
     )
 
     assert payload["compiled_markdown"]["path"] == str((paper_root / "draft.md").resolve())
@@ -34,7 +37,8 @@ def test_submission_minimal_fingerprint_payload_ignores_materialized_submission_
 def test_submission_minimal_fingerprint_payload_uses_compile_report_resolver_for_recursive_manifest_path(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_repair_fingerprints")
+    fingerprints = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_fingerprints")
     profile = make_profile(tmp_path)
     paper_root = profile.workspace_root / "studies" / "002-early-residual-risk" / "paper"
     _write_text(paper_root / "build" / "compiled_manuscript.md", "# Results\n\nStable content.\n")
@@ -63,7 +67,7 @@ def test_submission_minimal_fingerprint_payload_uses_compile_report_resolver_for
         },
     )
 
-    payload = module._submission_minimal_fingerprint_payload(
+    payload = module.submission_minimal_fingerprint_payload(
         paper_root=paper_root,
         gate_report={
             "status": "blocked",
@@ -73,6 +77,8 @@ def test_submission_minimal_fingerprint_payload_uses_compile_report_resolver_for
             "study_delivery_status": "current",
         },
         profile=profile,
+        path_fingerprint=fingerprints.path_fingerprint,
+        path_fingerprints=fingerprints.path_fingerprints,
     )
 
     assert payload["compile_report"]["path"] == str((paper_root / "compile_report.json").resolve())
