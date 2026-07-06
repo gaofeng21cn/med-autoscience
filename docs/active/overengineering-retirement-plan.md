@@ -69,12 +69,13 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## 2026-07-06 MAS source morphology cleanup evidence
 
-- `src/med_autoscience/cli_parts/paper_mission_commands.py` 已把 stage-closure terminalizer readback helper cluster 拆到 `src/med_autoscience/cli_parts/paper_mission_commands_parts/stage_closure_terminalizer_readback.py`；主入口从 2775 行降到 1486 行，退出 clear `>1500` 超线范围。吸收时保留了 terminalizer currentness 修复中的 stage-packet identity / semantic priority 排序。
+- `src/med_autoscience/cli_parts/paper_mission_commands.py` 已把 stage-closure terminalizer readback helper cluster 和 consumption-ledger readback helper cluster 拆到 `src/med_autoscience/cli_parts/paper_mission_commands_parts/`；主入口从 2775 行降到 934 行，回到 preferred boundary 内。吸收时保留了 terminalizer currentness 修复中的 stage-packet identity / semantic priority 排序。
+- `src/med_autoscience/controllers/paper_mission_receipt_owner_consumption.py` 已拆到 `src/med_autoscience/controllers/paper_mission_receipt_owner_consumption_parts/`，主入口从 1497 行降到 453 行；吸收时保留 newer stage-closure decision 不被 stale route carrier 覆盖的 currentness 修复。
 - `src/med_autoscience/controllers/quality_repair_batch_parts/medical_prose_story_surface.py` 已把 DPCC display repairs、manuscript、table 与 common helper 拆到 `src/med_autoscience/controllers/medical_prose_story_surface_parts/`；主入口从约 2730 行降到 596 行。
 - `src/med_autoscience/paper_mission_opl_readback.py` 已把 route identity helper cluster 拆到 `src/med_autoscience/paper_mission_opl_readback_parts/route_identity.py`；主入口从约 1630 行降到 1185 行，退出 clear `>1500` 超线范围。
 - `src/med_autoscience/cli_parts/paper_mission_command_parts/drive_readback.py` 已把 direct next action helper cluster 拆到 `src/med_autoscience/cli_parts/paper_mission_command_parts/drive_readback_parts/direct_next_action.py`；主入口从约 1596 行降到 1456 行，退出 clear `>1500` 超线范围。
-- `tests/test_cli_cases/paper_mission_commands_cases/stage_closure_terminalizer_cases/test_source_selection.py` 已做空行压缩，从 1502 行降到 1492 行；这只关闭 clear line-budget advisory，不改变测试语义。
-- 当前 source/test morphology 完成口径：本轮目标文件均退出 clear `>1500` 超线范围；`scripts/line_budget.py` 仍会报告 preferred `>1000` advisories，作为后续 source-governance backlog，不是 runtime / publication / domain-ready blocker。
+- `tests/test_cli_cases/paper_mission_commands_cases/stage_closure_terminalizer_cases/test_source_selection.py` 和 `tests/submission_minimal_cases/package_core_and_authority.py` 已分别拆成 thin entrypoint + semantic case modules，两个入口均降到 4 行。
+- 当前 source/test morphology 完成口径：本轮目标文件均退出 clear `>1500` 超线范围，`paper_mission_commands.py` 与 `paper_mission_receipt_owner_consumption.py` 已回到 preferred boundary 内；`scripts/line_budget.py` 仍报告 37 条 preferred `>1000` advisories，作为后续 source-governance backlog，不是 runtime / publication / domain-ready blocker。
 
 ## 2026-07-06 MAS wildcard-import facade final slice
 
