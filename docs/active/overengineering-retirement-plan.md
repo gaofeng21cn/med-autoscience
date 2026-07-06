@@ -56,5 +56,6 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 ## 2026-07-06 P2 test surface cleanup evidence
 
 - `tests/test_cli_cases/paper_mission_command_cases/materialized_readback.py` 已把 stage-closure-ledger 相关 case 拆到 `tests/test_cli_cases/paper_mission_command_cases/materialized_readback_cases/test_stage_closure_ledger_readback.py`；原入口从约 1705 行降到约 1471 行，回到 preferred boundary advisory 范围。
+- `tests/test_cli_cases/paper_mission_command_cases/receipt_owner_consumption.py` 已把 route checkpoint / stage closure 相关 case 拆到 `tests/test_cli_cases/paper_mission_command_cases/receipt_owner_consumption_cases/route_checkpoint_stage_closure.py`；原入口从约 1610 行降到约 1320 行，退出 clear `>1500` 超线范围。
 - 该拆分只改变测试组织，不改 PaperMission / StageOutcome 语义，不写真实 study artifact、publication eval、controller decision、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
 - 当前 P2 完成口径是 first safe slice landed；剩余超大测试 / fixture 继续按 source-governance lane 逐个语义拆分，不能把 line-budget advisory 当成 runtime / publication / domain-ready blocker。
