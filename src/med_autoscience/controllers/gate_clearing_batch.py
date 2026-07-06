@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from med_autoscience.lazy_module_proxy import lazy_controller_module
 from med_autoscience.profiles import WorkspaceProfile
@@ -32,7 +32,6 @@ from med_autoscience.controllers.gate_clearing_batch_parts import batch_context
 from med_autoscience.controllers.gate_clearing_batch_parts import closed_batch
 from med_autoscience.controllers.gate_clearing_batch_parts import execution_helpers
 from med_autoscience.controllers.gate_clearing_batch_parts import io_utils
-from med_autoscience.controllers.gate_clearing_batch_parts import path_selection
 from med_autoscience.controllers.gate_clearing_batch_parts import repair_plan
 from med_autoscience.controllers.gate_clearing_batch_parts import runtime_paths
 from med_autoscience.controllers.gate_clearing_batch_parts import scientific_anchor
@@ -100,39 +99,6 @@ resolve_profile_for_study_root = runtime_paths.resolve_profile_for_study_root
 _current_workspace_root = runtime_paths.current_workspace_root
 
 
-def _candidate_values_include_root(
-    *,
-    workspace_root: Path,
-    candidate_values: list[object],
-    root: Path,
-) -> bool:
-    return path_selection.candidate_values_include_root(
-        workspace_root=workspace_root,
-        candidate_values=candidate_values,
-        root=root,
-        submission_minimal_controller=submission_minimal,
-    )
-
-
-def _catalog_asset_fingerprints(
-    *,
-    workspace_root: Path,
-    catalog_payload: dict[str, Any],
-    item_key: str,
-    resolve_source_paths: Callable[[dict[str, Any]], list[str]],
-    limit: int = 128,
-) -> list[dict[str, Any]]:
-    return gate_clearing_batch_repair_fingerprints.catalog_asset_fingerprints(
-        workspace_root=workspace_root,
-        catalog_payload=catalog_payload,
-        item_key=item_key,
-        resolve_source_paths=resolve_source_paths,
-        submission_minimal_controller=submission_minimal,
-        path_fingerprint=_path_fingerprint,
-        limit=limit,
-    )
-
-
 def _submission_minimal_fingerprint_payload(
     *,
     paper_root: Path,
@@ -161,7 +127,6 @@ def _repair_unit_fingerprint(
         paper_root=paper_root,
         gate_report=gate_report,
         profile=profile,
-        submission_minimal_controller=submission_minimal,
         path_fingerprint=_path_fingerprint,
         path_fingerprints=_path_fingerprints,
         globbed_path_fingerprints=_globbed_path_fingerprints,

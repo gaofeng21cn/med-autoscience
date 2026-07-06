@@ -53,10 +53,15 @@ def catalog_asset_fingerprints(
     catalog_payload: dict[str, Any],
     item_key: str,
     resolve_source_paths: Callable[[dict[str, Any]], list[str]],
-    submission_minimal_controller: Any,
+    submission_minimal_controller: Any | None = None,
     path_fingerprint: Callable[[Path | None], dict[str, Any] | None],
     limit: int = 128,
 ) -> list[dict[str, Any]]:
+    if submission_minimal_controller is None:
+        from med_autoscience.controllers.submission_minimal_parts.shared_base import resolve_relpath
+    else:
+        resolve_relpath = submission_minimal_controller.resolve_relpath
+
     items = catalog_payload.get(item_key)
     if not isinstance(items, list):
         return []
@@ -69,7 +74,7 @@ def catalog_asset_fingerprints(
             normalized = str(raw_path or "").strip()
             if not normalized:
                 continue
-            resolved = submission_minimal_controller.resolve_relpath(workspace_root, normalized).expanduser().resolve()
+            resolved = resolve_relpath(workspace_root, normalized).expanduser().resolve()
             if resolved in seen:
                 continue
             seen.add(resolved)
@@ -86,10 +91,45 @@ def submission_minimal_fingerprint_payload(
     paper_root: Path,
     gate_report: dict[str, Any],
     profile: Any | None,
-    submission_minimal_controller: Any,
+    submission_minimal_controller: Any | None = None,
     path_fingerprint: Callable[[Path | None], dict[str, Any] | None],
     path_fingerprints: Callable[..., list[dict[str, Any]]],
 ) -> dict[str, Any]:
+    if submission_minimal_controller is None:
+        from med_autoscience.controllers.submission_minimal_parts.profile_config import (
+            resolve_publication_profile_config,
+        )
+        from med_autoscience.controllers.submission_minimal_parts.shared_base import (
+            GENERAL_MEDICAL_JOURNAL_PROFILE,
+            load_json,
+            resolve_bundle_input_path,
+            resolve_compile_report_path,
+            resolve_compiled_markdown_path,
+            resolve_compiled_pdf_path,
+            resolve_figure_source_paths,
+            resolve_output_root,
+            resolve_relpath,
+            resolve_submission_compiled_source_excluded_roots,
+            resolve_table_source_paths,
+            workspace_root_from_paper_root,
+        )
+    else:
+        GENERAL_MEDICAL_JOURNAL_PROFILE = submission_minimal_controller.GENERAL_MEDICAL_JOURNAL_PROFILE
+        load_json = submission_minimal_controller.load_json
+        resolve_bundle_input_path = submission_minimal_controller.resolve_bundle_input_path
+        resolve_compile_report_path = submission_minimal_controller.resolve_compile_report_path
+        resolve_compiled_markdown_path = submission_minimal_controller.resolve_compiled_markdown_path
+        resolve_compiled_pdf_path = submission_minimal_controller.resolve_compiled_pdf_path
+        resolve_figure_source_paths = submission_minimal_controller.resolve_figure_source_paths
+        resolve_output_root = submission_minimal_controller.resolve_output_root
+        resolve_relpath = submission_minimal_controller.resolve_relpath
+        resolve_publication_profile_config = submission_minimal_controller.resolve_publication_profile_config
+        resolve_submission_compiled_source_excluded_roots = (
+            submission_minimal_controller.resolve_submission_compiled_source_excluded_roots
+        )
+        resolve_table_source_paths = submission_minimal_controller.resolve_table_source_paths
+        workspace_root_from_paper_root = submission_minimal_controller.workspace_root_from_paper_root
+
     bundle_manifest_path = paper_root / "paper_bundle_manifest.json"
     payload: dict[str, Any] = {
         "unit_id": "create_submission_minimal_package",
@@ -101,11 +141,11 @@ def submission_minimal_fingerprint_payload(
     if profile is not None:
         payload["requested_publication_profile"] = profile.default_publication_profile
         payload["requested_citation_style"] = profile.default_citation_style
-    workspace_root = submission_minimal_controller.workspace_root_from_paper_root(paper_root)
+    workspace_root = workspace_root_from_paper_root(paper_root)
     if not bundle_manifest_path.exists():
         return payload
     try:
-        bundle_manifest = submission_minimal_controller.load_json(bundle_manifest_path)
+        bundle_manifest = load_json(bundle_manifest_path)
     except Exception as exc:
         payload["bundle_manifest_error"] = str(exc)
         return payload
@@ -114,10 +154,10 @@ def submission_minimal_fingerprint_payload(
         requested_publication_profile = (
             profile.default_publication_profile
             if profile is not None
-            else submission_minimal_controller.GENERAL_MEDICAL_JOURNAL_PROFILE
+            else GENERAL_MEDICAL_JOURNAL_PROFILE
         )
         requested_citation_style = profile.default_citation_style if profile is not None else "auto"
-        profile_config = submission_minimal_controller.resolve_publication_profile_config(
+        profile_config = resolve_publication_profile_config(
             publication_profile=requested_publication_profile,
             citation_style=requested_citation_style,
         )
@@ -132,22 +172,22 @@ def submission_minimal_fingerprint_payload(
         return payload
 
     try:
-        compile_report_path = submission_minimal_controller.resolve_compile_report_path(
+        compile_report_path = resolve_compile_report_path(
             workspace_root=workspace_root,
             paper_root=paper_root,
             bundle_manifest=bundle_manifest,
         )
-        figure_catalog_path = submission_minimal_controller.resolve_relpath(
+        figure_catalog_path = resolve_relpath(
             workspace_root,
-            submission_minimal_controller.resolve_bundle_input_path(
+            resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="figure_catalog_path",
                 default_path="paper/figures/figure_catalog.json",
             ),
         )
-        table_catalog_path = submission_minimal_controller.resolve_relpath(
+        table_catalog_path = resolve_relpath(
             workspace_root,
-            submission_minimal_controller.resolve_bundle_input_path(
+            resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="table_catalog_path",
                 default_path="paper/tables/table_catalog.json",
@@ -164,20 +204,20 @@ def submission_minimal_fingerprint_payload(
     figure_catalog: dict[str, Any] = {}
     table_catalog: dict[str, Any] = {}
     try:
-        compile_report = submission_minimal_controller.load_json(compile_report_path)
+        compile_report = load_json(compile_report_path)
     except Exception as exc:
         payload["compile_report_error"] = str(exc)
     try:
-        figure_catalog = submission_minimal_controller.load_json(figure_catalog_path)
+        figure_catalog = load_json(figure_catalog_path)
     except Exception as exc:
         payload["figure_catalog_error"] = str(exc)
     try:
-        table_catalog = submission_minimal_controller.load_json(table_catalog_path)
+        table_catalog = load_json(table_catalog_path)
     except Exception as exc:
         payload["table_catalog_error"] = str(exc)
 
     try:
-        submission_root = submission_minimal_controller.resolve_output_root(
+        submission_root = resolve_output_root(
             paper_root=paper_root,
             publication_profile=profile_config.publication_profile,
         )
@@ -188,23 +228,21 @@ def submission_minimal_fingerprint_payload(
             resolve_submission_manifest_path(submission_root),
             submission_root / "README.md",
         )
-        excluded_compiled_source_roots = (
-            submission_minimal_controller.resolve_submission_compiled_source_excluded_roots(
-                paper_root=paper_root,
-                workspace_root=workspace_root,
-                submission_root=submission_root,
-                bundle_manifest=bundle_manifest,
-                compile_report=compile_report,
-                exclude_live_submission_root_for_markdown_candidates=True,
-            )
+        excluded_compiled_source_roots = resolve_submission_compiled_source_excluded_roots(
+            paper_root=paper_root,
+            workspace_root=workspace_root,
+            submission_root=submission_root,
+            bundle_manifest=bundle_manifest,
+            compile_report=compile_report,
+            exclude_live_submission_root_for_markdown_candidates=True,
         )
-        compiled_markdown_path = submission_minimal_controller.resolve_compiled_markdown_path(
+        compiled_markdown_path = resolve_compiled_markdown_path(
             workspace_root=workspace_root,
             bundle_manifest=bundle_manifest,
             compile_report=compile_report,
             excluded_roots=excluded_compiled_source_roots,
         )
-        compiled_pdf_path = submission_minimal_controller.resolve_compiled_pdf_path(
+        compiled_pdf_path = resolve_compiled_pdf_path(
             workspace_root=workspace_root,
             bundle_manifest=bundle_manifest,
             compile_report=compile_report,
@@ -219,7 +257,7 @@ def submission_minimal_fingerprint_payload(
         workspace_root=workspace_root,
         catalog_payload=figure_catalog,
         item_key="figures",
-        resolve_source_paths=submission_minimal_controller.resolve_figure_source_paths,
+        resolve_source_paths=resolve_figure_source_paths,
         submission_minimal_controller=submission_minimal_controller,
         path_fingerprint=path_fingerprint,
     )
@@ -227,7 +265,7 @@ def submission_minimal_fingerprint_payload(
         workspace_root=workspace_root,
         catalog_payload=table_catalog,
         item_key="tables",
-        resolve_source_paths=submission_minimal_controller.resolve_table_source_paths,
+        resolve_source_paths=resolve_table_source_paths,
         submission_minimal_controller=submission_minimal_controller,
         path_fingerprint=path_fingerprint,
     )
@@ -240,7 +278,6 @@ def repair_unit_fingerprint(
     paper_root: Path,
     gate_report: dict[str, Any],
     profile: Any | None = None,
-    submission_minimal_controller: Any,
     path_fingerprint: Callable[[Path | None], dict[str, Any] | None],
     path_fingerprints: Callable[..., list[dict[str, Any]]],
     globbed_path_fingerprints: Callable[..., list[dict[str, Any]]],
@@ -330,7 +367,6 @@ def repair_unit_fingerprint(
             paper_root=paper_root,
             gate_report=gate_report,
             profile=profile,
-            submission_minimal_controller=submission_minimal_controller,
             path_fingerprint=path_fingerprint,
             path_fingerprints=path_fingerprints,
         )
