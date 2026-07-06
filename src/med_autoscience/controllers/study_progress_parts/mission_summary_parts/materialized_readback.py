@@ -11,6 +11,9 @@ from med_autoscience.paper_mission_consumption_readback import (
 from med_autoscience.paper_mission_stage_closure_ledger import (
     latest_paper_mission_stage_closure_decision_readback,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer import (
+    latest_current_stage_closure_for_consumption,
+)
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
     latest_receipt_owner_consumption_readback,
 )
@@ -257,6 +260,7 @@ def _materialized_mission_summary(
         progress=progress,
         study_id=study_id,
         transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
+        consume_readback=consumption_ledger_readback,
     )
     receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
         progress=progress,
@@ -447,11 +451,19 @@ def _latest_stage_closure_ledger_readback(
     progress: Mapping[str, Any],
     study_id: str,
     transaction_ref: str | None,
+    consume_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _materialized_study_root(progress=progress)
     workspace_root = _workspace_root_from_study_root(study_root)
     if workspace_root is None:
         return {}
+    if consume_readback:
+        return latest_current_stage_closure_for_consumption(
+            workspace_root=workspace_root,
+            study_id=study_id,
+            transaction_ref=transaction_ref,
+            consume_readback=consume_readback,
+        ) or {}
     return latest_paper_mission_stage_closure_decision_readback(
         workspace_root=workspace_root,
         study_id=study_id,

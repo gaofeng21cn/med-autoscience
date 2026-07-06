@@ -180,6 +180,7 @@ def build_artifact_first_mission_summary(
         progress=progress,
         study_id=_study_id(progress),
         transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
+        consume_readback=consumption_ledger_readback,
     )
     receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
         progress=progress,

@@ -1208,6 +1208,111 @@ def test_consumption_ledger_inspect_prefers_domain_transition_after_owner_consum
     )
 
 
+def test_consumption_ledger_inspect_ignores_stale_receipt_when_stage_closure_attempt_changes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    study_root = studies_root / study_id
+    study_root.mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM-CVD",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    mission_id = f"paper-mission::{study_id}::submission-milestone"
+    transaction = _paper_mission_transaction_payload(
+        mission_id=mission_id,
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    stale_receipt = {
+        "status": "owner_consumption_applied",
+        "stage_closure_decision": {
+            "decision_ref": f"{transaction['transaction_id']}#stage_closure_decision",
+            "stage_id": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "opl_closeout": {"stage_attempt_id": "sat-stale"},
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "next_action": (
+                    "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+                ),
+            },
+        },
+        "mas_receipt_consumption": {
+            "status": "owner_consumed_route_checkpoint",
+        },
+    }
+    current_stage_closure = {
+        "surface_kind": "mas_stage_closure_decision",
+        "source_surface_kind": "paper_mission_stage_closure_ledger",
+        "stage_id": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "paper_mission_transaction_ref": (
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            "sat-current/stage_attempt_closeout_packet.json"
+        ),
+        "opl_closeout": {"stage_attempt_id": "sat-current"},
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+            "next_action": (
+                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+            ),
+        },
+    }
+    stage_selector_calls = []
+
+    def _current_stage_closure(**_: object) -> dict[str, object]:
+        stage_selector_calls.append(True)
+        return current_stage_closure
+
+    monkeypatch.setattr(
+        commands,
+        "_latest_receipt_owner_consumption_readback",
+        lambda **_: stale_receipt,
+    )
+    monkeypatch.setattr(
+        commands,
+        "_latest_current_stage_closure_for_consumption",
+        _current_stage_closure,
+    )
+    monkeypatch.setattr(
+        commands.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: {"study_id": study_id},
+    )
+
+    payload = commands._consumption_ledger_inspect_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        paper_mission_command="inspect",
+        dry_run=False,
+        consumption_readback={
+            "surface_kind": "paper_mission_consumption_readback",
+            "mission_id": mission_id,
+            "study_id": study_id,
+            "selected_outcome": "accepted_submission_milestone_candidate",
+            "consume_candidate_status": "accepted_submission_milestone_candidate",
+            "paper_mission_transaction": transaction,
+        },
+        study_root=study_root,
+        enable_opl_live_probe=False,
+        opl_bin=tmp_path / "missing-opl",
+    )
+
+    assert stage_selector_calls
+    assert "receipt_owner_consumption_readback" not in payload
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-current"
+    )
+
+
 def test_consumption_ledger_inspect_prefers_owner_consumed_route_checkpoint_when_work_unit_changes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

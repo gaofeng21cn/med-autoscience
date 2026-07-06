@@ -65,9 +65,12 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         _optional_text(stage_closure_ledger_readback.get("source_ref"))
         or _optional_text(stage_closure_ledger_readback.get("decision_ref"))
     )
-    if receipt_mtime is None or stage_mtime is None:
-        return False
-    return stage_mtime > receipt_mtime
+    if receipt_mtime is not None and stage_mtime is not None and stage_mtime > receipt_mtime:
+        return True
+    return _different_route_checkpoint_identity(
+        decision,
+        stage_closure_ledger_readback,
+    )
 
 
 def _same_route_checkpoint_identity(
@@ -84,6 +87,19 @@ def _same_route_checkpoint_identity(
     receipt_identity = _route_checkpoint_identity(receipt_decision)
     stage_identity = _route_checkpoint_identity(stage_decision)
     return receipt_identity == stage_identity and any(receipt_identity)
+
+
+def _different_route_checkpoint_identity(
+    receipt_decision: Mapping[str, Any],
+    stage_decision: Mapping[str, Any],
+) -> bool:
+    receipt_identity = _route_checkpoint_identity(receipt_decision)
+    stage_identity = _route_checkpoint_identity(stage_decision)
+    return (
+        any(receipt_identity)
+        and any(stage_identity)
+        and receipt_identity != stage_identity
+    )
 
 
 def _route_checkpoint_identity(decision: Mapping[str, Any]) -> tuple[str | None, ...]:

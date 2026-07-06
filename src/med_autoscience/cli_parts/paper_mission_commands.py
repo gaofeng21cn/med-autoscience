@@ -24,7 +24,6 @@ from med_autoscience.paper_mission_consumption_ledger import (
     write_paper_mission_consumption_ledger_outputs,
 )
 from med_autoscience.paper_mission_stage_closure_ledger import (
-    latest_paper_mission_stage_closure_decision_readback,
     write_paper_mission_stage_closure_decision,
 )
 from med_autoscience.paper_mission_terminal_owner_gate import (
@@ -105,6 +104,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
 from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer import (
     FORBIDDEN_AUTHORITY_CLAIMS as STAGE_CLOSURE_FORBIDDEN_AUTHORITY_CLAIMS,
     STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
+    latest_current_stage_closure_for_consumption as _latest_current_stage_closure_for_consumption,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     stage_closure_source_readback_summary as _stage_closure_source_readback_summary,
     stage_closure_terminalizer_output_root as _stage_closure_terminalizer_output_root,
@@ -129,6 +129,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
 from med_autoscience.controllers.paper_mission_currentness import (
+    receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
 )
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
@@ -789,14 +790,20 @@ def _consumption_ledger_inspect_readback(
             "transaction_id"
         )
     )
-    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
+    stage_closure_ledger_readback = _latest_current_stage_closure_for_consumption(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
         transaction_ref=transaction_ref,
+        consume_readback=consumption_readback,
     )
     if receipt_owner_consumption is not None and _receipt_superseded_by_consumption(
         receipt_owner_consumption_readback=receipt_owner_consumption,
         consumption_ledger_readback=consumption_readback,
+    ):
+        receipt_owner_consumption = None
+    if receipt_owner_consumption is not None and _receipt_superseded_by_stage_closure(
+        receipt_owner_consumption_readback=receipt_owner_consumption,
+        stage_closure_ledger_readback=stage_closure_ledger_readback,
     ):
         receipt_owner_consumption = None
     if receipt_owner_consumption is None:
@@ -810,10 +817,33 @@ def _consumption_ledger_inspect_readback(
             return _merge_study_progress_overlay(
                 route_back_projection, progress_overlay
             )
+        transaction_output_fields = _transaction_readback_output_fields(
+            transaction_readback
+        )
+        if stage_closure_ledger_readback is not None:
+            transaction_output_fields = {
+                **transaction_output_fields,
+                "stage_closure_decision": stage_closure_ledger_readback,
+                "stage_closure_decision_ref": stage_closure_ledger_readback.get(
+                    "decision_ref"
+                ),
+                "stage_closure_outcome": _mapping(
+                    stage_closure_ledger_readback.get("outcome")
+                ).get("kind"),
+                "paper_mission_stage_closure_ledger_readback": (
+                    stage_closure_ledger_readback
+                ),
+                "durable_mission_stop_guard": _durable_mission_stop_guard(
+                    consume_candidate_status=str(
+                        consumption_readback.get("consume_candidate_status") or ""
+                    ),
+                    stage_closure_decision=stage_closure_ledger_readback,
+                ),
+            }
         return _merge_study_progress_overlay(
             {
                 **base,
-                **_transaction_readback_output_fields(transaction_readback),
+                **transaction_output_fields,
             },
             progress_overlay,
         )
