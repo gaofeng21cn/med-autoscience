@@ -11,7 +11,6 @@ from med_autoscience.runtime_protocol import resolve_paper_root_context
 
 publication_gate = lazy_controller_module("publication_gate")
 study_delivery_sync = lazy_controller_module("study_delivery_sync")
-study_progress = lazy_controller_module("study_progress")
 study_outer_loop = lazy_controller_module("study_outer_loop")
 
 
@@ -102,7 +101,9 @@ def replay_post_submission_minimal_sync(
             post_gate_delivery_sync=post_gate_delivery_sync,
         )
 
-    progress_payload = study_progress.read_study_progress(
+    from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
+
+    progress_payload = read_study_progress(
         profile=profile,
         profile_ref=profile_path,
         study_id=context.study_id,
