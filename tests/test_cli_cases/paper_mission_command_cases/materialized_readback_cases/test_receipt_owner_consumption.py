@@ -463,6 +463,91 @@ def test_successor_runtime_readback_is_not_replaced_by_previous_owner_consumptio
         )
 
 
+def test_same_attempt_direct_readback_is_aligned_with_owner_consumption() -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    paper_mission_commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    owner_consumption_ref = "/tmp/receipt_owner_consumption.json"
+    consumed_attempt_readback = {
+        "carrier_status": "opl_runtime_terminal_readback_observed",
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-consumed",
+            "stage_attempt_ref": "opl://stage-attempts/sat-consumed",
+            "work_unit_id": "medical_prose_write_repair",
+        },
+        "receipt_evidence": {
+            "receipt_ref": "opl://stage-attempts/sat-consumed",
+            "stage_attempt_ref": "opl://stage-attempts/sat-consumed",
+            "runtime_closeout_ref": "/tmp/sat-consumed-closeout.json",
+        },
+        "terminal_closeout": {
+            "stage_attempt_id": "sat-consumed",
+            "work_unit_id": "medical_prose_write_repair",
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+            "closeout_ref": "/tmp/sat-consumed-closeout.json",
+        },
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "requires_mas_owner_consumption",
+        },
+    }
+    fields = {
+        "current_opl_runtime_carrier_readback": dict(consumed_attempt_readback),
+        "domain_transition_direct_stage_attempt": {
+            "opl_route_handoff": {
+                "owner_consumption_readback_ref": owner_consumption_ref,
+            },
+            "opl_runtime_carrier_readback": dict(consumed_attempt_readback),
+        },
+    }
+    owner_consumption = {
+        "source_ref": owner_consumption_ref,
+        "status": "owner_consumption_applied",
+        "mas_receipt_consumption": {
+            "status": "owner_consumed_route_checkpoint",
+            "receipt_evidence_ref": "opl://stage-attempts/sat-consumed",
+            "route_checkpoint_evidence_ref": "/tmp/sat-consumed-closeout.json",
+        },
+        "receipt_evidence": {
+            "stage_attempt_ref": "opl://stage-attempts/sat-consumed",
+            "receipt_ref": "opl://stage-attempts/sat-consumed",
+            "runtime_closeout_ref": "/tmp/sat-consumed-closeout.json",
+        },
+        "opl_transition_receipt": {
+            "stage_attempt_id": "sat-consumed",
+            "stage_attempt_ref": "opl://stage-attempts/sat-consumed",
+            "work_unit_id": "medical_prose_write_repair",
+        },
+        "stage_closure_decision": {
+            "work_unit_id": "medical_prose_write_repair",
+            "opl_closeout": {
+                "stage_attempt_id": "sat-consumed",
+            },
+        },
+    }
+
+    for module in (materialized_readback, paper_mission_commands):
+        aligned = module._align_current_carrier_owner_consumption(
+            transaction_output_fields=fields,
+            receipt_owner_consumption_readback=owner_consumption,
+        )
+        assert (
+            aligned["current_opl_runtime_carrier_readback"]["mas_receipt_consumption"][
+                "status"
+            ]
+            == "owner_consumed_route_checkpoint"
+        )
+        assert (
+            aligned["domain_transition_direct_stage_attempt"][
+                "opl_runtime_carrier_readback"
+            ]["mas_receipt_consumption"]["status"]
+            == "owner_consumed_route_checkpoint"
+        )
+
+
 def test_direct_stage_attempt_handoff_reads_owner_consumption_from_top_level_receipt() -> None:
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"

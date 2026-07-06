@@ -786,11 +786,74 @@ def _preserve_direct_successor_runtime_readback(
     if successor_owner_consumption_ref != applied_owner_consumption_ref:
         return False
     carrier_readback = _mapping(direct.get("opl_runtime_carrier_readback"))
+    if _carrier_matches_owner_consumed_stage_attempt(
+        carrier_readback=carrier_readback,
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+    ):
+        return False
     carrier_status = _optional_text(carrier_readback.get("carrier_status"))
     return carrier_status in {
         "opl_runtime_attempt_running_observed",
         "opl_runtime_terminal_readback_observed",
     }
+
+
+def _carrier_matches_owner_consumed_stage_attempt(
+    *,
+    carrier_readback: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> bool:
+    carrier_identities = _carrier_stage_attempt_identities(carrier_readback)
+    receipt_identities = _receipt_owner_consumption_stage_attempt_identities(
+        receipt_owner_consumption_readback
+    )
+    return bool(carrier_identities and receipt_identities & carrier_identities)
+
+
+def _carrier_stage_attempt_identities(carrier_readback: Mapping[str, Any]) -> set[str]:
+    identities: set[str] = set()
+    for surface in (
+        carrier_readback,
+        _mapping(carrier_readback.get("opl_transition_receipt")),
+        _mapping(carrier_readback.get("receipt_evidence")),
+        _mapping(carrier_readback.get("terminal_closeout")),
+    ):
+        _add_stage_attempt_identity(identities, surface.get("stage_attempt_id"))
+        _add_stage_attempt_identity(identities, surface.get("stage_attempt_ref"))
+        _add_stage_attempt_identity(identities, surface.get("receipt_ref"))
+        _add_stage_attempt_identity(identities, surface.get("receipt_evidence_ref"))
+    return identities
+
+
+def _receipt_owner_consumption_stage_attempt_identities(
+    receipt_owner_consumption_readback: Mapping[str, Any],
+) -> set[str]:
+    identities: set[str] = set()
+    stage_closure_decision = _mapping(
+        receipt_owner_consumption_readback.get("stage_closure_decision")
+    )
+    for surface in (
+        receipt_owner_consumption_readback,
+        _mapping(receipt_owner_consumption_readback.get("mas_receipt_consumption")),
+        _mapping(receipt_owner_consumption_readback.get("opl_transition_receipt")),
+        _mapping(receipt_owner_consumption_readback.get("receipt_evidence")),
+        _mapping(stage_closure_decision.get("opl_closeout")),
+    ):
+        _add_stage_attempt_identity(identities, surface.get("stage_attempt_id"))
+        _add_stage_attempt_identity(identities, surface.get("stage_attempt_ref"))
+        _add_stage_attempt_identity(identities, surface.get("receipt_ref"))
+        _add_stage_attempt_identity(identities, surface.get("receipt_evidence_ref"))
+    return identities
+
+
+def _add_stage_attempt_identity(identities: set[str], value: object) -> None:
+    text = _optional_text(value)
+    if text is None:
+        return
+    identities.add(text)
+    prefix = "opl://stage-attempts/"
+    if text.startswith(prefix):
+        identities.add(text.removeprefix(prefix))
 
 
 def _consumption_is_non_advancing_route_back(

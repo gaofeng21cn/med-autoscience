@@ -346,6 +346,11 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
     current_carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
     terminal_carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
     carrier = current_carrier
+    if _terminal_carrier_requires_consumption_after_current_consumed(
+        current_carrier=current_carrier,
+        terminal_carrier=terminal_carrier,
+    ):
+        carrier = terminal_carrier
     if not _has_consumable_receipt(carrier) and _has_consumable_receipt(terminal_carrier):
         carrier = terminal_carrier
     if not carrier:
@@ -361,6 +366,28 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
             if not _mapping(carrier.get(key)) and _mapping(synthetic.get(key)):
                 carrier[key] = _mapping(synthetic.get(key))
     return carrier
+
+
+def _terminal_carrier_requires_consumption_after_current_consumed(
+    *,
+    current_carrier: Mapping[str, Any],
+    terminal_carrier: Mapping[str, Any],
+) -> bool:
+    return (
+        _has_consumable_receipt(current_carrier)
+        and _has_consumable_receipt(terminal_carrier)
+        and _consumption_status(current_carrier)
+        in {
+            "owner_consumed_route_checkpoint",
+            "owner_consumed_typed_blocker",
+            "owner_consumption_applied",
+        }
+        and _consumption_status(terminal_carrier) == "requires_mas_owner_consumption"
+    )
+
+
+def _consumption_status(carrier: Mapping[str, Any]) -> str:
+    return _text(_mapping(carrier.get("mas_receipt_consumption")).get("status"))
 
 
 def _has_consumable_receipt(carrier: Mapping[str, Any]) -> bool:

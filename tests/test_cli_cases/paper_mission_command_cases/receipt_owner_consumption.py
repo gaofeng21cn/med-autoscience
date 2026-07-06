@@ -506,6 +506,100 @@ def test_receipt_owner_consumption_prefers_current_direct_stage_carrier_over_leg
     )
 
 
+def test_receipt_owner_consumption_prefers_unconsumed_terminal_over_consumed_current(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    readback = _readback(
+        study_id=study_id,
+        stage_outcome="next_stage_transition",
+        transition_kind="route_back_candidate_checkpoint",
+        package_kind="current_package",
+        can_submit=False,
+    )
+    terminal_carrier = readback["opl_runtime_carrier_readback"]
+    terminal_closeout_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-new/"
+        "stage_attempt_closeout_packet.json"
+    )
+    terminal_carrier["terminal_closeout"] = {
+        "stage_attempt_id": "sat-new",
+        "work_unit_id": "medical_prose_write_repair",
+        "closeout_ref": terminal_closeout_ref,
+    }
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-new"
+    terminal_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-new"
+    )
+    terminal_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-new"
+    )
+    terminal_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-new"
+    )
+    terminal_carrier["receipt_evidence"]["runtime_closeout_ref"] = terminal_closeout_ref
+    terminal_carrier["mas_receipt_consumption"]["receipt_evidence_ref"] = (
+        "opl://stage-attempts/sat-new"
+    )
+    terminal_carrier["mas_receipt_consumption"][
+        "route_back_evidence_ref"
+    ] = "ops/medautoscience/paper_mission_stage_attempts/sat-new/route_back_evidence_packet.json"
+    terminal_carrier["mas_receipt_consumption"][
+        "route_checkpoint_evidence_ref"
+    ] = terminal_closeout_ref
+
+    current_carrier = json.loads(json.dumps(terminal_carrier))
+    current_carrier["terminal_closeout"]["stage_attempt_id"] = "sat-old"
+    current_carrier["terminal_closeout"]["closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    current_carrier["opl_transition_receipt"]["stage_attempt_id"] = "sat-old"
+    current_carrier["opl_transition_receipt"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    current_carrier["receipt_evidence"]["receipt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    current_carrier["receipt_evidence"]["stage_attempt_ref"] = (
+        "opl://stage-attempts/sat-old"
+    )
+    current_carrier["receipt_evidence"]["runtime_closeout_ref"] = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    current_carrier["mas_receipt_consumption"].update(
+        {
+            "status": "owner_consumed_route_checkpoint",
+            "receipt_evidence_ref": "opl://stage-attempts/sat-old",
+            "route_checkpoint_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+                "stage_attempt_closeout_packet.json"
+            ),
+        }
+    )
+    readback["current_opl_runtime_carrier_readback"] = current_carrier
+
+    payload = materialize_receipt_owner_consumption(
+        paper_mission_readback=readback,
+        study_id=study_id,
+        profile_ref="profile.toml",
+        output_root=tmp_path / "receipt_owner_consumption",
+        apply_mode="route_checkpoint",
+        source="test",
+    )
+
+    assert payload["status"] == "owner_consumption_applied"
+    assert payload["receipt_evidence"]["receipt_ref"] == "opl://stage-attempts/sat-new"
+    assert payload["opl_transition_receipt"]["stage_attempt_id"] == "sat-new"
+    assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
+        "sat-new"
+    )
+    assert payload["mas_receipt_consumption"]["route_checkpoint_evidence_ref"] == (
+        terminal_closeout_ref
+    )
+
+
 def test_receipt_owner_consumption_prefers_terminal_receipt_over_running_projection(
     tmp_path: Path,
 ) -> None:
