@@ -338,8 +338,8 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     (campaign_tables / "risk_treatment_mismatch_matrix.csv").write_text(
         "\n".join(
             [
-                "phenotype,index_patients,share_of_index_cohort,hypertension_context_no_recorded_antihypertensive_pct",
-                "Glycemic-dominant diabetes,104508,15.1,68.8",
+                "phenotype,index_patients,share_of_index_cohort,hypertension_context_no_recorded_antihypertensive_n,hypertension_context_no_recorded_antihypertensive_gap,hypertension_context_no_recorded_antihypertensive_pct",
+                "Glycemic-dominant diabetes,104508,15.1,30910,21255,68.8",
             ]
         ),
         encoding="utf-8",
@@ -379,6 +379,94 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     assert "| Glycemic-dominant diabetes | Index patients | 104,508 |" in t2
     assert "| Glycemic-dominant diabetes | Share of index cohort | 15.1% |" in t2
     assert "| Glycemic-dominant diabetes | Hypertension with no antihypertensive | 68.8% |" in t2
+    tables_root = paper_root / "tables" / "generated"
+    tables_root.mkdir(parents=True, exist_ok=True)
+    (tables_root / "T1_baseline_characteristics.md").write_text(
+        "\n".join(
+            [
+                "# T1",
+                "",
+                "| Characteristic | Measure | Value |",
+                "| --- | --- | --- |",
+                "| Cohort definition — Index patients | Index patients | 692,702 |",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (tables_root / "T2_phenotype_gap_summary.md").write_text(t2, encoding="utf-8")
+    (tables_root / "T3_transition_site_support_summary.md").write_text(
+        "\n".join(
+            [
+                "# T3",
+                "",
+                "| Section | Metric | Value |",
+                "| --- | --- | --- |",
+                "| Transition support | Index patients | 692,702 |",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _write_json(
+        paper_root / "dpcc_phenotype_gap_structure.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "phenotype_gap_structure",
+                    "rows": [
+                        {
+                            "phenotype_label": "Glycemic-dominant diabetes",
+                            "share_of_index_patients": 0.150179,
+                            "hypertension_no_antihypertensive_gap_rate": 0.7152,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        paper_root / "dpcc_treatment_gap_alignment.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "treatment_gap_alignment",
+                    "rows": [
+                        {
+                            "phenotype_label": "Glycemic-dominant diabetes",
+                            "index_patients": 104029,
+                            "severe_glycemia_low_intensity_gap_patients": 0,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 0,
+                            "hypertension_no_antihypertensive_gap_patients": 74416,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 0,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    changed_paths = module._materialize_dpcc_display_metadata_repairs(paper_root=paper_root)
+
+    assert changed_paths
+    assert "| Cohort definition — Index patients | Index patients | 104,508 |" in (
+        tables_root / "T1_baseline_characteristics.md"
+    ).read_text(encoding="utf-8")
+    assert "| Transition support | Index patients | 104,508 |" in (
+        tables_root / "S6_transition_site_support_summary.md"
+    ).read_text(encoding="utf-8")
+    phenotype_rows = json.loads((paper_root / "dpcc_phenotype_gap_structure.json").read_text(encoding="utf-8"))[
+        "displays"
+    ][0]["rows"]
+    assert phenotype_rows[0]["share_of_index_patients"] == pytest.approx(0.151)
+    assert phenotype_rows[0]["hypertension_no_antihypertensive_gap_rate"] == pytest.approx(0.688)
+    treatment_rows = json.loads((paper_root / "dpcc_treatment_gap_alignment.json").read_text(encoding="utf-8"))[
+        "displays"
+    ][0]["rows"]
+    assert treatment_rows[0]["index_patients"] == 104508
+    assert treatment_rows[0]["hypertension_no_antihypertensive_gap_patients"] == 21255
+    assert treatment_rows[0]["hypertension_no_antihypertensive_gap_denominator"] == 30910
+    assert treatment_rows[0]["hypertension_no_antihypertensive_gap_rate"] == pytest.approx(0.688)
 
 
 def test_quality_repair_upstream_targets_stage_native_body_authority(

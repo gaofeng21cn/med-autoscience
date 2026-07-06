@@ -195,6 +195,129 @@ def test_materialize_display_surface_generates_dpcc_compact_table_shells(tmp_pat
     ] == full_id("table3_transition_site_support_summary")
 
 
+def test_materialize_display_surface_preserves_dpcc_current_markdown_tables_over_stale_payloads(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "baseline_characteristics",
+                    "display_kind": "table",
+                    "requirement_key": "table1_baseline_characteristics",
+                    "catalog_id": "T1",
+                    "shell_path": "paper/tables/baseline_characteristics.shell.json",
+                },
+                {
+                    "display_id": "phenotype_gap_summary",
+                    "display_kind": "table",
+                    "requirement_key": "table2_phenotype_gap_summary",
+                    "catalog_id": "T2",
+                    "shell_path": "paper/tables/phenotype_gap_summary.shell.json",
+                },
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "baseline_characteristics.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "phenotype_gap_summary.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "phenotype_gap_summary",
+            "display_kind": "table",
+            "requirement_key": "table2_phenotype_gap_summary",
+            "catalog_id": "T2",
+        },
+    )
+    dump_json(
+        paper_root / "baseline_characteristics_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table1_baseline_characteristics",
+            "display_id": "baseline_characteristics",
+            "groups": [{"group_id": "overall", "label": "Overall (n=692702)"}],
+            "variables": [
+                {
+                    "variable_id": "index",
+                    "label": "Index patients",
+                    "values": ["692,702"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "phenotype_gap_summary_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table2_phenotype_gap_summary",
+            "display_id": "phenotype_gap_summary",
+            "group_columns": ["Phenotype"],
+            "variables": ["Index patients", "No-drug gap"],
+        },
+    )
+    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables" / "T2_phenotype_gap_summary.csv").write_text(
+        "Phenotype,Index patients,No-drug gap\n"
+        "Glycemic-dominant diabetes,104029,86.11%\n",
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "T1_baseline_characteristics.md").write_text(
+        "# Baseline characteristics\n\n"
+        "| Characteristic | Measure | Value |\n"
+        "| --- | --- | --- |\n"
+        "| Cohort definition - Index patients | Index patients | 692,842 |\n",
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "T2_phenotype_gap_summary.md").write_text(
+        "# Phenotype-level clinical characteristics and treatment-gap rates\n\n"
+        "| Phenotype | Measure | Value |\n"
+        "| --- | --- | --- |\n"
+        "| Glycemic-dominant diabetes | Index patients | 104,508 |\n"
+        "| Glycemic-dominant diabetes | No-drug gap | 46.9% |\n",
+        encoding="utf-8",
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    generated_t1 = (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").read_text(
+        encoding="utf-8"
+    )
+    generated_t2 = (paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md").read_text(encoding="utf-8")
+    t1_csv_rows = list(csv.reader((paper_root / "tables" / "generated" / "T1_baseline_characteristics.csv").open()))
+    t2_csv_rows = list(csv.reader((paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.csv").open()))
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {entry["table_id"]: entry for entry in table_catalog["tables"]}
+
+    assert "692,842" in generated_t1
+    assert "692,702" not in generated_t1
+    assert "104,508" in generated_t2
+    assert "86.11%" not in generated_t2
+    assert t1_csv_rows[-1] == ["Cohort definition - Index patients", "Index patients", "692,842"]
+    assert t2_csv_rows[-1] == ["Glycemic-dominant diabetes", "No-drug gap", "46.9%"]
+    assert tables_by_id["T1"]["source_paths"] == ["paper/tables/T1_baseline_characteristics.md"]
+    assert tables_by_id["T2"]["source_paths"] == ["paper/tables/T2_phenotype_gap_summary.md"]
+    assert tables_by_id["T1"]["render_result"]["table_layout_policy"] == "pre_materialized_markdown_owner_surface"
+    assert tables_by_id["T2"]["render_result"]["table_layout_policy"] == "pre_materialized_markdown_owner_surface"
+
+
 def test_materialize_display_surface_preserves_dpcc_medication_capture_t3(
     tmp_path: Path,
 ) -> None:
@@ -885,7 +1008,7 @@ def test_materialize_display_surface_promotes_dpcc_figures_to_purpose_first_r_te
         assert entry["figure_purpose"] in {
             "phenotype_composition_plus_treatment_gap_matrix",
             "phenotype_transition_stability_plus_site_held_out_support",
-            "guideline_linked_treatment_gap_burden_small_multiples",
+            "recorded_treatment_review_gap_burden_small_multiples",
         }
         assert entry["export_paths"] == [
             f"paper/figures/generated/{figure_id}_{requirement_key}.png",

@@ -1487,6 +1487,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         paper_root / "tables" / "generated" / "T1_baseline_characteristics.md",
         fallback_path=paper_root / "tables" / "T1_baseline_characteristics.md",
     )
+    t1 = _apply_bounded_t1_revisions(t1=t1, study_root=study_root)
     t2 = _read_table_text(
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
@@ -1495,6 +1496,10 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
+    )
+    t3_transition = _apply_bounded_transition_table_revisions(
+        transition_table=t3_transition,
+        study_root=study_root,
     )
     supplementary_text = _read_supplementary_tables_text(paper_root=paper_root, study_root=study_root)
     sensitivity = _medication_sensitivity_values(
