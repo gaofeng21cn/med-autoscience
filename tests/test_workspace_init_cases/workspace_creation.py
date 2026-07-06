@@ -83,8 +83,10 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert scholarskills_install["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
     assert "medical-single-cell-modeling" in scholarskills_install["optional_skill_ids"]
     assert "medical-cohort-phenotyping" in scholarskills_install["optional_skill_ids"]
+    assert "medical-data-freeze-and-analysis-readiness-reviewer" in scholarskills_install["optional_skill_ids"]
     assert "medical-single-cell-modeling" not in scholarskills_install["synced_skill_ids"]
     assert "medical-cohort-phenotyping" not in scholarskills_install["synced_skill_ids"]
+    assert "medical-data-freeze-and-analysis-readiness-reviewer" not in scholarskills_install["synced_skill_ids"]
     helper_policy = scholarskills_install["skill_local_deterministic_helper_policy"]
     assert helper_policy["expected_helper_skill_ids"] == list(
         install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS
@@ -110,6 +112,9 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert scholarskills_install["workspace"]["optional_target_skill_paths"]["medical-cohort-phenotyping"] == str(
         workspace_root / ".codex" / "skills" / "medical-cohort-phenotyping"
     )
+    assert scholarskills_install["workspace"]["optional_target_skill_paths"][
+        "medical-data-freeze-and-analysis-readiness-reviewer"
+    ] == str(workspace_root / ".codex" / "skills" / "medical-data-freeze-and-analysis-readiness-reviewer")
     assert "medical-cohort-phenotyping" not in scholarskills_install["workspace"]["target_skill_paths"]
     assert scholarskills_install["workspace"]["sync_command"]["argv"] == [
         "opl",

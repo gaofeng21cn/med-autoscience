@@ -38,6 +38,11 @@ SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS = (
     "medical-display-qc",
     "medical-causal-inference-plan",
     "medical-survival-analysis-plan",
+    "medical-risk-model-transportability-reviewer",
+    "medical-registry-atlas-story-architect",
+    "medical-owner-gate-handoff-reviewer",
+    "medical-display-regression-debugger",
+    "medical-data-freeze-and-analysis-readiness-reviewer",
 )
 SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
     *SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS,

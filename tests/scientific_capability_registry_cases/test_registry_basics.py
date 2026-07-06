@@ -144,8 +144,15 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     )
     assert "scientific-compute-runner" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "medical-rebuttal-strategy" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-risk-model-transportability-reviewer" in registry["scholarskills_local_install"][
+        "optional_skill_ids"
+    ]
+    assert "medical-owner-gate-handoff-reviewer" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "scientific-compute-runner" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert "medical-rebuttal-strategy" not in registry["scholarskills_local_install"]["synced_skill_ids"]
+    assert "medical-owner-gate-handoff-reviewer" not in registry["scholarskills_local_install"][
+        "synced_skill_ids"
+    ]
     helper_policy = registry["scholarskills_local_install"]["skill_local_deterministic_helper_policy"]
     assert helper_policy == {
         "surface": "skill_local_deterministic_helpers",
@@ -215,6 +222,9 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"][
         "medical-rebuttal-strategy"
     ] == "<workspace_root>/.codex/skills/medical-rebuttal-strategy"
+    assert registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"][
+        "medical-risk-model-transportability-reviewer"
+    ] == "<workspace_root>/.codex/skills/medical-risk-model-transportability-reviewer"
     assert (
         "medical-rebuttal-strategy"
         not in registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"]
@@ -240,6 +250,9 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"][
         "medical-survival-analysis-plan"
     ] == "<quest_root>/.codex/skills/medical-survival-analysis-plan"
+    assert registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"][
+        "medical-risk-model-transportability-reviewer"
+    ] == "<quest_root>/.codex/skills/medical-risk-model-transportability-reviewer"
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
     assert registry["scholarskills_local_install"]["mas_program_repo_mirror"] == {

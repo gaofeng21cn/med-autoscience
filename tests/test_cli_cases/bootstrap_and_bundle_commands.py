@@ -120,6 +120,8 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert payload["scholarskills_local_install"]["optional_skill_ids"] == list(optional_skill_ids)
     assert "medical-structural-biology" in optional_skill_ids
     assert "medical-protocol-and-sap-planner" in optional_skill_ids
+    assert "medical-registry-atlas-story-architect" in optional_skill_ids
+    assert "medical-registry-atlas-story-architect" not in default_skill_ids
     assert "medical-structural-biology" not in default_skill_ids
     assert "medical-protocol-and-sap-planner" not in default_skill_ids
     helper_policy = payload["scholarskills_local_install"]["skill_local_deterministic_helper_policy"]
@@ -148,6 +150,9 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     assert workspace_install["optional_target_skill_paths"]["medical-protocol-and-sap-planner"] == str(
         workspace_root / ".codex" / "skills" / "medical-protocol-and-sap-planner"
+    )
+    assert workspace_install["optional_target_skill_paths"]["medical-registry-atlas-story-architect"] == str(
+        workspace_root / ".codex" / "skills" / "medical-registry-atlas-story-architect"
     )
     assert "medical-protocol-and-sap-planner" not in workspace_install["target_skill_paths"]
     assert workspace_install["sync_command"]["argv"] == [

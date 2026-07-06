@@ -393,8 +393,10 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert profile_readback["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
     assert "research-pdf-evidence-explorer" in profile_readback["optional_skill_ids"]
     assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
+    assert "medical-display-regression-debugger" in profile_readback["optional_skill_ids"]
     assert "research-pdf-evidence-explorer" not in profile_readback["synced_skill_ids"]
     assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
+    assert "medical-display-regression-debugger" not in profile_readback["synced_skill_ids"]
     helper_policy = profile_readback["skill_local_deterministic_helper_policy"]
     assert helper_policy["helper_file_name"] == "kernel.py"
     assert helper_policy["expected_helper_skill_ids"] == list(
@@ -419,6 +421,9 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
     assert profile_readback["workspace"]["optional_target_skill_paths"]["medical-reference-integrity-auditor"] == str(
         workspace_root / ".codex" / "skills" / "medical-reference-integrity-auditor"
+    )
+    assert profile_readback["workspace"]["optional_target_skill_paths"]["medical-display-regression-debugger"] == str(
+        workspace_root / ".codex" / "skills" / "medical-display-regression-debugger"
     )
     assert "medical-reference-integrity-auditor" not in profile_readback["workspace"]["target_skill_paths"]
     assert profile_readback["workspace"]["sync_command"]["argv"] == [
