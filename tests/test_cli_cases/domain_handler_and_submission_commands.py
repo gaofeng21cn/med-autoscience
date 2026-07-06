@@ -403,7 +403,7 @@ def test_medical_publication_surface_command_dispatches_controller(monkeypatch, 
         called["daemon_url"] = daemon_url
         return {"status": "clear", "blockers": []}
 
-    monkeypatch.setattr(cli.medical_publication_surface, "run_controller", fake_run_controller)
+    monkeypatch.setattr(cli.medical_publication_controller, "run_controller", fake_run_controller)
 
     exit_code = cli.main(
         [

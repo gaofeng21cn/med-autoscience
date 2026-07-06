@@ -121,7 +121,9 @@ journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journa
 ai_reviewer_publication_eval = _LazyModuleProxy(lambda: _load_controller("ai_reviewer_publication_eval"))
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_paper_readiness_owner_blocker = _LazyModuleProxy(lambda: _load_controller("medical_paper_readiness_owner_blocker"))
-medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
+medical_publication_controller = _LazyModuleProxy(
+    lambda: _load_module("med_autoscience.controllers.medical_publication_surface_parts.controller")
+)
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 descriptive_registry_evidence_materializer = _LazyModuleProxy(
     lambda: _load_controller("descriptive_registry_evidence_materializer")
@@ -866,7 +868,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "medical-publication-surface":
-        result = medical_publication_surface.run_controller(
+        result = medical_publication_controller.run_controller(
             quest_root=Path(args.quest_root),
             apply=args.apply,
             daemon_url=args.daemon_url,

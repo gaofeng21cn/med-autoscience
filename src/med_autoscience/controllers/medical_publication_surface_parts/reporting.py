@@ -866,13 +866,3 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         for hit in hits:
             lines.append(f"- `{hit['phrase']}` at `{hit['path']}` ({hit['location']}): {hit['excerpt']}")
     return "\n".join(lines) + "\n"
-
-
-
-
-from .controller import (  # noqa: E402
-    main,
-    parse_args,
-    run_controller,
-    write_surface_files,
-)

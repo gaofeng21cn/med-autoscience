@@ -9,6 +9,7 @@ _PART_MODULES = (
     "manuscript_checks",
     "reporting",
     "shared",
+    "controller",
 )
 
 
