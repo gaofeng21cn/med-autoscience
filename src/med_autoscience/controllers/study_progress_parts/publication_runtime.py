@@ -586,8 +586,11 @@ def _refresh_publication_surfaces_from_gate_report(
         )
     ):
         try:
-            decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
-            decision_module._materialize_publication_eval_from_gate_report(
+            from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
+                _materialize_publication_eval_from_gate_report,
+            )
+
+            _materialize_publication_eval_from_gate_report(
                 study_root=study_root,
                 study_id=study_id,
                 quest_root=quest_root,

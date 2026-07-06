@@ -400,7 +400,7 @@ def _publication_eval_allows_delivered_package_parking(*, study_root: Path) -> b
 
 
 def _submission_minimal_controller():
-    return import_module("med_autoscience.controllers.submission_minimal")
+    return import_module("med_autoscience.controllers.submission_minimal_parts.authority")
 
 
 def _bundle_only_submission_ready(*, study_root: Path, quest_root: Path | None = None) -> bool:

@@ -59,3 +59,9 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `tests/test_cli_cases/paper_mission_command_cases/receipt_owner_consumption.py` 已把 route checkpoint / stage closure 相关 case 拆到 `tests/test_cli_cases/paper_mission_command_cases/receipt_owner_consumption_cases/route_checkpoint_stage_closure.py`；原入口从约 1610 行降到约 1320 行，退出 clear `>1500` 超线范围。
 - 该拆分只改变测试组织，不改 PaperMission / StageOutcome 语义，不写真实 study artifact、publication eval、controller decision、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
 - 当前 P2 完成口径是 first safe slice landed；剩余超大测试 / fixture 继续按 source-governance lane 逐个语义拆分，不能把 line-budget advisory 当成 runtime / publication / domain-ready blocker。
+
+## 2026-07-06 MAS wildcard-import facade final slice
+
+- `submission_minimal.py`、`study_runtime_decision.py` 已删除 facade 内 `import *`，保留 public module identity 但改为按固定 parts 列表 re-export；与 main 对比，两个 facade 的可见 symbol 集合保持一致。
+- Active caller 收薄：CLI `export-submission-minimal` 与 `submission_targets.export_submission_targets()` 改为调用 `submission_minimal_parts.package_builder`；`study_manual_finish` 改为调用 `submission_minimal_parts.authority`；publication gate / study progress / stage outcome publication-eval materialization 改为函数内直连 `study_runtime_decision_parts.publication_and_submission`，避免恢复 facade import 依赖。
+- 剩余 blocker：`gate_clearing_batch` 仍把 submission package builder、profile config、fingerprint helper 和 authority helper 作为同一 controller 传入；publication gate parts 仍共享 submission profile/QC helpers；测试与 public module identity 仍直接 import 两个 facade。当前状态降为 `facade_public_identity_and_multi-part_controller_surface`，不再是 facade 内 wildcard import blocker。
