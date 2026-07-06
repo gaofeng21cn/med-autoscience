@@ -84,6 +84,8 @@ MAS 侧只记录三类机器面：
 
 可写边界仍按 external-learning closure 统一规则：Skill 可以生成 candidate refs、execution receipt refs、diagnostic refs、route-back candidate 和 owner-gate handoff；不能写 study truth、paper body、artifact authority、owner receipt、typed blocker、human gate、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 `current_package`。
 
+逐项 parity 已固定在 `contracts/academicforge_claude_science_learning_adoption.json#/parity_matrix`：32 个 Claude Science skill 全部标为 `enhanced_existing_skill`、`new_optional_specialist_skill`、`new_optional_evidence_skill`、`opl_substrate_descriptor_landed`、`skill_quality_absorbed` 或 `watch_only`。其中 `skill-creator` 的吸收点是 MAS Scholar Skills 的 skill quality policy 与 `scripts/verify.sh` frontmatter / trigger / no-authority 检查；compute / endpoint 系列只到 descriptor 和 Skill playbook，live provider evidence 仍归 OPL Runway / Connect 后续证明。
+
 ## Progress-first Friction Guard
 
 外部学习默认是 acceleration layer，不是 admission layer。

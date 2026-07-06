@@ -149,6 +149,47 @@ def test_mas_capability_map_declares_academicforge_skill_first_boundary() -> Non
     assert all(item["target_capability_id"] != "intake" for item in failure_mappings.values())
 
 
+def test_academicforge_learning_contract_classifies_all_claude_science_skills() -> None:
+    contract_path = (
+        Path(__file__).resolve().parents[2]
+        / "contracts"
+        / "academicforge_claude_science_learning_adoption.json"
+    )
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    matrix = contract["parity_matrix"]
+    items = matrix["items"]
+    by_skill = {item["source_skill"]: item for item in items}
+
+    assert matrix["source_skill_count"] == 32
+    assert len(items) == 32
+    assert len(by_skill) == 32
+    assert matrix["live_evidence_excluded_from_this_contract"] is True
+    assert matrix["coverage_status"] == "all_skills_classified_except_live_provider_evidence"
+    for key, expected_count in matrix["classification_counts"].items():
+        assert sum(1 for item in items if item["classification"] == key) == expected_count
+
+    assert by_skill["figure-style"]["local_landing"] == (
+        "mas-scholar-skills/skills/medical-figure-design/SKILL.md"
+    )
+    assert by_skill["paper-narrative"]["classification"] == "enhanced_existing_skill"
+    assert by_skill["pdf-explore"]["local_landing"] == (
+        "mas-scholar-skills/skills/research-pdf-evidence-explorer/SKILL.md"
+    )
+    assert by_skill["skill-creator"] == {
+        "source_skill": "skill-creator",
+        "classification": "skill_quality_absorbed",
+        "local_landing": (
+            "MAS Scholar Skills skill quality policy and scripts/verify.sh "
+            "trigger/frontmatter/no-authority checks"
+        ),
+        "completion": "skill_quality_loop_landed",
+    }
+    assert by_skill["remote-compute-ssh"][
+        "completion"
+    ] == "skill_descriptor_landed_live_provider_evidence_pending"
+    assert by_skill["self-awareness"]["classification"] == "watch_only"
+
+
 def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs() -> None:
     prediction_mapping = next(
         mapping
