@@ -48,7 +48,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback 
     _paper_mission_transaction_readback,
     _transaction_readback_output_fields,
 )
-from med_autoscience.cli_parts.paper_mission_commands_parts import (
+from med_autoscience.cli_parts.paper_mission_command_parts import (
     stage_closure_terminalizer_readback as _stage_closure_terminalizer_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.typed_blocker_resolution import (

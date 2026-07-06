@@ -211,7 +211,7 @@ def test_terminalizer_source_prefers_current_live_closeout_over_stale_domain_tra
     monkeypatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands_parts."
+        "med_autoscience.cli_parts.paper_mission_command_parts."
         "stage_closure_terminalizer_readback"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -289,7 +289,7 @@ def test_terminalizer_reterminalizes_stale_closure_when_current_live_closeout_di
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands_parts."
+        "med_autoscience.cli_parts.paper_mission_command_parts."
         "stage_closure_terminalizer_readback"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

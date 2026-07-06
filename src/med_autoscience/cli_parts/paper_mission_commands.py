@@ -86,7 +86,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_termina
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
-from med_autoscience.cli_parts.paper_mission_commands_parts import (
+from med_autoscience.cli_parts.paper_mission_command_parts import (
     stage_closure_terminalizer_readback as _stage_closure_terminalizer_readback,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts import (

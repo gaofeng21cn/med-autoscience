@@ -88,7 +88,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## 2026-07-06 MAS source morphology cleanup evidence
 
-- `src/med_autoscience/cli_parts/paper_mission_commands.py` 已把 stage-closure terminalizer readback helper cluster 拆到 `src/med_autoscience/cli_parts/paper_mission_commands_parts/`，并把 consumption-ledger readback helper cluster 收敛到 canonical `src/med_autoscience/cli_parts/paper_mission_command_parts/`；主入口从 2775 行降到 934 行，回到 preferred boundary 内。吸收时保留了 terminalizer currentness 修复中的 stage-packet identity / semantic priority 排序。
+- `src/med_autoscience/cli_parts/paper_mission_commands.py` 已把 stage-closure terminalizer readback helper cluster 与 consumption-ledger readback helper cluster 收敛到 canonical `src/med_autoscience/cli_parts/paper_mission_command_parts/`；旧复数目录 `paper_mission_commands_parts/` 已退役。主入口从 2775 行降到 934 行，回到 preferred boundary 内。吸收时保留了 terminalizer currentness 修复中的 stage-packet identity / semantic priority 排序。
 - `src/med_autoscience/controllers/paper_mission_receipt_owner_consumption.py` 已拆到 `src/med_autoscience/controllers/paper_mission_receipt_owner_consumption_parts/`，主入口从 1497 行降到 453 行；吸收时保留 newer stage-closure decision 不被 stale route carrier 覆盖的 currentness 修复。
 - `src/med_autoscience/controllers/quality_repair_batch_parts/medical_prose_story_surface.py` 已把 DPCC display repairs、manuscript、table 与 common helper 拆到 `src/med_autoscience/controllers/medical_prose_story_surface_parts/`；主入口从约 2730 行降到 596 行。
 - `src/med_autoscience/paper_mission_opl_readback.py` 已把 route identity helper cluster 拆到 `src/med_autoscience/paper_mission_opl_readback_parts/route_identity.py`；主入口从约 1630 行降到 1185 行，退出 clear `>1500` 超线范围。
