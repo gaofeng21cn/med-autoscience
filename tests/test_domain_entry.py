@@ -48,7 +48,7 @@ def test_domain_entry_launch_study_forwards_explicit_user_wakeup(monkeypatch, tm
         return {"surface_kind": "launch_study", "runtime_status": {"decision": "resume"}}
 
     monkeypatch.setattr(module, "load_profile", lambda ref: profile)
-    monkeypatch.setattr(module.product_entry, "launch_study", fake_launch_study)
+    monkeypatch.setattr(module, "launch_study", fake_launch_study)
 
     payload = module.MedAutoScienceDomainEntry().dispatch(
         {

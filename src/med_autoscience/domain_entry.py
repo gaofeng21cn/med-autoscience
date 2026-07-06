@@ -10,9 +10,10 @@ from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
     continuous_soak_summary,
     delivery_authority_backfill_apply,
-    product_entry,
     workspace_authority_migration_audit,
 )
+from med_autoscience.controllers.product_entry_parts.entry_runtime import submit_study_task
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
 from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 from med_autoscience.cli_parts.paper_mission_commands import build_paper_mission_readback
@@ -157,7 +158,7 @@ def _dispatch_profile_command(
             sync_runtime_summary=False,
             materialize_read_model_artifacts=False,
         ),
-        "launch-study": lambda: product_entry.launch_study(
+        "launch-study": lambda: launch_study(
             profile=profile,
             profile_ref=profile_ref,
             study_id=str(request["study_id"]),
@@ -166,7 +167,7 @@ def _dispatch_profile_command(
             explicit_user_wakeup=bool(request.get("explicit_user_wakeup")),
             force=bool(request.get("force")),
         ),
-        "submit-study-task": lambda: product_entry.submit_study_task(
+        "submit-study-task": lambda: submit_study_task(
             profile=profile,
             profile_ref=profile_ref,
             study_id=str(request["study_id"]),
