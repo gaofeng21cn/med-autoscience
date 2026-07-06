@@ -687,24 +687,6 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     )
 
 
-def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
-    generated = build_standard_pack()
-    profile = _read_contract("golden_path_profile")
-
-    default_stage_ids = [
-        stage["stage_id"]
-        for stage in generated["stage_control_plane"]["stages"]
-        if stage.get("selected_executor", {}).get("default_executor") is True
-        and stage.get("selected_executor", {}).get("lane_kind") != "variant"
-    ]
-
-    assert default_stage_ids == profile["ordinary_path"]["stage_refs"] == [
-        "direction_and_route_selection"
-    ]
-    assert profile["ordinary_path"]["path_role"] == "ordinary_default"
-    assert profile["default_surface_policy"]["ordinary_route_count"] == 1
-
-
 def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> None:
     generated = build_standard_pack()
 
@@ -1003,3 +985,4 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
 
 
 from tests.test_opl_standard_pack_cases.generated_interface_cases import *  # noqa: F403,F401
+from tests.test_opl_standard_pack_cases.stage_contract_cases import *  # noqa: F403,F401
