@@ -86,7 +86,12 @@ def _same_route_checkpoint_identity(
         return False
     receipt_identity = _route_checkpoint_identity(receipt_decision)
     stage_identity = _route_checkpoint_identity(stage_decision)
-    return receipt_identity == stage_identity and any(receipt_identity)
+    if receipt_identity == stage_identity and any(receipt_identity):
+        return True
+    return any(
+        receipt_item is not None and receipt_item == stage_item
+        for receipt_item, stage_item in zip(receipt_identity, stage_identity)
+    ) and not _different_route_checkpoint_identity(receipt_decision, stage_decision)
 
 
 def _different_route_checkpoint_identity(
@@ -95,10 +100,11 @@ def _different_route_checkpoint_identity(
 ) -> bool:
     receipt_identity = _route_checkpoint_identity(receipt_decision)
     stage_identity = _route_checkpoint_identity(stage_decision)
-    return (
-        any(receipt_identity)
-        and any(stage_identity)
-        and receipt_identity != stage_identity
+    return any(
+        receipt_item is not None
+        and stage_item is not None
+        and receipt_item != stage_item
+        for receipt_item, stage_item in zip(receipt_identity, stage_identity)
     )
 
 
