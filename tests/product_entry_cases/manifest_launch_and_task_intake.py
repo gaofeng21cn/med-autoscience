@@ -450,13 +450,26 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert payload["revision_intake"]["reactivation_required"] is True
     assert payload["revision_intake"]["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
     suite_path = Path(payload["artifacts"]["agent_lab_medical_manuscript_quality_suite"])
+    dispatch_path = Path(payload["artifacts"]["reviewer_revision_feedbackops_dispatch_request"])
     suite_payload = json.loads(suite_path.read_text(encoding="utf-8"))
+    dispatch_payload = json.loads(dispatch_path.read_text(encoding="utf-8"))
     assert payload["agent_lab_suite_materialization"]["status"] == "materialized"
     assert payload["agent_lab_suite_materialization"]["required"] is True
+    assert payload["agent_lab_suite_materialization"]["feedbackops_dispatch_request"]["status"] == (
+        "ready_for_opl_feedbackops"
+    )
     assert suite_path.is_file()
+    assert dispatch_path.is_file()
     assert written_payload["agent_lab_suite_materialization"]["status"] == "materialized"
     assert written_payload["artifact_refs"]["agent_lab_medical_manuscript_quality_suite"] == str(suite_path)
+    assert written_payload["artifact_refs"]["reviewer_revision_feedbackops_dispatch_request"] == str(dispatch_path)
     assert suite_payload["suite_kind"] == "agent_lab_external_suite"
+    assert dispatch_payload["surface_kind"] == "mas_reviewer_revision_feedbackops_dispatch_request"
+    assert dispatch_payload["status"] == "ready_for_opl_feedbackops"
+    assert dispatch_payload["dispatch_owner"] == "one-person-lab.feedbackops"
+    assert dispatch_payload["opl_feedbackops_target_agent_id"] == "mas"
+    assert dispatch_payload["opl_feedback_submit"]["command"] == "opl feedback submit"
+    assert dispatch_payload["authority_boundary"]["can_write_owner_receipt"] is False
     assert suite_payload["feedback_self_evolution_trigger"]["oma_evolution_skill_ref"] == (
         "opl-meta-agent:oma-agent-evolution"
     )

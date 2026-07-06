@@ -37,6 +37,7 @@ from med_autoscience.study_task_intake_manual_hold import (
     task_intake_requests_manual_hold,
 )
 from med_autoscience.study_task_intake_revision import (
+    build_reviewer_revision_feedbackops_dispatch_request,
     build_reviewer_revision_execution_lane_projection,
     build_reviewer_revision_intake,
     submission_revision_operating_state,
@@ -889,6 +890,11 @@ def write_task_intake(
         payload.setdefault("artifact_refs", {})["agent_lab_medical_manuscript_quality_suite"] = (
             suite_materialization["suite_path"]
         )
+        dispatch_request = suite_materialization.get("feedbackops_dispatch_request")
+        if isinstance(dispatch_request, dict) and _non_empty_text(dispatch_request.get("dispatch_request_path")):
+            payload["artifact_refs"]["reviewer_revision_feedbackops_dispatch_request"] = dispatch_request[
+                "dispatch_request_path"
+            ]
         _rewrite_task_intake_json_artifact_refs(payload)
     return payload
 
@@ -916,7 +922,7 @@ def _materialize_reviewer_revision_agent_lab_suite_if_required(payload: dict[str
         reviewer_feedback_ref=reviewer_feedback_ref,
     )
     trigger = revision_intake.get("self_evolution_trigger") if isinstance(revision_intake, dict) else {}
-    return {
+    materialization = {
         "surface_kind": "mas_reviewer_revision_agent_lab_suite_materialization",
         "status": "materialized",
         "required": True,
@@ -930,6 +936,27 @@ def _materialize_reviewer_revision_agent_lab_suite_if_required(payload: dict[str
         ),
         "authority_boundary": materialized["authority_boundary"],
     }
+    dispatch_payload = dict(payload)
+    dispatch_payload["agent_lab_suite_materialization"] = materialization
+    dispatch_request = build_reviewer_revision_feedbackops_dispatch_request(dispatch_payload)
+    dispatch_path = (
+        Path(study_root_text)
+        / "artifacts"
+        / "agent_lab"
+        / "medical_manuscript_quality"
+        / "feedbackops_dispatch_request.json"
+    )
+    dispatch_request["dispatch_request_path"] = str(dispatch_path)
+    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
+    dispatch_path.write_text(json.dumps(dispatch_request, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    materialization["feedbackops_dispatch_request"] = {
+        "status": dispatch_request["status"],
+        "dispatch_request_path": str(dispatch_path),
+        "dispatch_owner": dispatch_request["dispatch_owner"],
+        "opl_feedbackops_target_agent_id": dispatch_request["opl_feedbackops_target_agent_id"],
+        "next_owner": "one-person-lab.feedbackops_then_opl-meta-agent",
+    }
+    return materialization
 
 
 def _rewrite_task_intake_json_artifact_refs(payload: dict[str, Any]) -> None:

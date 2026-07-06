@@ -119,6 +119,24 @@ def test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_cal
     selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
     assert selected_lane["lane_id"] == "oma_self_evolution_pending"
     assert selected_lane["contract_itself_triggers_execution"] is False
+    assert selected_lane["feedbackops_dispatch_request_status"] == "ready_for_opl_feedbackops"
+    assert selected_lane["next_owner"] == "one-person-lab.feedbackops_then_opl-meta-agent"
+    dispatch_request = module.build_reviewer_revision_feedbackops_dispatch_request(payload)
+    assert dispatch_request["surface_kind"] == "mas_reviewer_revision_feedbackops_dispatch_request"
+    assert dispatch_request["status"] == "ready_for_opl_feedbackops"
+    assert dispatch_request["dispatch_is_automatic_request"] is True
+    assert dispatch_request["contract_itself_triggers_execution"] is False
+    assert dispatch_request["target_agent_id"] == "med-autoscience"
+    assert dispatch_request["opl_feedbackops_target_agent_id"] == "mas"
+    assert dispatch_request["dispatch_chain"] == [
+        "opl feedback submit",
+        "opl feedback read/reconcile",
+        "opl-meta-agent improve-from-external-agent-lab-suite",
+        "opl-meta-agent execute-external-work-order",
+        "medautosci paper-mission inspect owner closeout readback",
+    ]
+    assert dispatch_request["opl_feedback_submit"]["argv"][:2] == ["--target-agent", "mas"]
+    assert dispatch_request["authority_boundary"]["can_write_study_truth"] is False
     override = module.build_task_intake_progress_override(payload, study_root=study_root)
     assert override["quality_execution_lane"]["lane_id"] == "oma_self_evolution_pending"
 

@@ -80,6 +80,7 @@ REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY = {
 FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
 REVIEWER_REVISION_FEEDBACK_PROFILE = "reviewer_revision_feedback"
 FEEDBACKOPS_TARGET_AGENT_ID = "med-autoscience"
+OPL_FEEDBACKOPS_STANDARD_AGENT_ID = "mas"
 DEVELOPER_MODE_EXECUTION_GATE_REFS = [
     "opl-developer-mode:repo-fix-execution",
     "workspace-profile-ref:developer_supervisor_mode",
@@ -262,6 +263,7 @@ def build_reviewer_revision_execution_lane_projection(
             ),
         }
     if suite_status == "materialized" and not contract_triggers_execution:
+        dispatch_request = build_reviewer_revision_feedbackops_dispatch_request(payload)
         return {
             "surface_kind": "mas_selected_reviewer_revision_execution_lane",
             "lane_id": "oma_self_evolution_pending",
@@ -270,9 +272,11 @@ def build_reviewer_revision_execution_lane_projection(
             "agent_lab_suite_status": "materialized",
             "contract_itself_triggers_execution": False,
             "suite_path": materialization.get("suite_path") if isinstance(materialization, dict) else None,
+            "feedbackops_dispatch_request_status": dispatch_request["status"],
+            "next_owner": "one-person-lab.feedbackops_then_opl-meta-agent",
             "summary": (
                 "MAS materialized the Agent Lab suite and selected oma_self_evolution_pending: OMA has a "
-                "pending action; the contract itself does not mean the suite was executed."
+                "pending action via OPL FeedbackOps; the contract itself does not mean the suite was executed."
             ),
         }
     return {
@@ -367,6 +371,84 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
                 "blocked_requires_human_or_owner_gate",
             ],
         },
+        "authority_boundary": dict(REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY),
+    }
+
+
+def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any] | None) -> dict[str, Any]:
+    study_id = _study_id(payload)
+    fast_lane_requested = _task_intake_requests_manuscript_fast_lane(payload)
+    trigger = build_reviewer_revision_self_evolution_trigger(payload)
+    materialization = payload.get("agent_lab_suite_materialization") if isinstance(payload, dict) else None
+    suite_path = _non_empty_text(materialization.get("suite_path")) if isinstance(materialization, dict) else None
+    artifact_refs = payload.get("artifact_refs") if isinstance(payload, dict) and isinstance(payload.get("artifact_refs"), dict) else {}
+    feedback_ref = (
+        _non_empty_text(artifact_refs.get("latest_json"))
+        or _non_empty_text(payload.get("task_id")) if isinstance(payload, dict) else None
+    )
+    delivery_ref = suite_path or trigger["agent_lab_suite_materialization"]["stable_suite_relative_path"]
+    if fast_lane_requested:
+        status = "bypassed_text_only_fast_lane"
+    elif suite_path is None:
+        status = "pending_agent_lab_suite_materialization"
+    else:
+        status = "ready_for_opl_feedbackops"
+    return {
+        "surface_kind": "mas_reviewer_revision_feedbackops_dispatch_request",
+        "schema_version": 1,
+        "status": status,
+        "dispatch_is_automatic_request": status == "ready_for_opl_feedbackops",
+        "execution_is_owner_gated": True,
+        "contract_itself_triggers_execution": False,
+        "target_agent_id": trigger["target_agent_id"],
+        "opl_feedbackops_target_agent_id": OPL_FEEDBACKOPS_STANDARD_AGENT_ID,
+        "feedbackops_event_kind": trigger["feedbackops_event_kind"],
+        "accepted_feedback_profile": trigger["accepted_feedback_profile"],
+        "idempotency_key": trigger["idempotency_key"],
+        "study_id": study_id,
+        "delivery_ref": delivery_ref,
+        "feedback_ref": feedback_ref or f"reviewer_revision:{study_id}:latest",
+        "external_suite_ref": suite_path,
+        "suite_path": suite_path,
+        "source_trigger_ref": trigger["idempotency_key"],
+        "dispatch_owner": "one-person-lab.feedbackops",
+        "meta_agent_owner": "opl-meta-agent.oma-agent-evolution",
+        "target_owner_closeout_owner": "med-autoscience",
+        "dispatch_chain": [
+            "opl feedback submit",
+            "opl feedback read/reconcile",
+            "opl-meta-agent improve-from-external-agent-lab-suite",
+            "opl-meta-agent execute-external-work-order",
+            "medautosci paper-mission inspect owner closeout readback",
+        ],
+        "opl_feedback_submit": {
+            "command": "opl feedback submit",
+            "argv": [
+                "--target-agent",
+                OPL_FEEDBACKOPS_STANDARD_AGENT_ID,
+                "--delivery-ref",
+                delivery_ref,
+                "--feedback-ref",
+                feedback_ref or f"reviewer_revision:{study_id}:latest",
+                "--feedback-kind",
+                "quality_gap",
+                "--external-suite-ref",
+                suite_path or trigger["agent_lab_suite_materialization"]["stable_suite_relative_path"],
+                "--idempotency-key",
+                trigger["idempotency_key"],
+                "--source-ref",
+                "medautosci submit-study-task reviewer_revision",
+                "--json",
+            ],
+            "writes_target_domain_truth": False,
+        },
+        "readback_commands": [
+            "opl feedback read --json",
+            "opl feedback reconcile --json",
+            "medautosci paper-mission inspect --study-id <study_id> --format json",
+        ],
+        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "required_packet_refs": list(trigger["required_packet_refs"]),
         "authority_boundary": dict(REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY),
     }
 
