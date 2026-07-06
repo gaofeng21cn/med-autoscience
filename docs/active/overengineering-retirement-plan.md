@@ -36,9 +36,13 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## P0 runtime/control-plane tail 执行注记
 
-- 2026-07-06 active caller proof：`runtime_surface_retirement_parts` 中仍有 active caller 的函数分为三类：`runtime_surface_retirement.py` 消费的 no-authority / minimal authority validator，`public_root_commands.py live-runtime-evidence-rollup` 消费的 refs-only rollup readback，以及 contract/focused tests 消费的 live-tail / live-gap typed-blocker validators。未发现可直接删除且不影响 active caller 的 runtime authority helper。
-- 本轮可安全删除的是空 package marker `runtime_surface_retirement_parts/__init__.py`；其余保留面只作为 minimal authority function、refs-only projection 或 live-tail typed-blocker guard，不写 study truth、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
-- 本轮收薄把重复 text normalization helper 收回 `surface_helpers.py`，并补强 physical retirement blocked-surface test 对 `evidence_gate` 的断言，防止后续把 live-tail blocker 误读为可物理删除。
+- 2026-07-06 active caller proof：`runtime_surface_retirement_parts` 当前保留面按文件/函数归类，避免把 P0 runtime tail 写成泛化 blocker：
+  - `private_runtime_residue_validators.py` / `private_runtime_residue_maintenance_validators.py` / `runtime_health_kernel_validators.py`：被 `runtime_surface_retirement.py` 调用的 no-authority / minimal authority validator；只能验证 MAS 侧 forbidden authority、OPL takeover tail 和 physical-delete gate，不能写 study truth、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+  - `live_runtime_evidence_rollup.py::live_runtime_evidence_rollup_readback` 与 `public_root_commands.py live-runtime-evidence-rollup`：refs-only rollup readback；只能汇总 live-tail / live-gap evidence records 和 typed-blocker-required 状态，不能替代 live-runtime readiness、paper progress 或 production-ready evidence。
+  - `live_tail_work_orders.py` / `live_runtime_gap_work_orders.py`：typed-blocker evidence guard；保留 duplicate / unknown / malformed / forbidden-source validator，防止 docs、focused tests、queue empty 或 repo-source retirement 被误读为 live runtime evidence。
+  - `completion_evidence_layers.py` / `authority_flags.py` / `surface_helpers.py`：shared physical-delete gate helper；只服务 retirement audit 的 evidence-layer 分账和 forbidden-authority flag scan。
+- 本轮可安全删除的是旧 aggregate test fixture `test_private_runtime_residue_active_callers.py`；合同与测试引用已改为具体 case module：`private_runtime_residue_active_callers.py`、`runtime_surface_no_authority_audit.py`、`domain_authority_refs_index.py`。这只删除重复 collection/旧路径别名，不改变 runtime authority 语义。
+- 仍未删除的 runtime/control-plane helpers 均有 active caller 或 contract guard 作用；后续只能在对应 active caller 迁移、contract ref 改到 concrete module、focused tests 证明 no-forbidden-write 后继续物理收薄。
 
 ## 停止条件
 

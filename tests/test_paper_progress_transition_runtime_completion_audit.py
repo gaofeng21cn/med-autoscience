@@ -625,7 +625,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "audit_runtime_surface_retirement_inventory"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
     ) in physical_gate["observed_refs"]
     assert (
@@ -688,12 +688,12 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "owner_callable_adapter_carrier_tail_readback"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
         "legacy_owner_callable_adapter_carrier_authority_regression"
     ) in physical_gate["observed_refs"]
     assert (
-        "tests/test_adapter_retirement_boundary_cases/test_private_runtime_residue_active_callers.py::"
+        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
         "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
         "owner_callable_adapter_carrier_tail_false_completion_guard"
     ) in physical_gate["observed_refs"]
