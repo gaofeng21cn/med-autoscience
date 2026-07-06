@@ -18,7 +18,6 @@ from med_autoscience.policies import medical_publication_surface as medical_surf
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 from .shared import (
-    _controller_override,
     build_surface_state,
     resolve_runtime_root_from_quest_root,
 )
@@ -30,8 +29,7 @@ from .reporting import (
 )
 
 def write_surface_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    report_store = _controller_override("runtime_protocol_report_store", runtime_protocol_report_store)
-    return report_store.write_timestamped_report(
+    return runtime_protocol_report_store.write_timestamped_report(
         quest_root=quest_root,
         report_group="medical_publication_surface",
         timestamp=report["generated_at"],

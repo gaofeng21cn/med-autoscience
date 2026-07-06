@@ -4,7 +4,6 @@ import argparse
 import copy
 import json
 import re
-import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -63,13 +62,6 @@ class MarkdownHeadingBlock:
     start_line: int
     end_line: int
     body: str
-
-
-def _controller_override(name: str, default: Any) -> Any:
-    controller_module = sys.modules.get("med_autoscience.controllers.medical_publication_surface")
-    if controller_module is None:
-        return default
-    return getattr(controller_module, name, default)
 
 
 def utc_now() -> str:
@@ -210,11 +202,11 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 
 def build_surface_state(quest_root: Path) -> SurfaceState:
-    runtime_state = _controller_override("quest_state", quest_state).load_runtime_state(quest_root) or {}
+    runtime_state = quest_state.load_runtime_state(quest_root) or {}
     paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
     study_root: Path | None = None
     try:
-        paper_context = _controller_override("resolve_paper_root_context", resolve_paper_root_context)(paper_root)
+        paper_context = resolve_paper_root_context(paper_root)
     except (FileNotFoundError, ValueError):
         paper_context = None
     if paper_context is not None:

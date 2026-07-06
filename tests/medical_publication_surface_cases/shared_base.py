@@ -246,8 +246,7 @@ def _attach_study_charter_context(
     paper_root = _paper_root_from_quest(quest_root)
     _copy_medical_writing_authority_surfaces(paper_root=paper_root, study_root=study_root)
     monkeypatch.setattr(
-        module,
-        "resolve_paper_root_context",
+        "med_autoscience.controllers.medical_publication_surface_parts.shared_base.resolve_paper_root_context",
         lambda _: SimpleNamespace(
             paper_root=paper_root,
             worktree_root=paper_root.parent,
@@ -278,8 +277,7 @@ def _attach_public_anchor_study_context(monkeypatch, module, tmp_path: Path, que
     _copy_medical_writing_authority_surfaces(paper_root=paper_root, study_root=study_root)
 
     monkeypatch.setattr(
-        module,
-        "resolve_paper_root_context",
+        "med_autoscience.controllers.medical_publication_surface_parts.shared_base.resolve_paper_root_context",
         lambda _: SimpleNamespace(
             paper_root=paper_root,
             worktree_root=paper_root.parent,
