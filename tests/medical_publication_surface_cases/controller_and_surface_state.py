@@ -2,6 +2,9 @@ import os
 
 from .shared import *
 
+from med_autoscience.controllers.medical_publication_surface_parts import controller, shared_base
+
+
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
@@ -37,12 +40,6 @@ def test_run_controller_inside_former_managed_turn_env_still_routes_to_opl_hando
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
     retired_env_prefix = "MED_AUTOSCIENCE_" + "MANAGED_RUNTIME"
     monkeypatch.setenv(retired_env_prefix + "_WORKER", "1")
@@ -50,7 +47,7 @@ def test_run_controller_inside_former_managed_turn_env_still_routes_to_opl_hando
     monkeypatch.setenv(retired_env_prefix + "_QUEST_ID", "002-early-residual-risk")
     monkeypatch.setenv(retired_env_prefix + "_RUN_ID", "run-1")
 
-    result = module.run_controller(
+    result = controller.run_controller(
         quest_root=quest_root,
         apply=True,
         daemon_url="http://127.0.0.1:20999",
@@ -73,15 +70,9 @@ def test_run_controller_inside_former_managed_turn_env_still_routes_to_opl_hando
 
 
 def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: Path, monkeypatch) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
 
-    result = module.run_controller(
+    result = controller.run_controller(
         quest_root=quest_root,
         apply=True,
         daemon_url=None,
@@ -94,7 +85,6 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
 
 
 def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     seen: dict[str, object] = {}
 
@@ -102,16 +92,15 @@ def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_
         seen["quest_root"] = path
         return {"status": "patched", "quest_id": quest_root.name}
 
-    monkeypatch.setattr(module.quest_state, "load_runtime_state", fake_load_runtime_state)
+    monkeypatch.setattr(shared_base.quest_state, "load_runtime_state", fake_load_runtime_state)
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert seen == {"quest_root": quest_root}
     assert state.runtime_state["status"] == "patched"
 
 
 def test_build_surface_state_resolves_study_root_from_live_quest_paper(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "004-live-quest"
     paper_root = quest_root / "paper"
@@ -141,13 +130,12 @@ def test_build_surface_state_resolves_study_root_from_live_quest_paper(tmp_path:
         encoding="utf-8",
     )
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert state.study_root == study_root.resolve()
 
 
 def test_build_surface_state_prefers_bundle_branch_over_drifted_projected_paper_line_state(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     drifted_paper_root = _paper_root_from_quest(quest_root)
     projected_paper_root = quest_root / "paper"
@@ -181,13 +169,12 @@ def test_build_surface_state_prefers_bundle_branch_over_drifted_projected_paper_
         },
     )
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert state.paper_root == projected_paper_root.resolve()
 
 
 def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
     legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
@@ -216,7 +203,7 @@ def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Pa
     newer_time = (projected_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert state.paper_root == study_paper_root.resolve()
     assert state.study_root == study_root.resolve()
@@ -226,7 +213,6 @@ def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Pa
 def test_build_surface_state_prefers_complete_bound_study_canonical_paper_when_branch_differs(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
     legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
@@ -251,7 +237,7 @@ def test_build_surface_state_prefers_complete_bound_study_canonical_paper_when_b
     dump_json(study_paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(study_paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert state.paper_root == study_paper_root.resolve()
     assert state.study_root == study_root.resolve()
@@ -260,7 +246,6 @@ def test_build_surface_state_prefers_complete_bound_study_canonical_paper_when_b
 
 
 def test_build_surface_state_prefers_eval_owned_medical_prose_review(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
     projected_paper_root = quest_root / "paper"
@@ -283,14 +268,13 @@ def test_build_surface_state_prefers_eval_owned_medical_prose_review(tmp_path: P
     newer_time = (projected_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_root / "paper" / "paper_bundle_manifest.json", (newer_time, newer_time))
 
-    state = module.build_surface_state(quest_root)
+    state = shared_base.build_surface_state(quest_root)
 
     assert state.paper_root == (study_root / "paper").resolve()
     assert state.medical_prose_review_path == stable_review_path.resolve()
 
 
 def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     seen: dict[str, object] = {}
 
@@ -309,7 +293,7 @@ def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp
         seen["markdown"] = markdown
         return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
 
-    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
+    monkeypatch.setattr(controller.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
 
     report = {
         "generated_at": "2026-04-03T04:20:00+00:00",
@@ -352,7 +336,7 @@ def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp
         "results_narration_hit_count": 0,
     }
 
-    json_path, md_path = module.write_surface_files(quest_root, report)
+    json_path, md_path = controller.write_surface_files(quest_root, report)
 
     assert seen["quest_root"] == quest_root
     assert seen["report_group"] == "medical_publication_surface"
