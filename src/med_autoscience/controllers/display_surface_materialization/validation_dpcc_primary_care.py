@@ -22,6 +22,13 @@ _DPCC_GAP_PATIENT_FIELDS: tuple[str, ...] = (
     "dyslipidemia_no_lipid_lowering_gap_patients",
 )
 
+_DPCC_GAP_DENOMINATOR_FIELDS: tuple[str, ...] = (
+    "severe_glycemia_low_intensity_gap_denominator",
+    "uncontrolled_glycemia_no_drug_gap_denominator",
+    "hypertension_no_antihypertensive_gap_denominator",
+    "dyslipidemia_no_lipid_lowering_gap_denominator",
+)
+
 
 def _require_optional_probability_value(value: object, *, label: str) -> float | None:
     if value is None:
@@ -246,6 +253,23 @@ def _validate_dpcc_treatment_gap_alignment_display_payload(
                     f"{path.name} rows[{row_index}].{field} must not exceed index_patients"
                 )
             normalized_row[field] = patients
+        for field in _DPCC_GAP_RATE_FIELDS:
+            if field in row:
+                normalized_row[field] = _require_optional_probability_value(
+                    row.get(field),
+                    label=f"{path.name} rows[{row_index}].{field}",
+                )
+        for field in _DPCC_GAP_DENOMINATOR_FIELDS:
+            if field in row:
+                denominator = _require_non_negative_int(
+                    row.get(field),
+                    label=f"{path.name} rows[{row_index}].{field}",
+                )
+                if denominator > index_patients:
+                    raise ValueError(
+                        f"{path.name} rows[{row_index}].{field} must not exceed index_patients"
+                    )
+                normalized_row[field] = denominator
         normalized_rows.append(normalized_row)
     normalized["rows"] = normalized_rows
     return normalized
