@@ -919,11 +919,10 @@ def _terminal_closeout_is_live_runtime_observed(
     closeout: Mapping[str, Any],
 ) -> bool:
     closeout_ref = _optional_text(closeout.get("closeout_ref"))
-    if closeout_ref is not None and closeout_ref.startswith(
-        "opl://family-runtime/tasks/"
-    ):
-        return True
-    return _optional_text(closeout.get("runtime_readback_source")) in {
+    return (
+        closeout_ref is not None
+        and closeout_ref.startswith("opl://family-runtime/tasks/")
+    ) or _optional_text(closeout.get("runtime_readback_source")) in {
         "opl_family_runtime_queue_inspect",
         "opl_family_runtime_queue_list",
     }
@@ -1014,9 +1013,7 @@ def _paper_mission_transaction_stage_id(
     if not transaction_ref.startswith(prefix) or suffix not in transaction_ref:
         return None
     stage_segment = transaction_ref[len(prefix) : transaction_ref.index(suffix)]
-    if not stage_segment:
-        return None
-    return stage_segment.split("::followthrough::", 1)[0] or None
+    return stage_segment.split("::followthrough::", 1)[0] if stage_segment else None
 
 
 def _stage_packet_transaction_priority(
@@ -1034,12 +1031,10 @@ def _stage_packet_transaction_priority(
     if current_transaction_ref.startswith(f"{stage_packet_ref}::followthrough::"):
         return 1
     current_stage = _paper_mission_transaction_stage_id(
-        current_transaction_ref,
-        study_id=study_id,
+        current_transaction_ref, study_id=study_id
     )
     stage_packet_stage = _paper_mission_transaction_stage_id(
-        stage_packet_ref,
-        study_id=study_id,
+        stage_packet_ref, study_id=study_id
     )
     if current_stage is None or stage_packet_stage is None:
         return 0
@@ -1428,7 +1423,6 @@ def _route_checkpoint_identity_matches_domain_transition(
         and decision_stage != action_stage
     ):
         return False
-    return True
     return True
 
 
