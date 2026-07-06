@@ -1,8 +1,10 @@
 from .shared import *
 
+from med_autoscience.controllers.medical_publication_surface_parts import controller, reporting, shared_base
+from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+
 
 def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Path, monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     from med_autoscience.medical_journal_style_corpus import read_medical_journal_style_corpus
     from med_autoscience.medical_prose_review_request import read_medical_prose_review_request
 
@@ -12,9 +14,9 @@ def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Pa
         ama_defaults=True,
         include_medical_prose_review=False,
     )
-    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    study_root = _attach_study_charter_context(monkeypatch, shared_base, tmp_path, quest_root)
 
-    result = module.run_controller(
+    result = controller.run_controller(
         quest_root=quest_root,
         apply=True,
         daemon_url=None,
@@ -39,7 +41,6 @@ def test_apply_reports_review_request_materialization_error_when_blueprint_inval
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     from med_autoscience.medical_journal_style_corpus import read_medical_journal_style_corpus
 
     quest_root = make_quest(
@@ -48,10 +49,10 @@ def test_apply_reports_review_request_materialization_error_when_blueprint_inval
         ama_defaults=True,
         include_medical_prose_review=False,
     )
-    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    study_root = _attach_study_charter_context(monkeypatch, shared_base, tmp_path, quest_root)
     dump_json(study_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1})
 
-    result = module.run_controller(
+    result = controller.run_controller(
         quest_root=quest_root,
         apply=True,
         daemon_url=None,
@@ -73,14 +74,13 @@ def test_apply_reports_review_request_materialization_error_when_blueprint_inval
 
 
 def test_build_report_requires_current_style_bound_ai_prose_review(tmp_path: Path, monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
         ama_defaults=True,
         include_medical_prose_review=False,
     )
-    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    study_root = _attach_study_charter_context(monkeypatch, shared_base, tmp_path, quest_root)
     dump_json(
         study_root / "paper" / "medical_prose_review.json",
         {
@@ -110,7 +110,7 @@ def test_build_report_requires_current_style_bound_ai_prose_review(tmp_path: Pat
         },
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "ai_medical_prose_review_missing_or_incomplete" in report["blockers"]
@@ -122,7 +122,6 @@ def test_build_report_requires_current_style_bound_ai_prose_review(tmp_path: Pat
 
 
 def test_build_report_blocks_structurally_complete_work_report_prose(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -178,7 +177,7 @@ Limitations are recorded in the claim boundary surface.
     (paper_root / "draft.md").write_text(work_report_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(work_report_text, encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "ai_medical_prose_review_missing_or_incomplete" not in report["blockers"]
@@ -192,7 +191,6 @@ Limitations are recorded in the claim boundary surface.
 
 
 def test_build_report_blocks_transportability_framework_jargon_before_export(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     paper_root = _paper_root_from_quest(quest_root)
     framework_text = """
@@ -235,9 +233,9 @@ These findings support model recalibration before clinical interpretation.
     (paper_root / "draft.md").write_text(framework_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(framework_text, encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
     analysis_plane_pattern_ids = {
-        pattern_id for pattern_id, _, _ in module.medical_surface_policy.get_analysis_plane_jargon_patterns()
+        pattern_id for pattern_id, _, _ in medical_surface_policy.get_analysis_plane_jargon_patterns()
     }
 
     assert report["status"] == "blocked"
@@ -250,7 +248,6 @@ These findings support model recalibration before clinical interpretation.
 
 
 def test_build_report_requires_ai_prose_review_before_subjective_style_closure(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -258,7 +255,7 @@ def test_build_report_requires_ai_prose_review_before_subjective_style_closure(t
         include_medical_prose_review=False,
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "ai_medical_prose_review_missing_or_incomplete" in report["blockers"]
@@ -267,7 +264,6 @@ def test_build_report_requires_ai_prose_review_before_subjective_style_closure(t
 
 
 def test_build_report_blocks_ai_reviewer_backed_work_report_verdict(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -275,7 +271,7 @@ def test_build_report_blocks_ai_reviewer_backed_work_report_verdict(tmp_path: Pa
         medical_prose_review_verdict="block",
     )
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "medical_journal_prose_style_not_met" in report["blockers"]
@@ -283,10 +279,9 @@ def test_build_report_blocks_ai_reviewer_backed_work_report_verdict(tmp_path: Pa
 
 
 def test_build_report_accepts_medical_journal_style_prose(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "clear"
     assert "medical_journal_prose_style_not_met" not in report["blockers"]
@@ -296,7 +291,6 @@ def test_build_report_accepts_medical_journal_style_prose(tmp_path: Path) -> Non
 
 
 def test_build_report_keeps_pattern_hits_as_evidence_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
     paper_root = _paper_root_from_quest(quest_root)
     pattern_hit_text = """
@@ -335,7 +329,7 @@ The findings support restrained follow-up stratification language within the stu
     (paper_root / "draft.md").write_text(pattern_hit_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(pattern_hit_text, encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert "medical_journal_prose_style_not_met" not in report["blockers"]
     assert report["medical_journal_prose_ai_verdict"] == "clear"
@@ -344,7 +338,6 @@ The findings support restrained follow-up stratification language within the stu
 
 
 def test_build_report_blocks_engineering_style_residue_even_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
     paper_root = _paper_root_from_quest(quest_root)
     engineering_style_text = """
@@ -391,7 +384,7 @@ The complexity audit remained secondary because marginal discrimination gains di
     (paper_root / "draft.md").write_text(engineering_style_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(engineering_style_text, encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "medical_journal_prose_style_not_met" in report["blockers"]
@@ -406,7 +399,6 @@ The complexity audit remained secondary because marginal discrimination gains di
 
 
 def test_build_report_blocks_final_polish_residue_even_when_ai_reviewer_clears_prose(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True, medical_prose_review_verdict="clear")
     paper_root = _paper_root_from_quest(quest_root)
     final_polish_residue_text = """
@@ -447,7 +439,7 @@ A descriptive atlas may appear modest compared with a prediction model, but it i
     (paper_root / "draft.md").write_text(final_polish_residue_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(final_polish_residue_text, encoding="utf-8")
 
-    report = module.build_surface_report(module.build_surface_state(quest_root))
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
 
     assert report["status"] == "blocked"
     assert "medical_journal_prose_style_not_met" in report["blockers"]
