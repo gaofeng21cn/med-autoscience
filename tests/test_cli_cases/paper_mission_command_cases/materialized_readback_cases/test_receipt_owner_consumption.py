@@ -153,6 +153,54 @@ def test_owner_consumed_route_checkpoint_yields_to_same_stage_new_work_unit() ->
     )
 
 
+def test_owner_consumed_route_checkpoint_yields_to_next_stage_work_unit() -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    paper_mission_commands = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_commands"
+    )
+    stage_closure_decision = {
+        "authority_materialized": True,
+        "stage_id": "submission_milestone_candidate",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+        },
+    }
+    owner_consumption_action = {
+        "action_family": "paper.stage_closure.owner_consumption",
+        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
+        "stage_id": "submission_milestone_candidate",
+    }
+    domain_transition_action = {
+        "surface_kind": "mas_next_action_envelope",
+        "action_family": "paper.write.prose_repair",
+        "action_type": "request_opl_stage_attempt",
+        "owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "stage_id": "write",
+    }
+    receipt_owner_consumption = {
+        "status": "owner_consumption_applied",
+        "mas_receipt_consumption": {"status": "owner_consumed_route_checkpoint"},
+    }
+
+    assert not materialized_readback._stage_closure_next_action_should_own_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action=owner_consumption_action,
+        domain_transition_next_action=domain_transition_action,
+        receipt_owner_consumption_readback=receipt_owner_consumption,
+    )
+    assert not paper_mission_commands._stage_closure_next_action_should_own_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action=owner_consumption_action,
+        domain_transition_next_action=domain_transition_action,
+        receipt_owner_consumption_readback=receipt_owner_consumption,
+    )
+
+
 def test_owner_consumption_alignment_updates_top_level_and_current_carriers() -> None:
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"

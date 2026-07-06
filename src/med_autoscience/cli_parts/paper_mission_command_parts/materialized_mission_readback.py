@@ -1051,9 +1051,10 @@ def _owner_consumed_route_checkpoint_yields_to_domain_transition(
         return False
     decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
     action_stage = _optional_text(action.get("stage_id"))
-    if decision_stage is None or action_stage is None:
+    action_work_unit = _optional_text(action.get("work_unit_id"))
+    if action_stage is None or action_work_unit is None:
         return False
-    return decision_stage == action_stage
+    return decision_stage in {action_stage, "submission_milestone_candidate"}
 
 
 def _route_checkpoint_identity_matches_domain_transition(
