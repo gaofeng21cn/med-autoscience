@@ -15,6 +15,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     fresh_progress_identity,
     repair_progress_currentness,
 )
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -58,9 +59,7 @@ def current_actions(
 
 def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
     try:
-        from med_autoscience.controllers import study_progress
-
-        payload = study_progress.read_study_progress(
+        payload = read_study_progress(
             profile=profile,
             study_id=study_id,
             sync_runtime_summary=False,

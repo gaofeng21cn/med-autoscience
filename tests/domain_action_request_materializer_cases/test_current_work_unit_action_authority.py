@@ -36,14 +36,13 @@ def test_fresh_progress_current_action_reads_without_live_provider_probe(monkeyp
     module = importlib.import_module(
         "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
     )
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
     observed: dict[str, object] = {}
 
     def read_study_progress(**kwargs):
         observed.update(kwargs)
         return {"study_id": kwargs["study_id"]}
 
-    monkeypatch.setattr(study_progress, "read_study_progress", read_study_progress)
+    monkeypatch.setattr(module, "read_study_progress", read_study_progress)
 
     payload = module._read_fresh_study_progress(profile=object(), study_id="001-risk")
 
