@@ -1,14 +1,6 @@
 from __future__ import annotations
 
-import argparse
-import hashlib
-import json
-import os
-import re
-import shutil
-import subprocess
-import tempfile
-import zipfile
+import argparse, hashlib, json, os, re, shutil, subprocess, tempfile, zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -146,9 +138,7 @@ def resolve_relpath(workspace_root: Path, value: str) -> Path:
 
 
 def build_figure_basename(figure_id: str) -> str:
-    if figure_id.startswith("SupplementaryFigure"):
-        return figure_id
-    if figure_id.startswith("Figure"):
+    if figure_id.startswith(("SupplementaryFigure", "Figure")):
         return figure_id
     if figure_id.startswith("FS"):
         return f"SupplementaryFigureS{figure_id[2:]}"
@@ -158,9 +148,7 @@ def build_figure_basename(figure_id: str) -> str:
 
 
 def build_table_basename(table_id: str) -> str:
-    if table_id.startswith("AppendixTable"):
-        return table_id
-    if table_id.startswith("Table"):
+    if table_id.startswith(("AppendixTable", "Table")):
         return table_id
     if table_id.startswith("TA"):
         return f"AppendixTable{table_id[2:]}"
@@ -169,12 +157,7 @@ def build_table_basename(table_id: str) -> str:
     return table_id
 
 
-def resolve_bundle_input_path(
-    *,
-    bundle_manifest: dict[str, Any],
-    key: str,
-    default_path: str | None = None,
-) -> str:
+def resolve_bundle_input_path(*, bundle_manifest: dict[str, Any], key: str, default_path: str | None = None) -> str:
     bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
     value = bundle_inputs.get(key)
     if value:
@@ -516,11 +499,7 @@ def resolve_table_source_paths(entry: dict[str, Any]) -> list[str]:
     return []
 
 
-def collect_referenced_paper_surface_paths(
-    *,
-    figure_catalog: dict[str, Any],
-    table_catalog: dict[str, Any],
-) -> set[str]:
+def collect_referenced_paper_surface_paths(*, figure_catalog: dict[str, Any], table_catalog: dict[str, Any]) -> set[str]:
     referenced_paths: set[str] = set()
     for entry in figure_catalog.get("figures", []):
         if not isinstance(entry, dict):
@@ -533,12 +512,7 @@ def collect_referenced_paper_surface_paths(
     return {path for path in referenced_paths if isinstance(path, str) and path.strip()}
 
 
-def prune_legacy_paper_surface_exports(
-    *,
-    paper_root: Path,
-    figure_catalog: dict[str, Any],
-    table_catalog: dict[str, Any],
-) -> list[str]:
+def prune_legacy_paper_surface_exports(*, paper_root: Path, figure_catalog: dict[str, Any], table_catalog: dict[str, Any]) -> list[str]:
     referenced_paths = collect_referenced_paper_surface_paths(
         figure_catalog=figure_catalog,
         table_catalog=table_catalog,
@@ -595,9 +569,7 @@ def _load_display_pack_lock_payload(*, paper_root: Path) -> tuple[Path, dict[str
     return lock_path, payload
 
 
-def _build_display_pack_summary_by_id(
-    lock_payload: dict[str, Any],
-) -> dict[str, dict[str, Any]]:
+def _build_display_pack_summary_by_id(lock_payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     enabled_packs = lock_payload.get("enabled_packs")
     if enabled_packs is None:
         return {}
@@ -663,12 +635,7 @@ def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
 
 def create_staging_output_root(*, target_root: Path) -> Path:
     target_root.parent.mkdir(parents=True, exist_ok=True)
-    return Path(
-        tempfile.mkdtemp(
-            dir=target_root.parent,
-            prefix=f".{target_root.name}.tmp-",
-        )
-    ).resolve()
+    return Path(tempfile.mkdtemp(dir=target_root.parent, prefix=f".{target_root.name}.tmp-")).resolve()
 
 
 def remap_staging_path_to_target(*, path: Path, staging_root: Path, target_root: Path) -> Path:
@@ -731,10 +698,6 @@ def build_submission_minimal_readme(*, publication_profile: str) -> str:
         "Use this directory as the only submission/export surface. "
         "Edit the manuscript in `manuscript/`; treat `submission/` as controller-generated handoff output and `artifacts/` as auxiliary machine evidence.\n"
     )
-
-
-
-
 
 
 def split_front_matter(markdown_text: str) -> tuple[dict[str, str], str]:
@@ -864,11 +827,7 @@ def resolve_submission_references_source(*, paper_root: Path) -> tuple[Path | No
     return None, None
 
 
-def validate_submission_references_coverage(
-    *,
-    source_markdown_path: Path,
-    references_path: Path | None,
-) -> dict[str, Any]:
+def validate_submission_references_coverage(*, source_markdown_path: Path, references_path: Path | None) -> dict[str, Any]:
     source_markdown_text = source_markdown_path.read_text(encoding="utf-8")
     metadata, _ = split_front_matter(source_markdown_text)
     citation_keys = sorted(markdown_citation_keys(source_markdown_text))
@@ -914,13 +873,7 @@ class SubmissionReferenceCoverageError(ValueError):
         )
 
 
-def auto_repair_submission_reference_gaps(
-    *,
-    paper_root: Path,
-    workspace_root: Path,
-    source_markdown_path: Path,
-    references_path: Path | None,
-) -> dict[str, Any]:
+def auto_repair_submission_reference_gaps(*, paper_root: Path, workspace_root: Path, source_markdown_path: Path, references_path: Path | None) -> dict[str, Any]:
     citation_keys = sorted(markdown_citation_keys(source_markdown_path.read_text(encoding="utf-8")))
     if not citation_keys:
         return {"status": "not_required", "missing_citation_keys": []}
