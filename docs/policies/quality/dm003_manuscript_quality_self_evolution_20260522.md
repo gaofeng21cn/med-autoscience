@@ -105,10 +105,22 @@ The publication work-unit selector now routes these structured medical reporting
 
 This route-priority repair does not authorize DM003 quality readiness. It only prevents MAS from converting specific medical-journal blockers into a generic prose-polish task before OPL writer execution.
 
+## 2026-07-06 Reviewer Revision Backfeed Landing
+
+The latest DM003 reviewer_revision exposed a first-draft quality gap that was broader than prose polish: the manuscript needed a structured medical finding argument before wording repair. For phenotype / treatment-gap manuscripts, MAS now treats these as first-draft and revision route-back targets:
+
+- convert descriptive phenotype counts into a structured phenotype pattern and service-priority contrast, with rate and count separated;
+- interpret recorded medication gaps through medication-record sensitivity when medication fields are incomplete, and preserve documentation-sensitive claim guardrails;
+- route unsupported calendar-year, repeated-visit, and site-variance claims to analysis-campaign gaps or typed waivers instead of inventing Results;
+- make Figure/Table terminology, rate/count labels, main/supplementary placement, and supplementary retention part of the quality-gate surface.
+
+This backfeed is MAS repo capability only. It does not write DM003 study truth, paper body, publication eval, controller decisions, owner receipts, typed blockers, human gates, runtime queues, provider attempts, current package, or submission authority.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
-- `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
+- `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets` now also locks the structured phenotype pattern, medication-record sensitivity, unsupported temporal/visit/site gaps, and Figure/Table supplementary-retention targets.
+- `tests/test_study_task_intake_cases/reviewer_revision_intake_cases.py::test_reviewer_revision_intake_is_detected_and_summarized` now locks the expanded reviewer_revision checklist.
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface`
 - `tests/test_publication_work_units_cases/delivery_specificity_cases.py::test_current_delivery_reporting_checklist_blockers_route_to_write_repair`

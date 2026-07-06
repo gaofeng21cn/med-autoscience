@@ -284,7 +284,10 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "statistical_analysis",
         "tables_figures",
         "follow_up_evidence",
+        "scientific_finding_pattern",
+        "analysis_gap_route_back",
         "discussion_claim_guardrails",
+        "figure_table_terminology_retention",
         "coverage_audit",
         "handoff_evidence_surface",
     ]
