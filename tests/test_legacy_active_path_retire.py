@@ -552,11 +552,13 @@ def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind
 def test_product_entry_default_mainline_has_no_legacy_domain_diagnostic_or_dispatch_command(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers import product_entry
+    from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+        build_product_entry_manifest,
+    )
 
     profile = make_profile(tmp_path)
 
-    manifest = product_entry.build_product_entry_manifest(
+    manifest = build_product_entry_manifest(
         profile=profile,
         profile_ref=tmp_path / "profile.toml",
     )
