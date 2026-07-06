@@ -62,6 +62,8 @@ SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS = (
     "medical-cohort-phenotyping",
     "medical-evidence-synthesis-and-claim-map",
     "medical-reference-integrity-auditor",
+    "medical-rebuttal-strategy",
+    "medical-display-qc",
     "medical-causal-inference-plan",
     "medical-survival-analysis-plan",
     "medical-risk-model-transportability-reviewer",
