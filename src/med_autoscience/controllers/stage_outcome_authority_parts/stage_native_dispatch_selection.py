@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import opl_domain_progress_transition_contract
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -78,9 +79,7 @@ def dispatch_has_opl_execution_proof(dispatch: Mapping[str, Any]) -> bool:
 
 def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
     try:
-        from med_autoscience.controllers import study_progress
-
-        payload = study_progress.read_study_progress(
+        payload = read_study_progress(
             profile=profile,
             study_id=study_id,
             sync_runtime_summary=False,
