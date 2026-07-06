@@ -471,7 +471,10 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
     sensitivity = _medication_sensitivity_values(sensitivity_rows)
     site_variability = _site_variability_values(site_variability_rows)
     burden_contrasts = _burden_contrast_values(study_root=study_root)
+    adjusted_model_rows = _bounded_table_rows(study_root, "dyslipidemia_adjusted_site_model.csv")
+    adjusted_model = _adjusted_model_values(adjusted_model_rows)
     t3 = _build_medication_capture_sensitivity_table(sensitivity)
+    t4 = _build_adjusted_model_table(adjusted_model_rows)
     supplementary_section = _build_supplementary_tables_section(
         supplementary_text=supplementary_text,
         transition_table=t3_transition,
@@ -491,9 +494,10 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 transition=transition,
                 site_variability=site_variability,
                 burden_contrasts=burden_contrasts,
+                adjusted_model=adjusted_model,
             ),
             _introduction_section(),
-            _methods_section(cohort=cohort),
+            _methods_section(cohort=cohort, adjusted_model=adjusted_model),
             _results_section(
                 cohort=cohort,
                 phenotype_rows=phenotype_rows,
@@ -502,14 +506,16 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
                 transition=transition,
                 site_variability=site_variability,
                 burden_contrasts=burden_contrasts,
+                adjusted_model=adjusted_model,
             ),
-            _tables_section(t1=t1, t2=t2, t3=t3),
+            _tables_section(t1=t1, t2=t2, t3=t3, t4=t4),
             supplementary_section,
             _discussion_section(
                 phenotype_rows=phenotype_rows,
                 sensitivity=sensitivity,
                 transition=transition,
                 burden_contrasts=burden_contrasts,
+                adjusted_model=adjusted_model,
             ),
             _limitations_section(),
             _conclusion_section(),
@@ -526,6 +532,7 @@ def _abstract_section(
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     phenotype_sentence = _phenotype_distribution_sentence(phenotype_rows)
     uncontrolled = _sensitivity_lookup(
@@ -561,6 +568,19 @@ def _abstract_section(
         burden_contrasts,
         "dyslipidemia_context_no_recorded_lipid_lowering",
     )
+    glycemic_adjusted = _adjusted_model_lookup(
+        adjusted_model,
+        "Glycemic-dominant diabetes vs Adiposity-linked multimorbidity",
+    )
+    adjusted_sentence = ""
+    if glycemic_adjusted:
+        adjusted_sentence = (
+            " In the medication-field-present site fixed-effect sensitivity model "
+            f"(n={_format_count(glycemic_adjusted.get('model_n'))}; "
+            f"{_format_count(glycemic_adjusted.get('source_sites_in_model'))} source sites), "
+            "glycemic-dominant diabetes retained higher adjusted odds of the dyslipidemia no-lipid-lowering signal "
+            f"than adiposity-linked multimorbidity ({_format_adjusted_or_ci(glycemic_adjusted)})."
+        )
     return (
         "## Abstract\n\n"
         "**Background:** Primary-care diabetes management increasingly requires integrated glycemic, "
@@ -594,7 +614,7 @@ def _abstract_section(
         f"({dyslipidemia_contrast.get('highest_count_phenotype', 'adiposity-linked multimorbidity')}). "
         f"Site-level summaries showed wide variation, with "
         f"a median dyslipidemia gap of {_percent_value(site_gap.get('Median gap %'))}; repeated-visit transition "
-        "results were retained as support-only evidence.\n\n"
+        f"results were retained as support-only evidence.{adjusted_sentence}\n\n"
         "**Conclusions:** In this regional primary-care diabetes network, care-review gaps were structured rather "
         "than uniform. Glycemic gaps were concentrated in glycemic phenotypes and were highly medication-record "
         "sensitive, whereas lipid-lowering prevention gaps remained large after medication-field restriction and "
@@ -634,7 +654,22 @@ def _introduction_section() -> str:
     )
 
 
-def _methods_section(*, cohort: Mapping[str, Any]) -> str:
+def _methods_section(
+    *,
+    cohort: Mapping[str, Any],
+    adjusted_model: Mapping[str, Mapping[str, str]],
+) -> str:
+    model_scope = ""
+    if adjusted_model:
+        model_scope = (
+            " As a secondary sensitivity analysis for the most stable cardiometabolic prevention signal, we fitted a "
+            "logistic regression for the dyslipidemia-context no-recorded-lipid-lowering indicator among "
+            "medication-field-present patients with plausible age, sex, and anonymous source-site code. The model "
+            "included phenotype, age, sex, and anonymous source-site fixed effects; source sites were retained when "
+            "they had at least 50 eligible patients and both outcome classes. This model was used to test whether "
+            "the lipid-lowering review signal remained phenotype-patterned after basic patient and site adjustment, "
+            "not to estimate causal effects or site performance."
+        )
     return (
         "## Methods\n\n"
         "### Study design and cohort\n\n"
@@ -733,9 +768,9 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "repeated core gap summaries among patients with a nonempty medication field and among patients with any "
         "parsed medication class. We also summarized anonymous source-site-code gap variability for source-site codes "
         "with at least 50 eligible patients per indicator and performed adult/plausible-age sensitivity. Sensitivity "
-        "analyses were implemented in Python using sqlite3, numpy, scipy, and matplotlib. No causal model, "
-        "p-value-driven hypothesis test, individualized prediction model, or blood-pressure target attainment "
-        "analysis was used for the main manuscript."
+        "analyses were implemented in Python using sqlite3, numpy, scipy, statsmodels, and matplotlib."
+        f"{model_scope} No causal model, p-value-driven main hypothesis test, individualized prediction model, "
+        "or blood-pressure target attainment analysis was used for the main manuscript."
     )
 
 
@@ -748,6 +783,7 @@ def _results_section(
     transition: Mapping[str, str],
     site_variability: Mapping[str, Mapping[str, str]],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     uncontrolled = _sensitivity_lookup(
         sensitivity,
@@ -827,6 +863,7 @@ def _results_section(
         burden_contrasts,
         "dyslipidemia_context_no_recorded_lipid_lowering",
     )
+    adjusted_results = _adjusted_model_results_sentence(adjusted_model)
     return (
         "## Results\n\n"
         "### Cohort and analytic support\n\n"
@@ -902,7 +939,7 @@ def _results_section(
         f"{_percent_value(renal_present.get('Gap %'))}. This attenuation shows that medication-field missingness "
         "contributes materially to glycemic no-drug indicators, while lipid-lowering signals remain large even in "
         "the medication-field-present denominator; renal-risk organ-protection coverage remains a secondary "
-        "exploratory review signal.\n\n"
+        f"exploratory review signal.{adjusted_results}\n\n"
         "### Transition stability and site support\n\n"
         "Repeated-visit and site summaries supported the phenotype narrative without converting it into a prediction "
         f"or external-validation claim. Among {transition['transition_eligible']} transition-eligible repeated-visit "
@@ -922,7 +959,7 @@ def _results_section(
     )
 
 
-def _tables_section(*, t1: str, t2: str, t3: str) -> str:
+def _tables_section(*, t1: str, t2: str, t3: str, t4: str) -> str:
     sections = ["## Tables"]
     if t1:
         sections.append("### Table 1. Data source, cohort assembly, and quality-control summary\n\n" + _strip_table_heading(t1))
@@ -933,6 +970,8 @@ def _tables_section(*, t1: str, t2: str, t3: str) -> str:
         )
     if t3:
         sections.append("### Table 3. Medication-capture sensitivity analysis of recorded mismatch signals\n\n" + _strip_table_heading(t3))
+    if t4:
+        sections.append("### Table 4. Site-adjusted dyslipidemia no-lipid-lowering sensitivity model\n\n" + _strip_table_heading(t4))
     return "\n\n".join(sections)
 
 
@@ -942,6 +981,7 @@ def _discussion_section(
     sensitivity: Mapping[str, Mapping[str, str]],
     transition: Mapping[str, str],
     burden_contrasts: Mapping[str, Mapping[str, str]],
+    adjusted_model: Mapping[str, Mapping[str, str]],
 ) -> str:
     largest = phenotype_rows[0] if phenotype_rows else {}
     renal = _sensitivity_lookup(
@@ -973,6 +1013,7 @@ def _discussion_section(
         burden_contrasts,
         "dyslipidemia_context_no_recorded_lipid_lowering",
     )
+    adjusted_discussion = _adjusted_model_discussion_sentence(adjusted_model)
     return (
         "## Discussion\n\n"
         "### Principal findings\n\n"
@@ -1000,7 +1041,7 @@ def _discussion_section(
         "highlight preventive-medication documentation signals even when mean HbA1c is not the dominant feature. The "
         "medication-field-present sensitivity analysis is important for clinical interpretation: glycemic no-drug "
         "indicators were strongly attenuated when medication fields were present, whereas lipid-lowering signals "
-        "remained large; renal-risk organ-protection coverage remained a secondary exploratory signal.\n\n"
+        f"remained large; renal-risk organ-protection coverage remained a secondary exploratory signal.{adjusted_discussion}\n\n"
         "These priorities are deliberately phrased as review signals. The DPCC medication fields identify what was "
         "recorded in the primary-care release, not the complete medication history. A recorded gap may reflect "
         "incomplete capture, treatment outside the network, self-purchased drugs, contraindications, patient "
@@ -1353,6 +1394,108 @@ def _bounded_table_rows(study_root: Path, filename: str) -> list[dict[str, str]]
         with path.open("r", encoding="utf-8", newline="") as handle:
             return [dict(row) for row in csv.DictReader(handle)]
     return _markdown_table_rows(path.read_text(encoding="utf-8"))
+
+
+def _adjusted_model_values(rows: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        comparison = _text(row.get("comparison"))
+        if comparison is not None:
+            result[comparison] = row
+    return result
+
+
+def _adjusted_model_lookup(
+    adjusted_model: Mapping[str, Mapping[str, str]],
+    comparison: str,
+) -> Mapping[str, str]:
+    return adjusted_model.get(comparison, {})
+
+
+def _format_adjusted_or_ci(row: Mapping[str, str]) -> str:
+    adjusted_or = _text(row.get("adjusted_or")) or "NA"
+    ci = _text(row.get("ci_95")) or "NA"
+    return f"adjusted OR {adjusted_or}, 95% CI {ci}"
+
+
+def _adjusted_model_results_sentence(adjusted_model: Mapping[str, Mapping[str, str]]) -> str:
+    if not adjusted_model:
+        return ""
+    cardio = _adjusted_model_lookup(
+        adjusted_model,
+        "Cardiometabolic-risk dominant diabetes vs Adiposity-linked multimorbidity",
+    )
+    glycemic = _adjusted_model_lookup(
+        adjusted_model,
+        "Glycemic-dominant diabetes vs Adiposity-linked multimorbidity",
+    )
+    severe = _adjusted_model_lookup(
+        adjusted_model,
+        "Severe glycemic multimorbidity vs Adiposity-linked multimorbidity",
+    )
+    if not cardio or not glycemic or not severe:
+        return ""
+    return (
+        " In the medication-field-present dyslipidemia-context sensitivity model, after adjustment for age, sex, "
+        f"and anonymous source-site fixed effects, the corresponding odds ratios versus adiposity-linked "
+        f"multimorbidity were {_format_adjusted_or_ci(cardio)} for cardiometabolic-risk dominant diabetes, "
+        f"{_format_adjusted_or_ci(glycemic)} for glycemic-dominant diabetes, and "
+        f"{_format_adjusted_or_ci(severe)} for severe glycemic multimorbidity."
+    )
+
+
+def _adjusted_model_discussion_sentence(adjusted_model: Mapping[str, Mapping[str, str]]) -> str:
+    glycemic = _adjusted_model_lookup(
+        adjusted_model,
+        "Glycemic-dominant diabetes vs Adiposity-linked multimorbidity",
+    )
+    if not glycemic:
+        return ""
+    return (
+        " The site fixed-effect dyslipidemia sensitivity model supports the same service-review interpretation: "
+        "the lipid-lowering signal remained phenotype-patterned after basic patient and anonymous-site adjustment, "
+        f"with glycemic-dominant diabetes showing {_format_adjusted_or_ci(glycemic)} versus adiposity-linked "
+        "multimorbidity. This model is supportive rather than causal and should not be read as a site-performance "
+        "or guideline-adherence estimate."
+    )
+
+
+def _build_adjusted_model_table(rows: list[dict[str, str]]) -> str:
+    selected = [
+        row
+        for row in rows
+        if _text(row.get("comparison"))
+        in {
+            "Cardiometabolic-risk dominant diabetes vs Adiposity-linked multimorbidity",
+            "Glycemic-dominant diabetes vs Adiposity-linked multimorbidity",
+            "Severe glycemic multimorbidity vs Adiposity-linked multimorbidity",
+            "Age, per year",
+            "Female vs male",
+        }
+    ]
+    if not selected:
+        return ""
+    output = [
+        "| Comparison | Adjusted OR | 95% CI | P value | Model n | Source sites | Interpretation boundary |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in selected:
+        output.append(
+            "| "
+            + " | ".join(
+                [
+                    _text(row.get("comparison")) or "NA",
+                    _text(row.get("adjusted_or")) or "NA",
+                    _text(row.get("ci_95")) or "NA",
+                    _text(row.get("p_value")) or "NA",
+                    _format_count(row.get("model_n")),
+                    _format_count(row.get("source_sites_in_model")),
+                    _text(row.get("interpretation_boundary")) or "secondary sensitivity analysis",
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(output)
 
 
 def _read_csv_rows(path: Path) -> list[dict[str, str]]:
@@ -1797,6 +1940,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
             "Supplementary Table S2. Medication-record sensitivity for core review signals",
         )
     )
+    adjusted_model_rows = _bounded_table_rows(study_root, "dyslipidemia_adjusted_site_model.csv")
     for relpath in (
         Path("cohort_flow.json"),
         Path("dpcc_phenotype_gap_structure.json"),
@@ -1825,7 +1969,10 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         elif relpath == Path("dpcc_treatment_gap_alignment.json") or relpath.name == "F4.render_request.json":
             updated = _repair_dpcc_treatment_gap_alignment_payload(updated, t2=t2, study_root=study_root)
         elif relpath in {Path("table_catalog.json"), Path("tables") / "table_catalog.json"}:
-            updated = _repair_dpcc_table_catalog_payload(updated)
+            updated = _repair_dpcc_table_catalog_payload(
+                updated,
+                has_adjusted_model=bool(adjusted_model_rows),
+            )
         elif relpath == Path("figure_semantics_manifest.json"):
             updated = _repair_dpcc_figure_semantics_manifest_payload(updated)
         elif relpath == Path("medical_manuscript_blueprint.json"):
@@ -1839,6 +1986,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
             t2=t2,
             sensitivity=sensitivity,
             transition_table=t3_transition,
+            adjusted_model_rows=adjusted_model_rows,
         )
     )
     return changed_paths
@@ -2188,11 +2336,16 @@ def _rate_float(value: str) -> float | None:
         return None
 
 
-def _repair_dpcc_table_catalog_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _repair_dpcc_table_catalog_payload(
+    payload: Mapping[str, Any],
+    *,
+    has_adjusted_model: bool = False,
+) -> dict[str, Any]:
     updated = json.loads(json.dumps(payload))
     tables = []
     rich_catalog = False
     has_supplementary_transition = False
+    has_adjusted_model_table = False
     for table in payload.get("tables") or []:
         if not isinstance(table, Mapping):
             continue
@@ -2222,11 +2375,27 @@ def _repair_dpcc_table_catalog_payload(payload: Mapping[str, Any]) -> dict[str, 
                 patched_render_result["table_layout_policy"] = "pre_materialized_markdown_owner_surface"
                 patched_render_result.pop("source_table_path", None)
                 item["render_result"] = patched_render_result
+        elif _text(item.get("table_id")) == "T4":
+            has_adjusted_model_table = True
+            if "paper_role" in item or "table_shell_id" in item or "asset_paths" in item or "source_paths" in item:
+                rich_catalog = True
         elif _text(item.get("table_id")) == "S6":
             has_supplementary_transition = True
             if "paper_role" in item or "table_shell_id" in item or "asset_paths" in item or "source_paths" in item:
                 rich_catalog = True
         tables.append(item)
+    if rich_catalog and has_adjusted_model and not has_adjusted_model_table:
+        tables.append(
+            {
+                "table_id": "T4",
+                "paper_role": "main_text",
+                "title": "Site-adjusted dyslipidemia no-lipid-lowering sensitivity model",
+                "caption": "Medication-field-present logistic sensitivity model adjusted for phenotype, age, sex, and anonymous source-site fixed effects.",
+                "asset_paths": ["paper/tables/generated/T4_dyslipidemia_adjusted_site_model.md"],
+                "source_paths": ["paper/tables/generated/T4_dyslipidemia_adjusted_site_model.md"],
+                "qc_result": {"status": "pass", "issues": []},
+            }
+        )
     if rich_catalog and not has_supplementary_transition:
         tables.append(
             {
@@ -2287,6 +2456,7 @@ def _materialize_dpcc_support_tables(
     t2: str,
     sensitivity: Mapping[str, Mapping[str, Mapping[str, str]]],
     transition_table: str,
+    adjusted_model_rows: list[dict[str, str]],
 ) -> list[str]:
     changed_paths: list[str] = []
     if t1:
@@ -2314,6 +2484,15 @@ def _materialize_dpcc_support_tables(
         ):
             path = paper_root / relpath
             if _write_text_if_changed(path, "# Medication-capture sensitivity analysis\n\n" + t3_markdown):
+                changed_paths.append(str(path.resolve()))
+    t4_markdown = _build_adjusted_model_table(adjusted_model_rows)
+    if t4_markdown:
+        for relpath in (
+            Path("tables") / "T4_dyslipidemia_adjusted_site_model.md",
+            Path("tables") / "generated" / "T4_dyslipidemia_adjusted_site_model.md",
+        ):
+            path = paper_root / relpath
+            if _write_text_if_changed(path, "# Site-adjusted dyslipidemia sensitivity model\n\n" + t4_markdown):
                 changed_paths.append(str(path.resolve()))
     if transition_table:
         for relpath in (

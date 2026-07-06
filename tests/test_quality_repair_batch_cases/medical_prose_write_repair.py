@@ -348,6 +348,15 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
         ),
         encoding="utf-8",
     )
+    (campaign_tables / "dyslipidemia_adjusted_site_model.csv").write_text(
+        "\n".join(
+            [
+                "comparison,adjusted_or,ci_95,p_value,model_n,source_sites_in_model,interpretation_boundary",
+                "Glycemic-dominant diabetes vs Adiposity-linked multimorbidity,1.19,1.13-1.25,<0.001,110320,248,secondary sensitivity only",
+            ]
+        ),
+        encoding="utf-8",
+    )
     paper_root.mkdir(parents=True)
     (paper_root / "draft.md").write_text(
         "# Previous draft\n\n## Supplementary Tables\n\n### Supplementary Table S9. Old table\n\n| A | B |\n| --- | --- |\n| stale | stale |\n",
@@ -383,6 +392,15 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     assert "| Glycemic-dominant diabetes | Index patients | 104,508 |" in t2
     assert "| Glycemic-dominant diabetes | Share of index cohort | 15.1% |" in t2
     assert "| Glycemic-dominant diabetes | Hypertension with no antihypertensive | 68.8% |" in t2
+    adjusted_model = module._adjusted_model_values(
+        module._bounded_table_rows(study_root, "dyslipidemia_adjusted_site_model.csv")
+    )
+    assert module._format_adjusted_or_ci(
+        adjusted_model["Glycemic-dominant diabetes vs Adiposity-linked multimorbidity"]
+    ) == "adjusted OR 1.19, 95% CI 1.13-1.25"
+    assert "Adjusted OR" in module._build_adjusted_model_table(
+        module._bounded_table_rows(study_root, "dyslipidemia_adjusted_site_model.csv")
+    )
     wide_t2 = module._wide_phenotype_gap_summary_table(t2)
     assert "| Phenotype | n | % | Age, y | BMI | HbA1c | Severe glycemia / low intensity |" in wide_t2
     assert "| Glycemic-dominant diabetes | 104,508 | 15.1% | NA | NA | NA | NA | NA | 68.8% | NA |" in wide_t2
@@ -468,6 +486,7 @@ def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path
     assert "| Transition support | Index patients | 104,508 |" in (
         tables_root / "S6_transition_site_support_summary.md"
     ).read_text(encoding="utf-8")
+    assert "1.19" in (tables_root / "T4_dyslipidemia_adjusted_site_model.md").read_text(encoding="utf-8")
     phenotype_rows = json.loads((paper_root / "dpcc_phenotype_gap_structure.json").read_text(encoding="utf-8"))[
         "displays"
     ][0]["rows"]
