@@ -184,7 +184,11 @@ def materialize_medical_prose_story_surfaces(
                     study_root=study_root,
                 )
                 return extra_changed_paths
-            return []
+            return [
+                str((paper_root / relpath).resolve())
+                for relpath in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+                if (paper_root / relpath).exists()
+            ]
     extra_changed_paths: list[str] = []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)

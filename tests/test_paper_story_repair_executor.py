@@ -152,6 +152,117 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
     assert receipt["skill_usage_status"] == "not_applicable_deterministic_owner_callable"
 
 
+def test_story_repair_executor_preserves_existing_writer_story_delta(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    paper_root = study_root / "paper"
+    old_text = "# Draft\n\nOld manuscript surface before writer repair.\n"
+    for relpath in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str((paper_root / relpath).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": {
+                "size": (paper_root / relpath).stat().st_size,
+                "content_sha256": hashlib.sha256((paper_root / relpath).read_bytes()).hexdigest(),
+            },
+        }
+        for relpath in ("draft.md", "build/review_manuscript.md")
+    ]
+    writer_story = "\n\n".join(
+        [
+            "# Clinically interpretable diabetes phenotypes and recorded medication-coverage gaps in Hunan primary care",
+            "## Abstract",
+            "**Background:** Primary-care diabetes services need reproducible phenotype summaries that connect clinical burden with documented medication coverage.",
+            "**Methods:** The study used 1,779,360 DPCC records and 692,842 index patients. Phenotypes were assigned with a deterministic rule hierarchy, not a fitted clustering or prediction model.",
+            "**Results:** Six phenotypes were retained; recorded medication-coverage gap rates varied by phenotype and eligible denominator.",
+            "**Conclusions:** The findings support regional service review and prospective validation.",
+            "## Introduction",
+            "The clinical problem is the heterogeneity of diabetes management needs in primary care. Routine-care networks need transparent service-review groupings.",
+            "## Methods",
+            "### Study design and cohort",
+            "We conducted a retrospective descriptive study of deidentified DPCC primary-care records.",
+            "### Variable definition and measurement",
+            "Candidate domains included age, sex, BMI, HbA1c, fasting glucose, lipid measures, eGFR, diagnoses, medication records, visit structure, and site identifiers.",
+            "### Phenotype derivation and assignment",
+            "Phenotype derivation used a prespecified deterministic hierarchy that can be reproduced for a new index patient.",
+            "### Model or grouping framework",
+            "No clustering model, treatment-effect model, or individualized prediction model was fitted.",
+            "### Validation framework",
+            "Repeated-visit transitions and site support were used as descriptive within-network support checks.",
+            "### Data quality assessment",
+            "Data quality checks defined the blood-pressure boundary before interpreting hypertension context.",
+            "### Statistical analysis",
+            "Statistical analysis used counts, percentages, denominators, and descriptive summaries.",
+            "## Results",
+            "The index cohort included 692,842 patients with diabetes. Recorded medication-coverage gap rates varied by phenotype and eligible denominator.",
+            "## Discussion",
+            "The principal finding is that a reproducible clinical hierarchy separated different service-review problems inside one regional diabetes network.",
+            "## Limitations",
+            "Medication capture was limited to recorded primary-care medication fields.",
+            "## Conclusion",
+            "A deterministic DPCC phenotype hierarchy identified clinically interpretable groups with distinct recorded medication-coverage gap profiles.",
+        ]
+    ) + "\n"
+    for relpath in ("draft.md", "build/review_manuscript.md"):
+        (paper_root / relpath).write_text(writer_story, encoding="utf-8")
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "eval-current",
+            "recommended_actions": [
+                {
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "source_eval_id": "eval-current",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "surface_refs": old_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "story_surface_delta_refs": [],
+                },
+            },
+        },
+    )
+
+    result = module.run_story_repair(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        source="test",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "progress_delta_candidate"
+    story_refs = result["repair_execution_evidence"]["manuscript_surface_hygiene"]["story_surface_delta_refs"]
+    assert {
+        Path(ref["path"]).relative_to(study_root).as_posix()
+        for ref in story_refs
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    assert not result["repair_execution_evidence"]["blockers"]
+
+
 def test_story_repair_executor_uses_previous_repair_evidence_as_story_delta_anchor(
     tmp_path: Path,
 ) -> None:
