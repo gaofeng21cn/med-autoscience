@@ -16,7 +16,6 @@ dependencies = [
   "matplotlib>=3.9",
   "opl-harness-shared @ git+https://github.com/gaofeng21cn/one-person-lab.git@3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7#subdirectory=python/opl-harness-shared",
   "pandas>=2.2",
-  "packaging>=24.0",
   "pypdf>=5.0",
 ]
 
@@ -37,13 +36,13 @@ analysis = [
 ]
 
 [project.scripts]
-mas = "med_autoscience.cli:entrypoint"
 medautosci = "med_autoscience.cli:entrypoint"
 medautosci-mcp = "med_autoscience.mcp_server:entrypoint"
 
 [dependency-groups]
 dev = [
   "build>=1.2",
+  "packaging>=24.0",
   "pytest>=8.0",
   "pytest-xdist>=3.6",
   "python-docx>=1.1",

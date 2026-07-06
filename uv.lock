@@ -475,7 +475,6 @@ source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
     { name = "opl-harness-shared" },
-    { name = "packaging" },
     { name = "pandas" },
     { name = "pypdf" },
     { name = "pyyaml" },
@@ -500,6 +499,7 @@ analysis = [
 [package.dev-dependencies]
 dev = [
     { name = "build" },
+    { name = "packaging" },
     { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "python-docx" },
@@ -514,7 +514,6 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'analysis'", specifier = ">=1.26" },
     { name = "openpyxl", marker = "extra == 'analysis'", specifier = ">=3.1" },
     { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7" },
-    { name = "packaging", specifier = ">=24.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.2" },
     { name = "pillow", marker = "extra == 'analysis'", specifier = ">=10.0" },
@@ -532,6 +531,7 @@ provides-extras = ["analysis"]
 [package.metadata.requires-dev]
 dev = [
     { name = "build", specifier = ">=1.2" },
+    { name = "packaging", specifier = ">=24.0" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-xdist", specifier = ">=3.6" },
     { name = "python-docx", specifier = ">=1.1" },

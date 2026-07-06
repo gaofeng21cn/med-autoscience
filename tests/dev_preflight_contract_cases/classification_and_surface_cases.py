@@ -84,7 +84,7 @@ def test_classify_changed_files_routes_branding_assets_to_review_only() -> None:
 
     result = module.classify_changed_files(
         [
-            "assets/branding/medautoscience-overview.png",
+            "assets/branding/medautoscience-overview-v2.png",
         ]
     )
 

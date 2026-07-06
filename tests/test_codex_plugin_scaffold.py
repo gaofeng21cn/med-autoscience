@@ -37,7 +37,7 @@ def test_codex_plugin_is_additive_and_keeps_python_cli_entrypoint() -> None:
     install_script = (REPO_ROOT / "scripts" / "install-codex-plugin.sh").read_text(encoding="utf-8")
     clean_runner_script = (REPO_ROOT / "scripts" / "run-python-clean.sh").read_text(encoding="utf-8")
 
-    assert pyproject_data["project"]["scripts"]["mas"] == "med_autoscience.cli:entrypoint"
+    assert "mas" not in pyproject_data["project"]["scripts"]
     assert pyproject_data["project"]["scripts"]["medautosci"] == "med_autoscience.cli:entrypoint"
     assert pyproject_data["project"]["scripts"]["medautosci-mcp"] == "med_autoscience.mcp_server:entrypoint"
     assert "def entrypoint() -> None:" in cli_text
