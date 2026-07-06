@@ -379,8 +379,8 @@ def _closeout_candidate_priority(
         )
         else 0,
         1 if _closeout_prefers_followthrough_identity(closeout, route_back) else 0,
-        _closeout_semantic_priority(closeout, route_back),
         closeout_path.stat().st_mtime,
+        _closeout_semantic_priority(closeout, route_back),
     )
 
 
