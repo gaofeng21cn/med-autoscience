@@ -26,9 +26,13 @@ Review the current draft, package, or candidate delta against:
 
 - study scope and claim-evidence refs;
 - methods and statistical traceability;
-- citation/source integrity, using `medical-research-lit` or
-  `opl connect pubmed search --query <query> --limit <n> --json` for citation
-  repair candidates when needed;
+- citation/source integrity, using `medical-research-lit` for AI-first
+  literature judgment and OPL Connect source refs for citation repair
+  candidates when needed; prefer PubMed/PMC via
+  `opl connect scientific search --provider pubmed --query <query> --limit <n> --json`,
+  use Crossref/OpenAlex only for metadata, coverage, or citation-graph
+  fallback, and treat `opl connect pubmed search --query <query> --limit <n> --json`
+  as the PubMed compatibility path, not a separate authority;
 - figure/table consistency;
 - submission-minimal expectations;
 - previous reviewer comments and unresolved route-backs.

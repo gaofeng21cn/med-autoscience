@@ -32,8 +32,12 @@ Before drafting or revising, confirm:
 - accepted evidence refs and claim-evidence map status;
 - current manuscript or target section surface;
 - figure/table refs that support the text;
-- citation gaps that require `medical-research-lit` or
-  `opl connect pubmed search --query <query> --limit <n> --json`;
+- citation gaps that require `medical-research-lit` for AI-first literature
+  judgment, using OPL Connect source refs with PubMed/PMC first:
+  `opl connect scientific search --provider pubmed --query <query> --limit <n> --json`;
+  use Crossref/OpenAlex only for metadata, coverage, or citation-graph
+  fallback, and treat `opl connect pubmed search --query <query> --limit <n> --json`
+  as the PubMed compatibility path, not a separate authority;
 - the next owner gate after the candidate text is produced.
 
 ## Professional Skill Route
