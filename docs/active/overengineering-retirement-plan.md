@@ -52,3 +52,9 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `submission_minimal.py`：已把 `study_delivery_sync_parts/submission_delivery_descriptions.py` 的 `describe_submission_minimal_authority` 迁到 `submission_minimal_parts.authority`；facade 仍被 `study_manual_finish.py` 作为 dynamic controller import 使用，且测试仍有 exact facade import，typed blocker 为 `facade_active_public_import_surface`。
 - `study_runtime_decision.py`：已把 `domain_status_projection.py` 的 `_status_payload` / `_status_state` / `_record_quest_runtime_audits` 迁到真实 parts；facade 仍被 publication runtime / gate dynamic import 和 parts `__name__` guard 使用，typed blocker 为 `facade_active_runtime_controller_identity`.
 - `study_progress.py`、`product_entry.py`、`medical_publication_surface.py`：production surface 仍存在 controller identity / `sys.modules` 依赖，测试 exact facade imports 分别为 71 / 38 / 11 个文件；本轮不做批量 public surface 删除，typed blocker 为 `facade_active_public_import_surface`.
+
+## 2026-07-06 P2 test surface cleanup evidence
+
+- `tests/test_cli_cases/paper_mission_command_cases/materialized_readback.py` 已把 stage-closure-ledger 相关 case 拆到 `tests/test_cli_cases/paper_mission_command_cases/materialized_readback_cases/test_stage_closure_ledger_readback.py`；原入口从约 1705 行降到约 1471 行，回到 preferred boundary advisory 范围。
+- 该拆分只改变测试组织，不改 PaperMission / StageOutcome 语义，不写真实 study artifact、publication eval、controller decision、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
+- 当前 P2 完成口径是 first safe slice landed；剩余超大测试 / fixture 继续按 source-governance lane 逐个语义拆分，不能把 line-budget advisory 当成 runtime / publication / domain-ready blocker。
