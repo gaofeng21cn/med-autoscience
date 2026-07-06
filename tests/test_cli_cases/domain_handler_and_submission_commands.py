@@ -15,11 +15,11 @@ def test_cli_runtime_facing_controller_proxies_are_named_currentness_surfaces(mo
     cli = importlib.import_module("med_autoscience.cli")
     proxy_targets = {
         "domain_status_projection": "domain_status_projection",
-        "study_progress": "study_progress",
         "gate_clearing_batch": "gate_clearing_batch",
         "quality_repair_batch": "quality_repair_batch",
         "runtime_health_kernel": "runtime_health_kernel",
     }
+    assert not hasattr(cli, "study_progress")
 
     for attr_name, module_basename in proxy_targets.items():
         module_name = f"med_autoscience.controllers.{module_basename}"
@@ -165,7 +165,7 @@ def test_export_submission_minimal_command_dispatches_exporter(monkeypatch, tmp_
         called["citation_style"] = citation_style
         return {"output_root": str(paper_root / "submission_minimal")}
 
-    monkeypatch.setattr(cli.submission_minimal, "create_submission_minimal_package", fake_export)
+    monkeypatch.setattr(cli.submission_package_builder, "create_submission_minimal_package", fake_export)
 
     exit_code = cli.main(
         [

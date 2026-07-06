@@ -149,7 +149,7 @@ study_interventions = _LazyModuleProxy(lambda: _load_controller("study_intervent
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_inspection_export = _LazyModuleProxy(lambda: _load_controller("submission_inspection_export"))
-submission_minimal = _LazyModuleProxy(
+submission_package_builder = _LazyModuleProxy(
     lambda: _load_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
 )
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
@@ -715,7 +715,7 @@ def main(argv: list[str] | None = None) -> int:
         return workspace_data_result
 
     if args.command == "export-submission-minimal":
-        result = submission_minimal.create_submission_minimal_package(
+        result = submission_package_builder.create_submission_minimal_package(
             paper_root=Path(args.paper_root),
             publication_profile=args.publication_profile,
             citation_style=args.citation_style,
