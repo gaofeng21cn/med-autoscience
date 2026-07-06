@@ -278,7 +278,7 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_after_authority_settle_w
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",
@@ -437,7 +437,7 @@ def test_run_gate_clearing_batch_redrives_delivery_sync_for_mechanical_eval_id_d
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",

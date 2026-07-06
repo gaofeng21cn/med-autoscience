@@ -104,7 +104,7 @@ def test_authority_settle_redrive_syncs_delivery_without_recreating_package(
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",
@@ -239,7 +239,7 @@ def test_authority_settle_redrive_syncs_delivery_for_bundle_stage_retry_without_
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",

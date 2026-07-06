@@ -68,19 +68,23 @@ def test_run_gate_clearing_batch_executes_delivery_refresh_fast_lane_for_stale_p
         }
 
     monkeypatch.setattr(
-        module.study_delivery_sync,
+        module,
         "can_sync_study_delivery",
         lambda *, paper_root: True,
     )
     monkeypatch.setattr(
-        module.study_delivery_sync,
-        "sync_study_delivery",
-        fake_sync,
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda **_: (_ for _ in ()).throw(AssertionError("fast lane should call settle wrapper")),
     )
     monkeypatch.setattr(
-        module.study_delivery_sync,
-        "materialize_submission_delivery_stale_notice",
-        lambda **_: (_ for _ in ()).throw(AssertionError("projection-missing should use sync_study_delivery")),
+        module.gate_clearing_batch_submission,
+        "sync_submission_minimal_delivery_after_settle",
+        lambda *, paper_root, profile, **_: fake_sync(
+            paper_root=paper_root,
+            stage="submission_minimal",
+            publication_profile=profile.default_publication_profile,
+        ),
     )
     monkeypatch.setattr(
         module,
@@ -193,13 +197,18 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
         lambda **_: {"ok": True, "status": "updated", "repaired_files": ["paper/live-paths.json"]},
     )
     monkeypatch.setattr(
-        module.study_delivery_sync,
+        module,
         "can_sync_study_delivery",
         lambda *, paper_root: True,
     )
     monkeypatch.setattr(
-        module.study_delivery_sync,
-        "sync_study_delivery",
+        module,
+        "_sync_submission_minimal_delivery",
+        lambda **_: (_ for _ in ()).throw(AssertionError("matching delivery fingerprint should skip sync")),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch_submission,
+        "sync_submission_minimal_delivery_after_settle",
         lambda **_: (_ for _ in ()).throw(AssertionError("matching delivery fingerprint should skip sync")),
     )
     replay_calls: list[dict[str, object]] = []
@@ -529,7 +538,7 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     sync_calls: list[Path] = []
     monkeypatch.setattr(
         module,
@@ -875,7 +884,7 @@ def test_run_gate_clearing_batch_authorizes_submission_refresh_from_selected_wor
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     seen_contexts: list[dict[str, object]] = []
 
     def fake_create_submission_minimal_package(*, paper_root, profile, authority_route_context):

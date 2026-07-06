@@ -822,7 +822,7 @@ def test_duplicate_closed_batch_refreshes_when_ai_reviewer_quality_authority_cha
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_sync_submission_minimal_delivery",

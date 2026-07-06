@@ -45,6 +45,7 @@ from med_autoscience.controllers.authority_route_context_call import call_with_a
 from med_autoscience.controllers.gate_clearing_batch_write_routes import route_bound_call as _route_bound
 from med_autoscience.controllers.gate_clearing_batch_write_routes import create_submission_minimal_package_with_route
 from med_autoscience.controllers.gate_clearing_batch_write_routes import sync_submission_minimal_delivery_with_route
+from med_autoscience.controllers.study_delivery_sync_parts.delivery_context import can_sync_study_delivery
 
 
 SCHEMA_VERSION = 1
@@ -54,7 +55,6 @@ CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
 
 display_surface_materialization = lazy_controller_module("display_surface_materialization")
 publication_gate = lazy_controller_module("publication_gate")
-study_delivery_sync = lazy_controller_module("study_delivery_sync")
 domain_status_projection = lazy_controller_module("domain_status_projection")
 time_to_event_direct_migration = lazy_controller_module("time_to_event_direct_migration")
 
@@ -578,7 +578,7 @@ def run_gate_clearing_batch(
         gate_blockers_fn=_gate_blockers,
         submission_controller=gate_clearing_batch_submission,
         authority_redrive_controller=gate_clearing_batch_authority_redrive,
-        study_delivery_sync_controller=study_delivery_sync,
+        can_sync_study_delivery_fn=can_sync_study_delivery,
         currentness_controller=gate_clearing_batch_currentness,
     )
     resolved_route_context = context.resolved_route_context

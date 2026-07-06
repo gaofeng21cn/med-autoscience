@@ -96,7 +96,7 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",
@@ -246,7 +246,7 @@ def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync
     )
     monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
     monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(module, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
         module,
         "_create_submission_minimal_package",

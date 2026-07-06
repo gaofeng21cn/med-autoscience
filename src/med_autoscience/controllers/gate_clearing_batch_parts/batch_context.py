@@ -58,7 +58,7 @@ def build_gate_clearing_batch_context(
     gate_blockers_fn: Callable[[dict[str, Any]], set[str]],
     submission_controller: Any,
     authority_redrive_controller: Any,
-    study_delivery_sync_controller: Any,
+    can_sync_study_delivery_fn: Callable[..., bool],
     currentness_controller: Any,
 ) -> GateClearingBatchContext:
     resolved_route_context = authority_route_context or route_context
@@ -92,7 +92,7 @@ def build_gate_clearing_batch_context(
     authority_settle_redrive_pending = (
         paper_root is not None
         and authority_redrive_controller.previous_delivery_sync_awaited_authority_settle(latest_batch)
-        and study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
+        and can_sync_study_delivery_fn(paper_root=paper_root)
     )
     if (
         latest_batch_closed_for_eval(latest_batch, current_eval_id)
@@ -156,7 +156,7 @@ def build_gate_clearing_batch_context(
     submission_minimal_refresh_requested = submission_controller.submission_minimal_refresh_requested(
         gate_report=gate_report
     )
-    can_sync_study_delivery = study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
+    can_sync_study_delivery = can_sync_study_delivery_fn(paper_root=paper_root)
     direct_submission_delivery_sync_requested = (
         bundle_stage_repair
         and not submission_minimal_refresh_requested
