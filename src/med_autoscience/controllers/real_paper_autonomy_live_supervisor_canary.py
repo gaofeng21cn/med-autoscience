@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_progress
 from med_autoscience.controllers.paper_autonomy_supervisor import (
     ALLOWED_DECISIONS,
     build_supervisor_decision,
 )
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
+from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -275,7 +275,7 @@ def _decision_from_progress(
 
 
 def _read_study_progress(profile: WorkspaceProfile, study_id: str) -> Mapping[str, Any]:
-    return study_progress.read_study_progress(
+    return read_study_progress(
         profile=profile,
         profile_ref=profile.profile_ref,
         study_id=study_id,
