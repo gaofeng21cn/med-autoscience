@@ -381,6 +381,7 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
         paper_root / "tables" / "generated" / "T1_baseline_characteristics.md",
         fallback_path=paper_root / "tables" / "T1_baseline_characteristics.md",
     )
+    t1 = _apply_bounded_t1_revisions(t1=t1, study_root=study_root)
     t2 = _read_table_text(
         paper_root / "tables" / "generated" / "T2_phenotype_gap_summary.md",
         fallback_path=paper_root / "tables" / "T2_phenotype_gap_summary.md",
@@ -389,6 +390,10 @@ def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> st
     t3_transition = _read_table_text(
         paper_root / "tables" / "generated" / "T3_transition_site_support_summary.md",
         fallback_path=paper_root / "tables" / "T3_transition_site_support_summary.md",
+    )
+    t3_transition = _apply_bounded_transition_table_revisions(
+        transition_table=t3_transition,
+        study_root=study_root,
     )
 
     cohort = _cohort_values(methods=methods, flow=flow, t1=t1)
@@ -1055,6 +1060,68 @@ def _apply_bounded_t2_revisions(*, t2: str, study_root: Path) -> str:
     return "\n".join(output) if changed else t2
 
 
+def _bounded_index_total(study_root: Path) -> int | None:
+    total = 0
+    seen = False
+    for row in _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv"):
+        value = _int_from_numeric_text(row.get("index_patients"))
+        if value is None:
+            continue
+        total += value
+        seen = True
+    return total if seen else None
+
+
+def _apply_bounded_t1_revisions(*, t1: str, study_root: Path) -> str:
+    index_total = _bounded_index_total(study_root)
+    if not t1 or index_total is None:
+        return t1
+    changed = False
+    output: list[str] = []
+    for line in t1.splitlines():
+        if not line.strip().startswith("|") or line.count("|") < 4:
+            output.append(line)
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or cells[0] in {"---", "Characteristic"}:
+            output.append(line)
+            continue
+        characteristic, measure, old_value = cells
+        if characteristic == "Cohort definition — Index patients" or measure == "Index patients":
+            new_value = _format_count(index_total)
+            if new_value != old_value:
+                cells[2] = new_value
+                line = "| " + " | ".join(cells) + " |"
+                changed = True
+        output.append(line)
+    return "\n".join(output) if changed else t1
+
+
+def _apply_bounded_transition_table_revisions(*, transition_table: str, study_root: Path) -> str:
+    index_total = _bounded_index_total(study_root)
+    if not transition_table or index_total is None:
+        return transition_table
+    changed = False
+    output: list[str] = []
+    for line in transition_table.splitlines():
+        if not line.strip().startswith("|") or line.count("|") < 4:
+            output.append(line)
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or cells[0] in {"---", "Section"}:
+            output.append(line)
+            continue
+        section, metric, old_value = cells
+        if section == "Transition support" and metric == "Index patients":
+            new_value = _format_count(index_total)
+            if new_value != old_value:
+                cells[2] = new_value
+                line = "| " + " | ".join(cells) + " |"
+                changed = True
+        output.append(line)
+    return "\n".join(output) if changed else transition_table
+
+
 def _bounded_table_rows(study_root: Path, filename: str) -> list[dict[str, str]]:
     campaign_dir = _latest_bounded_analysis_campaign_dir(study_root)
     if campaign_dir is None:
@@ -1308,7 +1375,7 @@ def _cohort_values(*, methods: Mapping[str, Any], flow: Mapping[str, Any], t1: s
     cohort_definition = _text(design.get("cohort_definition")) or ""
     steps = [dict(item) for item in flow.get("steps") or [] if isinstance(item, Mapping)]
     t1_values = _t1_value_map(t1)
-    index_denominator = _step_n(steps, "index_analysis_cohort") or 692702
+    index_denominator = _step_n(steps, "index_analysis_cohort") or 692842
     adult_plausible_age = t1_values.get("Adult/plausible-age patients") or 691992
     medication_field_present = _count_from_summary(
         t1_values.get("Index patients with nonempty medication fields")
@@ -1438,6 +1505,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
     )
     for relpath in (
         Path("cohort_flow.json"),
+        Path("dpcc_phenotype_gap_structure.json"),
         Path("dpcc_treatment_gap_alignment.json"),
         Path("table_catalog.json"),
         Path("tables") / "table_catalog.json",
@@ -1458,6 +1526,8 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
         updated = _replace_dpcc_display_metadata_text(payload)
         if relpath == Path("cohort_flow.json"):
             updated = _repair_dpcc_cohort_flow_payload(updated, t1=t1)
+        elif relpath == Path("dpcc_phenotype_gap_structure.json"):
+            updated = _repair_dpcc_phenotype_gap_structure_payload(updated, t2=t2)
         elif relpath == Path("dpcc_treatment_gap_alignment.json") or relpath.name == "F4.render_request.json":
             updated = _repair_dpcc_treatment_gap_alignment_payload(updated, t2=t2, study_root=study_root)
         elif relpath in {Path("table_catalog.json"), Path("tables") / "table_catalog.json"}:
@@ -1471,6 +1541,7 @@ def _materialize_dpcc_display_metadata_repairs(*, paper_root: Path) -> list[str]
     changed_paths.extend(
         _materialize_dpcc_support_tables(
             paper_root=paper_root,
+            t1=t1,
             t2=t2,
             sensitivity=sensitivity,
             transition_table=t3_transition,
@@ -1585,9 +1656,52 @@ def _repair_dpcc_treatment_gap_alignment_payload(
     return updated
 
 
+def _repair_dpcc_phenotype_gap_structure_payload(
+    payload: Mapping[str, Any],
+    *,
+    t2: str,
+) -> dict[str, Any]:
+    updated = _replace_dpcc_display_metadata_text(payload)
+    rows = updated.get("rows")
+    if rows is None and isinstance(updated.get("displays"), list):
+        displays = list(updated["displays"])
+        if displays and isinstance(displays[0], Mapping):
+            display = dict(displays[0])
+            display["rows"] = _dpcc_phenotype_rows_with_current_rates(
+                rows=display.get("rows"),
+                t2=t2,
+            )
+            displays[0] = display
+            updated = dict(updated)
+            updated["displays"] = displays
+            return updated
+    updated = dict(updated)
+    updated["rows"] = _dpcc_phenotype_rows_with_current_rates(rows=rows, t2=t2)
+    return updated
+
+
+def _dpcc_phenotype_rows_with_current_rates(*, rows: object, t2: str) -> list[dict[str, Any]]:
+    rate_map = _gap_rate_map_from_t2(t2)
+    share_map = _phenotype_index_share_map_from_t2(t2)
+    result: list[dict[str, Any]] = []
+    if not isinstance(rows, list):
+        return result
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        item = dict(row)
+        phenotype = _text(item.get("phenotype_label")) or ""
+        if phenotype in share_map:
+            item["share_of_index_patients"] = share_map[phenotype]
+        for key, value in rate_map.get(phenotype, {}).items():
+            item[key] = value
+        result.append(item)
+    return result
+
+
 def _dpcc_rows_with_explicit_rates(*, rows: object, t2: str, study_root: Path) -> list[dict[str, Any]]:
     rate_map = _gap_rate_map_from_t2(t2)
-    count_map = _bounded_gap_count_map(study_root)
+    count_map = _bounded_gap_support_map(study_root)
     result: list[dict[str, Any]] = []
     if not isinstance(rows, list):
         return result
@@ -1605,13 +1719,17 @@ def _dpcc_rows_with_explicit_rates(*, rows: object, t2: str, study_root: Path) -
     return result
 
 
-def _bounded_gap_count_map(study_root: Path) -> dict[str, dict[str, int]]:
+def _bounded_gap_support_map(study_root: Path) -> dict[str, dict[str, int]]:
     field_map = {
         "index_patients": "index_patients",
         "severe_glycemia_low_recorded_glucose_lowering_intensity_gap": "severe_glycemia_low_intensity_gap_patients",
+        "severe_glycemia_low_recorded_glucose_lowering_intensity_n": "severe_glycemia_low_intensity_gap_denominator",
         "uncontrolled_glycemia_no_recorded_diabetes_medication_gap": "uncontrolled_glycemia_no_drug_gap_patients",
+        "uncontrolled_glycemia_no_recorded_diabetes_medication_n": "uncontrolled_glycemia_no_drug_gap_denominator",
         "hypertension_context_no_recorded_antihypertensive_gap": "hypertension_no_antihypertensive_gap_patients",
+        "hypertension_context_no_recorded_antihypertensive_n": "hypertension_no_antihypertensive_gap_denominator",
         "dyslipidemia_context_no_recorded_lipid_lowering_gap": "dyslipidemia_no_lipid_lowering_gap_patients",
+        "dyslipidemia_context_no_recorded_lipid_lowering_n": "dyslipidemia_no_lipid_lowering_gap_denominator",
     }
     result: dict[str, dict[str, int]] = {}
     for row in _bounded_table_rows(study_root, "risk_treatment_mismatch_matrix.csv"):
@@ -1625,6 +1743,23 @@ def _bounded_gap_count_map(study_root: Path) -> dict[str, dict[str, int]]:
                 values[target_key] = parsed
         if values:
             result[phenotype] = values
+    return result
+
+
+def _phenotype_index_share_map_from_t2(t2: str) -> dict[str, float]:
+    rows = _markdown_table_rows(t2)
+    if not rows or "Measure" not in rows[0]:
+        return {}
+    result: dict[str, float] = {}
+    for row in rows:
+        phenotype = _text(row.get("Phenotype"))
+        measure = _text(row.get("Measure"))
+        value = _text(row.get("Value"))
+        if phenotype is None or measure != "Share of index cohort" or value is None:
+            continue
+        parsed = _rate_float(value)
+        if parsed is not None:
+            result[phenotype] = parsed
     return result
 
 
@@ -1756,11 +1891,20 @@ def _repair_dpcc_manuscript_blueprint_payload(payload: Mapping[str, Any]) -> dic
 def _materialize_dpcc_support_tables(
     *,
     paper_root: Path,
+    t1: str,
     t2: str,
     sensitivity: Mapping[str, Mapping[str, Mapping[str, str]]],
     transition_table: str,
 ) -> list[str]:
     changed_paths: list[str] = []
+    if t1:
+        for relpath in (
+            Path("tables") / "T1_baseline_characteristics.md",
+            Path("tables") / "generated" / "T1_baseline_characteristics.md",
+        ):
+            path = paper_root / relpath
+            if _write_text_if_changed(path, t1):
+                changed_paths.append(str(path.resolve()))
     if t2:
         for relpath in (
             Path("tables") / "T2_phenotype_gap_summary.md",
