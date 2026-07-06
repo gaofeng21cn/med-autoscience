@@ -174,6 +174,39 @@ def test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_cal
     assert "not a full OPL stage execution claim" in foreground_lane["summary"]
 
 
+def test_final_micro_revision_with_no_new_analyses_uses_manuscript_fast_lane() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_intake_kind": "reviewer_revision",
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision for DM003: do not add analyses; "
+            "preserve current scientific story; clean duplicated Discussion site "
+            "fixed-effect wording; rename Figure 2 title to care-review gap profiles; "
+            "clarify Table 2 Not assessed footnote; keep renal-risk exploratory and "
+            "preserve supplementary material."
+        ),
+        "constraints": [
+            "Use MAS owner route; do not directly edit submission authority surfaces outside controller-authorized manuscript/package flow.",
+            "No new analyses; only terminology, duplicate sentence cleanup, abstract shortening if useful, and Table 2 footnote clarification.",
+        ],
+        "evidence_boundary": ["Current accepted evidence and figures/tables only; preserve supplementary material."],
+    }
+
+    summary = module.summarize_task_intake(payload)
+
+    selected_lane = summary["revision_intake"]["selected_revision_execution_lane"]
+    assert selected_lane["lane_id"] == "manuscript_fast_lane"
+    assert selected_lane["agent_lab_suite_required"] is False
+    assert selected_lane["agent_lab_suite_status"] == "bypassed"
+    trigger = summary["revision_intake"]["self_evolution_trigger"]
+    assert trigger["agent_lab_suite_materialization"]["required"] is False
+    assert trigger["agent_lab_suite_materialization"]["bypass_allowed"] is True
+    assert trigger["agent_lab_suite_materialization"]["bypass_reason"] == "text_only_fast_lane"
+    assert summary["revision_intake"]["manuscript_fast_lane"]["status"] == "requested"
+
+
 def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:
     intake_module = importlib.import_module("med_autoscience.study_task_intake")
     outer_loop_intake = importlib.import_module("med_autoscience.controllers.study_outer_loop_task_intake")
