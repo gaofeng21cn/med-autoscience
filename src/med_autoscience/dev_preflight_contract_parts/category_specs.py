@@ -284,7 +284,6 @@ def build_category_specs(
             "tests/test_agent_tool_arsenal_hosted_consumption_mcp.py",
             "tests/test_hosted_ordinary_path_preflight_contract.py",
             "tests/test_hosted_ordinary_path_consumption.py",
-            "templates/stage_route_contract.yaml",
         ),
         prefix_paths=(
             "agent/knowledge/",

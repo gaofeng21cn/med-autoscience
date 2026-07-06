@@ -36,7 +36,6 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
     result = sync_agent_entry_assets(repo_root=tmp_path)
     expected_assets = {
         "docs/runtime/contracts/stage_route_contract.md": render_stage_route_contract_guide(),
-        "templates/stage_route_contract.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
         "src/med_autoscience/resources/stage_route_contract.yaml": render_public_yaml(),
@@ -48,6 +47,7 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
         output_path = tmp_path / relative_path
         assert output_path.is_file()
         assert output_path.read_text(encoding="utf-8") == expected_content
+    assert not (tmp_path / "templates" / "stage_route_contract.yaml").exists()
 
 
 def test_repo_public_agent_entry_assets_match_renderers() -> None:

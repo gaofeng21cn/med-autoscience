@@ -132,7 +132,7 @@ Agent 调用接口时遵守以下顺序：
 当前对外按兼容消费来表达的 Agent 包括 `Codex`、`Claude Code`、`OpenClaw`。如果需要把入口契约交给受控 Agent 或内部技术协作者，优先使用：
 
 - stage route contract：[stage_route_contract.md](./stage_route_contract.md)
-- 机器可读镜像：[stage_route_contract.yaml](../../../templates/stage_route_contract.yaml)
+- packaged machine-readable resource：[stage_route_contract.yaml](../../../src/med_autoscience/resources/stage_route_contract.yaml)
 - `Codex` 入口模板：[medautoscience-entry.SKILL.md](../../../templates/codex/medautoscience-entry.SKILL.md)
 - `OpenClaw` 入口模板：[medautoscience-entry.prompt.md](../../../templates/openclaw/medautoscience-entry.prompt.md)
 

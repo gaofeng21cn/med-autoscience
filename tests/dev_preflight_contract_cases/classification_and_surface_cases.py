@@ -580,7 +580,6 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
-            "templates/stage_route_contract.yaml",
         ]
     )
 

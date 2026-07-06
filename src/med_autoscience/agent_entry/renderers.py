@@ -404,7 +404,6 @@ def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
     root = repo_root.expanduser().resolve()
     assets: tuple[tuple[Path, str], ...] = (
         (Path("docs/runtime/contracts/stage_route_contract.md"), render_stage_route_contract_guide()),
-        (Path("templates/stage_route_contract.yaml"), render_public_yaml()),
         (Path("templates/codex/medautoscience-entry.SKILL.md"), render_codex_entry_skill()),
         (Path("templates/openclaw/medautoscience-entry.prompt.md"), render_openclaw_entry_prompt()),
         (Path("src/med_autoscience/resources/stage_route_contract.yaml"), render_public_yaml()),

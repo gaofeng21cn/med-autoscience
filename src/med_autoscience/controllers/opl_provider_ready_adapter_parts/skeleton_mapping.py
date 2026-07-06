@@ -128,6 +128,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             repo_paths=[
                 "docs/policies/study-workflow/stage_led_research_autonomy.md",
                 "agent/stages/stage_route_contract.yaml",
+                "src/med_autoscience/resources/stage_route_contract.yaml",
                 "src/med_autoscience/controllers/stage_knowledge_plane.py",
             ],
             mapping_explanation=(
@@ -140,7 +141,6 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="prompt",
             default_for_new_surfaces=True,
             repo_paths=[
-                "templates/stage_route_contract.yaml",
                 "templates/codex/medautoscience-entry.SKILL.md",
                 "templates/openclaw/medautoscience-entry.prompt.md",
             ],
