@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from importlib import import_module
 import json
 import re
 from dataclasses import dataclass
@@ -466,8 +465,11 @@ def _materialize_publication_eval_latest(
         paper_context = resolve_paper_root_context(state.paper_root)
     except (FileNotFoundError, ValueError):
         return None
-    decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
-    return decision_module._materialize_publication_eval_from_gate_report(
+    from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
+        _materialize_publication_eval_from_gate_report,
+    )
+
+    return _materialize_publication_eval_from_gate_report(
         study_root=paper_context.study_root,
         study_id=paper_context.study_id,
         quest_root=state.quest_root,

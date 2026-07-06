@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.controllers import submission_minimal
+from med_autoscience.controllers.submission_minimal_parts import package_builder as submission_minimal_package_builder
 from med_autoscience.journal_requirements import slugify_journal_name
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_protocol import paper_artifacts
@@ -155,7 +155,7 @@ def export_submission_targets(
             target_results.append(item)
             continue
         if target.exporter_profile not in exported_profiles:
-            exported_profiles[target.exporter_profile] = submission_minimal.create_submission_minimal_package(
+            exported_profiles[target.exporter_profile] = submission_minimal_package_builder.create_submission_minimal_package(
                 paper_root=resolved_paper_root,
                 publication_profile=target.exporter_profile,
                 citation_style=target.citation_style or "auto",

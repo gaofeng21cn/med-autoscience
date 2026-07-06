@@ -32,8 +32,11 @@ def execute_publication_gate_specificity(
     report_with_refs = _publication_gate_report_with_refs(report=report, state=state, json_path=json_path)
     materialized = publication_gate._materialize_publication_eval_latest(state=state, report=report_with_refs)
     if materialized is None and getattr(state, "study_root", None) is not None:
-        decision_module = publication_gate.import_module("med_autoscience.controllers.study_runtime_decision")
-        materialized = decision_module._materialize_publication_eval_from_gate_report(
+        from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
+            _materialize_publication_eval_from_gate_report,
+        )
+
+        materialized = _materialize_publication_eval_from_gate_report(
             study_root=state.study_root,
             study_id=study_id,
             quest_root=quest_root,

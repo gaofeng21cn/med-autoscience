@@ -146,7 +146,9 @@ study_interventions = _LazyModuleProxy(lambda: _load_controller("study_intervent
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_inspection_export = _LazyModuleProxy(lambda: _load_controller("submission_inspection_export"))
-submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
+submission_minimal = _LazyModuleProxy(
+    lambda: _load_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+)
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
 time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
 tooluniverse_adapter = _LazyModuleProxy(lambda: _load_adapter("tooluniverse"))
