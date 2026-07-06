@@ -133,10 +133,12 @@ def test_public_help_does_not_require_doctor_runtime_dependencies(monkeypatch, c
     sys.modules.pop("med_autoscience.doctor", None)
 
     real_import = builtins.__import__
+    blocked_modules = ("matplotlib", "pandas", "opl_harness_shared")
 
     def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if name == "opl_harness_shared" or name.startswith("opl_harness_shared."):
-            raise ModuleNotFoundError("No module named 'opl_harness_shared'")
+        if any(name == module_name or name.startswith(f"{module_name}.") for module_name in blocked_modules):
+            root_name = name.split(".", 1)[0]
+            raise ModuleNotFoundError(f"No module named '{root_name}'")
         return real_import(name, globals, locals, fromlist, level)
 
     monkeypatch.setattr(builtins, "__import__", fake_import)

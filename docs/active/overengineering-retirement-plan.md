@@ -104,6 +104,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 ## 2026-07-06 P1 runtime dependency / CLI alias / branding asset cleanup evidence
 
 - `pyproject.toml` 已删除 runtime dependency `packaging>=24.0`；仅测试侧 `Requirement` 解析需要 `packaging`，因此保留在 `dependency-groups.dev`，`python_environment_contract` 仍不 import `packaging`。
+- `pyproject.toml` 已删除 core runtime dependency `pandas>=2.2`；`python_environment_contract` 默认 runtime 只要求 `matplotlib>=3.9`，`pandas>=2.2` 保留在 `analysis` optional bundle，用于 analysis harmonization / rerun evidence 路径。
 - `pyproject.toml` 已删除 `mas` console-script alias，只保留 `medautosci` 与 `medautosci-mcp`；plugin installer 本来已删除本机 `mas` wrapper，本轮同步更新 scaffold assertion，避免把 `mas` 作为 PATH readiness 证据。
 - `assets/branding/medautoscience-hero.png` 与 `assets/branding/medautoscience-overview.png` 是未被 README/source active 引用的重复 raster；README 当前使用 `medautoscience-overview-v2.png`，branding preflight fixture 已改到 v2 后删除旧图。
 - 本 lane 只证明 repo-source packaging / CLI alias / asset surface 收薄；focused tests 与 `git diff --check` 不声明 runtime readiness、publication-ready、paper progress、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。

@@ -87,7 +87,7 @@ REPO_ROOT = _resolve_repo_root()
 CHECKOUT_ROOT = _resolve_checkout_root()
 MANAGED_RUNTIME_PREFIX = (REPO_ROOT / ".venv").resolve()
 CHECKOUT_MANAGED_RUNTIME_PREFIX = (CHECKOUT_ROOT / ".venv").resolve()
-REQUIRED_RUNTIME_REQUIREMENTS = ("matplotlib>=3.9", "pandas>=2.2")
+REQUIRED_RUNTIME_REQUIREMENTS = ("matplotlib>=3.9",)
 CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (
     "matplotlib>=3.9",
     "pandas>=2.2",

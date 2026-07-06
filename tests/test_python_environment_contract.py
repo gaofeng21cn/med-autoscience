@@ -24,8 +24,8 @@ from med_autoscience.python_environment_contract import (
 
 
 def test_required_modules_match_default_rule_set() -> None:
-    assert REQUIRED_RUNTIME_MODULES == ("matplotlib", "pandas")
-    assert REQUIRED_RUNTIME_REQUIREMENTS == ("matplotlib>=3.9", "pandas>=2.2")
+    assert REQUIRED_RUNTIME_MODULES == ("matplotlib",)
+    assert REQUIRED_RUNTIME_REQUIREMENTS == ("matplotlib>=3.9",)
 
 
 def test_runtime_contract_module_does_not_import_packaging() -> None:
@@ -74,7 +74,7 @@ def test_inspect_reports_missing_modules(monkeypatch) -> None:
 
 def test_inspect_reports_version_mismatch(monkeypatch) -> None:
     def fake_module(name: str) -> SimpleNamespace:
-        version_str = "3.8.0" if name == "matplotlib" else "2.1.0"
+        version_str = "3.8.0" if name == "matplotlib" else "999.0.0"
         return SimpleNamespace(__version__=version_str)
 
     monkeypatch.setattr(contract.importlib, "import_module", lambda name, package=None: fake_module(name))
@@ -82,7 +82,6 @@ def test_inspect_reports_version_mismatch(monkeypatch) -> None:
 
     assert environment["ready"] is False
     assert environment["checks"]["matplotlib_version_satisfied"] is False
-    assert environment["checks"]["pandas_version_satisfied"] is False
     assert environment["missing_requirements"] == list(REQUIRED_RUNTIME_REQUIREMENTS)
 
 

@@ -15,7 +15,6 @@ dependencies = [
   "PyYAML>=6.0",
   "matplotlib>=3.9",
   "opl-harness-shared @ git+https://github.com/gaofeng21cn/one-person-lab.git@3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7#subdirectory=python/opl-harness-shared",
-  "pandas>=2.2",
   "pypdf>=5.0",
 ]
 
