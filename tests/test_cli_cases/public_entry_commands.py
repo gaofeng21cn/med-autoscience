@@ -307,6 +307,7 @@ def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, c
         entry_mode: str | None,
         sync_runtime_summary: bool,
         materialize_read_model_artifacts: bool,
+        enable_opl_live_provider_attempt_probe: bool,
     ) -> dict[str, object]:
         calls["profile"] = profile
         calls["profile_ref"] = profile_ref
@@ -315,6 +316,7 @@ def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, c
         calls["entry_mode"] = entry_mode
         calls["sync_runtime_summary"] = sync_runtime_summary
         calls["materialize_read_model_artifacts"] = materialize_read_model_artifacts
+        calls["enable_opl_live_provider_attempt_probe"] = enable_opl_live_provider_attempt_probe
         return {
             "study_id": "001-risk",
             "current_stage": "writing",
@@ -352,6 +354,7 @@ def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, c
     assert calls["entry_mode"] is None
     assert calls["sync_runtime_summary"] is False
     assert calls["materialize_read_model_artifacts"] is False
+    assert calls["enable_opl_live_provider_attempt_probe"] is False
     assert "shell argv grouped command works." in captured.out
 def test_shell_argv_grouped_subcommand_help_uses_grouped_prog(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
@@ -493,6 +496,7 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
         entry_mode: str | None,
         sync_runtime_summary: bool,
         materialize_read_model_artifacts: bool,
+        enable_opl_live_provider_attempt_probe: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["profile_ref"] = profile_ref
@@ -501,6 +505,7 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
         called["entry_mode"] = entry_mode
         called["sync_runtime_summary"] = sync_runtime_summary
         called["materialize_read_model_artifacts"] = materialize_read_model_artifacts
+        called["enable_opl_live_provider_attempt_probe"] = enable_opl_live_provider_attempt_probe
         return {
             "study_id": "001-risk",
             "current_stage": "waiting_user_decision",
@@ -534,6 +539,7 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
     assert called["entry_mode"] is None
     assert called["sync_runtime_summary"] is False
     assert called["materialize_read_model_artifacts"] is False
+    assert called["enable_opl_live_provider_attempt_probe"] is False
     assert "# 研究进度" in captured.out
     assert "用户确认" in captured.out
 def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
