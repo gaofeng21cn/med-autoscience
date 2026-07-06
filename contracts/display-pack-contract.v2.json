@@ -39,7 +39,12 @@
       "exemplars": "Link-only exemplar refs and intake provenance.",
       "provenance": "Source, lock, hash, release, and audit provenance refs.",
       "opl_handoff": "Refs-only handoff to the external OPL-owned generic Pack OS."
-    }
+    },
+    "allowed_default_execution_modes": [
+      "declared_by_template",
+      "python_plugin",
+      "subprocess"
+    ]
   },
   "template_descriptor": {
     "surface_kind": "display_pack_v2_template_descriptor",

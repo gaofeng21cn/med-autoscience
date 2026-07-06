@@ -27,6 +27,23 @@ def test_load_display_pack_manifest_parses_minimal_valid_pack() -> None:
     assert manifest.maintainer == ""
 
 
+def test_load_display_pack_manifest_accepts_template_declared_default_mode(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "display_pack.toml"
+    manifest_path.write_text(
+        (
+            'pack_id = "fenggaolab.org.medical-display-core"\n'
+            'version = "0.1.0"\n'
+            'display_api_version = "1"\n'
+            'default_execution_mode = "declared_by_template"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = load_display_pack_manifest(manifest_path)
+
+    assert manifest.default_execution_mode == "declared_by_template"
+
+
 def test_load_display_pack_manifest_rejects_non_namespaced_pack_id(tmp_path: Path) -> None:
     manifest_path = tmp_path / "display_pack.toml"
     manifest_path.write_text(
@@ -63,6 +80,37 @@ def test_load_display_pack_manifest_rejects_non_semantic_version(tmp_path: Path)
 
     with pytest.raises(ValueError, match="version"):
         load_display_pack_manifest(manifest_path)
+
+
+def test_load_display_template_manifest_rejects_template_declared_execution_mode(tmp_path: Path) -> None:
+    template_path = tmp_path / "template.toml"
+    template_path.write_text(
+        "\n".join(
+            (
+                'template_id = "roc_curve_binary"',
+                'full_template_id = "fenggaolab.org.medical-display-core::roc_curve_binary"',
+                'kind = "evidence_figure"',
+                'display_name = "ROC Curve (Binary Outcome)"',
+                'paper_family_ids = ["A"]',
+                'audit_family = "Prediction Performance"',
+                'renderer_family = "r_ggplot2"',
+                'input_schema_ref = "binary_prediction_curve_inputs_v1"',
+                'qc_profile_ref = "publication_evidence_curve"',
+                'required_exports = ["png", "pdf"]',
+                'execution_mode = "declared_by_template"',
+                'entrypoint = "Rscript render.R --request {request_json}"',
+                "paper_proven = false",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="execution_mode"):
+        load_display_template_manifest(
+            template_path,
+            expected_pack_id="fenggaolab.org.medical-display-core",
+        )
 
 
 def test_load_display_template_manifest_parses_minimal_valid_template() -> None:

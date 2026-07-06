@@ -65,7 +65,16 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
     assert payload["schema_version"] == 2
     assert payload["contract_id"] == "display-pack-contract.v2"
     assert set(payload["pack_descriptor"]["required_fields"]) == EXPECTED_PACK_REQUIRED_FIELDS
+    assert set(payload["pack_descriptor"]["allowed_default_execution_modes"]) == {
+        "declared_by_template",
+        "python_plugin",
+        "subprocess",
+    }
     assert set(payload["template_descriptor"]["required_fields"]) == EXPECTED_TEMPLATE_REQUIRED_FIELDS
+    assert set(payload["template_descriptor"]["allowed_execution_modes"]) == {
+        "python_plugin",
+        "subprocess",
+    }
 
     authority = payload["authority_boundaries"]
     assert authority["mas_pack_descriptor_authority"] is True

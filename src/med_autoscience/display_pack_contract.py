@@ -8,6 +8,7 @@ import tomllib
 
 _VALID_TEMPLATE_KINDS = frozenset(("evidence_figure", "illustration_shell", "table_shell"))
 _VALID_EXECUTION_MODES = frozenset(("python_plugin", "subprocess"))
+_VALID_DEFAULT_EXECUTION_MODES = _VALID_EXECUTION_MODES | frozenset(("declared_by_template",))
 _SEMVER_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
 _DISPLAY_CLASS_ID_BY_AUDIT_FAMILY = {
     "Prediction Performance": "prediction_performance",
@@ -130,6 +131,13 @@ def _expect_execution_mode(payload: dict[str, object], key: str) -> str:
     return value
 
 
+def _expect_default_execution_mode(payload: dict[str, object], key: str) -> str:
+    value = _expect_str(payload, key)
+    if value not in _VALID_DEFAULT_EXECUTION_MODES:
+        raise ValueError(f"{key} must be one of {sorted(_VALID_DEFAULT_EXECUTION_MODES)!r}")
+    return value
+
+
 def _split_full_template_id(full_template_id: str) -> tuple[str, str]:
     if "::" not in full_template_id:
         raise ValueError("full_template_id must use '<pack_id>::<template_id>'")
@@ -150,7 +158,7 @@ def load_display_pack_manifest(path: Path) -> DisplayPackManifest:
         pack_id=pack_id,
         version=_expect_semver(payload, "version"),
         display_api_version=_expect_str(payload, "display_api_version"),
-        default_execution_mode=_expect_execution_mode(payload, "default_execution_mode"),
+        default_execution_mode=_expect_default_execution_mode(payload, "default_execution_mode"),
         summary=_optional_str(payload, "summary"),
         maintainer=_optional_str(payload, "maintainer"),
         license=_optional_str(payload, "license"),
