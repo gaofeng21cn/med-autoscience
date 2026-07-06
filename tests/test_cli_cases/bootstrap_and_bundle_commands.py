@@ -119,6 +119,8 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-statistical-review",
         "medical-table-design",
         "medical-submission-prep",
@@ -131,6 +133,12 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     assert workspace_install["target_skill_paths"]["medical-figure-design"] == str(
         workspace_root / ".codex" / "skills" / "medical-figure-design"
+    )
+    assert workspace_install["target_skill_paths"]["medical-figure-style"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-style"
+    )
+    assert workspace_install["target_skill_paths"]["medical-figure-composer"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-composer"
     )
     assert workspace_install["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"

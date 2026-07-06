@@ -118,6 +118,8 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-statistical-review",
         "medical-table-design",
         "medical-submission-prep",
@@ -141,6 +143,12 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
         "medical-data-governance"
     ] == "<workspace_root>/.codex/skills/medical-data-governance"
+    assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
+        "medical-figure-style"
+    ] == "<workspace_root>/.codex/skills/medical-figure-style"
+    assert registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"][
+        "medical-figure-composer"
+    ] == "<workspace_root>/.codex/skills/medical-figure-composer"
     assert registry["scholarskills_local_install"]["quest"]["sync_command_template"]["argv"] == [
         "opl",
         "connect",

@@ -191,6 +191,8 @@ ACADEMICFORGE_SKILL_FIRST_REFS = (
         f"{ACADEMICFORGE_SOURCE_HEAD}:skills/claude-science/pdf-explore/SKILL.md"
     ),
     "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
     "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
     "external_repo:mas-scholar-skills/skills/medical-manuscript-review/SKILL.md",
     "external_repo:mas-scholar-skills/skills/medical-research-lit/SKILL.md",

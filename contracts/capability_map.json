@@ -146,10 +146,18 @@
       "module_id": "mas-scholar-skills.display",
       "target_capability_id": "medical-figure-design",
       "target_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+      "orchestrator_skill_ref": "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+      "dedicated_skill_refs": [
+        "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md"
+      ],
+      "dedicated_skill_boundary": "medical-figure-style and medical-figure-composer are display sub-skill trigger surfaces that emit candidate refs, layout/style QA, and route-back hints; medical-figure-design remains the orchestrator and no MAS authority is added.",
       "tokens": [
         "figure_quality",
         "display_quality",
-        "medical-figure-design"
+        "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer"
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
@@ -158,6 +166,8 @@
       ],
       "improvement_tokens": [
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "mas-scholar-skills.display",
         "figure_quality",
         "display_quality",
@@ -720,6 +730,16 @@
           "role": "workspace_or_quest_skill_sync_candidate"
         },
         {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+          "role": "display_subskill_sync_candidate"
+        },
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
+          "role": "display_subskill_sync_candidate"
+        },
+        {
           "ref_kind": "contract_ref",
           "ref": "contracts/capability_map.json#/feedback_target_mappings",
           "role": "mas_feedback_target_mapping"
@@ -727,8 +747,15 @@
       ],
       "sync_policy": "external_pack_default_or_on_demand",
       "externalization_reason": "MAS stage prompts and owner authority stay in MAS; reusable medical professional skills are single-sourced in MAS Scholar Skills and consumed as refs-only candidates.",
+      "orchestrates_dedicated_skill_refs": [
+        "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md"
+      ],
+      "dedicated_skill_boundary": "medical-figure-style emits style reference / style-QA candidate refs; medical-figure-composer emits panel plan / layout-composition candidate refs. Both route through medical-figure-design and cannot write MAS truth, owner receipts, typed blockers, publication readiness, current package, runtime queues, or provider attempts.",
       "improvement_tokens": [
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "mas-scholar-skills.display",
         "figure_quality",
         "display_quality",
@@ -746,10 +773,14 @@
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
         "contracts/capability_map.json"
       ],
       "target_repo_file_hints": [
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
         "contracts/capability_map.json"
       ],
       "verification_refs": [
@@ -779,6 +810,8 @@
       "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
       "canonical_target_paths": [
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
         "contracts/capability_map.json"
       ],
       "forbidden_surfaces": [

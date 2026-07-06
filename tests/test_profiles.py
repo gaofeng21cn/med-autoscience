@@ -395,6 +395,8 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-statistical-review",
         "medical-table-design",
         "medical-submission-prep",
@@ -405,6 +407,12 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
     assert profile_readback["workspace"]["target_skill_paths"]["medical-manuscript-review"] == str(
         workspace_root / ".codex" / "skills" / "medical-manuscript-review"
+    )
+    assert profile_readback["workspace"]["target_skill_paths"]["medical-figure-style"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-style"
+    )
+    assert profile_readback["workspace"]["target_skill_paths"]["medical-figure-composer"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-composer"
     )
     assert profile_readback["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"
@@ -427,6 +435,12 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
     assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-design"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-design")
+    )
+    assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-style"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-style")
+    )
+    assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-composer"] == (
+        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-composer")
     )
     assert profile_readback["quest"]["target_skill_path_templates"]["medical-submission-prep"] == (
         str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-submission-prep")

@@ -84,6 +84,8 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
         "medical-manuscript-writing",
         "medical-manuscript-review",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-statistical-review",
         "medical-table-design",
         "medical-submission-prep",
@@ -94,6 +96,12 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     )
     assert scholarskills_install["workspace"]["target_skill_paths"]["medical-manuscript-writing"] == str(
         workspace_root / ".codex" / "skills" / "medical-manuscript-writing"
+    )
+    assert scholarskills_install["workspace"]["target_skill_paths"]["medical-figure-style"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-style"
+    )
+    assert scholarskills_install["workspace"]["target_skill_paths"]["medical-figure-composer"] == str(
+        workspace_root / ".codex" / "skills" / "medical-figure-composer"
     )
     assert scholarskills_install["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
         workspace_root / ".codex" / "skills" / "medical-data-governance"

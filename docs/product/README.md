@@ -39,15 +39,15 @@ MAS product surface 只解释 direct app-skill、product-entry、artifact-first 
 
 MAS 只维护 stage 主提示词/策略和 stage projection：canonical repo source 是 `agent/stages/` + `agent/prompts/`；`write`、`review`、`figure` 等 stage 负责阶段进入、证据门槛、route-back、owner gate 和采纳边界。`src/med_autoscience/overlay/templates/*.SKILL.md` 与运行时 `.codex/skills/medical-research-*` 只是 Codex discovery 兼容投影，不是 stage source，也不是 professional specialist skill source。
 
-professional specialist skill 单源在外部 `mas-scholar-skills` 仓库。MAS 侧只在 `contracts/capability_map.json` 保留消费边界和 route index，指向八个核心专业 Skill：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`。这些 Skill 通过 OPL Connect 同步到 workspace 或 quest，产物默认只是 candidate refs、execution receipts、route-back hints 或 owner-gate requests。
+professional specialist skill 单源在外部 `mas-scholar-skills` 仓库。MAS 侧只在 `contracts/capability_map.json` 保留消费边界和 route index，指向默认医学论文专业 Skill：`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`。Display 的 active module 仍是 `mas-scholar-skills.display`；Claude Science figure-style / figure-composer 的吸收点改为 dedicated `medical-figure-style` / `medical-figure-composer` 子 Skill，由 `medical-figure-design` 作为 orchestrator route 统一接回 figure stage 和 MAS owner gate。这些 Skill 通过 OPL Connect 同步到 workspace 或 quest，产物默认只是 candidate refs、execution receipts、style/layout QA、route-back hints 或 owner-gate requests。
 
 当前策略是 `Stage Prompt + Professional Skill + Tool/Fabric execution + Domain Owner Gate`：MAS stage 决定当前工作能不能推进和交给谁；专业 Skill 做专业候选产物；工具/Fabric 做检索、渲染、检查和候选包生成。前三者都不写 MAS truth；最终接受、退回、阻塞或 human gate 只由 MAS owner surface 决定。
 
-默认先用 `mas-scholar-skills` 八个核心专业 Skill 覆盖常规医学论文需求。罕见重型专科工具缺口才通过 `external-scientific-skills` 走 OPL Connect `external-skills search -> inspect -> sync`，触发条件限于用户显式点名工具/数据库、核心 Skill route-back 命名缺口、stage policy 判定八个核心 Skill 不足，或联网/云计算/敏感数据路径需要 policy/approval。K-Dense 和其他外部目录只作为 refs-only pattern/advisory，不是 MAS 权威源。
+默认先用 `mas-scholar-skills` 八个 active module 覆盖常规医学论文需求；Display module 下的 `medical-figure-style` / `medical-figure-composer` 只算 dedicated 子 Skill。罕见重型专科工具缺口才通过 `external-scientific-skills` 走 OPL Connect `external-skills search -> inspect -> sync`，触发条件限于用户显式点名工具/数据库、核心 Skill route-back 命名缺口、stage policy 判定八个 active module 不足，或联网/云计算/敏感数据路径需要 policy/approval。K-Dense 和其他外部目录只作为 refs-only pattern/advisory，不是 MAS 权威源。
 
 文献检索默认通过 `opl connect pubmed search --query <query> --limit <n> --json` 或 `medical-research-lit` 取得候选 refs。MAS 的 `scout`、`write`、`review` 和 `figure` 路径负责筛选、证据映射、claim/citation/display 归位和最终判断。
 
-`medical-research-figure-polish` 只保留为 `figure` stage 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `figure` stage 主提示词和 `medical-figure-design` 专业 skill，保持一个 MAS-owned 图件流程入口。
+`medical-research-figure-polish` 只保留为 `figure` stage 的 polish/review 阶段兼容入口。图件从设计、证据 refs、panel plan、初稿渲染到 visual QA 的主路径归 `figure` stage 主提示词和 `medical-figure-design` orchestrator。`medical-figure-style` 只负责风格参考、publication-style coherence 和 style-QA candidate refs；`medical-figure-composer` 只负责 panel plan、multi-panel composition 和 layout-QA candidate refs。三者都不写 MAS truth、owner receipt、typed blocker、publication readiness 或 current package。
 
 ## 当前文档职责
 

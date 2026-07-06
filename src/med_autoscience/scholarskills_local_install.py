@@ -13,6 +13,8 @@ SCHOLARSKILLS_DEFAULT_SKILL_IDS = (
     "medical-manuscript-writing",
     "medical-manuscript-review",
     "medical-figure-design",
+    "medical-figure-style",
+    "medical-figure-composer",
     "medical-statistical-review",
     "medical-table-design",
     "medical-submission-prep",

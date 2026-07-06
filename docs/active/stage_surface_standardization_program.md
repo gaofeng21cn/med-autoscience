@@ -13,7 +13,7 @@ Machine boundary: 本文是人读规划与维护合同。机器真相继续归 c
 
 [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) 是下一 `/goal` 的 Stage / Route runtime-facing source of truth；本文只承接其中 stage / prompt / skill / knowledge / quality gate 形态边界。文档入口同步不表示重构已完成；实际完成必须落到 `agent/` semantic pack、machine-readable contracts、source/tests、runtime docs、owner receipts、typed blockers 或真实 evidence。single Active Truth 仍归 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。
 
-2026-07-03 之后，本文中旧有 `skill surface` / `independent skill` 只能按 MAS stage 主提示词 / policy 的 Codex runtime projection 读取，不表示标准 OPL Agent 需要长期 `stage-bound skill` 概念。Stage source 留在 MAS 的 `agent/stages/`、`agent/prompts/` 与 route / knowledge / quality contracts；overlay template 和 workspace / quest `.codex/skills/medical-research-*` 只服务 Codex discovery。专业 specialist skill 由 owning domain pack 单源维护；当前医学论文八个专业 Skill 由外部 `mas-scholar-skills` 维护，并通过 OPL Connect 默认同步到 workspace / quest 本地 `.codex/skills` 后供 Codex 调用。
+2026-07-03 之后，本文中旧有 `skill surface` / `independent skill` 只能按 MAS stage 主提示词 / policy 的 Codex runtime projection 读取，不表示标准 OPL Agent 需要长期 `stage-bound skill` 概念。Stage source 留在 MAS 的 `agent/stages/`、`agent/prompts/` 与 route / knowledge / quality contracts；overlay template 和 workspace / quest `.codex/skills/medical-research-*` 只服务 Codex discovery。专业 specialist skill 由 owning domain pack 单源维护；当前医学论文 active module 的专业 Skill 由外部 `mas-scholar-skills` 维护，并通过 OPL Connect 默认同步到 workspace / quest 本地 `.codex/skills` 后供 Codex 调用；`medical-figure-style` / `medical-figure-composer` 是 Display module 子 Skill，不新增 active module。
 
 ## 结论
 

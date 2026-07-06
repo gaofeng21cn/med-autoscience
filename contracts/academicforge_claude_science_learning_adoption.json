@@ -55,8 +55,22 @@
       ],
       "classification": "adopt_template",
       "landing_status": "owner_surface_landed",
-      "local_owner_surface": "mas-scholar-skills.display / medical-figure-design and MAS Display Pack quality contracts",
-      "target_landing": "Skill-first figure contract, data fidelity checklist, multi-panel outline, render-then-verify visual QA, and refs-only figure execution receipts",
+      "local_owner_surface": "mas-scholar-skills.display with dedicated medical-figure-style / medical-figure-composer Skill routes orchestrated by medical-figure-design, plus MAS Display Pack quality contracts",
+      "target_landing": "Skill-first figure contract, dedicated style QA refs, dedicated layout/composition refs, medical-figure-design orchestration, render-then-verify visual QA, and refs-only figure execution receipts",
+      "dedicated_skill_routes": [
+        {
+          "source_skill": "figure-style",
+          "dedicated_skill_ref": "mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+          "orchestrator_skill_ref": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+          "route_role": "style reference, publication-style coherence, palette/typography/layout-style QA, and route-back hints"
+        },
+        {
+          "source_skill": "figure-composer",
+          "dedicated_skill_ref": "mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
+          "orchestrator_skill_ref": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+          "route_role": "panel plan, multi-panel composition, figure-page layout QA, and route-back hints"
+        }
+      ],
       "must_not_replace": [
         "paper_specific_visual_audit_receipt",
         "publication_figure_quality_verdict",
@@ -118,7 +132,7 @@
       "local_owner_surface": "MAS Scholar Skills optional advanced specialist skill pack",
       "target_landing": "Optional specialist Skills for structure, protein design, genomics foundation models, single-cell modeling, and indication dossiers",
       "must_not_replace": [
-        "MAS default eight core professional skills",
+        "MAS default medical-paper professional skills",
         "study truth",
         "analysis result owner acceptance"
       ]
@@ -226,12 +240,18 @@
         "source_skill": "figure-composer",
         "classification": "enhanced_existing_skill",
         "local_landing": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "dedicated_skill_ref": "mas-scholar-skills/skills/medical-figure-composer/SKILL.md",
+        "orchestrator_skill_ref": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "landing_route": "dedicated composer Skill emits composition/layout candidate refs and route-back hints; medical-figure-design remains the display orchestrator",
         "completion": "skill_content_landed"
       },
       {
         "source_skill": "figure-style",
         "classification": "enhanced_existing_skill",
         "local_landing": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "dedicated_skill_ref": "mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+        "orchestrator_skill_ref": "mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+        "landing_route": "dedicated style Skill emits style reference/style-QA candidate refs and route-back hints; medical-figure-design remains the display orchestrator",
         "completion": "skill_content_landed"
       },
       {
