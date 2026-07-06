@@ -24,7 +24,9 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
         carrier_terminal_closeout=carrier_terminal_closeout,
         carrier_consumption=carrier_consumption,
         decision_opl_closeout=opl_closeout,
-        decision_source_ref=_first_text(
+        decision_source_ref=_first_currentness_ref(
+            decision.get("decision_ref"),
+            readback.get("stage_closure_decision_ref"),
             decision.get("source_ref"),
             _mapping(decision.get("inputs")).get("source_ref"),
         ),
@@ -310,6 +312,14 @@ def _ref_newer(*, candidate: str | None, current: str | None) -> bool:
     if current_mtime is None:
         return True
     return candidate_mtime > current_mtime
+
+
+def _first_currentness_ref(*values: object) -> str | None:
+    texts = [_first_text(value) for value in values]
+    for text in texts:
+        if _ref_mtime(text) is not None:
+            return text
+    return next((text for text in texts if text is not None), None)
 
 
 def _ref_mtime(ref: str | None) -> float | None:

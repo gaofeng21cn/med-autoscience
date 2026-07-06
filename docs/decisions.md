@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-06：receipt-owner-consumption 必须尊重 current stage-closure outcome ref
+
+- 决策：`paper-mission receipt-owner-consumption` 处理 `route_back_candidate_checkpoint` 时，如果 `next_action.outcome_ref` / `stage_closure_decision_ref` 指向当前 `mas_stage_closure_decision` 文件，freshness 比较必须把这个文件路径作为 currentness ref。旧 carrier 只有在它的 route-back closeout 明确不被当前 decision ref supersede 时，才允许覆盖 decision `opl_closeout`。
+- 理由：DM003 暴露出新的 `stage_closure_decision.json` 已绑定 `sat_cf43990fe3c4a9c040b72a5f`，但旧 `sat_ef64b2cb16252251e8fc4966` carrier 仍带 `requires_mas_owner_consumption` 和 route-back evidence；selector 因只读取 decision payload 内部虚拟 `source_ref`，没有使用真实 outcome file path，错误消费旧 attempt。
+- 影响：这是 MAS receipt/currentness selector 修复，只保证 owner-consumption 读取当前 stage closure identity；不写 Yang study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package，也不把 route checkpoint 消费本身声明为论文已完成、投稿就绪或 publication-ready。
+
 ## 2026-07-06：大修改意见默认进入 reviewer_revision + FeedbackOps/OMA + 覆盖审计
 
 - 决策：用户、导师或审稿层面的大修改意见默认识别为 `reviewer_revision` task intake；大改、补分析、扩正文、补表图、claim-evidence / 方法 / 统计 / 参考文献 / 投稿包影响面均不得走 text-only fast lane。fast lane 只保留错字、局部措辞、单个格式或 caption 微修，并且仍需 MAS 格式记录。

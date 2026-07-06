@@ -1260,6 +1260,41 @@ def test_receipt_owner_consumption_route_checkpoint_reads_current_next_action_st
             },
         }
     )
+    stale_carrier = readback["opl_runtime_carrier_readback"]
+    stale_carrier["terminal_closeout"] = {
+        "status": "completed",
+        "stage_attempt_id": "sat-stale-candidate",
+        "work_unit_id": work_unit_id,
+        "closeout_ref": (
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            f"sat-stale-candidate/{study_id}/stage_attempt_closeout_packet.json"
+        ),
+    }
+    stale_carrier["opl_transition_receipt"].update(
+        {
+            "stage_attempt_id": "sat-stale-candidate",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale-candidate",
+            "work_unit_id": work_unit_id,
+            "route_back_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                f"sat-stale-candidate/{study_id}/route_back_evidence_packet.json"
+            ),
+        }
+    )
+    stale_carrier["receipt_evidence"].update(
+        {
+            "receipt_ref": "opl://stage-attempts/sat-stale-candidate",
+            "stage_attempt_ref": "opl://stage-attempts/sat-stale-candidate",
+            "runtime_closeout_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                f"sat-stale-candidate/{study_id}/stage_attempt_closeout_packet.json"
+            ),
+            "route_back_evidence_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                f"sat-stale-candidate/{study_id}/route_back_evidence_packet.json"
+            ),
+        }
+    )
     readback["next_action"] = {
         "action_family": "paper.stage_closure.owner_consumption",
         "outcome_ref": str(stage_closure_ref),
