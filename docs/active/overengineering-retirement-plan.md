@@ -1,0 +1,41 @@
+# MAS 过度设计退役与收薄计划
+
+Owner: `MedAutoScience`
+Purpose: `active_cleanup_plan`
+State: `active_plan`
+Machine boundary: 本文是人读规划与执行地图。机器真相继续归 `agent/`、`contracts/`、source、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 repo-native verification。
+
+## 目标读法
+
+MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。MAS 保留医学研究 truth、stage semantics、AI reviewer / auditor quality gate、publication route、source readiness、artifact authority、owner receipt、typed blocker 和 safe action refs；generic runtime、queue、attempt、lifecycle、workspace shell、package/install、observability 与 generated UI/API 默认上收到 OPL。
+
+完成口径分两层：
+
+- 功能/结构完成：active caller 已迁移、legacy facade / wrapper / root artifact / vendored build helper 已删除或退为 provenance，focused tests 与 repo-native verify 通过。
+- 后置证据：真实 paper-line owner receipt、publication-ready、domain-ready、provider long-soak、artifact mutation authority 另账验收。docs、focused tests、projection clean、contract pass 或 package build 不等于论文进展或 publication-ready。
+
+## 模块定位
+
+| 模块 | 保留职责 | 收薄方向 | 禁止承担 |
+| --- | --- | --- | --- |
+| PaperMission / StageOutcome | 默认 next-action authority、stage terminal decision、owner answer consumption、publication route。 | 保留 minimal authority function；删除 legacy diagnostic/current-work-unit/provider-admission producer tail 的 active facade。 | 不恢复旧 MAS-local scheduler、queue、attempt loop 或 provider carrier。 |
+| Display / delivery | 医学图件 quality verdict、publication-facing renderer family、submission package authority refs。 | Display pack 作为版本化 pack / descriptor / gallery refs；build 时不靠 `setup.py` 私有复制投影制造隐藏库存。 | 不拥有 OPL generic Pack OS；display descriptor / lock 不授权 publication-ready。 |
+| Runtime / control-plane tail | MAS-owned owner receipt、typed blocker、human gate、safe action refs。 | `runtime_protocol/runtime_surface_retirement_parts` 等私有 runtime tail 只保 authority adapter / tombstone / refs-only projection；generic lifecycle 上收 OPL。 | 不维护第二套 runtime maintenance、health、storage lifecycle、attempt queue 或 workbench shell。 |
+| Facade / product entry | 对外 entry 只暴露当前 domain-handler target 和 minimal product route。 | active caller 直连真实 owner module；wildcard-import facade 与历史 alias 删除或收薄。 | 不用 facade 保留旧 public projection 或兼容旧 mainline。 |
+| Root artifacts / fixtures | repo 根只保源码、合同、文档和明确 fixture。 | 未引用 demo artifact 移入 history/assets 或删除；超大测试按 semantic case 拆分。 | 不把 demo PNG/PDF 当 active package、gallery truth 或 visual evidence。 |
+
+## 落地清单
+
+| 优先级 | 项 | 动作 | 验证 |
+| --- | --- | --- | --- |
+| P0 | MAS 私有 runtime/control-plane tail | 对 `runtime_protocol/runtime_surface_retirement_parts`、legacy diagnostic/current-work-unit/provider-admission tail 做 active caller proof；可删则删，不可删则 tombstone 为 authority adapter / refs-only projection。 | focused tests；`scripts/verify.sh` 或 relevant regression lane；no forbidden MAS runtime writes。 |
+| P0 | Wildcard-import facade | 迁移 active callers 到真实模块，删除/收薄 `controllers/submission_minimal.py`、`study_progress.py`、`study_runtime_decision.py`、`product_entry.py`、`medical_publication_surface.py` 等 facade tail。 | `rg` 无 active import 依赖退役 facade；focused CLI/domain-handler tests。 |
+| P1 | Display pack vendoring / `setup.py` projection | 明确 display-pack 版本化来源；删除自定义复制路径，或把它降为显式 dev/provenance helper。 | package/build smoke；display focused tests；no hidden generated resource inventory。 |
+| P1 | Root demo artifacts | 删除或移入 history/assets 未被 active tests/source 引用的 `Rplots.pdf`、`visual_qa_demo.png`。 | `rg` 引用证明；git diff sanity；visual/paper tests 不依赖 root artifact。 |
+| P2 | 超大测试 / fixture | 将 narrative/compat/alias assertions 收敛成 semantic case modules；删除重复实现细节。 | line budget；focused tests；`scripts/verify.sh` appropriate lane。 |
+
+## 停止条件
+
+- 若某 facade 仍是唯一 public import 或 domain-handler target，先迁移 caller，再删除。
+- 若某 runtime tail 仍签 MAS owner receipt、typed blocker、human gate 或 artifact authority，保留为 minimal authority function，不上收到 OPL。
+- 若 display pack 改造缺 packaging proof，只能先文档化边界与删除无引用 artifact，不能声明 display-pack release-ready。
