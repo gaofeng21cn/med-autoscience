@@ -11,6 +11,14 @@ from med_autoscience.autosci_learning_projection import build_autosci_learning_p
 from med_autoscience.evo_scientist_learning_projection import (
     build_evo_scientist_learning_projection,
 )
+from med_autoscience.external_learning_adoption_closure_parts.framework_catalog import (
+    counts as _counts,
+    framework as _framework,
+    framework_from_projection as _framework_from_projection,
+    list_value as _list,
+    mapping as _mapping,
+    text as _text,
+)
 from med_autoscience.lightweight_executor_receipts import (
     build_lightweight_executor_receipt_contract,
 )
@@ -610,90 +618,6 @@ def _sidecar_payload(*, study_root: Path, dispatch: Mapping[str, Any], apply: bo
     }
 
 
-def _framework_from_projection(
-    *,
-    framework_id: str,
-    source_project: str,
-    projection: Mapping[str, Any],
-    closure_status: str,
-    owner_surface: str,
-    worker_or_executor_landing: str,
-    missing_landing_work: list[str],
-    next_landing_path: str,
-    extra_source_refs: list[str | None] | None = None,
-) -> dict[str, Any]:
-    source = _mapping(projection.get("source_snapshot"))
-    return _framework(
-        framework_id=framework_id,
-        source_project=source_project,
-        source_refs=[
-            _text(source.get("repository")),
-            _text(source.get("intake_doc_ref")),
-            _text(projection.get("contract_ref")),
-            _text(projection.get("progress_accelerator_contract_ref")),
-            *(extra_source_refs or []),
-        ],
-        absorbed_pattern_ids=[
-            _text(pattern.get("pattern_id"))
-            for pattern in _list(projection.get("absorbed_patterns"))
-            if isinstance(pattern, Mapping)
-        ],
-        local_execution_state=_text(projection.get("status")) or closure_status,
-        closure_status=closure_status,
-        owner_surface=owner_surface,
-        worker_or_executor_landing=worker_or_executor_landing,
-        missing_landing_work=missing_landing_work,
-        next_landing_path=next_landing_path,
-    )
-
-
-def _framework(
-    *,
-    framework_id: str,
-    source_project: str,
-    source_refs: list[str | None],
-    absorbed_pattern_ids: list[str | None],
-    local_execution_state: str,
-    closure_status: str,
-    owner_surface: str,
-    worker_or_executor_landing: str,
-    missing_landing_work: list[str],
-    next_landing_path: str,
-) -> dict[str, Any]:
-    return {
-        "framework_id": framework_id,
-        "source_project": source_project,
-        "source_refs": [ref for ref in source_refs if ref],
-        "dependency_introduced": False,
-        "absorbed_pattern_ids": [item for item in absorbed_pattern_ids if item],
-        "local_execution_state": local_execution_state,
-        "closure_status": closure_status,
-        "owner_surface": owner_surface,
-        "worker_or_executor_landing": worker_or_executor_landing,
-        "missing_landing_work": missing_landing_work,
-        "next_landing_path": next_landing_path,
-        "friction_policy": {
-            "can_block_current_owner_action": False,
-            "mainline_waits_for_framework": False,
-            "external_runtime_dependency": False,
-            "owner_policy_wins": True,
-        },
-        "authority_boundary": {
-            "can_write_domain_truth": False,
-            "can_write_publication_eval": False,
-            "can_write_controller_decisions": False,
-            "can_write_owner_receipt": False,
-            "can_write_typed_blocker": False,
-            "can_write_paper_or_package": False,
-            "can_write_artifact_authority": False,
-            "can_authorize_publication_quality": False,
-            "can_authorize_submission_readiness": False,
-            "can_authorize_artifact_authority": False,
-            "can_close_stage": False,
-        },
-    }
-
-
 def _sidecar_execution_contract() -> dict[str, Any]:
     return {
         "action_type": SIDECAR_ACTION_TYPE,
@@ -1010,50 +934,8 @@ def _advisory_worker_registry_refs() -> dict[str, str]:
     }
 
 
-def _counts(frameworks: list[Mapping[str, Any]]) -> dict[str, int]:
-    counts = {
-        "framework_count": len(frameworks),
-        "owner_surface_landed_count": 0,
-        "sidecar_execution_slot_count": 0,
-        "contract_or_projection_only_gap_count": 0,
-        "not_landed_gap_count": 0,
-    }
-    for framework in frameworks:
-        status = _text(framework.get("closure_status"))
-        if status in {
-            "owner_surface_landed",
-            "contract_projection_landed",
-            "read_model_landed",
-        }:
-            counts["owner_surface_landed_count"] += 1
-        if status in {"sidecar_execution_slot_landed", "sidecar_or_worker_landed"}:
-            counts["sidecar_execution_slot_count"] += 1
-        if status in {
-            "thin_projection_landed_worker_scaleout_gap",
-            "contract_only_gap",
-            "history_only_gap",
-        }:
-            counts["contract_or_projection_only_gap_count"] += 1
-        if status == "not_landed_gap":
-            counts["not_landed_gap_count"] += 1
-    return counts
-
-
 def _dispatch_text(dispatch: Mapping[str, Any], key: str) -> str | None:
     return _text(dispatch.get(key)) or _text(_mapping(dispatch.get("source_action")).get(key))
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _list(value: object) -> list[Any]:
-    return list(value) if isinstance(value, list) else []
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 __all__ = [
