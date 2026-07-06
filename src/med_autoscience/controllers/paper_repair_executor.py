@@ -10,7 +10,6 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers import (
     canonical_manuscript_package_loop,
-    paper_authority_migration,
     paper_repair_execution_evidence,
     quality_repair_batch,
 )
@@ -37,6 +36,7 @@ from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_resu
 )
 from med_autoscience.controllers.paper_repair_executor_parts import (
     ai_reviewer_owner_callable_dispatch,
+    artifact_patches,
     opl_execution_preflight,
     owner_route_currentness_blockers,
     unsupported_callable,
@@ -387,7 +387,7 @@ def _ai_reviewer_owner_handoff_result(
         opl_execution_authorization=opl_execution_authorization,
     )
     handoff["dispatch_authority"] = "ai_reviewer_record_production_handoff"
-    _write_json(dispatch_path, handoff)
+    artifact_patches.write_json(dispatch_path, handoff)
     return {
         "surface": "paper_repair_ai_reviewer_owner_handoff",
         "schema_version": SCHEMA_VERSION,
@@ -568,8 +568,8 @@ def _execute_supported_work_unit(
     changed: list[Path] = []
     if _work_unit_updates_manuscript(work_unit=work_unit, work_unit_type=work_unit_type):
         changed.append(_update_manuscript(study_root=study_root, work_unit=work_unit, work_unit_type=work_unit_type))
-    changed.extend(_apply_json_artifact_patches(study_root=study_root, work_unit=work_unit))
-    changed.extend(_apply_text_artifact_patches(study_root=study_root, work_unit=work_unit))
+    changed.extend(artifact_patches.apply_json_artifact_patches(study_root=study_root, work_unit=work_unit))
+    changed.extend(artifact_patches.apply_text_artifact_patches(study_root=study_root, work_unit=work_unit))
     if work_unit_type in {"analysis_repair", "evidence_ledger_repair", "claim_downgrade", "route_decision"}:
         changed.append(
             _update_json_ledger(
@@ -680,19 +680,19 @@ def _update_manuscript(*, study_root: Path, work_unit: Mapping[str, Any], work_u
         else:
             updated = existing.rstrip() + "\n\nThe claim is downgraded because current evidence does not support the original claim.\n"
     else:
-        updated = _apply_structured_patch(existing=existing, work_unit=work_unit)
+        updated = artifact_patches.apply_structured_patch(existing=existing, work_unit=work_unit)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(updated if updated.endswith("\n") else updated + "\n", encoding="utf-8")
     return path
 
 
 def _preflight_blocker(*, work_unit: Mapping[str, Any], work_unit_type: str) -> str | None:
-    if work_unit_type == "text_repair" and not _has_structured_patch(work_unit):
+    if work_unit_type == "text_repair" and not artifact_patches.has_structured_patch(work_unit):
         return STRUCTURED_PATCH_BLOCKER
-    json_patch_blocker = _json_artifact_patch_blocker(work_unit)
+    json_patch_blocker = artifact_patches.json_artifact_patch_blocker(work_unit)
     if json_patch_blocker is not None:
         return json_patch_blocker
-    text_patch_blocker = _text_artifact_patch_blocker(work_unit)
+    text_patch_blocker = artifact_patches.text_artifact_patch_blocker(work_unit)
     if text_patch_blocker is not None:
         return text_patch_blocker
     return None
@@ -701,217 +701,11 @@ def _preflight_blocker(*, work_unit: Mapping[str, Any], work_unit_type: str) -> 
 def _work_unit_updates_manuscript(*, work_unit: Mapping[str, Any], work_unit_type: str) -> bool:
     if work_unit_type in {"text_repair", "claim_downgrade"}:
         return True
-    return work_unit_type == "analysis_repair" and _has_structured_patch(work_unit)
-
-
-def _has_structured_patch(work_unit: Mapping[str, Any]) -> bool:
-    patch = _mapping(work_unit.get("canonical_patch"))
-    if _text(patch.get("replacement_text")):
-        return True
-    if _text(patch.get("append_text")):
-        return True
-    return bool(_text(work_unit.get("replacement_text")) or _text(work_unit.get("append_text")))
-
-
-def _apply_structured_patch(*, existing: str, work_unit: Mapping[str, Any]) -> str:
-    patch = _mapping(work_unit.get("canonical_patch"))
-    replacement_text = _text(patch.get("replacement_text")) or _text(work_unit.get("replacement_text"))
-    append_text = _text(patch.get("append_text")) or _text(work_unit.get("append_text"))
-    target_text = _text(patch.get("target_text")) or _text(work_unit.get("target_text"))
-    target_claim = _text(work_unit.get("target_claim"))
-    if replacement_text and target_text and target_text in existing:
-        return existing.replace(target_text, replacement_text)
-    if replacement_text and target_claim and target_claim in existing:
-        return existing.replace(target_claim, replacement_text)
-    if append_text:
-        return existing.rstrip() + f"\n\n{append_text}\n"
-    if replacement_text:
-        return existing.rstrip() + f"\n\n{replacement_text}\n"
-    return existing
-
-
-def _apply_json_artifact_patches(*, study_root: Path, work_unit: Mapping[str, Any]) -> list[Path]:
-    changed: list[Path] = []
-    for patch in _json_artifact_patch_items(work_unit):
-        path = _json_artifact_patch_path(study_root=study_root, patch=patch)
-        payload = _read_json(path)
-        updated = False
-        for update in _json_artifact_patch_updates(patch):
-            if _apply_json_path_update(payload, update):
-                updated = True
-        if updated:
-            _write_json(path, payload)
-            changed.append(path)
-    return changed
-
-
-def _apply_text_artifact_patches(*, study_root: Path, work_unit: Mapping[str, Any]) -> list[Path]:
-    changed: list[Path] = []
-    for patch in _text_artifact_patch_items(work_unit):
-        path = _text_artifact_patch_path(study_root=study_root, patch=patch)
-        existing = path.read_text(encoding="utf-8")
-        updated = _apply_text_artifact_patch(existing=existing, patch=patch)
-        if updated != existing:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(updated if updated.endswith("\n") else updated + "\n", encoding="utf-8")
-            changed.append(path)
-    return changed
-
-
-def _json_artifact_patch_blocker(work_unit: Mapping[str, Any]) -> str | None:
-    for patch in _json_artifact_patch_items(work_unit):
-        relative_path = _text(patch.get("relative_path"))
-        if relative_path is None:
-            return "json_artifact_patch_relative_path_missing"
-        if not _json_artifact_patch_relative_path_allowed(relative_path):
-            return "json_artifact_patch_path_not_allowed"
-        if not _json_artifact_patch_updates(patch):
-            return "json_artifact_patch_updates_missing"
-        for update in _json_artifact_patch_updates(patch):
-            if not _json_path(update.get("path")):
-                return "json_artifact_patch_update_path_missing"
-            if "value" not in update:
-                return "json_artifact_patch_update_value_missing"
-    return None
-
-
-def _text_artifact_patch_blocker(work_unit: Mapping[str, Any]) -> str | None:
-    for patch in _text_artifact_patch_items(work_unit):
-        relative_path = _text(patch.get("relative_path"))
-        if relative_path is None:
-            return "text_artifact_patch_relative_path_missing"
-        if not _text_artifact_patch_relative_path_allowed(relative_path):
-            return "text_artifact_patch_path_not_allowed"
-        replacement_text = _text(patch.get("replacement_text"))
-        append_text = _text(patch.get("append_text"))
-        if not replacement_text and not append_text:
-            return "text_artifact_patch_update_missing"
-    return None
-
-
-def _json_artifact_patch_items(work_unit: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    patches = work_unit.get("json_artifact_patches")
-    if not isinstance(patches, list):
-        return []
-    return [patch for patch in patches if isinstance(patch, Mapping)]
-
-
-def _text_artifact_patch_items(work_unit: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    patches = work_unit.get("text_artifact_patches")
-    if not isinstance(patches, list):
-        return []
-    return [patch for patch in patches if isinstance(patch, Mapping)]
-
-
-def _json_artifact_patch_updates(patch: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    updates = patch.get("updates")
-    if not isinstance(updates, list):
-        return []
-    return [update for update in updates if isinstance(update, Mapping)]
-
-
-def _json_artifact_patch_path(*, study_root: Path, patch: Mapping[str, Any]) -> Path:
-    relative_path = _text(patch.get("relative_path"))
-    if relative_path is None or not _json_artifact_patch_relative_path_allowed(relative_path):
-        raise ValueError("json artifact patch path is not allowed")
-    paper_relative_path = Path(relative_path).relative_to("paper")
-    return (_active_paper_root(study_root) / paper_relative_path).resolve()
-
-
-def _text_artifact_patch_path(*, study_root: Path, patch: Mapping[str, Any]) -> Path:
-    relative_path = _text(patch.get("relative_path"))
-    if relative_path is None or not _text_artifact_patch_relative_path_allowed(relative_path):
-        raise ValueError("text artifact patch path is not allowed")
-    paper_relative_path = Path(relative_path).relative_to("paper")
-    return (_active_paper_root(study_root) / paper_relative_path).resolve()
-
-
-def _json_artifact_patch_relative_path_allowed(relative_path: str) -> bool:
-    path = Path(relative_path)
-    parts = path.parts
-    return (
-        not path.is_absolute()
-        and ".." not in parts
-        and len(parts) >= 2
-        and parts[0] == "paper"
-        and "current_package" not in parts
-        and path.suffix == ".json"
-    )
-
-
-def _text_artifact_patch_relative_path_allowed(relative_path: str) -> bool:
-    path = Path(relative_path)
-    parts = path.parts
-    return (
-        not path.is_absolute()
-        and ".." not in parts
-        and len(parts) >= 2
-        and parts[0] == "paper"
-        and "current_package" not in parts
-        and path.suffix in {".md", ".csv", ".txt"}
-    )
-
-
-def _apply_text_artifact_patch(*, existing: str, patch: Mapping[str, Any]) -> str:
-    target_text = _text(patch.get("target_text"))
-    replacement_text = _text(patch.get("replacement_text"))
-    append_text = _text(patch.get("append_text"))
-    if replacement_text and target_text and target_text in existing:
-        return existing.replace(target_text, replacement_text)
-    if append_text:
-        return existing.rstrip() + f"\n\n{append_text}\n"
-    if replacement_text and not target_text:
-        return existing.rstrip() + f"\n\n{replacement_text}\n"
-    return existing
-
-
-def _apply_json_path_update(payload: dict[str, Any], update: Mapping[str, Any]) -> bool:
-    path = _json_path(update.get("path"))
-    if not path:
-        return False
-    cursor: Any = payload
-    for token in path[:-1]:
-        cursor = _json_child(cursor, token)
-        if cursor is None:
-            return False
-    final = path[-1]
-    if isinstance(cursor, list) and isinstance(final, int) and 0 <= final < len(cursor):
-        if cursor[final] == update.get("value"):
-            return False
-        cursor[final] = update.get("value")
-        return True
-    if isinstance(cursor, dict) and isinstance(final, str):
-        if cursor.get(final) == update.get("value"):
-            return False
-        cursor[final] = update.get("value")
-        return True
-    return False
-
-
-def _json_child(value: Any, token: str | int) -> Any | None:
-    if isinstance(value, list) and isinstance(token, int) and 0 <= token < len(value):
-        return value[token]
-    if isinstance(value, dict) and isinstance(token, str):
-        return value.get(token)
-    return None
-
-
-def _json_path(value: object) -> list[str | int]:
-    if not isinstance(value, list):
-        return []
-    result: list[str | int] = []
-    for item in value:
-        if isinstance(item, int):
-            result.append(item)
-        elif isinstance(item, str) and item:
-            result.append(item)
-        else:
-            return []
-    return result
+    return work_unit_type == "analysis_repair" and artifact_patches.has_structured_patch(work_unit)
 
 
 def _update_json_ledger(*, path: Path, entry_key: str, entry: Mapping[str, Any]) -> Path:
-    payload = _read_json(path)
+    payload = artifact_patches.read_json(path)
     payload.setdefault("schema_version", 1)
     updates = payload.get(entry_key)
     if not isinstance(updates, list):
@@ -924,7 +718,7 @@ def _update_json_ledger(*, path: Path, entry_key: str, entry: Mapping[str, Any])
             claim_updates = []
         claim_updates.append({"claim_policy": dict(_mapping(entry.get("claim_policy"))), "source": SURFACE})
         payload["claim_updates"] = claim_updates
-    _write_json(path, payload)
+    artifact_patches.write_json(path, payload)
     return path
 
 
@@ -988,7 +782,7 @@ def _write_gate_replay_request(
     generated_at: str,
 ) -> Path:
     path = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
-    _write_json(
+    artifact_patches.write_json(
         path,
         {
             "surface": "paper_repair_gate_replay_request",
@@ -1085,13 +879,13 @@ def _owner_receipt(
 def _write_owner_receipt(*, study_root: Path, receipt: Mapping[str, Any]) -> Path:
     digest = hashlib.sha256(str(receipt.get("work_unit_id") or "repair_work_unit").encode("utf-8")).hexdigest()[:20]
     path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / f"{digest}.json"
-    _write_json(path, receipt)
-    _write_json(study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json", receipt)
+    artifact_patches.write_json(path, receipt)
+    artifact_patches.write_json(study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json", receipt)
     return path
 
 
 def _manuscript_path(study_root: Path) -> Path:
-    paper_root = _active_paper_root(study_root)
+    paper_root = artifact_patches.active_paper_root(study_root)
     draft = paper_root / "draft.md"
     if draft.exists() or not (paper_root / "manuscript.md").exists():
         return draft
@@ -1099,54 +893,15 @@ def _manuscript_path(study_root: Path) -> Path:
 
 
 def _evidence_ledger_path(study_root: Path) -> Path:
-    return _active_paper_root(study_root) / "evidence_ledger.json"
+    return artifact_patches.active_paper_root(study_root) / "evidence_ledger.json"
 
 
 def _review_ledger_path(study_root: Path) -> Path:
-    return _active_paper_root(study_root) / "review" / "review_ledger.json"
+    return artifact_patches.active_paper_root(study_root) / "review" / "review_ledger.json"
 
 
 def _revision_log_path(study_root: Path) -> Path:
-    return _active_paper_root(study_root) / "revision_log.jsonl"
-
-
-def _active_paper_root(study_root: Path) -> Path:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    stage_native_root = paper_authority_migration.stage_native_body_authority_root(
-        study_root=resolved_study_root
-    )
-    stage_native_paper_root = stage_native_root / "paper"
-    if _paper_surface_exists(stage_native_paper_root) or (
-        stage_native_root / "paper_authority_receipt.json"
-    ).exists():
-        return stage_native_paper_root.resolve()
-    return (resolved_study_root / "paper").resolve()
-
-
-def _paper_surface_exists(paper_root: Path) -> bool:
-    return any(
-        (paper_root / relative_path).exists()
-        for relative_path in (
-            "draft.md",
-            "manuscript.md",
-            "claim_evidence_map.json",
-            "evidence_ledger.json",
-            "review/review_ledger.json",
-        )
-    )
-
-
-def _read_json(path: Path) -> dict[str, Any]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return dict(payload) if isinstance(payload, Mapping) else {}
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return artifact_patches.active_paper_root(study_root) / "revision_log.jsonl"
 
 
 def _work_unit_id(work_unit: Mapping[str, Any]) -> str:
