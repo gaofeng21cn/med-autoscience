@@ -19,17 +19,15 @@ from tests.product_entry_cases.functional_closure_projection import *
 
 
 def test_product_entry_manifest_exposes_paper_mission_default_entry(tmp_path):
-    import importlib
-
+    from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
     from med_autoscience.profiles import load_profile
     from tests.test_cli_cases.shared import write_profile
 
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path, workspace_root=tmp_path / "workspace")
     profile = load_profile(profile_path)
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_path)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_path)
 
     paper_mission = manifest["medical_paper_product_entry"]
     assert paper_mission["default_action_intent"] == "paper_mission/start_or_resume"

@@ -171,7 +171,7 @@ def test_legacy_authority_refs_payload_helper_is_history_replay_only(tmp_path: P
 
 
 def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.manifest_surfaces")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 

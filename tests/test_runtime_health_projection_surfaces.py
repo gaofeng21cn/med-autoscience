@@ -70,7 +70,7 @@ def test_mcp_progress_compact_projection_carries_runtime_health_snapshot_summary
 
 
 def test_workspace_cockpit_study_item_carries_runtime_health_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.workspace_surfaces")
 
     item = module._study_item(
         progress_payload={
