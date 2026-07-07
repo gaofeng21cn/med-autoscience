@@ -25,7 +25,7 @@ def _rollup_contract() -> dict:
 
 def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -171,7 +171,7 @@ def test_live_runtime_evidence_rollup_contract_matches_tail_and_gap_work_orders(
 
 def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missing() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -242,7 +242,7 @@ def test_live_runtime_evidence_rollup_fails_closed_when_any_tail_or_gap_is_missi
 
 def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
 
     readback = rollup.live_runtime_evidence_rollup_readback(repo_root=REPO_ROOT)
@@ -383,7 +383,7 @@ def test_live_runtime_evidence_rollup_readback_exposes_typed_blocker_gate() -> N
 
 def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -406,7 +406,7 @@ def test_live_runtime_evidence_rollup_requires_all_tail_and_gap_records() -> Non
 
 def test_live_runtime_evidence_templates_are_not_evidence_records() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -474,7 +474,7 @@ def test_live_runtime_evidence_templates_are_not_evidence_records() -> None:
 
 def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_records() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -533,7 +533,7 @@ def test_live_runtime_evidence_rollup_fails_closed_on_unknown_or_duplicate_recor
 
 def test_live_runtime_evidence_rollup_rejects_authority_family_without_outcome_ref() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -581,7 +581,7 @@ def test_live_runtime_evidence_rollup_rejects_authority_family_without_outcome_r
 
 def test_live_runtime_evidence_rollup_rejects_tail_family_without_concrete_ref() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -613,7 +613,7 @@ def test_live_runtime_evidence_rollup_rejects_tail_family_without_concrete_ref()
 
 def test_live_runtime_evidence_rollup_rejects_gap_family_without_concrete_ref() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -645,7 +645,7 @@ def test_live_runtime_evidence_rollup_rejects_gap_family_without_concrete_ref() 
 
 def test_live_runtime_evidence_rollup_rejects_repo_test_sources_with_accepted_refs() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
     tail_contract = _live_tail_contract()
     gap_contract = _live_gap_contract()
@@ -835,7 +835,7 @@ def test_live_runtime_evidence_rollup_cli_rejects_bundle_combined_with_split_fil
 
 def test_live_runtime_evidence_rollup_bundle_rejects_malformed_record_lists() -> None:
     rollup = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup"
     )
 
     try:

@@ -429,11 +429,11 @@ def test_nature_figure_contract_learning_lands_in_mas_display_owner_surfaces() -
         "medical_figure_family_catalog_qa_gates",
     } <= set(adoption["owner_surfaces"])
     assert {
-        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
-        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
-        "src/med_autoscience.display_pack_agent_parts.query_family_route.resolve_query_family_route",
-        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
-        "src/med_autoscience.display_pack_gallery_parts.quality.build_quality_audit",
+        "src/med_autoscience.display_pack_agent.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent.figure_contract.compile_display_figure_intent",
+        "src/med_autoscience.display_pack_agent.query_family_route.resolve_query_family_route",
+        "src/med_autoscience.display_pack_gallery.manifest.build_manifest",
+        "src/med_autoscience.display_pack_gallery.quality.build_quality_audit",
         "contracts/medical-figure-family-catalog/qa_gates.json",
     } <= set(adoption["consumable_surfaces"])
     assert {
@@ -460,9 +460,9 @@ def test_figure_workflow_packet_learning_lands_as_consumable_nonblocking_surface
         "display_pack_gallery_manifest",
     } <= set(adoption["owner_surfaces"])
     assert {
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.figure_workflow_policy",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_rendered_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.figure_workflow.figure_workflow_policy",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_rendered_figure_workflow_packet",
         "paper/figure_workflow_packet.json",
         "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet",
     } <= set(adoption["consumable_surfaces"])
@@ -502,9 +502,9 @@ def test_page_level_composition_recipe_learning_lands_as_mas_owner_surface() -> 
         "contracts/medical-figure-family-catalog/composition_recipes/clinical_prediction_and_ml.json",
         "contracts/medical-figure-family-catalog/composition_recipes/design_and_image.json",
         "contracts/medical-figure-family-catalog/composition_recipes/omics_and_atlas.json",
-        "src/med_autoscience.display_pack_agent_parts.composition_recipe_route.select_composition_recipe",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
-        "src/med_autoscience.display_pack_gallery_parts.manifest.build_manifest",
+        "src/med_autoscience.display_pack_agent.composition_recipe_route.select_composition_recipe",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_gallery.manifest.build_manifest",
     } <= set(adoption["consumable_surfaces"])
     assert {
         "duplicate_single_plot_template_expansion_as_primary_strategy",
@@ -530,7 +530,7 @@ def test_publication_polish_policy_surface_lands_without_blocking_progress() -> 
         "medical_figure_family_catalog_qa_gates",
     } <= set(adoption["owner_surfaces"])
     assert {
-        "src/med_autoscience.display_pack_agent_parts.publication_polish_policy.publication_polish_policy",
+        "src/med_autoscience.display_pack_agent.publication_polish_policy.publication_polish_policy",
         "contracts/medical-figure-family-catalog/qa_gates.json#/publication_polish_visual_audit",
         "contracts/medical-figure-family-catalog/qa_gates.json#/paper_use_polish_lifecycle",
     } <= set(adoption["consumable_surfaces"])

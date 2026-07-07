@@ -20,7 +20,7 @@ def _contract() -> dict:
 
 def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     completion = _completion_audit()
     contract = _contract()
@@ -162,7 +162,7 @@ def test_live_runtime_gap_work_order_contract_matches_completion_audit() -> None
 
 def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     by_text = {order["gap_text"]: order for order in contract["work_orders"]}
@@ -273,7 +273,7 @@ def test_live_runtime_gap_evidence_intake_rejects_false_substitutes() -> None:
 
 def test_live_runtime_gap_evidence_rejects_repo_test_source_even_with_accepted_refs() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     by_text = {order["gap_text"]: order for order in contract["work_orders"]}
@@ -309,7 +309,7 @@ def test_live_runtime_gap_evidence_rejects_repo_test_source_even_with_accepted_r
 
 def test_live_runtime_gap_contract_rejects_undeclared_concrete_evidence_ref_fields() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     completion = _completion_audit()
     contract = _contract()
@@ -330,7 +330,7 @@ def test_live_runtime_gap_contract_rejects_undeclared_concrete_evidence_ref_fiel
 
 def test_live_runtime_gap_contract_rejects_missing_transition_identity_schema() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     completion = _completion_audit()
     contract = _contract()
@@ -352,7 +352,7 @@ def test_live_runtime_gap_contract_rejects_missing_transition_identity_schema() 
 
 def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     domain_diagnostic_apply = next(
@@ -403,7 +403,7 @@ def test_live_runtime_gap_evidence_requires_concrete_authority_outcome_ref() -> 
 
 def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_families() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     provider_readback = next(
@@ -451,7 +451,7 @@ def test_live_runtime_gap_evidence_requires_concrete_evidence_ref_for_opl_famili
 
 def test_live_runtime_gap_evidence_requires_current_transition_identity() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     provider_readback = next(
@@ -509,7 +509,7 @@ def test_live_runtime_gap_evidence_requires_current_transition_identity() -> Non
 
 def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     provider_readback = next(
@@ -547,7 +547,7 @@ def test_live_runtime_gap_direct_evaluator_rejects_mismatched_gap_id() -> None:
 
 def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
 
@@ -621,7 +621,7 @@ def test_live_runtime_gap_intake_summary_requires_all_gap_evidence() -> None:
 
 def test_live_runtime_gap_intake_fails_closed_on_unknown_or_duplicate_records() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders"
     )
     contract = _contract()
     complete_records = [_satisfying_gap_record(order) for order in contract["work_orders"]]

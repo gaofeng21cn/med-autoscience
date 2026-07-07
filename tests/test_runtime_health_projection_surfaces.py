@@ -31,7 +31,7 @@ def _runtime_health_snapshot() -> dict[str, object]:
 
 
 def test_mcp_progress_compact_projection_carries_runtime_health_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(
         {

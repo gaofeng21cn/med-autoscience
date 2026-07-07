@@ -1,9 +1,9 @@
-from med_autoscience.quality.publication_gate import (
+from .publication_gate import (
     QUALITY_EXECUTION_LANE_LABELS,
     derive_quality_closure_truth,
     derive_quality_execution_lane,
 )
-from med_autoscience.quality.study_quality import (
+from .study_quality import (
     build_reviewer_first_readiness,
     build_study_quality_truth,
 )

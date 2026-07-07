@@ -8,7 +8,7 @@ from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 from med_autoscience.scholarskills_capability_modules import (
     build_scholarskills_capabilities,
 )
-from med_autoscience.scientific_capability_registry_parts import (
+from med_autoscience.scientific_capability_registry.registry_contract import (
     authority_boundary as _authority_boundary,
 )
 

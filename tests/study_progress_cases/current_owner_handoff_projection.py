@@ -620,7 +620,7 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
 
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
-    mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")
+    mcp_adapter = importlib.import_module("med_autoscience.mcp_server.projection_adapters")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (

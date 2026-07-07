@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.cli_parts.study_read_commands import _progress_first_status_payload
+from med_autoscience.cli.study_read_commands import _progress_first_status_payload
 
 
 def test_progress_first_payload_removes_canonical_owner_successor_action_from_default_view() -> None:

@@ -87,7 +87,7 @@ def test_paper_mission_owner_surface_no_longer_accepts_tombstoned_runtime_apply_
 
 
 def test_retired_worker_cli_and_transport_aliases_do_not_return() -> None:
-    cli_parser = importlib.import_module("med_autoscience.cli_parts.parser")
+    cli_parser = importlib.import_module("med_autoscience.cli.parser")
     domain_status_projection = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     figure_loop_guard = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     medical_publication_surface = importlib.import_module("med_autoscience.controllers.medical_publication_surface")

@@ -2660,7 +2660,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-22：stage quality pack contract catalog 按自然边界拆分
 
-- 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract_parts/catalog.py`，由 `stage_quality_contract_parts/__init__.py` 做显式 re-export。
+- 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract/catalog.py`，由 `stage_quality_contract/__init__.py` 做显式 re-export。
 - 理由：DM003 writer materializer 修复当时触发 smoke `line_budget` signal，暴露 `stage_quality_contract.py` 已超过 preferred boundary 且没有 reviewed baseline。当前 line budget 是 advisory，由定时结构治理统一消化。正确处理方式仍是按 quality-pack catalog 自然边界拆分，而不是新增白名单或隐藏 advisory signal。
 - 影响：这是结构治理修复，不改变 stage quality pack contract 的 public callable 或 authority boundary；OPL projection 仍只能消费 descriptor/ref/freshness locator，不能授权 MAS truth、quality verdict、publication readiness 或 submission readiness。
 

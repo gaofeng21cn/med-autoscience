@@ -5,11 +5,11 @@ from pathlib import Path
 import sys
 
 from med_autoscience.display_layout_qc import run_display_layout_qc
-from med_autoscience.display_pack_gallery_parts.assets import _image_size
-from med_autoscience.display_pack_gallery_parts.design_svg_renderer import (
+from med_autoscience.display_pack_gallery.assets import _image_size
+from med_autoscience.display_pack_gallery.design_svg_renderer import (
     render_submission_graphical_abstract_gallery_preview,
 )
-from med_autoscience.display_pack_gallery_parts.payloads import _style_context_for
+from med_autoscience.display_pack_gallery.payloads import _style_context_for
 from med_autoscience.display_pack_paths import core_medical_display_pack_python_src_root
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

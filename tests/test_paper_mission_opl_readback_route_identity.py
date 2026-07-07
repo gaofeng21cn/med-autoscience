@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.paper_mission_opl_readback_parts.route_identity import (
+from med_autoscience.paper_mission_opl_readback.route_identity import (
     matches_carrier,
 )
 

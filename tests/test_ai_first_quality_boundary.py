@@ -25,8 +25,8 @@ def test_gate_materialized_publication_eval_is_marked_as_mechanical_projection()
 
 def test_quality_surfaces_require_ai_reviewer_provenance_before_ready_verdicts() -> None:
     study_quality = _read("src/med_autoscience/quality/study_quality.py")
-    closure_truth = _read("src/med_autoscience/evaluation_summary_parts/quality_closure_truth.py")
-    revision_plan = _read("src/med_autoscience/evaluation_summary_parts/quality_revision_plan.py")
+    closure_truth = _read("src/med_autoscience/evaluation_summary/quality_closure_truth.py")
+    revision_plan = _read("src/med_autoscience/evaluation_summary/quality_revision_plan.py")
 
     assert 'provenance["owner"] == "ai_reviewer"' in study_quality
     assert 'not bool(provenance["ai_reviewer_required"])' in study_quality

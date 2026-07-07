@@ -6,19 +6,19 @@ import os
 import subprocess
 from types import SimpleNamespace
 
-from med_autoscience.cli_parts.paper_mission_command_parts import opl_runtime_submission
-from med_autoscience.cli_parts.paper_mission_command_parts.followthrough_materialized_readback import (
+from med_autoscience.cli.paper_mission_commands import opl_runtime_submission
+from med_autoscience.cli.paper_mission_commands.followthrough_materialized_readback import (
     followthrough_transaction_for_readback,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.route_back_budget import (
+from med_autoscience.cli.paper_mission_commands.route_back_budget import (
     NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS,
     _load_paper_mission_route_back_budget_ledger,
     _record_paper_mission_route_back_budget_ledger,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+from med_autoscience.cli.paper_mission_commands.transaction_readback import (
     PAPER_AUDIT_PACK_FAMILIES,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers import (
+from med_autoscience.cli.paper_mission_commands.drive_helpers import (
     paper_mission_drive_result,
     paper_mission_mas_owned_executor_delta_checkpoint,
 )
@@ -62,7 +62,7 @@ def test_opl_tick_followthrough_timeout_is_bounded(monkeypatch) -> None:
 
 
 def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     first = _route_back_consume_readback(candidate_ref="/tmp/round-00/package.json")
     second = _route_back_consume_readback(candidate_ref="/tmp/round-01/package.json")
 
@@ -97,7 +97,7 @@ def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> 
 
 
 def test_semantic_progress_guard_ignores_candidate_packet_refs_without_owner_delta() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     first = _route_back_consume_readback()
     second = _route_back_consume_readback(
         consume_result={"paper_facing_delta_ref": "/tmp/paper-facing-delta.json"}
@@ -121,7 +121,7 @@ def test_semantic_progress_guard_ignores_candidate_packet_refs_without_owner_del
 
 
 def test_semantic_progress_guard_ignores_followthrough_identity_wrappers() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     first = _route_back_consume_readback(
         mission_id="paper-mission::dm003",
         transaction_ref="paper-mission-transaction::dm003",
@@ -250,7 +250,7 @@ def test_followthrough_transaction_prefers_canonical_next_action_route() -> None
 
 def test_drive_initial_source_prefers_canonical_next_action_inspect() -> None:
     drive = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.drive_readback"
+        "med_autoscience.cli.paper_mission_commands.drive_readback"
     )
     calls: list[dict[str, object]] = []
 
@@ -284,7 +284,7 @@ def test_drive_initial_source_prefers_canonical_next_action_inspect() -> None:
 
 
 def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     first = _route_back_consume_readback()
     second = _route_back_consume_readback(
         consume_result={"domain_owner_receipt_ref": "owner-receipt::dm003"}
@@ -308,7 +308,7 @@ def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
 
 
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
 
     runtime_request = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
         _route_back_handoff()
@@ -416,7 +416,7 @@ def test_opl_stage_route_request_requires_request_idempotency_key() -> None:
 
 
 def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     consume_readback = _route_back_consume_readback()
     consume_readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_live_readback"
     handoff = _route_back_handoff()
@@ -479,7 +479,7 @@ def test_drive_reports_mas_executor_delta_when_opl_readback_is_missing() -> None
 
 
 def test_stage_closure_projection_missing_blocks_same_stage_followthrough() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     terminalizer = importlib.import_module(
         "med_autoscience.controllers.stage_closure_terminalizer"
     )
@@ -545,7 +545,7 @@ def test_drive_stage_closure_uses_latest_study_ledger_when_transaction_ref_rotat
     tmp_path,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer"
+        "med_autoscience.cli.paper_mission_commands.stage_closure_terminalizer"
     )
     ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
     profile = type("Profile", (), {"workspace_root": str(tmp_path)})()
@@ -596,7 +596,7 @@ def test_drive_stage_closure_ignores_old_fallback_ledger_when_new_consumption_ca
     tmp_path,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer"
+        "med_autoscience.cli.paper_mission_commands.stage_closure_terminalizer"
     )
     ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
     profile = type("Profile", (), {"workspace_root": str(tmp_path)})()
@@ -651,7 +651,7 @@ def test_drive_stage_closure_ignores_old_fallback_ledger_when_new_consumption_ca
 
 
 def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path) -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     ledger_ref = tmp_path / "ledger" / "study" / "route_back_budget_ledger.json"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     first_readback = _route_back_consume_readback(candidate_ref="/tmp/run-01/package.json")

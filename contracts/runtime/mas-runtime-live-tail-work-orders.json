@@ -148,7 +148,7 @@
     "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
     "med_autoscience.runtime_protocol.runtime_surface_retirement.audit_runtime_surface_retirement_inventory",
     "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion",
-    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders.live_tail_evidence_intake_summary"
+    "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders.live_tail_evidence_intake_summary"
   ],
   "work_orders": [
     {

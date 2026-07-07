@@ -53,7 +53,7 @@ def test_scipilot_plot_selection_and_visual_qa_patterns_are_consumable_but_nonbl
     plot_selection = adoptions["data_question_first_plot_selection"]
     assert plot_selection["classification"] == "adopt"
     assert plot_selection["landing_status"] == "owner_surface_landed"
-    assert "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent" in (
+    assert "src/med_autoscience.display_pack_agent.figure_contract.compile_display_figure_intent" in (
         plot_selection["consumable_surfaces"]
     )
     assert "unrelated owner dispatch must continue" in plot_selection["progress_policy"]

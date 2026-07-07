@@ -27,7 +27,7 @@ from med_autoscience.controllers.ai_reviewer_story_provenance_guard import (
     MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS,
     reject_manuscript_story_provenance_leakage,
 )
-from med_autoscience.publication_eval_record_parts.validation import _RECORD_ALLOWED_FIELDS
+from med_autoscience.publication_eval_record.validation import _RECORD_ALLOWED_FIELDS
 from med_autoscience.publication_eval_record_provenance import _ASSESSMENT_PROVENANCE_ALLOWED_FIELDS
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,

@@ -16,7 +16,7 @@ from .common import (
     tomllib,
     Path,
 )
-from med_autoscience.display_pack_gallery_parts.lidocaineq_coverage import (
+from med_autoscience.display_pack_gallery.lidocaineq_coverage import (
     LIDOCAINEQ_COVERAGE_ITEMS,
     lidocaineq_coverage_payload,
 )

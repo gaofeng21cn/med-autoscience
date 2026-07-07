@@ -153,11 +153,11 @@ def test_repo_hygiene_audit_allows_opl_scheduler_contract_vocabulary(tmp_path: P
 
 def test_repo_hygiene_audit_rejects_retired_entrypoint_tokens(tmp_path: Path) -> None:
     _git_init(tmp_path)
-    entrypoint = tmp_path / "src" / "med_autoscience" / "cli_parts" / "parser.py"
+    entrypoint = tmp_path / "src" / "med_autoscience" / "cli" / "parser.py"
     entrypoint.parent.mkdir(parents=True)
     entrypoint.write_text('parser.add_parser("domain-health-diagnostic")\n', encoding="utf-8")
     subprocess.run(
-        ["git", "add", "src/med_autoscience/cli_parts/parser.py"],
+        ["git", "add", "src/med_autoscience/cli/parser.py"],
         cwd=tmp_path,
         check=True,
         capture_output=True,

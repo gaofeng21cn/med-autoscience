@@ -31,7 +31,7 @@ The completed repo surface includes:
 | 6. `inspect` / `study progress` 默认读面 | `done` | 100% | Study progress mission summary tests cover latest consumption ledger / PaperMission transaction priority and diagnostic fallback marking. |
 | 7. 旧 runtime-like 主路径退役 | `done` | 100% | Default PaperMission path no longer selects DHD / owner-route reconcile / default dispatch / PaperRecovery / provider-admission projection as execution authority; retained surfaces are diagnostic / migration / provenance only. |
 | 8. OPL standard Foundry scaffold 合约 | `done` | 100% | `/Users/gaofeng/workspace/one-person-lab/bin/opl agents scaffold --validate /Users/gaofeng/workspace/med-autoscience --json` must return `validation.status=passed` and `blockers=[]`. |
-| 9. MAS standard pack 生成一致性 | `done` | 100% | `contracts/foundry_agent_series.json` is generated from `src/med_autoscience/opl_standard_pack.py` and `src/med_autoscience/opl_standard_pack_parts/series_profiles.py`; `tests/test_opl_standard_pack.py` covers the public projection policy. |
+| 9. MAS standard pack 生成一致性 | `done` | 100% | `contracts/foundry_agent_series.json` is generated from `src/med_autoscience/opl_standard_pack.py` and `src/med_autoscience/opl_standard_pack/series_profiles.py`; `tests/test_opl_standard_pack.py` covers the public projection policy. |
 | 10. Focused PaperMission tests | `done` | 100% | Final verification command includes the PaperMission focused suite. |
 | 11. Meta gate | `done` | 100% | Final verification command includes `make test-meta`. |
 | 12. Repo default verify | `done` | 100% | Final verification command includes `scripts/verify.sh`; line-budget advisory is not a failure and does not prove live paper evidence. |

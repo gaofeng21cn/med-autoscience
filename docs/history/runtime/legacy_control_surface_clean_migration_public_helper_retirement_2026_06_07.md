@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `runtime_public_helper_retirement_closeout`
 State: `history_provenance`
-Machine boundary: 本文是人读 closeout。当前机器真相继续归 `src/med_autoscience/cli.py`、`src/med_autoscience/cli_parts/parser.py`、`src/med_autoscience/cli_public_surface.py`、workspace init renderer、controller 源码和 repo-native verification。
+Machine boundary: 本文是人读 closeout。当前机器真相继续归 `src/med_autoscience/cli.py`、`src/med_autoscience/cli/parser.py`、`src/med_autoscience/cli_public_surface.py`、workspace init renderer、controller 源码和 repo-native verification。
 
 ## Scope
 

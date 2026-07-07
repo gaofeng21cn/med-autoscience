@@ -17,7 +17,7 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

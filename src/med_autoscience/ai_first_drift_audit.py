@@ -39,7 +39,7 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         check_id="quality_closure_reducer_fails_closed_without_ai_reviewer",
         category="ready_wording_without_ai_provenance",
         root_key="mas_repo_root",
-        relative_path="src/med_autoscience/evaluation_summary_parts/quality_closure_truth.py",
+        relative_path="src/med_autoscience/evaluation_summary/quality_closure_truth.py",
         summary="Quality closure truth must fail closed to review_required for projection-only evals.",
         required_markers=(
             "publication_eval_ai_reviewer_backed(publication_eval)",

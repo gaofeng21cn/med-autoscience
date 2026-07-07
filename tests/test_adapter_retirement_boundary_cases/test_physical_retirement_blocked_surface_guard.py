@@ -5,7 +5,7 @@ import importlib
 
 def test_blocked_surface_prevents_physical_retirement_allowed_status() -> None:
     layers_module = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.completion_evidence_layers"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.completion_evidence_layers"
     )
     surface = {
         "surface_id": "future_specialized_tail_surface",
@@ -38,7 +38,7 @@ def test_blocked_surface_prevents_physical_retirement_allowed_status() -> None:
 
 def test_any_false_physical_delete_allowed_field_blocks_retirement() -> None:
     layers_module = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.completion_evidence_layers"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.completion_evidence_layers"
     )
     surface = {
         "surface_id": "future_workbench_tail_surface",

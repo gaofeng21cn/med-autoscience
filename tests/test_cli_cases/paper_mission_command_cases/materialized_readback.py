@@ -341,7 +341,7 @@ def test_paper_mission_inspect_can_request_opl_transition_receipt_readback(
 def test_transaction_readback_reattaches_runtime_receipt_after_owner_answer_route(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+    from med_autoscience.cli.paper_mission_commands.transaction_readback import (
         _paper_mission_transaction_readback,
     )
 
@@ -409,7 +409,7 @@ def test_transaction_readback_reattaches_runtime_receipt_after_owner_answer_rout
 def test_authority_consumed_candidate_delta_suppresses_stale_terminal_owner_gate(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+    from med_autoscience.cli.paper_mission_commands.transaction_readback import (
         _paper_mission_transaction_readback,
     )
 
@@ -485,7 +485,7 @@ def test_authority_consumed_candidate_delta_suppresses_stale_terminal_owner_gate
 def test_consumption_ledger_candidate_delta_suppresses_older_terminal_owner_gate(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.cli_parts.paper_mission_command_parts.transaction_readback import (
+    from med_autoscience.cli.paper_mission_commands.transaction_readback import (
         _paper_mission_transaction_readback,
     )
 

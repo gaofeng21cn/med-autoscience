@@ -27,7 +27,7 @@ from med_autoscience.policies.publication_critique import (
     FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
 )
 from med_autoscience.publication_eval_latest import canonicalize_ai_reviewer_publication_eval_record
-from med_autoscience.publication_eval_record_parts.validation import (
+from med_autoscience.publication_eval_record.validation import (
     _ALLOWED_GAP_GATE_KINDS,
     _ALLOWED_GAP_SEVERITIES,
     _ALLOWED_GAP_TYPES,

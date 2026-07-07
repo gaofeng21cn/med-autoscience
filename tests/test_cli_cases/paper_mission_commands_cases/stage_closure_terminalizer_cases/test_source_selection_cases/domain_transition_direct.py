@@ -22,7 +22,7 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_over_old_co
         "med_autoscience.paper_mission_stage_closure_ledger"
     )
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     study_id = "obesity_multicenter_phenotype_atlas"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -373,10 +373,10 @@ def test_terminalize_stage_prefers_domain_transition_direct_closeout_without_mat
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     direct_handoff = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.direct_next_action_handoff"
+        "med_autoscience.cli.paper_mission_commands.direct_next_action_handoff"
     )
     study_id = "obesity_multicenter_phenotype_atlas"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)

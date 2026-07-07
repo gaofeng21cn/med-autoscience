@@ -4,7 +4,7 @@ import importlib
 
 
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         "schema_version": 1,
         "study_id": "001-risk",
@@ -73,7 +73,7 @@ def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() 
 
 
 def test_mcp_compacts_string_why_not_applied_as_single_reason() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         "schema_version": 1,
         "study_id": "001-risk",
@@ -92,7 +92,7 @@ def test_mcp_compacts_string_why_not_applied_as_single_reason() -> None:
 
 
 def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         "schema_version": 1,
         "study_id": "001-risk",

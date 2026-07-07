@@ -10,7 +10,7 @@ from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F
 
 def test_direct_stage_attempt_handoff_reads_owner_consumption_from_top_level_receipt() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     profile = SimpleNamespace(workspace_root="/tmp/workspace")
     readback = materialized_readback._domain_transition_direct_next_action_runtime_readback(
@@ -68,10 +68,10 @@ def test_direct_stage_attempt_handoff_reads_owner_consumption_from_top_level_rec
 
 def test_direct_terminal_closeout_can_override_next_action_source() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     refreshed_stage_closure = {
         "outcome": {
@@ -120,10 +120,10 @@ def test_direct_terminal_closeout_can_override_next_action_source() -> None:
 
 def test_direct_terminal_closeout_does_not_override_after_owner_consumed_route_checkpoint() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     for module in (materialized_readback, paper_mission_commands):
@@ -162,7 +162,7 @@ def test_direct_terminal_closeout_does_not_override_after_owner_consumed_route_c
 
 def test_thin_legacy_stage_closure_keeps_owner_consumption_visible(tmp_path: Path) -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     receipt_ref = tmp_path / "receipt_owner_consumption.json"
     stage_ref = tmp_path / "stage_closure_decision.json"

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.stage_quality_contract_parts.light_external import (
+from med_autoscience.stage_quality_contract.light_external import (
     LIGHT_BASE_OUTPUT_REF_KINDS,
     LIGHT_MATERIALIZER_OUTPUT_REF_KINDS,
 )

@@ -6,7 +6,7 @@ from med_autoscience.stage_quality_contract import (
     build_stage_quality_pack_contract,
     build_stage_quality_pack_ref_projection,
 )
-from med_autoscience.stage_quality_contract_parts.light_external import (
+from med_autoscience.stage_quality_contract.light_external import (
     LIGHT_OBSERVED_HEAD,
     build_light_materializer_contract,
 )

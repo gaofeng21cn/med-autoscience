@@ -16,7 +16,7 @@ def test_owner_callable_dispatch_residue_cleanup_surface_is_physically_retired()
     assert not (REPO_ROOT / "tests" / "test_owner_callable_dispatch_residue_cleanup.py").exists()
 
     cli_text = (SRC_ROOT / "cli.py").read_text(encoding="utf-8")
-    parser_text = (SRC_ROOT / "cli_parts" / "parser.py").read_text(encoding="utf-8")
+    parser_text = (SRC_ROOT / "cli" / "parser.py").read_text(encoding="utf-8")
     assert "_load_controller(\"owner_callable_dispatch_residue_cleanup\")" not in cli_text
     assert "owner_callable_dispatch_residue_cleanup =" not in cli_text
     assert "args.command == \"owner-callable-adapter-residue-cleanup\"" not in cli_text

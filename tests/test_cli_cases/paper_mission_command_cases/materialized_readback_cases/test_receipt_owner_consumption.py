@@ -16,10 +16,10 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def test_consumed_route_checkpoint_suppresses_same_work_unit_domain_redrive() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     stage_closure_decision = {
         "authority_materialized": True,
@@ -58,10 +58,10 @@ def test_owner_repair_receipt_readback_exposes_story_surface_semantic_delta(
     tmp_path: Path,
 ) -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     terminalizer = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer"
+        "med_autoscience.cli.paper_mission_commands.stage_closure_terminalizer"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "study"
@@ -134,7 +134,7 @@ def test_terminalizer_source_keeps_owner_repair_readback_over_stage_packet(
     monkeypatch,
 ) -> None:
     terminalizer_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer_readback"
+        "med_autoscience.cli.paper_mission_commands.stage_closure_terminalizer_readback"
     )
     owner_repair_readback = {
         "surface_kind": "paper_mission_materialized_readback",
@@ -175,7 +175,7 @@ def test_terminalizer_source_keeps_owner_repair_readback_over_stage_packet(
 
 def test_non_submit_owner_receipt_suppresses_transaction_next_action() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
 
     assert materialized_readback._stage_closure_owner_receipt_suppresses_transaction_next_action(
@@ -202,10 +202,10 @@ def test_non_submit_owner_receipt_suppresses_transaction_next_action() -> None:
 
 def test_owner_consumed_route_checkpoint_yields_to_domain_transition_action() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     stage_closure_decision = {
         "authority_materialized": True,
@@ -252,7 +252,7 @@ def test_owner_consumed_route_checkpoint_yields_to_domain_transition_action() ->
 
 def test_stage_closure_next_action_suppresses_consumed_same_route_checkpoint() -> None:
     stage_closure_next_action = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action"
+        "med_autoscience.cli.paper_mission_commands.stage_closure_next_action"
     )
     stage_closure_decision = {
         "stage_id": "finalize",
@@ -287,7 +287,7 @@ def test_stage_closure_next_action_suppresses_consumed_same_route_checkpoint() -
 
 def test_consumed_route_checkpoint_suppresses_stale_transaction_owner_consumption() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     fields = {
         "next_action": {
@@ -319,10 +319,10 @@ def test_consumed_route_checkpoint_suppresses_stale_transaction_owner_consumptio
 
 def test_owner_consumed_route_checkpoint_yields_to_same_stage_new_work_unit() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     stage_closure_decision = {
         "authority_materialized": True,
@@ -374,10 +374,10 @@ def test_owner_consumed_route_checkpoint_yields_to_same_stage_new_work_unit() ->
 
 def test_owner_consumed_route_checkpoint_yields_to_next_stage_work_unit() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     stage_closure_decision = {
         "authority_materialized": True,
@@ -422,10 +422,10 @@ def test_owner_consumed_route_checkpoint_yields_to_next_stage_work_unit() -> Non
 
 def test_owner_consumption_alignment_updates_top_level_and_current_carriers() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
     stale_closeout_ref = (
@@ -609,10 +609,10 @@ def test_owner_consumption_alignment_updates_top_level_and_current_carriers() ->
 
 def test_successor_runtime_readback_is_not_replaced_by_previous_owner_consumption() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     owner_consumption_ref = "/tmp/receipt_owner_consumption.json"
     successor_readback = {
@@ -684,10 +684,10 @@ def test_successor_runtime_readback_is_not_replaced_by_previous_owner_consumptio
 
 def test_same_attempt_direct_readback_is_aligned_with_owner_consumption() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     paper_mission_commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     owner_consumption_ref = "/tmp/receipt_owner_consumption.json"
     consumed_attempt_readback = {

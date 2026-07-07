@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.display_pack_gallery_parts.asset_reuse import seed_package_only_assets
+from med_autoscience.display_pack_gallery.asset_reuse import seed_package_only_assets
 
 
 def test_package_only_asset_reuse_seeds_empty_output_from_source_assets(tmp_path: Path) -> None:

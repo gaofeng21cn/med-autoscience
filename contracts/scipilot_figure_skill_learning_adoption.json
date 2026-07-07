@@ -82,7 +82,7 @@
         "typed_blocker_candidate_ref"
       ],
       "maps_to_owner_surfaces": [
-        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_advisor_probe",
+        "src/med_autoscience.display_pack_agent.scipilot_runtime_advisor.build_figure_advisor_probe",
         "display_pack_figure_workflow_packet.figures[].figure_advisor_probe",
         "display_pack_agent_figure_contract_policy",
         "display_pack_figure_workflow_packet",
@@ -130,7 +130,7 @@
         "typed_blocker_candidate_ref"
       ],
       "maps_to_owner_surfaces": [
-        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_export_lint",
+        "src/med_autoscience.display_pack_agent.scipilot_runtime_advisor.build_figure_export_lint",
         "display_pack_figure_workflow_packet.figures[].render_inspect_revise.figure_export_lint",
         "display_pack_export_qc_refs",
         "layout_sidecar_or_display_lock",
@@ -156,9 +156,9 @@
       "local_owner_surface": "display_pack_agent_figure_contract_policy",
       "target_landing": "plot_selection_quality_floor",
       "consumable_surfaces": [
-        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
-        "src/med_autoscience.display_pack_agent_parts.figure_contract.compile_display_figure_intent",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent.figure_contract.compile_display_figure_intent",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
         "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet"
       ],
       "evidence_gate": "focused_display_pack_agent_tests",
@@ -172,7 +172,7 @@
       "target_landing": "misleading_chart_warning_floor",
       "consumable_surfaces": [
         "contracts/medical-figure-family-catalog/qa_gates.json#/qa_gates/misleading_chart_warning_floor",
-        "src/med_autoscience.display_pack_agent_parts.figure_contract.figure_contract_policy",
+        "src/med_autoscience.display_pack_agent.figure_contract.figure_contract_policy",
         "src/med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
       ],
       "evidence_gate": "qa_gate_contract_readback_tests",
@@ -186,7 +186,7 @@
       "target_landing": "render_inspect_revise.qa_split",
       "consumable_surfaces": [
         "paper/figure_workflow_packet.json",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
         "src/med_autoscience.publication_figure_quality_contract.load_figure_workflow_packet"
       ],
       "evidence_gate": "figure_workflow_packet_contract_loader_tests",
@@ -213,8 +213,8 @@
       "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
       "target_landing": "figure_advisor_probe",
       "consumable_surfaces": [
-        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_advisor_probe",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.scipilot_runtime_advisor.build_figure_advisor_probe",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
         "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_advisor_probe",
         "docs/references/mainline/scipilot_figure_skill_learning_intake.md#refs-only-sidecar-tool-shapes",
         "docs/runtime/control/external_learning_adoption_closure.md"
@@ -229,8 +229,8 @@
       "local_owner_surface": "external_learning_sidecar_tool_shape_metadata",
       "target_landing": "figure_export_lint",
       "consumable_surfaces": [
-        "src/med_autoscience.display_pack_agent_parts.scipilot_runtime_advisor.build_figure_export_lint",
-        "src/med_autoscience.display_pack_agent_parts.figure_workflow.build_figure_workflow_packet",
+        "src/med_autoscience.display_pack_agent.scipilot_runtime_advisor.build_figure_export_lint",
+        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
         "contracts/scipilot_figure_skill_learning_adoption.json#/sidecar_tool_shapes/figure_export_lint",
         "docs/delivery/medical-display/README.md",
         "docs/runtime/control/external_learning_adoption_closure.md"

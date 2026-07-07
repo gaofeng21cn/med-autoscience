@@ -567,7 +567,7 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"

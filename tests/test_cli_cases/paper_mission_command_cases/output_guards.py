@@ -12,7 +12,7 @@ import pytest
 )
 def test_paper_mission_output_guards_allow_matching_yang_ops_roots(workspace: str) -> None:
     output_roots = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_output_roots"
+        "med_autoscience.cli.paper_mission_output_roots"
     )
 
     output_roots._assert_safe_one_shot_output_root(
@@ -43,7 +43,7 @@ def test_paper_mission_output_guards_allow_matching_yang_ops_roots(workspace: st
 
 def test_paper_mission_output_guards_reject_wrong_non_authority_bucket() -> None:
     output_roots = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_output_roots"
+        "med_autoscience.cli.paper_mission_output_roots"
     )
 
     with pytest.raises(ValueError, match="forbidden paper mission output root"):
@@ -75,10 +75,10 @@ def test_paper_mission_drive_yang_output_root_uses_allowed_sibling_buckets(
     tmp_path: Path,
 ) -> None:
     drive_helpers = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.drive_helpers"
+        "med_autoscience.cli.paper_mission_commands.drive_helpers"
     )
     output_roots = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_output_roots"
+        "med_autoscience.cli.paper_mission_output_roots"
     )
 
     class Profile:
@@ -109,7 +109,7 @@ def test_paper_mission_drive_yang_output_root_uses_allowed_sibling_buckets(
 
 def test_one_shot_migration_rejects_yang_authority_and_runtime_output_roots() -> None:
     output_roots = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_output_roots"
+        "med_autoscience.cli.paper_mission_output_roots"
     )
 
     with pytest.raises(ValueError, match="forbidden paper mission output root"):

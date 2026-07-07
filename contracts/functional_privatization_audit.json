@@ -1700,7 +1700,7 @@
         {
           "current_paths": [
             "src/med_autoscience/cli.py",
-            "src/med_autoscience/cli_parts/"
+            "src/med_autoscience/cli/"
           ],
           "current_role": "domain_handler_command_target_refs_only",
           "surface_id": "cli",

@@ -12,7 +12,7 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

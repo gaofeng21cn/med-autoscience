@@ -30,7 +30,7 @@ def _payload() -> dict[str, object]:
 
 
 def test_mcp_compacts_and_renders_delivery_inspection_projection() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(_payload())
     markdown = module.render_mcp_study_progress_markdown(_payload())

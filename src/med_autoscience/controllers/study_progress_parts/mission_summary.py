@@ -40,7 +40,7 @@ from .mission_summary_parts.paper_mission_payload import (
     _transaction_state,
 )
 from .mission_summary_parts.stage_closure_projection import top_level_stage_closure_projection
-from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
+from med_autoscience.cli.paper_mission_commands.stage_closure_next_action import (
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 

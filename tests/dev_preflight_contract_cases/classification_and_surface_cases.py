@@ -297,7 +297,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
 def test_classify_changed_files_matches_cli_parser_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
-    result = module.classify_changed_files(["src/med_autoscience/cli_parts/parser.py"])
+    result = module.classify_changed_files(["src/med_autoscience/cli/parser.py"])
 
     assert result.matched_categories == ("cli_parser_surface",)
     assert result.unclassified_changes == ()
@@ -314,7 +314,7 @@ def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() 
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
-            "src/med_autoscience/cli_parts/current_owner_delta_owner_answer_commands.py",
+            "src/med_autoscience/cli/current_owner_delta_owner_answer_commands.py",
             "tests/test_owner_answer_candidate_intake.py",
         ]
     )
@@ -332,7 +332,7 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/study_interventions.py",
-            "src/med_autoscience/cli_parts/study_owner_gate_commands.py",
+            "src/med_autoscience/cli/study_owner_gate_commands.py",
             "tests/test_study_interventions.py",
             "tests/test_cli_cases/domain_action_request_materializer_command.py",
         ]

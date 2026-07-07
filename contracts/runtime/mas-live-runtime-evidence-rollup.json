@@ -135,6 +135,6 @@
   "source_refs": [
     "contracts/runtime/mas-runtime-live-tail-work-orders.json",
     "contracts/runtime/mas-live-runtime-gap-work-orders.json",
-    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup.live_runtime_evidence_rollup_summary"
+    "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup.live_runtime_evidence_rollup_summary"
   ]
 }

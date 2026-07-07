@@ -11,7 +11,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
     terminalize_stage_closure,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action import (
+from med_autoscience.cli.paper_mission_commands.stage_closure_next_action import (
     next_action_for_stage_closure_decision,
 )
 

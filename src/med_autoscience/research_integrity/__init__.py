@@ -1,26 +1,26 @@
 from __future__ import annotations
 
-from med_autoscience.research_integrity.claim_citation_support_v2 import (
+from .claim_citation_support_v2 import (
     build_claim_citation_support_matrix_v2,
 )
-from med_autoscience.research_integrity.gate_bundle import (
+from .gate_bundle import (
     build_research_integrity_gate_input_bundle,
 )
-from med_autoscience.research_integrity.manuscript_consistency import (
+from .manuscript_consistency import (
     build_manuscript_consistency_meta_review,
 )
-from med_autoscience.research_integrity.provider_lookup import (
+from .provider_lookup import (
     ProviderLookupConfig,
     build_reference_provider_lookup_bundle,
     lookup_reference_provider_evidence,
 )
-from med_autoscience.research_integrity.reference_verification import (
+from .reference_verification import (
     build_reference_verification_payload,
 )
-from med_autoscience.research_integrity.stage_hooks import (
+from .stage_hooks import (
     build_review_publication_gate_stage_hook_payload,
 )
-from med_autoscience.research_integrity.reference_authenticity import (
+from .reference_authenticity import (
     ReferenceVerificationAttestation,
     ReferenceVerificationStatus,
     build_reference_verification_attestation,

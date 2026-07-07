@@ -18,7 +18,7 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

@@ -78,7 +78,7 @@ ENTRYPOINT_PATHS = frozenset(
     {
         "src/med_autoscience/mcp_server.py",
         "src/med_autoscience/cli.py",
-        "src/med_autoscience/cli_parts/parser.py",
+        "src/med_autoscience/cli/parser.py",
     }
 )
 ENTRYPOINT_TOKEN_DENYLIST = {

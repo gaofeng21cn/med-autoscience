@@ -272,7 +272,7 @@ def test_terminalize_stage_prefers_newer_stage_attempt_over_stale_transaction_ma
         timestamp=1_788_000_600.0,
     )
     terminalizer_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts."
+        "med_autoscience.cli.paper_mission_commands."
         "stage_closure_terminalizer_readback"
     )
     profile = importlib.import_module("med_autoscience.profiles").load_profile(

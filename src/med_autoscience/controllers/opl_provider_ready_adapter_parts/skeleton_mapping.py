@@ -155,7 +155,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             default_for_new_surfaces=True,
             repo_paths=[
                 "src/med_autoscience/cli.py",
-                "src/med_autoscience/cli_parts/parser.py",
+                "src/med_autoscience/cli/parser.py",
                 "plugins/mas/bin/medautosci-mcp",
             ],
             mapping_explanation=(

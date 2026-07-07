@@ -5,7 +5,7 @@ from med_autoscience.controllers.pi_action_projection import (
     build_pi_action_projection,
     compact_pi_action_projection,
 )
-from med_autoscience.mcp_server_parts.study_progress_projection import compact_study_progress_projection
+from med_autoscience.mcp_server.study_progress_projection import compact_study_progress_projection
 
 
 def test_pi_action_projection_maps_study_progress_surfaces_to_doctor_categories() -> None:

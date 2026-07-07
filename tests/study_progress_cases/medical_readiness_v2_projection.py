@@ -89,7 +89,7 @@ def _progress_payload() -> dict[str, object]:
 
 
 def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(_progress_payload())
     readiness = compact["medical_paper_readiness"]
@@ -164,7 +164,7 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
 
 
 def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         **_progress_payload(),
         "study_macro_state": {
@@ -240,7 +240,7 @@ def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> Non
 
 
 def test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_authority_refs() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         **_progress_payload(),
         "opl_current_control_state_handoff": {
@@ -296,7 +296,7 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_aut
 
 
 def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     markdown = module.render_mcp_study_progress_markdown(_progress_payload())
 

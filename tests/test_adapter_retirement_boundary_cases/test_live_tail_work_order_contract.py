@@ -24,7 +24,7 @@ def _contract() -> dict:
 
 def test_live_tail_work_order_contract_matches_runtime_surface_audit() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     audit = _audit()
     contract = _contract()
@@ -183,7 +183,7 @@ def test_live_tail_work_order_contract_rejects_false_completion_substitutes() ->
 
 def test_live_tail_contract_rejects_undeclared_concrete_evidence_ref_fields() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     audit = _audit()
@@ -204,7 +204,7 @@ def test_live_tail_contract_rejects_undeclared_concrete_evidence_ref_fields() ->
 
 def test_live_tail_contract_rejects_missing_authority_outcome_schema() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     audit = _audit()
@@ -225,7 +225,7 @@ def test_live_tail_contract_rejects_missing_authority_outcome_schema() -> None:
 
 def test_live_tail_contract_rejects_missing_transition_identity_schema() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     audit = _audit()
@@ -247,7 +247,7 @@ def test_live_tail_contract_rejects_missing_transition_identity_schema() -> None
 
 def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     runtime_health = {
@@ -348,7 +348,7 @@ def test_live_tail_evidence_record_intake_requires_accepted_ref_family() -> None
 
 def test_live_tail_evidence_record_rejects_repo_test_source_even_with_accepted_refs() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     runtime_health = {
@@ -380,7 +380,7 @@ def test_live_tail_evidence_record_rejects_repo_test_source_even_with_accepted_r
 
 def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     runtime_health = {
@@ -423,7 +423,7 @@ def test_live_tail_evidence_record_requires_concrete_evidence_ref() -> None:
 
 def test_live_tail_evidence_requires_current_transition_identity_for_readback_families() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     owner_dispatch = {
@@ -476,7 +476,7 @@ def test_live_tail_evidence_requires_current_transition_identity_for_readback_fa
 
 def test_live_tail_no_active_caller_evidence_does_not_require_transition_identity() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     owner_dispatch = {
@@ -502,7 +502,7 @@ def test_live_tail_no_active_caller_evidence_does_not_require_transition_identit
 
 def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     runtime_health = {
@@ -532,7 +532,7 @@ def test_live_tail_direct_evaluator_rejects_mismatched_surface_id() -> None:
 
 def test_live_tail_authority_outcome_family_requires_authority_ref() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     authority_family = (
         "owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back_ref"
@@ -585,7 +585,7 @@ def test_live_tail_authority_outcome_family_requires_authority_ref() -> None:
 
 def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_satisfied() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     runtime_health_record = {
@@ -643,7 +643,7 @@ def test_live_tail_evidence_intake_summary_does_not_claim_ready_until_all_tails_
 
 def test_live_tail_evidence_intake_fails_closed_on_unknown_or_duplicate_records() -> None:
     work_orders = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_tail_work_orders"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.live_tail_work_orders"
     )
     contract = _contract()
     all_records = [_satisfying_tail_record(order) for order in contract["work_orders"]]

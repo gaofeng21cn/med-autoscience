@@ -3,12 +3,12 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from med_autoscience.cli_parts.paper_mission_command_parts import route_back_budget
+from med_autoscience.cli.paper_mission_commands import route_back_budget
 
 
 def test_route_back_budget_counts_synonymous_followthrough_route_back(tmp_path: Path) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     def route_back_readback(*, followthrough: str = "") -> tuple[dict, dict]:

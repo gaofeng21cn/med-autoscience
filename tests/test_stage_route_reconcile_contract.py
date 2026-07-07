@@ -260,7 +260,7 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     assert graph["surface_kind"] == "mas_opl_stage_route_call_graph"
     assert graph["canonical_authority_source_code_refs"] == [
         "src/med_autoscience/controllers/stage_outcome_authority.py",
-        "src/med_autoscience/paper_mission_opl_readback_parts/next_action_envelope.py",
+        "src/med_autoscience/paper_mission_opl_readback/next_action_envelope.py",
         "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
     ]
     assert graph["legacy_diagnostic_source_code_refs"] == [

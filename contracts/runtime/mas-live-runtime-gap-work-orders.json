@@ -123,7 +123,7 @@
   },
   "source_refs": [
     "contracts/paper_progress_transition_runtime_completion_audit.json#/completion_columns/live_runtime_readiness_completion/open_live_runtime_gaps",
-    "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_gap_work_orders.live_runtime_gap_work_orders_from_completion_audit"
+    "med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_gap_work_orders.live_runtime_gap_work_orders_from_completion_audit"
   ],
   "work_orders": [
     {

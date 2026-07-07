@@ -53,8 +53,8 @@ def test_core_r_evidence_renderer_finds_helpers_when_invoked_by_absolute_path() 
 
 def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_path: Path) -> None:
     from med_autoscience.display_pack_gallery_catalog import TemplateRecord
-    from med_autoscience.display_pack_gallery_parts import paths
-    from med_autoscience.display_pack_gallery_parts import rendering
+    from med_autoscience.display_pack_gallery import paths
+    from med_autoscience.display_pack_gallery import rendering
 
     paths.configure_output_paths(tmp_path / "gallery")
     run_context_path = tmp_path / "dependency_run_context.json"
@@ -86,7 +86,7 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
         lambda template_id, seed_payloads: {"title": template_id},
     )
     monkeypatch.setattr(
-        "med_autoscience.display_pack_gallery_parts.dependency_run_context._missing_required_r_packages",
+        "med_autoscience.display_pack_gallery.dependency_run_context._missing_required_r_packages",
         lambda **kwargs: [],
     )
 
@@ -237,7 +237,7 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
 
 
 def test_gallery_builder_packages_cached_assets_by_default(monkeypatch, tmp_path: Path, capsys) -> None:
-    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+    from med_autoscience.display_pack_gallery import cli as gallery_cli
 
     calls: dict[str, object] = {
         "clean_assets": 0,
@@ -313,7 +313,7 @@ def test_gallery_builder_packages_cached_assets_by_default(monkeypatch, tmp_path
 
 
 def test_gallery_builder_package_only_skips_renderer_preflight(monkeypatch, tmp_path: Path, capsys) -> None:
-    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+    from med_autoscience.display_pack_gallery import cli as gallery_cli
 
     calls: dict[str, object] = {
         "which": [],
@@ -383,7 +383,7 @@ def test_gallery_builder_package_only_skips_renderer_preflight(monkeypatch, tmp_
 
 def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, tmp_path: Path) -> None:
     from med_autoscience.display_pack_gallery_catalog import TemplateRecord
-    from med_autoscience.display_pack_gallery_parts import cli as gallery_cli
+    from med_autoscience.display_pack_gallery import cli as gallery_cli
 
     record = TemplateRecord(
         template_id="roc_curve_binary",
@@ -428,7 +428,7 @@ def test_gallery_builder_package_only_fails_closed_without_assets(monkeypatch, t
 
 
 def test_package_only_asset_seed_updates_stale_target_files(tmp_path: Path) -> None:
-    from med_autoscience.display_pack_gallery_parts.asset_reuse import seed_package_only_assets
+    from med_autoscience.display_pack_gallery.asset_reuse import seed_package_only_assets
 
     source_root = tmp_path / "docs_assets"
     target_root = tmp_path / "output_assets"

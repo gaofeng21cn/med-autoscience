@@ -124,7 +124,7 @@ if (!requireNamespace("uwot", quietly = TRUE)) {
 
 
 def test_publication_embedding_gallery_payload_drives_distinct_reduction_workflows() -> None:
-    from med_autoscience.display_pack_gallery_parts.publication_payloads import PUBLICATION_R_DISPLAY_PAYLOADS
+    from med_autoscience.display_pack_gallery.publication_payloads import PUBLICATION_R_DISPLAY_PAYLOADS
 
     payloads = {
         key: PUBLICATION_R_DISPLAY_PAYLOADS[key]
@@ -179,7 +179,7 @@ if (requireNamespace("Rtsne", quietly = TRUE) && requireNamespace("uwot", quietl
 
 
 def test_embedding_layout_sidecar_preserves_nonzero_panel_and_point_positions() -> None:
-    from med_autoscience.display_pack_gallery_parts.publication_payloads import PUBLICATION_R_DISPLAY_PAYLOADS
+    from med_autoscience.display_pack_gallery.publication_payloads import PUBLICATION_R_DISPLAY_PAYLOADS
 
     payload = PUBLICATION_R_DISPLAY_PAYLOADS["pca_scatter_grouped"]
     with tempfile.TemporaryDirectory() as tmpdir:

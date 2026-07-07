@@ -12,7 +12,7 @@ def test_consumption_ledger_inspect_ignores_stale_current_handoff_after_owner_co
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "workspace" / "studies" / study_id
@@ -188,7 +188,7 @@ def test_consumption_ledger_inspect_ignores_stale_current_handoff_after_owner_co
 
 def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     decision = commands._terminalize_stage_closure_from_readback(
@@ -236,7 +236,7 @@ def test_stage_closure_terminalizer_supersedes_legacy_route_back_checkpoint() ->
 
 def test_durable_stop_guard_rejects_non_terminal_next_stage_transitions() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     for transition_kind in (

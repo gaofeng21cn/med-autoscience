@@ -14,7 +14,7 @@ def test_latest_stage_attempt_route_back_source_readback_prefers_current_termina
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -128,7 +128,7 @@ def test_latest_stage_attempt_route_back_source_readback_prefers_new_successor_a
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)

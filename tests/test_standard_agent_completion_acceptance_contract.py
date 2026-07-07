@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience.runtime_protocol.runtime_surface_retirement_parts.live_runtime_evidence_rollup import (
+from med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup import (
     live_runtime_evidence_rollup_summary,
 )
 

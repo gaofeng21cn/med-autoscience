@@ -7,19 +7,19 @@ from types import SimpleNamespace
 
 import pytest
 
-from med_autoscience.cli_parts import paper_mission_commands as commands
-from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import (
+from med_autoscience.cli import paper_mission_commands as commands
+from med_autoscience.cli.paper_mission_commands.drive_readback import (
     build_paper_mission_drive_readback,
     _drive_owner_action_stop_readback,
     _drive_should_submit_direct_next_action,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts import (
+from med_autoscience.cli.paper_mission_commands import (
     opl_runtime_submission,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts import (
+from med_autoscience.cli.paper_mission_commands import (
     materialized_mission_readback as materialized_readback,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts import (
+from med_autoscience.cli.paper_mission_commands import (
     direct_next_action_handoff as direct_handoff,
 )
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403

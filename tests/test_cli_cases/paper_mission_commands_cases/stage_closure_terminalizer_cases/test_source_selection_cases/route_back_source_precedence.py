@@ -16,7 +16,7 @@ def test_terminalize_stage_route_back_autodiscovery_reads_nested_attempt_packets
     tmp_path: Path,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -97,7 +97,7 @@ def test_terminalize_stage_prefers_latest_route_back_packet_over_old_live_write_
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -248,7 +248,7 @@ def test_terminalize_stage_prefers_current_transaction_stage_closure_over_stale_
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -345,7 +345,7 @@ def test_terminalize_stage_prefers_newer_workspace_stage_packet_over_matching_so
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -451,7 +451,7 @@ def test_terminalize_stage_prefers_route_back_identity_when_closeout_packet_fiel
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -588,7 +588,7 @@ def test_terminalize_stage_prefers_richer_followthrough_closeout_over_newer_spar
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
@@ -723,7 +723,7 @@ def test_terminalize_stage_prefers_route_back_with_owner_gate_context_over_newer
     monkeypatch,
 ) -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     profile_path = _write_profile_with_study(tmp_path, study_id=study_id)

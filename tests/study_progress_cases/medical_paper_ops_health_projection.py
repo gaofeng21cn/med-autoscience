@@ -62,7 +62,7 @@ def _progress_payload() -> dict[str, object]:
 
 
 def test_compact_mcp_progress_projection_preserves_v5_ops_health() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(_progress_payload())
     ops_health = compact["medical_paper_readiness"]["ops_health"]
@@ -93,7 +93,7 @@ def test_compact_mcp_progress_projection_preserves_v5_ops_health() -> None:
 
 
 def test_mcp_and_study_progress_markdown_render_v5_ops_health() -> None:
-    mcp_module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
 
     mcp_markdown = mcp_module.render_mcp_study_progress_markdown(_progress_payload())

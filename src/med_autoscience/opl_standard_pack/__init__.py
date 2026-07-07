@@ -1,0 +1,990 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
+from med_autoscience.agent_tool_arsenal import build_agent_tool_arsenal_index
+from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
+    build_functional_consumer_boundary,
+)
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps import (
+    PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX,
+    PRIVATE_SURFACE_RETIREMENT_GATE_POLICY,
+)
+from med_autoscience.hosted_ordinary_path_consumption import (
+    build_hosted_ordinary_path_consumption_contract,
+)
+from med_autoscience.opl_domain_pack.agent_pack_refs import (
+    AGENT_KNOWLEDGE_REFS,
+    AGENT_PROMPT_REFS,
+    AGENT_QUALITY_GATE_REFS,
+    AGENT_SKILL_REFS,
+    AGENT_STAGE_POLICY_REFS,
+    REQUIRED_DOMAIN_PACK_PATHS,
+)
+from med_autoscience.opl_domain_pack.family_adoption import (
+    build_domain_memory_descriptor,
+    build_family_stage_control_plane,
+)
+from med_autoscience.opl_domain_pack.hypothesis_portfolio_pack import (
+    build_hypothesis_portfolio_evidence_pack_contract,
+)
+
+from .authority_policies import (
+    AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS,
+    AI_FIRST_STAGE_GATE_FUNCTION_IDS,
+    ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES,
+    DECLARATIVE_DOMAIN_PACK,
+    FORBIDDEN_GENERIC_OWNER_ROLES,
+    FORBIDDEN_MECHANICAL_DECISION_SURFACES,
+    GENERATED_SURFACES,
+    INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,
+    MECHANICAL_GUARD_FUNCTION_IDS,
+    MINIMAL_AUTHORITY_FUNCTIONS,
+    STAGE_QUALITY_GATE_BOUNDARIES,
+)
+from .series_profiles import (
+    AGENT_MEMBERSHIP_PROJECTION_POLICY,
+    DOMAIN_SPECIFIC_PROFILE,
+    SERIES_DESIGN_PROFILE,
+    SHARED_POLICY_RELEASE,
+    STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY,
+    STANDARD_PUBLIC_PROJECTION_POLICY,
+    WORKSPACE_TOPOLOGY_PROFILE,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DOMAIN_LABEL = "Med Auto Science"
+DOMAIN_OWNER = "MedAutoScience"
+GENERATED_SURFACE_OWNER = "one-person-lab"
+STANDARD_STAGE_PACK_CONFORMANCE_VERSION = "standard-stage-pack.v2"
+STANDARD_STAGE_PACK_L4_REQUIRED_GATES = [
+    "repo_layout_declared",
+    "stage_pack_v2_required",
+    "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
+    "tool_affordance_boundary_declared",
+    "receipt_schema_declared",
+    "minimal_authority_functions_declared",
+    "generated_surface_handoff_declared",
+    "no_forbidden_write_contract_declared",
+]
+STANDARD_AGENT_PACK_L5_EVIDENCE_REQUIRED = [
+    "real_user_path",
+    "long_soak_recovery",
+    "release_install_evidence",
+    "owner_acceptance",
+    "direct_and_opl_hosted_parity_at_scale",
+]
+
+def _json_ready(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False))
+
+
+def build_standard_pack() -> dict[str, Any]:
+    action_catalog = build_mas_action_catalog()
+    stage_control_plane = build_family_stage_control_plane(
+        family_action_catalog=action_catalog,
+    )
+    functional_boundary = build_functional_consumer_boundary()
+
+    return {
+        "domain_descriptor": _domain_descriptor(),
+        "pack_compiler_input": _pack_compiler_input(),
+        "generated_surface_handoff": _generated_surface_handoff(),
+        "action_catalog": _with_forbidden_roles(action_catalog),
+        "stage_control_plane": stage_control_plane,
+        "foundry_agent_series": _foundry_agent_series_contract(stage_control_plane),
+        "agent_tool_arsenal": build_agent_tool_arsenal_index(action_catalog),
+        "hosted_ordinary_path_consumption": (
+            build_hosted_ordinary_path_consumption_contract()
+        ),
+        "memory_descriptor": _memory_descriptor(),
+        "artifact_locator_contract": _artifact_locator_contract(),
+        "owner_receipt_contract": _owner_receipt_contract(),
+        "functional_privatization_audit": _functional_privatization_audit(functional_boundary),
+        "private_functional_surface_policy": _private_functional_surface_policy(),
+    }
+
+
+def sync_standard_pack(*, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+    contracts = build_standard_pack()
+    contract_dir = repo_root / "contracts"
+    contract_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for name, payload in contracts.items():
+        relative = Path("contracts") / f"{name}.json"
+        path = repo_root / relative
+        path.write_text(
+            json.dumps(_json_ready(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        written.append(str(relative))
+    return {
+        "surface_kind": "mas_opl_standard_pack_sync",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "written": written,
+    }
+
+
+def _domain_descriptor() -> dict[str, Any]:
+    return {
+        "surface_kind": "domain_agent_descriptor",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "domain_label": DOMAIN_LABEL,
+        "package_role": "opl_standard_domain_agent",
+        "generated_surface_owner": GENERATED_SURFACE_OWNER,
+        "domain_repo_can_own_generated_surface": False,
+        "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+        "generated_descriptor_surfaces": list(GENERATED_SURFACES),
+        "standard_contract_refs": {
+            "action_catalog": "contracts/action_catalog.json",
+            "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
+            "hosted_ordinary_path_consumption": (
+                "contracts/hosted_ordinary_path_consumption.json"
+            ),
+            "foundry_agent_series": "contracts/foundry_agent_series.json",
+            "foundry_agent_series_policy_release": (
+                "contracts/opl-framework/foundry-agent-series-policy-release.json"
+            ),
+            "stage_control_plane": "contracts/stage_control_plane.json",
+            "pack_compiler_input": "contracts/pack_compiler_input.json",
+            "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
+            "generated_surface_handoff": "contracts/generated_surface_handoff.json",
+            "functional_privatization_audit": "contracts/functional_privatization_audit.json",
+        },
+        "authority_boundary": {
+            "opl_can_write_domain_truth": False,
+            "opl_can_write_memory_body": False,
+            "opl_can_authorize_quality_or_export": False,
+            "domain_owns_truth_quality_artifact_memory_and_receipts": True,
+            "domain_truth_owner": DOMAIN_OWNER,
+        },
+    }
+
+
+def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_foundry_agent_series_contract",
+        "version": "foundry-agent-series.v1",
+        "owner": "one-person-lab",
+        "product_layer": "foundry_agent",
+        "product_model": "OPL Framework -> One Person Lab App -> Foundry Agents",
+        "standard_agent_requirement": (
+            "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_"
+            "and_app_projection_packets"
+        ),
+        "contract_version_policy": {
+            "current_version": "foundry-agent-series.v1",
+            "domain_contract_ref": "contracts/foundry_agent_series.json",
+            "exact_version_pin_required": True,
+            "compatible_version_range": ["foundry-agent-series.v1"],
+            "breaking_change_requires_new_version": True,
+            "domain_descriptor_must_reference_domain_contract": True,
+        },
+        "shared_release_pin_strategy": {
+            "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
+            "owner_commit_pin_required": True,
+            "owner_commit_pin": "3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7",
+            "domain_dependency_pin_required": True,
+            "supported_pin_sources": ["pyproject.toml", "uv.lock"],
+            "consumer_alignment_check": "family:shared-release",
+            "domain_contract_version_pin_does_not_authorize_domain_truth": True,
+        },
+        "shared_policy_release": SHARED_POLICY_RELEASE,
+        "agent_membership_projection_policy": AGENT_MEMBERSHIP_PROJECTION_POLICY,
+        "standard_public_projection_policy": STANDARD_PUBLIC_PROJECTION_POLICY,
+        "standard_feedback_self_evolution_trigger_policy": (
+            STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY
+        ),
+        "series_design_profile": SERIES_DESIGN_PROFILE,
+        "workspace_topology_profile": WORKSPACE_TOPOLOGY_PROFILE,
+        "domain_specific_profile": DOMAIN_SPECIFIC_PROFILE,
+        "domain_id": "medautoscience",
+        "foundry_agent_id": "medautoscience",
+        "domain_label": "Research Foundry",
+        "domain_aliases": [TARGET_DOMAIN_ID, "mas", "med_auto_science"],
+        "authority_owner": stage_control_plane["owner"],
+        "stage_control_plane_ref": "contracts/stage_control_plane.json",
+        "stage_control_plane_target_domain_id": stage_control_plane["target_domain_id"],
+        "app_projection_ref": "contracts/generated_surface_handoff.json#/product_entry",
+        "required_identity_fields": [
+            "domain_id",
+            "foundry_agent_id",
+            "product_layer",
+            "domain_label",
+            "authority_owner",
+            "stage_control_plane_ref",
+        ],
+        "required_stage_packets": [
+            "stage_completion_policy",
+            "user_stage_log_contract",
+            "progress_delta_policy",
+            "typed_blocker_lineage_policy",
+            "effective_current_context",
+            "owner_receipt_or_typed_blocker_closeout",
+        ],
+        "shared_progress_projection_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta",
+        ],
+        "mission_first_non_advancing_escalation_policy": {
+            "surface_kind": "opl_foundry_agent_mission_first_non_advancing_escalation_policy",
+            "policy_id": "foundry_agent.mission_first_non_advancing_escalation.v1",
+            "domain_policy_ref": (
+                "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy"
+            ),
+            "applies_to_agents": ["MAS"],
+            "stage_type_projection": {
+                "mas_owned_stage_type": "paper_mission_semantic_progress_executor",
+                "opl_runtime_stage_role": "provider_backing_transport_for_domain_refs",
+                "codex_executor_is_first_class_stage_executor": True,
+                "generic_provider_completion_counts_as_domain_progress": False,
+            },
+            "semantic_progress_signature_projection": {
+                "projected_fields": [
+                    "study_id",
+                    "paper_mission_run_id",
+                    "stage_id",
+                    "current_owner",
+                    "action_type",
+                    "work_unit_id",
+                    "work_unit_fingerprint",
+                    "route_identity_key",
+                    "attempt_idempotency_key",
+                    "required_output_surface",
+                    "accepted_answer_shape",
+                ],
+                "transport_only_fields_are_observability": True,
+                "same_signature_without_domain_delta_counts_as_non_advancing": True,
+            },
+            "route_back_budget_policy": {
+                "same_signature_repeat_threshold": 2,
+                "ledger_scope": "cross_run_same_study_mission_signature",
+                "after_threshold_next_owner": (
+                    "MedAutoScience.paper_mission_semantic_progress_executor"
+                ),
+                "after_threshold_action": "mission_executor_continue_same_stage_until_semantic_delta_or_narrow_gate",
+                "opl_redrive_after_worker_ready_allowed": False,
+                "queue_or_worker_readiness_can_reset_budget": False,
+                "transport_or_observability_fields_can_reset_budget": False,
+                "budget_exhausted_can_claim_completion": False,
+            },
+            "mas_mission_executor_fallback_projection": {
+                "fallback_priority_order": [
+                    "paper_facing_delta",
+                    "owner_decision",
+                    "carry_forward_risk_receipt",
+                    "scope_or_evidence_or_research_pivot_decision",
+                    "narrow_stop_loss_or_human_gate",
+                ],
+                "auto_continue_after_synonymous_budget": True,
+                "required_product_refs": [
+                    "paper_facing_delta_ref",
+                    "owner_decision_packet_ref",
+                    "claim_decision_ref",
+                    "scope_decision_ref",
+                    "evidence_decision_ref",
+                    "pivot_decision_ref",
+                    "carry_forward_decision_ref",
+                    "stable_typed_blocker_ref",
+                    "human_gate_ref",
+                    "mission_executor_continuation_ref",
+                ],
+                "typed_blocker_or_human_gate_default": False,
+                "opl_redrive_default": False,
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "typed_blocker_and_human_gate_narrowing_policy"
+                ),
+            },
+            "ai_owner_decision_product_refs_projection": {
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "ai_owner_decision_product_refs"
+                ),
+                "ref_families": [
+                    "claim_decision_ref",
+                    "scope_decision_ref",
+                    "evidence_decision_ref",
+                    "pivot_decision_ref",
+                    "carry_forward_decision_ref",
+                ],
+                "can_authorize_submission_or_publication_ready": False,
+                "can_replace_owner_receipt_or_quality_gate": False,
+            },
+            "dm002_dm003_canary_acceptance_projection": {
+                "domain_policy_section_ref": (
+                    "contracts/mas-paper-study-stage-pack.json"
+                    "#/mission_first_non_advancing_route_back_policy/"
+                    "dm002_dm003_canary_acceptance"
+                ),
+                "success_requires_fresh_readback": True,
+                "contract_or_tests_only_can_pass": False,
+                "stale_opl_running_row_can_count_as_running_proof": False,
+            },
+            "forbidden_public_or_readiness_claims": [
+                "domain_ready",
+                "runtime_ready",
+                "publication_ready",
+                "submission_ready",
+                "provider_running",
+                "DM002_ready",
+                "DM003_ready",
+                "paper_progress_from_canary_contract_only",
+            ],
+            "authority_boundary": {
+                "domain_owns_semantic_progress_signature": True,
+                "domain_owns_non_advancing_escalation": True,
+                "opl_owns_transport_lifecycle": True,
+                "opl_can_write_domain_truth": False,
+                "opl_can_claim_domain_readiness_from_transport": False,
+                "opl_can_reset_synonymous_route_back_budget_from_transport": False,
+            },
+        },
+        "domain_progress_aliases": {
+            "deliverable": ["paper_progress_delta", "paper_work_progress"],
+            "platform": ["platform_repair_delta"],
+        },
+        "domain_adapter_policy": {
+            "domain_specific_aliases_only": True,
+            "no_parallel_progress_schema": True,
+            "no_parallel_blocker_lineage_schema": True,
+            "no_domain_runtime_fork": True,
+        },
+        "purpose_first_adapter_thinning_policy": {
+            "policy_id": "mas.purpose_first_adapter_thinning.v1",
+            "default_retained_surface_roles": [
+                "refs_only_adapter",
+                "domain_handler_target",
+                "minimal_authority_function",
+                "migration_input",
+                "history_or_tombstone_provenance",
+            ],
+            "default_operator_delta_shape": (
+                "paper_progress_delta_or_mas_owned_typed_blocker"
+            ),
+            "physical_delete_required_gates": [
+                "replacement_parity",
+                "no_active_caller",
+                "owner_receipt_or_typed_blocker",
+                "no_forbidden_write",
+                "tombstone_or_provenance",
+            ],
+            "evidence_tail_boundary": {
+                "structural_conformance_is_domain_ready": False,
+                "platform_repair_or_read_model_currentness_is_paper_progress": False,
+                "provider_completion_is_publication_ready": False,
+                "generated_surface_can_claim_production_ready": False,
+                "missing_paper_research_human_gate_returns": (
+                    "mas_owned_typed_blocker"
+                ),
+            },
+            "private_surface_policy_ref": "contracts/functional_privatization_audit.json",
+            "active_plan_ref": "docs/active/mas-ideal-state-gap-plan.md",
+        },
+        "app_projection_policy": {
+            "app_consumes_shared_progress_projection_only": True,
+            "app_can_read_domain_body": False,
+            "app_can_write_domain_truth": False,
+            "app_can_claim_quality_or_export": False,
+            "display_policy": "classification_only_no_domain_artifact_body",
+        },
+        "authority_boundary": {
+            "opl_owns_series_contract": True,
+            "domain_owns_truth_quality_artifact_memory_and_receipts": True,
+            "app_owns_display_and_user_action_shell": True,
+            "generated_surface_can_claim_domain_ready": False,
+        },
+    }
+
+
+def _pack_compiler_input() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_domain_pack_compiler_input",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "domain_pack_owner": TARGET_DOMAIN_ID,
+        "canonical_semantic_pack_root": "agent/",
+        "canonical_semantic_pack_role": (
+            "declarative_medical_research_semantics_for_opl_pack_compiler"
+        ),
+        "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",
+        "src_must_not_be_canonical_semantic_pack": True,
+        "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
+        "generated_surface_owner": GENERATED_SURFACE_OWNER,
+        "declarative_domain_pack": DECLARATIVE_DOMAIN_PACK,
+        "minimal_authority_functions": MINIMAL_AUTHORITY_FUNCTIONS,
+        "minimal_authority_semantic_model": (
+            "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+        ),
+        "gate_validator_ref": (
+            "src/med_autoscience/controllers/ai_first_private_authority.py::"
+            "validate_ai_first_private_authority_gate"
+        ),
+        "runtime_enforcement_status": "contract_validator_landed",
+        "allowed_judgment_modes": list(ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES),
+        "verdict_function_model_retired": True,
+        "program_output_policy": (
+            "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+        ),
+        "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
+        "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
+        "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
+        "standard_stage_gate_output_model": {
+            "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+            "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+            "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+            "self_review_closes_gate": False,
+        },
+        "hypothesis_portfolio_evidence_pack_contract": (
+            build_hypothesis_portfolio_evidence_pack_contract()
+        ),
+        "boundary_ids": MINIMAL_AUTHORITY_FUNCTIONS[:5],
+        "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
+        "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
+        "independent_executor_reviewer_agent_policy": INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,
+        "requires_ai_first_record": True,
+        "generated_surfaces_requested": GENERATED_SURFACES,
+        "domain_repo_can_own_generated_surface": False,
+        "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+        "source_refs": {
+            "canonical_agent_pack_root": "agent/",
+            "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
+            "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
+            "agent_tool_arsenal": (
+                "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index"
+            ),
+            "stage_control_plane": (
+                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane"
+            ),
+            "stage_graph_source_ref": "contracts/stage_control_plane.json",
+            "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "executor_policy_source_ref": "contracts/stage_control_plane.json#/stages/0/selected_executor",
+            "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
+            "authority_functions_source_ref": "runtime/authority_functions/README.md",
+            "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
+            "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
+            "capability_map_source_ref": "contracts/capability_map.json",
+            "memory_descriptor": (
+                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor"
+            ),
+            "functional_audit": (
+                "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
+                "consumer_migration.py::build_functional_consumer_boundary"
+            ),
+        },
+        "standard_stage_pack_conformance": _standard_stage_pack_conformance(),
+        "standard_agent_pack_abi": _standard_agent_pack_abi(),
+        "authority_boundary": {
+            "opl_can_write_domain_truth": False,
+            "opl_can_write_memory_body": False,
+            "opl_can_authorize_quality_or_export": False,
+            "domain_can_claim_generated_surface_owner": False,
+            "agent_pack_owner": DOMAIN_OWNER,
+            "src_role": "domain_handler_minimal_authority_native_helper",
+        },
+    }
+
+
+def _standard_stage_pack_conformance() -> dict[str, Any]:
+    return {
+        "version": STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
+        "required": True,
+        "enforcement_ref": "contracts/stage_control_plane.json#stage_pack_conformance_version",
+    }
+
+
+def _standard_agent_pack_abi() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_standard_agent_pack_abi",
+        "version": "standard-agent-pack-abi.v1",
+        "owner": "one-person-lab",
+        "baseline_status": "frozen_machine_verifiable_baseline",
+        "required_repo_layout": [
+            {
+                "path": "agent/",
+                "role": "declarative_domain_pack",
+                "required": True,
+            },
+            {
+                "path": "contracts/",
+                "role": "machine_readable_contracts",
+                "required": True,
+            },
+            {
+                "path": "runtime/authority_functions/",
+                "role": "minimal_authority_functions",
+                "required": True,
+            },
+        ],
+        "required_stage_pack_shape": {
+            "prompt_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/prompts/"],
+            },
+            "skill_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/skills/"],
+                "accepted_ref_kinds": ["repo_path", "skill_id"],
+            },
+            "knowledge_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/knowledge/"],
+            },
+            "quality_gate_refs": {
+                "required": True,
+                "accepted_ref_prefixes": ["agent/quality_gates/"],
+            },
+            "tool_affordance_boundary": {
+                "required": True,
+                "role": "available_affordance_catalog_not_workflow_script",
+                "required_ref_fields": [
+                    "capability_refs",
+                    "permission_scope_refs",
+                    "credential_boundary_refs",
+                    "write_scope_refs",
+                    "side_effect_risk_refs",
+                    "forbidden_authority_refs",
+                ],
+            },
+            "receipt_schema": {
+                "required": True,
+                "accepted_ref_prefixes": ["contracts/"],
+                "default_source_ref": "contracts/owner_receipt_contract.json",
+            },
+        },
+        "l4_entry_gate": {
+            "entry_level": "L4_structural_baseline",
+            "required_gates": list(STANDARD_STAGE_PACK_L4_REQUIRED_GATES),
+            "can_claim_l5": False,
+            "can_claim_domain_ready": False,
+        },
+        "l5_entry_gate": {
+            "entry_level": "L5_production_operating_maturity",
+            "evidence_required": list(STANDARD_AGENT_PACK_L5_EVIDENCE_REQUIRED),
+            "conformance_pass_counts_as_l5": False,
+            "contract_validation_counts_as_l5": False,
+            "provider_completion_counts_as_l5": False,
+            "app_projection_counts_as_l5": False,
+        },
+        "authority_boundary": {
+            "abi_can_claim_domain_ready": False,
+            "abi_can_claim_quality_or_export": False,
+            "abi_can_claim_l5_complete": False,
+            "opl_can_write_domain_truth": False,
+            "opl_can_write_memory_body": False,
+            "opl_can_mutate_domain_artifact_body": False,
+        },
+    }
+
+
+def _generated_surface_handoff() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_generated_surface_handoff",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "generated_surface_owner": GENERATED_SURFACE_OWNER,
+        "domain_repo_can_own_generated_surface": False,
+        "source_contract_ref": "contracts/pack_compiler_input.json",
+        "consumes_agent_pack_refs": True,
+        "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
+        "generated_surface_policy": {
+            "may_compile": [
+                "cli_descriptors",
+                "mcp_tool_descriptors",
+                "skill_descriptors",
+                "product_entry_descriptors",
+                "status_and_workbench_projection_descriptors",
+            ],
+            "must_read_semantics_from": "agent/",
+            "must_dispatch_to": "MAS domain handler targets and minimal authority functions",
+            "must_not_write": [
+                "MAS study truth",
+                "publication-route memory body",
+                "AI reviewer verdict",
+                "publication verdict",
+                "artifact authority",
+                "source body",
+                "current_package",
+            ],
+        },
+        "generated_surfaces": [
+            {
+                "surface_id": surface_id,
+                "owner": GENERATED_SURFACE_OWNER,
+                "domain_repo_can_own_generated_surface": False,
+                "status": "descriptor_source_available",
+            }
+            for surface_id in GENERATED_SURFACES
+        ],
+        "required_domain_handoff": [
+            "owner_receipt_schema",
+            "typed_blocker_schema",
+            "minimal_authority_function_refs",
+            "no_forbidden_write_evidence",
+        ],
+        "oma_agent_evidence_handoff": {
+            "consumer_id": "opl-meta-agent.agent:evidence",
+            "handoff_role": "refs_only_generated_surface_and_authority_locator_input",
+            "production_acceptance_ref": {
+                "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+                "role": "mas_domain_owned_production_acceptance",
+                "body_included": False,
+            },
+            "agent_lab_handoff_ref": {
+                "ref": "contracts/agent_lab_handoff.json",
+                "role": "domain_agent_lab_production_evidence_handoff",
+                "body_included": False,
+            },
+            "owner_receipt_authority_ref": {
+                "ref": "contracts/owner_receipt_contract.json",
+                "role": "mas_owner_receipt_authority",
+                "body_included": False,
+            },
+            "quality_authority_ref": {
+                "ref": "publication_eval/latest.json",
+                "role": "mas_quality_publication_authority",
+                "body_included": False,
+            },
+            "artifact_authority_ref": {
+                "ref": "contracts/artifact_locator_contract.json",
+                "role": "mas_artifact_authority_locator",
+                "body_included": False,
+            },
+            "memory_authority_ref": {
+                "ref": "contracts/memory_descriptor.json",
+                "role": "mas_memory_authority_locator",
+                "body_included": False,
+            },
+            "editable_surface_hints": [
+                {
+                    "ref": "agent/prompts",
+                    "role": "declarative_stage_prompt_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/skills",
+                    "role": "declarative_stage_skill_policy_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/knowledge",
+                    "role": "declarative_domain_knowledge_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/quality_gates",
+                    "role": "declarative_quality_gate_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/pack_compiler_input.json",
+                    "role": "pack_compiler_input_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/generated_surface_handoff.json",
+                    "role": "generated_surface_handoff_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/agent_lab_handoff.json",
+                    "role": "agent_evidence_suite_seed_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+                    "role": "production_acceptance_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "tests/test_opl_standard_pack.py",
+                    "role": "standard_pack_contract_test_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "tests/test_mas_production_acceptance.py",
+                    "role": "agent_evidence_handoff_contract_test_surface",
+                    "body_included": False,
+                },
+            ],
+            "consumer_policy": {
+                "oma_may_consume_refs": True,
+                "oma_may_emit_candidate_patch_work_order": True,
+                "oma_may_sign_owner_receipt": False,
+                "oma_may_write_quality_verdict": False,
+                "oma_may_write_artifact_body": False,
+                "oma_may_write_memory_body": False,
+            },
+        },
+    }
+
+
+def _with_forbidden_roles(action_catalog: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(action_catalog)
+    payload["forbidden_generic_owner_roles"] = FORBIDDEN_GENERIC_OWNER_ROLES
+    payload["generated_surface_owner"] = GENERATED_SURFACE_OWNER
+    payload["domain_repo_can_own_generated_surface"] = False
+    payload["descriptor_projection_owner"] = GENERATED_SURFACE_OWNER
+    payload["domain_repo_runtime_role"] = "domain_handler_target_and_authority_functions"
+    payload["domain_handler_target_owner"] = DOMAIN_OWNER
+    payload["catalog_role"] = (
+        "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
+    )
+    return payload
+
+
+def _memory_descriptor() -> dict[str, Any]:
+    descriptor = dict(build_domain_memory_descriptor())
+    descriptor["root_contract_role"] = "opl_standard_domain_agent_memory_descriptor"
+    descriptor["memory_body_owner"] = DOMAIN_OWNER
+    descriptor["opl_projection_policy"] = "locator_and_receipt_refs_only"
+    descriptor["authority_boundary"] = {
+        "opl_can_write_memory_body": False,
+        "opl_can_accept_or_reject_writeback": False,
+        "domain_memory_accept_reject_owner": DOMAIN_OWNER,
+    }
+    return descriptor
+
+
+def _artifact_locator_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "artifact_locator_contract",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "canonical_artifact_authority": DOMAIN_OWNER,
+        "opl_projection_policy": "locator_lifecycle_and_receipt_refs_only",
+        "authority_boundary": {
+            "opl_can_mutate_artifacts": False,
+            "opl_can_authorize_publication_quality": False,
+            "domain_artifact_authority_owner": DOMAIN_OWNER,
+        },
+    }
+
+
+def _owner_receipt_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "owner_receipt_contract",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "allowed_receipt_classes": [
+            "owner_receipt",
+            "typed_blocker",
+            "no_regression_evidence",
+            "memory_writeback_receipt",
+            "artifact_lifecycle_receipt",
+            "agent_capability_evolution_receipt",
+        ],
+        "forbidden_claims": [
+            "opl_authorized_domain_ready",
+            "opl_authorized_quality_or_export_verdict",
+            "opl_wrote_domain_truth",
+            "opl_wrote_memory_body",
+            "opl_meta_agent_wrote_study_truth",
+            "opl_meta_agent_authorized_publication_quality",
+        ],
+    }
+
+
+def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> dict[str, Any]:
+    purity = functional_boundary["standard_agent_purity"]
+    guard = functional_boundary["standard_agent_purity_guard"]
+    summary = functional_boundary["functional_module_inventory_summary"]
+    return {
+        "surface_kind": "mas_physical_source_morphology_scan",
+        "schema_version": 1,
+        "status": "repo_scan_proof_landed_live_and_owner_tail_open",
+        "evidence_ref": (
+            "contracts/functional_privatization_audit.json#/physical_source_morphology_scan"
+        ),
+        "closes_evidence_tail": "physical_source_morphology_scan_beyond_classification_zero_ref",
+        "scan_scope": [
+            "agent/",
+            "contracts/",
+            "runtime/authority_functions/",
+            "src/",
+            "tests/standard_agent_purity_helpers.py",
+        ],
+        "source_refs": [
+            "contracts/functional_privatization_audit.json#/functional_consumer_boundary",
+            "contracts/authority_kernel_inventory.json",
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator",
+            "tests/standard_agent_purity_helpers.py",
+            "tests/test_adapter_retirement_boundary.py",
+            "tests/test_authority_kernel_inventory.py",
+        ],
+        "observed_counts": {
+            "active_private_generic_residue_count": (
+                purity["active_private_generic_residue_count"]
+            ),
+            "repo_local_wrapper_tail_count": purity["repo_local_wrapper_tail_count"],
+            "default_caller_count": purity["default_caller_count"],
+            "runtime_package_residue_count": purity["runtime_package_residue_count"],
+            "functional_structure_gap_count": purity["functional_structure_gap_count"],
+            "classification_gap_count": summary["classification_gap_count"],
+            "functional_module_total_count": summary["total_count"],
+        },
+        "proof_assertions": {
+            "generic_runtime_owner_in_active_src": False,
+            "generated_surface_owner_in_domain_repo": False,
+            "repo_local_wrapper_tail_in_default_caller": False,
+            "history_detail_in_default_read_model": False,
+            "physical_delete_authorized": guard["domain_repo_physical_delete_authorized"],
+            "domain_projection_policy": purity["domain_projection_policy"],
+        },
+        "does_not_close": [
+            "direct_or_hosted_generated_surface_production_consumption_ref",
+            "production_generated_surface_consumption_ref",
+            "physical_retirement_owner_decision_ref",
+            "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
+            "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
+            "long_soak_negative_conformance_ref",
+        ],
+        "completion_boundary": {
+            "scan_proof_repo_backed": True,
+            "production_consumption_proven": False,
+            "physical_retirement_owner_decision_present": False,
+            "live_owner_or_stable_blocker_scaleout_complete": False,
+            "provider_or_operator_long_soak_complete": False,
+            "completion_claim_authorized": False,
+        },
+    }
+
+
+def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "functional_privatization_audit",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "audit_id": "mas.privatized_functional_module_audit.v1",
+        "owner": TARGET_DOMAIN_ID,
+        "state": "manifest_projected_for_opl_unified_audit",
+        "classification_policy": (
+            "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority"
+        ),
+        "opl_unified_audit_read_model": True,
+        "claims_generic_runtime_removed_from_mas": True,
+        "claims_opl_unique_control_plane": True,
+        "claims_opl_replacement_exists": True,
+        "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",
+        "claims_production_long_run_soak_complete": False,
+        "classification_buckets": [
+            "declarative_pack_generated_surface",
+            "domain_authority_refs",
+            "minimal_authority_function",
+        ],
+        "functional_consumer_boundary": dict(functional_boundary),
+        "privatized_functional_module_audit": {
+            "surface_kind": "mas_privatized_functional_module_audit",
+            "audit_id": "mas.privatized_functional_module_audit.v1",
+            "target_domain_id": TARGET_DOMAIN_ID,
+            "owner": TARGET_DOMAIN_ID,
+            "state": "manifest_projected_for_opl_unified_audit",
+            "classification_policy": (
+                "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority"
+            ),
+            "opl_unified_audit_read_model": True,
+            "claims_generic_runtime_removed_from_mas": True,
+            "claims_opl_unique_control_plane": True,
+            "claims_opl_replacement_exists": True,
+            "standard_agent_purity_policy": (
+                "default_surfaces_must_remain_standard_agent_purity_guarded"
+            ),
+            "claims_production_long_run_soak_complete": False,
+            "classification_buckets": [
+                "declarative_pack_generated_surface",
+                "domain_authority_refs",
+                "minimal_authority_function",
+            ],
+        },
+        "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
+        "physical_source_morphology_scan": _physical_source_morphology_scan(
+            functional_boundary
+        ),
+        "retirement_disposition_matrix": _json_ready(
+            PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX
+        ),
+        "authority_boundary": {
+            "opl_can_write_domain_truth": False,
+            "opl_can_write_memory_body": False,
+            "opl_can_authorize_quality_or_export": False,
+            "domain_can_claim_generic_runtime_owner": False,
+            "domain_repo_can_own_generated_surface": False,
+        },
+    }
+
+
+def _private_functional_surface_policy() -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_domain_private_functional_surface_admission_policy",
+        "schema_version": 1,
+        "domain_id": TARGET_DOMAIN_ID,
+        "default_posture": "forbidden_until_classified_and_receipted",
+        "forbidden_private_surface_classes": [
+            "generic_scheduler",
+            "generic_queue_or_attempt_ledger",
+            "generic_cli_mcp_product_wrapper",
+            "generic_workbench_shell",
+            "generic_observability_runtime",
+        ],
+        "allowed_private_surface_classes": [
+            "ai_first_stage_quality_gate_boundary",
+            "domain_native_helper_implementation",
+            "owner_receipt_signer",
+        ],
+        "gate_validator_ref": (
+            "src/med_autoscience/controllers/ai_first_private_authority.py::"
+            "validate_ai_first_private_authority_gate"
+        ),
+        "runtime_enforcement_status": "contract_validator_landed",
+        "allowed_judgment_modes": list(ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES),
+        "verdict_function_model_retired": True,
+        "program_output_policy": (
+            "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+        ),
+        "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
+        "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
+        "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
+        "forbidden_primary_allowed_private_surface_models": [
+            "domain_truth_verdict_authorizer",
+            "*_authorizer",
+        ],
+        "classification_required_for_private_surfaces": True,
+        "mas_private_surface_retirement_gate_policy": _json_ready(
+            PRIVATE_SURFACE_RETIREMENT_GATE_POLICY
+        ),
+        "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
+        "independent_executor_reviewer_agent_policy": INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,
+        "requires_ai_first_record": True,
+        "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
+        "forbidden_generic_owner_roles": FORBIDDEN_GENERIC_OWNER_ROLES,
+    }
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Sync MAS OPL standard domain-agent pack contracts.")
+    parser.add_argument("--check", action="store_true", help="Print the generated pack without writing.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    if args.check:
+        print(json.dumps(build_standard_pack(), ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    print(json.dumps(sync_standard_pack(), ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -168,7 +168,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
 
 
 def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(
         {
@@ -211,7 +211,7 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
 
 
 def test_mcp_progress_markdown_renders_medical_paper_readiness_summary() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     payload = {
         "study_id": "003-dpcc",
@@ -277,7 +277,7 @@ def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
 
 
 def test_mcp_compact_projection_carries_study_macro_state() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
 
     compact = module.compact_study_progress_projection(
         {

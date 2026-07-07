@@ -4,10 +4,10 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from med_autoscience.cli_parts.paper_mission_command_parts import (
+from med_autoscience.cli.paper_mission_commands import (
     opl_runtime_submission,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts import (
+from med_autoscience.cli.paper_mission_commands import (
     direct_next_action_handoff as direct_handoff,
 )
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.action_catalog import build_mas_action_catalog
-from med_autoscience.agent_tool_arsenal_parts.runtime_boundary import (
+from med_autoscience.agent_tool_arsenal.runtime_boundary import (
     opl_capability_runtime_boundary,
 )
 from med_autoscience.opl_domain_pack.agent_pack_refs import (

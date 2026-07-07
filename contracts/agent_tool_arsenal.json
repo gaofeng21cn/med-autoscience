@@ -1111,8 +1111,8 @@
       {
         "action_id": "display_pack_capability_discover",
         "adaptation_policy": {
-          "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+          "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
           "can_authorize_publication_readiness": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
@@ -1281,8 +1281,8 @@
       {
         "action_id": "display_pack_figure_plan",
         "adaptation_policy": {
-          "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+          "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
           "can_authorize_publication_readiness": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
@@ -1453,8 +1453,8 @@
       {
         "action_id": "display_pack_orchestrate",
         "adaptation_policy": {
-          "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+          "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
           "can_authorize_publication_readiness": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
@@ -1639,8 +1639,8 @@
       {
         "action_id": "display_pack_preflight",
         "adaptation_policy": {
-          "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+          "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
           "can_authorize_publication_readiness": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
@@ -1817,8 +1817,8 @@
       {
         "action_id": "display_pack_render",
         "adaptation_policy": {
-          "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+          "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+          "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
           "can_authorize_publication_readiness": false,
           "can_replace_owner_receipt": false,
           "can_replace_visual_audit": false,
@@ -3744,7 +3744,7 @@
       "selection_runtime_owner": "one-person-lab",
       "support_or_diagnostic_tools_auto_selected": false
     },
-    "display_pack_policy_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py::ADAPTABLE_TEMPLATE_FIT_POLICY",
+    "display_pack_policy_ref": "src/med_autoscience/display_pack_agent/template_fit.py::ADAPTABLE_TEMPLATE_FIT_POLICY",
     "non_authority_rule": "Capability resolution can rank and explain candidates, but it cannot write domain truth, owner receipts, typed blockers, publication quality, or submission readiness.",
     "planning_root": "current_owner_delta",
     "resolver_layers": [
@@ -15696,8 +15696,8 @@
       "action_id": "display_pack_capability_discover",
       "action_surface_kind": "display_pack_agent_capability",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -16112,8 +16112,8 @@
       "action_id": "display_pack_figure_plan",
       "action_surface_kind": "display_pack_agent_figure_plan",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -16534,8 +16534,8 @@
       "action_id": "display_pack_orchestrate",
       "action_surface_kind": "display_pack_agent_orchestration",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -16992,8 +16992,8 @@
       "action_id": "display_pack_preflight",
       "action_surface_kind": "display_pack_agent_preflight",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -17424,8 +17424,8 @@
       "action_id": "display_pack_render",
       "action_surface_kind": "display_pack_agent_render_receipt",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -22891,8 +22891,8 @@
     {
       "action_id": "display_pack_capability_discover",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -23012,8 +23012,8 @@
     {
       "action_id": "display_pack_figure_plan",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -23135,8 +23135,8 @@
     {
       "action_id": "display_pack_orchestrate",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -23272,8 +23272,8 @@
     {
       "action_id": "display_pack_preflight",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -23401,8 +23401,8 @@
     {
       "action_id": "display_pack_render",
       "adaptation_policy": {
-        "adaptable_baseline_policy_ref": "display_pack_agent_parts.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
-        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent_parts/template_fit.py",
+        "adaptable_baseline_policy_ref": "display_pack_agent.template_fit.ADAPTABLE_TEMPLATE_FIT_POLICY",
+        "adaptation_boundary_ref": "src/med_autoscience/display_pack_agent/template_fit.py",
         "can_authorize_publication_readiness": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
@@ -24611,7 +24611,7 @@
   ],
   "tool_index_refs": {
     "action_catalog": "contracts/action_catalog.json",
-    "mcp_registry": "src/med_autoscience/mcp_server_parts/tool_registry.py",
+    "mcp_registry": "src/med_autoscience/mcp_server/tool_registry.py",
     "owner_callable_registry": "src/med_autoscience/runtime_control/owner_callable_registry.py",
     "plugin_skill": "plugins/mas/skills/mas/SKILL.md",
     "scientific_capability_registry": "src/med_autoscience/scientific_capability_registry.py",

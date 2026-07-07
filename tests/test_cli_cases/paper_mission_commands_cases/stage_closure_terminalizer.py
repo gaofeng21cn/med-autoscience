@@ -309,7 +309,7 @@ def test_paper_mission_terminalize_stage_defaults_to_workspace_ops_ledger(
 
 def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     decision = commands._terminalize_stage_closure_from_readback(
@@ -351,7 +351,7 @@ def test_stage_closure_terminalizer_reads_nested_closeout_telemetry() -> None:
 
 def test_stage_closure_terminalizer_does_not_treat_accepted_status_as_blocker() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     decision = commands._terminalize_stage_closure_from_readback(
@@ -376,7 +376,7 @@ def test_stage_closure_terminalizer_does_not_treat_accepted_status_as_blocker() 
 
 def test_stage_closure_terminalizer_does_not_treat_paper_facing_delta_acceptance_as_blocker() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     decision = commands._terminalize_stage_closure_from_readback(
@@ -420,7 +420,7 @@ def test_stage_closure_terminalizer_does_not_treat_paper_facing_delta_acceptance
 
 def test_stage_closure_terminalizer_reterminalizes_legacy_accepted_unknown_blocker() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     legacy_decision = {

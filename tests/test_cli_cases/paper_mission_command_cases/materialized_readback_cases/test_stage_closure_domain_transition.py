@@ -7,7 +7,7 @@ from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 
 def test_stage_closure_owner_receipt_suppresses_same_work_unit_domain_transition() -> None:
     materialized_readback = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+        "med_autoscience.cli.paper_mission_commands.materialized_mission_readback"
     )
     same_work_unit_next_action = {
         "surface_kind": SURFACE_KIND,

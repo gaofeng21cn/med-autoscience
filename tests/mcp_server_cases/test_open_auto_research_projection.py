@@ -49,7 +49,7 @@ def _delivery_journal_usability_guard() -> dict[str, object]:
 
 
 def test_mcp_compacts_and_renders_open_auto_research_projection() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     payload = {
         "schema_version": 1,
         "study_id": "001-risk",

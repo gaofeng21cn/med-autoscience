@@ -156,7 +156,7 @@ def test_stage_closure_readback_accepts_base_for_followthrough_transaction(
 
 
 def test_consumption_ledger_route_back_projection_uses_stage_closure_ledger() -> None:
-    commands = importlib.import_module("med_autoscience.cli_parts.paper_mission_commands")
+    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     transaction = {
         "transaction_id": (

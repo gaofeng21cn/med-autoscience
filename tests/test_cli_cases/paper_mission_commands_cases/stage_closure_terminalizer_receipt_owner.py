@@ -5,7 +5,7 @@ import importlib
 
 def test_stage_closure_terminalizer_reterminalizes_waiting_opl_closeout_when_terminal_readback_arrives() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     existing_decision = {
@@ -51,7 +51,7 @@ def test_stage_closure_terminalizer_reterminalizes_waiting_opl_closeout_when_ter
 
 def test_stage_closure_terminalizer_keeps_receipt_owner_consumed_typed_blocker() -> None:
     commands = importlib.import_module(
-        "med_autoscience.cli_parts.paper_mission_commands"
+        "med_autoscience.cli.paper_mission_commands"
     )
 
     receipt_owner_decision = {

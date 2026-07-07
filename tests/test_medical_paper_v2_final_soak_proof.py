@@ -179,7 +179,7 @@ def test_final_soak_uses_canonical_readiness_when_matrix_is_absent(tmp_path: Pat
 
 
 def test_final_soak_readiness_payload_projects_into_mcp_and_product_actions(tmp_path: Path) -> None:
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     cockpit_payload = importlib.import_module(
         "med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload"
     )

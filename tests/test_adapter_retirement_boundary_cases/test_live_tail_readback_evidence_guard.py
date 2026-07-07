@@ -53,7 +53,7 @@ def _layers_for_tail(
     no_active_caller_proven: bool,
 ) -> dict:
     layers_module = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement_parts.completion_evidence_layers"
+        "med_autoscience.runtime_protocol.runtime_surface_retirement.completion_evidence_layers"
     )
     surface_id = f"future_{tail_key}"
     surface = {
