@@ -4,16 +4,16 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from tests.study_runtime_test_helpers import make_profile
 
 
 def test_product_entry_manifest_domain_commands_include_authority_operations(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     catalog = importlib.import_module("med_autoscience.authority_operation_command_catalog")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    payload = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     commands = payload["domain_entry_contract"]["supported_commands"]
     command_contracts = {
         item["command"]: item
