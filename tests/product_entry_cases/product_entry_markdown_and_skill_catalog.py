@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_skill_catalog
 from .product_entry_preflight_and_task_submission import *  # noqa: F403,F401
 
 
 def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hints(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_text(
@@ -33,7 +33,7 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     )
     write_study(profile.workspace_root, "001-risk")
 
-    payload = module.build_skill_catalog(profile=profile, profile_ref=profile_ref)
+    payload = build_skill_catalog(profile=profile, profile_ref=profile_ref)
 
     assert payload["surface_kind"] == "skill_catalog"
     assert payload["recommended_shell"] == "workspace_cockpit"
