@@ -376,7 +376,7 @@ def build_supplementary_tables_pdf(
                 row_height_weights = _pdf_table_row_height_weights(wrapped_rows)
                 row_height_total = sum(row_height_weights)
                 figure_width = max(8.0, sum(column_widths) + 1.2)
-                figure_height = max(5.0, 1.4 + 0.25 * row_height_total)
+                figure_height = max(5.0, 1.4 + 0.30 * row_height_total)
                 figure, axis = plt.subplots(figsize=(figure_width, figure_height))
                 axis.axis("off")
                 axis.text(
@@ -608,7 +608,7 @@ def _pdf_table_row_height_weights(rows: list[list[str]]) -> list[float]:
     weights: list[float] = []
     for row in rows:
         line_count = max([len(str(value).splitlines()) for value in row] + [1])
-        weights.append(max(1.0, 0.85 + 0.72 * line_count))
+        weights.append(max(1.0, 1.0 + line_count))
     return weights
 
 
