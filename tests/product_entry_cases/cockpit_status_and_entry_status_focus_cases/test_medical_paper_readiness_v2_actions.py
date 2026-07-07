@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+from med_autoscience.controllers import mainline_status, medical_paper_operator_actions
+from med_autoscience.controllers.product_entry_parts import manifest_surfaces, workspace_surfaces
 from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
@@ -189,9 +191,6 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -234,14 +233,14 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
 
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = workspace_surfaces.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     cards = payload["studies"][0]["medical_paper_readiness"]["action_cards"]
     v4_operations = payload["studies"][0]["medical_paper_v4_operations"]
 
@@ -288,9 +287,6 @@ def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     monkeypatch,
     tmp_path,
 ) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -299,14 +295,14 @@ def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
     monkeypatch.setattr(_shared.product_entry_manifest_surfaces_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    payload = manifest_surfaces.build_product_entry_status(profile=profile, profile_ref=profile_ref)
     workflow_steps = payload["phase2_user_product_loop"]["workflow_steps"]
 
     assert [step["step_id"] for step in workflow_steps] == [
@@ -341,9 +337,6 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
     monkeypatch,
     tmp_path,
 ) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -351,27 +344,24 @@ def test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_re
 
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(mainline_status, "read_mainline_status", _ready_mainline_status)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    markdown = module.render_workspace_cockpit_markdown(
-        module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    markdown = workspace_surfaces.render_workspace_cockpit_markdown(
+        workspace_surfaces.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     )
 
     assert markdown.strip()
 
 
 def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     study_root = tmp_path / "studies" / "001-risk"
 
-    result = module.dispatch_guarded_medical_paper_operator_action(
+    result = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -391,13 +381,10 @@ def test_guarded_operator_action_dispatch_fails_closed_without_payload(tmp_path)
 
 
 def test_guarded_operator_action_replays_duplicate_submit_without_rematerializing(tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     study_root = tmp_path / "studies" / "001-risk"
     payload = _provider_payload()
 
-    first = module.dispatch_guarded_medical_paper_operator_action(
+    first = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -408,7 +395,7 @@ def test_guarded_operator_action_replays_duplicate_submit_without_rematerializin
     materialized["duplicate_replay_sentinel"] = "preserved"
     durable_path.write_text(json.dumps(materialized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    replayed = module.dispatch_guarded_medical_paper_operator_action(
+    replayed = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -439,12 +426,9 @@ def test_guarded_operator_action_replays_duplicate_submit_without_rematerializin
 
 
 def test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key(tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     study_root = tmp_path / "studies" / "001-risk"
 
-    first = module.dispatch_guarded_medical_paper_operator_action(
+    first = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -452,7 +436,7 @@ def test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key(t
         action_instance_id="operator-session-001",
         idempotency_key="operator-session-001-key",
     )
-    drift = module.dispatch_guarded_medical_paper_operator_action(
+    drift = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -476,13 +460,10 @@ def test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key(t
 
 
 def test_guarded_operator_action_reconciles_missing_result_artifact_from_ledger(tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     study_root = tmp_path / "studies" / "001-risk"
     payload = _provider_payload()
 
-    first = module.dispatch_guarded_medical_paper_operator_action(
+    first = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
@@ -491,7 +472,7 @@ def test_guarded_operator_action_reconciles_missing_result_artifact_from_ledger(
     result_path = first["action_result_ref"]
     (study_root / result_path).unlink()
 
-    replayed = module.dispatch_guarded_medical_paper_operator_action(
+    replayed = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id="run_provider_literature_scout",
         surface_key="literature_provider_runtime",
