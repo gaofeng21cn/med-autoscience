@@ -1,7 +1,9 @@
 from .shared import *
 
+
 def test_create_submission_minimal_package_skips_missing_planned_table_entries(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -23,7 +25,7 @@ def test_create_submission_minimal_package_skips_missing_planned_table_entries(t
         },
     )
 
-    module.create_submission_minimal_package(
+    package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -37,8 +39,9 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    from med_autoscience.controllers import study_delivery_sync
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_paper_workspace(tmp_path)
     called: dict[str, object] = {}
 
@@ -57,10 +60,10 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
         called["sync_publication_profile"] = publication_profile
         return {"stage": stage, "publication_profile": publication_profile}
 
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
-    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
+    monkeypatch.setattr(study_delivery_sync, "sync_study_delivery", fake_sync)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -75,7 +78,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     }
     assert manifest["readme_path"] == "paper/submission_minimal/README.md"
     readme_text = (paper_root / "submission_minimal" / "README.md").read_text(encoding="utf-8")
-    assert "paper/submission_minimal/" in readme_text
+    assert "Canonical package root: `submission/`" in readme_text
     assert "manuscript/" in readme_text
 
 
@@ -83,8 +86,8 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_paper_workspace(tmp_path)
     called: dict[str, object] = {}
 
@@ -111,7 +114,7 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
 
     monkeypatch.setattr(package_builder, "replay_post_submission_minimal_sync", fake_replay)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -132,7 +135,8 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"
@@ -141,13 +145,13 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="frontiers_family_harvard",
     )
@@ -160,7 +164,7 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
     assert (submission_root / "manuscript.docx").exists()
     assert (submission_root / "Supplementary_Material.docx").exists()
     assert (submission_root / "paper.pdf").exists()
-    assert "paper/journal_submissions/frontiers_family_harvard/" in (
+    assert "Canonical package root: `submission/journal_packages/frontiers_family_harvard/`" in (
         submission_root / "README.md"
     ).read_text(encoding="utf-8")
     assert manifest["manuscript"]["docx_path"] == "paper/journal_submissions/frontiers_family_harvard/manuscript.docx"
@@ -176,7 +180,8 @@ def test_create_submission_minimal_package_rejects_legacy_frontiers_profile(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"
@@ -185,14 +190,14 @@ def test_create_submission_minimal_package_rejects_legacy_frontiers_profile(
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
 
     try:
-        module.create_submission_minimal_package(
+        package_builder.create_submission_minimal_package(
             paper_root=paper_root,
             publication_profile="frontiers_in_physiology",
         )
@@ -207,7 +212,8 @@ def test_create_submission_minimal_package_frontiers_family_profile_preserves_re
     monkeypatch,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"
@@ -216,13 +222,13 @@ def test_create_submission_minimal_package_frontiers_family_profile_preserves_re
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
 
-    module.create_submission_minimal_package(
+    package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="frontiers_family_harvard",
     )
@@ -237,7 +243,8 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"
@@ -246,7 +253,7 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
@@ -292,7 +299,7 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
         },
     )
 
-    module.create_submission_minimal_package(
+    package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="frontiers_family_harvard",
     )
@@ -314,7 +321,9 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers import study_delivery_sync
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     # keep this assertion impossible for current implementation so the new sync contract is explicit
     frontiers_root = tmp_path / "frontiers_resources"
@@ -324,7 +333,7 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
@@ -341,10 +350,10 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
         called["publication_profile"] = publication_profile
         return {"stage": stage, "publication_profile": publication_profile}
 
-    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
-    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
+    monkeypatch.setattr(study_delivery_sync, "sync_study_delivery", fake_sync)
 
-    module.create_submission_minimal_package(
+    package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="frontiers_family_harvard",
     )
@@ -358,7 +367,8 @@ def test_create_submission_minimal_package_frontiers_family_uses_admin_gap_notes
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"
@@ -367,13 +377,13 @@ def test_create_submission_minimal_package_frontiers_family_uses_admin_gap_notes
 
     write_docx(manuscript_template, "Frontiers manuscript template")
     write_docx(supplementary_template, "Frontiers supplementary template")
-    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+    csl_path.write_text(profile_config.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
 
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
     monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
 
-    module.create_submission_minimal_package(
+    package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="frontiers_family_harvard",
     )
@@ -399,12 +409,12 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
     from docx import Document
 
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_current_draft_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -434,7 +444,8 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_current_draft_workspace(tmp_path)
 
     dump_json(
@@ -456,7 +467,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -487,7 +498,8 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
 def test_create_submission_minimal_package_uses_dict_figure_semantics_for_all_catalog_figures(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_current_draft_workspace(tmp_path)
     write_png(paper_root / "figures" / "F2_main.png")
     dump_json(
@@ -535,7 +547,7 @@ def test_create_submission_minimal_package_uses_dict_figure_semantics_for_all_ca
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -559,7 +571,8 @@ def test_create_submission_minimal_package_uses_catalog_backed_figures_when_main
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_paper_workspace(tmp_path)
 
     write_text(
@@ -588,7 +601,7 @@ Caption only. The inline image line was dropped from the reviewer manuscript.
 """,
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -613,7 +626,8 @@ def test_create_submission_minimal_package_supports_short_f_figure_headings_from
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import package_builder
+
     paper_root = make_paper_workspace(tmp_path)
 
     write_text(
@@ -644,7 +658,7 @@ Caption retained under the short F heading.
 """,
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = package_builder.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -667,7 +681,8 @@ Caption retained under the short F heading.
 
 
 def test_inspect_submission_source_markdown_counts_alt_text_inline_figures(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import markdown_surface_qc
+
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -685,7 +700,7 @@ Legend text for the main figure.
 """,
     )
 
-    inspection = module.inspect_submission_source_markdown(source_markdown)
+    inspection = markdown_surface_qc.inspect_submission_source_markdown(source_markdown)
 
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
@@ -693,7 +708,8 @@ Legend text for the main figure.
 
 
 def test_inspect_submission_source_markdown_accepts_main_figures_alias(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts import markdown_surface_qc
+
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -711,7 +727,7 @@ Legend text for the main figure under the Main Figures alias.
 """,
     )
 
-    inspection = module.inspect_submission_source_markdown(source_markdown)
+    inspection = markdown_surface_qc.inspect_submission_source_markdown(source_markdown)
 
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
