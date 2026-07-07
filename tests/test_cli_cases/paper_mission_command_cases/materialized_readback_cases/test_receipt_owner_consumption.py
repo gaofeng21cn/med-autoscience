@@ -700,6 +700,45 @@ def test_direct_terminal_closeout_does_not_override_after_owner_consumed_route_c
         assert canonical_source == "domain_transition.next_action"
 
 
+def test_thin_legacy_stage_closure_keeps_owner_consumption_visible(tmp_path: Path) -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    receipt_ref = tmp_path / "receipt_owner_consumption.json"
+    stage_ref = tmp_path / "stage_closure_decision.json"
+    receipt_ref.write_text("{}", encoding="utf-8")
+    stage_ref.write_text("{}", encoding="utf-8")
+
+    assert not materialized_readback._receipt_superseded_by_stage_closure(
+        receipt_owner_consumption_readback={
+            "status": "owner_consumption_applied",
+            "source_ref": str(receipt_ref),
+            "mas_receipt_consumption": {"status": "owner_consumed_route_checkpoint"},
+            "stage_closure_decision": {
+                "stage_id": "write",
+                "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+                "route_checkpoint_evidence_ref": "/tmp/sat-current-closeout.json",
+                "receipt_evidence_ref": "opl://stage-attempts/sat-current",
+                "opl_closeout": {"stage_attempt_id": "sat-current"},
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                },
+            },
+        },
+        stage_closure_ledger_readback={
+            "source_ref": str(stage_ref),
+            "stage_id": "write",
+            "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            "opl_closeout": {"stage_attempt_id": "sat-legacy-thin"},
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+        },
+    )
+
+
 def test_paper_mission_inspect_projects_receipt_owner_consumption_without_materialized_mission(
     tmp_path: Path,
     capsys,

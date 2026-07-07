@@ -208,3 +208,85 @@ def test_feedbackops_execution_readback_reader_compacts_command_outputs(tmp_path
     assert compact["status"] == "blocked_missing_structured_ai_reviewer_evaluation"
     assert compact["commands"]["feedbackops_read"]["stdout_summary"] == {"feedbackops": {"status": "ready"}}
     assert compact["commands"]["agent_lab_run"]["stdout_bytes"] == 200000
+
+
+def test_feedbackops_execution_readback_reader_supersedes_old_missing_eval_blocker(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+        read_reviewer_revision_feedbackops_execution_readback,
+    )
+
+    readback_path = (
+        tmp_path
+        / "artifacts"
+        / "agent_lab"
+        / "medical_manuscript_quality"
+        / "feedbackops_execution_readback.json"
+    )
+    readback_path.parent.mkdir(parents=True)
+    readback_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_reviewer_revision_feedbackops_dispatch_readback",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "status": "blocked_missing_structured_ai_reviewer_evaluation",
+                "next_owner": "opl-meta-agent",
+                "blocked_reason": "missing structured reviewer evaluation",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    ai_eval = readback_path.parent / "ai_reviewer_evaluation_independent.json"
+    ai_eval.write_text(
+        json.dumps(
+            {
+                "reviewer_kind": "independent_ai_medical_manuscript_quality_reviewer",
+                "model_or_provider": "test-model",
+                "run_ref": "run:mas/test",
+                "execution_attempt_ref": "execution-attempt:test",
+                "review_attempt_ref": "review-attempt:test",
+                "no_shared_context": True,
+                "independent_attempt": True,
+                "critique": "The draft needs a finding-led clinical story.",
+                "suggestions": ["Require denominator and sensitivity evidence."],
+                "source_refs": ["reviewer-feedback.md"],
+                "direct_evidence_refs": ["publication_eval/latest.json"],
+                "verdict": "valid_refs_only_independent_reviewer_input",
+                "predicted_impact": "Better first-draft quality.",
+                "provenance": {"created_by": "unit-test"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    work_order = (
+        readback_path.parent
+        / "oma_external_suite_20260707"
+        / "developer-patch-work-order.json"
+    )
+    work_order.parent.mkdir()
+    work_order.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_meta_agent_developer_patch_work_order",
+                "status": "ready_for_target_agent_source_patch",
+                "ai_reviewer_evaluation_ref": str(ai_eval),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    compact = read_reviewer_revision_feedbackops_execution_readback(study_root=tmp_path)
+
+    assert compact is not None
+    assert compact["status"] == "superseded_by_oma_work_order_materialization"
+    assert compact["superseded_status"] == (
+        "blocked_missing_structured_ai_reviewer_evaluation"
+    )
+    assert compact["blocked_reason"] is None
+    assert compact["ai_reviewer_evaluation_ref"] == str(ai_eval)
+    assert compact["oma_work_order_or_receipt_ref"] == str(work_order)

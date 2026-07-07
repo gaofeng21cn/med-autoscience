@@ -53,6 +53,8 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         != "route_back_candidate_checkpoint"
     ):
         return False
+    if not _has_route_checkpoint_evidence(stage_closure_ledger_readback):
+        return False
     if _same_route_checkpoint_identity(
         decision,
         stage_closure_ledger_readback,
@@ -105,6 +107,19 @@ def _different_route_checkpoint_identity(
         and stage_item is not None
         and receipt_item != stage_item
         for receipt_item, stage_item in zip(receipt_identity, stage_identity)
+    )
+
+
+def _has_route_checkpoint_evidence(decision: Mapping[str, Any]) -> bool:
+    outcome = _mapping(decision.get("outcome"))
+    return any(
+        _optional_text(value) is not None
+        for value in (
+            decision.get("route_checkpoint_evidence_ref"),
+            outcome.get("route_checkpoint_evidence_ref"),
+            decision.get("receipt_evidence_ref"),
+            outcome.get("receipt_evidence_ref"),
+        )
     )
 
 

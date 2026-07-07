@@ -278,6 +278,11 @@ def _compact_execution_readback(payload: dict[str, Any], *, path: Path) -> dict[
         "study_id": payload.get("study_id"),
         "next_owner": payload.get("next_owner"),
         "blocked_reason": payload.get("blocked_reason"),
+        "ai_reviewer_evaluation_ref": payload.get("ai_reviewer_evaluation_ref"),
+        "ai_reviewer_evaluation_status": payload.get("ai_reviewer_evaluation_status"),
+        "structured_ai_reviewer_evaluation_request_ref": payload.get(
+            "structured_ai_reviewer_evaluation_request_ref"
+        ),
         "readback_path": str(path),
         "writes_study_truth": payload.get("writes_study_truth") is True,
         "writes_owner_receipt": payload.get("writes_owner_receipt") is True,
@@ -296,7 +301,60 @@ def _compact_execution_readback(payload: dict[str, Any], *, path: Path) -> dict[
                 "stdout_summary": dict(command.get("stdout_summary") or {}),
                 "stderr": command.get("stderr"),
             }
+    if compact["status"] == "blocked_missing_structured_ai_reviewer_evaluation":
+        superseding = _newer_oma_work_order_or_receipt(path)
+        if superseding is not None:
+            compact.update(
+                {
+                    "status": "superseded_by_oma_work_order_materialization",
+                    "superseded_status": "blocked_missing_structured_ai_reviewer_evaluation",
+                    "blocked_reason": None,
+                    "next_owner": "opl-meta-agent",
+                    **superseding,
+                }
+            )
     return compact
+
+
+def _newer_oma_work_order_or_receipt(path: Path) -> dict[str, Any] | None:
+    path = Path(path).expanduser().resolve()
+    try:
+        readback_mtime = path.stat().st_mtime
+    except OSError:
+        return None
+    candidates: list[tuple[float, Path, dict[str, Any]]] = []
+    for pattern in (
+        "oma_external_suite_*/developer-patch-work-order.json",
+        "oma_external_suite_*/meta-agent-improvement-receipt.json",
+    ):
+        for candidate in path.parent.glob(pattern):
+            try:
+                mtime = candidate.stat().st_mtime
+            except OSError:
+                continue
+            if mtime <= readback_mtime:
+                continue
+            payload = _read_json(candidate)
+            ai_ref = _text(payload.get("ai_reviewer_evaluation_ref"))
+            if ai_ref is None:
+                continue
+            try:
+                ai_payload = _read_json(Path(ai_ref))
+            except OSError:
+                continue
+            if not _valid_ai_reviewer_evaluation(ai_payload):
+                continue
+            candidates.append((mtime, candidate, payload))
+    if not candidates:
+        return None
+    _, candidate, payload = max(candidates, key=lambda item: (item[0], str(item[1])))
+    return {
+        "oma_work_order_or_receipt_ref": str(candidate),
+        "oma_work_order_or_receipt_status": payload.get("status"),
+        "oma_work_order_or_receipt_surface_kind": payload.get("surface_kind"),
+        "ai_reviewer_evaluation_ref": payload.get("ai_reviewer_evaluation_ref"),
+        "ai_reviewer_evaluation_status": "valid",
+    }
 
 
 def _summarize_stdout_payload(payload: Any) -> dict[str, Any]:
