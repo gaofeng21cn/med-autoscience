@@ -574,11 +574,40 @@ def _wrap_table_rows_for_pdf(rows: list[list[str]]) -> list[list[str]]:
     normalized_rows: list[list[str]] = []
     for row in rows:
         normalized = [str(value) for value in row] + [""] * (max_columns - len(row))
-        normalized_rows.append([
-            "\n".join(textwrap.wrap(value, width=28, break_long_words=False) or [""])
-            for value in normalized
-        ])
+        normalized_rows.append([_wrap_pdf_table_cell(value) for value in normalized])
     return normalized_rows
+
+
+def _wrap_pdf_table_cell(value: str, *, width: int = 28) -> str:
+    wrapped_lines: list[str] = []
+    for line in str(value).splitlines() or [""]:
+        initial_lines = textwrap.wrap(line, width=width, break_long_words=False) or [""]
+        for wrapped_line in initial_lines:
+            if len(wrapped_line) <= width:
+                wrapped_lines.append(wrapped_line)
+                continue
+            wrapped_lines.extend(_wrap_long_token_for_pdf(wrapped_line, width=width))
+    return "\n".join(wrapped_lines)
+
+
+def _wrap_long_token_for_pdf(value: str, *, width: int) -> list[str]:
+    if "_" not in value:
+        return textwrap.wrap(value, width=width, break_long_words=True) or [value]
+
+    output: list[str] = []
+    current = ""
+    parts = value.split("_")
+    for index, part in enumerate(parts):
+        segment = f"{part}_" if index < len(parts) - 1 else part
+        candidate = f"{current}{segment}"
+        if current and len(candidate) > width:
+            output.append(current)
+            current = segment
+        else:
+            current = candidate
+    if current:
+        output.append(current)
+    return output or [value]
 
 
 def _pdf_table_chunks(rows: list[list[str]], *, max_body_rows: int = 35) -> list[list[list[str]]]:
