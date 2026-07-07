@@ -564,6 +564,16 @@ def _sync_current_package_mirror_delivery(
         known_blockers=known_blockers,
         source_signature=source_signature,
     )
+    submission_root = _submission_root(study_root)
+    if source_root.resolve() == submission_root.resolve():
+        submission_zip = _submission_zip(study_root)
+        build_zip_from_directory(source_root=source_root, output_path=submission_zip)
+        generated_files.append(
+            {
+                "category": "submission_surface",
+                "path": str(submission_zip.resolve()),
+            }
+        )
     manifest = {
         "schema_version": 1,
         "generated_at": utc_now(),

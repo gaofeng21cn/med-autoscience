@@ -87,6 +87,17 @@ def _copy_current_package_audit_surfaces(
     review_ledger_source: Path | None,
     charter_contract_linkage: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], Path]:
+    def copy_unless_same_source(*, source: Path, target: Path, category: str) -> None:
+        if source.expanduser().resolve() == target.expanduser().resolve():
+            return
+        copy_file(
+            source=source,
+            target=target,
+            category=category,
+            copied_files=copied_files,
+            preserve_metadata=False,
+        )
+
     resolved_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
     evidence_ledger_candidates = [resolve_evidence_ledger_path(source_root)]
     if resolved_paper_root is not None:
@@ -101,24 +112,20 @@ def _copy_current_package_audit_surfaces(
         seen_evidence_ledgers.add(resolved_source_path)
         if not resolved_source_path.exists():
             continue
-        copy_file(
+        copy_unless_same_source(
             source=resolved_source_path,
             target=audit_path(current_package_root, "evidence_ledger"),
             category="current_package",
-            copied_files=copied_files,
-            preserve_metadata=False,
         )
         break
     source_review_ledger_path = resolve_review_ledger_path(source_root)
     if source_review_ledger_path.exists():
         review_ledger_source = source_review_ledger_path
     if review_ledger_source is not None and review_ledger_source.exists():
-        copy_file(
+        copy_unless_same_source(
             source=review_ledger_source,
             target=audit_path(current_package_root, "review_ledger"),
             category="current_package_review_surface",
-            copied_files=copied_files,
-            preserve_metadata=False,
         )
 
     linkage_payload = charter_contract_linkage if charter_contract_linkage is not None else {}
@@ -127,12 +134,10 @@ def _copy_current_package_audit_surfaces(
     if raw_charter_artifact_path:
         charter_artifact_path = Path(raw_charter_artifact_path).expanduser()
         if charter_artifact_path.exists():
-            copy_file(
+            copy_unless_same_source(
                 source=charter_artifact_path,
                 target=audit_path(current_package_root, "study_charter"),
                 category="current_package_charter_surface",
-                copied_files=copied_files,
-                preserve_metadata=False,
             )
             study_charter_ref["mirrored_artifact_path"] = str(
                 audit_path(resolved_projected_current_package_root, "study_charter")
@@ -142,22 +147,18 @@ def _copy_current_package_audit_surfaces(
     if resolved_paper_root is not None:
         visual_audit_source = resolved_paper_root / "figure_visual_audit_receipt.json"
         if visual_audit_source.exists():
-            copy_file(
+            copy_unless_same_source(
                 source=visual_audit_source,
                 target=current_package_root / "figure_visual_audit_receipt.json",
                 category="current_package_visual_audit",
-                copied_files=copied_files,
-                preserve_metadata=False,
             )
 
     source_manifest_path = resolve_submission_manifest_path(source_root)
     if source_manifest_path.exists() and not audit_path(current_package_root, "submission_manifest").exists():
-        copy_file(
+        copy_unless_same_source(
             source=source_manifest_path,
             target=audit_path(current_package_root, "submission_manifest"),
             category="current_package_manifest",
-            copied_files=copied_files,
-            preserve_metadata=False,
         )
     return linkage_payload, source_manifest_path
 

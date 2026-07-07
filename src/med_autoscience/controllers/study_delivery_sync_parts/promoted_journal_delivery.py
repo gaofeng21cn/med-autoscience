@@ -25,6 +25,7 @@ from .staging_and_sources import (
     build_promoted_delivery_readme,
     build_submission_package_readme,
     build_submission_source_root,
+    build_zip_from_directory,
     copy_file,
     copy_tree,
     dump_json,
@@ -212,6 +213,16 @@ def sync_promoted_journal_delivery(
         charter_contract_linkage=charter_contract_linkage,
         source_signature=source_signature,
     )
+    submission_root = study_root / "submission"
+    if source_root.resolve() == submission_root.resolve():
+        submission_zip = study_root / "submission.zip"
+        build_zip_from_directory(source_root=source_root, output_path=submission_zip)
+        generated_files.append(
+            {
+                "category": "submission_surface",
+                "path": str(submission_zip.resolve()),
+            }
+        )
     copy_review_ledger_to_delivery_root(
         paper_root=paper_root,
         target_root=manuscript_root,

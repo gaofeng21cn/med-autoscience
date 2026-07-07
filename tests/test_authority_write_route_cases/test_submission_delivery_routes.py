@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 from typing import Any
+import zipfile
 
 import pytest
 from pypdf import PdfWriter
@@ -366,6 +367,33 @@ def test_submission_ready_delivery_uses_v2_submission_audit_evidence_when_paper_
         / "audit"
         / "evidence_ledger.json"
     ).exists()
+
+
+def test_submission_ready_delivery_refreshes_legacy_submission_zip(tmp_path: Path) -> None:
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    source_root = study_root / "submission"
+    shutil.copytree(paper_root / "submission_minimal", source_root)
+    (source_root / "manuscript_submission.md").write_text(
+        "Fresh recorded care-review gap wording.\n",
+        encoding="utf-8",
+    )
+    with zipfile.ZipFile(study_root / "submission.zip", "w") as archive:
+        archive.writestr("manuscript_submission.md", "stale mismatch treatment-gap wording\n")
+
+    result = sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        publication_profile="general_medical_journal",
+        authority_route_context={"authority_snapshot": _snapshot()},
+    )
+
+    assert result["package_kind"] == "submission_ready_package"
+    assert result["can_submit"] is True
+    with zipfile.ZipFile(study_root / "submission.zip") as archive:
+        assert archive.read("manuscript_submission.md").decode("utf-8") == (
+            "Fresh recorded care-review gap wording.\n"
+        )
+        assert "audit/submission_manifest.json" in archive.namelist()
 
 
 def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_path: Path) -> None:
