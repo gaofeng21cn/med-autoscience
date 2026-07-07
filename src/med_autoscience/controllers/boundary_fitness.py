@@ -144,10 +144,14 @@ def audit_boundary_fitness(
             )
         if has_nested_parts_directory(normalized_path):
             findings.append(_nested_parts_finding(normalized_path))
+        if is_parts_package_marker(normalized_path):
+            findings.append(_parts_directory_boundary_finding(normalized_path))
         if is_shared_base_bucket(normalized_path) and line_count >= SHARED_BASE_BUCKET_LINE_LIMIT:
             findings.append(_shared_base_bucket_finding(normalized_path, line_count))
         if is_part_module(normalized_path) and PART_NEAR_LINE_LIMIT <= line_count <= PREFERRED_LINE_LIMIT:
             findings.append(_part_near_limit_finding(normalized_path, line_count))
+        if uses_wildcard_or_dynamic_public_exports(absolute_path):
+            findings.append(_wildcard_public_export_finding(normalized_path))
         if uses_exec_compile_concatenation(absolute_path):
             findings.append(_exec_compile_concatenation_finding(normalized_path))
 
@@ -241,9 +245,42 @@ def is_part_module(relative_path: str) -> bool:
     return any(part.endswith("_parts") for part in path.parts[:-1])
 
 
+def is_parts_package_marker(relative_path: str) -> bool:
+    path = PurePosixPath(_normalize_relative_path(relative_path))
+    return path.name == "__init__.py" and bool(path.parts[:-1]) and path.parts[-2].endswith("_parts")
+
+
 def is_shared_base_bucket(relative_path: str) -> bool:
     path = PurePosixPath(_normalize_relative_path(relative_path))
     return path.name == "shared_base.py"
+
+
+def uses_wildcard_or_dynamic_public_exports(path: Path) -> bool:
+    try:
+        source = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return False
+    try:
+        tree = ast.parse(source, filename=str(path))
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names):
+            return True
+        if isinstance(node, ast.Assign) and any(_is_all_target(target) for target in node.targets):
+            if not _is_static_string_sequence(node.value):
+                return True
+    return False
+
+
+def _is_all_target(node: ast.AST) -> bool:
+    return isinstance(node, ast.Name) and node.id == "__all__"
+
+
+def _is_static_string_sequence(node: ast.AST) -> bool:
+    if not isinstance(node, ast.List | ast.Tuple):
+        return False
+    return all(isinstance(item, ast.Constant) and isinstance(item.value, str) for item in node.elts)
 
 
 def uses_exec_compile_concatenation(path: Path) -> bool:
@@ -354,8 +391,21 @@ def _nested_parts_finding(relative_path: str) -> BoundaryFinding:
         severity="advisory",
         message="tracked code lives under nested *_parts directories",
         recommendation=(
-            "Review whether the inner parts directory reflects a durable sub-boundary or should be promoted to a "
-            "first-level natural responsibility boundary."
+            "Review whether the inner directory is a real sub-boundary; otherwise merge it back or promote it to a "
+            "first-level natural package without adding another *_parts layer."
+        ),
+    )
+
+
+def _parts_directory_boundary_finding(relative_path: str) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="parts_directory_boundary",
+        severity="advisory",
+        message="tracked package still uses a *_parts directory boundary",
+        recommendation=(
+            "Treat this as a migration candidate: keep only real owner boundaries, merge tiny modules back, or rename "
+            "a durable subdomain to a natural package when touching the area."
         ),
     )
 
@@ -383,7 +433,21 @@ def _part_near_limit_finding(relative_path: str, line_count: int) -> BoundaryFin
         limit=PREFERRED_LINE_LIMIT,
         message=f"part module is approaching the preferred {PREFERRED_LINE_LIMIT}-line boundary",
         recommendation=(
-            "Plan the next split by natural responsibility while keeping the public entrypoint and imports stable."
+            "Move the next change to a real natural boundary, or merge this module back if it is only a line-budget "
+            "shard; do not add another *_parts wrapper."
+        ),
+    )
+
+
+def _wildcard_public_export_finding(relative_path: str) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="wildcard_public_export",
+        severity="advisory",
+        message="tracked code uses wildcard imports or dynamic __all__ export assembly",
+        recommendation=(
+            "Replace facade-style wildcard re-export with explicit imports/exports, or keep only a narrow public "
+            "entrypoint with concrete owner modules behind it."
         ),
     )
 
@@ -407,13 +471,13 @@ def natural_boundary_recommendation(relative_path: str) -> str:
     stem = path.stem
     if "controllers" in parts:
         return (
-            f"Prefer a thin controller entrypoint plus src/med_autoscience/controllers/{stem}_parts/ modules "
-            "named by natural responsibility boundary."
+            "Prefer concrete controller modules or a durable natural package under the current owner surface; "
+            "do not create a new *_parts bucket just to satisfy the line budget."
         )
     if parts and parts[0] == "tests":
         return (
             f"Prefer behavior-focused tests/{stem}_cases/ modules named by natural responsibility boundary, "
-            "with any top-level test file kept as a thin entrypoint."
+            "with any top-level test file kept as a discovery entrypoint; avoid *_parts or numbered shards."
         )
     if parts and parts[0] == "scripts":
         return (

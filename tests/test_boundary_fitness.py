@@ -38,7 +38,9 @@ def test_audit_reports_preferred_and_clear_line_budget_advisories(tmp_path: Path
     assert oversized[advisory_path.as_posix()].limit == module.PREFERRED_LINE_LIMIT
     assert oversized[clear_advisory_path.as_posix()].severity == "advisory"
     assert oversized[clear_advisory_path.as_posix()].limit == module.CLEAR_ADVISORY_LINE_LIMIT
-    assert "natural responsibility boundary" in oversized[clear_advisory_path.as_posix()].recommendation
+    assert "durable natural package" in oversized[clear_advisory_path.as_posix()].recommendation
+    assert "overgrown_controller_parts" not in oversized[clear_advisory_path.as_posix()].recommendation
+    assert "do not create a new *_parts bucket" in oversized[clear_advisory_path.as_posix()].recommendation
     assert report.blocking_findings == ()
 
 
@@ -87,12 +89,21 @@ def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path:
     nested_path = Path(
         "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_events_parts/human_gates.py"
     )
+    parts_marker_path = Path("src/med_autoscience/controllers/product_entry_parts/__init__.py")
     shared_base_path = Path("src/med_autoscience/controllers/product_entry_parts/shared_base.py")
     near_limit_path = Path("src/med_autoscience/controllers/study_progress_parts/projection.py")
+    wildcard_export_path = Path("tests/test_gate_facade.py")
     exec_compile_path = Path("src/med_autoscience/controllers/study_runtime_decision.py")
     _write_python_lines(tmp_path / nested_path, 3)
+    _write_python_lines(tmp_path / parts_marker_path, 1)
     _write_python_lines(tmp_path / shared_base_path, module.SHARED_BASE_BUCKET_LINE_LIMIT)
     _write_python_lines(tmp_path / near_limit_path, module.PART_NEAR_LINE_LIMIT)
+    (tmp_path / wildcard_export_path).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / wildcard_export_path).write_text(
+        "from tests.gate_cases import *\n"
+        "__all__ = [name for name in globals() if not name.startswith('_')]\n",
+        encoding="utf-8",
+    )
     (tmp_path / exec_compile_path).parent.mkdir(parents=True, exist_ok=True)
     (tmp_path / exec_compile_path).write_text(
         "from pathlib import Path\n"
@@ -105,8 +116,10 @@ def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path:
         tmp_path,
         tracked_files=(
             nested_path.as_posix(),
+            parts_marker_path.as_posix(),
             shared_base_path.as_posix(),
             near_limit_path.as_posix(),
+            wildcard_export_path.as_posix(),
             exec_compile_path.as_posix(),
         ),
         baseline={},
@@ -114,8 +127,10 @@ def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path:
 
     advisory_by_kind = {finding.kind: finding for finding in report.advisory_findings}
     assert advisory_by_kind["nested_parts_directory"].path == nested_path.as_posix()
+    assert advisory_by_kind["parts_directory_boundary"].path == parts_marker_path.as_posix()
     assert advisory_by_kind["shared_base_bucket"].line_count == module.SHARED_BASE_BUCKET_LINE_LIMIT
     assert advisory_by_kind["part_near_line_limit"].line_count == module.PART_NEAR_LINE_LIMIT
+    assert advisory_by_kind["wildcard_public_export"].path == wildcard_export_path.as_posix()
     assert advisory_by_kind["exec_compile_concatenation"].path == exec_compile_path.as_posix()
     assert report.blocking_findings == ()
 

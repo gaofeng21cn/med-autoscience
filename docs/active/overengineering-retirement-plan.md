@@ -36,6 +36,14 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 | P1 | Display Pack bundled fallback | 默认 Display Pack 解析只走外部 `mas-scholar-skills/packs/medical-display-core` 或显式 paper/repo config；repo-bundled `external/display-packs/medical-display-core` hidden fallback 已从打包清单、focused direct-source tests 和 tracked asset 中物理退役。 | `config/display_packs.toml` 无 fallback source；`display_pack_paths.py` 不再优先探测 `external/display-packs/medical-display-core`；focused display-pack tests；`git ls-files 'external/display-packs/**'` 无 tracked asset。 |
 | P2 | 超大测试 / fixture | 将 narrative/compat/alias assertions 收敛成 semantic case modules；删除重复实现细节。 | line budget；focused tests；`scripts/verify.sh` appropriate lane。 |
 
+## 2026-07-07 natural-boundary migration policy
+
+- `_parts` 目录不再作为新的默认拆分方案。历史 `_parts` 只代表迁移输入；修改相关区域时先判断它是真实 owner 子边界、测试 discovery 入口，还是单纯为过 line-budget 拆出的 shard。
+- 对单纯 shard：微型 helper 合并回 owner module；过长 owner 按业务职责拆成 concrete module 或自然包名，不新增 wrapper、facade、compat alias 或二级 `_parts`。
+- 对真实边界：保留 public owner entrypoint 只用于当前稳定 import contract；内部依赖应直连 concrete owner module，`import *`、dynamic `__all__`、`exec(compile(...))` 只作为迁移信号，不作为长期结构。
+- 测试拆分使用既有 `*_cases/` discovery 形态或语义 case module；源码拆分优先 concrete package name，例如 `study_domain_transition_table/`，而不是 `study_domain_transition_table_parts/`。
+- `boundary_fitness` 已停止推荐 `{stem}_parts`，并把 `_parts` package marker、nested `_parts`、wildcard/dynamic export 和 exec/compile re-export 纳入 advisory。`scripts/line_budget.py --list` 仍只输出 oversized files，避免历史 `_parts` 噪音掩盖当前超线目标。
+
 ## P0 runtime/control-plane tail 执行注记
 
 - 2026-07-06 active caller proof：`runtime_surface_retirement_parts` 当前保留面按文件/函数归类，避免把 P0 runtime tail 写成泛化 blocker：
