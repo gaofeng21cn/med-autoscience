@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
+
 from .shared import *
 
 
 def test_create_submission_minimal_package_filters_nested_supplementary_figures_when_canonical_catalog_exists(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -49,7 +52,7 @@ def test_create_submission_minimal_package_filters_nested_supplementary_figures_
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
