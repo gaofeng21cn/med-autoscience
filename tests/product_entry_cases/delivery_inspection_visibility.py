@@ -11,6 +11,19 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_manifest,
+    build_product_entry_status,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_surfaces import (
+    read_workspace_cockpit,
+    render_workspace_cockpit_markdown,
+)
+
 
 def _delivery_inspection(study_id: str = "001-risk") -> dict[str, object]:
     return {
@@ -43,7 +56,6 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -79,7 +91,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -116,8 +128,8 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
         },
     )
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    entry_status = build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     cockpit_state = cockpit["delivery_inspection_state"]
     assert cockpit_state["authority"] == "observability_projection_only"
@@ -138,8 +150,8 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     assert "legacy_layout_pending_sync" not in entry_status_state["counts"]
     assert entry_status_state["studies"][0]["source_labels"]["current_package"] == "human-facing mirror"
 
-    cockpit_markdown = module.render_workspace_cockpit_markdown(cockpit)
-    entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
+    cockpit_markdown = render_workspace_cockpit_markdown(cockpit)
+    entry_status_markdown = render_product_entry_status_markdown(entry_status)
     for markdown in (cockpit_markdown, entry_status_markdown):
         assert markdown.strip()
 
@@ -148,7 +160,6 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -167,7 +178,7 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
         ),
     )
     monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
+    monkeypatch.setattr(mainline_status, "read_mainline_status", lambda: {})
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
@@ -180,8 +191,8 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
         },
     )
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    entry_status = build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     cockpit_state = cockpit["delivery_inspection_state"]
     assert cockpit_state["status"] == "projection_current"
@@ -194,7 +205,6 @@ def test_product_entry_labels_visible_delivery_projection_as_observability_only(
 
 def test_product_entry_exposes_publication_inspection_package_operator_surface(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
 
     profile = make_profile(tmp_path)
@@ -202,8 +212,8 @@ def test_product_entry_exposes_publication_inspection_package_operator_surface(t
 
     catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
     neutral_catalog = action_catalog.build_mas_action_catalog()
-    manifest = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
-    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    entry_status = build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     profile_arg = str(profile_ref.resolve())
     expected_command = (
@@ -263,7 +273,6 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -282,7 +291,7 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
         ),
     )
     monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
+    monkeypatch.setattr(mainline_status, "read_mainline_status", lambda: {})
     stale_projection = _delivery_inspection("001-risk")
     stale_projection["status"] = "stale"
     stale_projection["summary"] = "delivery status: stale_source_changed"
@@ -299,7 +308,7 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
         },
     )
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     counts = cockpit["delivery_inspection_state"]["counts"]
     assert counts["attention_required"] == 1
@@ -312,7 +321,6 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -331,7 +339,7 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
         ),
     )
     monkeypatch.setattr(product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: {})
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", lambda: {})
+    monkeypatch.setattr(mainline_status, "read_mainline_status", lambda: {})
     legacy_projection = _delivery_inspection("001-risk")
     legacy_projection.pop("layout_migration_pending_sync", None)
     legacy_projection["status"] = "legacy_layout_pending_sync"
@@ -349,4 +357,4 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
     )
 
     with pytest.raises(ValueError, match="legacy_layout_pending_sync is retired"):
-        module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+        read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
