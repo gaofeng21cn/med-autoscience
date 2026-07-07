@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 from tests.product_entry_cases import shared as _shared
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 
 
 def _module_reexport(module) -> None:
@@ -18,7 +22,6 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-old-config")
@@ -56,7 +59,7 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -91,7 +94,7 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
         fake_progress,
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     by_study = {item["study_id"]: item for item in payload["studies"]}
 
     assert payload["workspace_status"] == "attention_required"
