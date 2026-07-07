@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-08：专业能力升级优先回折到现有 Skill，不新增细粒度 Skill
+
+- 决策：后续按“AI First，Contract Light；模块化在运维层，弹性保留在 Skill 层”升级 MAS / OPL 能力时，先按能力模块判断，再决定物理暴露方式。逻辑上的 reviewer concern recall、critique-as-repair-hint、reusable lesson extraction、triggered meta-review、opportunistic knowledge prefetch、claim warning、annotation-to-source regeneration、ledger pointer/hash 或 rerun receipt 消费，默认回折到现有 `mas-scholar-skills` 的 `medical-*` 专业 Skill、MAS stage policy、OPL support Skill 或 OMA developer work-order route；不得因为它们是独立判断点就新增一组物理 Skill。
+- 决策：新增独立 professional Skill 只有在同时满足稳定 workflow、独立依赖或 fixture/gallery/receipt、跨 agent 复用、独立发布节奏、明确 refs-only/no-authority 输出和 OPL Connect workspace/quest 按需同步策略时才允许。当前 `omics`、罕见专科、外部计算、reference-library automation、OpenScience/K-Dense 模式和 Co-Scientist JIT affordance 均未满足默认新增 core Skill 条件；它们只能作为 optional named-specialty、external-skills search/inspect/sync 候选或现有 Skill 的质量地板。
+- 决策：MAS 本仓只记录 target skill refs、candidate refs、owner-gate handoff、reviewer/route-back evidence、forbidden authority 和 live/readback 缺口。专业正文继续归 `mas-scholar-skills`；OPL Connect / Runway / Fabric / Ledger 持有 connector、credential、run-context、execution receipt、package/install 和 operator projection；MAS owner surface 才能接受或拒绝候选结果。
+- 理由：如果把每个开放式判断点都物理拆成 Skill，Codex metadata 和维护面会快速膨胀；如果把专业判断硬写进 MAS contracts / scripts，又会降低 AI 现场判断能力。正确形态是：运维层模块化，Skill 层保持弹性，authority 层保持单一 owner。
+- 影响：本决策只收紧能力升级归位，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、owner receipt、typed blocker、human gate、runtime queue、provider attempt 或外部 skill 安装状态；不声明任何专业 Skill 已同步、provider 已运行、owner 已接受、publication-ready 或 submission-ready。
+
 ## 2026-07-07：MAS owner repair receipt 优先于 no-delta route-back ledger
 
 - 决策：`paper-mission inspect` 读取到 study-local MAS owner repair receipt / evidence，且 `mas_owner_apply_receipt_consumption.apply_result=artifact_delta` 时，materialized readback 必须投影 `owner_consumed_mas_repair_delta`，并把 `story_surface_delta_refs` 作为 `stage_closure_decision.semantic_delta.paper_delta_refs` 和 `paper_mission_stage_closure_ledger_readback.semantic_delta.paper_delta_refs` 暴露。旧 AI-reviewer / reviewer-revision route-back 只能在没有更新的 owner repair receipt 时继续作为 next action。

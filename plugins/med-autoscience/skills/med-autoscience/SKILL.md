@@ -68,6 +68,19 @@ opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest
 
 ScholarSkills 产物默认只是 refs-only candidate、materialized package refs 或 execution receipt candidate。只有 MAS owner receipt、typed blocker、reviewer receipt、route-back evidence、publication gate 或 controller decision 接受后，才可计入 study truth、paper progress、artifact authority、current package freshness 或 publication readiness。
 
+### 专业能力升级归位
+
+当 MAS 任务暴露出新的能力缺口时，先判断它属于哪个现有能力模块，再选择暴露方式。不要把每个判断点拆成一个新的物理 Skill。
+
+- reviewer concern recall、critique-as-repair-hint、revision coverage、claim/evidence warning、journal-family pack、final prose polish：优先回折到 `medical-manuscript-review`、`medical-manuscript-writing` 和 MAS `reviewer_revision` / quality gate route。
+- source/citation support、opportunistic knowledge prefetch、PubMed / Crossref / OpenAlex fallback：优先走 `medical-research-lit` + OPL Connect scientific connector refs。
+- figure/table claim drift、annotation-to-source regeneration、visual QA、wide table routing：优先走 `medical-figure-design`、`medical-figure-style`、`medical-figure-composer`、`medical-table-design` 和 Display / table owner gate。
+- data lineage、project-local ledger pointer/hash、source warning、rerun-to-reproduce receipt consumption：优先走 `medical-data-governance`、`medical-statistical-review`、OPL Ledger / Runway refs。
+- omics、single-cell、structural biology、protein design、scientific compute 等专科需求：先用 `medical-advanced-biomed-router` 或 OPL `external-skills search -> inspect -> sync` 按 workspace / quest 同步一个选中的 optional Skill；不要默认安装整库。
+- OMA / Agent Lab / FeedbackOps 暴露的可复用失败经验：MAS 只输出 refs-only suite、target skill ref 和 forbidden surfaces；具体 skill/prompt/stage-policy 修订归 `opl-meta-agent` developer work order。
+
+新增独立 professional Skill 只有在稳定 workflow、独立依赖或 fixture / gallery / receipt、跨 agent 复用、独立发布节奏、refs-only output 和按需同步策略都成立时才进入评估。缺这些条件时，更新现有 Skill 正文或 stage policy；不要通过 MAS contract、helper、脚本或 plugin mirror 复制专业 playbook。
+
 ## OPL terminal attempt / next work unit 快速入口
 
 当 OPL terminal attempt 已完成，但 MAS study progress 仍停在 queued、handoff、stale current-control 或旧 work unit 时，不要先找旧 DHD/owner-route 入口。`study progress --format json` 是只读投影；当前主路是先读 `paper-mission inspect`，再由 `paper-mission terminalize-stage` 或 `paper-mission drive` 消费 StageOutcome / owner receipt / typed blocker / route-back evidence，并让 OPL 接力下一 stage。
