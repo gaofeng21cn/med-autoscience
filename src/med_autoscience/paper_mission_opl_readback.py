@@ -293,10 +293,12 @@ def _local_route_back_closeout_supersedes_live_terminal(
     local_closeout, local_ref = local_matched
     if local_ref == live_ref:
         return False
+    if not _closeout_has_route_back_evidence(local_closeout):
+        return False
     if _text(local_closeout.get("stage_attempt_id")) == _text(
         live_closeout.get("stage_attempt_id")
     ):
-        return False
+        return not _closeout_has_route_back_evidence(live_closeout)
     if _closeout_is_live_runtime_terminal(
         closeout=live_closeout,
         closeout_ref=live_ref,
@@ -305,7 +307,7 @@ def _local_route_back_closeout_supersedes_live_terminal(
         local_closeout=local_closeout,
     ):
         return False
-    return _closeout_has_route_back_evidence(local_closeout)
+    return True
 
 
 def _closeout_is_live_runtime_terminal(

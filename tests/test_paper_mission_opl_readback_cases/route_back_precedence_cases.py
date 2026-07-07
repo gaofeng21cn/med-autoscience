@@ -296,6 +296,123 @@ def test_opl_terminal_closeout_readback_keeps_live_runtime_terminal_over_stale_r
     )
 
 
+def test_opl_terminal_closeout_readback_enriches_same_attempt_thin_live_terminal(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    transaction_ref = (
+        "paper-mission-transaction::003-dpcc-primary-care-phenotype-treatment-gap"
+        "::write::paper-mission::003-dpcc-primary-care-phenotype-treatment-gap"
+        "::domain-transition::write::dm003-bounded-prose-repair"
+    )
+    attempt_id = "sat-current-thin-live"
+    route_back_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/"
+        f"{attempt_id}/route_back_evidence_packet.json"
+    )
+    carrier = {
+        **_opl_route_carrier(),
+        "study_id": study_id,
+        "paper_mission_transaction_ref": transaction_ref,
+        "stage_terminal_decision_ref": f"{transaction_ref}#stage_terminal_decision",
+        "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "work_unit_id": "dm003_bounded_prose_repair",
+        "work_unit_fingerprint": (
+            "domain-transition::write::dm003_bounded_prose_repair::source::current"
+        ),
+        "route_target": "write",
+    }
+    closeout_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / attempt_id
+    )
+    closeout_root.mkdir(parents=True)
+    local_closeout = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "closeout_status": "route_back_evidence_candidate_prepared",
+        "study_id": study_id,
+        "stage_id": "write",
+        "stage_attempt_id": attempt_id,
+        "stage_packet_ref": transaction_ref,
+        "work_unit_id": "dm003_bounded_prose_repair",
+        "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+        "route_back_evidence_ref": route_back_ref,
+        "candidate_delta_ref": (
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            f"{attempt_id}/paper_facing_write_repair_candidate.json"
+        ),
+        "candidate_manifest_ref": (
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            f"{attempt_id}/candidate_manifest.json"
+        ),
+        "authority_boundary": {
+            "record_only_surface": True,
+            "writes_authority": False,
+            "writes_runtime_queue_or_provider_attempt": False,
+        },
+    }
+    closeout_path = closeout_root / "stage_attempt_closeout_packet.json"
+    closeout_path.write_text(json.dumps(local_closeout), encoding="utf-8")
+
+    live_closeout = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "status": "completed",
+        "study_id": study_id,
+        "stage_id": "write",
+        "stage_attempt_id": attempt_id,
+        "stage_packet_ref": transaction_ref,
+        "work_unit_id": "dm003_bounded_prose_repair",
+        "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+        "runtime_readback_source": "opl_family_runtime_queue_inspect",
+        "task_id": "frt-current-thin-live",
+        "task_status": "completed",
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_domain_ready": False,
+        "domain_completion_claimed": False,
+        "domain_ready_claimed": False,
+        "opl_transition_receipt": _opl_transition_receipt(
+            stage_attempt_id=attempt_id,
+            task_id="frt-current-thin-live",
+        ),
+        "authority_boundary": {"record_only_surface": True},
+    }
+    monkeypatch.setattr(
+        readback_module,
+        "_matching_opl_runtime_live_probe",
+        lambda **_kwargs: (
+            "terminal",
+            live_closeout,
+            "opl://family-runtime/tasks/frt-current-thin-live/terminal-closeout-readback",
+        ),
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["stage_attempt_id"] == attempt_id
+    assert readback["terminal_closeout"]["closeout_ref"] == (
+        f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+        "stage_attempt_closeout_packet.json"
+    )
+    assert readback["receipt_evidence"]["route_back_evidence_ref"] == route_back_ref
+    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
+        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
+    )
+
+
 def test_opl_terminal_closeout_readback_prefers_newer_same_route_candidate(
     tmp_path: Path,
 ) -> None:

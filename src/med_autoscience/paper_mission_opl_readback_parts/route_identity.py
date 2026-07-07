@@ -281,10 +281,19 @@ def closeout_matches_route_target(
 
 
 def closeout_has_route_back_evidence(closeout: Mapping[str, Any]) -> bool:
+    if _text(closeout.get("route_back_evidence_ref")) is not None:
+        return True
+    transition_receipt = _mapping(closeout.get("opl_transition_receipt"))
+    if _text(transition_receipt.get("route_back_evidence_ref")) is not None:
+        return True
     route_impact = _mapping(closeout.get("route_impact"))
     if _text(route_impact.get("owner_answer_kind")) == "route_back_evidence_ref":
         return _text(route_impact.get("route_back_evidence_ref")) is not None
     for item in closeout.get("closeout_refs") or ():
+        if isinstance(item, str):
+            if item.endswith("route_back_evidence_packet.json"):
+                return True
+            continue
         ref = _mapping(item)
         if not ref:
             continue
