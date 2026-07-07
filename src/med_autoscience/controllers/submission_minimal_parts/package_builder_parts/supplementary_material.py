@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from pathlib import Path
+import textwrap
 from typing import Any
 
 from ..shared_base import *
@@ -11,6 +12,7 @@ def supplementary_material_payload(
     supplementary_output_docx_path: Path | None,
     supplementary_output_pdf_path: Path | None,
     supplementary_tables_workbook_path: Path | None,
+    supplementary_tables_pdf_path: Path | None,
     combined_review_docx_path: Path | None,
     combined_review_pdf_path: Path | None,
     profile_config: Any,
@@ -49,6 +51,8 @@ def supplementary_material_payload(
         payload["pdf_path"] = rel_remapped(supplementary_output_pdf_path)
     if supplementary_tables_workbook_path is not None:
         payload["tables_workbook_path"] = rel_remapped(supplementary_tables_workbook_path)
+    if supplementary_tables_pdf_path is not None:
+        payload["tables_pdf_path"] = rel_remapped(supplementary_tables_pdf_path)
     if combined_review_docx_path is not None:
         payload["combined_review_docx_path"] = rel_remapped(combined_review_docx_path)
     if combined_review_pdf_path is not None:
@@ -335,6 +339,79 @@ def build_supplementary_tables_workbook(
     return output_path
 
 
+def build_supplementary_tables_pdf(
+    *,
+    supplementary_tables_markdown_path: Path | None,
+    submission_root: Path,
+) -> Path | None:
+    if supplementary_tables_markdown_path is None or not supplementary_tables_markdown_path.exists():
+        return None
+
+    sections = _supplementary_markdown_table_sections(
+        markdown_without_front_matter(supplementary_tables_markdown_path.read_text(encoding="utf-8"))
+    )
+    if not sections:
+        return None
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    output_path = submission_root / "supplementary_tables.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    page_count = 0
+    with PdfPages(output_path) as pdf:
+        for fallback_index, section in enumerate(sections, start=1):
+            title = section["title"] or f"Supplementary Table {fallback_index}"
+            rows = section["rows"]
+            if not rows:
+                continue
+            chunks = _pdf_table_chunks(rows)
+            for chunk_index, chunk_rows in enumerate(chunks, start=1):
+                page_title = title if len(chunks) == 1 else f"{title} (continued {chunk_index}/{len(chunks)})"
+                wrapped_rows = _wrap_table_rows_for_pdf(chunk_rows)
+                column_widths = _pdf_table_column_widths(wrapped_rows)
+                figure_width = max(8.0, sum(column_widths) + 1.2)
+                figure_height = max(5.0, 1.4 + 0.38 * len(wrapped_rows))
+                figure, axis = plt.subplots(figsize=(figure_width, figure_height))
+                axis.axis("off")
+                axis.text(
+                    0.0,
+                    1.0,
+                    page_title,
+                    transform=axis.transAxes,
+                    fontsize=11,
+                    fontweight="bold",
+                    va="top",
+                )
+                table = axis.table(
+                    cellText=wrapped_rows[1:],
+                    colLabels=wrapped_rows[0],
+                    colWidths=[width / sum(column_widths) for width in column_widths],
+                    loc="upper left",
+                    bbox=[0.0, 0.0, 1.0, 0.93],
+                    cellLoc="left",
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(7)
+                for (row_index, _column_index), cell in table.get_celld().items():
+                    cell.set_edgecolor("#bdbdbd")
+                    cell.set_linewidth(0.3)
+                    cell.set_text_props(ha="left", va="top", wrap=True)
+                    if row_index == 0:
+                        cell.set_facecolor("#f2f2f2")
+                        cell.set_text_props(weight="bold")
+                pdf.savefig(figure, bbox_inches="tight")
+                plt.close(figure)
+                page_count += 1
+    if page_count == 0:
+        output_path.unlink(missing_ok=True)
+        return None
+    return output_path
+
+
 def build_combined_supplementary_markdown(
     *,
     supplementary_markdown_paths: list[Path],
@@ -485,6 +562,41 @@ def _parse_markdown_table(lines: list[str]) -> list[list[str]]:
         if cells:
             rows.append(cells)
     return rows
+
+
+def _wrap_table_rows_for_pdf(rows: list[list[str]]) -> list[list[str]]:
+    max_columns = max(len(row) for row in rows)
+    normalized_rows: list[list[str]] = []
+    for row in rows:
+        normalized = [str(value) for value in row] + [""] * (max_columns - len(row))
+        normalized_rows.append([
+            "\n".join(textwrap.wrap(value, width=28, break_long_words=False) or [""])
+            for value in normalized
+        ])
+    return normalized_rows
+
+
+def _pdf_table_chunks(rows: list[list[str]], *, max_body_rows: int = 35) -> list[list[list[str]]]:
+    if len(rows) <= max_body_rows + 1:
+        return [rows]
+    header = rows[0]
+    body = rows[1:]
+    return [
+        [header] + body[index : index + max_body_rows]
+        for index in range(0, len(body), max_body_rows)
+    ]
+
+
+def _pdf_table_column_widths(rows: list[list[str]]) -> list[float]:
+    column_count = max(len(row) for row in rows)
+    widths: list[float] = []
+    for column_index in range(column_count):
+        values = [row[column_index] if column_index < len(row) else "" for row in rows]
+        longest_line = max(
+            [len(line) for value in values for line in str(value).splitlines()] + [8]
+        )
+        widths.append(min(max(0.9, longest_line * 0.09), 3.2))
+    return widths
 
 
 def _is_markdown_separator_cell(cell: str) -> bool:

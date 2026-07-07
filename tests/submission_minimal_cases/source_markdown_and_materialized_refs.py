@@ -385,9 +385,9 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
         paper_root / "tables" / "S1_audit_dictionary.md",
         """# Supplementary Table S1
 
-| paper_role | analysis_denominator | claim_boundary |
-| --- | --- | --- |
-| supplementary | eligible indicator denominator | recorded care-review gap only |
+| paper_role | analysis_denominator | claim_boundary | medication_capture_rule | source_site_scope | sensitivity_role | reviewer_use | packaging_note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| supplementary | eligible indicator denominator | recorded care-review gap only | medication-field-present restriction | anonymous source-site summaries | support-only evidence | audit dictionary | uploadable table PDF |
 """,
     )
     write_text(
@@ -415,9 +415,14 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     )
 
     workbook_path = paper_root / "submission_minimal" / "supplementary_tables.xlsx"
+    tables_pdf_path = paper_root / "submission_minimal" / "supplementary_tables.pdf"
     assert workbook_path.exists()
+    assert tables_pdf_path.exists()
     assert manifest["supplementary_material"]["tables_workbook_path"] == (
         "paper/submission_minimal/supplementary_tables.xlsx"
+    )
+    assert manifest["supplementary_material"]["tables_pdf_path"] == (
+        "paper/submission_minimal/supplementary_tables.pdf"
     )
 
     with zipfile.ZipFile(workbook_path) as workbook:
@@ -429,6 +434,10 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     assert "analysis_denominator" in shared_strings
     assert "claim_boundary" in shared_strings
     assert "recorded care-review gap only" in shared_strings
+
+    pdf_reader = PdfReader(str(tables_pdf_path))
+    assert len(pdf_reader.pages) == 1
+    assert float(pdf_reader.pages[0].mediabox.width) > 595
 
 
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
