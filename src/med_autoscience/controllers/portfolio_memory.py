@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass
 from pathlib import Path
-
-import yaml
 
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.workspace_paths import research_memory_root
@@ -88,6 +87,8 @@ def _default_registry_payload() -> dict[str, object]:
 
 
 def _render_registry_yaml() -> str:
+    yaml = importlib.import_module("yaml")
+
     payload = _default_registry_payload()
     rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     return rendered if rendered.endswith("\n") else f"{rendered}\n"
@@ -196,6 +197,8 @@ def _load_registry_payload(workspace_root: Path) -> dict[str, object]:
     path = _registry_path(workspace_root)
     if not path.exists():
         return _default_registry_payload()
+    yaml = importlib.import_module("yaml")
+
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return payload if isinstance(payload, dict) else _default_registry_payload()
 

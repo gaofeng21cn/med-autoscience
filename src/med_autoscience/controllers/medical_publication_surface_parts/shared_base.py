@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import argparse
 import copy
+import importlib
 import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from med_autoscience import display_registry
 from med_autoscience.controllers.statistical_discipline_runtime import validate_statistical_reviewer_audit
@@ -277,6 +276,8 @@ def excerpt_around(text: str, start: int, end: int, *, width: int = 96) -> str:
 def load_yaml_mapping(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
+    yaml = importlib.import_module("yaml")
+
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         return {}
