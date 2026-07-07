@@ -337,6 +337,7 @@ def _apply_result(
         source=source,
     )
     applied_outcome = _mapping(stage_closure_decision.get("outcome"))
+    durable_stop_allowed = apply_mode in {"typed_blocker", "route_checkpoint"}
     applied_stage = {
         **(
             {"stage_id": stage["stage_id"]}
@@ -358,7 +359,7 @@ def _apply_result(
             stage_closure_decision.get("decision_ref"),
             stage.get("decision_ref"),
         ),
-        "durable_stop_allowed": apply_mode == "typed_blocker",
+        "durable_stop_allowed": durable_stop_allowed,
         "authority_materialized": True,
         **(
             {"typed_blocker_evidence_ref": receipt_ref}
@@ -386,7 +387,7 @@ def _apply_result(
             if apply_mode == "typed_blocker"
             else {"route_checkpoint_evidence_ref": receipt_ref}
         ),
-        "durable_stop_allowed": apply_mode == "typed_blocker",
+        "durable_stop_allowed": durable_stop_allowed,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,
         "can_claim_runtime_ready": False,

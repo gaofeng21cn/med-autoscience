@@ -27,6 +27,7 @@
     "paper.gate.publishability_replay",
     "paper.package.submission_minimal",
     "paper.delivery.sync",
+    "paper.stage_closure.owner_consumption",
     "human.approval",
     "blocked.typed",
     "runtime.wait_receipt",

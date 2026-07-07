@@ -147,9 +147,10 @@ def test_receipt_owner_consumption_apply_route_checkpoint_records_checkpoint_not
         "owner_consumed_route_checkpoint"
     )
     assert payload["mas_receipt_consumption"]["owner_result_kind"] == "route_checkpoint"
+    assert payload["mas_receipt_consumption"]["durable_stop_allowed"] is True
     assert payload["stage_closure"]["outcome_kind"] == "next_stage_transition"
     assert payload["stage_closure"]["transition_kind"] == "route_back_candidate_checkpoint"
-    assert payload["stage_closure"]["durable_stop_allowed"] is False
+    assert payload["stage_closure"]["durable_stop_allowed"] is True
     assert payload["stage_closure_decision"]["outcome"]["can_submit"] is True
     assert payload["stage_closure_decision"]["authority_boundary"][
         "writes_current_package"

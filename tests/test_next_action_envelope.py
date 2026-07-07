@@ -13,6 +13,7 @@ from med_autoscience.controllers.next_action_envelope import (
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
     FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL,
     FAMILY_PAPER_REVIEW_AI_REVIEWER,
+    FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION,
     FAMILY_PAPER_WRITE_PROSE_REPAIR,
     FAMILY_RUNTIME_OPL_ROUTE,
     compile_next_action_envelope,
@@ -272,6 +273,56 @@ def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owne
     assert envelope["expected_output_contract"]["accepted_refs"] == ["typed_blocker_ref"]
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
     assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
+
+
+def test_paper_mission_projection_does_not_repeat_consumed_route_checkpoint_owner_action() -> None:
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": "paper-mission-transaction::dm003::route-checkpoint",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "stage_id": "submission_milestone_candidate",
+            "stage_terminal_decision": {
+                "decision_kind": "continue_same_stage",
+                "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-02",
+            },
+            "opl_route_command": {
+                "command_kind": "resume_stage",
+                "target": "submission_milestone_candidate::followthrough::followthrough-02",
+                "runtime_owner": "one-person-lab",
+                "route_target": "opl_runtime_live_readback",
+            },
+        },
+        opl_runtime_carrier_readback={
+            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+            "carrier_status": "opl_runtime_terminal_readback_observed",
+            "opl_transition_receipt": {
+                "surface_kind": "opl_transition_receipt",
+                "receipt_status": "route_back_evidence_closeout_observed",
+                "route_back_evidence_ref": "opl://stage-attempts/sat-route/route-back",
+                "can_claim_paper_progress": False,
+            },
+            "terminal_closeout": {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "stage_attempt_ref": "opl://stage-attempts/sat-route",
+            },
+            "mas_receipt_consumption": {
+                "surface_kind": "mas_receipt_consumption_projection",
+                "status": "owner_consumed_route_checkpoint",
+                "route_back_evidence_ref": "opl://stage-attempts/sat-route/route-back",
+                "route_checkpoint_evidence_ref": "opl://stage-attempts/sat-route/closeout",
+                "durable_stop_allowed": True,
+                "can_claim_paper_progress": False,
+                "can_claim_publication_ready": False,
+            },
+        },
+    )
+
+    assert envelope is not None
+    assert envelope["action_family"] == FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY
+    assert envelope["action_family"] != FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION
+    assert "consume_route_back_checkpoint_or_materialize_terminalizer_outcome" not in (
+        envelope["allowed_actions"]
+    )
 
 
 def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
