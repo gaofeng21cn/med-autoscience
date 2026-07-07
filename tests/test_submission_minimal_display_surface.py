@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import importlib
 import json
 import os
 from pathlib import Path
@@ -9,6 +8,9 @@ import shutil
 from typing import Any
 
 from med_autoscience import display_registry
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
 from tests.submission_minimal_cases.shared import lightweight_submission_exports, real_submission_exports
 
 PNG_1X1_BASE64 = (
@@ -177,7 +179,6 @@ Caption.
 
 
 def test_create_submission_minimal_package_preserves_display_surface_metadata(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     dump_json(
         paper_root / "build" / "display_pack_lock.json",
@@ -197,7 +198,7 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -218,7 +219,6 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
 
 
 def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     dump_json(
         paper_root / "build" / "display_pack_lock.json",
@@ -247,7 +247,7 @@ def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_pat
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -264,7 +264,6 @@ def test_create_submission_minimal_package_hydrates_compile_report_from_current_
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     (paper_root / "build" / "compile_report.json").unlink()
     write_text(
@@ -301,7 +300,7 @@ Caption.
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -319,7 +318,6 @@ def test_create_submission_minimal_package_refreshes_stale_compile_report_from_n
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",
@@ -342,7 +340,7 @@ Newer current draft methods.
     os.utime(compile_report_path, (1000, 1000))
     os.utime(paper_root / "draft.md", (2000, 2000))
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -363,7 +361,6 @@ def test_create_submission_minimal_package_preserves_current_draft_table_body_ov
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",
@@ -390,7 +387,7 @@ Current draft abstract.
     os.utime(paper_root / "tables" / "T1_summary.md", (1000, 1000))
     os.utime(paper_root / "draft.md", (2000, 2000))
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -406,7 +403,6 @@ def test_create_submission_minimal_package_refreshes_stage_native_current_body_p
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     seed_root = make_workspace(tmp_path / "seed")
     paper_root = (
         tmp_path
@@ -440,7 +436,7 @@ Stage-native current body methods.
     os.utime(compile_report_path, (1000, 1000))
     os.utime(paper_root / "draft.md", (2000, 2000))
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -458,7 +454,6 @@ def test_create_submission_minimal_package_preserves_newer_target_draft_when_hyd
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     study_root = tmp_path / "workspace"
     paper_root = make_workspace(tmp_path)
     current_body_paper_root = (
@@ -506,7 +501,7 @@ Newer target draft methods.
     os.utime(paper_root / "draft.md", (2000, 2000))
     os.utime(paper_root / "build" / "compile_report.json", (1000, 1000))
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -523,7 +518,6 @@ def test_create_submission_minimal_package_hydrates_delivery_required_ledgers_fr
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     study_root = tmp_path / "workspace"
     paper_root = study_root / "paper"
     current_body_paper_root = (
@@ -549,7 +543,7 @@ def test_create_submission_minimal_package_hydrates_delivery_required_ledgers_fr
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -566,7 +560,6 @@ def test_create_submission_minimal_package_hydrates_current_body_manuscript_and_
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     study_root = tmp_path / "workspace"
     paper_root = make_workspace(tmp_path)
     current_body_paper_root = (
@@ -622,7 +615,7 @@ Current authority discussion.
         "| Decile | Events |\n| --- | ---: |\n| 10 | 214 |\n",
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -644,7 +637,6 @@ def test_create_submission_minimal_package_hydrates_current_body_figure_inputs_a
     tmp_path: Path,
     writable_authority_route_context: dict[str, object],
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     study_root = tmp_path / "workspace"
     paper_root = make_workspace(tmp_path)
     current_body_paper_root = (
@@ -723,7 +715,7 @@ def test_create_submission_minimal_package_hydrates_current_body_figure_inputs_a
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=writable_authority_route_context,
@@ -740,10 +732,9 @@ def test_create_submission_minimal_package_hydrates_current_body_figure_inputs_a
 
 
 def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -756,7 +747,6 @@ def test_create_submission_minimal_package_preserves_canonical_main_display_head
 
 
 def test_create_submission_minimal_package_preserves_main_tables_with_peer_table_headings(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     write_text(
         paper_root / "build" / "review_manuscript.md",
@@ -810,7 +800,7 @@ Caption.
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -825,7 +815,6 @@ Caption.
 def test_create_submission_minimal_package_materializes_catalog_tables_when_source_has_no_main_tables_section(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     write_text(
         paper_root / "build" / "review_manuscript.md",
@@ -849,7 +838,7 @@ Caption.
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -862,7 +851,6 @@ Caption.
 
 
 def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_table_exports(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
 
     write_png(paper_root / "figures" / "Figure1.png")
@@ -871,7 +859,7 @@ def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_ta
     write_text(paper_root / "tables" / "Table1.csv", "legacy,stale\n")
     write_text(paper_root / "tables" / "Table1.md", "| legacy | stale |\n")
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
