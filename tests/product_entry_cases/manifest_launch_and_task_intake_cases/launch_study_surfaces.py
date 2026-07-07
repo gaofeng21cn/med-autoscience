@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 
 import pytest
 
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit import launch_surface
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import (
+    launch_study,
+    render_launch_study_markdown,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 pytestmark = pytest.mark.contract
 
 
 def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-    launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
-    )
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -96,7 +96,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
             },
         },
     )
-    payload = module.launch_study(
+    payload = launch_study(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
@@ -114,12 +114,11 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert payload["commands"]["progress"].endswith("--study-id 001-risk")
     assert "workspace-cockpit" in payload["commands"]["cockpit"]
 
-    markdown = module.render_launch_study_markdown(payload)
+    markdown = render_launch_study_markdown(payload)
     assert markdown.strip()
 
 
 def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     from opl_harness_shared.status_narration import build_status_narration_contract
 
     payload = {
@@ -146,7 +145,7 @@ def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
         "commands": {},
     }
 
-    markdown = module.render_launch_study_markdown(payload)
+    markdown = render_launch_study_markdown(payload)
 
     assert markdown.strip()
     assert "current_stage_summary:" not in markdown
@@ -154,8 +153,6 @@ def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
 
 
 def test_launch_study_markdown_prefers_human_facing_labels() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
     payload = {
         "study_id": "001-risk",
         "runtime_status": {"decision": "resume"},
@@ -183,7 +180,7 @@ def test_launch_study_markdown_prefers_human_facing_labels() -> None:
         },
     }
 
-    markdown = module.render_launch_study_markdown(payload)
+    markdown = render_launch_study_markdown(payload)
 
     assert markdown.strip()
     assert "browser_url:" not in markdown
