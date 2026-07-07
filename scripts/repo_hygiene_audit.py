@@ -172,6 +172,7 @@ def audit_active_surface_residue(root: Path) -> list[str]:
         check=True,
     )
     violations: list[str] = []
+    entrypoint_paths = ENTRYPOINT_PATHS | _discover_entrypoint_paths(root)
     for raw_path in result.stdout.split("\0"):
         if not raw_path:
             continue
@@ -181,7 +182,7 @@ def audit_active_surface_residue(root: Path) -> list[str]:
             if pattern.search(raw_path):
                 violations.append(f"{raw_path}: {reason}")
                 break
-        if raw_path in ENTRYPOINT_PATHS:
+        if raw_path in entrypoint_paths:
             path = root / raw_path
             try:
                 text = path.read_text(encoding="utf-8")
@@ -191,6 +192,17 @@ def audit_active_surface_residue(root: Path) -> list[str]:
                 if token in text:
                     violations.append(f"{raw_path}: {reason}")
     return violations
+
+
+def _discover_entrypoint_paths(root: Path) -> frozenset[str]:
+    cli_root = root / "src" / "med_autoscience"
+    if not cli_root.is_dir():
+        return frozenset()
+    return frozenset(
+        _relative(path, root)
+        for path in cli_root.rglob("parser.py")
+        if path.is_file()
+    )
 
 
 def cleanup_ignored_artifacts(root: Path) -> list[str]:

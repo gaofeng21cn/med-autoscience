@@ -16,7 +16,7 @@ _TARGETS = (
     Path("tests/display_schema_contract_cases/clinical_and_publication_input_shapes.py"),
     Path("tests/test_medical_publication_surface.py"),
     Path("tests/medical_publication_surface_cases/shared_base.py"),
-    Path("tests/medical_publication_surface_cases/quest_factory.py"),
+    Path("tests/medical_publication_surface_cases/quest_factory/__init__.py"),
     Path("tests/medical_publication_surface_cases/report_terms_sections_and_charter.py"),
     Path("tests/medical_publication_surface_cases/formal_language_review_and_model_entries.py"),
     Path("tests/medical_publication_surface_cases/figure_narrative_and_renderer_contracts.py"),

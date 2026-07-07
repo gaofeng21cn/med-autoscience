@@ -38,11 +38,12 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## 2026-07-07 natural-boundary migration policy
 
-- `_parts` 目录不再作为新的默认拆分方案。历史 `_parts` 只代表迁移输入；修改相关区域时先判断它是真实 owner 子边界、测试 discovery 入口，还是单纯为过 line-budget 拆出的 shard。
+- `_parts` 目录进入硬退役口径，不再作为新拆分方案、测试 discovery 入口或长期可接受的迁移输入；结构验收以 `find src tests -type d -name '*_parts'` 返回 0 为准。
 - 对单纯 shard：微型 helper 合并回 owner module；过长 owner 按业务职责拆成 concrete module 或自然包名，不新增 wrapper、facade、compat alias 或二级 `_parts`。
-- 对真实边界：保留 public owner entrypoint 只用于当前稳定 import contract；内部依赖应直连 concrete owner module，`import *`、dynamic `__all__`、`exec(compile(...))` 只作为迁移信号，不作为长期结构。
-- 测试拆分使用既有 `*_cases/` discovery 形态或语义 case module；源码拆分优先 concrete package name，例如 `study_domain_transition_table/`，而不是 `study_domain_transition_table_parts/`。
-- `boundary_fitness` 已停止推荐 `{stem}_parts`，并把 `_parts` package marker、nested `_parts`、wildcard/dynamic export 和 exec/compile re-export 纳入 advisory。`scripts/line_budget.py --list` 仍只输出 oversized files，避免历史 `_parts` 噪音掩盖当前超线目标。
+- 对真实边界：保留 public owner entrypoint 只用于当前稳定 import contract；内部依赖应直连 concrete owner module，`import *`、dynamic `__all__`、`exec(compile(...))` 只作为退役前信号，不作为长期结构。
+- 测试拆分使用既有 `*_cases/` discovery 形态、语义 case module 或自然 owner 包；源码拆分优先 concrete package name，例如 `study_domain_transition_table/`，而不是 `study_domain_transition_table_parts/`。
+- `boundary_fitness` 已停止推荐 `{stem}_parts`，并把 `_parts` package marker、nested `_parts`、wildcard/dynamic export 和 exec/compile re-export 纳入 advisory；最终 hygiene gate 以 active source/test 目录零残留为准。
+- 本文后续旧 evidence 行若仍出现 `_parts` 路径，只按历史 provenance 读取；不得作为 active docs、tests、source hygiene 的长期允许清单。
 
 ## P0 runtime/control-plane tail 执行注记
 
@@ -64,7 +65,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## 2026-07-07 current tranche
 
-- 用户本轮明确排除 91 个 *_parts 目录专项；该问题由另一个对话处理，本文不把它纳入 current tranche，也不据此删除、移动或重命名 parts directory。
+- `*_parts` 目录专项已从“排除项”改为硬退役验收项；各 lane 只在自身允许写集内迁移 active caller，最终合并口径必须让 `find src tests -type d -name '*_parts'` 归零，不能继续把历史 parts directory 写成长期可接受状态。
 - `.venv/` 与 `outputs/` 是 ignored local residue；root 已清理，不构成 tracked code change、source morphology landing、contract delta 或 runtime evidence。
 - `contracts/agent_tool_arsenal.json` 是 generated/authority contract；source ref 是 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`。不能手工缩减 JSON；后续只能修改 generator / owner surface，并跑 focused contract tests。
 - Absorption gate：line-budget readback 候选与 `codex-parts-readback-v2-20260707` 同写集，wildcard reporting 候选与 `codex-parts-exports-v2-20260707` 同写集，domain-transition line-budget 剩余项与 `codex-parts-domain-transition-20260707` 同写集；这些代码候选未吸收进 `main`，等待对应 parts lane 交出或完成后再复核。
