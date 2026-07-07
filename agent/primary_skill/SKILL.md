@@ -59,6 +59,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 
 `ScholarSkills` 的 active 模块只有 `display`、`tables`、`stats`、`lit`、`write`、`review`、`submit` 和 `data` 八个，它们是 OPL-managed academic capability pack，不是 MAS 私有执行器。`intake` 不是 active ScholarSkills 模块：OPL `domain_intake` 原则在 MAS 侧映射到 `contracts/mas-paper-study-stage-pack.json` 的 `01-study_intake` 和 `src/med_autoscience/study_task_intake*.py` surfaces。`omics` 在 MAS 有稳定真实组学专业 workflow 前只作为 deferred/reference，不作为 active ScholarSkills 模块。MAS 直接调用入口不变：先通过 MAS owner surface 读取 `study progress`、current owner delta、publication supervisor state 和 authority boundary，再用 `scientific_capability_registry` 做能力发现、resolve、refs-only invocation projection 或 owner-consumption evidence。
 
+能力治理先按逻辑模块审计，再决定物理暴露方式。写作、审稿、文献、统计、表图、数据治理和投稿可以是多个独立逻辑能力，但不必一一对应独立物理 skill；默认吸收到既有 ScholarSkills professional skill。只有复用边界、版本边界、安装/发现边界或 metadata 隔离收益明确时，才新增或拆分 physical skill。MAS 本仓保留 owner/runtime/contract authority；弹性判断保留在专业 skill；generated descriptors、contracts 和 runtime projection 只负责 locator、receipt、allowed-write、sync/install/readback 等轻量边界。
+
 执行可用性来自 OPL Connect 同步到 workspace 或 quest 的本地 skill，而不是 MAS 仓内 plugin mirror：
 
 ```bash
