@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import importlib
 import shutil
 from pathlib import Path
+
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
 
 from .shared import dump_json, make_paper_workspace, write_text
 
@@ -39,7 +42,6 @@ def _open_bundle_route_context() -> dict[str, object]:
 def test_create_submission_minimal_package_blocks_pending_clean_paper_authority_cutover(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     study_root = paper_root.parent
     shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
@@ -54,7 +56,7 @@ def test_create_submission_minimal_package_blocks_pending_clean_paper_authority_
         },
     )
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_bundle_route_context(),
@@ -70,7 +72,6 @@ def test_create_submission_minimal_package_blocks_pending_clean_paper_authority_
 def test_create_submission_minimal_package_blocks_pending_cutover_for_runtime_paper_root(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_paper_root = make_paper_workspace(tmp_path / "source")
     workspace_root = tmp_path / "runtime-workspace"
     study_id = "002-dm-china-us-mortality-attribution"
@@ -104,7 +105,7 @@ def test_create_submission_minimal_package_blocks_pending_cutover_for_runtime_pa
         },
     )
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_bundle_route_context(),
