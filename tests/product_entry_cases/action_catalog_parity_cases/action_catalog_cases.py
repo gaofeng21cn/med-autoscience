@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_manifest,
+    build_skill_catalog,
+)
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
-from .shared import *  # noqa: F403,F401
+from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
 
 def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
 
     profile = make_profile(tmp_path)
@@ -14,8 +17,8 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
 
     catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
     neutral_catalog = action_catalog.build_mas_action_catalog()
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
-    skill_catalog = product_entry.build_skill_catalog(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    skill_catalog = build_skill_catalog(profile=profile, profile_ref=profile_ref)
     mcp_tools = {tool["name"]: tool for tool in mcp_server.build_tool_manifest()}
 
     assert manifest["family_action_catalog"] == catalog
@@ -106,13 +109,12 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
 
 def test_mas_action_catalog_exposes_study_state_matrix_for_opl_transition_runner(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
     product_entry_projection = {
         item["action_key"]: item for item in action_catalog.project_mas_action_catalog("product_entry", catalog)
@@ -348,12 +350,11 @@ def test_mas_action_catalog_exposes_scientific_capability_registry_as_public_mcp
 
 def test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surface(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     actions = {item["action_id"]: item for item in catalog["actions"]}
     cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
 
@@ -379,15 +380,14 @@ def test_mas_action_catalog_exposes_lightweight_executor_receipt_as_descriptor_o
     tmp_path: Path,
 ) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
     neutral_catalog = action_catalog.build_mas_action_catalog()
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
-    skill_catalog = product_entry.build_skill_catalog(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    skill_catalog = build_skill_catalog(profile=profile, profile_ref=profile_ref)
     actions = {item["action_id"]: item for item in catalog["actions"]}
     cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
     product_entry_projection = {
@@ -434,12 +434,10 @@ def test_mas_action_catalog_exposes_lightweight_executor_receipt_as_descriptor_o
 
 
 def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     positioning = manifest["product_positioning"]
 
     assert positioning["surface_kind"] == "mas_product_positioning"
@@ -468,12 +466,10 @@ def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_pa
 
 
 def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     boundary = manifest["functional_consumer_boundary"]
 
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
