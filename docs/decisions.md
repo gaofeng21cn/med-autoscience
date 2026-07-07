@@ -9,6 +9,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 - 决策：`submission_minimal` 生成 supplementary tables 时，除 `supplementary_tables.md` 和 `supplementary_tables.xlsx` 外，必须生成单独的 `supplementary_tables.pdf`。该 PDF 是 supplementary table module，不强制 A4 或正文同版式；允许按表格列宽和行数使用动态页面尺寸，并以一张 supplementary table 一页为默认结构。
 - 决策：`supplementary_tables.pdf` 必须写入 `submission_manifest.supplementary_material.tables_pdf_path`，并随 `submission/`、`manuscript/current_package/` 和 zip 包一起投影。正文合并版 `supplementary_material.pdf` 可保留作为阅读包，但宽表投稿/上传优先使用 `supplementary_tables.pdf` 或 `supplementary_tables.xlsx`。
+- 决策：supplementary table PDF 的动态版式必须同时处理横向和纵向适应。横向上，超长 snake_case 表头和变量名按下划线边界软换行，避免内容横向裁切；纵向上，行高按单元格换行行数计算，避免多行单元格被表格横线压住或重叠。该规则优先保证可读性，不追求与正文 PDF 同页型。
 - 理由：DM003 暴露出 supplementary table 在 A4 LaTeX/PDF 中出现表头断裂、元素拥挤和重叠。根因不是单个表格内容，而是把宽 supplementary 表强制塞进正文 PDF 版式；正确边界是把 supplementary tables 当成附加模块，动态适配版式后打成单一 PDF。
 - 影响：这是 package/exporter 版式修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 submission-ready authority。PDF 视觉合格仍需对具体论文包做 fresh render/readback。
 
