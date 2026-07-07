@@ -147,6 +147,47 @@ def test_opl_terminal_closeout_readback_prefers_latest_alias_bound_route_back_ev
     assert readback["terminal_closeout"]["stage_packet_ref"] == alias_transaction_ref
 
 
+def test_opl_terminal_closeout_readback_accepts_candidate_delta_ref_binding(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    carrier = {
+        **_opl_route_carrier(),
+        "idempotency_key": "dm003::candidate-v2",
+        "request_idempotency_key": "dm003::candidate-v2::request",
+        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
+    }
+    _write_closeout(
+        study_root,
+        {
+            "status": "",
+            "closeout_status": "route_back_evidence_candidate_prepared",
+            "stage_id": "publication_gate_replay",
+            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
+            "closeout_refs": [carrier["paper_mission_transaction_ref"]],
+            "candidate_delta_ref": (
+                "ops/medautoscience/paper_mission_stage_attempts/"
+                "sat-current/dm003::candidate-v2/paper_facing_write_repair_candidate.json"
+            ),
+            "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["status"] == (
+        "route_back_evidence_candidate_prepared"
+    )
+    assert readback["terminal_closeout"]["closeout_status"] == (
+        "route_back_evidence_candidate_prepared"
+    )
+
+
 def test_opl_terminal_closeout_readback_keeps_live_runtime_terminal_over_stale_route_back(
     tmp_path: Path,
     monkeypatch,

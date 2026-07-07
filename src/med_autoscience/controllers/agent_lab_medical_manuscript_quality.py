@@ -47,6 +47,9 @@ from .agent_lab_medical_manuscript_quality_parts.study_quality_targets import (
     study_quality_contract_profile,
     study_quality_target_profile,
 )
+from .agent_lab_medical_manuscript_quality_parts.structured_reviewer_evaluation import (
+    structured_independent_ai_reviewer_evaluation as _structured_independent_ai_reviewer_evaluation,
+)
 from .agent_lab_medical_manuscript_quality_parts.patch_loop_closeout import (
     build_refs_only_patch_loop_closeout_bundle,
 )
@@ -144,6 +147,15 @@ def build_medical_manuscript_quality_agent_lab_suite(
     )
     if feedback_ref is not None:
         evidence_refs.append(feedback_ref)
+    structured_reviewer_evaluation = _structured_independent_ai_reviewer_evaluation(
+        study_id=study_id,
+        target_agent_id=FEEDBACKOPS_TARGET_AGENT_ID,
+        publication_eval=publication_eval,
+        publication_eval_ref=str(publication_eval_path),
+        evidence_refs=evidence_refs,
+        feedback_ref=feedback_ref,
+        authority_boundary=AUTHORITY_BOUNDARY,
+    )
     blocker_refs = _blocker_refs(prose_status=prose_status, feedback_ref=feedback_ref, study_id=study_id)
     mechanism_inputs = _mechanism_evolution_inputs(
         root=root,
@@ -153,6 +165,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
         feedback_ref=feedback_ref,
         evidence_refs=evidence_refs,
         blocker_refs=blocker_refs,
+        structured_reviewer_evaluation=structured_reviewer_evaluation,
     )
     task_id = f"agent-lab-task:mas/{study_id}/high-quality-medical-manuscript"
     scorecard_ref = f"quality-scorecard:mas/{study_id}/high-quality-medical-manuscript"
@@ -267,6 +280,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "owner_route_refs": owner_route_refs,
             "developer_patch_work_order": developer_work_order,
             "feedback_self_evolution_trigger": self_evolution_trigger,
+            "structured_independent_ai_reviewer_evaluation": structured_reviewer_evaluation,
             "target_agent_capability_gap": {
                 "status": "candidate_only",
                 "target_owner": "med-autoscience",
@@ -307,6 +321,15 @@ def build_medical_manuscript_quality_agent_lab_suite(
         "closeout_acceptance_requirements": {
             "coverage_audit": dict(REVIEWER_REVISION_COVERAGE_AUDIT_REQUIREMENT),
             "stage_attempt_readback": dict(REVIEWER_REVISION_STAGE_ATTEMPT_READBACK_REQUIREMENT),
+            "structured_independent_ai_reviewer_evaluation": {
+                "required_for_oma_improvement": True,
+                "minimum_fields": [
+                    "critique",
+                    "suggestions",
+                    "direct_evidence_refs",
+                    "provenance",
+                ],
+            },
         },
     }
     task["patch_loop_closeout_bundle"] = build_refs_only_patch_loop_closeout_bundle(
@@ -325,6 +348,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
         "suite_kind": "agent_lab_external_suite",
         "suite_role": "domain_quality_suite_with_meta_evolution_projection",
         "feedback_self_evolution_trigger": self_evolution_trigger,
+        "structured_independent_ai_reviewer_evaluation": structured_reviewer_evaluation,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "tasks": [task],
     }
@@ -470,6 +494,7 @@ def _mechanism_evolution_inputs(
     feedback_ref: str | None,
     evidence_refs: list[str],
     blocker_refs: list[str],
+    structured_reviewer_evaluation: dict[str, Any],
 ) -> dict[str, Any]:
     research_wiki_refs = _existing_refs(
         root / "artifacts" / "research_wiki" / "latest.json",
@@ -544,6 +569,10 @@ def _mechanism_evolution_inputs(
         "failed_route_refs": failed_route_refs,
         "research_memory_graph": research_memory_graph,
         "reviewer_direct_evidence_refs": reviewer_direct_evidence_refs,
+        "structured_independent_ai_reviewer_evaluation": structured_reviewer_evaluation,
+        "structured_ai_reviewer_evaluation_ref": structured_reviewer_evaluation[
+            "evaluation_ref"
+        ],
         "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
         "analysis_queue_manifest": analysis_queue_manifest,
         "runtime_event_ledger": runtime_event_ledger,

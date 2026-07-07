@@ -213,8 +213,11 @@ def closeout_candidate_refs(
         text
         for field in (
             "candidate_ref",
+            "candidate_delta_ref",
             "candidate_package_ref",
             "package_manifest_ref",
+            "paper_facing_delta_ref",
+            "paper_facing_candidate_delta_ref",
             "paper_mission_candidate_package_manifest",
         )
         if (text := _text(closeout.get(field))) is not None
@@ -223,7 +226,9 @@ def closeout_candidate_refs(
         text
         for text in (
             _text(route_back.get("candidate_manifest_ref")),
+            _text(route_back.get("candidate_delta_ref")),
             _text(route_back.get("paper_facing_delta_ref")),
+            _text(route_back.get("paper_facing_candidate_delta_ref")),
             _text(source_evidence.get("paper_mission_candidate_package_ref")),
             _text(source_evidence.get("paper_facing_candidate_delta_ref")),
         )

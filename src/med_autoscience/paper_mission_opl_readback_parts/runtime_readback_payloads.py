@@ -54,10 +54,12 @@ def terminal_closeout_readback(
         null_fields={"usd": None},
     )
     route_impact = _mapping(closeout.get("route_impact"))
+    status = _first_text(closeout.get("status"), closeout.get("closeout_status"))
     return {
         "surface_kind": _text(closeout.get("surface_kind")),
         "closeout_ref": closeout_ref,
-        "status": _text(closeout.get("status")),
+        "status": status,
+        "closeout_status": _text(closeout.get("closeout_status")),
         "study_id": _text(closeout.get("study_id")),
         "stage_id": _text(closeout.get("stage_id")),
         "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
@@ -113,6 +115,7 @@ def opl_transition_receipt_readback(
         if route_back_evidence_ref is None:
             return None
         stage_attempt_id = _text(closeout.get("stage_attempt_id"))
+        closeout_status = _first_text(closeout.get("status"), closeout.get("closeout_status"))
         receipt = {
             "surface_kind": "opl_transition_receipt",
             "schema_version": 1,
@@ -129,7 +132,7 @@ def opl_transition_receipt_readback(
             "runtime_closeout_ref": closeout_ref,
             "blocked_reason": _first_text(
                 closeout.get("blocked_reason"),
-                closeout.get("status"),
+                closeout_status,
             ),
             "route_back_evidence_ref": route_back_evidence_ref,
             "can_claim_paper_progress": False,

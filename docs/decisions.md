@@ -13,6 +13,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 supplementary table 在 A4 LaTeX/PDF 中出现表头断裂、元素拥挤和重叠。根因不是单个表格内容，而是把宽 supplementary 表强制塞进正文 PDF 版式；正确边界是把 supplementary tables 当成附加模块，动态适配版式后打成单一 PDF。
 - 影响：这是 package/exporter 版式修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 submission-ready authority。PDF 视觉合格仍需对具体论文包做 fresh render/readback。
 
+## 2026-07-07：OMA reviewer input 缺口必须由 MAS projection bridge 解决，不能当作论文修订停点
+
+- 决策：Agent Lab medical manuscript quality suite 必须随 suite 输出 `structured_independent_ai_reviewer_evaluation`，把 MAS AI reviewer-backed `publication_eval/latest.json` 合法投影为 OMA `improve-from-external-agent-lab-suite` 所需的 `critique`、`suggestions`、`direct_evidence_refs` 与 `provenance`。该投影是 refs-only input，不是 OMA closeout、quality verdict 或 paper authority。
+- 决策：OPL stage closeout readback 必须兼容 `closeout_status` 与 `candidate_delta_ref` 字段；这些字段和旧 `status`、`paper_facing_delta_ref` 语义等价用于 terminal closeout / candidate binding 识别。不得因为字段名漂移把最新 route-back candidate 丢弃并回退到旧 stage attempt residue。
+- 理由：DM003 暴露出两个相邻问题：最新 stage attempt 使用 `closeout_status=route_back_evidence_candidate_prepared` 和 `candidate_delta_ref`，但 MAS readback 只认旧字段，导致 stale carrier residue 继续占据 current readback；同时 OMA 粗入口虽然存在，却缺少由 MAS publication eval 派生的 structured reviewer evidence，导致“缺 structured independent AI reviewer evaluation”被误读为合法停点。
+- 影响：这是 MAS readback/currentness 与 OMA input bridge 基座修复。不写 Yang study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package；不声明 DM003 paper progress、submission-ready、publication-ready 或 OMA 自动自进化已完成。真实论文推进仍必须由 fresh `paper-mission inspect` / `terminalize-stage` / owner-consumption / OPL work-order readback 证明。
+
 ## 2026-07-06：receipt-owner-consumption 必须尊重 current stage-closure outcome ref
 
 - 决策：`paper-mission receipt-owner-consumption` 处理 `route_back_candidate_checkpoint` 时，如果 `next_action.outcome_ref` / `stage_closure_decision_ref` 指向当前 `mas_stage_closure_decision` 文件，freshness 比较必须把这个文件路径作为 currentness ref。旧 carrier 只有在它的 route-back closeout 明确不被当前 decision ref supersede 时，才允许覆盖 decision `opl_closeout`。

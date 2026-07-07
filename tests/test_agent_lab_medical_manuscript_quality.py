@@ -399,6 +399,25 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_opl_consumable_rout
     assert "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/write" in (
         task["promotion_gate"]["owner_or_human_gate_refs"]
     )
+    reviewer_eval = task["improvement_candidate"][
+        "structured_independent_ai_reviewer_evaluation"
+    ]
+    assert reviewer_eval["surface_kind"] == (
+        "mas_structured_independent_ai_reviewer_evaluation"
+    )
+    assert reviewer_eval["critique"]
+    assert reviewer_eval["suggestions"]
+    assert reviewer_eval["direct_evidence_refs"]
+    assert reviewer_eval["provenance"]["projection_role"] == (
+        "oma_structured_reviewer_input"
+    )
+    assert reviewer_eval["provenance"]["candidate_is_authority"] is False
+    assert task["mechanism_evolution_inputs"][
+        "structured_ai_reviewer_evaluation_ref"
+    ] == reviewer_eval["evaluation_ref"]
+    assert task["closeout_acceptance_requirements"][
+        "structured_independent_ai_reviewer_evaluation"
+    ]["required_for_oma_improvement"] is True
 
 
 def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_reviewer_and_analysis_queue(
