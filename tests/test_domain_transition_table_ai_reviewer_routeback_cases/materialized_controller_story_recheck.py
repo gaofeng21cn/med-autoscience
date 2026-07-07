@@ -4,7 +4,7 @@ from pathlib import Path
 
 from med_autoscience.controllers import study_domain_transition_table
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
-from tests.test_domain_transition_table_ai_reviewer_routeback import (
+from tests.test_domain_transition_table_ai_reviewer_routeback_cases.shared import (
     _current_ai_reviewer_route_back_eval,
     _write_json,
 )
