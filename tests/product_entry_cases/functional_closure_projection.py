@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from .shared import *  # noqa: F403,F401
 from .action_catalog_parity_cases.shared import _write_opl_production_proof
 
@@ -9,14 +10,12 @@ from .action_catalog_parity_cases.shared import _write_opl_production_proof
 def test_product_entry_manifest_projects_current_development_lines_closure(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     proof_ref = tmp_path / "opl-production-proof.json"
     _write_opl_production_proof(proof_ref)
 
-    manifest = product_entry.build_product_entry_manifest(
+    manifest = build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         opl_production_proof_ref=proof_ref,
