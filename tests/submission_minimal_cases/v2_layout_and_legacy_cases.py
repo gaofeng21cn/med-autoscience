@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.submission_minimal_parts.authority import (
+    describe_submission_minimal_authority,
+)
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
+
 from .shared import *
 
 
 def test_describe_submission_minimal_authority_prefers_v2_manifest_over_stale_legacy_root(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -24,7 +30,7 @@ def test_describe_submission_minimal_authority_prefers_v2_manifest_over_stale_le
         },
     )
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
 
     assert authority["status"] == "current"
     assert authority["stale_reason"] is None
@@ -35,10 +41,9 @@ def test_describe_submission_minimal_authority_prefers_v2_manifest_over_stale_le
 def test_describe_submission_minimal_authority_reads_legacy_manifest_when_v2_manifest_is_absent(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -47,7 +52,7 @@ def test_describe_submission_minimal_authority_reads_legacy_manifest_when_v2_man
     (submission_root / "audit" / "submission_manifest.json").unlink()
     dump_json(legacy_manifest_path, manifest)
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
 
     assert authority["status"] == "current"
     assert authority["stale_reason"] is None
@@ -58,10 +63,9 @@ def test_describe_submission_minimal_authority_reads_legacy_manifest_when_v2_man
 def test_submission_minimal_v2_layout_records_source_contract_in_reproducibility_docs(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -87,10 +91,9 @@ def test_submission_minimal_v2_layout_records_source_contract_in_reproducibility
 def test_submission_minimal_v2_layout_writes_reproducibility_lineage_bundle(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
