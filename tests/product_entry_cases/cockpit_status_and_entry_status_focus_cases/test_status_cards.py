@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown import (
+    render_workspace_cockpit_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -15,7 +22,6 @@ from tests.product_entry_cases import entry_status_focus_cases as _entry_status_
 _module_reexport(_entry_status_focus_cases)
 
 def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     from opl_harness_shared.status_narration import build_status_narration_contract
 
     payload = {
@@ -134,7 +140,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
         ],
     }
 
-    markdown = module.render_workspace_cockpit_markdown(payload)
+    markdown = render_workspace_cockpit_markdown(payload)
 
     assert markdown.strip()
     assert "workspace_status:" not in markdown
@@ -160,7 +166,6 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -197,7 +202,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -305,8 +310,8 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
         },
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_workspace_cockpit_markdown(payload)
+    payload = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    markdown = render_workspace_cockpit_markdown(payload)
 
     assert payload["studies"][0]["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
     assert payload["studies"][0]["artifact_runtime_proof"]["rebuild_status"] == "current"
