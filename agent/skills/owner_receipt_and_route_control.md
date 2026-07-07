@@ -16,7 +16,13 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - consumed quality pack refs, including journal-family pack refs when in scope.
 - decision-trace refs and failed-path ledger refs for negative results, failed attempts, route switches, claim narrowing, methodology route-back, and stop-loss decisions; include only summaries and refs in handoff/read-model fields, never ledger body.
 - JIT affordance refs when explicitly requested and consumed by the current owner or gate: ranked next-owner delta refs, reviewer repair hint refs, triggered meta-review refs, opportunistic prefetch refs, and at most one reusable refs-only lesson ref.
-- output refs for reviewer response, response difficult-case / appeal-like / author-input routing, Data Availability restricted-access / FAIR metadata, citation support grades and selected reference export, figure source-data/statistics/export QA, figure backend refs, source-grounded reader source maps / block anchors, and presentation PPTX QA / asset manifest when produced.
+- ScholarSkills specialist route refs when journal-family packs are consumed,
+  using the foldback matrix in
+  `mas-scholar-skills/references/professional-quality-ref-templates.md#mas-journal-family-pack-foldback`.
+- candidate output refs for the active specialist route, such as reviewer
+  response, manuscript argument, statistical reporting, Data Availability,
+  citation integrity, figure/table evidence, reader grounding, or presentation
+  package refs when produced.
 - next owner, next stage, or terminal blocker.
 
 ## Valid Route Outcomes
@@ -61,4 +67,9 @@ Execution receipts and review/audit receipts are separate artifacts. The same in
 
 `journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack` are nature-skills-derived clean-room quality floors and reviewer rubrics consumed through MAS-native stage packets. They do not create a vendor dependency, runtime dependency, default skill source, publication readiness authority, quality verdict authority, artifact mutation authority, source readiness authority, memory acceptance authority, or submission authority. A receipt that relies on these packs must still name the MAS owner, consumed pack refs, output refs, typed blockers when incomplete, and independent reviewer/auditor receipt when closing a quality gate.
 
-The receipt floor for these packs is concrete, not merely nominal: response receipts must preserve difficult-case / appeal-like / author-input routing; Data Availability receipts must preserve restricted-access route and FAIR metadata refs; citation receipts must preserve strict Nature / CNS scope when requested plus support grades and selected ENW / RIS / Zotero RDF export refs; figure receipts must preserve backend, source-data, statistics, export, and QA refs; reader receipts must preserve full-paper source maps and page/block anchors; presentation receipts must preserve selected asset manifest, crop QA, PPTX package/reopen QA, slide overflow/readability QA, and speaker-notes refs.
+The receipt floor for these packs is concrete, not merely nominal, but the
+concrete specialist checklist belongs in MAS ScholarSkills. MAS receipt control
+verifies that the owner path consumed the correct specialist route, candidate
+refs, route-back refs, and independent reviewer/auditor refs. It must not
+rebuild the professional judgment checklist in contracts, scripts, or stage
+control metadata.

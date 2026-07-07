@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-07：Journal-family pack 的专业判断回折到 MAS ScholarSkills 现有 Skill
+
+- 决策：`journal_response_pack`、`manuscript_argument_pack`、`statistical_reporting_pack`、`data_availability_fair_pack`、`citation_integrity_pack`、`figure_evidence_contract_pack`、`paper_reader_grounding_pack` 和 `paper_presentation_pack` 是 MAS stage packet 的质量地板和路由 hint，不是 MAS 本仓的新 checklist authority，也不触发新增一组物理 Skill。
+- 决策：开放式专业判断回折到 `mas-scholar-skills` 现有 `medical-*` 专业 Skill，并由 `references/professional-quality-ref-templates.md#mas-journal-family-pack-foldback` 维护 pack-to-skill 矩阵。MAS `agent/skills/medical_research_execution.md` 和 `agent/skills/owner_receipt_and_route_control.md` 只保留 pack refs、specialist route refs、candidate output refs、route-back / owner-gate handoff、owner receipt / reviewer record / typed blocker / human gate 形状和 forbidden-authority 边界。
+- 理由：这符合“AI First，Contract Light；模块化在运维层，弹性保留在 Skill 层”。重复把 reviewer-response、manuscript argument、statistics、FAIR、citation、figure/table、reader grounding 和 presentation QA 细节写进 MAS stage policy，会把专业判断硬化成 contract 噪声，也会制造第二套 skill source。
+- 影响：本决策只改变专业能力归位和文档/source policy，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt；不声明任何论文进展、publication-ready、submission-ready、domain-ready 或 production-ready。
+
 ## 2026-07-07：Supplementary tables 必须作为独立动态版式模块导出
 
 - 决策：`submission_minimal` 生成 supplementary tables 时，除 `supplementary_tables.md` 和 `supplementary_tables.xlsx` 外，必须生成单独的 `supplementary_tables.pdf`。该 PDF 是 supplementary table module，不强制 A4 或正文同版式；允许按表格列宽和行数使用动态页面尺寸，并以一张 supplementary table 一页为默认结构。
