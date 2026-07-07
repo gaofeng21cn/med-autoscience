@@ -5,6 +5,12 @@ from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_b
 from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts import manifest_rendering
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_manifest,
+)
+
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
         if not name.startswith("__") and name != "_module_reexport":
@@ -21,7 +27,6 @@ from .repo_shell_preflight_assertions import assert_manifest_preflight_and_guard
 from .repo_shell_phase_assertions import assert_manifest_phase_and_readiness_surfaces
 
 def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_templates(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -46,7 +51,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     )
 
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_product_entry_mainline_projection",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -69,19 +74,18 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         },
     )
 
-    payload = module.build_product_entry_manifest(
+    payload = build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
     )
 
-    assert_manifest_runtime_and_continuity(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    assert_manifest_entry_and_lifecycle_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    assert_manifest_preflight_and_guardrail_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    assert_manifest_phase_and_readiness_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
+    assert_manifest_runtime_and_continuity(module=manifest_rendering, payload=payload, profile=profile, profile_ref=profile_ref)
+    assert_manifest_entry_and_lifecycle_surfaces(module=manifest_rendering, payload=payload, profile=profile, profile_ref=profile_ref)
+    assert_manifest_preflight_and_guardrail_surfaces(module=manifest_rendering, payload=payload, profile=profile, profile_ref=profile_ref)
+    assert_manifest_phase_and_readiness_surfaces(module=manifest_rendering, payload=payload, profile=profile, profile_ref=profile_ref)
 
 
 def test_product_entry_progress_projection_defaults_to_next_action_envelope(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -105,7 +109,7 @@ def test_product_entry_progress_projection_defaults_to_next_action_envelope(monk
         ),
     )
 
-    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    payload = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     progress = payload["progress_projection"]
 
     assert progress["progress_surface"]["surface_kind"] == "study_progress"
