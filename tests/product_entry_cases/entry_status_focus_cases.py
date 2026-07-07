@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown as _render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_status as _build_product_entry_status,
+)
+
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 
@@ -13,7 +20,6 @@ _module_reexport(_attention_queue_and_cockpit_base)
 
 
 def test_build_product_entry_status_uses_operator_status_card_for_now_summary(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -235,8 +241,8 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
         },
     )
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_entry_status_markdown(payload)
+    payload = _build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = _render_product_entry_status_markdown(payload)
 
     assert payload["operator_brief"]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert payload["operator_brief"]["focus_study_id"] == "001-risk"
@@ -244,7 +250,6 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
 
 
 def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -368,14 +373,13 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
         },
     )
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    payload = _build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_study_progress"
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
 
 
 def test_build_product_entry_status_uses_quality_review_followthrough_for_monitor_focus(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -429,7 +433,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
         "attention_queue": [],
     })
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    payload = _build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["operator_brief"]["recommended_step_id"] == "open_workspace_cockpit"
     assert payload["operator_brief"]["current_focus"] == "看 publication_eval/latest.json 是否出现新的复评结论。"
@@ -439,7 +443,6 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     followthrough_command = (
@@ -519,7 +522,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
         ],
     })
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    payload = _build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["operator_brief"]["summary"] == followthrough_summary
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
