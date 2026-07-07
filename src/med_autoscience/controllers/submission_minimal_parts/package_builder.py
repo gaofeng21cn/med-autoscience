@@ -11,6 +11,7 @@ from .package_builder_parts.supplementary_material import (
     build_combined_supplementary_markdown,
     build_supplementary_figures_markdown,
     build_supplementary_tables_markdown,
+    build_supplementary_tables_workbook,
     materialize_submission_figure_entry,
     supplementary_material_payload,
     write_combined_review_pdf,
@@ -294,6 +295,7 @@ def create_submission_minimal_package(
         supplementary_source_markdown_path: Path | None = None
         supplementary_output_docx_path: Path | None = None
         supplementary_output_pdf_path: Path | None = None
+        supplementary_tables_workbook_path: Path | None = None
         combined_review_source_markdown_path: Path | None = None
         combined_review_docx_source_markdown_path: Path | None = None
         combined_review_docx_path: Path | None = None
@@ -487,6 +489,10 @@ def create_submission_minimal_package(
                     ),
                     compiled_markdown_text=compiled_markdown_text,
                 )
+            supplementary_tables_workbook_path = build_supplementary_tables_workbook(
+                supplementary_tables_markdown_path=supplementary_tables_markdown_path,
+                submission_root=staging_submission_root,
+            )
             supplementary_source_markdown_path = build_combined_supplementary_markdown(
                 supplementary_markdown_paths=[
                     path
@@ -712,6 +718,7 @@ def create_submission_minimal_package(
             supplementary_source_markdown_path=supplementary_source_markdown_path,
             supplementary_output_docx_path=supplementary_output_docx_path,
             supplementary_output_pdf_path=supplementary_output_pdf_path,
+            supplementary_tables_workbook_path=supplementary_tables_workbook_path,
             combined_review_docx_path=combined_review_docx_path,
             combined_review_pdf_path=combined_review_pdf_path,
             profile_config=profile_config,

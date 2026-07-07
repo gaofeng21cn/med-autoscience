@@ -474,6 +474,7 @@ version = "0.1.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "openpyxl" },
     { name = "opl-harness-shared" },
     { name = "pypdf" },
     { name = "pyyaml" },
@@ -511,6 +512,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.9" },
     { name = "numpy", marker = "extra == 'analysis'", specifier = ">=1.26" },
+    { name = "openpyxl", specifier = ">=3.1" },
     { name = "openpyxl", marker = "extra == 'analysis'", specifier = ">=3.1" },
     { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.2" },

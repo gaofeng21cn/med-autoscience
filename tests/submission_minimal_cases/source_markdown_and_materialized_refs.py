@@ -376,6 +376,68 @@ def test_create_submission_minimal_package_copies_deferred_supplementary_figure_
     assert "Figure4.pdf" in figure_names
 
 
+def test_create_submission_minimal_package_materializes_supplementary_tables_workbook(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    write_text(
+        paper_root / "tables" / "S1_audit_dictionary.md",
+        """# Supplementary Table S1
+
+| paper_role | analysis_denominator | claim_boundary |
+| --- | --- | --- |
+| supplementary | eligible indicator denominator | recorded care-review gap only |
+""",
+    )
+    write_text(
+        paper_root / "tables" / "S1_audit_dictionary.csv",
+        "paper_role,analysis_denominator,claim_boundary\nsupplementary,eligible indicator denominator,recorded care-review gap only\n",
+    )
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table_catalog = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    table_catalog["tables"].append(
+        {
+            "table_id": "S1",
+            "paper_role": "supplementary",
+            "title": "Supplementary audit dictionary",
+            "asset_paths": [
+                "paper/tables/S1_audit_dictionary.csv",
+                "paper/tables/S1_audit_dictionary.md",
+            ],
+        }
+    )
+    dump_json(table_catalog_path, table_catalog)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    workbook_path = paper_root / "submission_minimal" / "supplementary_tables.xlsx"
+    assert workbook_path.exists()
+    assert manifest["supplementary_material"]["tables_workbook_path"] == (
+        "paper/submission_minimal/supplementary_tables.xlsx"
+    )
+
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(workbook_path)
+    assert "S1" in workbook.sheetnames
+    sheet = workbook["S1"]
+    assert sheet["A1"].value == "Supplementary Table S1. Supplementary audit dictionary"
+    assert [cell.value for cell in sheet[3][:3]] == [
+        "paper_role",
+        "analysis_denominator",
+        "claim_boundary",
+    ]
+    assert [cell.value for cell in sheet[4][:3]] == [
+        "supplementary",
+        "eligible indicator denominator",
+        "recorded care-review gap only",
+    ]
+
+
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
     tmp_path: Path,
 ) -> None:

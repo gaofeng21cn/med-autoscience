@@ -10,6 +10,7 @@ def supplementary_material_payload(
     supplementary_source_markdown_path: Path | None,
     supplementary_output_docx_path: Path | None,
     supplementary_output_pdf_path: Path | None,
+    supplementary_tables_workbook_path: Path | None,
     combined_review_docx_path: Path | None,
     combined_review_pdf_path: Path | None,
     profile_config: Any,
@@ -46,6 +47,8 @@ def supplementary_material_payload(
         payload["docx_path"] = rel_remapped(supplementary_output_docx_path)
     if supplementary_output_pdf_path is not None:
         payload["pdf_path"] = rel_remapped(supplementary_output_pdf_path)
+    if supplementary_tables_workbook_path is not None:
+        payload["tables_workbook_path"] = rel_remapped(supplementary_tables_workbook_path)
     if combined_review_docx_path is not None:
         payload["combined_review_docx_path"] = rel_remapped(combined_review_docx_path)
     if combined_review_pdf_path is not None:
@@ -273,6 +276,69 @@ def build_supplementary_tables_markdown(
     return output_path
 
 
+def build_supplementary_tables_workbook(
+    *,
+    supplementary_tables_markdown_path: Path | None,
+    submission_root: Path,
+) -> Path | None:
+    if supplementary_tables_markdown_path is None or not supplementary_tables_markdown_path.exists():
+        return None
+
+    sections = _supplementary_markdown_table_sections(
+        markdown_without_front_matter(supplementary_tables_markdown_path.read_text(encoding="utf-8"))
+    )
+    if not sections:
+        return None
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+    from openpyxl.utils import get_column_letter
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    used_sheet_names: set[str] = set()
+    for fallback_index, section in enumerate(sections, start=1):
+        title = section["title"] or f"Supplementary Table {fallback_index}"
+        rows = section["rows"]
+        if not rows:
+            continue
+        sheet = workbook.create_sheet(
+            title=_unique_excel_sheet_name(
+                _supplementary_table_sheet_name(title, fallback_index=fallback_index),
+                used_sheet_names,
+            )
+        )
+        sheet.append([title])
+        sheet.append([])
+        for row in rows:
+            sheet.append(row)
+        max_columns = max(len(row) for row in rows)
+        if max_columns:
+            sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_columns)
+        sheet["A1"].font = Font(bold=True)
+        for cell in sheet[3]:
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+        for row in sheet.iter_rows(min_row=4):
+            for cell in row:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+        sheet.freeze_panes = "A4"
+        for column_index in range(1, max_columns + 1):
+            values = [
+                str(sheet.cell(row=row_index, column=column_index).value or "")
+                for row_index in range(3, sheet.max_row + 1)
+            ]
+            max_width = min(max([len(value) for value in values] + [10]) + 2, 48)
+            sheet.column_dimensions[get_column_letter(column_index)].width = max_width
+
+    if not workbook.sheetnames:
+        return None
+    output_path = submission_root / "supplementary_tables.xlsx"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    workbook.save(output_path)
+    return output_path
+
+
 def build_combined_supplementary_markdown(
     *,
     supplementary_markdown_paths: list[Path],
@@ -387,6 +453,66 @@ def markdown_without_front_matter(markdown_text: str) -> str:
             if line.strip() == "---":
                 return "\n".join(lines[index + 1 :]).strip()
     return markdown_text.strip()
+
+
+def _supplementary_markdown_table_sections(markdown_text: str) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
+    current_title = ""
+    pending_table_lines: list[str] = []
+    for raw_line in markdown_text.splitlines() + [""]:
+        stripped = raw_line.strip()
+        if stripped.startswith("## "):
+            if pending_table_lines:
+                rows = _parse_markdown_table(pending_table_lines)
+                if rows:
+                    sections.append({"title": current_title, "rows": rows})
+                pending_table_lines = []
+            current_title = stripped.removeprefix("## ").strip()
+            continue
+        if stripped.startswith("|") and stripped.endswith("|"):
+            pending_table_lines.append(stripped)
+            continue
+        if pending_table_lines:
+            rows = _parse_markdown_table(pending_table_lines)
+            if rows:
+                sections.append({"title": current_title, "rows": rows})
+            pending_table_lines = []
+    return sections
+
+
+def _parse_markdown_table(lines: list[str]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in lines:
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and all(_is_markdown_separator_cell(cell) for cell in cells):
+            continue
+        if cells:
+            rows.append(cells)
+    return rows
+
+
+def _is_markdown_separator_cell(cell: str) -> bool:
+    normalized = cell.replace(":", "").replace("-", "").strip()
+    return normalized == ""
+
+
+def _supplementary_table_sheet_name(title: str, *, fallback_index: int) -> str:
+    match = re.search(r"\bSupplementary\s+Table\s+([A-Za-z]?\d+[A-Za-z]?)\b", title, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    return f"S{fallback_index}"
+
+
+def _unique_excel_sheet_name(base_name: str, used_sheet_names: set[str]) -> str:
+    clean_name = re.sub(r"[\[\]:*?/\\]", "_", base_name).strip() or "Table"
+    candidate = clean_name[:31]
+    suffix = 1
+    while candidate in used_sheet_names:
+        tail = f"_{suffix}"
+        candidate = f"{clean_name[:31 - len(tail)]}{tail}"
+        suffix += 1
+    used_sheet_names.add(candidate)
+    return candidate
 
 
 def figure_markdown_image_path(
