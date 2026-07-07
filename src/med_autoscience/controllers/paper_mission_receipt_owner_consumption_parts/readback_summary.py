@@ -362,6 +362,12 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
     current_carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
     terminal_carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
     carrier = current_carrier
+    if _terminal_carrier_matches_stage_closure_decision(
+        readback=readback,
+        current_carrier=current_carrier,
+        terminal_carrier=terminal_carrier,
+    ):
+        carrier = terminal_carrier
     if _terminal_carrier_requires_consumption_after_current_consumed(
         current_carrier=current_carrier,
         terminal_carrier=terminal_carrier,
@@ -387,6 +393,32 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
             if not _mapping(carrier.get(key)) and _mapping(synthetic.get(key)):
                 carrier[key] = _mapping(synthetic.get(key))
     return carrier
+
+
+def _terminal_carrier_matches_stage_closure_decision(
+    *,
+    readback: Mapping[str, Any],
+    current_carrier: Mapping[str, Any],
+    terminal_carrier: Mapping[str, Any],
+) -> bool:
+    if not (_has_consumable_receipt(current_carrier) and _has_consumable_receipt(terminal_carrier)):
+        return False
+    if _consumption_status(current_carrier) not in {
+        "owner_consumed_route_checkpoint",
+        "owner_consumed_typed_blocker",
+        "owner_consumption_applied",
+    }:
+        return False
+    if _consumption_status(terminal_carrier) != "requires_mas_owner_consumption":
+        return False
+    decision_attempt_id = _first_text(
+        _mapping(_mapping(readback.get("stage_closure_decision")).get("opl_closeout")).get(
+            "stage_attempt_id"
+        )
+    )
+    if decision_attempt_id is None:
+        return False
+    return decision_attempt_id == _carrier_stage_attempt_id(terminal_carrier)
 
 
 def _terminal_carrier_requires_consumption_after_current_consumed(
