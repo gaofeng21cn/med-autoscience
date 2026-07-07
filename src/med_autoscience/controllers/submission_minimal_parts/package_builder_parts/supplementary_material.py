@@ -373,8 +373,10 @@ def build_supplementary_tables_pdf(
                 page_title = title if len(chunks) == 1 else f"{title} (continued {chunk_index}/{len(chunks)})"
                 wrapped_rows = _wrap_table_rows_for_pdf(chunk_rows)
                 column_widths = _pdf_table_column_widths(wrapped_rows)
+                row_height_weights = _pdf_table_row_height_weights(wrapped_rows)
+                row_height_total = sum(row_height_weights)
                 figure_width = max(8.0, sum(column_widths) + 1.2)
-                figure_height = max(5.0, 1.4 + 0.38 * len(wrapped_rows))
+                figure_height = max(5.0, 1.4 + 0.25 * row_height_total)
                 figure, axis = plt.subplots(figsize=(figure_width, figure_height))
                 axis.axis("off")
                 axis.text(
@@ -396,10 +398,13 @@ def build_supplementary_tables_pdf(
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(7)
+                table_bbox_height = 0.93
                 for (row_index, _column_index), cell in table.get_celld().items():
                     cell.set_edgecolor("#bdbdbd")
                     cell.set_linewidth(0.3)
                     cell.set_text_props(ha="left", va="top", wrap=True)
+                    if 0 <= row_index < len(row_height_weights):
+                        cell.set_height(table_bbox_height * row_height_weights[row_index] / row_height_total)
                     if row_index == 0:
                         cell.set_facecolor("#f2f2f2")
                         cell.set_text_props(weight="bold")
@@ -597,6 +602,14 @@ def _pdf_table_column_widths(rows: list[list[str]]) -> list[float]:
         )
         widths.append(min(max(0.9, longest_line * 0.09), 3.2))
     return widths
+
+
+def _pdf_table_row_height_weights(rows: list[list[str]]) -> list[float]:
+    weights: list[float] = []
+    for row in rows:
+        line_count = max([len(str(value).splitlines()) for value in row] + [1])
+        weights.append(max(1.0, 0.85 + 0.72 * line_count))
+    return weights
 
 
 def _is_markdown_separator_cell(cell: str) -> bool:

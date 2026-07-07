@@ -439,6 +439,28 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     assert len(pdf_reader.pages) == 1
     assert float(pdf_reader.pages[0].mediabox.width) > 595
 
+    supplementary_material = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal_parts.package_builder_parts.supplementary_material"
+    )
+    wrapped_rows = supplementary_material._wrap_table_rows_for_pdf(
+        [
+            [
+                "paper_role",
+                "analysis_denominator",
+                "claim_boundary",
+                "medication_capture_rule",
+            ],
+            [
+                "supplementary",
+                "eligible indicator denominator",
+                "recorded care-review gap only",
+                "medication-field-present restriction",
+            ],
+        ]
+    )
+    row_height_weights = supplementary_material._pdf_table_row_height_weights(wrapped_rows)
+    assert row_height_weights[1] > row_height_weights[0]
+
 
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
     tmp_path: Path,
