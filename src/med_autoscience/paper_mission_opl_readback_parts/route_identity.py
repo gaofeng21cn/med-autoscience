@@ -42,12 +42,13 @@ def matches_carrier(
     if _text(closeout.get("study_id")) != _text(carrier.get("study_id")):
         return False
     has_route_identity = carrier_has_opl_route_identity(carrier)
-    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
-    if not has_route_identity or not closeout_binds_route_identity(
+    binds_route_identity = closeout_binds_route_identity(
         closeout=closeout,
         carrier=carrier,
         route_back=route_back,
-    ):
+    )
+    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
+    if not has_route_identity or not binds_route_identity:
         if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
             return False
         if closeout_fingerprint is not None and closeout_fingerprint != _text(
@@ -60,28 +61,34 @@ def matches_carrier(
         route_back=route_back,
     ):
         return False
+    same_work_unit_route_back = _same_work_unit_route_back_candidate(
+        closeout=closeout,
+        carrier=carrier,
+        route_back=route_back,
+        binds_route_identity=binds_route_identity,
+    )
     if has_route_identity and (
         non_current_closeout_reason(closeout.get("blocked_reason"))
-        or not closeout_binds_route_identity(
-            closeout=closeout,
-            carrier=carrier,
-            route_back=route_back,
-        )
+        or (not binds_route_identity and not same_work_unit_route_back)
         or (
             not closeout_binds_exact_route_identity(
                 closeout=closeout,
                 carrier=carrier,
                 route_back=route_back,
             )
+            and not same_work_unit_route_back
             and closeout_idempotency_mismatches_carrier(
                 closeout=closeout,
                 carrier=carrier,
             )
         )
-        or closeout_lacks_current_candidate_binding(
-            closeout=closeout,
-            carrier=carrier,
-            route_back=route_back,
+        or (
+            not same_work_unit_route_back
+            and closeout_lacks_current_candidate_binding(
+                closeout=closeout,
+                carrier=carrier,
+                route_back=route_back,
+            )
         )
     ):
         return False
@@ -94,6 +101,27 @@ def matches_carrier(
     if closeout.get("domain_ready_claimed") is True:
         return False
     return closeout_is_record_only(closeout)
+
+
+def _same_work_unit_route_back_candidate(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+    binds_route_identity: bool,
+) -> bool:
+    if binds_route_identity:
+        return False
+    if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
+        return False
+    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
+    if closeout_fingerprint is not None and closeout_fingerprint != _text(
+        carrier.get("work_unit_fingerprint")
+    ):
+        return False
+    if not closeout_has_route_back_evidence(closeout):
+        return False
+    return closeout_candidate_refs(closeout, route_back) != set()
 
 
 def closeout_is_record_only(closeout: Mapping[str, Any]) -> bool:
@@ -208,6 +236,7 @@ def closeout_candidate_refs(
     route_back: Mapping[str, Any] | None = None,
 ) -> set[str]:
     route_back = _mapping(route_back)
+    route_impact = _mapping(closeout.get("route_impact"))
     source_evidence = _mapping(route_back.get("source_evidence"))
     refs = {
         text
@@ -225,8 +254,12 @@ def closeout_candidate_refs(
     refs.update(
         text
         for text in (
+            _text(route_impact.get("paper_facing_delta_ref")),
+            _text(route_impact.get("paper_facing_candidate_delta_ref")),
+            _text(route_back.get("candidate_ref")),
             _text(route_back.get("candidate_manifest_ref")),
             _text(route_back.get("candidate_delta_ref")),
+            _text(route_back.get("write_repair_candidate_ref")),
             _text(route_back.get("paper_facing_delta_ref")),
             _text(route_back.get("paper_facing_candidate_delta_ref")),
             _text(source_evidence.get("paper_mission_candidate_package_ref")),

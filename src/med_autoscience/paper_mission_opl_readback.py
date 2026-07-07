@@ -378,9 +378,11 @@ def _closeout_candidate_priority(
     closeout_path: Path,
     closeout_ref: str,
     route_back: Mapping[str, Any] | None = None,
-) -> tuple[int, int, int, float]:
+) -> tuple[int, float, int, int]:
     route_back = _mapping(route_back)
     return (
+        1 if _closeout_prefers_followthrough_identity(closeout, route_back) else 0,
+        closeout_path.stat().st_mtime,
         1
         if _closeout_binds_exact_route_identity(
             closeout=closeout,
@@ -388,8 +390,6 @@ def _closeout_candidate_priority(
             route_back=route_back,
         )
         else 0,
-        1 if _closeout_prefers_followthrough_identity(closeout, route_back) else 0,
-        closeout_path.stat().st_mtime,
         _closeout_semantic_priority(closeout, route_back),
     )
 
