@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import shlex
 
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts import (
+    attention_projection as product_entry_attention,
+)
+from med_autoscience.controllers.product_entry_parts import workspace_surfaces as product_entry_workspace
+
 from . import shared as _shared
 from .repo_shell_entry_assertions import _phase2_loop_without_guarded_fields
 
@@ -27,11 +33,10 @@ def _assert_diagnostic_refresh_policy(policy: dict, command: str) -> None:
 
 
 def test_workspace_cockpit_marks_domain_diagnostic_commands_as_diagnostic_only(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = product_entry_workspace.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     _assert_diagnostic_refresh_policy(
         payload["commands"]["supervisor_tick_policy"],
@@ -43,9 +48,7 @@ def test_workspace_cockpit_marks_domain_diagnostic_commands_as_diagnostic_only(t
     )
 
 def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    queue = module._attention_queue(
+    queue = product_entry_attention._attention_queue(
         workspace_status="ready",
         workspace_supervision={
             "service": {"loaded": True, "drift_reasons": []},
@@ -97,9 +100,7 @@ def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> No
 
 
 def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    queue = module._attention_queue(
+    queue = product_entry_attention._attention_queue(
         workspace_status="attention_required",
         workspace_supervision={
             "service": {"loaded": True, "drift_reasons": []},
@@ -144,9 +145,7 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
 
 
 def test_attention_queue_projects_manual_finishing_as_package_handoff_without_generic_blocker_wording() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    queue = module._attention_queue(
+    queue = product_entry_attention._attention_queue(
         workspace_status="attention_required",
         workspace_supervision={
             "service": {"loaded": True, "drift_reasons": []},
@@ -196,9 +195,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
 
 
 def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    queue = module._attention_queue(
+    queue = product_entry_attention._attention_queue(
         workspace_status="ready",
         workspace_supervision={
             "service": {"loaded": True, "drift_reasons": []},
@@ -239,12 +236,11 @@ def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery(
 
 
 def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blockers() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     followthrough_command = (
         "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk --format json"
     )
 
-    queue = module._attention_queue(
+    queue = product_entry_attention._attention_queue(
         workspace_status="attention_required",
         workspace_supervision={
             "service": {"loaded": True, "drift_reasons": []},
@@ -298,10 +294,9 @@ def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blocker
 
 
 def test_study_item_normalizes_gate_clearing_batch_followthrough_from_progress_payload() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = Path("profile.local.toml").resolve()
 
-    item = module._study_item(
+    item = product_entry_workspace._study_item(
         progress_payload={
             "study_id": "001-risk",
             "gate_clearing_batch_followthrough": {
@@ -340,7 +335,6 @@ def test_study_item_normalizes_gate_clearing_batch_followthrough_from_progress_p
 
 
 def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -378,7 +372,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -644,7 +638,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         fake_progress,
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = product_entry_workspace.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert payload["workspace_status"] == "attention_required"
     assert payload["mainline_snapshot"]["current_stage_id"] == "f4_blocker_closeout"
@@ -744,7 +738,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         },
     ]
 
-    markdown = module.render_workspace_cockpit_markdown(payload)
+    markdown = product_entry_workspace.render_workspace_cockpit_markdown(payload)
     assert markdown.strip()
 
 
@@ -752,7 +746,6 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -790,7 +783,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -880,7 +873,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
         fake_progress,
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = product_entry_workspace.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
     assert payload["studies"][0]["current_stage_summary"] == "001-risk stage"
@@ -888,7 +881,6 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
 
 
 def test_workspace_cockpit_markdown_prefers_shared_human_status_narration() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     from opl_harness_shared.status_narration import build_status_narration_contract
 
     payload = {
@@ -921,7 +913,7 @@ def test_workspace_cockpit_markdown_prefers_shared_human_status_narration() -> N
         ],
     }
 
-    markdown = module.render_workspace_cockpit_markdown(payload)
+    markdown = product_entry_workspace.render_workspace_cockpit_markdown(payload)
 
     assert markdown.strip()
     assert "next_system_action:" not in markdown
