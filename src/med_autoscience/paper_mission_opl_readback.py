@@ -136,9 +136,19 @@ def paper_mission_opl_runtime_carrier_readback(
         matched = None
     if live_probe is not None and live_probe[0] == "terminal":
         matched = (live_probe[1], live_probe[2])
-        local_matched = _matching_terminal_closeout(
+        same_attempt_local = _matching_terminal_closeout_for_running_attempt(
             carrier=carrier,
             study_root=study_root,
+            attempt=live_probe[1],
+        )
+        local_matched = (
+            same_attempt_local
+            if same_attempt_local is not None
+            and _closeout_has_route_back_evidence(same_attempt_local[0])
+            else _matching_terminal_closeout(
+                carrier=carrier,
+                study_root=study_root,
+            )
         )
         if _local_route_back_closeout_supersedes_live_terminal(
             live_matched=matched,

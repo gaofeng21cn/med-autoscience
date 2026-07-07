@@ -342,7 +342,6 @@ def test_opl_terminal_closeout_readback_enriches_same_attempt_thin_live_terminal
         "study_id": study_id,
         "stage_id": "write",
         "stage_attempt_id": attempt_id,
-        "stage_packet_ref": transaction_ref,
         "work_unit_id": "dm003_bounded_prose_repair",
         "work_unit_fingerprint": carrier["work_unit_fingerprint"],
         "route_back_evidence_ref": route_back_ref,
