@@ -3,6 +3,11 @@ from __future__ import annotations
 from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
+from med_autoscience.controllers.product_entry_parts.workspace_surfaces import (
+    _attention_queue,
+    _workspace_operator_brief,
+    render_workspace_cockpit_markdown,
+)
 
 
 def _module_reexport(module) -> None:
@@ -17,9 +22,7 @@ _module_reexport(_entry_status_focus_cases)
 
 
 def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    markdown = module.render_workspace_cockpit_markdown(
+    markdown = render_workspace_cockpit_markdown(
         {
             "profile_name": "test-profile",
             "workspace_root": "/tmp/test",
@@ -69,10 +72,8 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
 
 
 def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_gate() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
     payload = {
-        "attention_queue": module._attention_queue(
+        "attention_queue": _attention_queue(
             workspace_status="ready",
             workspace_supervision={"service": {"loaded": True}, "study_counts": {}},
             commands={},
@@ -158,7 +159,7 @@ def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_ga
             ],
         ),
     }
-    payload["operator_brief"] = module._workspace_operator_brief(
+    payload["operator_brief"] = _workspace_operator_brief(
         workspace_status="ready",
         workspace_alerts=[],
         attention_queue=payload["attention_queue"],
