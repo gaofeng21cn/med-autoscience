@@ -365,10 +365,14 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
             "bp-and-data-quality-assessment",
             "baseline-characteristics-table",
             "formal-figures-and-tables",
+            "clinical-discovery-contract-before-results",
+            "methods-reconstructability-before-prose-polish",
+            "medical-finding-led-results-subsections",
             "structured-phenotype-pattern-service-priority-contrast",
             "medication-record-sensitivity-interpretation",
             "unsupported-temporal-visit-site-variance-gap",
             "figure-table-terminology-supplementary-retention",
+            "current-evidence-bounded-revision-scope",
             "numeric-abstract-results-with-uncertainty",
             "restrained-discussion-and-prose",
             "reference-and-journal-style",
@@ -389,7 +393,7 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
             {
                 "target_id": "recorded_treatment_gap_terminology",
                 "requirement": (
-                    "use recorded medication-coverage or potential treatment-review gap language, "
+                    "use recorded-care review, recorded medication-coverage, or potential treatment-review gap language, "
                     "with numerator, denominator, eligibility, time window, data source, and non-causal guardrails"
                 ),
                 "route_target": "write",
@@ -419,6 +423,32 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                 "route_target": "figure-polish",
             },
             {
+                "target_id": "clinical_discovery_contract_before_results",
+                "requirement": (
+                    "before Results drafting, state the clinical discovery contract linking phenotype structure "
+                    "to bounded care-review signals, including phenotype x gap contrast, medication-capture "
+                    "sensitivity, site or trajectory support, and exact non-causal interpretation boundary"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "methods_reconstructability_before_prose_polish",
+                "requirement": (
+                    "Methods must be reconstructable before prose polish: phenotype hierarchy, indicator-specific "
+                    "denominators, medication-class mapping, missingness/plausibility rules, and Not assessed "
+                    "semantics must be explicit or route back"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "medical_finding_led_results_subsections",
+                "requirement": (
+                    "each Results subsection opens with the medical finding, denominator, and interpretation "
+                    "boundary; figures and tables support the finding instead of substituting for Results prose"
+                ),
+                "route_target": "write",
+            },
+            {
                 "target_id": "structured_phenotype_pattern_service_priority_contrast",
                 "requirement": (
                     "promote descriptive phenotype counts into a structured phenotype pattern with rate-count "
@@ -430,7 +460,8 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                 "target_id": "medication_record_sensitivity_interpretation",
                 "requirement": (
                     "interpret recorded medication gaps with medication-field-present or any-recorded-medication "
-                    "sensitivity when records are incomplete, and retain documentation-sensitive claim guardrails"
+                    "sensitivity before headline use when records are incomplete, and retain documentation-sensitive "
+                    "claim guardrails"
                 ),
                 "route_target": "analysis-campaign",
             },
@@ -449,6 +480,14 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                     "supplementary evidence are checked before quality-gate closeout"
                 ),
                 "route_target": "figure-polish",
+            },
+            {
+                "target_id": "current_evidence_bounded_revision_scope",
+                "requirement": (
+                    "revision advice must consume current evidence and stay inside the authorized micro-revision "
+                    "scope; new analyses, readiness claims, or broader manuscript rewrites require owner route-back"
+                ),
+                "route_target": "review",
             },
             {
                 "target_id": "numeric_abstract_results_with_uncertainty",

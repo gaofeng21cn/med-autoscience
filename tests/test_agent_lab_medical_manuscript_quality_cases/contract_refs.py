@@ -44,13 +44,25 @@ def test_agent_lab_handoff_routes_feedback_targets_to_scholar_skills_single_sour
     assert mappings["figure_quality"]["target_skill_ref"] == (
         "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md"
     )
+    assert "display_support_not_substitute" in mappings["figure_quality"]["improvement_tokens"]
     assert mappings["manuscript_quality"]["target_capability_id"] == "medical-manuscript-writing"
+    assert "clinical_discovery_contract_before_results" in mappings["manuscript_quality"][
+        "improvement_tokens"
+    ]
+    assert "display_led_results" in mappings["manuscript_quality"]["failure_tokens"]
     assert mappings["review_quality"]["target_capability_id"] == "medical-manuscript-review"
+    assert "current_evidence_bounded_revision_scope" in mappings["review_quality"][
+        "improvement_tokens"
+    ]
     assert mappings["citation_literature"]["target_capability_id"] == "medical-research-lit"
     assert mappings["stats"]["target_capability_id"] == "medical-statistical-review"
     assert mappings["table"]["target_capability_id"] == "medical-table-design"
+    assert "indicator_specific_denominators" in mappings["table"]["improvement_tokens"]
     assert mappings["submission"]["target_capability_id"] == "medical-submission-prep"
     assert mappings["data_governance"]["target_capability_id"] == "medical-data-governance"
+    assert "medication_capture_sensitivity" in mappings["data_governance"][
+        "improvement_tokens"
+    ]
     assert f"{registry_ref}#/medical_failure_types/figure" in mappings["figure_quality"]["failure_token_refs"]
     assert f"{registry_ref}#/medical_failure_types/citation" in mappings["citation_literature"]["failure_token_refs"]
     assert f"{registry_ref}#/medical_failure_types/literature" in mappings["citation_literature"]["failure_token_refs"]
@@ -295,6 +307,10 @@ def test_agent_lab_handoff_contract_exposes_observational_owner_chain_quality_re
         "macro_state_no_stale_live",
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor",
+        "clinical_discovery_contract_before_results",
+        "methods_reconstructability_before_prose_polish",
+        "medical_finding_led_results_subsections",
+        "current_evidence_bounded_revision_scope",
     }.issubset(set(observational_mapping["quality_target_refs"]))
     assert {
         "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
@@ -306,4 +322,8 @@ def test_agent_lab_handoff_contract_exposes_observational_owner_chain_quality_re
         "mechanism-edit-ref:mas/macro-state-no-stale-live",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+        "mechanism-edit-ref:mas/clinical-discovery-contract-before-results",
+        "mechanism-edit-ref:mas/methods-reconstructability-before-prose-polish",
+        "mechanism-edit-ref:mas/medical-finding-led-results-subsections",
+        "mechanism-edit-ref:mas/current-evidence-bounded-revision-scope",
     }.issubset(set(observational_mapping["target_surface_refs"]))

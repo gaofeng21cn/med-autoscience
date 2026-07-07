@@ -265,10 +265,14 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
     assert "recorded-treatment-gap-terminology" in joined_refs
     assert "bp-and-data-quality-assessment" in joined_refs
     assert "baseline-characteristics-table" in joined_refs
+    assert "clinical-discovery-contract-before-results" in joined_refs
+    assert "methods-reconstructability-before-prose-polish" in joined_refs
+    assert "medical-finding-led-results-subsections" in joined_refs
     assert "structured-phenotype-pattern-service-priority-contrast" in joined_refs
     assert "medication-record-sensitivity-interpretation" in joined_refs
     assert "unsupported-temporal-visit-site-variance-gap" in joined_refs
     assert "figure-table-terminology-supplementary-retention" in joined_refs
+    assert "current-evidence-bounded-revision-scope" in joined_refs
     assert "medical-prose-write-repair-story-surface-delta" in joined_refs
 
     target_ids = {target["target_id"] for target in work_order["study_quality_targets"]}
@@ -278,10 +282,14 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
         "bp_and_data_quality_assessment",
         "baseline_characteristics_table",
         "formal_figures_and_tables",
+        "clinical_discovery_contract_before_results",
+        "methods_reconstructability_before_prose_polish",
+        "medical_finding_led_results_subsections",
         "structured_phenotype_pattern_service_priority_contrast",
         "medication_record_sensitivity_interpretation",
         "unsupported_temporal_visit_site_variance_gap",
         "figure_table_terminology_supplementary_retention",
+        "current_evidence_bounded_revision_scope",
         "numeric_abstract_results_with_uncertainty",
         "restrained_discussion_and_prose",
         "reference_and_journal_style",
@@ -331,10 +339,14 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
     assert route_targets["bp_and_data_quality_assessment"] == "analysis_harmonization_owner"
     assert route_targets["baseline_characteristics_table"] == "write"
     assert route_targets["formal_figures_and_tables"] == "figure-polish"
+    assert route_targets["clinical_discovery_contract_before_results"] == "write"
+    assert route_targets["methods_reconstructability_before_prose_polish"] == "write"
+    assert route_targets["medical_finding_led_results_subsections"] == "write"
     assert route_targets["structured_phenotype_pattern_service_priority_contrast"] == "analysis-campaign"
     assert route_targets["medication_record_sensitivity_interpretation"] == "analysis-campaign"
     assert route_targets["unsupported_temporal_visit_site_variance_gap"] == "analysis-campaign"
     assert route_targets["figure_table_terminology_supplementary_retention"] == "figure-polish"
+    assert route_targets["current_evidence_bounded_revision_scope"] == "review"
     assert route_targets["numeric_abstract_results_with_uncertainty"] == "write"
     assert route_targets["restrained_discussion_and_prose"] == "review"
     assert route_targets["reference_and_journal_style"] == "publication-gate"

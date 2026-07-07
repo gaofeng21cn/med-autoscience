@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from .layout import build_workspace_runtime_layout
 
 PREFERRED_STUDY_AUTHORITY_ROOT_NAME = "manuscript"
@@ -32,6 +30,8 @@ def _resolve_path(path: Path) -> Path:
 
 
 def _load_yaml_mapping(path: Path) -> dict[str, Any]:
+    import yaml
+
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise ValueError(f"expected YAML mapping at {path}")

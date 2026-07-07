@@ -209,7 +209,9 @@
         "display_quality",
         "visual_quality",
         "figure",
-        "figures"
+        "figures",
+        "display_support_not_substitute",
+        "medical_finding_led_results_subsections"
       ],
       "failure_tokens": [
         "medical_failure:figure",
@@ -245,14 +247,20 @@
         "manuscript_quality",
         "medical_manuscript_quality",
         "writing_quality",
-        "writing"
+        "writing",
+        "clinical_discovery_contract_before_results",
+        "methods_reconstructability_before_prose_polish",
+        "medical_finding_led_results_subsections",
+        "current_evidence_bounded_revision_scope"
       ],
       "failure_tokens": [
         "medical_failure:writing",
         "manuscript_quality",
         "medical_manuscript_quality",
         "writing_quality",
-        "writing"
+        "writing",
+        "display_led_results",
+        "methods_reconstructability_gap"
       ],
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/writing"
@@ -280,7 +288,9 @@
         "review_quality",
         "manuscript_review",
         "quality_review",
-        "review"
+        "review",
+        "current_evidence_bounded_revision_scope",
+        "recorded_care_review_terminology_boundary"
       ],
       "failure_tokens": [
         "medical_failure:review",
@@ -407,7 +417,10 @@
         "table",
         "tables",
         "table_quality",
-        "reporting_table_quality"
+        "reporting_table_quality",
+        "indicator_specific_denominators",
+        "not_assessed_semantics",
+        "baseline_characteristics_table"
       ],
       "failure_tokens": [
         "medical_failure:table",
@@ -487,7 +500,10 @@
         "data_governance",
         "data_quality",
         "source_data_governance",
-        "clinical_data_governance"
+        "clinical_data_governance",
+        "medication_capture_sensitivity",
+        "missingness_plausibility_rules",
+        "medication_class_mapping"
       ],
       "failure_tokens": [
         "medical_failure:data_governance",
@@ -932,7 +948,9 @@
         "display_quality",
         "visual_quality",
         "figure",
-        "figures"
+        "figures",
+        "display_support_not_substitute",
+        "medical_finding_led_results_subsections"
       ],
       "failure_tokens": [
         "medical_failure:figure",
@@ -1050,14 +1068,20 @@
         "manuscript_quality",
         "medical_manuscript_quality",
         "writing_quality",
-        "writing"
+        "writing",
+        "clinical_discovery_contract_before_results",
+        "methods_reconstructability_before_prose_polish",
+        "medical_finding_led_results_subsections",
+        "current_evidence_bounded_revision_scope"
       ],
       "failure_tokens": [
         "medical_failure:writing",
         "manuscript_quality",
         "medical_manuscript_quality",
         "writing_quality",
-        "writing"
+        "writing",
+        "display_led_results",
+        "methods_reconstructability_gap"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
@@ -1161,7 +1185,9 @@
         "review_quality",
         "manuscript_review",
         "quality_review",
-        "review"
+        "review",
+        "current_evidence_bounded_revision_scope",
+        "recorded_care_review_terminology_boundary"
       ],
       "failure_tokens": [
         "medical_failure:review",
@@ -1500,7 +1526,10 @@
         "table",
         "tables",
         "table_quality",
-        "reporting_table_quality"
+        "reporting_table_quality",
+        "indicator_specific_denominators",
+        "not_assessed_semantics",
+        "baseline_characteristics_table"
       ],
       "failure_tokens": [
         "medical_failure:table",
@@ -1722,7 +1751,10 @@
         "data_governance",
         "data_quality",
         "source_data_governance",
-        "clinical_data_governance"
+        "clinical_data_governance",
+        "medication_capture_sensitivity",
+        "missingness_plausibility_rules",
+        "medication_class_mapping"
       ],
       "failure_tokens": [
         "medical_failure:data_governance",

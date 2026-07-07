@@ -32,13 +32,15 @@ Rubrics and quality packs define the traceable floor. The reviewer/auditor must 
 - route memory relevance and memory writeback safety.
 - hypothesis novelty, evidence balance, failed-path handling, advisory ranking limits, testability, safety, and human/independent-review boundary.
 - progress-first use of JIT affordances: when explicitly requested by the current owner or gate, tournaments may order next owner deltas, critique may become repair hints, meta-review may explain stop-loss/repeated failure/human gate/claim-boundary drift/no-loop budget, and reusable lesson extraction may write one refs-only lesson.
+- registry, phenotype-atlas, and treatment-gap manuscript floors: clinical discovery contract before Results drafting, Methods reconstructability before prose polish, finding-led Results paragraphs, recorded-care review terminology, medication-capture sensitivity before headline claims, and current-evidence-bounded revision scope.
 
 The journal-family floor must be explicitly consumed when the route touches manuscript, review, finalization, or journal resolution:
 
 - `journal_response_pack`: stable comment ids, response tracker, action mapping, missing author-input flags, readiness state, response output refs, and unresolved-comment blocker.
+- `manuscript_argument_pack`: one-sentence argument, contribution, reader risk, novelty boundary, argument skeleton output ref, and route-back blocker.
 - `data_availability_fair_pack`: dataset-to-location mapping, restricted data access route, repository identifier, dataset citation, FAIR metadata, Data Availability output ref, and source-readiness blocker.
-- `citation_integrity_pack`: claim segment ids, candidate citation refs, support grade, metadata-only review flags, reference-manager/export notes, citation output refs, and citation blocker.
-- `figure_evidence_contract_pack`: core claim, evidence chain, panel role, source-data refs, statistics refs, export contract, QA risks, figure output refs, and artifact/evidence blocker.
+- `citation_integrity_pack`: claim segment ids, candidate citation refs, citation support grades, metadata-only review flags, reference-manager/export notes, citation output refs, and citation blocker.
+- `figure_evidence_contract_pack`: core claim, evidence chain, panel role, figure source-data/statistics/export QA, source-data refs, statistics refs, export contract, QA risks, figure output refs, and artifact/evidence blocker.
 - `paper_reader_grounding_pack`: source map, page/block anchors, figure-near-claim refs, source-grounded follow-up refs, reader output refs, and grounding blocker.
 - `paper_presentation_pack`: evidence spine, selected figure assets, speaker-notes context, presentation output refs, and presentation-grounding blocker.
 
