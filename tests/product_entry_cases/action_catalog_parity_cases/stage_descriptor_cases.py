@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from .shared import *  # noqa: F403,F401
 
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     stage_route_contract = importlib.import_module("med_autoscience.stage_route_contract")
     stage_surface_contract = importlib.import_module("med_autoscience.stage_surface_contract")
     stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
@@ -18,7 +18,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     stage_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
     stage_surface = stage_surface_contract.build_stage_surface_contract()
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     descriptor = manifest["family_stage_control_plane_descriptor"]
     nested_descriptor = manifest["opl_family_persistence_lifecycle_owner_route_adoption"]["payload"][
         "family_stage_control_plane_descriptor"
