@@ -837,7 +837,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-manuscript-writing",
@@ -938,7 +948,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-manuscript-review",
@@ -1039,7 +1059,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-research-lit",
@@ -1144,7 +1174,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-statistical-review",
@@ -1247,7 +1287,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-table-design",
@@ -1348,7 +1398,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-submission-prep",
@@ -1449,7 +1509,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "medical-data-governance",
@@ -1550,7 +1620,17 @@
         "can_claim_publication_ready": false,
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
-      }
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
       "capability_id": "mas-stage-prompts",
