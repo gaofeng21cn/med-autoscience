@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -290,3 +291,118 @@ def test_feedbackops_execution_readback_reader_supersedes_old_missing_eval_block
     assert compact["blocked_reason"] is None
     assert compact["ai_reviewer_evaluation_ref"] == str(ai_eval)
     assert compact["oma_work_order_or_receipt_ref"] == str(work_order)
+
+
+def test_feedbackops_execution_readback_reader_supersedes_ready_status_with_executed_work_order(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+        read_reviewer_revision_feedbackops_execution_readback,
+    )
+
+    readback_path = (
+        tmp_path
+        / "artifacts"
+        / "agent_lab"
+        / "medical_manuscript_quality"
+        / "feedbackops_execution_readback.json"
+    )
+    readback_path.parent.mkdir(parents=True)
+    readback_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_reviewer_revision_feedbackops_dispatch_readback",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "status": "ready_for_oma_work_order_materialization",
+                "next_owner": "opl-meta-agent",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    os.utime(readback_path, (1_700_000_000, 1_700_000_000))
+    ai_eval = readback_path.parent / "ai_reviewer_evaluation_independent.json"
+    ai_eval.write_text(
+        json.dumps(
+            {
+                "reviewer_kind": "independent_ai_medical_manuscript_quality_reviewer",
+                "model_or_provider": "test-model",
+                "run_ref": "run:mas/test",
+                "execution_attempt_ref": "execution-attempt:test",
+                "review_attempt_ref": "review-attempt:test",
+                "no_shared_context": True,
+                "independent_attempt": True,
+                "critique": "The draft needs a finding-led clinical story.",
+                "suggestions": ["Require denominator and sensitivity evidence."],
+                "source_refs": ["reviewer-feedback.md"],
+                "direct_evidence_refs": ["publication_eval/latest.json"],
+                "verdict": "valid_refs_only_independent_reviewer_input",
+                "predicted_impact": "Better first-draft quality.",
+                "provenance": {"created_by": "unit-test"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    suite_dir = readback_path.parent / "oma_external_suite_20260707"
+    work_order = suite_dir / "developer-patch-work-order.json"
+    delegation = suite_dir / "external-work-order-delegation.json"
+    receipt = suite_dir / "opl_work_order_execute" / "work-order-execution-receipt.json"
+    receipt.parent.mkdir(parents=True)
+    work_order.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_meta_agent_developer_patch_work_order",
+                "status": "ready_for_target_agent_source_patch",
+                "work_order_id": "oma_developer_patch_work_order_test",
+                "ai_reviewer_evaluation_ref": str(ai_eval),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    delegation.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_meta_agent_external_work_order_execution_delegation",
+                "status": "delegated_to_opl_work_order_primitive",
+                "work_order_ref": "oma_developer_patch_work_order_test",
+                "work_order_path": str(work_order),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    receipt.write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_work_order_codex_execution_receipt",
+                "status": "executed_absorbed_and_cleaned",
+                "work_order_id": "oma_developer_patch_work_order_test",
+                "source_work_order_path": str(work_order),
+                "absorption": {"absorbed": True, "absorbed_head": "abc123"},
+                "cleanup": {"worktree_removed": True, "branch_removed": True},
+                "target_owner_receipt_or_typed_blocker": {"status": "typed_blocker_recorded"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    os.utime(work_order, (1_700_000_010, 1_700_000_010))
+    os.utime(receipt, (1_700_000_020, 1_700_000_020))
+    os.utime(delegation, (1_700_000_030, 1_700_000_030))
+
+    compact = read_reviewer_revision_feedbackops_execution_readback(study_root=tmp_path)
+
+    assert compact is not None
+    assert compact["status"] == "superseded_by_oma_work_order_execution"
+    assert compact["superseded_status"] == "ready_for_oma_work_order_materialization"
+    assert compact["oma_work_order_or_receipt_ref"] == str(receipt)
+    assert compact["oma_work_order_or_receipt_status"] == "executed_absorbed_and_cleaned"
+    assert compact["oma_work_order_id"] == "oma_developer_patch_work_order_test"
+    assert compact["oma_patch_absorbed"] is True
+    assert compact["oma_absorbed_head"] == "abc123"
+    assert compact["oma_worktree_removed"] is True
+    assert compact["oma_branch_removed"] is True
+    assert compact["oma_target_owner_result_status"] == "typed_blocker_recorded"

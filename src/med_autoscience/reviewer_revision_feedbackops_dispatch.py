@@ -301,13 +301,19 @@ def _compact_execution_readback(payload: dict[str, Any], *, path: Path) -> dict[
                 "stdout_summary": dict(command.get("stdout_summary") or {}),
                 "stderr": command.get("stderr"),
             }
-    if compact["status"] == "blocked_missing_structured_ai_reviewer_evaluation":
+    if compact["status"] in {
+        "blocked_missing_structured_ai_reviewer_evaluation",
+        "ready_for_oma_work_order_materialization",
+    }:
         superseding = _newer_oma_work_order_or_receipt(path)
         if superseding is not None:
             compact.update(
                 {
-                    "status": "superseded_by_oma_work_order_materialization",
-                    "superseded_status": "blocked_missing_structured_ai_reviewer_evaluation",
+                    "status": superseding.pop(
+                        "superseding_status",
+                        "superseded_by_oma_work_order_materialization",
+                    ),
+                    "superseded_status": compact["status"],
                     "blocked_reason": None,
                     "next_owner": "opl-meta-agent",
                     **superseding,
@@ -322,10 +328,12 @@ def _newer_oma_work_order_or_receipt(path: Path) -> dict[str, Any] | None:
         readback_mtime = path.stat().st_mtime
     except OSError:
         return None
-    candidates: list[tuple[float, Path, dict[str, Any]]] = []
+    candidates: list[tuple[int, float, Path, dict[str, Any]]] = []
     for pattern in (
         "oma_external_suite_*/developer-patch-work-order.json",
         "oma_external_suite_*/meta-agent-improvement-receipt.json",
+        "oma_external_suite_*/external-work-order-delegation.json",
+        "oma_external_suite_*/opl_work_order_execute/work-order-execution-receipt.json",
     ):
         for candidate in path.parent.glob(pattern):
             try:
@@ -335,7 +343,7 @@ def _newer_oma_work_order_or_receipt(path: Path) -> dict[str, Any] | None:
             if mtime <= readback_mtime:
                 continue
             payload = _read_json(candidate)
-            ai_ref = _text(payload.get("ai_reviewer_evaluation_ref"))
+            ai_ref = _candidate_ai_reviewer_evaluation_ref(payload, candidate)
             if ai_ref is None:
                 continue
             try:
@@ -344,17 +352,80 @@ def _newer_oma_work_order_or_receipt(path: Path) -> dict[str, Any] | None:
                 continue
             if not _valid_ai_reviewer_evaluation(ai_payload):
                 continue
-            candidates.append((mtime, candidate, payload))
+            candidates.append((_oma_candidate_rank(candidate), mtime, candidate, payload))
     if not candidates:
         return None
-    _, candidate, payload = max(candidates, key=lambda item: (item[0], str(item[1])))
-    return {
+    _, _, candidate, payload = max(candidates, key=lambda item: (item[0], item[1], str(item[2])))
+    return _oma_candidate_readback(candidate, payload)
+
+
+def _oma_candidate_rank(candidate: Path) -> int:
+    if candidate.name == "work-order-execution-receipt.json":
+        return 3
+    if candidate.name == "external-work-order-delegation.json":
+        return 2
+    return 1
+
+
+def _candidate_ai_reviewer_evaluation_ref(payload: dict[str, Any], candidate: Path) -> str | None:
+    direct = _text(payload.get("ai_reviewer_evaluation_ref"))
+    if direct is not None:
+        return direct
+    for key in ("source_work_order_path", "work_order_path"):
+        work_order_path = _text(payload.get(key))
+        if work_order_path is None:
+            continue
+        try:
+            work_order = _read_json(Path(work_order_path))
+        except OSError:
+            continue
+        work_order_ref = _text(work_order.get("ai_reviewer_evaluation_ref"))
+        if work_order_ref is not None:
+            return work_order_ref
+    sibling_work_order = candidate.parent / "developer-patch-work-order.json"
+    if not sibling_work_order.exists() and candidate.parent.name == "opl_work_order_execute":
+        sibling_work_order = candidate.parent.parent / "developer-patch-work-order.json"
+    if not sibling_work_order.exists():
+        return None
+    try:
+        work_order = _read_json(sibling_work_order)
+    except OSError:
+        return None
+    return _text(work_order.get("ai_reviewer_evaluation_ref"))
+
+
+def _oma_candidate_readback(candidate: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    result = {
         "oma_work_order_or_receipt_ref": str(candidate),
         "oma_work_order_or_receipt_status": payload.get("status"),
         "oma_work_order_or_receipt_surface_kind": payload.get("surface_kind"),
-        "ai_reviewer_evaluation_ref": payload.get("ai_reviewer_evaluation_ref"),
+        "ai_reviewer_evaluation_ref": _candidate_ai_reviewer_evaluation_ref(payload, candidate),
         "ai_reviewer_evaluation_status": "valid",
     }
+    work_order_id = _text(payload.get("work_order_id")) or _text(payload.get("work_order_ref"))
+    if work_order_id is not None:
+        result["oma_work_order_id"] = work_order_id
+    if candidate.name == "work-order-execution-receipt.json":
+        absorption = payload.get("absorption") if isinstance(payload.get("absorption"), dict) else {}
+        cleanup = payload.get("cleanup") if isinstance(payload.get("cleanup"), dict) else {}
+        target_owner = (
+            payload.get("target_owner_receipt_or_typed_blocker")
+            if isinstance(payload.get("target_owner_receipt_or_typed_blocker"), dict)
+            else {}
+        )
+        result.update(
+            {
+                "superseding_status": "superseded_by_oma_work_order_execution",
+                "oma_patch_absorbed": absorption.get("absorbed") is True,
+                "oma_absorbed_head": absorption.get("absorbed_head"),
+                "oma_worktree_removed": cleanup.get("worktree_removed") is True,
+                "oma_branch_removed": cleanup.get("branch_removed") is True,
+                "oma_target_owner_result_status": target_owner.get("status"),
+            }
+        )
+    elif candidate.name == "external-work-order-delegation.json":
+        result["superseding_status"] = "superseded_by_oma_work_order_delegation"
+    return result
 
 
 def _summarize_stdout_payload(payload: Any) -> dict[str, Any]:
