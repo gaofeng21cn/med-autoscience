@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.submission_minimal_parts.package_builder import create_submission_minimal_package
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from tests.test_submission_minimal_display_surface import dump_json, full_id, make_workspace, write_png, write_text
 
 
 def test_create_submission_minimal_package_preserves_second_stage_display_entries(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     workspace_root = paper_root.parent
 
@@ -98,7 +97,7 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
     )
     dump_json(table_catalog_path, table_catalog)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -129,7 +128,6 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
 
 
 def test_create_submission_minimal_package_preserves_001_direct_migration_display_entries(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
     workspace_root = paper_root.parent
 
@@ -268,7 +266,7 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -295,7 +293,6 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
 
 
 def test_create_submission_minimal_package_accepts_table_catalog_csv_and_markdown_paths(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
 
     dump_json(
@@ -314,7 +311,7 @@ def test_create_submission_minimal_package_accepts_table_catalog_csv_and_markdow
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -326,7 +323,6 @@ def test_create_submission_minimal_package_accepts_table_catalog_csv_and_markdow
 
 
 def test_create_submission_minimal_package_accepts_prefixed_catalog_ids_and_direct_paths(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
 
     dump_json(
@@ -359,7 +355,7 @@ def test_create_submission_minimal_package_accepts_prefixed_catalog_ids_and_dire
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -373,13 +369,12 @@ def test_create_submission_minimal_package_accepts_prefixed_catalog_ids_and_dire
 
 
 def test_create_submission_minimal_package_resets_stale_generated_assets(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
 
     stale_path = paper_root / "submission_minimal" / "tables" / "stale.txt"
     write_text(stale_path, "stale")
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
