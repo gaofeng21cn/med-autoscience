@@ -173,6 +173,33 @@ def test_terminalizer_source_keeps_owner_repair_readback_over_stage_packet(
     assert readback is owner_repair_readback
 
 
+def test_non_submit_owner_receipt_suppresses_transaction_next_action() -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+
+    assert materialized_readback._stage_closure_owner_receipt_suppresses_transaction_next_action(
+        stage_closure_decision={
+            "outcome": {
+                "kind": "owner_receipt",
+                "can_submit": False,
+                "next_action": "honor_paper_story_repair_owner_receipt",
+            }
+        },
+        next_action_override=None,
+    )
+    assert not materialized_readback._stage_closure_owner_receipt_suppresses_transaction_next_action(
+        stage_closure_decision={
+            "outcome": {
+                "kind": "owner_receipt",
+                "package_kind": "submission_ready_package",
+                "can_submit": True,
+            }
+        },
+        next_action_override=None,
+    )
+
+
 def test_owner_consumed_route_checkpoint_yields_to_domain_transition_action() -> None:
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"

@@ -352,6 +352,12 @@ def build_materialized_mission_readback_if_available(
     elif next_action_override is not None:
         canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    if _stage_closure_owner_receipt_suppresses_transaction_next_action(
+        stage_closure_decision=stage_closure_decision,
+        next_action_override=next_action_override,
+    ):
+        transaction_output_fields.pop("next_action", None)
+        transaction_output_fields.pop("canonical_next_action_source", None)
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
         if canonical_next_action_source is not None:
@@ -1045,6 +1051,24 @@ def _stage_closure_next_action_should_own_next_action(
         and outcome.get("transition_kind")
         in {"route_back_candidate_checkpoint", "current_package_mirror_sync"}
     )
+
+
+def _stage_closure_owner_receipt_suppresses_transaction_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    next_action_override: Mapping[str, Any] | None,
+) -> bool:
+    if next_action_override is not None:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    if _optional_text(outcome.get("kind")) != "owner_receipt":
+        return False
+    if (
+        _optional_text(outcome.get("package_kind")) == "submission_ready_package"
+        and outcome.get("can_submit") is True
+    ):
+        return False
+    return True
 
 
 def _receipt_owner_consumed_route_checkpoint(
