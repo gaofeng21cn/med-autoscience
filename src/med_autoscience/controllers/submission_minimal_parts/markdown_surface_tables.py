@@ -151,6 +151,15 @@ def _select_catalog_table_markdown_source(entry: dict[str, Any], *, allow_defaul
     return markdown_paths[0]
 
 
+def _catalog_markdown_replaces_materialized_source(entry: dict[str, Any]) -> bool:
+    render_result = entry.get("render_result") if isinstance(entry.get("render_result"), dict) else {}
+    layout_policy = str(render_result.get("table_layout_policy") or "").strip()
+    return (
+        layout_policy == "long_measure_value_table_to_avoid_pdf_header_overlap"
+        or entry.get("prefer_markdown_for_submission_pdf") is True
+    )
+
+
 def _strip_catalog_table_markdown_heading(markdown_text: str) -> str:
     lines = str(markdown_text or "").strip().splitlines()
     while lines and not lines[0].strip():
@@ -206,7 +215,7 @@ def build_catalog_backed_table_blocks(*, paper_root: Path, source_tables: str) -
         if not markdown_source_path.exists():
             continue
         source_block = source_blocks.get(table_id)
-        if source_block is not None and source_block[1]:
+        if source_block is not None and source_block[1] and not _catalog_markdown_replaces_materialized_source(entry):
             continue
         heading = source_block[0] if source_block is not None else _build_catalog_table_heading(
             table_id=table_id,

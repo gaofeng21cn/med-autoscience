@@ -4,6 +4,18 @@ from dataclasses import asdict
 import re
 
 from med_autoscience.literature_records import LiteratureRecord
+from med_autoscience.controllers.submission_minimal_parts.authority import (
+    describe_submission_minimal_authority,
+)
+from med_autoscience.controllers.submission_minimal_parts.markdown_surface import (
+    merge_legend_with_figure_semantics,
+)
+from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+    inspect_submission_source_markdown,
+)
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
 
 
 def _open_submission_route_context() -> dict[str, object]:
@@ -30,7 +42,6 @@ def _open_submission_route_context() -> dict[str, object]:
 
 
 def test_inspect_submission_source_markdown_counts_short_f_headings_as_figures(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -48,7 +59,7 @@ Legend text for the short-F main figure.
 """,
     )
 
-    inspection = module.inspect_submission_source_markdown(source_markdown)
+    inspection = inspect_submission_source_markdown(source_markdown)
 
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
@@ -58,7 +69,6 @@ Legend text for the short-F main figure.
 def test_inspect_submission_source_markdown_counts_independent_figure_legends_section(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -86,7 +96,7 @@ Figure 1. Legend text for the independent figure legend section.
 """,
     )
 
-    inspection = module.inspect_submission_source_markdown(source_markdown)
+    inspection = inspect_submission_source_markdown(source_markdown)
 
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
@@ -96,7 +106,6 @@ Figure 1. Legend text for the independent figure legend section.
 def test_inspect_submission_source_markdown_treats_lowercase_figure_legends_as_separate_section(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
         source_markdown,
@@ -126,7 +135,7 @@ Legend text for the lowercase independent figure legend section.
 """,
     )
 
-    inspection = module.inspect_submission_source_markdown(source_markdown)
+    inspection = inspect_submission_source_markdown(source_markdown)
 
     assert inspection["figure_block_count"] == 1
     assert inspection["figure_blocks_with_images"] == 1
@@ -139,10 +148,9 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
 ) -> None:
     from docx import Document
 
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -172,7 +180,6 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
 def test_create_submission_minimal_package_supports_front_matter_manuscript_shaped_draft(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",
@@ -203,7 +210,7 @@ Frontmatter discussion paragraph.
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -227,7 +234,6 @@ Frontmatter discussion paragraph.
 def test_create_submission_minimal_package_keeps_submission_figure_legends_concise(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     dump_json(
         paper_root / "figure_semantics_manifest.json",
@@ -249,7 +255,7 @@ def test_create_submission_minimal_package_keeps_submission_figure_legends_conci
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -269,9 +275,8 @@ def test_create_submission_minimal_package_keeps_submission_figure_legends_conci
 
 
 def test_figure_legend_merge_skips_near_duplicate_semantic_message() -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.markdown_surface")
 
-    legend = module.merge_legend_with_figure_semantics(
+    legend = merge_legend_with_figure_semantics(
         base_legend=(
             "Recorded metabolic diagnostic fields by BMI category among records with populated status. "
             "Point size reflects the available denominator; labels show positive records over available records. "
@@ -292,7 +297,6 @@ def test_figure_legend_merge_skips_near_duplicate_semantic_message() -> None:
 def test_create_submission_minimal_package_skips_stale_panel_messages_for_single_panel_grouped_calibration(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -321,7 +325,7 @@ def test_create_submission_minimal_package_skips_stale_panel_messages_for_single
     }
     dump_json(figure_catalog_path, figure_catalog)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -336,7 +340,6 @@ def test_create_submission_minimal_package_skips_stale_panel_messages_for_single
 def test_create_submission_minimal_package_copies_deferred_supplementary_figure_assets(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
@@ -365,7 +368,7 @@ def test_create_submission_minimal_package_copies_deferred_supplementary_figure_
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -379,7 +382,6 @@ def test_create_submission_minimal_package_copies_deferred_supplementary_figure_
 def test_create_submission_minimal_package_materializes_supplementary_tables_workbook(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     write_text(
         paper_root / "tables" / "S1_audit_dictionary.md",
@@ -409,7 +411,7 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     )
     dump_json(table_catalog_path, table_catalog)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -471,7 +473,6 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
 
@@ -491,7 +492,7 @@ Preserved legend for the manuscript-shaped top-level figures block.
 """,
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -513,7 +514,6 @@ Preserved legend for the manuscript-shaped top-level figures block.
 def test_create_submission_minimal_package_strips_short_figure_id_from_image_alt_text(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
 
@@ -533,7 +533,7 @@ Legend text for the short-F main figure.
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -549,7 +549,6 @@ Legend text for the short-F main figure.
 def test_create_submission_minimal_package_orders_main_figures_by_figure_number(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
     write_png(paper_root / "figures" / "F2_main.png")
@@ -601,7 +600,7 @@ def test_create_submission_minimal_package_orders_main_figures_by_figure_number(
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_submission_route_context(),
@@ -619,7 +618,6 @@ def test_create_submission_minimal_package_orders_main_figures_by_figure_number(
 def test_create_submission_minimal_package_splits_nested_tables_and_orders_by_table_number(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
     write_text(
@@ -651,7 +649,7 @@ def test_create_submission_minimal_package_splits_nested_tables_and_orders_by_ta
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_submission_route_context(),
@@ -673,7 +671,6 @@ def test_create_submission_minimal_package_splits_nested_tables_and_orders_by_ta
 def test_create_submission_minimal_package_renders_extra_wide_tables_as_sideways_latex(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
     write_text(
@@ -691,7 +688,7 @@ def test_create_submission_minimal_package_renders_extra_wide_tables_as_sideways
 """,
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_submission_route_context(),
@@ -707,7 +704,6 @@ def test_create_submission_minimal_package_renders_extra_wide_tables_as_sideways
 def test_create_submission_minimal_package_uses_catalog_markdown_for_long_measure_value_tables(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_path = paper_root / "draft.md"
     write_text(
@@ -759,7 +755,7 @@ def test_create_submission_minimal_package_uses_catalog_markdown_for_long_measur
         "Phenotype,Measure,Value\nGlycemic-dominant diabetes,Index patients,104029\n",
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context=_open_submission_route_context(),
@@ -775,10 +771,9 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_materialized_submission_source_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -809,15 +804,14 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
 def test_describe_submission_minimal_authority_accepts_materialized_submission_source_from_compile_report(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_materialized_submission_source_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
 
     assert authority["status"] == "current"
     assert authority["stale_reason"] is None
@@ -828,7 +822,6 @@ def test_describe_submission_minimal_authority_accepts_materialized_submission_s
 def test_create_submission_minimal_package_falls_back_when_compile_report_points_to_missing_submission_source(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_current_draft_workspace(tmp_path)
 
     dump_json(
@@ -839,7 +832,7 @@ def test_create_submission_minimal_package_falls_back_when_compile_report_points
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -853,10 +846,9 @@ def test_create_submission_minimal_package_falls_back_when_compile_report_points
 def test_create_submission_minimal_package_materializes_references_and_pending_front_matter(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_current_draft_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -895,7 +887,6 @@ def test_create_submission_minimal_package_materializes_references_and_pending_f
 def test_create_submission_minimal_package_uses_workspace_literature_references_when_paper_refs_missing(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_current_draft_workspace(tmp_path)
     workspace_root = paper_root.parent
     (paper_root / "references.bib").unlink()
@@ -911,7 +902,7 @@ def test_create_submission_minimal_package_uses_workspace_literature_references_
 """,
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -935,7 +926,6 @@ def test_create_submission_minimal_package_uses_workspace_literature_references_
 def test_general_medical_submission_renders_bibliography_when_refs_exist_without_inline_citations(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
     draft_text = (paper_root / "draft.md").read_text(encoding="utf-8")
     write_text(
@@ -943,7 +933,7 @@ def test_general_medical_submission_renders_bibliography_when_refs_exist_without
         re.sub(r"\s*\[@ref1\]", "", draft_text),
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -967,7 +957,6 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared_base")
     paper_root = make_current_draft_workspace(tmp_path)
     write_text(
@@ -1006,7 +995,7 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
         lambda *, workspace_root, records: synced_records.extend(records) or {"status": "synchronized"},
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -1029,7 +1018,6 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
 def test_create_submission_minimal_package_rejects_unrepairable_missing_reference_keys(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared_base")
     paper_root = make_current_draft_workspace(tmp_path)
     write_text(
@@ -1039,7 +1027,7 @@ def test_create_submission_minimal_package_rejects_unrepairable_missing_referenc
     write_text(paper_root / "references.bib", "")
 
     with pytest.raises(shared_base.SubmissionReferenceCoverageError, match="missing_key"):
-        module.create_submission_minimal_package(
+        create_submission_minimal_package(
             paper_root=paper_root,
             publication_profile="general_medical_journal",
         )
