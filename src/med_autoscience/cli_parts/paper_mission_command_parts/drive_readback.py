@@ -25,6 +25,10 @@ from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback_parts.
     drive_readback_has_submission_route_checkpoint as _drive_readback_has_submission_route_checkpoint,
     drive_should_submit_direct_next_action as _drive_should_submit_direct_next_action,
 )
+from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback_parts.domain_transition_redrive_stop import (
+    drive_domain_transition_redrive_block_payload as _drive_domain_transition_redrive_block_payload,
+    drive_domain_transition_redrive_stop_readback as _drive_domain_transition_redrive_stop_readback,
+)
 from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback_parts.existing_consumption_handoff import (
     existing_consumption_handoff_drive_readback as _existing_consumption_handoff_drive_readback,
 )
@@ -114,6 +118,17 @@ def build_paper_mission_drive_readback(
         consume_candidate_readback_builder=consume_candidate_readback_builder,
         enable_opl_live_probe=submit_opl_runtime is not False,
     )
+    domain_transition_stop = _drive_domain_transition_redrive_stop_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        output_root=root,
+        source=source,
+        inspect_readback=next_action_source_readback,
+        forbidden_authority_claims=forbidden_authority_claims,
+    )
+    if domain_transition_stop is not None:
+        return domain_transition_stop
     owner_action_stop = _drive_owner_action_stop_readback(
         profile=profile,
         profile_ref=profile_ref,
@@ -566,6 +581,8 @@ def _drive_next_action_source_readback(
         source=f"{source}:drive:canonical-next-action-inspect",
         enable_opl_live_probe=enable_opl_live_probe,
     )
+    if _drive_domain_transition_redrive_block_payload(inspect_readback) is not None:
+        return inspect_readback
     next_action = _mapping(inspect_readback.get("next_action"))
     if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
         return None

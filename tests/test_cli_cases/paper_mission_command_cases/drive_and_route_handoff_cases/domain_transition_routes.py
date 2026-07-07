@@ -609,3 +609,90 @@ def test_paper_mission_drive_ignores_stale_current_opl_consumption_after_owner_c
     assert payload["mutation_policy"]["writes_runtime"] is False
 
 
+def test_paper_mission_drive_halts_after_owner_apply_receipt_consumed(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    studies_root = workspace_root / "studies"
+    (studies_root / study_id).mkdir(parents=True)
+    profile = SimpleNamespace(
+        name="DM",
+        workspace_root=workspace_root,
+        studies_root=studies_root,
+    )
+    builder_calls: list[str] = []
+
+    def fake_readback_builder(**kwargs):
+        command = kwargs["paper_mission_command"]
+        builder_calls.append(command)
+        assert command == "inspect"
+        return {
+            "surface_kind": "paper_mission_materialized_readback",
+            "mission_id": f"paper-mission::{study_id}::medical_prose_write_repair",
+            "objective": "Honor a MAS owner repair receipt before any redrive.",
+            "study_id": study_id,
+            "domain_transition": {
+                "decision_type": "owner_apply_receipt_consumed",
+                "route_target": "finalize",
+                "controller_action": "paper_autonomy_guarded_apply",
+                "owner": "med-autoscience",
+                "next_work_unit": {
+                    "unit_id": "provider_hosted_guarded_apply",
+                    "lane": "finalize",
+                },
+            },
+            "receipt_owner_consumption_readback": {
+                "status": "owner_consumption_applied",
+                "apply_mode": "mas_owner_repair_receipt",
+                "authority_materialized": True,
+                "mas_receipt_consumption": {
+                    "surface_kind": "mas_receipt_consumption_projection",
+                    "schema_version": 1,
+                    "status": "owner_consumed_mas_repair_delta",
+                    "receipt_kind": "mas_owner_apply_receipt",
+                    "next_legal_action": "honor_paper_story_repair_owner_receipt",
+                    "can_claim_paper_progress": True,
+                    "can_claim_submission_ready": False,
+                    "can_claim_publication_ready": False,
+                },
+            },
+            "stage_closure_decision": {
+                "surface_kind": "mas_stage_closure_decision",
+                "authority_materialized": True,
+                "outcome": {
+                    "kind": "owner_receipt",
+                    "next_action": "honor_paper_story_repair_owner_receipt",
+                    "can_submit": False,
+                },
+            },
+        }
+
+    payload = build_paper_mission_drive_readback(
+        profile=profile,
+        profile_ref=tmp_path / "dm.local.toml",
+        study_id=study_id,
+        output_root=workspace_root / "ops" / "medautoscience" / "drive",
+        run_id=None,
+        submit_opl_runtime=True,
+        opl_bin=tmp_path / "missing-opl",
+        source="test",
+        consume_candidate_readback_builder=fake_readback_builder,
+        consumption_ledger_forbidden_authority_writes=(
+            commands.CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES
+        ),
+        forbidden_authority_claims=commands.FORBIDDEN_AUTHORITY_CLAIMS,
+    )
+
+    assert builder_calls == ["inspect"]
+    assert payload["drive_mode"] == "domain_transition_auto_redrive_halted"
+    assert payload["drive_result"]["status"] == "domain_transition_auto_redrive_halted"
+    assert payload["drive_result"]["domain_transition_decision_type"] == (
+        "owner_apply_receipt_consumed"
+    )
+    assert payload["drive_result"]["domain_transition_route_target"] == "finalize"
+    assert payload["output_manifest"]["candidate_package"] is None
+    assert payload["output_manifest"]["consumption_ledger"] is None
+    assert payload["mutation_policy"]["writes_runtime"] is False
+    _assert_forbidden_authority_untouched(tmp_path, study_id=study_id)
+
