@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>MAS 智能体白皮书</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">MAS 智能体白皮书</h1>
+</header>
+<h1 id="mas-智能体白皮书">MAS 智能体白皮书</h1>
+<blockquote>
+<p>把医学研究组织成一条可推进、可审阅、可交付的研究线</p>
+</blockquote>
+<!-- Owner: `MedAutoScience`; Purpose: `public_mas_whitepaper_body_source`; State: `active_public_source`; Machine boundary: Human-readable whitepaper body source. Generated HTML/PDF and verification JSON are derived artifacts. Study truth, publication quality, artifact authority, owner receipts, runtime currentness, and submission decisions stay in MAS contracts, source, controller/runtime surfaces, study workspaces, generated artifacts, owner receipts, and human decisions. -->
+<p>发布日期：2026-07-07</p>
+<p>适用对象：希望理解 Med Auto Science
+如何帮助医学研究团队推进真实课题、怎样把数据和证据转化为论文工作、以及为什么
+MAS
+的设计适合长期科研任务的医生、PI、研究者、合作者、早期采用者和技术决策者。</p>
+<p>核心判断：Med Auto Science 的核心承诺，是把医学研究从一次 AI
+对话提升为一条持续推进的研究线；系统围绕问题、数据、证据、分析、图表、稿件、审阅和交付组织工作，让
+AI 做重活，让研究判断保持有依据、可检查、可接力。</p>
+<h2 id="定位摘要">定位摘要</h2>
+<ul>
+<li>Med Auto Science 是 One Person Lab 系列中的医学研究 Foundry
+Agent，面向真实疾病研究、数据分析和论文交付。</li>
+<li>MAS
+的第一层价值，是把研究问题、数据资产、分析进展、证据缺口和稿件文件放在同一条研究线上。</li>
+<li>MAS 的第二层价值，是让 AI
+在研究阶段内完成整理、比较、分析、写作和修订，同时保留临床判断、主张接受和最终决策给研究者。</li>
+<li>MAS
+的第三层价值，是把证据、审阅、图表、稿件和交付状态连起来，让研究团队能复查结果从哪里来、为什么可信、下一步该做什么。</li>
+<li>MAS
+的设计目标，是让医学研究工作更像一个有组织的研究团队：问题清楚、证据成链、阶段推进、审稿式质量、交付可复查。</li>
+<li>MAS 可以直接作为医学研究智能体使用，也可以作为 One Person Lab
+体系中的专业智能体被 App、Framework 和 Workspace 承接。</li>
+</ul>
+<h2 id="医学研究需要一条连续的研究线">医学研究需要一条连续的研究线</h2>
+<p>医学研究的难点通常不在一段文字，也不在一次分析。真正困难的是让一个课题从数据和想法持续走向可以被审阅、修订和交付的论文。</p>
+<p>一个研究团队常常会遇到这些情况：</p>
+<ul>
+<li>有队列、注册库或真实世界数据，但最值得推进的问题还不清楚。</li>
+<li>有初步结果，但结果还没有形成一条有医学意义的稿件主线。</li>
+<li>图、表、分析记录、验证结果和草稿分散在不同文件夹和对话中。</li>
+<li>研究推进几周后，团队需要重新确认哪个版本是当前稿件，哪些证据支持当前主张。</li>
+<li>审阅意见、补充分析、claim
+收紧、图表调整和交付材料交织在一起，下一步变得难以解释。</li>
+</ul>
+<p>MAS 把这些问题看成同一件事：医学研究需要一条连续的研究线。</p>
+<p>研究线把医学问题、数据、证据、分析、图表、稿件和审阅连接起来。每次推进都应该留下可接力的成果：新的研究判断、新的证据包、新的图表版本、新的审阅意见、新的卡点，或一个需要研究者决定的问题。</p>
+<p>这种设计让用户关心的事情保持清楚：</p>
+<ul>
+<li>这个课题现在回答什么问题？</li>
+<li>数据和文献实际支持什么结论？</li>
+<li>哪些分析已经完成，哪些证据还缺？</li>
+<li>当前稿件和图表服务哪条主张？</li>
+<li>哪些质量问题已经被发现，下一步由谁处理？</li>
+</ul>
+<h2 id="mas-的设计思想">MAS 的设计思想</h2>
+<p>MAS
+的设计从医学研究本身出发。它把系统能力组织成三个层次：研究线、证据链和审稿式质量。</p>
+<p><strong>研究线</strong>
+负责保持课题连续。用户给出疾病方向、数据资产、研究问题或论文目标后，MAS
+围绕同一条课题线组织选题、分析、写作、审阅和交付。研究可以从多个候选方向开始，也可以在证据不足时回到方向选择、分析修正或
+claim 收紧。</p>
+<p><strong>证据链</strong>
+负责保持主张诚实。医学论文中的每个关键主张都需要回到数据、文献、分析结果、图表和审阅记录。MAS
+把证据缺口显性化，让系统继续补证、降级主张、调整研究线，或把问题交给研究者判断。</p>
+<p><strong>审稿式质量</strong> 负责推动结果变好。医学稿件需要像被
+PI、统计审稿人和医学审稿人检查一样反复打磨。MAS
+将质量检查前置到研究过程中，让写作、图表、引用、claim
+restraint、全文一致性和交付状态都能被审阅和修订。</p>
+<p>这三个层次让 MAS
+的自动科研更接近真实研究团队的工作方式：先形成有价值的问题，再持续构建证据，再通过审阅和修订把结果推向可交付状态。</p>
+<h2 id="设计原则">设计原则</h2>
+<h3 id="研究线优先">研究线优先</h3>
+<p>MAS
+以课题为中心，把单次回答、分析脚本和文件产物收进同一条研究线。一个研究线可以经历选题、探索、分析、写作、审阅、修订和交付。用户离开几天后回来，仍然能看到当前问题、已有证据、当前稿件、卡点和下一步。</p>
+<h3 id="问题先行">问题先行</h3>
+<p>医学研究先判断问题是否值得做，再决定分析路线。MAS
+会围绕临床意义、数据支撑、文献空白、endpoint
+可行性和发表价值组织思考。这样的顺序让研究不只是堆分析结果，而是从一开始就服务一个可说明、可审阅、可交付的医学问题。</p>
+<h3 id="证据成链">证据成链</h3>
+<p>MAS 把数据、文献、分析、图表和审阅记录连成证据链。每个关键 claim
+都应有来源，每个图表都应服务主张，每个补充分析都应解释它提高了哪一部分证据强度。证据链让团队能复查结果，也让
+AI 修订时不容易偏离真实材料。</p>
+<h3 id="阶段推进">阶段推进</h3>
+<p>MAS
+把长任务拆成可接力的研究阶段。选题阶段形成候选问题和取舍理由，分析阶段形成结果和证据缺口，写作阶段形成稿件主线，审阅阶段形成修订意见，交付阶段形成可检查材料。每个阶段都产出下一步能接住的成果。</p>
+<h3 id="审稿式质量">审稿式质量</h3>
+<p>MAS
+把质量理解为持续审阅和修订。系统会推动医学审稿、统计审查、引用核查、claim-citation
+对齐、全文一致性检查和投稿前检查。质量问题进入同一条研究线，成为下一轮修订、补证或人工判断的依据。</p>
+<h3 id="人机协作">人机协作</h3>
+<p>AI
+适合承担繁重的整理、比较、分析、写作和修订工作。研究者适合保留临床解释、研究边界、主张接受、伦理判断、目标期刊策略和最终投稿决策。MAS
+的设计让 AI 持续推进工作，同时让关键判断回到人类研究者。</p>
+<h3 id="交付可复查">交付可复查</h3>
+<p>正式交付不能只是一份文件。MAS
+让稿件、图表、表格、证据、审阅意见、引用检查和交付状态一起被检查。团队拿到结果时，可以看到它来自哪里、经过什么审阅、还有哪些缺口，以及下一步怎样继续。</p>
+<h2 id="能力模块">能力模块</h2>
+<h3 id="研究问题设计">研究问题设计</h3>
+<p>MAS
+从疾病方向、队列数据、注册库、真实世界数据或已有初步结果出发，帮助用户判断哪些问题值得继续推进。它关注临床意义、数据实际支持范围、文献空白、研究可行性和论文表达空间。</p>
+<p>这一步的目标是形成一个清楚的医学问题，再进入合适的分析路线。好的研究问题会说明目标人群、暴露或干预、endpoint、预期证据、临床价值和可能的稿件主线。</p>
+<h3 id="证据构建">证据构建</h3>
+<p>MAS
+把研究需要的证据组织起来：数据来源、变量定义、队列选择、分析结果、文献背景、引用依据、图表证据和审阅意见。证据构建让用户知道哪些内容已经支撑当前主张，哪些内容仍需要补齐。</p>
+<p>证据构建也包括失败路径。弱结果、反向结果、不稳定分析、无法支持的
+claim
+和被放弃的路线，都应该被记录。这样的记录能减少重复试错，也能让最终稿件更克制。</p>
+<h3 id="分析推进">分析推进</h3>
+<p>MAS
+围绕主问题推进分析。常见工作包括基线描述、主结果、亚组分析、敏感性分析、外部验证、校准、临床效用、缺失数据处理、稳健性检查和方法学补充。</p>
+<p>分析推进的重点是回答研究问题。每一轮分析都应说明它支持哪条主张、解决哪个缺口、带来什么限制，或者为什么需要调整研究方向。</p>
+<h3 id="稿件叙事">稿件叙事</h3>
+<p>医学论文需要一条清楚、克制、有证据支撑的故事线。MAS
+会把研究问题、方法、结果、图表和讨论组织成稿件叙事，让用户看到文章想表达什么、证据如何展开、哪些主张应该收紧。</p>
+<p>稿件叙事覆盖润色之外的论文设计。它包括摘要数字、方法透明度、结果顺序、图表解释、讨论节奏、局限性表达、临床意义和
+claim restraint。好的叙事让读者因为证据和逻辑相信研究。</p>
+<h3 id="图表表达">图表表达</h3>
+<p>MAS
+把图表看成证据表达的一部分。图表应服务论文主张，展示关键比较、趋势、分层、效应量、模型表现或流程结构。图和表需要与数据、统计结果、caption、正文
+claim 和审阅意见保持一致。</p>
+<p>这让图表工作从“做一张好看的图”提升为“用视觉方式表达证据”。图表表达越清楚，稿件的论证就越容易被审阅。</p>
+<h3 id="审阅修订">审阅修订</h3>
+<p>MAS
+用审稿式反馈推动稿件变好。系统可以从医学意义、统计可靠性、证据充分性、引用真实性、claim
+restraint、图表一致性和交付完整性等角度发现问题，然后把问题转化为修订任务。</p>
+<p>审阅修订强调同一研究线内的持续改进。一个问题可以回到分析阶段补证，也可以回到写作阶段收紧表达，还可以进入人工判断。审阅由此成为下一轮质量提升的入口。</p>
+<h3 id="交付准备">交付准备</h3>
+<p>MAS
+帮助用户整理当前稿件、图表、表格、证据、审阅记录和交付状态。交付准备让团队知道哪些材料可检查，哪些材料仍需修订，哪些内容适合交给
+PI、导师、合作者或编辑前审阅。</p>
+<p>交付准备关注可复查性。用户拿到的不只是一个导出包，而是一组能说明当前研究状态的材料。</p>
+<h2 id="用户如何开始">用户如何开始</h2>
+<p>MAS
+的用户入口应该接近研究者自己的表达。用户可以从疾病方向开始，也可以从已有数据、已有结果或明确论文目标开始。</p>
+<p>典型输入包括：</p>
+<ul>
+<li>我有一个结直肠癌队列，帮我判断哪些问题值得写成论文。</li>
+<li>我已经有初步结果，帮我整理成一条医学论文主线，并告诉我还缺什么证据。</li>
+<li>围绕这个预测模型结果，帮我检查校准、临床效用、亚组和图表表达。</li>
+<li>帮我把当前稿件、图表和审阅意见组织成下一轮修订计划。</li>
+</ul>
+<p>MAS 接到任务后，应先理解研究对象和目标，再组织阶段化推进：</p>
+<pre class="text"><code>疾病方向 / 数据资产 / 论文目标
+  -&gt; 研究问题设计
+      -&gt; 证据构建
+          -&gt; 分析推进
+              -&gt; 稿件叙事
+                  -&gt; 图表表达
+                      -&gt; 审阅修订
+                          -&gt; 交付准备</code></pre>
+<p>这条路径可以前进，也可以回退。医学研究常常需要重新选择
+endpoint、补充验证、降级 claim、替换图表或重新审阅。MAS
+的价值在于让这些回退仍然留在同一条研究线里，继续保留上下文、证据和下一步。</p>
+<h2 id="一个典型研究过程">一个典型研究过程</h2>
+<p>想象一个团队手上有一份疾病队列数据，希望从中形成一篇可以投稿的医学论文。普通做法容易很快进入分析：先跑几个变量、看几个显著结果、再尝试组织故事。MAS
+的设计会把这件事拉回研究本身。</p>
+<p>第一步，系统帮助团队整理研究起点：这个数据能回答哪些临床问题，哪些问题有文献空白，哪些
+endpoint
+和人群定义更稳，哪些主张超出了数据能力。用户得到的第一份成果，应该是一组有取舍理由的候选问题，而不只是分析清单。</p>
+<p>第二步，系统围绕被选中的问题构建证据。它会把数据定义、变量处理、主结果、补充分析、文献背景和图表需求放进同一条证据链。每个结果都要说明它支撑哪条主张，每个缺口都要说明下一步补什么。</p>
+<p>第三步，系统把证据转成稿件主线。摘要、方法、结果、图表和讨论围绕同一条医学逻辑组织。强证据进入主线，弱证据进入限制或补充材料，无法支持的表达会被收紧。</p>
+<p>第四步，系统用审稿式质量推动修订。医学意义、统计可靠性、引用真实性、图文一致性和
+claim restraint
+都会成为检查对象。审阅意见不会散落在对话里，而是回到研究线，变成下一轮分析、写作或人工判断。</p>
+<p>第五步，系统准备可复查交付材料。团队看到的不只是一个稿件文件，而是稿件、图表、证据、审阅意见、缺口和当前状态。这样的交付更接近真实科研团队的工作台。</p>
+<h2 id="用户会看到什么">用户会看到什么</h2>
+<p>用户真正需要的体验，是打开一个课题后立刻理解“现在在哪里”和“下一步怎么走”。</p>
+<p>MAS
+面向用户呈现研究工作本身，把底层任务名收敛成研究者能读懂的状态。一个课题页面或工作台应该优先回答：</p>
+<ul>
+<li>当前研究问题是什么，主线是否已经清楚？</li>
+<li>当前证据支持哪些主张，哪些主张需要收紧？</li>
+<li>最近新增了哪些分析、图表、稿件段落或审阅意见？</li>
+<li>哪些质量问题正在等待修订？</li>
+<li>下一步由 AI 继续推进，还是需要研究者判断？</li>
+</ul>
+<p>用户看到的进度也应贴近研究语言。比起“任务完成
+60%”，更有价值的是“候选问题已收敛到一条主线”“主结果已形成，但敏感性分析还缺”“图表能支持主
+claim，但讨论部分需要收紧”“引用和 claim 对齐检查发现两处待确认”。</p>
+<p>这种表达让 MAS
+显得有设计感：它把内部执行翻译成研究者能理解的状态，把复杂流程收敛成问题、证据、稿件、审阅和下一步。</p>
+<h2 id="为什么效果更可靠">为什么效果更可靠</h2>
+<p>MAS 的可靠性来自设计原则和多层检查。</p>
+<p><strong>第一，研究问题有明确入口。</strong>
+系统先围绕疾病、数据、临床意义和论文目标组织问题，让后续分析服务清楚的研究方向。</p>
+<p><strong>第二，证据链持续保留。</strong>
+数据、文献、分析、图表和审阅记录持续回到同一条研究线。用户能追溯结果，AI
+也能在修订时看到约束。</p>
+<p><strong>第三，质量检查发生在过程中。</strong>
+写作前、审阅中、交付前都可以暴露质量问题。医学审稿、统计审查、引用核查和全文一致性检查共同推动稿件收敛。</p>
+<p><strong>第四，主张和证据保持绑定。</strong> MAS 关注 claim
+能否被数据、文献和图表支持。支持不足时，系统可以补证、收紧表达、调整路线或交给研究者判断。</p>
+<p><strong>第五，人工判断有明确位置。</strong>
+临床解释、研究边界、主张接受、伦理判断、目标期刊策略和投稿决策由研究者保留。AI
+推进工作，人类保留关键判断。</p>
+<p><strong>第六，交付材料可以复查。</strong>
+稿件、图表、表格、证据、审阅意见和交付状态一起出现。团队可以检查当前状态，并理解最终文件背后的依据。</p>
+<p>这些机制让 MAS
+的效果来自系统设计：工作有线索，证据有来路，质量有审阅，边界有负责人，交付有上下文。</p>
+<h2 id="人机协作边界">人机协作边界</h2>
+<p>MAS
+适合承担高负荷、反复性、需要上下文组织的研究工作：整理材料、比较方向、形成候选问题、推进分析、组织证据、起草稿件、改写段落、设计图表、汇总审阅意见和生成交付材料。</p>
+<p>研究者保留高价值判断：临床问题是否重要，数据使用是否合规，研究边界是否合理，主张是否应该接受，目标期刊策略是否合适，以及最终是否投稿。</p>
+<p>这条边界让 MAS 成为研究团队的智能协作者。它让 AI
+更主动地推进研究，也让研究者更容易把注意力放在医学判断和最终决策上。</p>
+<h2 id="与-one-person-lab-的关系">与 One Person Lab 的关系</h2>
+<p>Med Auto Science 是 One Person Lab 系列中的医学研究 Foundry
+Agent。</p>
+<p>OPL Framework
+负责通用运行能力：阶段运行、工作空间、恢复、状态投影、回执和跨智能体协作。MAS
+负责医学研究本身：研究问题、证据组织、稿件方向、论文质量、图表和交付材料。</p>
+<p>OPL App 和 Workspace 负责用户工作台。用户可以从 App
+进入科研任务，查看进度、产物、卡点和下一步。App 展示 MAS
+的工作线，但医学质量判断仍回到 MAS 和研究者。</p>
+<p>这种分工让系统保持清楚：</p>
+<pre class="text"><code>用户的医学研究目标
+  -&gt; OPL App / Workspace 工作台
+      -&gt; OPL Framework 阶段运行
+          -&gt; Med Auto Science 医学研究线
+              -&gt; 证据、分析、稿件、图表、审阅和交付</code></pre>
+<p>用户感知到的是一条可继续的科研工作线。底层系统负责让这条线稳定运行，MAS
+负责让医学研究本身保持质量和边界。</p>
+<h2 id="本文边界">本文边界</h2>
+<p>本文解释 MAS
+的产品思想、设计原则和用户价值。安装说明、运行状态证明、论文质量证明、投稿授权和发表承诺由各自的运行记录、课题材料、审阅记录和人工决策承担。</p>
+<p>具体课题的当前状态，需要读取对应 study
+workspace、稿件、图表、证据记录、审阅记录、controller 记录、owner
+receipt、human decision 和最新运行输出。</p>
+<p>MAS
+可以组织和推进医学研究工作。临床解释、伦理和数据合规、主张接受、目标期刊选择、最终投稿和外部系统交互，继续由研究者、PI
+或团队负责人决定。</p>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li><a href="../../README.md">Med Auto Science
+README</a>：公开入口和产品概览。</li>
+<li><a href="../project.md">项目概览</a>：MAS
+当前角色、边界和目标。</li>
+<li><a href="../architecture.md">架构概览</a>：MAS、OPL Framework 与
+owner 边界。</li>
+<li><a href="../policies/quality/ai_first_quality_boundary.md">AI-first
+Quality Boundary Policy</a>：医学论文质量判断边界。</li>
+<li><a
+href="../policies/study-workflow/stage_led_research_autonomy.md">Stage-Led
+Research Autonomy Policy</a>：研究阶段和自治推进原则。</li>
+</ul>
+<h2 id="结语">结语</h2>
+<p>MAS 的目标，是让医学研究团队拥有一条持续推进的智能研究线。</p>
+<p>它从问题出发，把数据、证据、分析、图表、稿件、审阅和交付连接起来。它让
+AI
+承担重活，让研究判断保持有依据，让质量问题进入同一条修订线，让交付材料可以被复查。</p>
+<p>这就是 Med Auto Science
+的位置：把自动科研做成有设计、有边界、有证据、有审阅、有交付的医学研究协作系统。</p>
+</body>
+</html>
