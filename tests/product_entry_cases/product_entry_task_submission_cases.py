@@ -17,14 +17,17 @@ _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
+def product_entry_entry_runtime_module():
+    return importlib.import_module("med_autoscience.controllers.product_entry_parts.entry_runtime")
+
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     startup_module = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
     resolution_module = importlib.import_module("med_autoscience.controllers.study_runtime_resolution")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
 
-    product_entry.submit_study_task(
+    entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="优先发现并修复卡住、无进度、figure 质量坏循环等系统性问题。",
@@ -78,7 +81,7 @@ def test_submit_study_task_projects_task_context_for_opl_runtime(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -99,7 +102,7 @@ def test_submit_study_task_projects_task_context_for_opl_runtime(
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    result = product_entry.submit_study_task(
+    result = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="优先清理 publication gate 文面阻塞。",
@@ -130,7 +133,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -152,13 +155,13 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    first = product_entry.submit_study_task(
+    first = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="根据审稿意见修订 manuscript。",
         constraints=("补齐 Table 1 和 Table 2",),
     )
-    second = product_entry.submit_study_task(
+    second = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="根据审稿意见修订 manuscript。",
@@ -184,7 +187,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -206,7 +209,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    first = product_entry.submit_study_task(
+    first = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="根据审稿意见修订 manuscript。",
@@ -215,7 +218,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     runtime_state = read_runtime_state(quest_root)
     runtime_state["active_run_id"] = "run-live-002"
     write_runtime_state(quest_root, runtime_state)
-    second = product_entry.submit_study_task(
+    second = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="根据审稿意见修订 manuscript。",
@@ -237,7 +240,7 @@ def test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk", quest_id="001-risk-managed")
     short_quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -259,7 +262,7 @@ def test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref(
     )
     write_text(managed_quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    result = product_entry.submit_study_task(
+    result = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="根据审稿意见修订 manuscript。",
@@ -277,7 +280,7 @@ def test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref(
 
 
 def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -296,7 +299,7 @@ def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(t
         + "\n",
     )
 
-    result = product_entry.submit_study_task(
+    result = entry_runtime.submit_study_task(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
@@ -319,7 +322,7 @@ def test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    entry_runtime = product_entry_entry_runtime_module()
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -340,7 +343,7 @@ def test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    result = product_entry.submit_study_task(
+    result = entry_runtime.submit_study_task(
         profile=profile,
         study_id="001-risk",
         task_intent="优先比较不同省份的生物制剂使用意向。",
