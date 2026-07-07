@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_status,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 from . import shared as _shared
 
 
@@ -16,7 +26,6 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -52,7 +61,7 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -143,9 +152,9 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
         },
     )
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_entry_status_markdown(entry_status)
+    cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    entry_status = build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = render_product_entry_status_markdown(entry_status)
 
     workspace_projection = cockpit["open_auto_research_projection"]
     assert workspace_projection["surface_kind"] == "workspace_open_auto_research_projection"
