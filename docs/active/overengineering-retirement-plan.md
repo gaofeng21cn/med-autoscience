@@ -54,6 +54,13 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - 若某 runtime tail 仍签 MAS owner receipt、typed blocker、human gate 或 artifact authority，保留为 minimal authority function，不上收到 OPL。
 - 若 display pack 改造缺 packaging proof，只能先文档化边界与删除无引用 artifact，不能声明 display-pack release-ready。
 
+## 2026-07-07 current tranche
+
+- 用户本轮明确排除 91 个 *_parts 目录专项；该问题由另一个对话处理，本文不把它纳入 current tranche，也不据此删除、移动或重命名 parts directory。
+- `.venv/` 与 `outputs/` 是 ignored local residue；root 已清理，不构成 tracked code change、source morphology landing、contract delta 或 runtime evidence。
+- `contracts/agent_tool_arsenal.json` 是 generated/authority contract；source ref 是 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`。不能手工缩减 JSON；后续只能修改 generator / owner surface，并跑 focused contract tests。
+- Absorption gate：line-budget readback 候选与 `codex-parts-readback-v2-20260707` 同写集，wildcard reporting 候选与 `codex-parts-exports-v2-20260707` 同写集，domain-transition line-budget 剩余项与 `codex-parts-domain-transition-20260707` 同写集；这些代码候选未吸收进 `main`，等待对应 parts lane 交出或完成后再复核。
+
 ## 2026-07-06 P1 root artifact / facade cleanup evidence
 
 - `Rplots.pdf`、`visual_qa_demo.png`：`rg --hidden --glob '!.git/**' --glob '!*.pdf' --glob '!*.png' 'Rplots\.pdf|visual_qa_demo\.png' .` 仅命中本文 P1 清单；两者是未被 active source/tests 引用的 root demo artifact，已删除而非移入 history。
