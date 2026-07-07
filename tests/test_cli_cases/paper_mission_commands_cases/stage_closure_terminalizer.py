@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
-from types import SimpleNamespace
 
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
 
@@ -710,6 +710,192 @@ def test_terminalize_stage_prefers_latest_consumption_closeout_over_inspect_plac
     assert closeout["status"] == "opl_runtime_terminal_readback_observed"
     assert closeout["stage_attempt_id"] == "sat-current-reviewer"
     assert payload["authority_boundary"]["writes_authority"] is False
+
+
+def test_terminalize_stage_prefers_newer_stage_attempt_over_stale_transaction_match(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "dm003_bounded_prose_repair_after_post_sync_reviewer_record"
+    profile_path = _write_profile_with_study(tmp_path, study_id=study_id)
+    workspace_root = tmp_path / "workspace"
+    mission_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "20260707Tstale-transaction"
+        / study_id
+    )
+    mission_root.mkdir(parents=True)
+    transaction = _paper_mission_transaction_payload(
+        mission_id=f"paper-mission::{study_id}::stale-write",
+        study_id=study_id,
+        decision_kind="continue_same_stage",
+    )
+    transaction["transaction_id"] = (
+        f"paper-mission-transaction::{study_id}::write::legacy-one-shot"
+    )
+    transaction["stage_id"] = "write"
+    transaction["work_unit_id"] = work_unit_id
+    transaction["stage_terminal_decision"]["target_stage_id"] = "write"
+    transaction["stage_terminal_decision"]["target_work_unit_id"] = work_unit_id
+    transaction["stage_terminal_decision"]["next_work_unit"] = work_unit_id
+    transaction["opl_route_command"]["target"] = "write"
+    transaction["opl_route_command"]["source_terminal_decision_ref"] = (
+        transaction["transaction_id"] + "#stage_terminal_decision"
+    )
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "paper-mission-run.v1",
+                "mission_id": transaction["mission_id"],
+                "study_id": study_id,
+                "objective": "Stale write route that has been superseded.",
+                "mission_state": "consumed",
+                "artifact_delta_ledger": [],
+                "source_refs": [],
+                "authority_touchpoints": [],
+                "forbidden_write_guard": _paper_mission_forbidden_write_guard(),
+                "consume_result": {"status": "accepted"},
+                "claim_permissions": {
+                    "can_claim_artifact_delta": True,
+                    "can_claim_owner_handoff": True,
+                    "can_claim_publication_ready": False,
+                    "can_claim_current_package": False,
+                    "can_claim_owner_receipt_written": False,
+                },
+                "paper_mission_transaction": transaction,
+                "one_shot_migration_readback": {
+                    "consume_candidate_status": "accepted",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def write_stage_attempt(
+        *,
+        attempt_id: str,
+        stage_packet_ref: str,
+        timestamp: float,
+    ) -> Path:
+        attempt_root = (
+            workspace_root
+            / "ops"
+            / "medautoscience"
+            / "paper_mission_stage_attempts"
+            / attempt_id
+            / study_id
+        )
+        attempt_root.mkdir(parents=True)
+        route_back_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            f"{study_id}/route_back_evidence_packet.json"
+        )
+        closeout_ref = (
+            f"ops/medautoscience/paper_mission_stage_attempts/{attempt_id}/"
+            f"{study_id}/stage_attempt_closeout_packet.json"
+        )
+        route_back = {
+            "surface_kind": "paper_mission_stage_route_back_evidence_packet",
+            "stage_attempt_id": attempt_id,
+            "study_id": study_id,
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+            "stage_packet_ref": stage_packet_ref,
+            "owner_answer_kind": "route_back_evidence_ref",
+            "route_back_evidence_ref": route_back_ref,
+            "source_evidence": {
+                "paper_mission_transaction_ref": stage_packet_ref,
+            },
+        }
+        closeout = {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "route_back_evidence_candidate",
+            "study_id": study_id,
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+            "stage_attempt_id": attempt_id,
+            "stage_packet_ref": stage_packet_ref,
+            "owner_answer_kind": "route_back_evidence_ref",
+            "route_back_evidence_ref": route_back_ref,
+            "closeout_ref": closeout_ref,
+            "closeout_refs": [closeout_ref, route_back_ref],
+            "authority_boundary": {"record_only_surface": True},
+        }
+        route_path = attempt_root / "route_back_evidence_packet.json"
+        closeout_path = attempt_root / "stage_attempt_closeout_packet.json"
+        route_path.write_text(json.dumps(route_back), encoding="utf-8")
+        closeout_path.write_text(json.dumps(closeout), encoding="utf-8")
+        os.utime(route_path, (timestamp, timestamp))
+        os.utime(closeout_path, (timestamp, timestamp))
+        return closeout_path
+
+    old_closeout_path = write_stage_attempt(
+        attempt_id="sat-old-transaction-match",
+        stage_packet_ref=transaction["transaction_id"],
+        timestamp=1_788_000_000.0,
+    )
+    write_stage_attempt(
+        attempt_id="sat-new-domain-transition",
+        stage_packet_ref=f"paper-mission-transaction::{study_id}::write::domain-transition",
+        timestamp=1_788_000_600.0,
+    )
+    terminalizer_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts."
+        "stage_closure_terminalizer_readback"
+    )
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(
+        profile_path
+    )
+    old_source_readback = (
+        terminalizer_readback._build_terminalizer_source_readback_from_stage_packet(
+            profile=profile,
+            profile_ref=profile_path,
+            study_id=study_id,
+            stage_packet=old_closeout_path,
+            source="test:stale-stage-packet",
+        )
+    )
+    selected_source = (
+        terminalizer_readback._latest_stage_attempt_route_back_source_readback(
+            profile=profile,
+            profile_ref=profile_path,
+            study_id=study_id,
+            source_readback=old_source_readback,
+            source="test:autodiscovery",
+        )
+    )
+
+    assert selected_source is not None
+    assert selected_source["opl_runtime_carrier_readback"]["terminal_closeout"][
+        "stage_attempt_id"
+    ] == "sat-new-domain-transition"
+
+    exit_code = cli.main(
+        [
+            "paper-mission",
+            "terminalize-stage",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            study_id,
+            "--dry-run",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    closeout = payload["stage_closure_decision"]["opl_closeout"]
+    assert closeout["stage_attempt_id"] == "sat-new-domain-transition"
+    assert payload["stage_closure_decision"]["identity"][
+        "paper_mission_transaction_ref"
+    ] == f"paper-mission-transaction::{study_id}::write::domain-transition"
 
 
 def test_inspect_prefers_latest_consumption_transaction_over_placeholder(

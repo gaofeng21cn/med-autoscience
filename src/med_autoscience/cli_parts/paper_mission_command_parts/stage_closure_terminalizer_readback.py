@@ -645,13 +645,10 @@ def _latest_stage_attempt_route_back_source_readback(
     )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
     current_terminal_consumed = _current_terminal_owner_consumed(source_readback)
-    current_terminal_mtime = _terminal_closeout_mtime(
-        _mapping(
-            _mapping(source_readback.get("current_opl_runtime_carrier_readback")).get(
-                "terminal_closeout"
-            )
-        ),
-        workspace_root=Path(profile.workspace_root).expanduser().resolve(),
+    workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    current_terminal_mtime = _terminal_closeout_mtime_from_readback(
+        source_readback,
+        workspace_root=workspace_root,
     )
     candidates: list[tuple[int, int, int, int, float, int, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
@@ -715,6 +712,16 @@ def _latest_stage_attempt_route_back_source_readback(
             packet=packet,
             route_back=route_back,
         )
+        packet_mtime = packet_ref.stat().st_mtime
+        newer_successor_priority = (
+            1
+            if (
+                matches_expected_identity
+                and current_terminal_mtime is not None
+                and packet_mtime > current_terminal_mtime
+            )
+            else 0
+        )
         consumed_successor_priority = (
             1
             if (
@@ -723,17 +730,18 @@ def _latest_stage_attempt_route_back_source_readback(
                 and transaction_priority == 0
                 and stage_attempt_id not in preferred_stage_attempt_ids
                 and current_terminal_mtime is not None
-                and packet_ref.stat().st_mtime > current_terminal_mtime
+                and packet_mtime > current_terminal_mtime
             )
             else 0
         )
+        successor_priority = max(newer_successor_priority, consumed_successor_priority)
         candidates.append(
             (
-                consumed_successor_priority,
+                successor_priority,
                 transaction_priority,
                 bucket_priority,
                 semantic_priority if transaction_priority or bucket_priority else 0,
-                packet_ref.stat().st_mtime,
+                packet_mtime,
                 semantic_priority,
                 str(packet_ref),
                 packet_ref,
@@ -752,6 +760,25 @@ def _latest_stage_attempt_route_back_source_readback(
         stage_packet=packet_ref,
         source=f"{source}:autodiscovered-stage-packet",
     )
+
+
+def _terminal_closeout_mtime_from_readback(
+    readback: Mapping[str, Any],
+    *,
+    workspace_root: Path,
+) -> float | None:
+    mtimes: list[float] = []
+    for carrier_key in (
+        "current_opl_runtime_carrier_readback",
+        "opl_runtime_carrier_readback",
+    ):
+        mtime = _terminal_closeout_mtime(
+            _mapping(_mapping(readback.get(carrier_key)).get("terminal_closeout")),
+            workspace_root=workspace_root,
+        )
+        if mtime is not None:
+            mtimes.append(mtime)
+    return max(mtimes) if mtimes else None
 
 
 def _current_terminal_owner_consumed(readback: Mapping[str, Any]) -> bool:
