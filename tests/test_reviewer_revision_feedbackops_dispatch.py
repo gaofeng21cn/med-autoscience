@@ -170,6 +170,30 @@ def test_feedbackops_dispatch_normalizes_agent_lab_structured_reviewer_eval(
     normalized = json.loads(normalized_ref.read_text(encoding="utf-8"))
     assert result["status"] == "ready_for_oma_work_order_materialization"
     assert result["ai_reviewer_evaluation_ref"] == str(normalized_ref)
+    assert result["oma_materialization_request_status"] == "ready_for_oma_work_order_materialization"
+    assert result["skill_writeback_status"] == "target_skill_refs_bound_for_oma_work_order"
+    assert "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md" in result[
+        "target_skill_refs"
+    ]
+    oma_request = json.loads(
+        (tmp_path / "oma_materialization_request.json").read_text(encoding="utf-8")
+    )
+    assert result["oma_materialization_request_ref"] == str(tmp_path / "oma_materialization_request.json")
+    assert oma_request["surface_kind"] == "mas_oma_external_suite_materialization_request"
+    assert oma_request["status"] == "ready_for_oma_work_order_materialization"
+    assert oma_request["source_suite_ref"] == str(suite_path)
+    assert oma_request["ai_reviewer_evaluation_ref"] == str(normalized_ref)
+    assert oma_request["target_agent"]["agent_id"] == "med-autoscience"
+    assert oma_request["target_agent"]["descriptor_ref"].endswith("contracts/domain_descriptor.json")
+    assert oma_request["target_owner_closeout_ref"] == (
+        "medautosci paper-mission inspect --study-id 001-risk --format json"
+    )
+    assert oma_request["oma_command_contract"] == (
+        "opl-meta-agent.improve-from-external-agent-lab-suite"
+    )
+    assert oma_request["oma_execute_command_contract"] == "opl-meta-agent.execute-external-work-order"
+    assert oma_request["authority_boundary"]["writes_owner_receipt"] is False
+    assert oma_request["authority_write_route_context"]["candidate_is_authority"] is False
     assert normalized["reviewer_kind"] == "independent_ai_medical_manuscript_quality_reviewer"
     assert normalized["no_shared_context"] is True
     assert normalized["independent_attempt"] is True
@@ -253,6 +277,10 @@ def test_feedbackops_dispatch_discovers_structured_ai_reviewer_eval(
     assert result["status"] == "ready_for_oma_work_order_materialization"
     assert result["ai_reviewer_evaluation_ref"] == str(ai_eval)
     assert result["ai_reviewer_evaluation_status"] == "valid"
+    assert result["oma_materialization_request_ref"].endswith("oma_materialization_request.json")
+    assert result["target_owner_closeout_ref"] == (
+        "medautosci paper-mission inspect --study-id 001-risk --format json"
+    )
     assert result["next_owner"] == "opl-meta-agent"
 
 

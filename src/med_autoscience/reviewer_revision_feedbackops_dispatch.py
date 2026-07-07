@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.reviewer_revision_oma_materialization import write_oma_materialization_request
+
 
 def dispatch_reviewer_revision_feedbackops(
     *,
@@ -52,10 +54,24 @@ def dispatch_reviewer_revision_feedbackops(
             suite_path=suite_path,
         )
         if ai_reviewer_evaluation_ref:
+            oma_request_path, oma_request = write_oma_materialization_request(
+                request=request,
+                request_path=request_path,
+                suite_path=suite_path,
+                ai_reviewer_evaluation_ref=ai_reviewer_evaluation_ref,
+                opl_bin=opl_bin,
+            )
             result["ai_reviewer_evaluation_ref"] = ai_reviewer_evaluation_ref
             result["ai_reviewer_evaluation_status"] = "valid"
-            result["status"] = "ready_for_oma_work_order_materialization"
+            result["oma_materialization_request_ref"] = str(oma_request_path)
+            result["oma_materialization_request_status"] = oma_request.get("status")
+            result["target_owner_closeout_ref"] = oma_request.get("target_owner_closeout_ref")
+            result["skill_writeback_status"] = oma_request.get("skill_writeback_status")
+            result["target_skill_refs"] = list(oma_request.get("target_skill_refs") or [])
+            result["status"] = oma_request.get("status") or "ready_for_oma_work_order_materialization"
             result["next_owner"] = "opl-meta-agent"
+            if result["status"] != "ready_for_oma_work_order_materialization":
+                result["blocked_reason"] = oma_request.get("blocked_reason")
         else:
             request_packet = _write_structured_ai_reviewer_evaluation_request(
                 request=request,
@@ -455,6 +471,11 @@ def _compact_execution_readback(payload: dict[str, Any], *, path: Path) -> dict[
         "blocked_reason": payload.get("blocked_reason"),
         "ai_reviewer_evaluation_ref": payload.get("ai_reviewer_evaluation_ref"),
         "ai_reviewer_evaluation_status": payload.get("ai_reviewer_evaluation_status"),
+        "oma_materialization_request_ref": payload.get("oma_materialization_request_ref"),
+        "oma_materialization_request_status": payload.get("oma_materialization_request_status"),
+        "target_owner_closeout_ref": payload.get("target_owner_closeout_ref"),
+        "skill_writeback_status": payload.get("skill_writeback_status"),
+        "target_skill_refs": list(payload.get("target_skill_refs") or []),
         "structured_ai_reviewer_evaluation_request_ref": payload.get(
             "structured_ai_reviewer_evaluation_request_ref"
         ),

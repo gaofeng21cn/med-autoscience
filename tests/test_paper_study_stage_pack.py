@@ -305,6 +305,22 @@ def test_reviewer_revision_default_mechanism_routes_large_feedback_to_oma_and_sc
     writeback = mechanism["specialist_skill_writeback_contract"]
     assert writeback["route"] == "OMA developer work order or refs-only improvement proposal"
     assert writeback["target_source_of_truth"] == "external_repo:mas-scholar-skills"
+    oma_request = writeback["oma_materialization_request_surface"]
+    assert oma_request["producer"] == "med_autoscience.reviewer_revision_feedbackops_dispatch"
+    assert oma_request["required_after_structured_ai_reviewer_evaluation"] is True
+    assert oma_request["ready_status"] == "ready_for_oma_work_order_materialization"
+    assert oma_request["fail_closed_status"] == "blocked_oma_materialization_prerequisites_missing"
+    assert {
+        "source_suite_ref",
+        "ai_reviewer_evaluation_ref",
+        "target_agent.repo_dir",
+        "target_skill_refs",
+        "target_owner_closeout_ref",
+        "target_owner_closeout_readback",
+        "authority_write_route_context",
+        "oma_command_contract",
+        "oma_execute_command_contract",
+    } <= set(oma_request["minimum_fields"])
     assert {
         "medical-manuscript-writing",
         "medical-manuscript-review",
