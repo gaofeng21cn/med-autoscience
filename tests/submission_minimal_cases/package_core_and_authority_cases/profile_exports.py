@@ -1,5 +1,8 @@
 from tests.submission_minimal_cases.shared import *
 
+from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import inspect_submission_docx_surface
+from med_autoscience.controllers.submission_minimal_parts.package_builder import create_submission_minimal_package
+
 
 def test_export_pdf_uses_submission_layout_header_for_fixed_figures_and_wide_tables(
     tmp_path: Path,
@@ -68,7 +71,6 @@ title: "Submission"
 
 
 def test_create_submission_minimal_package_general_profile_writes_figure_legends_and_tables(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -107,7 +109,7 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -139,10 +141,9 @@ def test_create_submission_minimal_package_general_profile_embeds_figures_into_d
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -166,9 +167,7 @@ def test_create_submission_minimal_package_general_profile_embeds_figures_into_d
 
 
 def test_inspect_submission_docx_surface_treats_directory_placeholder_as_missing() -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-
-    stats = module.inspect_submission_docx_surface(Path(""))
+    stats = inspect_submission_docx_surface(Path(""))
 
     assert stats == {
         "exists": False,
