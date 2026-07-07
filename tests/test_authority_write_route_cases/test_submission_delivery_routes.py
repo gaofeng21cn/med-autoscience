@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-import importlib
+from io import BytesIO
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
+from pypdf import PdfWriter
 
+from med_autoscience.controllers.submission_minimal_parts import package_builder
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
 from tests.submission_minimal_cases.package_core_and_authority import (
     make_paper_workspace,
     remove_authority_snapshots,
@@ -16,11 +21,48 @@ from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions
     _submission_source_relative_paths,
     _submission_source_signature,
 )
+from med_autoscience.controllers.study_delivery_sync_parts.sync_orchestration import (
+    sync_study_delivery,
+)
 
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _minimal_pdf_bytes() -> bytes:
+    output = BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    writer.write(output)
+    return output.getvalue()
+
+
+def _remove_tree(path: Path) -> None:
+    if not path.exists():
+        return
+    for child in sorted(path.rglob("*"), reverse=True):
+        if child.is_file():
+            child.unlink()
+        elif child.is_dir():
+            child.rmdir()
+    path.rmdir()
+
+
+def _write_placeholder_export(
+    *,
+    output_docx_path: Path | None = None,
+    output_pdf_path: Path | None = None,
+    **_: Any,
+) -> None:
+    output_path = output_docx_path or output_pdf_path
+    assert output_path is not None
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_pdf_path is not None:
+        output_path.write_bytes(_minimal_pdf_bytes())
+    else:
+        output_path.write_bytes(b"test export placeholder")
 
 
 def _write_runtime_authority_snapshots(
@@ -81,41 +123,33 @@ def _snapshot(
 
 
 def test_submission_minimal_without_snapshot_is_blocked_before_writing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     remove_authority_snapshots(paper_root.parent)
     submission_root = paper_root / "submission_minimal"
-    if submission_root.exists():
-        for path in sorted(submission_root.rglob("*"), reverse=True):
-            if path.is_file():
-                path.unlink()
-            elif path.is_dir():
-                path.rmdir()
-        submission_root.rmdir()
+    _remove_tree(submission_root)
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
 
-    assert result["status"] == "authority_route_blocked"
     assert "authority_snapshot_missing" in result["authority_route_gate"]["blocking_reasons"]
-    assert not submission_root.exists()
+    assert result["authority_route_gate"]["allowed"] is False
+    assert result["submission_materialization_status"] == {
+        "package_role": "audit_source_package",
+        "can_submit": False,
+        "quality_gate_status": "blocked",
+        "known_blockers": ["authority_snapshot_missing"],
+    }
+    assert (submission_root / "audit" / "submission_manifest.json").exists()
 
 
 def test_projection_only_submission_minimal_does_not_materialize(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     submission_root = paper_root / "submission_minimal"
-    if submission_root.exists():
-        for path in sorted(submission_root.rglob("*"), reverse=True):
-            if path.is_file():
-                path.unlink()
-            elif path.is_dir():
-                path.rmdir()
-        submission_root.rmdir()
+    _remove_tree(submission_root)
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context={"projection_only": True, "paths": [submission_root]},
@@ -127,10 +161,9 @@ def test_projection_only_submission_minimal_does_not_materialize(tmp_path: Path)
 
 
 def test_delivery_sync_without_snapshot_still_writes_non_submit_current_package(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
 
-    result = module.sync_study_delivery(
+    result = sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",
     )
@@ -140,39 +173,24 @@ def test_delivery_sync_without_snapshot_still_writes_non_submit_current_package(
     assert result["authority_route_gate"]["allowed"] is True
     assert result["submission_authority_gate"]["allowed"] is False
     assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
-    assert (study_root / "manuscript" / "current_package").exists()
-    assert (study_root / "manuscript" / "current_package.zip").exists()
+    assert (study_root / "submission").exists()
+    assert (study_root / "submission.zip").exists()
 
 
 def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.package_builder"
-    )
     paper_root = make_paper_workspace(tmp_path)
     _write_runtime_authority_snapshots(
         paper_root.parent,
         blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
     )
 
-    def write_placeholder_export(
-        *,
-        output_docx_path: Path | None = None,
-        output_pdf_path: Path | None = None,
-        **_: Any,
-    ) -> None:
-        output_path = output_docx_path or output_pdf_path
-        assert output_path is not None
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_bytes(b"test export placeholder")
+    monkeypatch.setattr(package_builder, "export_docx", _write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", _write_placeholder_export)
 
-    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
-    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
-
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -185,14 +203,13 @@ def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
 
 
 def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_current_package(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
     _write_runtime_authority_snapshots(
         study_root,
         blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
     )
 
-    result = module.sync_study_delivery(
+    result = sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",
     )
@@ -203,11 +220,10 @@ def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_cur
     assert result["authority_route_gate"]["allowed"] is True
     assert result["submission_authority_gate"]["allowed"] is False
     assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
-    assert (study_root / "manuscript" / "current_package").exists()
+    assert (study_root / "submission").exists()
 
 
 def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
     _write_runtime_authority_snapshots(
         study_root,
@@ -249,7 +265,7 @@ def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_pa
         encoding="utf-8",
     )
 
-    result = module.sync_study_delivery(
+    result = sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",
     )
@@ -268,7 +284,6 @@ def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_pa
 
 
 def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
     _write_runtime_authority_snapshots(
         study_root,
@@ -298,7 +313,7 @@ def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp
         encoding="utf-8",
     )
 
-    result = module.sync_study_delivery(
+    result = sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",
     )
@@ -313,27 +328,12 @@ def test_fresh_snapshot_authorizes_submission_minimal_write(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.package_builder"
-    )
     paper_root = make_paper_workspace(tmp_path)
 
-    def write_placeholder_export(
-        *,
-        output_docx_path: Path | None = None,
-        output_pdf_path: Path | None = None,
-        **_: Any,
-    ) -> None:
-        output_path = output_docx_path or output_pdf_path
-        assert output_path is not None
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_bytes(b"test export placeholder")
+    monkeypatch.setattr(package_builder, "export_docx", _write_placeholder_export)
+    monkeypatch.setattr(package_builder, "export_pdf", _write_placeholder_export)
 
-    monkeypatch.setattr(package_builder, "export_docx", write_placeholder_export)
-    monkeypatch.setattr(package_builder, "export_pdf", write_placeholder_export)
-
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         authority_route_context={"authority_snapshot": _snapshot(paper_write_allowed=True)},
