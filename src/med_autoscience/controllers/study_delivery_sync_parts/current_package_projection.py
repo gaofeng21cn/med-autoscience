@@ -51,6 +51,12 @@ def _build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
     build_zip_from_directory(source_root=source_root, output_path=output_path)
 
 
+def _refresh_visual_audit_receipt_timestamp(*, current_package_root: Path) -> None:
+    visual_audit_receipt = current_package_root / "figure_visual_audit_receipt.json"
+    if visual_audit_receipt.exists():
+        visual_audit_receipt.touch()
+
+
 __all__ = [
     "augment_submission_surface_in_place",
     "sync_current_package_projection",
@@ -418,6 +424,7 @@ def sync_current_package_projection(
         source_signature_payload=source_signature_payload,
         generated_files=generated_files,
     )
+    _refresh_visual_audit_receipt_timestamp(current_package_root=current_package_root)
     _build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     _append_generated_file(generated_files, category="current_package", path=current_package_zip)
     return readme_payload

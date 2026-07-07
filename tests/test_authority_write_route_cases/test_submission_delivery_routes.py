@@ -328,6 +328,14 @@ def test_submission_ready_delivery_uses_v2_submission_audit_evidence_when_paper_
             ],
         },
     )
+    _write_json(source_root / "figure_visual_audit_receipt.json", {"schema_version": 1, "status": "clear"})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::v2-source",
+        },
+    )
     (paper_root / "evidence_ledger.json").unlink()
 
     result = sync_study_delivery(
@@ -339,12 +347,17 @@ def test_submission_ready_delivery_uses_v2_submission_audit_evidence_when_paper_
 
     assert result["package_kind"] == "submission_ready_package"
     assert result["can_submit"] is True
+    assert result["current_package_freshness_proof"]["status"] == "fresh"
     assert result["charter_contract_linkage"]["ledger_linkages"]["evidence_ledger"]["status"] == "linked"
     assert result["charter_contract_linkage"]["ledger_linkages"]["review_ledger"]["status"] == "linked"
     assert (study_root / "manuscript" / "audit" / "evidence_ledger.json").exists()
     assert (study_root / "manuscript" / "audit" / "review_ledger.json").exists()
     assert (study_root / "manuscript" / "current_package" / "audit" / "evidence_ledger.json").exists()
     assert (study_root / "manuscript" / "current_package" / "audit" / "review_ledger.json").exists()
+    assert (
+        study_root / "manuscript" / "current_package" / "figure_visual_audit_receipt.json"
+    ).stat().st_mtime_ns >= (study_root / "manuscript" / "current_package" / "paper.pdf").stat().st_mtime_ns
+    assert (study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json").exists()
     assert (
         study_root
         / "manuscript"
