@@ -460,6 +460,12 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     )
     row_height_weights = supplementary_material._pdf_table_row_height_weights(wrapped_rows)
     assert row_height_weights[1] > row_height_weights[0]
+    wrapped_long_token = supplementary_material._wrap_pdf_table_cell(
+        "severe_glycemia_low_recorded_glucose_lowering_intensity_denominator",
+        width=28,
+    )
+    assert "\n" in wrapped_long_token
+    assert max(len(line) for line in wrapped_long_token.splitlines()) <= 28
 
 
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(
