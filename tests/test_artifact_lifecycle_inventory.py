@@ -425,13 +425,16 @@ def test_v2_current_package_audit_manifest_is_projection_only_read_model(tmp_pat
 
 
 def test_submission_surface_docx_inspector_is_read_only_for_generated_projection(tmp_path: Path) -> None:
-    submission_minimal = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+        inspect_submission_docx_surface,
+    )
+
     docx_path = _write(tmp_path / "study" / "paper" / "submission_minimal" / "manuscript.docx", "not-a-zip\n")
     before_bytes = docx_path.read_bytes()
     before_mtime_ns = docx_path.stat().st_mtime_ns
 
-    first = submission_minimal.inspect_submission_docx_surface(docx_path)
-    second = submission_minimal.inspect_submission_docx_surface(docx_path)
+    first = inspect_submission_docx_surface(docx_path)
+    second = inspect_submission_docx_surface(docx_path)
 
     assert first == second
     assert first["exists"] is True
