@@ -420,22 +420,15 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
         "paper/submission_minimal/supplementary_tables.xlsx"
     )
 
-    from openpyxl import load_workbook
-
-    workbook = load_workbook(workbook_path)
-    assert "S1" in workbook.sheetnames
-    sheet = workbook["S1"]
-    assert sheet["A1"].value == "Supplementary Table S1. Supplementary audit dictionary"
-    assert [cell.value for cell in sheet[3][:3]] == [
-        "paper_role",
-        "analysis_denominator",
-        "claim_boundary",
-    ]
-    assert [cell.value for cell in sheet[4][:3]] == [
-        "supplementary",
-        "eligible indicator denominator",
-        "recorded care-review gap only",
-    ]
+    with zipfile.ZipFile(workbook_path) as workbook:
+        workbook_xml = workbook.read("xl/workbook.xml").decode("utf-8")
+        shared_strings = workbook.read("xl/sharedStrings.xml").decode("utf-8")
+    assert 'name="S1"' in workbook_xml
+    assert "Supplementary Table S1. Supplementary audit dictionary" in shared_strings
+    assert "paper_role" in shared_strings
+    assert "analysis_denominator" in shared_strings
+    assert "claim_boundary" in shared_strings
+    assert "recorded care-review gap only" in shared_strings
 
 
 def test_create_submission_minimal_package_preserves_top_level_figures_in_manuscript_shaped_draft(

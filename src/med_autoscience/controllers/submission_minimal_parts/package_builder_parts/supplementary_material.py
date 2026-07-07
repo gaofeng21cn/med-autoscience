@@ -290,52 +290,48 @@ def build_supplementary_tables_workbook(
     if not sections:
         return None
 
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font
-    from openpyxl.utils import get_column_letter
+    import xlsxwriter
 
-    workbook = Workbook()
-    workbook.remove(workbook.active)
+    output_path = submission_root / "supplementary_tables.xlsx"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    workbook = xlsxwriter.Workbook(str(output_path))
+    title_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "top"})
+    header_format = workbook.add_format({"bold": True, "text_wrap": True, "valign": "top"})
+    body_format = workbook.add_format({"text_wrap": True, "valign": "top"})
     used_sheet_names: set[str] = set()
+    sheet_count = 0
     for fallback_index, section in enumerate(sections, start=1):
         title = section["title"] or f"Supplementary Table {fallback_index}"
         rows = section["rows"]
         if not rows:
             continue
-        sheet = workbook.create_sheet(
-            title=_unique_excel_sheet_name(
-                _supplementary_table_sheet_name(title, fallback_index=fallback_index),
-                used_sheet_names,
-            )
+        sheet_name = _unique_excel_sheet_name(
+            _supplementary_table_sheet_name(title, fallback_index=fallback_index),
+            used_sheet_names,
         )
-        sheet.append([title])
-        sheet.append([])
-        for row in rows:
-            sheet.append(row)
+        sheet = workbook.add_worksheet(sheet_name)
+        sheet_count += 1
         max_columns = max(len(row) for row in rows)
         if max_columns:
-            sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_columns)
-        sheet["A1"].font = Font(bold=True)
-        for cell in sheet[3]:
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-        for row in sheet.iter_rows(min_row=4):
-            for cell in row:
-                cell.alignment = Alignment(wrap_text=True, vertical="top")
-        sheet.freeze_panes = "A4"
-        for column_index in range(1, max_columns + 1):
+            sheet.merge_range(0, 0, 0, max_columns - 1, title, title_format)
+        for column_index in range(max_columns):
             values = [
-                str(sheet.cell(row=row_index, column=column_index).value or "")
-                for row_index in range(3, sheet.max_row + 1)
+                str(row[column_index] if column_index < len(row) else "")
+                for row in rows
             ]
             max_width = min(max([len(value) for value in values] + [10]) + 2, 48)
-            sheet.column_dimensions[get_column_letter(column_index)].width = max_width
+            sheet.set_column(column_index, column_index, max_width)
+        sheet.write_blank(1, 0, None)
+        for row_index, row in enumerate(rows, start=2):
+            row_format = header_format if row_index == 2 else body_format
+            for column_index, value in enumerate(row):
+                sheet.write(row_index, column_index, value, row_format)
+        sheet.freeze_panes(3, 0)
 
-    if not workbook.sheetnames:
+    workbook.close()
+    if sheet_count == 0:
+        output_path.unlink(missing_ok=True)
         return None
-    output_path = submission_root / "supplementary_tables.xlsx"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    workbook.save(output_path)
     return output_path
 
 
