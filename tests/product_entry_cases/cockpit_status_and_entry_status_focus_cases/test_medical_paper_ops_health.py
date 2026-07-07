@@ -12,6 +12,19 @@ from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_
     write_study,
 )
 from tests.test_medical_paper_ops_health import _readiness, assert_projection_authority_false
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_status,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown import (
+    render_workspace_cockpit_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 
 
 def _research_loop_readiness() -> dict[str, object]:
@@ -62,32 +75,29 @@ def _research_loop_readiness() -> dict[str, object]:
     return readiness
 
 
-def _patch_ready_workspace(module, monkeypatch) -> None:
+def _patch_ready_workspace(monkeypatch) -> None:
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "build_doctor_report", lambda profile: _ready_doctor_report())
     monkeypatch.setattr(_shared.product_entry_cockpit_payload_module(), "_inspect_workspace_supervision", lambda profile: _ready_supervision())
-    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(mainline_status, "read_mainline_status", _ready_mainline_status)
 
 
 def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     readiness = _research_loop_readiness()
 
-    _patch_ready_workspace(module, monkeypatch)
+    _patch_ready_workspace(monkeypatch)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     study_health = payload["studies"][0]["medical_paper_ops_health"]
     workspace_health = payload["medical_paper_ops_health_state"]
-    markdown = module.render_workspace_cockpit_markdown(payload)
+    markdown = render_workspace_cockpit_markdown(payload)
 
     assert study_health["surface"] == "medical_paper_ops_health"
     assert study_health["overall_status"] == "blocked"
@@ -177,23 +187,20 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
 
 
 def test_product_entry_status_projects_workspace_v5_ops_health(monkeypatch, tmp_path) -> None:
-    import importlib
-
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     readiness = _research_loop_readiness()
 
-    _patch_ready_workspace(module, monkeypatch)
+    _patch_ready_workspace(monkeypatch)
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
         "_read_study_progress",
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_entry_status_markdown(payload)
+    payload = build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = render_product_entry_status_markdown(payload)
 
     ops_health = payload["workspace_medical_paper_ops_health"]
     assert ops_health["surface"] == "workspace_medical_paper_ops_health"
