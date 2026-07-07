@@ -285,6 +285,38 @@ def test_stage_closure_next_action_suppresses_consumed_same_route_checkpoint() -
     )
 
 
+def test_consumed_route_checkpoint_suppresses_stale_transaction_owner_consumption() -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    fields = {
+        "next_action": {
+            "action_family": "paper.stage_closure.owner_consumption",
+            "work_unit_id": "medical_prose_write_repair",
+        },
+        "canonical_next_action_source": "paper_mission_next_action_envelope",
+        "paper_mission_transaction_readback": {
+            "next_action": {"action_family": "paper.stage_closure.owner_consumption"}
+        },
+    }
+
+    suppressed = (
+        materialized_readback.suppress_consumed_route_checkpoint_transaction_next_action(
+            transaction_output_fields=fields,
+            receipt_owner_consumption_readback={
+                "status": "owner_consumption_applied",
+                "mas_receipt_consumption": {
+                    "status": "owner_consumed_route_checkpoint"
+                },
+            },
+        )
+    )
+
+    assert "next_action" not in suppressed
+    assert "canonical_next_action_source" not in suppressed
+    assert "next_action" not in suppressed["paper_mission_transaction_readback"]
+
+
 def test_owner_consumed_route_checkpoint_yields_to_same_stage_new_work_unit() -> None:
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"

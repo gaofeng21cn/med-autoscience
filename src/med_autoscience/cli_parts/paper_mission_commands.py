@@ -51,6 +51,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.drive_readback import
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
     _domain_transition_direct_next_action_runtime_readback as _build_domain_transition_direct_next_action_runtime_readback,
+    suppress_consumed_route_checkpoint_transaction_next_action as _suppress_consumed_route_checkpoint_transaction_next_action,
 )
 from med_autoscience.cli_parts.paper_mission_command_parts.materialized_readback_context import (
     dispatch_execution_policy as _dispatch_execution_policy,
@@ -671,6 +672,10 @@ def build_paper_mission_readback(
     elif next_action_override is not None and canonical_next_action_source is None:
         canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
+    transaction_output_fields = _suppress_consumed_route_checkpoint_transaction_next_action(
+        transaction_output_fields=transaction_output_fields,
+        receipt_owner_consumption_readback=receipt_owner_consumption,
+    )
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
         if canonical_next_action_source is not None:

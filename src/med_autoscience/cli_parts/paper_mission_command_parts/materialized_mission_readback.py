@@ -359,6 +359,12 @@ def build_materialized_mission_readback_if_available(
     ):
         transaction_output_fields.pop("next_action", None)
         transaction_output_fields.pop("canonical_next_action_source", None)
+    transaction_output_fields = (
+        suppress_consumed_route_checkpoint_transaction_next_action(
+            transaction_output_fields=transaction_output_fields,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        )
+    )
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
         if canonical_next_action_source is not None:
@@ -1071,6 +1077,29 @@ def _stage_closure_owner_receipt_suppresses_transaction_next_action(
     ):
         return False
     return True
+
+
+def suppress_consumed_route_checkpoint_transaction_next_action(
+    *,
+    transaction_output_fields: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption_readback):
+        return dict(transaction_output_fields)
+    action = _mapping(transaction_output_fields.get("next_action"))
+    if _optional_text(action.get("action_family")) != (
+        "paper.stage_closure.owner_consumption"
+    ):
+        return dict(transaction_output_fields)
+    suppressed = dict(transaction_output_fields)
+    suppressed.pop("next_action", None)
+    suppressed.pop("canonical_next_action_source", None)
+    nested = _mapping(suppressed.get("paper_mission_transaction_readback"))
+    if nested:
+        nested = dict(nested)
+        nested.pop("next_action", None)
+        suppressed["paper_mission_transaction_readback"] = nested
+    return suppressed
 
 
 def _receipt_owner_consumed_route_checkpoint(
