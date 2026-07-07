@@ -1,0 +1,70 @@
+{
+  "surface_kind": "opl_agent_package_manifest.v1",
+  "agent_id": "med-autoscience",
+  "package_id": "med-autoscience",
+  "display_name": "Med Auto Science",
+  "publisher": "one-person-lab",
+  "version": "0.1.0a4",
+  "source": "first_party_repo_local",
+  "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
+  "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
+  "machine_boundary": "This repo-local sidecar declares OPL Agent Package management semantics. The repo plugin directory is the Codex carrier source, not the package truth or domain truth owner.",
+  "distribution_payload": {
+    "payload_kind": "ghcr_oci_agent_package",
+    "payload_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
+    "payload_digest_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "required_skill_pack_lock_refs": [
+      "opl://agent-package-lock/mas-scholar-skills/0.1.0a4/managed-ghcr-capability-package"
+    ],
+    "proof_status": "non_live_contract_fixture",
+    "live_download_proof": false,
+    "installed_reload_proof": false,
+    "oci_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
+    "oci_media_type": "application/vnd.oci.image.manifest.v1+json",
+    "immutable_tag": "0.1.0a4",
+    "rolling_tag": "latest",
+    "promotion_policy": "daily_candidate_gates_then_promote_latest",
+    "install_truth": "resolved_digest_lock"
+  },
+  "codex_surface": {
+    "plugin_id": "mas",
+    "standalone_distribution": "self_contained_fat_plugin",
+    "required_skill_ids": [
+      "mas",
+      "mas-scholar-skills"
+    ],
+    "bundled_capability_package_ids": [
+      "mas-scholar-skills"
+    ],
+    "user_install_action_count": 1
+  },
+  "capability_dependencies": [
+    {
+      "module_id": "scholarskills",
+      "package_id": "mas-scholar-skills",
+      "kind": "framework_capability_package",
+      "required_for": [
+        "workspace_or_quest_codex_discovery"
+      ],
+      "codex_distribution": "bundled",
+      "opl_distribution": "managed_dependency",
+      "developer_distribution": "source_checkout",
+      "install_owner": "one-person-lab",
+      "install_update_source": "ghcr_capability_packages_channel",
+      "sync_scopes": [
+        "workspace",
+        "quest"
+      ],
+      "sync_command_refs": [
+        "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace <workspace-root> --json",
+        "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest <quest-root> --json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_write_runtime_queue": false
+      }
+    }
+  ]
+}
