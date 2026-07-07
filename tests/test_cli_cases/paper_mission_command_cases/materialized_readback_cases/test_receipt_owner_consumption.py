@@ -250,6 +250,41 @@ def test_owner_consumed_route_checkpoint_yields_to_domain_transition_action() ->
     )
 
 
+def test_stage_closure_next_action_suppresses_consumed_same_route_checkpoint() -> None:
+    stage_closure_next_action = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_next_action"
+    )
+    stage_closure_decision = {
+        "stage_id": "finalize",
+        "work_unit_id": "provider_hosted_guarded_apply",
+        "outcome": {
+            "kind": "next_stage_transition",
+            "transition_kind": "route_back_candidate_checkpoint",
+        },
+    }
+    receipt_owner_consumption = {
+        "status": "owner_consumption_applied",
+        "stage_closure_decision": {
+            "stage_id": "finalize",
+            "work_unit_id": "provider_hosted_guarded_apply",
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+        },
+        "mas_receipt_consumption": {"status": "owner_consumed_route_checkpoint"},
+    }
+
+    assert (
+        stage_closure_next_action.next_action_for_stage_closure_decision(
+            stage_closure_decision=stage_closure_decision,
+            transaction_readback={"paper_mission_transaction": {}},
+            receipt_owner_consumption_readback=receipt_owner_consumption,
+        )
+        is None
+    )
+
+
 def test_owner_consumed_route_checkpoint_yields_to_same_stage_new_work_unit() -> None:
     materialized_readback = importlib.import_module(
         "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
@@ -945,6 +980,8 @@ def test_paper_mission_inspect_projects_receipt_owner_consumption_without_materi
                 "mission_state": "consumed",
                 "stage_closure_decision": {
                     "decision_ref": f"mas://paper-mission/{study_id}/receipt-owner-consumption",
+                    "stage_id": "finalize",
+                    "work_unit_id": "provider_hosted_guarded_apply",
                     "outcome": {
                         "kind": "next_stage_transition",
                         "transition_kind": "route_back_candidate_checkpoint",
@@ -1043,6 +1080,6 @@ def test_paper_mission_inspect_projects_receipt_owner_consumption_without_materi
     assert payload["consume_candidate_status"] == "route_back"
     assert payload["mission_state"] == "route_back"
     assert payload["stage_closure_outcome"] == "next_stage_transition"
-    assert payload["next_action"]["action_family"] == (
+    assert payload["next_action"]["action_family"] != (
         "paper.stage_closure.owner_consumption"
     )

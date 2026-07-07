@@ -377,7 +377,7 @@ def test_consumption_ledger_inspect_ignores_stale_receipt_when_stage_closure_att
     )
 
 
-def test_consumption_ledger_inspect_prefers_owner_consumed_route_checkpoint_when_work_unit_changes(
+def test_consumption_ledger_inspect_prefers_domain_transition_after_consumed_route_checkpoint_when_work_unit_changes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -492,8 +492,8 @@ def test_consumption_ledger_inspect_prefers_owner_consumed_route_checkpoint_when
         opl_bin=tmp_path / "missing-opl",
     )
 
-    assert payload["canonical_next_action_source"] == "stage_closure.next_action"
-    assert payload["next_action"]["action_family"] == "paper.stage_closure.owner_consumption"
+    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
+    assert payload["next_action"]["action_family"] == "paper.write.prose_repair"
     assert payload["stage_closure_decision"]["work_unit_id"] == (
         "ai_reviewer_medical_prose_quality_review"
     )
@@ -702,5 +702,4 @@ def test_consumption_ledger_inspect_attaches_study_progress_paper_mission_run_wh
     assert payload["current_objective"]["objective"] == "review_current_paper_delta"
     assert payload["next_owner_or_human_decision"]["next_owner"] == "write"
     assert payload["current_stage"] == "queued"
-
 

@@ -96,6 +96,7 @@ def next_action_for_stage_closure_decision(
     stage_closure_decision: Mapping[str, Any],
     transaction_readback: Mapping[str, Any],
     typed_blocker_resolution_readback: Mapping[str, Any] | None = None,
+    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     decision = _mapping(stage_closure_decision)
     outcome = _mapping(decision.get("outcome"))
@@ -197,6 +198,11 @@ def next_action_for_stage_closure_decision(
         outcome.get("kind") == "next_stage_transition"
         and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
     ):
+        if _receipt_owner_consumed_same_route_checkpoint(
+            stage_closure_decision=decision,
+            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        ):
+            return None
         transaction = _mapping(transaction_readback.get("paper_mission_transaction"))
         action_type = _first_text(
             outcome.get("next_action"),
@@ -394,6 +400,66 @@ def _route_back_checkpoint_input_refs(
         if text is not None and text not in refs:
             refs.append(text)
     return refs
+
+
+def _receipt_owner_consumed_same_route_checkpoint(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    receipt_owner_consumption_readback: Mapping[str, Any] | None,
+) -> bool:
+    receipt = _mapping(receipt_owner_consumption_readback)
+    if _optional_text(receipt.get("status")) != "owner_consumption_applied":
+        return False
+    consumption = _mapping(receipt.get("mas_receipt_consumption"))
+    if _optional_text(consumption.get("status")) != "owner_consumed_route_checkpoint":
+        return False
+    receipt_decision = _mapping(receipt.get("stage_closure_decision"))
+    if not receipt_decision:
+        return False
+    return _route_checkpoint_decisions_match(stage_closure_decision, receipt_decision)
+
+
+def _route_checkpoint_decisions_match(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_outcome = _mapping(left.get("outcome"))
+    right_outcome = _mapping(right.get("outcome"))
+    for outcome in (left_outcome, right_outcome):
+        if (
+            _optional_text(outcome.get("kind")) != "next_stage_transition"
+            or _optional_text(outcome.get("transition_kind"))
+            != "route_back_candidate_checkpoint"
+        ):
+            return False
+    matched = False
+    for key in ("stage_id", "work_unit_id"):
+        left_value = _optional_text(left.get(key))
+        right_value = _optional_text(right.get(key))
+        if left_value is None or right_value is None:
+            continue
+        if left_value != right_value:
+            return False
+        matched = True
+    for key in ("route_checkpoint_evidence_ref", "receipt_evidence_ref"):
+        left_value = _first_text(left.get(key), left_outcome.get(key))
+        right_value = _first_text(right.get(key), right_outcome.get(key))
+        if left_value is None or right_value is None:
+            continue
+        if left_value != right_value:
+            return False
+        matched = True
+    left_closeout = _optional_text(
+        _mapping(left.get("opl_closeout")).get("stage_attempt_id")
+    )
+    right_closeout = _optional_text(
+        _mapping(right.get("opl_closeout")).get("stage_attempt_id")
+    )
+    if left_closeout is not None and right_closeout is not None:
+        if left_closeout != right_closeout:
+            return False
+        matched = True
+    return matched
 
 
 __all__ = [

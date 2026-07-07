@@ -998,6 +998,7 @@ def _override_next_action_from_direct_terminal_closeout(
         stage_closure_decision=refreshed_stage_closure_decision,
         transaction_readback=transaction_readback,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
     )
     return (
         refreshed_stage_closure_decision,

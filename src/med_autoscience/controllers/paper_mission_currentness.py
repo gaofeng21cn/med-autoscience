@@ -148,6 +148,8 @@ def _has_route_checkpoint_evidence(decision: Mapping[str, Any]) -> bool:
             outcome.get("route_checkpoint_evidence_ref"),
             decision.get("receipt_evidence_ref"),
             outcome.get("receipt_evidence_ref"),
+            decision.get("paper_mission_transaction_ref"),
+            outcome.get("paper_mission_transaction_ref"),
         )
     )
 

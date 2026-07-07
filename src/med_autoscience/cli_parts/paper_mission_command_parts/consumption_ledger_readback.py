@@ -292,6 +292,7 @@ def _consumption_ledger_inspect_readback(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
+        receipt_owner_consumption_readback=receipt_owner_consumption,
     )
     canonical_next_action_source = None
     current_handoff_next_action = _consumption_ledger_current_route_next_action(
