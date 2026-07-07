@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildOplWhitepaper } from './opl-whitepaper-builder.ts';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+buildOplWhitepaper({
+  repoRoot,
+  sourceMarkdown: 'docs/whitepapers/mas-whitepaper.md',
+  outputName: 'mas-whitepaper',
+  status: 'mas_whitepaper_ready',
+  owner: 'MedAutoScience',
+  coverLine: 'Med Auto Science / Research Line / Evidence Chain / Manuscript Delivery',
+  headerTitle: 'MAS Whitepaper',
+  minSections: 8,
+  minPdfPages: 8,
+  requiredSections: [
+    '## 定位摘要',
+    '## 医学研究需要一条连续的研究线',
+    '## MAS 的设计思想',
+    '## 设计原则',
+    '## 能力模块',
+    '## 用户如何开始',
+    '## 用户会看到什么',
+    '## 为什么效果更可靠',
+    '## 人机协作边界',
+    '## 与 One Person Lab 的关系',
+    '## 本文边界',
+    '## 结语',
+  ],
+  requiredTerms: [
+    'MAS 智能体白皮书',
+    'Med Auto Science',
+    '研究线',
+    '问题先行',
+    '证据成链',
+    '阶段推进',
+    '审稿式质量',
+    '人机协作',
+    '交付可复查',
+    '研究问题设计',
+    '证据构建',
+    '分析推进',
+    '稿件叙事',
+    '图表表达',
+    '审阅修订',
+    '交付准备',
+    'One Person Lab',
+    'OPL Framework',
+    'Foundry Agent',
+    '本文边界',
+    '结语',
+  ],
+});

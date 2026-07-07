@@ -14,6 +14,10 @@ dist/
 build/
 outputs/
 tmp/
+docs/site/latest/*
+!docs/site/latest/whitepapers/
+docs/site/latest/whitepapers/*
+!docs/site/latest/whitepapers/mas-whitepaper.pdf
 *.egg-info/
 profiles/*.local.toml
 !profiles/*.template.toml

@@ -12,9 +12,9 @@ Machine boundary: 本文是人读治理入口。MAS 机器真相继续归 runtim
 
 MAS 采用 OPL-family canonical docs taxonomy：
 
-`active/public/product/runtime/delivery/source/policies/specs/references/history`
+`active/public/whitepapers/product/runtime/delivery/source/policies/specs/references/history`
 
-这个目录集合按长期职责保留，不按当前文件数量决定。`product/public/source/specs` 当前可以较薄，但必须在 README 或 owner 文档中说明进入条件和不进入条件。
+这个目录集合按长期职责保留，不按当前文件数量决定。`product/public/whitepapers/source/specs` 当前可以较薄，但必须在 README 或 owner 文档中说明进入条件和不进入条件。
 
 2026-06-05 生命周期清理后的当前收口口径：
 
@@ -51,7 +51,9 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 | `docs/` root | docs 入口、核心五件套、docs governance | `README.md`、核心五件套、本文件。 |
 | `docs/active/` | 当前执行、当前差距、active baton、当前 owner plan | current development lines、program portfolio、ideal-state gap plan、paper autonomy / OPL workbench / Temporal retirement / stage standardization 等 active owner docs。 |
 | `docs/public/` | repo home 之后的公开叙事 | 当前较薄，保持 public narrative index；不承载 study truth。 |
+| `docs/whitepapers/` | 公开白皮书源文档 | 保存 MAS latest 白皮书 Markdown 源；生成 HTML/PDF 进入 `docs/site/latest/whitepapers/`，不承载 study truth。 |
 | `docs/product/` | MAS app skill、product-entry、operator/workbench-facing guidance | direct path / product entry / OPL App drilldown 指南。 |
+| `docs/site/` | latest 公开文档输出边界 | 只保留 output boundary 说明；`docs/site/latest/` 是本地生成输出，不提交 main。 |
 | `docs/runtime/` | runtime contracts、control、projection、display、active designs | 当前核心技术承载之一。完成或退役计划进入 `docs/history/runtime/`。 |
 | `docs/delivery/` | manuscript、package、submission/export、medical-display 等交付支撑 | `delivery/medical-display/` 已承载能力族；domain artifact authority 仍归 MAS domain artifact surfaces。 |
 | `docs/source/` | study workspace、source readiness、external intake、source truth consumption | 承接 workspace/source intake 与 source truth 边界。 |

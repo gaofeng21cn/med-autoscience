@@ -44,7 +44,9 @@ MAS repo source 只保存 locator、index、schema、receipt ref、restore/reten
 | --- | --- |
 | [active](./active/README.md) | 当前执行、当前计划、当前差距与 active baton；旧 `program/` 内容由这里维护。 |
 | [public](./public/README.md) | MAS 对外公开叙事和用户第一阅读层。 |
+| [whitepapers](./whitepapers/README.md) | MAS 公开白皮书源文档。 |
 | [product](./product/README.md) | MAS app skill、direct product entry、operator/workbench-facing 指南。 |
+| [site](./site/README.md) | 本地生成的 latest 用户可读公开文档输出边界。 |
 | [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
 | [delivery](./delivery/README.md) | manuscript、package、submission/export 与医学研究交付 authority。 |
 | [source](./source/README.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |

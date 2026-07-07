@@ -1,0 +1,109 @@
+{
+  "status": "mas_whitepaper_ready",
+  "generated_at": "2026-07-07T00:00:00.000Z",
+  "source_markdown": "docs/whitepapers/mas-whitepaper.md",
+  "generated_markdown": "docs/site/latest/whitepapers/mas-whitepaper.md",
+  "generated_html": "docs/site/latest/whitepapers/mas-whitepaper.html",
+  "generated_pdf": "docs/site/latest/whitepapers/mas-whitepaper.pdf",
+  "temp_markdown": "tmp/pdfs/mas-whitepaper/mas-whitepaper.pandoc.md",
+  "rendered_dir": "tmp/pdfs/mas-whitepaper/rendered",
+  "rendered_pages": 8,
+  "rendered_page_hashes": [
+    {
+      "page": "page-1.png",
+      "sha1": "a9e6b065b773f1e184091b8a394ceaa50910012f"
+    },
+    {
+      "page": "page-2.png",
+      "sha1": "5fdc65e9d7996cc7fe7757c88de520dd2ec98e52"
+    },
+    {
+      "page": "page-3.png",
+      "sha1": "30742427a896196ebf389e2fe7d0b64f46658908"
+    },
+    {
+      "page": "page-4.png",
+      "sha1": "34ede54714d010a5cd3b535725ef3466b47102d2"
+    },
+    {
+      "page": "page-5.png",
+      "sha1": "6cba90465c381564cef7e733d9216c3a0c958a20"
+    },
+    {
+      "page": "page-6.png",
+      "sha1": "bfca9bfa1793a411bbf85a5934f8fbcc943b9822"
+    },
+    {
+      "page": "page-7.png",
+      "sha1": "9217de497555da2c490c63ab01c38d77d6224a04"
+    },
+    {
+      "page": "page-8.png",
+      "sha1": "597a24825943da7ebb2e1ef3b5960420ae22461c"
+    }
+  ],
+  "pdf_pages": 8,
+  "pdf_page_size_pts": {
+    "width": 612,
+    "height": 792
+  },
+  "required_terms": [
+    "MAS 智能体白皮书",
+    "Med Auto Science",
+    "研究线",
+    "问题先行",
+    "证据成链",
+    "阶段推进",
+    "审稿式质量",
+    "人机协作",
+    "交付可复查",
+    "研究问题设计",
+    "证据构建",
+    "分析推进",
+    "稿件叙事",
+    "图表表达",
+    "审阅修订",
+    "交付准备",
+    "One Person Lab",
+    "OPL Framework",
+    "Foundry Agent",
+    "本文边界",
+    "结语"
+  ],
+  "required_terms_status": "present",
+  "style_profile": "opl-whitepaper-pandoc-xelatex-v1",
+  "tools": {
+    "pandoc": "/opt/homebrew/bin/pandoc",
+    "xelatex": "/opt/homebrew/bin/xelatex",
+    "pdfinfo": "/opt/homebrew/bin/pdfinfo",
+    "pdftoppm": "/opt/homebrew/bin/pdftoppm",
+    "pdftotext": "/opt/homebrew/bin/pdftotext"
+  },
+  "references": [
+    {
+      "label": "Med Auto Science README",
+      "url": "../../README.md",
+      "note": "公开入口和产品概览。"
+    },
+    {
+      "label": "项目概览",
+      "url": "../project.md",
+      "note": "MAS 当前角色、边界和目标。"
+    },
+    {
+      "label": "架构概览",
+      "url": "../architecture.md",
+      "note": "MAS、OPL Framework 与 owner 边界。"
+    },
+    {
+      "label": "AI-first Quality Boundary Policy",
+      "url": "../policies/quality/ai_first_quality_boundary.md",
+      "note": "医学论文质量判断边界。"
+    },
+    {
+      "label": "Stage-Led Research Autonomy Policy",
+      "url": "../policies/study-workflow/stage_led_research_autonomy.md",
+      "note": "研究阶段和自治推进原则。"
+    }
+  ]
+}
