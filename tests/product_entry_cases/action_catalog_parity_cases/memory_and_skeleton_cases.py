@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from .shared import *  # noqa: F403,F401
+from med_autoscience.controllers.opl_provider_ready_adapter_parts.workspace_evidence import (
+    build_workspace_runtime_evidence_receipt_surface,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+
+from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
+
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     descriptor = manifest["domain_memory_descriptor"]
 
     assert descriptor["surface_kind"] == "family_domain_memory_ref"
@@ -79,12 +83,10 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
 
 
 def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_authority(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     skeleton = manifest["standard_domain_agent_skeleton"]
 
     assert skeleton["mapping_mode"] == "repo_source_physical_anchors_landed"
@@ -132,13 +134,11 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
 def test_manifest_exposes_body_free_workspace_runtime_evidence_receipt_with_typed_blocker(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     receipt = manifest["workspace_runtime_evidence_receipt"]
 
     assert receipt == manifest["opl_provider_ready_contract"]["workspace_runtime_evidence_receipt"]
@@ -166,8 +166,6 @@ def test_manifest_exposes_body_free_workspace_runtime_evidence_receipt_with_type
 def test_workspace_runtime_evidence_receipt_observes_mas_owner_receipt_refs(
     tmp_path: Path,
 ) -> None:
-    adapter = importlib.import_module("med_autoscience.controllers.opl_provider_ready_adapter")
-
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     owner_receipt = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
@@ -186,7 +184,7 @@ def test_workspace_runtime_evidence_receipt_observes_mas_owner_receipt_refs(
         + "\n",
     )
 
-    receipt = adapter.build_workspace_runtime_evidence_receipt_surface(profile=profile)
+    receipt = build_workspace_runtime_evidence_receipt_surface(profile=profile)
 
     assert receipt["status"] == "workspace_runtime_evidence_refs_observed"
     assert receipt["typed_blocker"] is None
