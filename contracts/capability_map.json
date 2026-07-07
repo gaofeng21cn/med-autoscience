@@ -714,6 +714,63 @@
   },
   "capabilities": [
     {
+      "capability_id": "med-autoscience.primary_skill",
+      "surface_role": "primary_skill",
+      "capability_kind": "primary_skill",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "repo_path",
+        "ref": "agent/primary_skill/SKILL.md",
+        "role": "standard_opl_primary_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+          "role": "codex_plugin_carrier_compat_mirror"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/opl_agent_package_manifest.json",
+          "role": "plugin_carrier_boundary"
+        }
+      ],
+      "sync_policy": "repo_local_standard_primary_skill_with_plugin_carrier_compat",
+      "externalization_reason": "Rich app skill is a required standard OPL primary skill source; plugin skill remains a Codex carrier mirror and does not own MAS truth.",
+      "canonical_paths": [
+        "agent/primary_skill/SKILL.md",
+        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "agent/primary_skill/SKILL.md",
+        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "agent/primary_skill/SKILL.md"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ]
+    },
+    {
       "capability_id": "medical-figure-design",
       "surface_role": "professional_skill",
       "capability_kind": "professional_skill",
@@ -2064,6 +2121,9 @@
     }
   ],
   "resolver_index": {
+    "primary_skill_refs": [
+      "contracts/capability_map.json#/capabilities?surface_role=primary_skill"
+    ],
     "stage_prompt_refs": [
       "contracts/capability_map.json#/capabilities?surface_role=stage_prompt"
     ],
