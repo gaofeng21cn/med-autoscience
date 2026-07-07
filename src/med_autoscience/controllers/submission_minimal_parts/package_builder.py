@@ -16,6 +16,7 @@ from .package_builder_parts.supplementary_material import (
     materialize_submission_figure_entry,
     supplementary_material_payload,
     write_combined_review_pdf,
+    write_pdf_bundle,
 )
 from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
@@ -296,6 +297,9 @@ def create_submission_minimal_package(
         supplementary_source_markdown_path: Path | None = None
         supplementary_output_docx_path: Path | None = None
         supplementary_output_pdf_path: Path | None = None
+        supplementary_tables_markdown_path: Path | None = None
+        supplementary_figures_markdown_path: Path | None = None
+        supplementary_material_fallback_path: Path | None = None
         supplementary_tables_workbook_path: Path | None = None
         supplementary_tables_pdf_path: Path | None = None
         combined_review_source_markdown_path: Path | None = None
@@ -479,7 +483,6 @@ def create_submission_minimal_package(
                 inline_supplementary_fallback_used = (
                     inline_supplementary_fallback_used or supplementary_figures_markdown_path is not None
                 )
-            supplementary_material_fallback_path: Path | None = None
             if supplementary_tables_markdown_path is None and supplementary_figures_markdown_path is None:
                 supplementary_material_fallback_path = build_general_medical_inline_supplementary_section_markdown(
                     compiled_markdown_path=compiled_markdown_path,
@@ -561,12 +564,38 @@ def create_submission_minimal_package(
                 reference_doc_path=profile_config.supplementary_reference_doc_path,
             )
         if supplementary_source_markdown_path is not None and supplementary_output_pdf_path is not None:
-            export_pdf(
-                compiled_markdown_path=supplementary_source_markdown_path,
-                paper_root=paper_root,
-                output_pdf_path=supplementary_output_pdf_path,
-                csl_path=profile_config.csl_path,
-            )
+            supplementary_pdf_component_paths: list[Path] = []
+            if supplementary_tables_pdf_path is not None:
+                supplementary_pdf_component_paths.append(supplementary_tables_pdf_path)
+                if supplementary_figures_markdown_path is not None:
+                    supplementary_figures_pdf_path = staging_submission_root / "supplementary_figures.pdf"
+                    export_pdf(
+                        compiled_markdown_path=supplementary_figures_markdown_path,
+                        paper_root=paper_root,
+                        output_pdf_path=supplementary_figures_pdf_path,
+                        csl_path=profile_config.csl_path,
+                    )
+                    supplementary_pdf_component_paths.append(supplementary_figures_pdf_path)
+                if supplementary_material_fallback_path is not None:
+                    supplementary_fallback_pdf_path = staging_submission_root / "supplementary_material_fallback.pdf"
+                    export_pdf(
+                        compiled_markdown_path=supplementary_material_fallback_path,
+                        paper_root=paper_root,
+                        output_pdf_path=supplementary_fallback_pdf_path,
+                        csl_path=profile_config.csl_path,
+                    )
+                    supplementary_pdf_component_paths.append(supplementary_fallback_pdf_path)
+                write_pdf_bundle(
+                    source_pdf_paths=supplementary_pdf_component_paths,
+                    output_pdf_path=supplementary_output_pdf_path,
+                )
+            else:
+                export_pdf(
+                    compiled_markdown_path=supplementary_source_markdown_path,
+                    paper_root=paper_root,
+                    output_pdf_path=supplementary_output_pdf_path,
+                    csl_path=profile_config.csl_path,
+                )
         if combined_review_source_markdown_path is not None and combined_review_docx_path is not None:
             export_docx(
                 compiled_markdown_path=combined_review_docx_source_markdown_path or combined_review_source_markdown_path,

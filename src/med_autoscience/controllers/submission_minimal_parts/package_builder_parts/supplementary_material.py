@@ -474,10 +474,24 @@ def write_combined_review_pdf(
 ) -> Path | None:
     if supplementary_pdf_path is None or not supplementary_pdf_path.exists():
         return None
+    return write_pdf_bundle(
+        source_pdf_paths=[manuscript_pdf_path, supplementary_pdf_path],
+        output_pdf_path=output_pdf_path,
+    )
+
+
+def write_pdf_bundle(
+    *,
+    source_pdf_paths: list[Path],
+    output_pdf_path: Path,
+) -> Path | None:
+    paths = [path for path in source_pdf_paths if path.exists()]
+    if not paths:
+        return None
     from pypdf import PdfReader, PdfWriter
 
     writer = PdfWriter()
-    for source_path in (manuscript_pdf_path, supplementary_pdf_path):
+    for source_path in paths:
         reader = PdfReader(str(source_path))
         for page in reader.pages:
             writer.add_page(page)

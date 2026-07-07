@@ -37,12 +37,16 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     supplementary_figures_markdown_path = submission_root / "supplementary_figures.md"
     supplementary_markdown_path = submission_root / "supplementary_material.md"
     supplementary_pdf_path = submission_root / "supplementary_material.pdf"
+    supplementary_tables_pdf_path = submission_root / "supplementary_tables.pdf"
+    supplementary_figures_pdf_path = submission_root / "supplementary_figures.pdf"
     combined_docx_path = submission_root / "manuscript_with_supplementary.docx"
     combined_pdf_path = submission_root / "paper_with_supplementary.pdf"
     assert supplementary_tables_markdown_path.exists()
     assert supplementary_figures_markdown_path.exists()
     assert supplementary_markdown_path.exists()
     assert supplementary_pdf_path.exists()
+    assert supplementary_tables_pdf_path.exists()
+    assert supplementary_figures_pdf_path.exists()
     assert combined_docx_path.exists()
     assert combined_pdf_path.exists()
 
@@ -67,9 +71,13 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     assert manifest["supplementary_material"]["combined_review_pdf_path"] == (
         "paper/submission_minimal/paper_with_supplementary.pdf"
     )
+    supplementary_page_count = len(PdfReader(str(supplementary_pdf_path)).pages)
+    assert supplementary_page_count == (
+        len(PdfReader(str(supplementary_tables_pdf_path)).pages)
+        + len(PdfReader(str(supplementary_figures_pdf_path)).pages)
+    )
     assert len(PdfReader(str(combined_pdf_path)).pages) == (
-        len(PdfReader(str(submission_root / "paper.pdf")).pages)
-        + len(PdfReader(str(supplementary_pdf_path)).pages)
+        len(PdfReader(str(submission_root / "paper.pdf")).pages) + supplementary_page_count
     )
 
 
