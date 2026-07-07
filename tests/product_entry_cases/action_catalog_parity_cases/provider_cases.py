@@ -1,18 +1,19 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_manifest,
+)
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
+from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
 
-from .shared import *  # noqa: F403,F401
 
 def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     provider_contract = manifest["opl_provider_ready_contract"]
     read_model = manifest["provider_guarded_soak_read_model"]
 
@@ -320,8 +321,6 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
 def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     dm002 = write_study(
@@ -361,7 +360,7 @@ def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
         + "\n",
     )
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
 
     proof = manifest["real_paper_autonomy_guarded_apply_proof"]
     assert proof["surface"] == "real_paper_autonomy_guarded_apply_proof"
@@ -413,8 +412,6 @@ def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
 def test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_residue(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     canonical_study = write_study(
@@ -436,7 +433,7 @@ def test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_r
             "# Residue\n",
         )
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     closeout = manifest["real_paper_autonomy_guarded_apply_proof"][
         "paper_line_provider_canary_closeout"
     ]
@@ -460,14 +457,12 @@ def test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_r
 def test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     proof_ref = tmp_path / "opl-production-proof.json"
     _write_opl_production_proof(proof_ref)
 
-    manifest = product_entry.build_product_entry_manifest(
+    manifest = build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         opl_production_proof_ref=proof_ref,
@@ -534,12 +529,10 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
 def test_default_manifest_keeps_history_projection_out_of_current_surface(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     assert_standard_agent_purity_boundary(manifest["functional_consumer_boundary"])
     assert manifest["functional_consumer_boundary"]["standard_agent_purity"][
         "history_detail_in_default_read_model"
@@ -551,12 +544,10 @@ def test_default_manifest_keeps_history_projection_out_of_current_surface(
 def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     provider_contract = manifest["opl_provider_ready_contract"]
     read_model = manifest["provider_residency_read_model"]
 
@@ -631,12 +622,10 @@ def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
 def test_product_entry_manifest_omits_history_only_retirement_audit_surface(
     tmp_path: Path,
 ) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     forbidden_history_only_audit_key = "retired_surface_history_projection"
     assert forbidden_history_only_audit_key not in manifest
 
