@@ -115,6 +115,176 @@ def test_reviewer_revision_intake_yields_to_fresh_manuscript_fast_lane_closeout(
     )
 
 
+def test_manuscript_revision_fast_lane_closeout_retires_progress_override_without_gate_loaded(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        **_reviewer_revision_payload(),
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision: do not add analyses; preserve current scientific story; "
+            "clean duplicated Discussion wording, rename Figure 2 title, clarify Table 2 footnote, "
+            "and preserve supplementary material."
+        ),
+        "constraints": [
+            "Use MAS owner route.",
+            "No new analyses; use existing evidence only.",
+        ],
+        "evidence_boundary": ["Current accepted evidence and figures/tables only."],
+    }
+    _write_json(module.latest_task_intake_json_path(study_root=study_root), payload)
+
+    stale_override = module.build_task_intake_progress_override(payload, study_root=study_root)
+    assert stale_override is not None
+    assert stale_override["current_required_action"] == "run_manuscript_fast_lane"
+
+    _write_fast_lane_closeout(study_root)
+
+    assert module.task_intake_yields_to_manuscript_fast_lane_closeout(
+        payload,
+        study_root=study_root,
+    ) is True
+    assert module.build_task_intake_progress_override(payload, study_root=study_root) is None
+
+
+def test_manuscript_revision_fast_lane_closeout_ignores_submission_authority_snapshot_blocker(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        **_reviewer_revision_payload(),
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision: no new analyses; use existing evidence only; "
+            "complete a manuscript fast lane terminology cleanup."
+        ),
+    }
+    _write_fast_lane_closeout(study_root)
+    gate_report = {
+        "emitted_at": "2026-04-28T01:00:00+00:00",
+        "status": "blocked",
+        "blockers": ["authority_snapshot_missing"],
+        "current_required_action": "continue_bundle_stage",
+    }
+
+    assert (
+        module.build_task_intake_progress_override(
+            payload,
+            study_root=study_root,
+            publishability_gate_report=gate_report,
+        )
+        is None
+    )
+
+
+def test_manuscript_revision_fast_lane_closeout_ignores_stale_gate_blockers(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        **_reviewer_revision_payload(),
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision: no new analyses; use existing evidence only; "
+            "complete a manuscript fast lane terminology cleanup."
+        ),
+    }
+    _write_fast_lane_closeout(study_root)
+    stale_gate_report = {
+        "emitted_at": "2026-04-25T00:00:00+00:00",
+        "status": "blocked",
+        "blockers": ["forbidden_manuscript_terminology"],
+        "current_required_action": "return_to_publishability_gate",
+    }
+
+    assert (
+        module.build_task_intake_progress_override(
+            payload,
+            study_root=study_root,
+            publishability_gate_report=stale_gate_report,
+        )
+        is None
+    )
+
+
+def test_manuscript_revision_fast_lane_closeout_ignores_stale_reviewer_blockers(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        **_reviewer_revision_payload(),
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision: no new analyses; use existing evidence only; "
+            "complete a manuscript fast lane terminology cleanup."
+        ),
+    }
+    _write_fast_lane_closeout(study_root)
+    stale_evaluation_summary = {
+        "emitted_at": "2026-04-27T00:00:00+00:00",
+        "quality_closure_truth": {
+            "state": "quality_repair_required",
+            "summary": "Old reviewer-authored quality repair request.",
+        },
+        "quality_review_loop": {
+            "closure_state": "quality_repair_required",
+            "recommended_next_action": "return_to_ai_reviewer",
+        },
+    }
+
+    assert (
+        module.build_task_intake_progress_override(
+            payload,
+            study_root=study_root,
+            evaluation_summary=stale_evaluation_summary,
+        )
+        is None
+    )
+
+
+def test_existing_progress_projection_drops_stale_fast_lane_override_after_closeout(
+    tmp_path: Path,
+) -> None:
+    intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    projection_module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
+    payload = {
+        **_reviewer_revision_payload(),
+        "entry_mode": "manuscript_revision",
+        "task_intent": (
+            "Final pre-submission micro-revision: do not add analyses; use existing evidence only; "
+            "complete a manuscript fast lane terminology cleanup."
+        ),
+    }
+    _write_json(intake_module.latest_task_intake_json_path(study_root=study_root), payload)
+    _write_fast_lane_closeout(study_root)
+    stale_projection = {
+        "study_id": "001-dm-cvd-mortality-risk",
+        "quality_closure_truth": {
+            "state": "manuscript_fast_lane_requested",
+            "current_required_action": "run_manuscript_fast_lane",
+        },
+        "same_line_route_surface": {
+            "closure_state": "manuscript_fast_lane_requested",
+            "current_required_action": "run_manuscript_fast_lane",
+        },
+    }
+
+    refreshed = projection_module._refresh_existing_projection_task_intake_override(
+        payload=stale_projection,
+        study_root=study_root,
+    )
+
+    assert "quality_closure_truth" not in refreshed
+    assert "same_line_route_surface" not in refreshed
+    assert refreshed["manuscript_fast_lane_closeout"]["status"] == "task_intake_override_retired"
+
+
 def test_reviewer_revision_fast_lane_closeout_does_not_yield_when_publication_gate_still_blocked(
     tmp_path: Path,
 ) -> None:
@@ -123,6 +293,7 @@ def test_reviewer_revision_fast_lane_closeout_does_not_yield_when_publication_ga
     payload = _reviewer_revision_payload()
     _write_fast_lane_closeout(study_root)
     gate_report = {
+        "emitted_at": "2026-04-28T01:00:00+00:00",
         "status": "blocked",
         "allow_write": False,
         "blockers": [

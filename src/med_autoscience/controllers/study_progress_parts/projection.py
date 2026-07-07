@@ -48,6 +48,15 @@ from .projection_helpers import *
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
+
+_TASK_INTAKE_OVERRIDE_FIELDS = (
+    "quality_closure_truth",
+    "quality_execution_lane",
+    "same_line_route_truth",
+    "same_line_route_surface",
+)
+
+
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
         if not name.startswith("__") and name != "_module_reexport":
@@ -83,6 +92,41 @@ def _refresh_existing_projection_current_owner_surfaces(
         publication_eval_payload=publication_eval_payload,
         attach_delivery_inspection_projection_fn=_attach_delivery_inspection_projection,
     )
+
+
+def _refresh_existing_projection_task_intake_override(
+    *,
+    payload: dict[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    latest_task_intake_payload = read_latest_task_intake(study_root=study_root)
+    if not task_intake_requests_manuscript_fast_lane(latest_task_intake_payload):
+        return payload
+    if build_task_intake_progress_override(latest_task_intake_payload, study_root=study_root) is not None:
+        return payload
+
+    quality_closure_truth = _mapping_copy(payload.get("quality_closure_truth"))
+    same_line_route_surface = _mapping_copy(payload.get("same_line_route_surface"))
+    stale_fast_lane_override = (
+        _non_empty_text(quality_closure_truth.get("state")) == "manuscript_fast_lane_requested"
+        or _non_empty_text(same_line_route_surface.get("closure_state")) == "manuscript_fast_lane_requested"
+    )
+    if not stale_fast_lane_override:
+        return payload
+
+    refreshed = dict(payload)
+    for key in _TASK_INTAKE_OVERRIDE_FIELDS:
+        refreshed.pop(key, None)
+    refreshed["manuscript_fast_lane_closeout"] = {
+        "surface_kind": "manuscript_fast_lane_closeout_projection",
+        "status": "task_intake_override_retired",
+        "task_id": _non_empty_text(latest_task_intake_payload.get("task_id")),
+        "authority_boundary": {
+            "authorizes_submission_ready": False,
+            "authorizes_publication_ready": False,
+        },
+    }
+    return refreshed
 
 
 def build_study_progress_projection(
@@ -153,6 +197,10 @@ def build_study_progress_projection(
             study_id=study_id,
         )
         refreshed_existing = _attach_reviewer_revision_feedbackops_execution_readback(
+            payload=refreshed_existing,
+            study_root=study_root,
+        )
+        refreshed_existing = _refresh_existing_projection_task_intake_override(
             payload=refreshed_existing,
             study_root=study_root,
         )

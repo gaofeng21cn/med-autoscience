@@ -76,6 +76,7 @@ _ANALYSIS_ROUTE_MARKERS = (
     "unit-standardized", "unit standardized", "变量归一化对齐", "数据归一化对齐", "单位统一", "单位对齐",
 )
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_FAST_LANE_CLOSEOUT_NON_MANUSCRIPT_BLOCKERS = frozenset({"authority_snapshot_missing"})
 _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset({
     "stale_submission_minimal_authority",
     "stale_study_delivery_mirror",
@@ -684,6 +685,23 @@ def build_task_intake_progress_override(
     ):
         return None
     if task_intake_requests_manuscript_fast_lane(payload):
+        task_intake_closeout_root = task_intake_root(study_root=study_root) if study_root is not None else None
+        if _fast_lane_closeout_yields_task_intake(payload, task_intake_root=task_intake_closeout_root):
+            gate_is_current_for_task = _closeout_surface_is_fresher_than_task_intake(payload, publishability_gate_report)
+            gate_blockers = (
+                _normalized_strings((publishability_gate_report or {}).get("blockers"))
+                if gate_is_current_for_task and isinstance(publishability_gate_report, dict)
+                else []
+            )
+            manuscript_blockers = [
+                blocker for blocker in gate_blockers if blocker not in _FAST_LANE_CLOSEOUT_NON_MANUSCRIPT_BLOCKERS
+            ]
+            fresh_reviewer_blockers_open = (
+                _closeout_surface_is_fresher_than_task_intake(payload, evaluation_summary)
+                and _evaluation_summary_has_open_reviewer_first_blockers(evaluation_summary)
+            )
+            if not manuscript_blockers and not fresh_reviewer_blockers_open:
+                return None
         return build_manuscript_fast_lane_progress_override(payload)
     selected_revision_execution_lane = (
         build_reviewer_revision_execution_lane_projection(
