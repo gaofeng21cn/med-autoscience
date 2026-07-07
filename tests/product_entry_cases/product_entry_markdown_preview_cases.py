@@ -6,6 +6,13 @@ from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
 
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_manifest,
+)
+
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -34,7 +41,6 @@ def _product_entry_status_payload(queue_item: dict[str, object]) -> dict[str, ob
 
 
 def test_render_product_entry_status_markdown_hides_preview_raw_summary_keys() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     queue_item = {
         "title": "001-risk 当前处在等待系统自动复评",
         "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
@@ -56,7 +62,7 @@ def test_render_product_entry_status_markdown_hides_preview_raw_summary_keys() -
         },
     }
 
-    markdown = module.render_product_entry_status_markdown(_product_entry_status_payload(queue_item))
+    markdown = render_product_entry_status_markdown(_product_entry_status_payload(queue_item))
 
     assert markdown.strip()
     assert "summary:" not in markdown
@@ -66,7 +72,6 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -99,7 +104,7 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
     )
 
     with pytest.raises(ValueError, match="user_interaction_contract"):
-        module.build_product_entry_manifest(
+        build_product_entry_manifest(
             profile=profile,
             profile_ref=profile_ref,
         )
