@@ -5,6 +5,20 @@ from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_b
 from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.boundary_surfaces import (
+    _validate_capability_owner_boundary,
+    _validate_single_project_boundary,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_status,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -39,7 +53,6 @@ def _walk_strings(value):
 
 
 def test_build_product_entry_status_projects_product_entry_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
     profile = make_profile(tmp_path)
 
@@ -84,7 +97,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         },
     )
 
-    payload = module.build_product_entry_status(
+    payload = build_product_entry_status(
         profile=profile,
         profile_ref=profile_ref,
     )
@@ -215,7 +228,6 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
 def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progress_is_fresh(
     monkeypatch, tmp_path: Path
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -254,7 +266,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -336,7 +348,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         },
     )
 
-    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    payload = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert payload["workspace_status"] == "blocked"
     assert payload["workspace_supervision"]["service"]["status"] == "retired_workspace_service_present"
@@ -348,7 +360,6 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
 def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift(
     monkeypatch, tmp_path: Path
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
     profile = make_profile(tmp_path)
 
@@ -393,7 +404,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
         },
     )
 
-    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    payload = build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["product_entry_preflight"]["ready_to_try_now"] is False
     assert "workspace_domain_route_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
@@ -431,7 +442,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert payload["product_entry_manifest"]["skill_catalog"] == payload["skill_catalog"]
     assert payload["product_entry_manifest"]["automation"] == payload["automation"]
 
-    markdown = module.render_product_entry_status_markdown(payload)
+    markdown = render_product_entry_status_markdown(payload)
     assert "Now" in markdown
     assert "Single-Project Boundary" in markdown
     assert "Capability Owner Boundary" in markdown
@@ -442,10 +453,8 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert "Workspace Preview" in markdown
 
 def test_validate_single_project_boundary_fails_closed_on_missing_roles() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
     with pytest.raises(ValueError, match="mds_retained_roles 不能为空"):
-        module._validate_single_project_boundary(
+        _validate_single_project_boundary(
             {
                 "surface_kind": "single_project_boundary",
                 "summary": "summary",
@@ -458,10 +467,8 @@ def test_validate_single_project_boundary_fails_closed_on_missing_roles() -> Non
         )
 
 def test_validate_single_project_boundary_fails_closed_on_missing_not_now() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
     with pytest.raises(ValueError, match="not_now 不能为空"):
-        module._validate_single_project_boundary(
+        _validate_single_project_boundary(
             {
                 "surface_kind": "single_project_boundary",
                 "summary": "summary",
@@ -480,10 +487,8 @@ def test_validate_single_project_boundary_fails_closed_on_missing_not_now() -> N
         )
 
 def test_validate_capability_owner_boundary_rejects_pre_absorb_status() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
     with pytest.raises(ValueError, match="no-history absorb landed"):
-        module._validate_capability_owner_boundary(
+        _validate_capability_owner_boundary(
             {
                 "surface_kind": "mas_capability_owner_boundary",
                 "owner": "MedAutoScience",
