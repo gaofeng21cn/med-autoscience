@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import importlib
-
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from .shared import *  # noqa: F403,F401
 from tests.transition_descriptor_assertions import (  # noqa: E402
     assert_family_transition_descriptor_shape,
@@ -10,12 +9,10 @@ from tests.transition_descriptor_assertions import (  # noqa: E402
 
 
 def test_product_entry_manifest_exposes_domain_transition_spec_descriptor(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     descriptor = manifest["family_transition_spec_descriptor"]
 
     assert descriptor["authority_boundary"] == {
