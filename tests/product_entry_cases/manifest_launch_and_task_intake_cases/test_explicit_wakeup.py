@@ -33,7 +33,8 @@ def test_launch_study_explicit_wakeup_records_truth_resume(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+
     launch_surface = importlib.import_module(
         "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
     )
@@ -82,7 +83,7 @@ def test_launch_study_explicit_wakeup_records_truth_resume(
         },
     )
 
-    payload = module.launch_study(
+    payload = launch_study(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
@@ -112,7 +113,8 @@ def test_launch_study_explicit_wakeup_releases_paused_runtime_gate(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+
     launch_surface = importlib.import_module(
         "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
     )
@@ -182,7 +184,7 @@ def test_launch_study_explicit_wakeup_releases_paused_runtime_gate(
     write_text(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state_text)
     write_text(quest_root / ".ds" / "runtime_state.json", runtime_state_text)
 
-    before = module.launch_study(
+    before = launch_study(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
@@ -190,7 +192,7 @@ def test_launch_study_explicit_wakeup_releases_paused_runtime_gate(
     assert before["runtime_status"]["decision"] == "blocked"
     assert before["runtime_status"]["reason"] == "quest_user_paused_requires_explicit_wakeup"
 
-    after = module.launch_study(
+    after = launch_study(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
@@ -208,7 +210,8 @@ def test_launch_study_rejects_unsupported_entry_mode_before_runtime_projection(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+
     launch_surface = importlib.import_module(
         "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
     )
@@ -223,7 +226,7 @@ def test_launch_study_rejects_unsupported_entry_mode_before_runtime_projection(
     )
 
     with pytest.raises(ValueError, match="study launch entry mode 不支持: managed"):
-        module.launch_study(
+        launch_study(
             profile=profile,
             profile_ref=profile_ref,
             study_id="001-risk",
@@ -236,7 +239,8 @@ def test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+
     launch_surface = importlib.import_module(
         "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
     )
@@ -262,7 +266,7 @@ def test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff(
         lambda **kwargs: {"study_id": "001-risk", "current_stage": "publication_supervision"},
     )
 
-    payload = module.launch_study(
+    payload = launch_study(
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
