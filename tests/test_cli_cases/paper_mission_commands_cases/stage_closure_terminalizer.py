@@ -839,7 +839,7 @@ def test_terminalize_stage_prefers_newer_stage_attempt_over_stale_transaction_ma
         stage_packet_ref=transaction["transaction_id"],
         timestamp=1_788_000_000.0,
     )
-    write_stage_attempt(
+    new_closeout_path = write_stage_attempt(
         attempt_id="sat-new-domain-transition",
         stage_packet_ref=f"paper-mission-transaction::{study_id}::write::domain-transition",
         timestamp=1_788_000_600.0,
@@ -874,6 +874,33 @@ def test_terminalize_stage_prefers_newer_stage_attempt_over_stale_transaction_ma
     assert selected_source["opl_runtime_carrier_readback"]["terminal_closeout"][
         "stage_attempt_id"
     ] == "sat-new-domain-transition"
+    current_runtime_source_readback = {
+        "paper_mission_transaction": transaction,
+        "next_action": {
+            "stage_id": "write",
+            "work_unit_id": work_unit_id,
+        },
+        "current_opl_runtime_carrier_readback": {
+            "terminal_closeout": {
+                "stage_attempt_id": "sat-new-domain-transition",
+                "closeout_refs": [str(new_closeout_path)],
+            },
+        },
+    }
+    selected_current_runtime_source = (
+        terminalizer_readback._latest_stage_attempt_route_back_source_readback(
+            profile=profile,
+            profile_ref=profile_path,
+            study_id=study_id,
+            source_readback=current_runtime_source_readback,
+            source="test:current-runtime-autodiscovery",
+        )
+    )
+
+    assert selected_current_runtime_source is not None
+    assert selected_current_runtime_source["opl_runtime_carrier_readback"][
+        "terminal_closeout"
+    ]["stage_attempt_id"] == "sat-new-domain-transition"
 
     exit_code = cli.main(
         [

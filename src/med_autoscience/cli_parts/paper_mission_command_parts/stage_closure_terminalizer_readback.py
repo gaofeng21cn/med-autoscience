@@ -738,8 +738,8 @@ def _latest_stage_attempt_route_back_source_readback(
         candidates.append(
             (
                 successor_priority,
-                transaction_priority,
                 bucket_priority,
+                transaction_priority,
                 semantic_priority if transaction_priority or bucket_priority else 0,
                 packet_mtime,
                 semantic_priority,
