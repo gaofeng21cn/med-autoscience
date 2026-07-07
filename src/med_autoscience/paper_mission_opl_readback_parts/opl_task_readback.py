@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from typing import Any
 
 from med_autoscience.paper_mission_opl_readback_parts.primitives import (
@@ -51,7 +52,10 @@ def matching_opl_runtime_payload_closeout(
             return None
         return closeout, _opl_task_closeout_ref(task)
 
-    for task in matching_opl_tasks_from_list(carrier=carrier, payload=payload):
+    for task in ranked_opl_probe_tasks(
+        matching_opl_tasks_from_list(carrier=carrier, payload=payload),
+        carrier=carrier,
+    ):
         closeout = _opl_task_terminal_closeout(
             carrier=carrier,
             task=task,
@@ -84,7 +88,10 @@ def matching_opl_runtime_payload_running_attempt(
             return None
         return attempt, _opl_attempt_ref(attempt)
 
-    for task in matching_opl_tasks_from_list(carrier=carrier, payload=payload):
+    for task in ranked_opl_probe_tasks(
+        matching_opl_tasks_from_list(carrier=carrier, payload=payload),
+        carrier=carrier,
+    ):
         attempt = _opl_task_running_attempt(
             carrier=carrier,
             task=task,
@@ -124,7 +131,7 @@ def _opl_probe_task_rank(
     task: Mapping[str, Any],
     *,
     carrier: Mapping[str, Any] | None = None,
-) -> tuple[int, int, int, int, int, str]:
+) -> tuple[int, int, int, int, float, float, int, str]:
     reason = _first_text(task.get("last_error"), task.get("dead_letter_reason"))
     stale_rank = 1 if _non_current_closeout_reason(reason) else 0
     payload = _mapping(task.get("payload"))
@@ -155,9 +162,69 @@ def _opl_probe_task_rank(
         target_rank,
         command_rank,
         status_rank,
+        _task_created_rank(task),
+        _task_recency_rank(task),
         gate_rank,
         _text(task.get("task_id")) or "",
     )
+
+
+def _task_created_rank(task: Mapping[str, Any]) -> float:
+    current_control = _mapping(task.get("current_control_state"))
+    linked = _mapping(task.get("linked_stage_attempt_liveness"))
+    timestamps = [
+        _text(task.get("created_at")),
+        _text(current_control.get("created_at")),
+        _text(linked.get("created_at")),
+    ]
+    parsed = [_parse_timestamp(value) for value in timestamps if value is not None]
+    newest = max((value for value in parsed if value is not None), default=0.0)
+    return -newest
+
+
+def _task_recency_rank(task: Mapping[str, Any]) -> float:
+    timestamps = [
+        _text(task.get("updated_at")),
+        _text(task.get("created_at")),
+    ]
+    current_control = _mapping(task.get("current_control_state"))
+    provider_run = _mapping(current_control.get("provider_run"))
+    timestamps.extend(
+        [
+            _text(current_control.get("updated_at")),
+            _text(current_control.get("last_heartbeat_at")),
+            _text(provider_run.get("last_heartbeat_at")),
+            _text(provider_run.get("updated_at")),
+        ]
+    )
+    linked = _mapping(task.get("linked_stage_attempt_liveness"))
+    linked_provider_run = _mapping(linked.get("provider_run"))
+    timestamps.extend(
+        [
+            _text(linked.get("updated_at")),
+            _text(linked.get("last_heartbeat_at")),
+            _text(linked_provider_run.get("last_heartbeat_at")),
+            _text(linked_provider_run.get("updated_at")),
+        ]
+    )
+    parsed = [_parse_timestamp(value) for value in timestamps if value is not None]
+    newest = max((value for value in parsed if value is not None), default=0.0)
+    return -newest
+
+
+def _parse_timestamp(value: str) -> float | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
 
 
 def matches_opl_task(

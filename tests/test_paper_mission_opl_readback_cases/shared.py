@@ -333,6 +333,61 @@ def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object
     }
 
 
+def _opl_queue_with_old_and_current_running_tasks_payload() -> dict[str, object]:
+    def running_task(
+        *,
+        task_id: str,
+        stage_attempt_id: str,
+        workflow_id: str,
+        updated_at: str,
+    ) -> dict[str, object]:
+        task = _opl_runtime_task_payload()["family_runtime_task"]["task"]
+        task["task_id"] = task_id
+        task["status"] = "running"
+        task["last_error"] = "paper_mission_stage_route_temporal_started"
+        task["created_at"] = "2026-07-07T09:52:16.292Z"
+        task["updated_at"] = updated_at
+        task["current_control_state"] = {
+            "running_provider_attempt": True,
+            "current_stage_attempt_id": stage_attempt_id,
+            "workflow_id": workflow_id,
+            "last_heartbeat_at": updated_at,
+            "provider_run": {
+                "provider_status": "running",
+                "workflow_id": workflow_id,
+                "last_heartbeat_at": updated_at,
+            },
+        }
+        return task
+
+    return {
+        "version": "g2",
+        "family_runtime_queue": {
+            "surface_id": "opl_family_runtime_queue",
+            "queue": {
+                "total": 2,
+                "by_status": {
+                    "running": 2,
+                },
+            },
+            "tasks": [
+                running_task(
+                    task_id="frt-old-running",
+                    stage_attempt_id="sat-old-running",
+                    workflow_id="wf-old-running",
+                    updated_at="2026-07-07T09:49:00.000Z",
+                ),
+                running_task(
+                    task_id="frt-current-running",
+                    stage_attempt_id="sat-current-running",
+                    workflow_id="wf-current-running",
+                    updated_at="2026-07-07T09:58:13.082Z",
+                ),
+            ],
+        },
+    }
+
+
 def _opl_queue_with_many_matching_terminal_tasks_payload() -> dict[str, object]:
     tasks = []
     for index in range(5):

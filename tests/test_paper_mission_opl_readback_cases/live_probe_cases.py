@@ -18,6 +18,7 @@ from tests.test_paper_mission_opl_readback_cases.shared import (
     _opl_queue_with_list_closeout_summary_payload,
     _opl_queue_with_many_matching_terminal_tasks_payload,
     _opl_queue_with_matching_tasks_without_closeout_summary_payload,
+    _opl_queue_with_old_and_current_running_tasks_payload,
     _opl_queue_with_stale_and_current_tasks_without_summary_payload,
     _opl_queue_with_terminal_and_running_successor_payload,
     _opl_route_carrier,
@@ -399,6 +400,145 @@ def test_opl_runtime_live_probe_consumes_local_closeout_for_same_running_attempt
     assert readback["can_claim_provider_running"] is False
     assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-successor"
     assert "running_attempt" not in readback
+
+
+def test_opl_runtime_live_probe_prefers_current_running_attempt_over_old_running_residue(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    _write_closeout(
+        study_root,
+        {
+            "study_id": carrier["study_id"],
+            "stage_id": "publication_gate_replay",
+            "stage_attempt_id": "sat-old-running",
+            "work_unit_id": carrier["work_unit_id"],
+            "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+            "stage_packet_ref": carrier["stage_terminal_decision_ref"],
+            "closeout_refs": [carrier["opl_route_command_ref"]],
+            "blocked_reason": "domain_gate_pending",
+        },
+    )
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return _opl_queue_with_old_and_current_running_tasks_payload()
+        raise AssertionError("current running attempt is visible in queue list")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "running_attempt_observed"
+    assert readback["running_attempt"]["task_id"] == "frt-current-running"
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-current-running"
+    assert readback["running_attempt"]["workflow_id"] == "wf-current-running"
+    assert "terminal_closeout" not in readback
+
+
+def test_opl_runtime_live_probe_prefers_newer_terminal_task_over_later_reconciled_residue(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from med_autoscience import paper_mission_opl_readback as readback_module
+
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    inspected: list[str] = []
+
+    def terminal_payload(
+        *,
+        task_id: str,
+        stage_attempt_id: str,
+        created_at: str,
+        updated_at: str,
+    ) -> dict[str, object]:
+        payload = _opl_runtime_task_payload()
+        runtime_task = payload["family_runtime_task"]
+        task = runtime_task["task"]
+        task["task_id"] = task_id
+        task["created_at"] = created_at
+        task["updated_at"] = updated_at
+        task["current_control_state"]["current_stage_attempt_id"] = stage_attempt_id
+        runtime_task["stage_attempts"][0]["stage_attempt_id"] = stage_attempt_id
+        runtime_task["events"][0]["payload"]["opl_transition_receipt"][
+            "task_id"
+        ] = task_id
+        runtime_task["events"][0]["payload"]["opl_transition_receipt"][
+            "stage_attempt_id"
+        ] = stage_attempt_id
+        return payload
+
+    old_payload = terminal_payload(
+        task_id="frt-old-terminal",
+        stage_attempt_id="sat-old-terminal",
+        created_at="2026-07-07T08:06:39.336Z",
+        updated_at="2026-07-07T10:08:17.275Z",
+    )
+    current_payload = terminal_payload(
+        task_id="frt-current-terminal",
+        stage_attempt_id="sat-current-terminal",
+        created_at="2026-07-07T09:52:16.292Z",
+        updated_at="2026-07-07T10:08:17.194Z",
+    )
+    old_list_task = dict(old_payload["family_runtime_task"]["task"])
+    old_list_task["current_control_state"] = {}
+    current_list_task = dict(current_payload["family_runtime_task"]["task"])
+    current_list_task["current_control_state"] = {}
+
+    def fake_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> dict[str, object] | None:
+        assert timeout_seconds > 0
+        if args[:3] == ("family-runtime", "queue", "list"):
+            return {
+                "version": "g2",
+                "family_runtime_queue": {
+                    "surface_id": "opl_family_runtime_queue",
+                    "tasks": [old_list_task, current_list_task],
+                },
+            }
+        if args[:3] == ("family-runtime", "queue", "inspect"):
+            inspected.append(args[3])
+            return current_payload if args[3] == "frt-current-terminal" else old_payload
+        raise AssertionError(f"unexpected OPL command: {args}")
+
+    monkeypatch.setattr(readback_module, "_ranked_opl_bin_candidates", lambda: [opl_bin])
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_opl_json)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=True,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert readback["terminal_closeout"]["task_id"] == "frt-current-terminal"
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-current-terminal"
+    assert inspected == ["frt-current-terminal"]
 
 
 def test_opl_runtime_default_readback_does_not_probe_live_queue(
