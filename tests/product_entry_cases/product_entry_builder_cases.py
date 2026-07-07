@@ -47,7 +47,7 @@ if loaded:
     assert result.returncode == 0, result.stderr or result.stdout
 
 def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_shared_base_module()
     profile_ref = tmp_path / "profile.local.toml"
     doctor_report = SimpleNamespace(
         workspace_exists=True,
@@ -83,7 +83,7 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
     )
 
 def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_shared_base_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     captured: dict[str, object] = {}
@@ -109,7 +109,7 @@ def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_pat
     assert len(captured["recovery_loop"]) == 4
 
 def test_build_phase3_clearance_lane_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_program_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     captured: dict[str, object] = {}
@@ -131,7 +131,7 @@ def test_build_phase3_clearance_lane_uses_shared_builder(monkeypatch, tmp_path: 
     assert len(captured["proof_surfaces"]) == 5
 
 def test_build_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_program_surfaces_module()
     captured: dict[str, object] = {}
 
     def _fake_build_lane(**kwargs: object) -> dict[str, object]:
@@ -151,7 +151,7 @@ def test_build_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) ->
     assert captured["deconstruction_map_ref"] == "program:med_deepscientist_deconstruction_map"
 
 def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_program_surfaces_module()
     captured: dict[str, object] = {}
 
     def _fake_build_platform(**kwargs: object) -> dict[str, object]:
@@ -167,7 +167,7 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
     assert len(captured["landing_sequence"]) == 9
 
 def test_product_entry_manifest_uses_bounded_mainline_projection(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     projection_calls = 0
@@ -213,7 +213,7 @@ def test_product_entry_manifest_uses_bounded_mainline_projection(monkeypatch, tm
     assert projection_calls == 1
 
 def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestration(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    module = product_entry_manifest_surfaces_module()
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     captured: dict[str, object] = {}
