@@ -644,7 +644,16 @@ def _latest_stage_attempt_route_back_source_readback(
         _mapping(source_readback.get("paper_mission_transaction")).get("transaction_id")
     )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
-    candidates: list[tuple[int, int, int, float, int, str, Path]] = []
+    current_terminal_consumed = _current_terminal_owner_consumed(source_readback)
+    current_terminal_mtime = _terminal_closeout_mtime(
+        _mapping(
+            _mapping(source_readback.get("current_opl_runtime_carrier_readback")).get(
+                "terminal_closeout"
+            )
+        ),
+        workspace_root=Path(profile.workspace_root).expanduser().resolve(),
+    )
+    candidates: list[tuple[int, int, int, int, float, int, str, Path]] = []
     for packet_ref in packets_root.glob("**/stage_attempt_closeout_packet.json"):
         packet = _load_optional_json_object(packet_ref)
         if not isinstance(packet, Mapping):
@@ -706,8 +715,21 @@ def _latest_stage_attempt_route_back_source_readback(
             packet=packet,
             route_back=route_back,
         )
+        consumed_successor_priority = (
+            1
+            if (
+                current_terminal_consumed
+                and matches_expected_identity
+                and transaction_priority == 0
+                and stage_attempt_id not in preferred_stage_attempt_ids
+                and current_terminal_mtime is not None
+                and packet_ref.stat().st_mtime > current_terminal_mtime
+            )
+            else 0
+        )
         candidates.append(
             (
+                consumed_successor_priority,
                 transaction_priority,
                 bucket_priority,
                 semantic_priority if transaction_priority or bucket_priority else 0,
@@ -721,8 +743,8 @@ def _latest_stage_attempt_route_back_source_readback(
         return None
     packet_ref = max(
         candidates,
-        key=lambda item: (item[0], item[1], item[2], item[3], item[4]),
-    )[5]
+        key=lambda item: (item[0], item[1], item[2], item[3], item[4], item[5]),
+    )[6]
     return _build_terminalizer_source_readback_from_stage_packet(
         profile=profile,
         profile_ref=profile_ref,
@@ -730,6 +752,21 @@ def _latest_stage_attempt_route_back_source_readback(
         stage_packet=packet_ref,
         source=f"{source}:autodiscovered-stage-packet",
     )
+
+
+def _current_terminal_owner_consumed(readback: Mapping[str, Any]) -> bool:
+    status = _optional_text(
+        _mapping(
+            _mapping(readback.get("current_opl_runtime_carrier_readback")).get(
+                "mas_receipt_consumption"
+            )
+        ).get("status")
+    )
+    return status in {
+        "owner_consumed_route_checkpoint",
+        "owner_consumed_typed_blocker",
+        "owner_consumption_applied",
+    }
 
 def _typed_blocker_resolution_should_own_next_action(
     *,
