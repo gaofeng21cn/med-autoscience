@@ -12,6 +12,9 @@ from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_consumption,
     receipt_owner_consumption_superseded_by_stage_closure,
 )
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption_parts.storage import (
+    _write_output_packet,
+)
 from med_autoscience.paper_mission_consumption_readback import (
     _ledger_timestamp_key,
     latest_paper_mission_consumption_transaction_readback,
@@ -422,6 +425,78 @@ def test_newer_route_checkpoint_stage_closure_supersedes_stale_route_checkpoint_
                 "transition_kind": "route_back_candidate_checkpoint",
             },
         },
+    )
+
+
+def test_receipt_owner_consumption_write_preserves_newer_route_checkpoint(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    output_root = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+    )
+    older_checkpoint = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-old"
+        / "stage_attempt_closeout_packet.json"
+    )
+    newer_checkpoint = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_attempts"
+        / "sat-new"
+        / "stage_attempt_closeout_packet.json"
+    )
+    older_checkpoint.parent.mkdir(parents=True)
+    newer_checkpoint.parent.mkdir(parents=True)
+    older_checkpoint.write_text("{}", encoding="utf-8")
+    newer_checkpoint.write_text("{}", encoding="utf-8")
+    os.utime(older_checkpoint, (2_000_000_000, 2_000_000_000))
+    os.utime(newer_checkpoint, (3_000_000_000, 3_000_000_000))
+    newer_payload = _receipt_owner_consumption_payload(
+        study_id=study_id,
+        checkpoint_ref=(
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            "sat-new/stage_attempt_closeout_packet.json"
+        ),
+    )
+    older_payload = _receipt_owner_consumption_payload(
+        study_id=study_id,
+        checkpoint_ref=(
+            "ops/medautoscience/paper_mission_stage_attempts/"
+            "sat-old/stage_attempt_closeout_packet.json"
+        ),
+    )
+
+    _write_output_packet(
+        output_root=output_root,
+        study_id=study_id,
+        payload=newer_payload,
+        writes_authority=True,
+    )
+    manifest = _write_output_packet(
+        output_root=output_root,
+        study_id=study_id,
+        payload=older_payload,
+        writes_authority=True,
+    )
+
+    assert manifest["write_skipped_stale_route_checkpoint"] is True
+    payload = json.loads(
+        (output_root / study_id / "receipt_owner_consumption.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["mas_receipt_consumption"]["route_checkpoint_evidence_ref"].endswith(
+        "sat-new/stage_attempt_closeout_packet.json"
     )
 
 
@@ -847,6 +922,39 @@ def _transaction(
     ] = f"{transaction_ref}#stage_terminal_decision"
     transaction["idempotency"]["transaction_fingerprint"] = fingerprint
     return transaction
+
+
+def _receipt_owner_consumption_payload(
+    *,
+    study_id: str,
+    checkpoint_ref: str,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "paper_mission_receipt_owner_consumption",
+        "schema_version": 1,
+        "status": "owner_consumption_applied",
+        "study_id": study_id,
+        "authority_materialized": True,
+        "mas_receipt_consumption": {
+            "surface_kind": "mas_receipt_consumption_projection",
+            "status": "owner_consumed_route_checkpoint",
+            "route_checkpoint_evidence_ref": checkpoint_ref,
+        },
+        "stage_closure_decision": {
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+                "route_checkpoint_evidence_ref": checkpoint_ref,
+            },
+            "authority_boundary": {
+                "writes_owner_receipt": False,
+                "writes_human_gate": False,
+                "writes_current_package": False,
+                "writes_submission_ready_package": False,
+                "writes_runtime_queue_or_provider_attempt": False,
+            },
+        },
+    }
 
 
 def _patch_json(path: Path, updates: dict[str, object]) -> None:

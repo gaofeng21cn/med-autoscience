@@ -54,6 +54,31 @@ def _write_output_packet(
     output_root.mkdir(parents=True, exist_ok=True)
     packet_path = output_root / study_id / "receipt_owner_consumption.json"
     packet_path.parent.mkdir(parents=True, exist_ok=True)
+    existing = (
+        _valid_owner_consumption_readback(packet_ref=packet_path, study_id=study_id)
+        if packet_path.exists()
+        else None
+    )
+    if _existing_route_checkpoint_is_newer(
+        existing=existing,
+        incoming=payload,
+        output_root=output_root,
+    ):
+        existing_text = packet_path.read_text(encoding="utf-8")
+        return {
+            "surface_kind": "paper_mission_receipt_owner_consumption_output_manifest",
+            "schema_version": 1,
+            "output_root": str(output_root),
+            "packet_ref": str(packet_path),
+            "packet_sha256": hashlib.sha256(existing_text.encode("utf-8")).hexdigest(),
+            "writes_authority": False,
+            "writes_yang_authority": False,
+            "writes_receipt_owner_consumption": False,
+            "write_skipped_stale_route_checkpoint": True,
+            "preserved_route_checkpoint_evidence_ref": _route_checkpoint_ref(existing),
+            "incoming_route_checkpoint_evidence_ref": _route_checkpoint_ref(payload),
+            "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+        }
     text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
     packet_path.write_text(text + "\n", encoding="utf-8")
     return {
@@ -67,6 +92,73 @@ def _write_output_packet(
         "writes_receipt_owner_consumption": bool(writes_authority),
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
     }
+
+
+def _existing_route_checkpoint_is_newer(
+    *,
+    existing: Mapping[str, Any] | None,
+    incoming: Mapping[str, Any],
+    output_root: Path,
+) -> bool:
+    if not existing:
+        return False
+    existing_ref = _route_checkpoint_ref(existing)
+    incoming_ref = _route_checkpoint_ref(incoming)
+    if existing_ref is None or incoming_ref is None or existing_ref == incoming_ref:
+        return False
+    if _consumption_status(existing) != "owner_consumed_route_checkpoint":
+        return False
+    if _consumption_status(incoming) != "owner_consumed_route_checkpoint":
+        return False
+    workspace_root = _workspace_root_from_output_root(output_root)
+    if workspace_root is None:
+        return False
+    existing_mtime = _ref_mtime(workspace_root=workspace_root, ref=existing_ref)
+    incoming_mtime = _ref_mtime(workspace_root=workspace_root, ref=incoming_ref)
+    return (
+        existing_mtime is not None
+        and incoming_mtime is not None
+        and existing_mtime > incoming_mtime
+    )
+
+
+def _route_checkpoint_ref(payload: Mapping[str, Any] | None) -> str | None:
+    data = _mapping(payload)
+    consumption = _mapping(data.get("mas_receipt_consumption"))
+    stage = _mapping(data.get("stage_closure"))
+    decision = _mapping(data.get("stage_closure_decision"))
+    outcome = _mapping(decision.get("outcome"))
+    return (
+        _text(consumption.get("route_checkpoint_evidence_ref"))
+        or _text(stage.get("route_checkpoint_evidence_ref"))
+        or _text(decision.get("route_checkpoint_evidence_ref"))
+        or _text(outcome.get("route_checkpoint_evidence_ref"))
+    )
+
+
+def _consumption_status(payload: Mapping[str, Any]) -> str | None:
+    return _text(_mapping(payload.get("mas_receipt_consumption")).get("status"))
+
+
+def _workspace_root_from_output_root(output_root: Path) -> Path | None:
+    resolved = output_root.expanduser().resolve()
+    if len(resolved.parents) < 3:
+        return None
+    if resolved.name != "paper_mission_receipt_owner_consumption":
+        return None
+    if resolved.parent.name != "medautoscience" or resolved.parent.parent.name != "ops":
+        return None
+    return resolved.parents[2]
+
+
+def _ref_mtime(*, workspace_root: Path, ref: str) -> float | None:
+    path = Path(ref)
+    if not path.is_absolute():
+        path = workspace_root / path
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return None
 
 
 def _valid_owner_consumption_readback(
