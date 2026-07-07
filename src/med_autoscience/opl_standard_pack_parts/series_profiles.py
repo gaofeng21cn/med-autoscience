@@ -246,6 +246,8 @@ WORKSPACE_TOPOLOGY_PROFILE = {
     "default_profiles": {
         "one_off": {
             "workspace_mode": "one_off",
+            "profile_role": "canonical",
+            "canonical_profile_id": "one_off",
             "project_collection_path": "projects",
             "series_capable_skeleton": True,
             "shared_resource_roots": [
@@ -255,8 +257,37 @@ WORKSPACE_TOPOLOGY_PROFILE = {
             ],
             "project_stage_outputs_root": "artifacts/stage_outputs",
         },
+        "series": {
+            "workspace_mode": "series",
+            "profile_role": "canonical",
+            "canonical_profile_id": "series",
+            "project_collection_path": "projects",
+            "shared_resource_roots": [
+                "shared/sources",
+                "shared/brand",
+                "shared/visual_memory",
+                "shared/style_system",
+                "shared/material_inventory",
+            ],
+            "project_stage_outputs_root": "artifacts/stage_outputs",
+        },
+        "portfolio": {
+            "workspace_mode": "portfolio",
+            "profile_role": "canonical",
+            "canonical_profile_id": "portfolio",
+            "project_collection_path": "projects",
+            "shared_resource_roots": [
+                "data",
+                "literature",
+                "memory",
+                "shared/sources",
+            ],
+            "project_stage_outputs_root": "artifacts/stage_outputs",
+        },
         "rca_series": {
             "workspace_mode": "series",
+            "profile_role": "legacy_domain_alias",
+            "canonical_profile_id": "series",
             "project_collection_path": "projects",
             "shared_resource_roots": [
                 "shared/sources",
@@ -269,6 +300,8 @@ WORKSPACE_TOPOLOGY_PROFILE = {
         },
         "mas_portfolio": {
             "workspace_mode": "portfolio",
+            "profile_role": "legacy_domain_alias",
+            "canonical_profile_id": "portfolio",
             "project_collection_path": "projects",
             "shared_resource_roots": [
                 "data",
@@ -280,10 +313,23 @@ WORKSPACE_TOPOLOGY_PROFILE = {
         },
     },
     "domain_profile_defaults": {
-        "mas": "mas_portfolio",
+        "mas": "portfolio",
         "mag": "one_off",
-        "rca": "rca_series",
+        "rca": "series",
         "oma": "one_off",
+        "bookforge": "one_off",
+    },
+    "legacy_domain_profile_aliases": {
+        "mas_portfolio": {
+            "canonical_profile_id": "portfolio",
+            "alias_for_domain": "mas",
+            "alias_role": "legacy_domain_alias",
+        },
+        "rca_series": {
+            "canonical_profile_id": "series",
+            "alias_for_domain": "rca",
+            "alias_role": "legacy_domain_alias",
+        },
     },
     "default_user_inspection_surface": {
         "ordinary_user_default_surface": "workspace_local_project_stage_outputs",
@@ -327,7 +373,7 @@ WORKSPACE_TOPOLOGY_PROFILE = {
             ),
             "legacy_project_collection_aliases": ["deliverables"],
         },
-        "rca_series": {
+        "series": {
             "shared_roots": [
                 "shared/sources",
                 "shared/brand",
@@ -342,7 +388,7 @@ WORKSPACE_TOPOLOGY_PROFILE = {
             ),
             "legacy_project_collection_aliases": ["deliverables"],
         },
-        "mas_portfolio": {
+        "portfolio": {
             "shared_roots": [
                 "data",
                 "literature",
@@ -353,6 +399,16 @@ WORKSPACE_TOPOLOGY_PROFILE = {
             "project_stage_outputs_pattern": (
                 "projects/<study-id>/artifacts/stage_outputs/<stage-id>/"
             ),
+            "legacy_project_collection_aliases": ["studies"],
+        },
+        "rca_series": {
+            "canonical_layout": "series",
+            "alias_role": "legacy_domain_alias",
+            "legacy_project_collection_aliases": ["deliverables"],
+        },
+        "mas_portfolio": {
+            "canonical_layout": "portfolio",
+            "alias_role": "legacy_domain_alias",
             "legacy_project_collection_aliases": ["studies"],
         },
     },

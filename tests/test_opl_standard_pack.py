@@ -286,15 +286,21 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert workspace_topology["default_profiles"]["one_off"][
         "project_collection_path"
     ] == "projects"
-    assert workspace_topology["default_profiles"]["rca_series"][
+    assert workspace_topology["default_profiles"]["series"][
         "project_collection_path"
     ] == "projects"
-    assert workspace_topology["default_profiles"]["mas_portfolio"][
+    assert workspace_topology["default_profiles"]["portfolio"][
         "project_collection_path"
     ] == "projects"
-    assert workspace_topology["default_profiles"]["mas_portfolio"][
+    assert workspace_topology["default_profiles"]["portfolio"][
         "project_stage_outputs_root"
     ] == "artifacts/stage_outputs"
+    assert workspace_topology["default_profiles"]["mas_portfolio"][
+        "canonical_profile_id"
+    ] == "portfolio"
+    assert workspace_topology["default_profiles"]["rca_series"][
+        "canonical_profile_id"
+    ] == "series"
     assert workspace_topology["workspace_initialization_policy"][
         "default_project_collection_path"
     ] == "projects"
@@ -304,7 +310,11 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert "one_off_still_uses_project_collection_path" not in workspace_topology[
         "workspace_initialization_policy"
     ]
-    assert workspace_topology["domain_profile_defaults"]["mas"] == "mas_portfolio"
+    assert workspace_topology["domain_profile_defaults"]["mas"] == "portfolio"
+    assert workspace_topology["domain_profile_defaults"]["rca"] == "series"
+    assert workspace_topology["legacy_domain_profile_aliases"]["mas_portfolio"][
+        "canonical_profile_id"
+    ] == "portfolio"
     assert workspace_topology["default_user_inspection_surface"][
         "ordinary_user_default_surface"
     ] == "workspace_local_project_stage_outputs"
