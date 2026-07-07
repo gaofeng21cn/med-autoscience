@@ -8,7 +8,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _mapping,
     _optional_text,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer_readback_parts.stage_packet_route_back import (
+from med_autoscience.cli_parts.paper_mission_command_parts.stage_packet_route_back_readback import (
     _first_non_empty_text,
 )
 from med_autoscience.paper_mission_opl_readback_parts.route_identity import (

@@ -8,7 +8,7 @@ from med_autoscience.cli_parts.paper_mission_command_parts.common import (
     _mapping,
     _optional_text,
 )
-from med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer_readback_parts.owner_consumption_alignment import (
+from med_autoscience.cli_parts.paper_mission_command_parts.owner_consumption_alignment import (
     _add_stage_attempt_identity,
     _align_current_carrier_owner_consumption,
     _carrier_matches_owner_consumed_stage_attempt,
