@@ -3,18 +3,17 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
 from .shared import make_profile
 
 
 def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     boundary = manifest["functional_consumer_boundary"]
 
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
