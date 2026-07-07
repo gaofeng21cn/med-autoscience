@@ -1,10 +1,13 @@
 from tests.submission_minimal_cases.shared import *
 
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
+
 
 def test_create_submission_minimal_package_writes_general_supplementary_table_preview(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     write_text(paper_root / "tables" / "S1_missingness.csv", "Variable,Missing\nBMI,0\n")
     write_text(
@@ -27,7 +30,7 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
     )
     dump_json(table_catalog_path, table_catalog)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -84,7 +87,6 @@ def test_create_submission_minimal_package_writes_general_supplementary_table_pr
 def test_create_submission_minimal_package_materializes_deferred_supplementary_figures(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
@@ -112,7 +114,7 @@ def test_create_submission_minimal_package_materializes_deferred_supplementary_f
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -145,7 +147,6 @@ def test_create_submission_minimal_package_materializes_deferred_supplementary_f
 def test_create_submission_minimal_package_recovers_inline_supplementary_tables_without_catalog_entries(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     write_text(
@@ -199,7 +200,7 @@ Current draft conclusion.
     figure_catalog["figures"][1]["display_role"] = "deferred_context_not_main_evidence"
     dump_json(figure_catalog_path, figure_catalog)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
