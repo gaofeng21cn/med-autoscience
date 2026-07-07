@@ -1,10 +1,24 @@
 from tests.submission_minimal_cases.shared import *
 
+from med_autoscience.controllers.submission_minimal_parts import (
+    package_builder,
+    source_contract,
+)
+from med_autoscience.controllers.submission_minimal_parts.authority import (
+    describe_submission_minimal_authority,
+)
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
+from med_autoscience.controllers.submission_minimal_parts.shared_base import (
+    resolve_compiled_markdown_path,
+    resolve_compiled_pdf_path,
+)
+
 
 def test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",
@@ -46,7 +60,7 @@ Current draft conclusion.
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -62,7 +76,6 @@ Current draft conclusion.
 def test_create_submission_minimal_package_refreshes_review_manuscript_when_current_draft_is_newer(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     current_story = """# Current MAS Draft Title
 
@@ -85,7 +98,7 @@ Current draft introduction.
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -96,7 +109,6 @@ Current draft introduction.
 def test_general_medical_submission_source_alias_is_authority_note_and_appendix_stays_in_projection(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     review_manuscript_path = paper_root / "build" / "review_manuscript.md"
     write_text(
@@ -111,7 +123,7 @@ The retained omics dataset is the GSE169498 transcriptomic series, which preserv
 """,
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -146,15 +158,14 @@ The retained omics dataset is the GSE169498 transcriptomic series, which preserv
 
 
 def test_describe_submission_minimal_authority_detects_changed_compiled_markdown(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
 
-    current = module.describe_submission_minimal_authority(paper_root=paper_root)
+    current = describe_submission_minimal_authority(paper_root=paper_root)
     assert current["status"] == "current"
     assert current["evaluated_source_signature"] == current["source_signature"]
     assert current["authority_source_signature"] == current["recorded_source_signature"]
@@ -165,7 +176,7 @@ def test_describe_submission_minimal_authority_detects_changed_compiled_markdown
         "# Updated review manuscript\n\nLate-stage authority change.\n",
     )
 
-    stale = module.describe_submission_minimal_authority(paper_root=paper_root)
+    stale = describe_submission_minimal_authority(paper_root=paper_root)
     assert stale["status"] == "stale_source_changed"
     assert stale["stale_reason"] == "submission_source_signature_mismatch"
     assert stale["evaluated_source_signature"] == stale["source_signature"]
@@ -182,10 +193,9 @@ def test_describe_submission_minimal_authority_detects_changed_compiled_markdown
 
 
 def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source_is_newer(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -196,7 +206,7 @@ def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source
     manifest.pop("source_contract", None)
     dump_json(manifest_path, manifest)
 
-    current = module.describe_submission_minimal_authority(paper_root=paper_root)
+    current = describe_submission_minimal_authority(paper_root=paper_root)
     assert current["status"] == "current"
 
     write_text(
@@ -204,16 +214,15 @@ def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source
         "# Updated review manuscript\n\nLegacy package is now stale.\n",
     )
 
-    stale = module.describe_submission_minimal_authority(paper_root=paper_root)
+    stale = describe_submission_minimal_authority(paper_root=paper_root)
     assert stale["status"] == "stale_source_changed"
     assert stale["stale_reason"] == "submission_source_newer_than_manifest"
 
 
 def test_describe_submission_minimal_authority_ignores_source_mtime_only_drift(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -225,7 +234,7 @@ def test_describe_submission_minimal_authority_ignores_source_mtime_only_drift(t
         ns=(references_stat.st_atime_ns, references_stat.st_mtime_ns + 1_000_000_000),
     )
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
 
     assert authority["status"] == "current"
     assert authority["stale_reason"] is None
@@ -235,10 +244,9 @@ def test_describe_submission_minimal_authority_ignores_source_mtime_only_drift(t
 def test_create_submission_minimal_package_canonicalizes_authoritative_worktree_source_paths(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_authoritative_worktree_source_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -251,18 +259,19 @@ def test_create_submission_minimal_package_canonicalizes_authoritative_worktree_
         "Characteristic,Value\nAge,99\n"
     )
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"
 
 
 def test_create_submission_minimal_package_supports_stage_native_current_body_source(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: False)
     paper_root = make_stage_native_current_body_workspace(tmp_path)
     study_root = paper_root.parents[5]
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -282,7 +291,7 @@ def test_create_submission_minimal_package_supports_stage_native_current_body_so
     assert "Export-ready submission projection: submission/manuscript_submission.md." in source_note
     assert "Manifest and source signature surface: submission/audit/submission_manifest.json#source_signature." in source_note
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"
 
 
@@ -290,8 +299,6 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
     paper_root = make_paper_workspace(tmp_path)
     write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[]}' + "\n")
 
@@ -308,7 +315,7 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
         lambda *, paper_root, publication_profile, authority_route_context=None: {"status": "synced"},
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -317,12 +324,11 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
 
     write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[{"id":"gate-refresh"}]}' + "\n")
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"
 
 
 def test_create_submission_minimal_package_accepts_current_bundle_contract_shape(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -348,7 +354,7 @@ def test_create_submission_minimal_package_accepts_current_bundle_contract_shape
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -361,7 +367,6 @@ def test_create_submission_minimal_package_accepts_current_bundle_contract_shape
 
 
 def test_resolve_compiled_markdown_path_skips_submission_surface_candidates(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     submission_root = paper_root / "submission_minimal"
 
@@ -379,7 +384,7 @@ Wrong self reference text.
 """,
     )
 
-    resolved = module.resolve_compiled_markdown_path(
+    resolved = resolve_compiled_markdown_path(
         workspace_root=paper_root.parent,
         bundle_manifest={
             "schema_version": 1,
@@ -396,13 +401,12 @@ Wrong self reference text.
 
 
 def test_resolve_compiled_pdf_path_skips_submission_surface_candidates(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     submission_root = paper_root / "submission_minimal"
 
     write_text(submission_root / "paper.pdf", "%PDF-1.4\n%self referential pdf\n")
 
-    resolved = module.resolve_compiled_pdf_path(
+    resolved = resolve_compiled_pdf_path(
         workspace_root=paper_root.parent,
         bundle_manifest={
             "schema_version": 1,
@@ -421,10 +425,9 @@ def test_resolve_compiled_pdf_path_skips_submission_surface_candidates(tmp_path:
 def test_resolve_compiled_pdf_path_uses_present_compiled_pdf_asset_when_report_lacks_pdf_path(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    resolved = module.resolve_compiled_pdf_path(
+    resolved = resolve_compiled_pdf_path(
         workspace_root=paper_root.parent,
         bundle_manifest={
             "schema_version": 1,
@@ -442,7 +445,6 @@ def test_resolve_compiled_pdf_path_uses_present_compiled_pdf_asset_when_report_l
 def test_create_submission_minimal_package_rebuilds_pdf_when_compile_report_lacks_pdf_candidate(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -466,7 +468,7 @@ def test_create_submission_minimal_package_rebuilds_pdf_when_compile_report_lack
     )
     (paper_root / "paper.pdf").unlink()
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -478,7 +480,6 @@ def test_create_submission_minimal_package_rebuilds_pdf_when_compile_report_lack
 
 
 def test_create_submission_minimal_package_skips_self_referential_compiled_sources(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     submission_root = paper_root / "submission_minimal"
 
@@ -528,7 +529,7 @@ Wrong caption.
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -539,7 +540,6 @@ Wrong caption.
 
 
 def test_create_submission_minimal_package_prefers_compiled_markdown_over_draft_path(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     write_text(
@@ -568,7 +568,7 @@ Wrong draft abstract.
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -580,7 +580,6 @@ Wrong draft abstract.
 
 
 def test_create_submission_minimal_package_ignores_recursive_compile_report_path(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     repeated_compile_path = (
         "studies/002-early-residual-risk/paper/"
@@ -602,7 +601,7 @@ def test_create_submission_minimal_package_ignores_recursive_compile_report_path
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -615,9 +614,6 @@ def test_submission_source_contract_signature_changes_when_renderer_contract_cha
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    shared_module = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.source_contract"
-    )
     paper_root = make_paper_workspace(tmp_path)
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
@@ -633,9 +629,9 @@ def test_submission_source_contract_signature_changes_when_renderer_contract_cha
         "references_source_path": paper_root / "references.bib",
     }
 
-    baseline_contract = shared_module.build_submission_minimal_source_contract(**kwargs)
+    baseline_contract = source_contract.build_submission_minimal_source_contract(**kwargs)
     monkeypatch.setattr(
-        shared_module,
+        source_contract,
         "_controller_renderer_contract_entries",
         lambda: [
             {
@@ -646,7 +642,7 @@ def test_submission_source_contract_signature_changes_when_renderer_contract_cha
             }
         ],
     )
-    changed_contract = shared_module.build_submission_minimal_source_contract(**kwargs)
+    changed_contract = source_contract.build_submission_minimal_source_contract(**kwargs)
 
     assert baseline_contract["controller_renderer_signature"] != changed_contract["controller_renderer_signature"]
     assert baseline_contract["source_signature"] != changed_contract["source_signature"]
