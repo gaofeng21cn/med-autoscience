@@ -7,6 +7,8 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import build_study
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     build_submission_delivery_signature_block,
+    resolve_evidence_ledger_path,
+    resolve_review_ledger_path,
     resolve_submission_manifest_path,
 )
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
@@ -39,6 +41,26 @@ from .submission_delivery_descriptions import (
 from .external_entry import _sync_user_delivery_entry
 
 
+def _delivery_evidence_ledger_source(*, paper_root: Path, source_root: Path) -> Path:
+    for candidate in (
+        resolve_evidence_ledger_path(source_root),
+        paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+    ):
+        if candidate.exists():
+            return candidate
+    return resolve_evidence_ledger_path(source_root)
+
+
+def _delivery_review_ledger_source(*, paper_root: Path, source_root: Path) -> Path:
+    for candidate in (
+        resolve_review_ledger_path(source_root),
+        paper_root / "review" / "review_ledger.json",
+    ):
+        if candidate.exists():
+            return candidate
+    return resolve_review_ledger_path(source_root)
+
+
 def sync_promoted_journal_delivery(
     *,
     paper_root: Path,
@@ -63,10 +85,12 @@ def sync_promoted_journal_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    evidence_ledger_source = _delivery_evidence_ledger_source(paper_root=paper_root, source_root=source_root)
+    review_ledger_source = _delivery_review_ledger_source(paper_root=paper_root, source_root=source_root)
     charter_contract_linkage = build_charter_contract_linkage(
         study_root=study_root,
-        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
-        review_ledger_path=paper_root / "review" / "review_ledger.json",
+        evidence_ledger_path=evidence_ledger_source,
+        review_ledger_path=review_ledger_source,
     )
     source_relative_paths = _submission_source_relative_paths(
         paper_root=paper_root,
@@ -83,12 +107,18 @@ def sync_promoted_journal_delivery(
         category="manifest",
         copied_files=copied_files,
     )
-    evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
     if evidence_ledger_source.exists():
         copy_file(
             source=evidence_ledger_source,
             target=audit_path(manuscript_root, "evidence_ledger"),
             category="evidence_ledger",
+            copied_files=copied_files,
+        )
+    if review_ledger_source.exists():
+        copy_file(
+            source=review_ledger_source,
+            target=audit_path(manuscript_root, "review_ledger"),
+            category="review_surface",
             copied_files=copied_files,
         )
     supplementary_docx = source_root / "Supplementary_Material.docx"
@@ -178,7 +208,7 @@ def sync_promoted_journal_delivery(
         status_line="promoted human-facing manuscript handoff surface",
         copied_files=copied_files,
         generated_files=generated_files,
-        review_ledger_source=paper_root / "review" / "review_ledger.json",
+        review_ledger_source=review_ledger_source,
         charter_contract_linkage=charter_contract_linkage,
         source_signature=source_signature,
     )
@@ -197,7 +227,7 @@ def sync_promoted_journal_delivery(
         copied_files=copied_files,
     )
     copy_file(
-        source=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+        source=evidence_ledger_source,
         target=audit_path(mirror_root, "evidence_ledger"),
         category="journal_submission_mirror",
         copied_files=copied_files,

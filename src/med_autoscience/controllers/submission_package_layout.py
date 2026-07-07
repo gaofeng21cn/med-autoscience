@@ -100,6 +100,36 @@ def resolve_submission_manifest_path(package_root: Path) -> Path:
     return legacy_submission_manifest_path(package_root)
 
 
+def legacy_evidence_ledger_path(package_root: Path) -> Path:
+    return Path(package_root) / EVIDENCE_LEDGER_BASENAME
+
+
+def evidence_ledger_path(package_root: Path) -> Path:
+    return audit_path(package_root, "evidence_ledger")
+
+
+def resolve_evidence_ledger_path(package_root: Path) -> Path:
+    v2_path = evidence_ledger_path(package_root)
+    if v2_path.exists():
+        return v2_path
+    return legacy_evidence_ledger_path(package_root)
+
+
+def legacy_review_ledger_path(package_root: Path) -> Path:
+    return Path(package_root) / "review" / REVIEW_LEDGER_BASENAME
+
+
+def review_ledger_path(package_root: Path) -> Path:
+    return audit_path(package_root, "review_ledger")
+
+
+def resolve_review_ledger_path(package_root: Path) -> Path:
+    v2_path = review_ledger_path(package_root)
+    if v2_path.exists():
+        return v2_path
+    return legacy_review_ledger_path(package_root)
+
+
 def has_legacy_root_audit_files(package_root: Path) -> bool:
     resolved_root = Path(package_root)
     return any((resolved_root / relative_path).exists() for relative_path in LEGACY_ROOT_AUDIT_RELATIVE_PATHS)

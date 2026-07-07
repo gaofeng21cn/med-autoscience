@@ -13,6 +13,8 @@ from med_autoscience.controllers.submission_package_layout import (
     build_source_signature_document,
     audit_path,
     reproducibility_path,
+    resolve_evidence_ledger_path,
+    resolve_review_ledger_path,
     resolve_submission_manifest_path,
 )
 
@@ -79,19 +81,31 @@ def _copy_current_package_audit_surfaces(
     review_ledger_source: Path | None,
     charter_contract_linkage: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], Path]:
-    if paper_root is not None:
-        resolved_paper_root = Path(paper_root).expanduser().resolve()
-        for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS:
-            source_path = resolved_paper_root / relative_path
-            if not source_path.exists():
-                continue
-            copy_file(
-                source=source_path,
-                target=audit_path(current_package_root, "evidence_ledger"),
-                category="current_package",
-                copied_files=copied_files,
-                preserve_metadata=False,
-            )
+    resolved_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
+    evidence_ledger_candidates = [resolve_evidence_ledger_path(source_root)]
+    if resolved_paper_root is not None:
+        evidence_ledger_candidates.extend(
+            resolved_paper_root / relative_path for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS
+        )
+    seen_evidence_ledgers: set[Path] = set()
+    for source_path in evidence_ledger_candidates:
+        resolved_source_path = Path(source_path).expanduser().resolve()
+        if resolved_source_path in seen_evidence_ledgers:
+            continue
+        seen_evidence_ledgers.add(resolved_source_path)
+        if not resolved_source_path.exists():
+            continue
+        copy_file(
+            source=resolved_source_path,
+            target=audit_path(current_package_root, "evidence_ledger"),
+            category="current_package",
+            copied_files=copied_files,
+            preserve_metadata=False,
+        )
+        break
+    source_review_ledger_path = resolve_review_ledger_path(source_root)
+    if source_review_ledger_path.exists():
+        review_ledger_source = source_review_ledger_path
     if review_ledger_source is not None and review_ledger_source.exists():
         copy_file(
             source=review_ledger_source,
@@ -119,7 +133,7 @@ def _copy_current_package_audit_surfaces(
             )
             linkage_payload["study_charter_ref"] = study_charter_ref
 
-    if paper_root is not None:
+    if resolved_paper_root is not None:
         visual_audit_source = resolved_paper_root / "figure_visual_audit_receipt.json"
         if visual_audit_source.exists():
             copy_file(

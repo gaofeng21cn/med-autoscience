@@ -58,6 +58,8 @@ from .current_package_projection import augment_submission_surface_in_place, syn
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     build_submission_delivery_signature_block,
+    resolve_evidence_ledger_path,
+    resolve_review_ledger_path,
     resolve_submission_manifest_path,
 )
 from .delivery_descriptions import (
@@ -82,6 +84,26 @@ def _submission_root(study_root: Path) -> Path:
 
 def _submission_zip(study_root: Path) -> Path:
     return study_root / "submission.zip"
+
+
+def _delivery_evidence_ledger_source(*, paper_root: Path, source_root: Path) -> Path:
+    for candidate in (
+        resolve_evidence_ledger_path(source_root),
+        paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
+    ):
+        if candidate.exists():
+            return candidate
+    return resolve_evidence_ledger_path(source_root)
+
+
+def _delivery_review_ledger_source(*, paper_root: Path, source_root: Path) -> Path:
+    for candidate in (
+        resolve_review_ledger_path(source_root),
+        paper_root / "review" / "review_ledger.json",
+    ):
+        if candidate.exists():
+            return candidate
+    return resolve_review_ledger_path(source_root)
 
 
 def _write_study_delivery_manifest(
@@ -232,12 +254,14 @@ def sync_general_delivery(
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
     try:
+        source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
+        evidence_ledger_source = _delivery_evidence_ledger_source(paper_root=paper_root, source_root=source_root)
+        review_ledger_source = _delivery_review_ledger_source(paper_root=paper_root, source_root=source_root)
         charter_contract_linkage = build_charter_contract_linkage(
             study_root=study_root,
-            evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
-            review_ledger_path=paper_root / "review" / "review_ledger.json",
+            evidence_ledger_path=evidence_ledger_source,
+            review_ledger_path=review_ledger_source,
         )
-        source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
         source_relative_root = build_authority_source_relative_root(paper_root=paper_root, source_root=source_root)
         source_relative_paths = _submission_source_relative_paths(
             paper_root=paper_root,
@@ -288,7 +312,7 @@ def sync_general_delivery(
                 source_relative_root=source_relative_root,
                 copied_files=copied_files,
                 generated_files=generated_files,
-                review_ledger_source=paper_root / "review" / "review_ledger.json",
+                review_ledger_source=review_ledger_source,
                 charter_contract_linkage=charter_contract_linkage,
                 quality_gate_status="blocked" if known_blockers else "not_blocked",
                 known_blockers=known_blockers,
@@ -308,7 +332,7 @@ def sync_general_delivery(
                 status_line="controller-generated submission package",
                 copied_files=copied_files,
                 generated_files=generated_files,
-                review_ledger_source=paper_root / "review" / "review_ledger.json",
+                review_ledger_source=review_ledger_source,
                 charter_contract_linkage=charter_contract_linkage,
                 quality_gate_status="blocked" if known_blockers else "not_blocked",
                 known_blockers=known_blockers,
@@ -324,7 +348,7 @@ def sync_general_delivery(
             stage=normalized_stage,
             copied_files=copied_files,
             generated_files=generated_files,
-            review_ledger_source=paper_root / "review" / "review_ledger.json",
+            review_ledger_source=review_ledger_source,
             charter_contract_linkage=charter_contract_linkage,
             quality_gate_status="blocked" if known_blockers else "not_blocked",
             known_blockers=known_blockers,
@@ -507,14 +531,16 @@ def _sync_current_package_mirror_delivery(
     manuscript_root.mkdir(parents=True, exist_ok=True)
     ensure_manuscript_root_readme(manuscript_root=manuscript_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
-    charter_contract_linkage = build_charter_contract_linkage(
-        study_root=study_root,
-        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
-        review_ledger_path=paper_root / "review" / "review_ledger.json",
-    )
     source_relative_paths = _submission_source_relative_paths(
         paper_root=paper_root,
         source_root=source_root,
+    )
+    evidence_ledger_source = _delivery_evidence_ledger_source(paper_root=paper_root, source_root=source_root)
+    review_ledger_source = _delivery_review_ledger_source(paper_root=paper_root, source_root=source_root)
+    charter_contract_linkage = build_charter_contract_linkage(
+        study_root=study_root,
+        evidence_ledger_path=evidence_ledger_source,
+        review_ledger_path=review_ledger_source,
     )
     source_signature = _submission_source_signature(
         paper_root=paper_root,
@@ -532,7 +558,7 @@ def _sync_current_package_mirror_delivery(
         status_line="human-facing current package mirror; not a submission-ready package",
         copied_files=copied_files,
         generated_files=generated_files,
-        review_ledger_source=paper_root / "review" / "review_ledger.json",
+        review_ledger_source=review_ledger_source,
         charter_contract_linkage=charter_contract_linkage,
         quality_gate_status="blocked" if known_blockers else "not_blocked",
         known_blockers=known_blockers,
@@ -628,10 +654,12 @@ def sync_journal_specific_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    evidence_ledger_source = _delivery_evidence_ledger_source(paper_root=paper_root, source_root=source_root)
+    review_ledger_source = _delivery_review_ledger_source(paper_root=paper_root, source_root=source_root)
     charter_contract_linkage = build_charter_contract_linkage(
         study_root=study_root,
-        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
-        review_ledger_path=paper_root / "review" / "review_ledger.json",
+        evidence_ledger_path=evidence_ledger_source,
+        review_ledger_path=review_ledger_source,
     )
     source_relative_paths = _submission_source_relative_paths(
         paper_root=paper_root,
@@ -660,11 +688,17 @@ def sync_journal_specific_delivery(
         category="journal_submission_package",
         copied_files=copied_files,
     )
-    evidence_ledger_source = paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME
     if evidence_ledger_source.exists():
         copy_file(
             source=evidence_ledger_source,
             target=audit_path(journal_package_root, "evidence_ledger"),
+            category="journal_submission_package",
+            copied_files=copied_files,
+        )
+    if review_ledger_source.exists():
+        copy_file(
+            source=review_ledger_source,
+            target=audit_path(journal_package_root, "review_ledger"),
             category="journal_submission_package",
             copied_files=copied_files,
         )
@@ -724,7 +758,7 @@ def sync_journal_specific_delivery(
         status_line="journal-specific human-facing manuscript package",
         copied_files=copied_files,
         generated_files=generated_files,
-        review_ledger_source=paper_root / "review" / "review_ledger.json",
+        review_ledger_source=review_ledger_source,
         charter_contract_linkage=charter_contract_linkage,
         source_signature=source_signature,
     )
