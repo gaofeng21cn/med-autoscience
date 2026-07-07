@@ -236,6 +236,8 @@ def _build_terminalizer_source_readback(
         opl_bin=None,
     )
     if source_readback is not None:
+        if _source_readback_has_owner_repair_receipt(source_readback):
+            return source_readback
         if allow_stage_packet_autodiscovery:
             stage_attempt_source = _latest_stage_attempt_route_back_source_readback(
                 profile=profile,
@@ -378,6 +380,23 @@ def _build_terminalizer_source_readback(
         dry_run=False,
         source=source,
         enable_opl_live_probe=True,
+    )
+
+
+def _source_readback_has_owner_repair_receipt(readback: Mapping[str, Any]) -> bool:
+    if (
+        _optional_text(_mapping(readback.get("mas_receipt_consumption")).get("status"))
+        == "owner_consumed_mas_repair_delta"
+    ):
+        return True
+    receipt = _mapping(readback.get("receipt_owner_consumption_readback"))
+    if _optional_text(receipt.get("source")) == "study_controller_owner_repair_receipt":
+        return True
+    decision = _mapping(readback.get("stage_closure_decision"))
+    outcome = _mapping(decision.get("outcome"))
+    return (
+        _optional_text(decision.get("source")) == "study_controller_owner_repair_receipt"
+        and _optional_text(outcome.get("kind")) == "owner_receipt"
     )
 
 

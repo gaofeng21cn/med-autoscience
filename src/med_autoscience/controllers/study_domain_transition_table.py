@@ -234,6 +234,17 @@ def project_domain_transition(
     if current_controller_route_transition is not None:
         return current_controller_route_transition
 
+    if owner_apply_receipt_consumption and _owner_apply_receipt_is_newer_than_publication_eval(
+        root=root,
+        owner_apply_receipt_consumption=owner_apply_receipt_consumption,
+        publication_eval_ref=publication_eval_ref,
+    ):
+        return _owner_apply_receipt_transition(
+            study_id=study_id,
+            source_refs=source_refs,
+            completion_receipt_consumption=owner_apply_receipt_consumption,
+        )
+
     stale_reviewer_revision_transition = ai_reviewer_transitions.project_stale_reviewer_revision_transition(
         study_id=study_id,
         study_root=root,
@@ -288,26 +299,11 @@ def project_domain_transition(
         return consumed_transition or ai_reviewer_transition
 
     if owner_apply_receipt_consumption or _meaningful_artifact_delta(repair_evidence):
-        return _transition(
+        return _owner_apply_receipt_transition(
             study_id=study_id,
-            decision_type="owner_apply_receipt_consumed"
-            if owner_apply_receipt_consumption
-            else "artifact_delta_live_apply",
-            route_target="finalize",
-            next_work_unit=_work_unit(
-                "provider_hosted_guarded_apply",
-                "finalize",
-                "Apply artifact delta only through MAS-owned guarded apply receipt.",
-            ),
-            controller_action="paper_autonomy_guarded_apply",
-            owner="med-autoscience",
-            typed_blocker=None,
-            guard_boundary=_guard_boundary(
-                required_owner_surface="mas_owner_apply_receipt",
-                mas_owner_apply_receipt_required=True,
-            ),
             source_refs=source_refs,
             completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
+            artifact_delta_live_apply=not owner_apply_receipt_consumption,
         )
 
     if _publication_gate_blocked(publication_eval, status=status):
@@ -574,6 +570,53 @@ def _delivered_package_handoff_transition(
         guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
+    )
+
+
+def _owner_apply_receipt_transition(
+    *,
+    study_id: str,
+    source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any],
+    artifact_delta_live_apply: bool = False,
+) -> dict[str, Any]:
+    return _transition(
+        study_id=study_id,
+        decision_type="artifact_delta_live_apply" if artifact_delta_live_apply else "owner_apply_receipt_consumed",
+        route_target="finalize",
+        next_work_unit=_work_unit(
+            "provider_hosted_guarded_apply",
+            "finalize",
+            "Apply artifact delta only through MAS-owned guarded apply receipt.",
+        ),
+        controller_action="paper_autonomy_guarded_apply",
+        owner="med-autoscience",
+        typed_blocker=None,
+        guard_boundary=_guard_boundary(
+            required_owner_surface="mas_owner_apply_receipt",
+            mas_owner_apply_receipt_required=True,
+        ),
+        source_refs=source_refs,
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
+
+
+def _owner_apply_receipt_is_newer_than_publication_eval(
+    *,
+    root: Path,
+    owner_apply_receipt_consumption: Mapping[str, Any],
+    publication_eval_ref: str | None,
+) -> bool:
+    publication_mtime = _path_mtime(root / publication_eval_ref) if publication_eval_ref else None
+    if publication_mtime is None:
+        return True
+    return any(
+        (mtime := _path_mtime(root / ref)) is not None and mtime > publication_mtime
+        for ref in (
+            _text(owner_apply_receipt_consumption.get("receipt_ref")),
+            _text(owner_apply_receipt_consumption.get("evidence_ref")),
+        )
+        if ref
     )
 
 
@@ -973,6 +1016,13 @@ def _work_unit_is_finalize(unit: Mapping[str, Any]) -> bool:
 
 def _meaningful_artifact_delta(repair_evidence: Mapping[str, Any]) -> bool:
     return _mapping(repair_evidence.get("canonical_artifact_delta")).get("meaningful_artifact_delta") is True
+
+
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

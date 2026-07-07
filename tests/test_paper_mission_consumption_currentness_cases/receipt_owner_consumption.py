@@ -86,6 +86,63 @@ def test_newer_route_checkpoint_stage_closure_supersedes_stale_route_checkpoint_
     )
 
 
+def test_newer_non_route_stage_closure_supersedes_stale_route_checkpoint_receipt(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    workspace_root = tmp_path / "workspace"
+    receipt_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_receipt_owner_consumption"
+        / study_id
+        / "receipt_owner_consumption.json"
+    )
+    stage_ref = (
+        workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_stage_closure"
+        / "paper_mission_terminalize_stage"
+        / study_id
+        / "stage_closure_decision.json"
+    )
+    receipt_ref.parent.mkdir(parents=True)
+    stage_ref.parent.mkdir(parents=True)
+    receipt_ref.write_text("{}", encoding="utf-8")
+    stage_ref.write_text("{}", encoding="utf-8")
+    os.utime(receipt_ref, (2_000_000_000, 2_000_000_000))
+    os.utime(stage_ref, (3_000_000_000, 3_000_000_000))
+
+    assert receipt_owner_consumption_superseded_by_stage_closure(
+        receipt_owner_consumption_readback={
+            "status": "owner_consumption_applied",
+            "source_ref": str(receipt_ref),
+            "mas_receipt_consumption": {
+                "status": "owner_consumed_route_checkpoint",
+            },
+            "stage_closure_decision": {
+                "stage_id": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "outcome": {
+                    "kind": "next_stage_transition",
+                    "transition_kind": "route_back_candidate_checkpoint",
+                },
+            },
+        },
+        stage_closure_ledger_readback={
+            "source_ref": str(stage_ref),
+            "stage_id": "review",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "current_package_mirror_sync",
+            },
+        },
+    )
+
+
 def test_receipt_owner_consumption_write_preserves_newer_route_checkpoint(
     tmp_path: Path,
 ) -> None:

@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
 from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_consumed_route_checkpoint_suppresses_same_work_unit_domain_redrive() -> None:
@@ -46,6 +52,125 @@ def test_consumed_route_checkpoint_suppresses_same_work_unit_domain_redrive() ->
         next_action=owner_consumption_action,
         domain_transition_next_action=stale_domain_transition_action,
     )
+
+
+def test_owner_repair_receipt_readback_exposes_story_surface_semantic_delta(
+    tmp_path: Path,
+) -> None:
+    materialized_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.materialized_mission_readback"
+    )
+    terminalizer = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "study"
+    stale_stage_ref = study_root / "ops" / "stage_closure_decision.json"
+    stale_stage_ref.parent.mkdir(parents=True)
+    stale_stage_ref.write_text("{}", encoding="utf-8")
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True)
+    draft.write_text("# repaired\n", encoding="utf-8")
+    story_ref = {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"}
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "progress_delta_candidate",
+            "work_unit_id": "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
+            "canonical_artifact_delta_refs": [story_ref],
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [story_ref],
+            },
+            "changed_artifact_refs": [story_ref],
+        },
+    )
+    os.utime(stale_stage_ref, (4_000_000_000, 4_000_000_000))
+
+    readback = materialized_readback._owner_repair_receipt_consumption_readback(
+        study_root=study_root,
+        study_id=study_id,
+    )
+    assert readback is not None
+    assert readback["status"] == "owner_consumption_applied"
+    assert readback["mas_receipt_consumption"]["status"] == "owner_consumed_mas_repair_delta"
+    assert readback["stage_closure_decision"]["outcome"]["kind"] == "owner_receipt"
+    assert readback["stage_closure_decision"]["semantic_delta"]["paper_delta_refs"] == [str(draft)]
+    output_stage_readback = materialized_readback._stage_closure_ledger_readback_for_output(
+        stage_closure_ledger_readback={
+            "source_ref": str(stale_stage_ref),
+            "semantic_delta": {"paper_delta_refs": []},
+            "outcome": {
+                "kind": "next_stage_transition",
+                "transition_kind": "route_back_candidate_checkpoint",
+            },
+        },
+        receipt_owner_consumption_readback=readback,
+    )
+    assert output_stage_readback["semantic_delta"]["paper_delta_refs"] == [str(draft)]
+
+    semantic_delta = terminalizer.stage_closure_semantic_delta(
+        {"receipt_owner_consumption_readback": readback}
+    )
+    assert semantic_delta["paper_delta_refs"] == [str(draft)]
+    assert semantic_delta["owner_decision_refs"]
+
+
+def test_terminalizer_source_keeps_owner_repair_readback_over_stage_packet(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    terminalizer_readback = importlib.import_module(
+        "med_autoscience.cli_parts.paper_mission_command_parts.stage_closure_terminalizer_readback"
+    )
+    owner_repair_readback = {
+        "surface_kind": "paper_mission_materialized_readback",
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "mas_receipt_consumption": {"status": "owner_consumed_mas_repair_delta"},
+        "stage_closure_decision": {
+            "source": "study_controller_owner_repair_receipt",
+            "outcome": {"kind": "owner_receipt"},
+        },
+    }
+    stale_stage_packet_readback = {
+        "surface_kind": "paper_mission_stage_attempt_closeout_readback",
+        "stage_closure_decision": {},
+    }
+    monkeypatch.setattr(
+        terminalizer_readback,
+        "_build_materialized_mission_readback_if_available",
+        lambda **_: owner_repair_readback,
+    )
+    monkeypatch.setattr(
+        terminalizer_readback,
+        "_latest_stage_attempt_route_back_source_readback",
+        lambda **_: stale_stage_packet_readback,
+    )
+
+    readback = terminalizer_readback._build_terminalizer_source_readback(
+        profile=SimpleNamespace(
+            workspace_root=tmp_path / "workspace",
+            studies_root=tmp_path / "workspace" / "studies",
+        ),
+        profile_ref=tmp_path / "profile.toml",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        source="test",
+    )
+
+    assert readback is owner_repair_readback
 
 
 def test_owner_consumed_route_checkpoint_yields_to_domain_transition_action() -> None:

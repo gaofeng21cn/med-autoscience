@@ -267,6 +267,7 @@ def _artifact_delta_owner_receipt_consumption(
         "receipt_ref": str(receipt_ref),
         "evidence_ref": str(evidence_ref),
         "story_surface_delta_ref_count": len(story_surface_refs),
+        "story_surface_delta_refs": story_surface_refs,
         "quality_authorized": False,
         "submission_authorized": False,
         "current_package_write_authorized": False,

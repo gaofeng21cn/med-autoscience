@@ -594,6 +594,8 @@ def stage_closure_semantic_delta(readback: Mapping[str, Any]) -> dict[str, Any]:
         text = _optional_text(readback.get(key))
         if text is not None:
             refs.append(text)
+    paper_refs = _owner_repair_paper_delta_refs(readback)
+    owner_refs = _owner_repair_decision_refs(readback)
     delivery_refs = []
     current_package = _mapping(readback.get("current_package"))
     for key in ("source_signature", "root", "zip_path"):
@@ -609,8 +611,10 @@ def stage_closure_semantic_delta(readback: Mapping[str, Any]) -> dict[str, Any]:
             refs.append(ref)
     return _compact_mapping(
         {
-            "semantic_delta_observed": bool(refs),
-            "semantic_delta_refs": sorted(set(refs)),
+            "semantic_delta_observed": bool(refs or paper_refs or owner_refs),
+            "semantic_delta_refs": sorted(set([*refs, *paper_refs, *owner_refs])),
+            "paper_delta_refs": sorted(set(paper_refs)),
+            "owner_decision_refs": sorted(set(owner_refs)),
             "delivery_delta_refs": sorted(set(delivery_refs)),
         }
     )
@@ -678,6 +682,45 @@ def _stage_closure_semantic_delta_has_refs(
             "owner_decision_refs",
         )
     )
+
+
+def _owner_repair_paper_delta_refs(readback: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for source in _owner_repair_sources(readback):
+        for item in _mapping_list(source.get("story_surface_delta_refs")):
+            ref = _first_text(item.get("path"), item.get("artifact_ref"), item.get("ref"))
+            if ref is not None:
+                refs.append(ref)
+        refs.extend(_text_list(source.get("paper_delta_refs")))
+    return refs
+
+
+def _owner_repair_decision_refs(readback: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for source in _owner_repair_sources(readback):
+        for key in ("receipt_ref", "evidence_ref", "repair_execution_evidence_ref"):
+            ref = _optional_text(source.get(key))
+            if ref is not None:
+                refs.append(ref)
+    return refs
+
+
+def _owner_repair_sources(readback: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    receipt = _mapping(readback.get("receipt_owner_consumption_readback"))
+    sources = [
+        receipt,
+        _mapping(readback.get("receipt_evidence")),
+        _mapping(readback.get("mas_receipt_consumption")),
+        _mapping(receipt.get("receipt_evidence")),
+        _mapping(receipt.get("mas_receipt_consumption")),
+    ]
+    return [
+        source
+        for source in sources
+        if _optional_text(source.get("source_kind")) == "mas_owner_repair_execution_evidence"
+        or _optional_text(source.get("status")) == "owner_consumed_mas_repair_delta"
+        or _optional_text(source.get("owner_result_kind")) == "artifact_delta"
+    ]
 
 
 def _current_package_quality_gate_status(current_package: Mapping[str, Any]) -> str | None:

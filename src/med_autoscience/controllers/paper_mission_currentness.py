@@ -53,6 +53,11 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         != "route_back_candidate_checkpoint"
     ):
         return False
+    if _newer_non_route_checkpoint_stage_closure(
+        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
+        stage_closure_ledger_readback=stage_closure_ledger_readback,
+    ):
+        return True
     if not _has_route_checkpoint_evidence(stage_closure_ledger_readback):
         return False
     if _same_route_checkpoint_identity(
@@ -73,6 +78,30 @@ def receipt_owner_consumption_superseded_by_stage_closure(
         decision,
         stage_closure_ledger_readback,
     )
+
+
+def _newer_non_route_checkpoint_stage_closure(
+    *,
+    receipt_owner_consumption_readback: Mapping[str, Any],
+    stage_closure_ledger_readback: Mapping[str, Any],
+) -> bool:
+    stage_outcome = _mapping(stage_closure_ledger_readback.get("outcome"))
+    if (
+        _optional_text(stage_outcome.get("kind")) == "next_stage_transition"
+        and _optional_text(stage_outcome.get("transition_kind"))
+        == "route_back_candidate_checkpoint"
+    ):
+        return False
+    if _optional_text(stage_outcome.get("kind")) is None:
+        return False
+    receipt_mtime = _path_mtime(
+        _optional_text(receipt_owner_consumption_readback.get("source_ref"))
+    )
+    stage_mtime = _path_mtime(
+        _optional_text(stage_closure_ledger_readback.get("source_ref"))
+        or _optional_text(stage_closure_ledger_readback.get("decision_ref"))
+    )
+    return stage_mtime is not None and (receipt_mtime is None or stage_mtime > receipt_mtime)
 
 
 def _same_route_checkpoint_identity(

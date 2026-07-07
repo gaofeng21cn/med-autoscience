@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-07：MAS owner repair receipt 优先于 no-delta route-back ledger
+
+- 决策：`paper-mission inspect` 读取到 study-local MAS owner repair receipt / evidence，且 `mas_owner_apply_receipt_consumption.apply_result=artifact_delta` 时，materialized readback 必须投影 `owner_consumed_mas_repair_delta`，并把 `story_surface_delta_refs` 作为 `stage_closure_decision.semantic_delta.paper_delta_refs` 和 `paper_mission_stage_closure_ledger_readback.semantic_delta.paper_delta_refs` 暴露。旧 AI-reviewer / reviewer-revision route-back 只能在没有更新的 owner repair receipt 时继续作为 next action。
+- 决策：如果已消费的 owner repair delta 遇到后续 no-delta `route_back_candidate_checkpoint` stage-closure ledger，readback 输出必须保留 owner repair decision；只有后续 ledger 本身带有有效 semantic delta，或是更新的非 route-back terminal outcome，才允许覆盖 owner repair projection。
+- 决策：`paper-mission terminalize-stage` 的 source selection 在 materialized inspect 已包含 `owner_consumed_mas_repair_delta` 时，必须直接消费该 materialized owner repair readback；不得先被 stage packet autodiscovery 抢走而重新写回 no-delta route-back closure。
+- 理由：DM003 `paper-story-repair` 已产生 MAS owner receipt 和 repair evidence，但 inspect / terminalize 仍被旧 route-back closure 和 stage packet 抢占，表现为 top-level receipt 正确、stage closure ledger 无 semantic delta、terminalize-stage 又写回 no-delta route-back。根因是 owner repair receipt 没有进入 materialized readback / stage closure / terminalizer source selection 的同一 currentness 优先级。
+- 影响：这是 MAS readback/currentness selector 修复，不写 Yang study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package；不把 repair delta 自动声明为 submission-ready 或 publication-ready。投稿可行性仍以 fresh `current_package.can_submit`、publication gate、authority snapshot 和后续 MAS/OPL owner readback 为准。
+
 ## 2026-07-07：Journal-family pack 的专业判断回折到 MAS ScholarSkills 现有 Skill
 
 - 决策：`journal_response_pack`、`manuscript_argument_pack`、`statistical_reporting_pack`、`data_availability_fair_pack`、`citation_integrity_pack`、`figure_evidence_contract_pack`、`paper_reader_grounding_pack` 和 `paper_presentation_pack` 是 MAS stage packet 的质量地板和路由 hint，不是 MAS 本仓的新 checklist authority，也不触发新增一组物理 Skill。

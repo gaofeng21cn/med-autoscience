@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import json
 import hashlib
 from pathlib import Path
@@ -122,6 +123,63 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
     assert transition["next_action"]["owner"] == "write"
     assert transition["next_action"]["work_unit_id"] == "manuscript_story_repair"
+
+
+def test_newer_mas_owner_repair_receipt_supersedes_stale_ai_reviewer_routeback(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True)
+    manuscript.write_text("# repaired\n", encoding="utf-8")
+    publication_eval_path = study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    story_ref = {"path": str(manuscript), "artifact_role": "canonical_manuscript_story_surface"}
+    _write_json(publication_eval_path, _current_ai_reviewer_route_back_eval(study_root))
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "progress_delta_candidate",
+            "work_unit_id": "manuscript_story_repair",
+            "canonical_artifact_delta_refs": [story_ref],
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [story_ref],
+            },
+            "changed_artifact_refs": [story_ref],
+        },
+    )
+    os.utime(publication_eval_path, (1, 1))
+    os.utime(receipt_path, (2, 2))
+    os.utime(evidence_path, (2, 2))
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "owner_apply_receipt_consumed"
+    assert transition["controller_action"] == "paper_autonomy_guarded_apply"
+    receipt = transition["completion_receipt_consumption"]
+    assert receipt["receipt_surface"] == "paper_story_repair_owner_receipt"
+    assert receipt["story_surface_delta_ref_count"] == 1
 
 
 def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeback(
