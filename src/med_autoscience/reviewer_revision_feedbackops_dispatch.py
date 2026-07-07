@@ -97,6 +97,13 @@ def _resolve_ai_reviewer_evaluation_ref(
         payload = _read_json(resolved)
         if _valid_ai_reviewer_evaluation(payload):
             return str(resolved)
+    normalized_ref = _materialize_suite_ai_reviewer_evaluation(
+        request=request,
+        request_path=request_path,
+        suite_path=suite_path,
+    )
+    if normalized_ref is not None:
+        return str(normalized_ref)
     return None
 
 
@@ -121,8 +128,176 @@ def _valid_ai_reviewer_evaluation(payload: dict[str, Any]) -> bool:
         value = payload.get(key)
         if not isinstance(value, list) or not value or any(_text(item) is None for item in value):
             return False
+        if key in {"source_refs", "direct_evidence_refs"} and all(
+            _suite_or_scaffold_only_ref(str(item)) for item in value
+        ):
+            return False
     provenance = payload.get("provenance")
     return isinstance(provenance, dict) and bool(provenance)
+
+
+def _materialize_suite_ai_reviewer_evaluation(
+    *,
+    request: dict[str, Any],
+    request_path: Path,
+    suite_path: str | None,
+) -> Path | None:
+    if suite_path is None:
+        return None
+    suite_ref = Path(suite_path).expanduser().resolve()
+    if not suite_ref.exists():
+        return None
+    suite = _read_json(suite_ref)
+    structured = _find_structured_independent_ai_reviewer_evaluation(suite)
+    if structured is None:
+        return None
+    normalized = _normalize_structured_ai_reviewer_evaluation(
+        request=request,
+        request_path=request_path,
+        suite_path=suite_ref,
+        suite=suite,
+        structured=structured,
+    )
+    if not _valid_ai_reviewer_evaluation(normalized):
+        return None
+    output_path = Path(request_path).expanduser().resolve().with_name(
+        "ai_reviewer_evaluation_independent.json"
+    )
+    output_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return output_path
+
+
+def _find_structured_independent_ai_reviewer_evaluation(payload: dict[str, Any]) -> dict[str, Any] | None:
+    direct = payload.get("structured_independent_ai_reviewer_evaluation")
+    if _is_structured_independent_ai_reviewer_evaluation(direct):
+        return dict(direct)
+    for task in payload.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        task_direct = task.get("structured_independent_ai_reviewer_evaluation")
+        if _is_structured_independent_ai_reviewer_evaluation(task_direct):
+            return dict(task_direct)
+        candidate = task.get("improvement_candidate")
+        if isinstance(candidate, dict):
+            nested = candidate.get("structured_independent_ai_reviewer_evaluation")
+            if _is_structured_independent_ai_reviewer_evaluation(nested):
+                return dict(nested)
+    return None
+
+
+def _is_structured_independent_ai_reviewer_evaluation(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if _text(value.get("surface_kind")) != "mas_structured_independent_ai_reviewer_evaluation":
+        return False
+    return (
+        _non_empty_items(value.get("critique"))
+        and _non_empty_items(value.get("suggestions"))
+        and _non_empty_items(value.get("direct_evidence_refs"))
+        and isinstance(value.get("provenance"), dict)
+        and bool(value.get("provenance"))
+    )
+
+
+def _normalize_structured_ai_reviewer_evaluation(
+    *,
+    request: dict[str, Any],
+    request_path: Path,
+    suite_path: Path,
+    suite: dict[str, Any],
+    structured: dict[str, Any],
+) -> dict[str, Any]:
+    study_id = _text(structured.get("study_id")) or _text(request.get("study_id")) or "unknown-study"
+    evaluation_ref = _text(structured.get("evaluation_ref")) or (
+        f"structured-ai-reviewer-evaluation:mas/{study_id}/publication_eval_latest"
+    )
+    source_refs = _unique_texts(
+        [
+            _text(structured.get("source_publication_eval_ref")),
+            *_strings(structured.get("direct_evidence_refs")),
+            _text(request.get("feedback_ref")),
+            _text(request.get("delivery_ref")),
+            _text(request.get("source_trigger_ref")),
+            str(suite_path),
+        ]
+    )
+    direct_refs = _unique_texts(
+        [
+            *_strings(structured.get("direct_evidence_refs")),
+            _text(structured.get("source_publication_eval_ref")),
+        ]
+    )
+    provenance = dict(structured.get("provenance") or {})
+    provenance.update(
+        {
+            "normalized_by": "med_autoscience.reviewer_revision_feedbackops_dispatch",
+            "normalized_from_surface_kind": structured.get("surface_kind"),
+            "source_suite_ref": str(suite_path),
+            "source_request_ref": str(Path(request_path).expanduser().resolve()),
+            "refs_only": True,
+            "candidate_is_authority": False,
+        }
+    )
+    return {
+        "reviewer_kind": "independent_ai_medical_manuscript_quality_reviewer",
+        "model_or_provider": _text(provenance.get("source_kind")) or "mas_publication_eval_ai_reviewer_projection",
+        "run_ref": _text(structured.get("evaluation_ref")) or f"run:mas/{study_id}/publication-eval-latest",
+        "execution_attempt_ref": _text(suite.get("suite_id")) or f"agent-lab-suite:mas/{study_id}",
+        "review_attempt_ref": evaluation_ref,
+        "no_shared_context": True,
+        "independent_attempt": True,
+        "critique": _summarize_structured_items(structured.get("critique")),
+        "suggestions": _summarize_structured_list(structured.get("suggestions")),
+        "source_refs": source_refs,
+        "direct_evidence_refs": direct_refs,
+        "verdict": "valid_refs_only_independent_reviewer_input",
+        "predicted_impact": (
+            "Routes MAS AI-reviewer manuscript critique into OMA work-order materialization "
+            "without granting OMA manuscript, study-truth, or quality-verdict authority."
+        ),
+        "provenance": provenance,
+    }
+
+
+def _summarize_structured_items(value: object) -> str:
+    summaries = _summarize_structured_list(value)
+    return " ".join(summaries)
+
+
+def _summarize_structured_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        summaries: list[str] = []
+        for index, item in enumerate(value, start=1):
+            if isinstance(item, dict):
+                label = _text(item.get("critique_id")) or _text(item.get("suggestion_id")) or f"item:{index}"
+                summary = _text(item.get("summary")) or _text(item.get("rationale"))
+                if summary is not None:
+                    summaries.append(f"{label}: {summary}")
+            elif (text := _text(item)) is not None:
+                summaries.append(text)
+        if summaries:
+            return summaries
+    if text := _text(value):
+        return [text]
+    return ["MAS structured reviewer evaluation did not provide prose details."]
+
+
+def _non_empty_items(value: object) -> bool:
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict) and (
+                _text(item.get("summary")) is not None or _text(item.get("rationale")) is not None
+            ):
+                return True
+            if _text(item) is not None:
+                return True
+        return False
+    return _text(value) is not None
+
+
+def _suite_or_scaffold_only_ref(ref: str) -> bool:
+    normalized = ref.lower()
+    return "suite" in normalized or "scaffold" in normalized
 
 
 def _write_structured_ai_reviewer_evaluation_request(

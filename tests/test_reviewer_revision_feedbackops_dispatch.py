@@ -85,6 +85,106 @@ def test_feedbackops_dispatch_consumes_request_and_blocks_on_missing_ai_reviewer
     assert readback["feedbackops_read"]["stdout_summary"] == {"top_level_keys": ["ok"]}
 
 
+def test_feedbackops_dispatch_normalizes_agent_lab_structured_reviewer_eval(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.reviewer_revision_feedbackops_dispatch import (
+        dispatch_reviewer_revision_feedbackops,
+    )
+
+    request_path = tmp_path / "feedbackops_dispatch_request.json"
+    suite_path = tmp_path / "latest_suite.json"
+    suite_path.write_text(
+        json.dumps(
+            {
+                "suite_id": "mas-agent-lab-suite:001-risk:high-quality-medical-manuscript",
+                "structured_independent_ai_reviewer_evaluation": {
+                    "surface_kind": "mas_structured_independent_ai_reviewer_evaluation",
+                    "schema_version": 1,
+                    "evaluation_ref": "structured-ai-reviewer-evaluation:mas/001-risk/publication_eval_latest",
+                    "study_id": "001-risk",
+                    "target_agent_id": "med-autoscience",
+                    "source_publication_eval_ref": "artifacts/publication_eval/latest.json",
+                    "critique": [
+                        {
+                            "critique_id": "quality_assessment:medical_journal_prose_quality",
+                            "summary": "The draft needs a finding-led clinical story.",
+                        }
+                    ],
+                    "suggestions": [
+                        {
+                            "suggestion_id": "route_to_write_repair",
+                            "summary": "Route reviewer critique through MAS owner write repair.",
+                        }
+                    ],
+                    "direct_evidence_refs": [
+                        "artifacts/publication_eval/latest.json",
+                        "studies/001-risk/paper/manuscript.md",
+                    ],
+                    "provenance": {
+                        "owner": "med-autoscience",
+                        "source_kind": "publication_eval_ai_reviewer_projection",
+                        "projection_role": "oma_structured_reviewer_input",
+                        "candidate_is_authority": False,
+                    },
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_reviewer_revision_feedbackops_dispatch_request",
+                "status": "ready_for_opl_feedbackops",
+                "study_id": "001-risk",
+                "suite_path": str(suite_path),
+                "feedback_ref": "task-intake:latest",
+                "opl_feedback_submit": {
+                    "argv": [
+                        "--target-agent",
+                        "mas",
+                        "--delivery-ref",
+                        str(suite_path),
+                        "--feedback-ref",
+                        "task-intake:latest",
+                        "--json",
+                    ]
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(argv, *, text, capture_output, check):
+        return subprocess.CompletedProcess(argv, 0, '{"ok":true}', "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = dispatch_reviewer_revision_feedbackops(request_path=request_path, opl_bin="opl")
+
+    normalized_ref = tmp_path / "ai_reviewer_evaluation_independent.json"
+    normalized = json.loads(normalized_ref.read_text(encoding="utf-8"))
+    assert result["status"] == "ready_for_oma_work_order_materialization"
+    assert result["ai_reviewer_evaluation_ref"] == str(normalized_ref)
+    assert normalized["reviewer_kind"] == "independent_ai_medical_manuscript_quality_reviewer"
+    assert normalized["no_shared_context"] is True
+    assert normalized["independent_attempt"] is True
+    assert normalized["execution_attempt_ref"] != normalized["review_attempt_ref"]
+    assert "The draft needs a finding-led clinical story" in normalized["critique"]
+    assert normalized["suggestions"] == [
+        "route_to_write_repair: Route reviewer critique through MAS owner write repair."
+    ]
+    assert "artifacts/publication_eval/latest.json" in normalized["direct_evidence_refs"]
+    assert normalized["provenance"]["normalized_from_surface_kind"] == (
+        "mas_structured_independent_ai_reviewer_evaluation"
+    )
+    assert not (tmp_path / "structured_ai_reviewer_evaluation_request.json").exists()
+
+
 def test_feedbackops_dispatch_discovers_structured_ai_reviewer_eval(
     monkeypatch,
     tmp_path: Path,
