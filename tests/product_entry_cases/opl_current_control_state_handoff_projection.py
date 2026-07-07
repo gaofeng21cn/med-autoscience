@@ -2,6 +2,19 @@ from __future__ import annotations
 
 import json
 
+from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+    render_product_entry_status_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    build_product_entry_status,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown import (
+    render_workspace_cockpit_markdown,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+    read_workspace_cockpit,
+)
 from . import shared as _shared
 
 
@@ -41,7 +54,6 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
@@ -118,7 +130,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
         },
     )
     monkeypatch.setattr(
-        module.mainline_status,
+        mainline_status,
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
@@ -215,10 +227,10 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
     )
     monkeypatch.setattr(product_entry_manifest_surfaces_module(), "_validate_product_entry_status_contract", lambda payload: None)
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
-    cockpit_markdown = module.render_workspace_cockpit_markdown(cockpit)
-    entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
+    cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    entry_status = build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    cockpit_markdown = render_workspace_cockpit_markdown(cockpit)
+    entry_status_markdown = render_product_entry_status_markdown(entry_status)
 
     dashboard = cockpit["opl_current_control_state_handoff_dashboard"]
     assert dashboard["surface_kind"] == "opl_current_control_state_handoff_dashboard"
