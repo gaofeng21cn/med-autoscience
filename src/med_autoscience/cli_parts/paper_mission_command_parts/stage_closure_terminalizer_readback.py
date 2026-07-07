@@ -853,14 +853,14 @@ def _stage_closure_next_action_should_own_next_action(
             outcome=outcome,
             domain_transition_next_action=domain_transition_next_action,
         )
-    if _optional_text(action.get("action_family")) == (
-        "paper.stage_closure.owner_consumption"
-    ):
+    action_family = _optional_text(action.get("action_family"))
+    if action_family in {
+        "paper.stage_closure.owner_consumption",
+        "paper.delivery.sync",
+        "paper.delivery_sync",
+    }:
         return True
-    return (
-        outcome.get("kind") == "next_stage_transition"
-        and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
-    )
+    return outcome.get("kind") == "next_stage_transition" and outcome.get("transition_kind") in {"route_back_candidate_checkpoint", "current_package_mirror_sync"}
 
 
 def _route_checkpoint_matches_domain_transition(
@@ -877,10 +877,7 @@ def _route_checkpoint_matches_domain_transition(
     return (
         stage_closure_decision.get("authority_materialized") is True
         or _optional_text(outcome.get("route_checkpoint_evidence_ref")) is not None
-        or _optional_text(
-            _mapping(stage_closure_decision.get("opl_closeout")).get("stage_attempt_id")
-        )
-        is not None
+        or _optional_text(_mapping(stage_closure_decision.get("opl_closeout")).get("stage_attempt_id")) is not None
     )
 
 
@@ -895,9 +892,7 @@ def _owner_consumed_route_checkpoint_yields_to_domain_transition(
     ):
         return True
     action = _mapping(domain_transition_next_action)
-    if _optional_text(action.get("surface_kind")) != "mas_next_action_envelope":
-        return False
-    if _optional_text(action.get("action_type")) != "request_opl_stage_attempt":
+    if not _domain_transition_next_action_requests_stage_attempt(action):
         return False
     decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
     action_stage = _optional_text(action.get("stage_id"))
@@ -925,11 +920,7 @@ def _route_checkpoint_identity_matches_domain_transition(
         return False
     decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
     action_stage = _optional_text(action.get("stage_id"))
-    if (
-        decision_stage is not None
-        and action_stage is not None
-        and decision_stage != action_stage
-    ):
+    if decision_stage is not None and action_stage is not None and decision_stage != action_stage:
         return False
     return True
 
@@ -942,10 +933,9 @@ def _domain_transition_next_action_requests_stage_attempt(
         return False
     if _optional_text(action.get("action_type")) == "request_opl_stage_attempt":
         return True
-    return (
-        _optional_text(action.get("action_family")) is not None
-        and _optional_text(action.get("owner")) is not None
-        and _optional_text(action.get("work_unit_id")) is not None
+    return all(
+        _optional_text(action.get(key)) is not None
+        for key in ("action_family", "owner", "work_unit_id")
     )
 
 
