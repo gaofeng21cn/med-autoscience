@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
 from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
 
 
 def test_product_entry_manifest_exposes_life_science_source_discovery_pack(tmp_path: Path) -> None:
-    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    manifest = build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
     descriptor = manifest["family_stage_control_plane_descriptor"]
 
