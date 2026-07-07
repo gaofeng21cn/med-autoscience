@@ -120,6 +120,7 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 ## Current Position And Boundary
 
 - `Med Auto Science` is the medical research Foundry Agent for turning disease data, study questions, evidence, and manuscript work into one governed research line.
+- In the OPL family, MAS is the domain agent package: MAS retains medical-domain authority, while OPL owns generic runtime, package carrier, generated wrapper, and hosted surfaces.
 - It can be used as the Research Foundry inside One Person Lab, and it can also be called directly by Codex or another agent through stable capability entries.
 - MAS owns the medical work itself: study questions, evidence organization, manuscript direction, manuscript quality, and delivery materials. One Person Lab handles hosted runtime, progress display, recovery/retry, and the cross-agent product entry.
 - Manuscript quality is governed by study charters, evidence ledgers, review records, AI reviewer workflow, publication gates, and controller records. Status panels and script checks provide supporting evidence.
