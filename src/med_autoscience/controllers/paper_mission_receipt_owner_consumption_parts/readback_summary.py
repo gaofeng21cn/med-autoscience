@@ -19,8 +19,9 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     opl_closeout = _mapping(decision.get("opl_closeout"))
     carrier = _carrier(readback)
     carrier_terminal_closeout = _mapping(carrier.get("terminal_closeout"))
+    carrier_receipt_evidence = _mapping(carrier.get("receipt_evidence"))
     carrier_consumption = _mapping(carrier.get("mas_receipt_consumption"))
-    if _carrier_route_back_closeout_supersedes_stage_closure_decision(
+    carrier_supersedes_decision = _carrier_route_back_closeout_supersedes_stage_closure_decision(
         carrier_terminal_closeout=carrier_terminal_closeout,
         carrier_consumption=carrier_consumption,
         decision_opl_closeout=opl_closeout,
@@ -30,9 +31,10 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
             decision.get("source_ref"),
             _mapping(decision.get("inputs")).get("source_ref"),
         ),
-        carrier_receipt_evidence=_mapping(carrier.get("receipt_evidence")),
+        carrier_receipt_evidence=carrier_receipt_evidence,
         carrier_receipt=_mapping(carrier.get("opl_transition_receipt")),
-    ):
+    )
+    if carrier_supersedes_decision:
         opl_closeout = carrier_terminal_closeout
     domain_transition = _mapping(readback.get("domain_transition"))
     domain_next_action = _mapping(domain_transition.get("next_action"))
@@ -56,9 +58,20 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     derived_stage_attempt_ref = (
         f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None
     )
-    derived_checkpoint_ref = _route_checkpoint_evidence_ref_from_opl_closeout(
-        readback=readback,
-        stage_attempt_id=stage_attempt_id,
+    derived_checkpoint_ref = _first_text(
+        carrier_receipt_evidence.get("route_checkpoint_evidence_ref")
+        if carrier_supersedes_decision
+        else None,
+        carrier_receipt_evidence.get("runtime_closeout_ref")
+        if carrier_supersedes_decision
+        else None,
+        carrier_terminal_closeout.get("closeout_ref")
+        if carrier_supersedes_decision
+        else None,
+        _route_checkpoint_evidence_ref_from_opl_closeout(
+            readback=readback,
+            stage_attempt_id=stage_attempt_id,
+        ),
     )
     return {
         "stage_id": _first_text(
@@ -84,11 +97,13 @@ def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
         "durable_stop_allowed": guard.get("durable_stop_allowed") is True,
         "opl_closeout": opl_closeout,
         "receipt_evidence_ref": _first_text(
+            derived_stage_attempt_ref if carrier_supersedes_decision else None,
             decision.get("receipt_evidence_ref"),
             outcome.get("receipt_evidence_ref"),
             derived_stage_attempt_ref,
         ),
         "route_checkpoint_evidence_ref": _first_text(
+            derived_checkpoint_ref if carrier_supersedes_decision else None,
             decision.get("route_checkpoint_evidence_ref"),
             outcome.get("route_checkpoint_evidence_ref"),
             derived_checkpoint_ref,
@@ -128,6 +143,7 @@ def _carrier_route_back_closeout_supersedes_stage_closure_decision(
     return _first_text(
         carrier_receipt_evidence.get("route_back_evidence_ref"),
         carrier_receipt.get("route_back_evidence_ref"),
+        carrier_consumption.get("route_back_evidence_ref"),
     ) is not None
 
 

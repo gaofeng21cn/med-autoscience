@@ -522,6 +522,13 @@ def test_receipt_owner_consumption_prefers_unconsumed_terminal_over_consumed_cur
         "ops/medautoscience/paper_mission_stage_attempts/sat-new/"
         "stage_attempt_closeout_packet.json"
     )
+    stale_decision_closeout_ref = (
+        "ops/medautoscience/paper_mission_stage_attempts/sat-old/"
+        "stage_attempt_closeout_packet.json"
+    )
+    readback["stage_closure_decision"]["outcome"][
+        "route_checkpoint_evidence_ref"
+    ] = stale_decision_closeout_ref
     terminal_carrier["terminal_closeout"] = {
         "stage_attempt_id": "sat-new",
         "work_unit_id": "medical_prose_write_repair",
@@ -594,6 +601,9 @@ def test_receipt_owner_consumption_prefers_unconsumed_terminal_over_consumed_cur
     assert payload["opl_transition_receipt"]["stage_attempt_id"] == "sat-new"
     assert payload["stage_closure_decision"]["opl_closeout"]["stage_attempt_id"] == (
         "sat-new"
+    )
+    assert payload["stage_closure"]["route_checkpoint_evidence_ref"] == (
+        terminal_closeout_ref
     )
     assert payload["mas_receipt_consumption"]["route_checkpoint_evidence_ref"] == (
         terminal_closeout_ref
