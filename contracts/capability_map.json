@@ -17,6 +17,42 @@
     "contracts/academicforge_claude_science_learning_adoption.json"
   ],
   "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
+  "oma_external_suite_main_guard": {
+    "surface_kind": "mas_oma_external_suite_main_guard",
+    "schema_version": 1,
+    "guard_id": "oma_external_suite_self_evolution_developer_patch_guard",
+    "accepted_work_order_profile": "opl_meta_agent_developer_patch_work_order",
+    "accepted_failure_class": "quality-gate",
+    "route_source": "contracts/capability_map.json#/feedback_target_mappings",
+    "contract_surface_route_source": "contracts/capability_map.json#/contract_failure_surface_mappings",
+    "must_follow_target_domain_mainline": true,
+    "developer_patch_must_bind": [
+      "source_agent_lab_result_ref",
+      "work_order_id",
+      "patch_traceability_matrix",
+      "target_editable_surface_refs",
+      "required_verification_refs",
+      "forbidden_surfaces"
+    ],
+    "required_closeout_refs": [
+      "target_repo_test_receipt",
+      "no_target_domain_truth_write_proof",
+      "developer_patch_receipt",
+      "target_runtime_consumption_verification_receipt",
+      "target_workspace_environment_consumption_receipt"
+    ],
+    "authority_boundary": {
+      "refs_only": true,
+      "can_write_domain_truth": false,
+      "can_write_memory_body": false,
+      "can_mutate_artifact_body": false,
+      "can_sign_owner_receipt": false,
+      "can_create_typed_blocker": false,
+      "can_authorize_quality_or_export": false,
+      "can_promote_default_agent": false,
+      "closeout_requires_mas_owner_surface": true
+    }
+  },
   "external_capability_pack_target": {
     "domain_id": "mas-scholar-skills",
     "delivery_domain": "capability_pack",
@@ -669,6 +705,54 @@
       "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
     }
   ],
+  "contract_failure_surface_mappings": [
+    {
+      "failure_type": "quality_gate",
+      "aliases": [
+        "quality_gate",
+        "ai_reviewer",
+        "artifact_source_authority"
+      ],
+      "target_capability_id": "mas-quality-gates",
+      "target_surface_refs": [
+        "agent/quality_gates/",
+        "contracts/research-integrity-layer.json"
+      ],
+      "verification_refs": [
+        "tests/test_research_integrity_stage_hooks.py",
+        "tests/test_research_integrity_reference_verification.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/quality_gate",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/ai_reviewer"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    },
+    {
+      "failure_type": "agent_lab",
+      "aliases": [
+        "agent_lab",
+        "eval_suite",
+        "external_suite",
+        "medical_manuscript_quality"
+      ],
+      "target_capability_id": "mas-agent-lab-eval-suite",
+      "target_surface_refs": [
+        "contracts/agent_lab_handoff.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+      ],
+      "verification_refs": [
+        "tests/test_agent_lab_medical_manuscript_quality.py",
+        "tests/test_opl_standard_pack.py"
+      ],
+      "failure_token_refs": [
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/agent_lab",
+        "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/external_suite"
+      ],
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary"
+    }
+  ],
   "forbidden_write_targets": [
     "Yang authority/current_package/publication_eval/controller_decisions",
     "owner_receipts",
@@ -737,6 +821,17 @@
       ],
       "sync_policy": "repo_local_standard_primary_skill_with_plugin_carrier_compat",
       "externalization_reason": "Rich app skill is a required standard OPL primary skill source; plugin skill remains a Codex carrier mirror and does not own MAS truth.",
+      "improvement_tokens": [
+        "med-autoscience",
+        "primary_skill",
+        "domain_entry",
+        "mas_skill"
+      ],
+      "failure_tokens": [
+        "primary_skill",
+        "domain_entry",
+        "mas_skill"
+      ],
       "canonical_paths": [
         "agent/primary_skill/SKILL.md",
         "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
@@ -760,6 +855,10 @@
       "canonical_target_paths": [
         "agent/primary_skill/SKILL.md"
       ],
+      "verification_refs": [
+        "tests/test_opl_standard_pack.py",
+        "tests/test_domain_entry_contract.py"
+      ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
         "owner_receipts",
@@ -768,7 +867,22 @@
         "runtime_queues",
         "provider_attempts",
         "paper_bodies"
-      ]
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
     },
     {
       "capability_id": "medical-figure-design",

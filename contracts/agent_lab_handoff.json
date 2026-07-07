@@ -338,6 +338,50 @@
         "role": "canonical_feedback_target_to_professional_skill_map",
         "body_included": false
       },
+      "developer_patch_main_guard": {
+        "surface_kind": "mas_agent_lab_developer_patch_main_guard",
+        "schema_version": 1,
+        "guard_id": "oma_external_suite_self_evolution_developer_patch_guard",
+        "accepted_work_order_surface_kind": "opl_meta_agent_developer_patch_work_order",
+        "accepted_failure_class": "quality-gate",
+        "capability_map_ref": "contracts/capability_map.json#/oma_external_suite_main_guard",
+        "contract_surface_mappings_ref": "contracts/capability_map.json#/contract_failure_surface_mappings",
+        "must_bind_traceability_axes": [
+          "source_agent_lab_result_ref",
+          "work_order_id",
+          "patch_traceability_matrix",
+          "target_editable_surface_refs",
+          "forbidden_surfaces",
+          "required_verification_refs"
+        ],
+        "allowed_target_surface_refs": [
+          "contract_module_mas_agent_lab_eval_suite",
+          "contract_module_mas_quality_gates",
+          "professional_skill_medical_data_governance",
+          "professional_skill_medical_figure_design",
+          "professional_skill_medical_manuscript_review",
+          "professional_skill_medical_manuscript_writing",
+          "professional_skill_medical_research_lit",
+          "professional_skill_medical_submission_prep",
+          "professional_skill_medical_table_design"
+        ],
+        "closeout_requires_refs": [
+          "target_repo_test_receipt",
+          "no_target_domain_truth_write_proof",
+          "developer_patch_receipt",
+          "target_runtime_consumption_verification_receipt",
+          "target_workspace_environment_consumption_receipt"
+        ],
+        "authority_boundary": {
+          "candidate_is_authority": false,
+          "can_write_study_truth": false,
+          "can_write_memory_body": false,
+          "can_mutate_artifact_body": false,
+          "can_authorize_quality_verdict": false,
+          "can_promote_default_agent": false,
+          "closeout_requires_domain_owner_receipt_or_typed_blocker": true
+        }
+      },
       "medical_manuscript_quality": {
         "adapter_role": "domain_thin_feedback_adapter",
         "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",

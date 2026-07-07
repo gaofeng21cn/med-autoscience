@@ -149,6 +149,49 @@ def test_mas_capability_map_declares_academicforge_skill_first_boundary() -> Non
     assert all(item["target_capability_id"] != "intake" for item in failure_mappings.values())
 
 
+def test_oma_external_suite_main_guard_routes_contract_and_skill_surfaces() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    capability_map = json.loads(
+        (repo_root / "contracts" / "capability_map.json").read_text(encoding="utf-8")
+    )
+    handoff = _agent_lab_handoff_contract()
+    production_acceptance = json.loads(
+        (
+            repo_root
+            / "contracts"
+            / "production_acceptance"
+            / "mas-production-acceptance.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    main_guard = capability_map["oma_external_suite_main_guard"]
+    handoff_guard = handoff["meta_agent_work_order_contract"]["external_suite_improvement_policy"][
+        "developer_patch_main_guard"
+    ]
+    contract_mappings = {
+        item["failure_type"]: item
+        for item in capability_map["contract_failure_surface_mappings"]
+    }
+    guarded_consumption = production_acceptance["oma_developer_patch_guarded_consumption"]
+
+    assert main_guard["accepted_work_order_profile"] == "opl_meta_agent_developer_patch_work_order"
+    assert main_guard["accepted_failure_class"] == "quality-gate"
+    assert main_guard["authority_boundary"]["can_write_domain_truth"] is False
+    assert main_guard["authority_boundary"]["can_promote_default_agent"] is False
+    assert set(contract_mappings) == {"quality_gate", "agent_lab"}
+    assert contract_mappings["quality_gate"]["target_capability_id"] == "mas-quality-gates"
+    assert contract_mappings["agent_lab"]["target_capability_id"] == "mas-agent-lab-eval-suite"
+    assert "ai_reviewer" in contract_mappings["quality_gate"]["aliases"]
+    assert "external_suite" in contract_mappings["agent_lab"]["aliases"]
+    assert handoff_guard["capability_map_ref"] == "contracts/capability_map.json#/oma_external_suite_main_guard"
+    assert handoff_guard["authority_boundary"]["candidate_is_authority"] is False
+    assert "developer_patch_receipt" in handoff_guard["closeout_requires_refs"]
+    assert guarded_consumption["accepted_patch_role"] == "refs_only_mechanism_patch_candidate"
+    assert "publication_ready" in guarded_consumption["target_repo_patch_cannot_count_as"]
+    assert guarded_consumption["authority_boundary"]["can_write_publication_eval"] is False
+    assert guarded_consumption["authority_boundary"]["can_create_typed_blocker"] is False
+
+
 def test_academicforge_learning_contract_classifies_all_claude_science_skills() -> None:
     contract_path = (
         Path(__file__).resolve().parents[2]

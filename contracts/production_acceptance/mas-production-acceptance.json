@@ -157,6 +157,51 @@
       }
     ]
   },
+  "oma_developer_patch_guarded_consumption": {
+    "surface_kind": "mas_oma_developer_patch_guarded_consumption",
+    "schema_version": 1,
+    "guard_id": "oma_external_suite_self_evolution_developer_patch_guard",
+    "source_refs": [
+      "contracts/agent_lab_handoff.json#/meta_agent_work_order_contract/external_suite_improvement_policy/developer_patch_main_guard",
+      "contracts/capability_map.json#/oma_external_suite_main_guard"
+    ],
+    "accepted_patch_role": "refs_only_mechanism_patch_candidate",
+    "target_repo_patch_can_count_as": [
+      "contract_or_quality_gate_surface_delta",
+      "professional_skill_route_ref_delta",
+      "no_forbidden_write_proof_ref"
+    ],
+    "target_repo_patch_cannot_count_as": [
+      "domain_ready",
+      "publication_ready",
+      "submission_ready",
+      "owner_receipt",
+      "typed_blocker",
+      "human_gate",
+      "current_package_authority",
+      "publication_quality_verdict",
+      "paper_line_progress_without_owner_consumption"
+    ],
+    "required_consumption_receipts": [
+      "target_repo_test_receipt",
+      "no_target_domain_truth_write_proof",
+      "developer_patch_receipt",
+      "target_runtime_consumption_verification_receipt",
+      "target_workspace_environment_consumption_receipt"
+    ],
+    "authority_boundary": {
+      "can_write_domain_truth": false,
+      "can_write_memory_body": false,
+      "can_mutate_artifact_body": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_write_owner_receipt": false,
+      "can_create_typed_blocker": false,
+      "can_materialize_human_gate": false,
+      "can_write_runtime_queue_or_provider_attempt": false,
+      "can_promote_default_agent": false
+    }
+  },
   "paper_line_guarded_apply_evidence": {
     "surface_kind": "mas_paper_line_guarded_apply_evidence_scaleout",
     "version": "mas-paper-line-guarded-apply-evidence-scaleout.v1",
