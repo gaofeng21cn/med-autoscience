@@ -1,16 +1,18 @@
 from tests.submission_minimal_cases.shared import *
 
+import med_autoscience.controllers.submission_minimal_parts.package_builder as package_builder
+from med_autoscience.controllers.submission_minimal_parts.authority import (
+    describe_submission_minimal_authority,
+)
+from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+    create_submission_minimal_package,
+)
+
 
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -22,10 +24,9 @@ def test_create_submission_minimal_package_creates_output_directory_and_copies_p
 
 
 def test_create_submission_minimal_package_uses_delivery_layout_v2(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -45,11 +46,10 @@ def test_create_submission_minimal_package_uses_delivery_layout_v2(tmp_path: Pat
 def test_create_submission_minimal_package_route_gate_blocks_materialization(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context={
@@ -83,12 +83,11 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
 def test_create_submission_minimal_package_materializes_audit_package_when_authority_snapshot_missing(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
     shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
     shutil.rmtree(paper_root.parent / "artifacts", ignore_errors=True)
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -108,10 +107,9 @@ def test_create_submission_minimal_package_materializes_audit_package_when_autho
 def test_create_submission_minimal_package_materializes_audit_package_for_submission_human_gate(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
-    result = module.create_submission_minimal_package(
+    result = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context={
@@ -154,15 +152,9 @@ def test_create_submission_minimal_package_materializes_audit_package_for_submis
 
 
 def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -210,11 +202,9 @@ def test_create_submission_minimal_package_preserves_existing_package_when_mater
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
     paper_root = make_paper_workspace(tmp_path)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -240,7 +230,7 @@ def test_create_submission_minimal_package_preserves_existing_package_when_mater
     monkeypatch.setattr(package_builder, "export_pdf", failing_export_pdf)
 
     with pytest.raises(RuntimeError, match="simulated pdf export failure"):
-        module.create_submission_minimal_package(
+        create_submission_minimal_package(
             paper_root=paper_root,
             publication_profile="general_medical_journal",
         )
@@ -252,15 +242,9 @@ def test_create_submission_minimal_package_preserves_existing_package_when_mater
 
 
 def test_create_submission_minimal_package_defaults_to_ama_citation_style(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     paper_root = make_paper_workspace(tmp_path)
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -269,15 +253,9 @@ def test_create_submission_minimal_package_defaults_to_ama_citation_style(tmp_pa
 
 
 def test_create_submission_minimal_package_copies_figures_and_tables(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.submission_minimal")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
     paper_root = make_paper_workspace(tmp_path)
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -299,7 +277,6 @@ def test_create_submission_minimal_package_copies_figures_and_tables(tmp_path: P
 def test_create_submission_minimal_package_uses_existing_figure_exports_when_catalog_lists_missing_alternative(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -321,7 +298,7 @@ def test_create_submission_minimal_package_uses_existing_figure_exports_when_cat
         },
     )
 
-    manifest = module.create_submission_minimal_package(
+    manifest = create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -339,13 +316,12 @@ def test_create_submission_minimal_package_uses_existing_figure_exports_when_cat
     assert "paper/figures/F1_main.pdf" in source_contract_paths
     assert "paper/figures/F1_main.svg" not in source_contract_paths
 
-    authority = module.describe_submission_minimal_authority(paper_root=paper_root)
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
     assert authority["status"] == "current"
     assert authority["missing_source_paths"] == []
 
 
 def test_create_submission_minimal_package_accepts_current_figure_and_table_catalog_shape(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
 
     dump_json(
@@ -374,7 +350,7 @@ def test_create_submission_minimal_package_accepts_current_figure_and_table_cata
         },
     )
 
-    module.create_submission_minimal_package(
+    create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
