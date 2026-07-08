@@ -1,4 +1,33 @@
-from tests.display_surface_materialization_cases.shared import *
+from tests.display_surface_materialization_cases.shared import (
+    annotations,
+    _shared_base,
+    _registry_id_helpers,
+    _workspace_surface_fixtures,
+    _layout_sidecar_fixtures,
+    _illustration_payload_fixtures,
+    _current_evidence_payload_fixtures,
+    importlib,
+    json,
+    Path,
+    re,
+    sys,
+    Any,
+    plt,
+    pytest,
+    display_registry,
+    get_template_short_id,
+    full_id,
+    dump_json,
+    extract_svg_font_size,
+    write_default_publication_display_contracts,
+    restrict_display_registry_to_display_ids,
+    build_display_surface_workspace,
+    minimal_current_layout_sidecar,
+    minimal_tail_layout_sidecar,
+    _center_transportability_governance_display,
+    _current_evidence_input_envelopes,
+    _make_generalizability_subgroup_composite_panel_display,
+)
 
 
 def test_normalize_figure_catalog_id_accepts_supplementary_short_form() -> None:

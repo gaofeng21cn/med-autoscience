@@ -1,6 +1,35 @@
 from __future__ import annotations
 
-from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import (
+    annotations,
+    _shared,
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+    argparse,
+    builtins,
+    importlib,
+    json,
+    Path,
+    sys,
+    pytest,
+    render_codex_entry_skill,
+    render_openclaw_entry_prompt,
+    render_public_yaml,
+    render_stage_route_contract_guide,
+    render_stage_route_contract_payload,
+    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
+    FIGURE_ROUTE_SCRIPT_FIX,
+    build_figure_route,
+    write_profile,
+    _write_json,
+    _patch_canonical_current_work_unit,
+    _owner_route,
+    _write_dispatch,
+    _opl_execution_authorization,
+    _write_opl_production_proof,
+    assert_stable_blocker_reason,
+    _ai_reviewer_blocking_eval,
+)
 
 
 def test_domain_handler_dispatch_materializes_embedded_ai_reviewer_handoff_inside_mas_owner(

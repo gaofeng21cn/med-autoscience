@@ -1,4 +1,19 @@
-from .shared import *
+from .shared import (
+    annotations,
+    _shared_base,
+    _registry_id_helpers,
+    _input_schema_fixtures,
+    importlib,
+    Path,
+    _CORE_PACK_ID,
+    _full_id,
+    lru_cache,
+    SimpleNamespace,
+    _INPUT_SCHEMAS,
+    _CLASS_IDS,
+    _display_class_by_id,
+    _load_schema_contract_fixture,
+)
 
 
 def test_current_shap_schema_contracts_are_registered() -> None:

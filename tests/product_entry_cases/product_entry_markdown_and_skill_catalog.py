@@ -1,7 +1,32 @@
 from __future__ import annotations
 
 from med_autoscience.controllers.product_entry.manifest_surfaces import build_skill_catalog
-from .product_entry_preflight_and_task_submission import *  # noqa: F403,F401
+from .product_entry_preflight_and_task_submission import (
+    annotations,
+    test_build_product_entry_status_projects_product_entry_over_current_workspace_loop,
+    test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progress_is_fresh,
+    test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift,
+    test_validate_single_project_boundary_fails_closed_on_missing_roles,
+    test_validate_single_project_boundary_fails_closed_on_missing_not_now,
+    test_validate_capability_owner_boundary_rejects_pre_absorb_status,
+    test_render_product_entry_status_markdown_hides_preview_raw_summary_keys,
+    test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contract_shape,
+    test_startup_contract_appends_latest_task_intake_context,
+    test_submit_study_task_projects_task_context_for_opl_runtime,
+    test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run,
+    test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attempts,
+    test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref,
+    test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision,
+    test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat_is_unavailable,
+    test_product_entry_import_is_lightweight_for_manifest_discovery,
+    test_build_product_entry_preflight_uses_shared_builder,
+    test_build_product_entry_guardrails_uses_shared_builder,
+    test_build_phase3_clearance_lane_uses_shared_builder,
+    test_build_phase4_backend_deconstruction_uses_shared_builder,
+    test_build_phase5_platform_target_uses_shared_builder,
+    test_product_entry_manifest_uses_bounded_mainline_projection,
+    test_build_product_entry_manifest_uses_shared_family_product_entry_orchestration,
+)
 
 
 def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hints(

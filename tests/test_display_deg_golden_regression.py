@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from tests.display_deg_golden_regression_cases.shared import *
+from tests.display_deg_golden_regression_cases.shared import (
+    Path,
+    importlib,
+    json,
+    _dump_json,
+)
 from tests.display_deg_golden_regression_cases.deg_omics_and_genomic_golden import (
     test_celltype_signature_heatmap_preserves_deg_composite_contract,
     test_single_cell_atlas_overview_panel_preserves_deg_atlas_contract,

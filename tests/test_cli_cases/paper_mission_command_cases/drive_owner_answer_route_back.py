@@ -7,7 +7,18 @@ from pathlib import Path
 import pytest
 
 from tests.test_cli_cases.shared import write_profile
-from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_helpers import (
+    DM_CANARY_FIXTURE_ROOT,
+    FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+    _assert_forbidden_authority_untouched,
+    _paper_mission_forbidden_write_guard,
+    _paper_mission_transaction_payload,
+    _write_candidate_manifest,
+    _write_matching_domain_gate_closeout,
+    _write_paper_source_fixture,
+    _write_profile_with_study,
+    _write_submission_milestone_package,
+)
 
 
 @pytest.fixture(autouse=True)
