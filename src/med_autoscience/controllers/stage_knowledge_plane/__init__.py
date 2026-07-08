@@ -16,6 +16,9 @@ from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_
 from med_autoscience.controllers.stage_knowledge_plane.paper_soak_memory_apply_proof import (
     build_paper_soak_memory_apply_proof_projection as _build_paper_soak_memory_apply_proof_projection,
 )
+from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import (
+    build_research_frontier_board,
+)
 from med_autoscience.stage_knowledge_contract import (
     EXPLORATORY_STAGES,
     KNOWLEDGE_PACKET_SURFACE,
@@ -137,6 +140,22 @@ def build_stage_knowledge_packet(
         workspace_root=resolved_workspace_root,
         stage=resolved_stage,
     )
+    literature_gaps = _literature_gaps(input_refs=input_refs)
+    failed_paths = _failed_paths(input_refs=input_refs)
+    citation_readiness = _citation_readiness(input_refs=input_refs)
+    current_claim_boundary = _claim_boundary(input_refs=input_refs)
+    research_frontier_board = build_research_frontier_board(
+        study_id=study_id,
+        stage=resolved_stage,
+        packet={
+            "input_refs": input_refs,
+            "publication_route_memory_refs": publication_strategy_memory_refs,
+            "literature_gaps": literature_gaps,
+            "failed_paths": failed_paths,
+            "citation_readiness": citation_readiness,
+            "current_claim_boundary": current_claim_boundary,
+        },
+    )
     return {
         "surface": KNOWLEDGE_PACKET_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -153,10 +172,13 @@ def build_stage_knowledge_packet(
             publication_strategy_memory_refs
         ),
         "publication_route_memory_refs": publication_strategy_memory_refs,
-        "literature_gaps": _literature_gaps(input_refs=input_refs),
-        "failed_paths": _failed_paths(input_refs=input_refs),
-        "citation_readiness": _citation_readiness(input_refs=input_refs),
-        "current_claim_boundary": _claim_boundary(input_refs=input_refs),
+        "literature_gaps": literature_gaps,
+        "failed_paths": failed_paths,
+        "citation_readiness": citation_readiness,
+        "current_claim_boundary": current_claim_boundary,
+        "research_frontier_board_summary": research_frontier_board["summary"],
+        "research_frontier_board_refs": research_frontier_board["frontier_board_refs"],
+        "opl_research_frontier_projection": research_frontier_board["opl_refs_only_projection"],
         "source_fingerprint": source_fingerprint,
         "authority_boundary": _authority_boundary(),
         "idempotency_key": f"stage_knowledge_packet:{_required_text('study_id', study_id)}:{resolved_stage}:{source_fingerprint}",
@@ -332,6 +354,16 @@ def normalize_stage_memory_closeout_packet(
         _text(closeout_payload.get("idempotency_key"))
         or f"stage_memory_closeout:{_required_text('study_id', study_id)}:{resolved_stage}:{source_fingerprint}"
     )
+    proposed_writes = _proposed_writes(normalized)
+    research_frontier_board = build_research_frontier_board(
+        study_id=study_id,
+        stage=resolved_stage,
+        packet={
+            **dict(closeout_payload),
+            "normalized_closeout": normalized,
+            "proposed_writes": proposed_writes,
+        },
+    )
     packet = {
         "surface": MEMORY_CLOSEOUT_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -341,9 +373,12 @@ def normalize_stage_memory_closeout_packet(
         "workspace_root": str(Path(workspace_root).expanduser().resolve()),
         "input_refs": source_refs,
         "source_refs": source_refs,
-        "proposed_writes": _proposed_writes(normalized),
+        "proposed_writes": proposed_writes,
         "typed_blockers": typed_blockers,
         "normalized_closeout": normalized,
+        "research_frontier_board_summary": research_frontier_board["summary"],
+        "research_frontier_board_refs": research_frontier_board["frontier_board_refs"],
+        "opl_research_frontier_projection": research_frontier_board["opl_refs_only_projection"],
         "source_fingerprint": source_fingerprint,
         "authority_boundary": _authority_boundary(),
         "idempotency_key": idempotency_key,
@@ -944,6 +979,7 @@ __all__ = [
     "apply_publication_route_memory_seed_fixture",
     "apply_publication_route_memory_seed_library",
     "build_paper_soak_memory_apply_proof",
+    "build_research_frontier_board",
     "build_stage_knowledge_packet",
     "build_stage_recall_index",
     "default_publication_route_memory_seed_fixture_path",
