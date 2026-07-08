@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 from . import shared_base as _shared_base
 
 def _module_reexport(module) -> None:
@@ -29,6 +31,27 @@ def make_box(
 
 def make_device() -> dict[str, float]:
     return {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0}
+
+def run_layout_qc_case(case: dict[str, object]) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile=case["qc_profile"],
+        layout_sidecar=deepcopy(case["layout_sidecar"]),
+    )
+
+    expected_status = case.get("status")
+    if expected_status is not None:
+        assert result["status"] == expected_status, result
+    if case.get("no_issues"):
+        assert result["issues"] == []
+    for rule_id in case.get("rule_ids", []):
+        assert any(issue["rule_id"] == rule_id for issue in result["issues"])
+    for expected_issue in case.get("issues", []):
+        assert any(
+            all(issue.get(key) == value for key, value in expected_issue.items())
+            for issue in result["issues"]
+        )
 
 def _make_shap_grouped_local_support_domain_layout_sidecar() -> dict[str, object]:
     return {
