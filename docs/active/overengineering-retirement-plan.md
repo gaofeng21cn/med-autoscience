@@ -63,6 +63,13 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - 若某 runtime tail 仍签 MAS owner receipt、typed blocker、human gate 或 artifact authority，保留为 minimal authority function，不上收到 OPL。
 - 若 display pack 改造缺 packaging proof，只能先文档化边界与删除无引用 artifact，不能声明 display-pack release-ready。
 
+## 2026-07-08 test-content shrink tranche
+
+- `PaperMission` command tests：吸收 commits `5dc44f9d1` / `c25feca7b`，把重复 route identity carrier assertions 和 fake OPL stage-route runtime script 收到 `tests/test_cli_cases/paper_mission_command_helpers.py`。Affected diff 为 `135 insertions / 192 deletions`，净减少 `57` 行；保留 route handoff、runtime carrier、authority false-ready 断言，不改 source、contracts、study truth、owner receipts、typed blockers、human gates、runtime queues 或 provider attempts。
+- `StudyProgress` projection tests：吸收 commits `ff0456c2e` / `ec78167b5`，把重复 prediction-study fixture、running progress payload、current-owner / OPL-control / autonomy projection payload 样板收到 `tests/study_progress_cases/shared.py`。Affected diff 为 `520 insertions / 803 deletions`，净减少 `283` 行；只收薄 fixture / payload 组织，不改变 projection 语义。
+- Fresh verification：`scripts/run-pytest-clean.sh tests/test_cli_cases/paper_mission_command_cases/drive_and_route_handoff_cases/direct_next_action_and_opl_stage.py tests/test_cli_cases/paper_mission_command_cases/consume_submission_package.py::test_paper_mission_consume_candidate_can_write_governed_consume_record -q` -> `13 passed`；`scripts/run-pytest-clean.sh tests/study_progress_cases/runtime_projection_basics.py tests/study_progress_cases/runtime_efficiency_operator_projection.py tests/study_progress_cases/current_owner_handoff_projection.py tests/study_progress_cases/opl_current_control_state_handoff_projection.py tests/study_progress_cases/autonomy_quality_and_route_projection.py -q -k 'not test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity_timeout'` -> `88 passed, 1 deselected`；`git diff --check main...HEAD` passed in both absorbed worktrees before main cherry-pick.
+- Residual test debt：`runtime_efficiency_operator_projection.py::test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity_timeout` 和 `study_progress_cases/user_visible_projection.py` 仍是既有红灯 / separate repair surface；本 tranche 不把它们包装成已修复，也不声明 publication-ready、paper progress、runtime readiness 或 owner acceptance。
+
 ## 2026-07-07 current tranche
 
 - `*_parts` 目录专项已从“排除项”改为硬退役验收项；各 lane 只在自身允许写集内迁移 active caller，最终合并口径必须让 `find src tests -type d -name '*_parts'` 归零，不能继续把历史 parts directory 写成长期可接受状态。
