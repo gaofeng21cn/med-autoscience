@@ -8,7 +8,7 @@ import pytest
 
 from med_autoscience.paper_mission_run import PaperMissionRun
 from med_autoscience.paper_mission_transaction import PaperMissionTransaction
-from tests.test_cli_cases.paper_mission_commands import (
+from tests.test_cli_cases.paper_mission_command_helpers import (
     _write_matching_domain_gate_closeout,
     _paper_mission_transaction_payload,
     _paper_mission_forbidden_write_guard,
