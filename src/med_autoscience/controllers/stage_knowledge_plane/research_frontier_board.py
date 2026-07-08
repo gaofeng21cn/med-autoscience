@@ -13,6 +13,113 @@ SUMMARY_SURFACE = "stage_research_frontier_board_summary"
 OPL_PROJECTION_SURFACE = "stage_research_frontier_board_opl_refs_projection"
 ROLLBACK_POLICY_SURFACE = "stage_research_frontier_rollback_target_policy"
 FRONTIER_STATUSES = ("active", "testing", "rejected", "deferred", "stop_loss")
+PACK_ROLLBACK_TARGETS = (
+    "01-study_intake",
+    "02-protocol_and_analysis_plan",
+    "03-data_asset_and_cohort_build",
+    "04-analysis_execution",
+    "05-evidence_synthesis",
+    "06-manuscript_authoring",
+    "07-quality_review_and_revision",
+    "08-publication_package_handoff",
+)
+STAGE_TO_PACK_TARGET = {
+    "scout": "01-study_intake",
+    "idea": "02-protocol_and_analysis_plan",
+    "baseline": "03-data_asset_and_cohort_build",
+    "experiment": "04-analysis_execution",
+    "analysis-campaign": "04-analysis_execution",
+    "write": "06-manuscript_authoring",
+    "review": "07-quality_review_and_revision",
+    "decision": "07-quality_review_and_revision",
+    "finalize": "08-publication_package_handoff",
+}
+FAILURE_SCOPE_TARGETS = {
+    "clinical_question": (
+        "01-study_intake",
+        "clinical question, publication angle, or source fit failed at intake scope",
+    ),
+    "publication_angle": (
+        "01-study_intake",
+        "clinical question, publication angle, or source fit failed at intake scope",
+    ),
+    "study_intake": (
+        "01-study_intake",
+        "clinical question, publication angle, or source fit failed at intake scope",
+    ),
+    "protocol": (
+        "02-protocol_and_analysis_plan",
+        "protocol, endpoint, SAP, comparator, or primary claim definition needs redesign",
+    ),
+    "endpoint": (
+        "02-protocol_and_analysis_plan",
+        "protocol, endpoint, SAP, comparator, or primary claim definition needs redesign",
+    ),
+    "sap": (
+        "02-protocol_and_analysis_plan",
+        "protocol, endpoint, SAP, comparator, or primary claim definition needs redesign",
+    ),
+    "primary_claim": (
+        "02-protocol_and_analysis_plan",
+        "protocol, endpoint, SAP, comparator, or primary claim definition needs redesign",
+    ),
+    "cohort_definition": (
+        "02-protocol_and_analysis_plan",
+        "protocol, endpoint, SAP, comparator, or primary claim definition needs redesign",
+    ),
+    "data_asset": (
+        "03-data_asset_and_cohort_build",
+        "data asset, cohort build, variable availability, or endpoint construction failed",
+    ),
+    "cohort_build": (
+        "03-data_asset_and_cohort_build",
+        "data asset, cohort build, variable availability, or endpoint construction failed",
+    ),
+    "variable_availability": (
+        "03-data_asset_and_cohort_build",
+        "data asset, cohort build, variable availability, or endpoint construction failed",
+    ),
+    "analysis_execution": (
+        "04-analysis_execution",
+        "analysis execution, sensitivity, subgroup, or statistical blocker needs bounded repair",
+    ),
+    "statistical_blocker": (
+        "04-analysis_execution",
+        "analysis execution, sensitivity, subgroup, or statistical blocker needs bounded repair",
+    ),
+    "claim_evidence": (
+        "05-evidence_synthesis",
+        "claim and evidence relationship must be synthesized before route continuation",
+    ),
+    "evidence_synthesis": (
+        "05-evidence_synthesis",
+        "claim and evidence relationship must be synthesized before route continuation",
+    ),
+    "manuscript_claim": (
+        "06-manuscript_authoring",
+        "manuscript claim wording or evidence expression needs authoring repair",
+    ),
+    "manuscript_authoring": (
+        "06-manuscript_authoring",
+        "manuscript claim wording or evidence expression needs authoring repair",
+    ),
+    "reviewer_quality": (
+        "07-quality_review_and_revision",
+        "reviewer or AI-reviewer quality issue needs revision routing before package handoff",
+    ),
+    "quality_review": (
+        "07-quality_review_and_revision",
+        "reviewer or AI-reviewer quality issue needs revision routing before package handoff",
+    ),
+    "publication_package": (
+        "08-publication_package_handoff",
+        "publication package, artifact currentness, or submission authority issue belongs to handoff",
+    ),
+    "artifact_authority": (
+        "08-publication_package_handoff",
+        "publication package, artifact currentness, or submission authority issue belongs to handoff",
+    ),
+}
 
 STATUS_KEYS = {
     "active": ("active_candidates", "active_paths", "active_routes"),
@@ -307,12 +414,36 @@ def _rollback_policy(
     candidates: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     rules = [
-        _rule("stop_loss", "decision", "formal stop-loss belongs to decision/controller authority"),
-        _rule("claim_downgrade", "decision", "claim downgrade changes route boundary before writing continues"),
-        _rule("missing_evidence", "analysis-campaign", "missing evidence needs bounded evidence repair first"),
-        _rule("route_impact:return_to_scout", "scout", "frontier reset returns to clinical question search"),
-        _rule("route_impact:switch_line", "idea", "candidate line switch belongs to idea-stage selection"),
-        _rule("failure_scope:stage_local", stage, "stage-local failure can retry inside current stage"),
+        _rule(
+            "stop_loss",
+            "07-quality_review_and_revision",
+            "formal stop-loss remains a quality review or controller decision input before package handoff",
+        ),
+        _rule(
+            "claim_downgrade",
+            "05-evidence_synthesis",
+            "claim downgrade must revisit evidence synthesis before manuscript wording continues",
+        ),
+        _rule(
+            "missing_evidence",
+            "04-analysis_execution",
+            "missing evidence needs bounded analysis execution before claim expansion",
+        ),
+        _rule(
+            "route_impact:return_to_scout",
+            "01-study_intake",
+            "frontier reset returns to study intake and clinical question framing",
+        ),
+        _rule(
+            "route_impact:switch_line",
+            "02-protocol_and_analysis_plan",
+            "candidate line switch belongs to protocol and analysis-plan selection",
+        ),
+        _rule(
+            "failure_scope:stage_local",
+            _pack_target_for_stage(stage),
+            "stage-local failure can retry inside the matching 8-stage pack lane",
+        ),
     ]
     suggestions = []
     for candidate in candidates:
@@ -333,8 +464,8 @@ def _rollback_policy(
             {
                 "signal": "missing_evidence",
                 "candidate_id": "",
-                "suggested_target_stage": "analysis-campaign",
-                "reason": "literature or citation gaps need bounded evidence repair before claim expansion",
+                "suggested_target_stage": "05-evidence_synthesis",
+                "reason": "literature or citation gaps need evidence synthesis before claim expansion",
                 "advisory_only": True,
             }
         )
@@ -342,6 +473,8 @@ def _rollback_policy(
         "surface": ROLLBACK_POLICY_SURFACE,
         "advisory_only": True,
         "can_control_progress": False,
+        "pack_stage_set": list(PACK_ROLLBACK_TARGETS),
+        "pack_advisory_mapping": _pack_advisory_mapping(),
         "rules": rules,
         "suggested_targets": _dedupe_dicts(suggestions),
         "authority_boundary": frontier_board_authority_boundary(),
@@ -353,19 +486,81 @@ def _rule(signal: str, target_stage: str, reason: str) -> dict[str, str]:
 
 
 def _target_for_signal(*, signal: str, stage: str) -> tuple[str, str] | None:
+    normalized_signal = signal.replace("-", "_").replace(" ", "_")
     if signal == "stop_loss":
-        return ("decision", "formal stop-loss belongs to decision/controller authority")
+        return (
+            "07-quality_review_and_revision",
+            "formal stop-loss remains a quality review or controller decision input before package handoff",
+        )
     if signal == "claim_downgrade":
-        return ("decision", "claim downgrade changes route boundary before writing continues")
+        return (
+            "05-evidence_synthesis",
+            "claim downgrade must revisit evidence synthesis before manuscript wording continues",
+        )
     if signal == "missing_evidence":
-        return ("analysis-campaign", "missing evidence needs bounded evidence repair first")
+        return (
+            "04-analysis_execution",
+            "missing evidence needs bounded analysis execution before claim expansion",
+        )
     if signal.startswith("route_impact:return_to_scout"):
-        return ("scout", "frontier reset returns to clinical question search")
+        return ("01-study_intake", "frontier reset returns to study intake and clinical question framing")
     if signal.startswith("route_impact:switch_line"):
-        return ("idea", "candidate line switch belongs to idea-stage selection")
+        return (
+            "02-protocol_and_analysis_plan",
+            "candidate line switch belongs to protocol and analysis-plan selection",
+        )
+    for prefix in ("failure_scope:", "route_impact:"):
+        if normalized_signal.startswith(prefix):
+            target = FAILURE_SCOPE_TARGETS.get(normalized_signal.removeprefix(prefix))
+            if target:
+                return target
     if signal == "failure_scope:stage_local":
-        return (stage, "stage-local failure can retry inside current stage")
+        return (_pack_target_for_stage(stage), "stage-local failure can retry inside the matching 8-stage pack lane")
     return None
+
+
+def _pack_target_for_stage(stage: str) -> str:
+    normalized = _text(stage)
+    if normalized in PACK_ROLLBACK_TARGETS:
+        return normalized
+    return STAGE_TO_PACK_TARGET.get(normalized, "05-evidence_synthesis")
+
+
+def _pack_advisory_mapping() -> list[dict[str, str]]:
+    return [
+        {
+            "target_stage": "01-study_intake",
+            "advisory_role": "return to study question, source fit, cohort feasibility, or intake boundary",
+        },
+        {
+            "target_stage": "02-protocol_and_analysis_plan",
+            "advisory_role": "revise candidate line, protocol, endpoint, comparator, or analysis plan",
+        },
+        {
+            "target_stage": "03-data_asset_and_cohort_build",
+            "advisory_role": "repair data asset, cohort, inclusion/exclusion, or endpoint construction",
+        },
+        {
+            "target_stage": "04-analysis_execution",
+            "advisory_role": "rerun bounded analysis, failed comparator checks, or evidence-generating repair",
+        },
+        {
+            "target_stage": "05-evidence_synthesis",
+            "advisory_role": "reconcile claim boundary, literature gaps, citation readiness, and evidence refs",
+        },
+        {
+            "target_stage": "06-manuscript_authoring",
+            "advisory_role": "adjust manuscript wording, claim expression, and paper-native presentation",
+        },
+        {
+            "target_stage": "07-quality_review_and_revision",
+            "advisory_role": "route reviewer, stop-loss, downgrade, or revision risk before handoff",
+        },
+        {
+            "target_stage": "08-publication_package_handoff",
+            "advisory_role": "check package handoff, declarations, freshness, and submission-readiness inputs",
+        },
+    ]
 
 
 def _opl_projection(

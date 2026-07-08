@@ -13,7 +13,7 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 每轮 bounded analysis 必须先回指当前 study charter、claim/evidence map、source refs、reviewer concern 或 controller route-back reason。`candidate board` 是 stage 内的比较和审计面，可以记录 explore / exploit / fusion / debug / stop 候选、证据收益、成本风险和决策理由；它不能单独授权 publication quality、claim expansion、source readiness、artifact mutation、submission readiness 或 `current_package` 更新。新增分析若会扩大 primary claim、重定义人群/endpoint、引入新数据权限边界或改变 artifact authority，必须回到 `decision` / human gate，而不是在 candidate board 内自行放行。
 
-2026-07-08 补充：Stage knowledge plane 中的 `research_frontier_board` 承接这个候选板的机器可读 refs / summary 投影。它只保存 Stage-local working board、research memory delta 和 rollback target advisory，不创建 Stage 外 Frontier Plane，也不替代 controller、owner receipt、typed blocker、human gate、runtime queue 或 publication eval。
+2026-07-08 补充：Stage knowledge plane 中的 `research_frontier_board` 承接这个候选板的机器可读 refs / summary 投影。它只保存 Stage-local working board、research memory delta 和 rollback target advisory，不创建 Stage 外 Frontier Plane，也不替代 controller、owner receipt、typed blocker、human gate、runtime queue 或 publication eval。materialization 时可独立写出 `<study_root>/artifacts/stage_outputs/<stage>/research_frontier_board.json`；该文件只是可引用 artifact，不是 study truth 或 publication/package authority。
 
 ## Candidate board
 

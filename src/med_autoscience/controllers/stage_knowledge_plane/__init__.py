@@ -68,6 +68,16 @@ def stage_knowledge_packet_path(*, study_root: Path, stage: str) -> Path:
     return Path(study_root).expanduser().resolve() / STAGE_KNOWLEDGE_ROOT / _safe_stage(stage) / "latest.json"
 
 
+def research_frontier_board_path(*, study_root: Path, stage: str) -> Path:
+    return (
+        Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "stage_outputs"
+        / _safe_stage(stage)
+        / "research_frontier_board.json"
+    )
+
+
 def stage_memory_closeout_packet_path(*, study_root: Path, stage: str, idempotency_key: str) -> Path:
     return (
         Path(study_root).expanduser().resolve()
@@ -116,14 +126,14 @@ def publication_route_memory_apply_receipt_path(*, workspace_root: Path, idempot
     )
 
 
-def build_stage_knowledge_packet(
+def _build_stage_knowledge_packet_and_board(
     *,
     study_id: str,
     stage: str,
     study_root: Path,
     workspace_root: Path,
     quest_root: Path | None = None,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
     resolved_stage = _validate_stage(stage)
@@ -154,7 +164,7 @@ def build_stage_knowledge_packet(
             "current_claim_boundary": current_claim_boundary,
         },
     )
-    return {
+    packet = {
         "surface": KNOWLEDGE_PACKET_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "study_id": _required_text("study_id", study_id),
@@ -179,6 +189,47 @@ def build_stage_knowledge_packet(
         "authority_boundary": _authority_boundary(),
         "idempotency_key": f"stage_knowledge_packet:{_required_text('study_id', study_id)}:{resolved_stage}:{source_fingerprint}",
     }
+    return packet, research_frontier_board
+
+
+def build_stage_knowledge_packet(
+    *,
+    study_id: str,
+    stage: str,
+    study_root: Path,
+    workspace_root: Path,
+    quest_root: Path | None = None,
+) -> dict[str, Any]:
+    packet, _board = _build_stage_knowledge_packet_and_board(
+        study_id=study_id,
+        stage=stage,
+        study_root=study_root,
+        workspace_root=workspace_root,
+        quest_root=quest_root,
+    )
+    return packet
+
+
+def materialize_research_frontier_board(
+    *,
+    study_id: str,
+    stage: str,
+    study_root: Path,
+    board: Mapping[str, Any] | None = None,
+    packet: Mapping[str, Any] | None = None,
+) -> Path:
+    payload = (
+        dict(board)
+        if board is not None
+        else build_research_frontier_board(
+            study_id=study_id,
+            stage=stage,
+            packet=dict(packet or {}),
+        )
+    )
+    path = research_frontier_board_path(study_root=study_root, stage=stage)
+    _write_json(path, payload)
+    return path
 
 
 def materialize_stage_knowledge_packet(
@@ -189,7 +240,7 @@ def materialize_stage_knowledge_packet(
     workspace_root: Path,
     quest_root: Path | None = None,
 ) -> dict[str, Any]:
-    packet = build_stage_knowledge_packet(
+    packet, board = _build_stage_knowledge_packet_and_board(
         study_id=study_id,
         stage=stage,
         study_root=study_root,
@@ -197,8 +248,14 @@ def materialize_stage_knowledge_packet(
         quest_root=quest_root,
     )
     packet_path = stage_knowledge_packet_path(study_root=Path(study_root), stage=stage)
+    board_path = materialize_research_frontier_board(
+        study_id=study_id,
+        stage=packet["stage"],
+        study_root=Path(study_root),
+        board=board,
+    )
     _write_json(packet_path, packet)
-    return {**packet, "artifact_path": str(packet_path)}
+    return {**packet, "artifact_path": str(packet_path), "research_frontier_board_artifact_path": str(board_path)}
 
 
 def apply_publication_route_memory_seed_fixture(
@@ -324,14 +381,14 @@ def select_publication_route_memory_refs(
     return selected
 
 
-def normalize_stage_memory_closeout_packet(
+def _normalize_stage_memory_closeout_packet_and_board(
     *,
     study_id: str,
     stage: str,
     closeout_payload: Mapping[str, Any],
     study_root: Path,
     workspace_root: Path,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved_stage = _validate_stage(stage)
     normalized, typed_blockers = _normalize_typed_closeout(closeout_payload)
     source_refs = _dedupe_text(
@@ -377,6 +434,24 @@ def normalize_stage_memory_closeout_packet(
         "authority_boundary": _authority_boundary(),
         "idempotency_key": idempotency_key,
     }
+    return packet, research_frontier_board
+
+
+def normalize_stage_memory_closeout_packet(
+    *,
+    study_id: str,
+    stage: str,
+    closeout_payload: Mapping[str, Any],
+    study_root: Path,
+    workspace_root: Path,
+) -> dict[str, Any]:
+    packet, _board = _normalize_stage_memory_closeout_packet_and_board(
+        study_id=study_id,
+        stage=stage,
+        closeout_payload=closeout_payload,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
     return packet
 
 
@@ -388,7 +463,7 @@ def materialize_stage_memory_closeout_packet(
     study_root: Path,
     workspace_root: Path,
 ) -> dict[str, Any]:
-    packet = normalize_stage_memory_closeout_packet(
+    packet, board = _normalize_stage_memory_closeout_packet_and_board(
         study_id=study_id,
         stage=stage,
         closeout_payload=closeout_payload,
@@ -400,8 +475,14 @@ def materialize_stage_memory_closeout_packet(
         stage=stage,
         idempotency_key=packet["idempotency_key"],
     )
+    board_path = materialize_research_frontier_board(
+        study_id=study_id,
+        stage=packet["stage"],
+        study_root=Path(study_root),
+        board=board,
+    )
     _write_json(path, packet)
-    return {**packet, "artifact_path": str(path)}
+    return {**packet, "artifact_path": str(path), "research_frontier_board_artifact_path": str(board_path)}
 
 
 def route_stage_memory_closeout(
@@ -978,6 +1059,7 @@ __all__ = [
     "build_stage_recall_index",
     "default_publication_route_memory_seed_fixture_path",
     "materialize_paper_soak_memory_apply_proof",
+    "materialize_research_frontier_board",
     "materialize_stage_knowledge_packet",
     "materialize_stage_memory_closeout_packet",
     "materialize_stage_recall_index",
@@ -991,6 +1073,7 @@ __all__ = [
     "render_publication_strategy_memory_prompt_block",
     "route_stage_memory_closeout",
     "select_publication_route_memory_refs",
+    "research_frontier_board_path",
     "stage_knowledge_packet_path",
     "stage_knowledge_plane_contract",
     "stage_memory_closeout_packet_path",
