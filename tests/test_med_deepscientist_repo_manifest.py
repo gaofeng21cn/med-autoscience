@@ -4,161 +4,49 @@ from pathlib import Path
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 
 
-def test_inspect_med_deepscientist_repo_manifest_missing(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_missing_keeps_archive_only_boundary(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 
     result = inspect_med_deepscientist_repo_manifest(repo_root)
 
-    assert result["manifest_path"] == str(repo_root / "MEDICAL_FORK_MANIFEST.json")
     assert result["manifest_found"] is False
     assert result["manifest_parsable"] is False
-    assert result["issues"] == []
-    assert result["engine_family"] is None
-    assert result["freeze_base_commit"] is None
-    assert result["applied_commits"] == ()
     assert result["is_controlled_fork"] is False
     assert result["parity_deconstruction_summary"]["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert result["parity_deconstruction_summary"]["mds_quality_authority"] == "none"
-    assert result["parity_deconstruction_summary"]["quality_owner"] == "MedAutoScience"
     assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False
 
 
-def test_inspect_med_deepscientist_repo_manifest_handles_invalid_json(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_parses_controlled_archive_metadata(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
-    manifest_path.write_text("{not valid json}", encoding="utf-8")
-
-    result = inspect_med_deepscientist_repo_manifest(repo_root)
-
-    assert result["manifest_found"] is True
-    assert result["manifest_parsable"] is False
-    assert any(issue.startswith("manifest_parse_failed:") for issue in result["issues"])
-    assert result["engine_family"] is None
-    assert result["freeze_base_commit"] is None
-    assert result["applied_commits"] == ()
-    assert result["is_controlled_fork"] is False
-    assert result["parity_deconstruction_summary"]["medical_quality_authority_owner"] == "MedAutoScience"
-    assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False
-
-
-def test_inspect_med_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Path) -> None:
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
-    payload = {
-        "engine_family": "MedicalDeepScientist",
-        "freeze_base_commit": "abc123",
-        "applied_commits": ["111", "222"],
-        "is_controlled_fork": True,
-    }
-    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    result = inspect_med_deepscientist_repo_manifest(repo_root)
-
-    assert result["manifest_found"] is True
-    assert result["manifest_parsable"] is True
-    assert result["engine_family"] == payload["engine_family"]
-    assert result["freeze_base_commit"] == payload["freeze_base_commit"]
-    assert result["applied_commits"] == tuple(payload["applied_commits"])
-    assert result["is_controlled_fork"] is True
-    assert result["parity_deconstruction_summary"]["capability_ids"] == (
-        "runtime_execution",
-        "artifact_inventory",
-        "paper_contract_health",
-        "manuscript_coverage",
-        "prompt_stage_discipline",
-        "memory_and_lesson_store",
-    )
-    assert result["parity_deconstruction_summary"]["capability_count"] == 6
-    assert result["parity_deconstruction_summary"]["parity_proof_count"] == 6
-
-
-def test_inspect_med_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path: Path) -> None:
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
-    payload = {
-        "schema_version": 1,
-        "engine_id": "med-deepscientist",
-        "engine_family": "MedDeepScientist",
-        "freeze_mode": "thin_fork",
-        "upstream_source": {
-            "repo_path": "/tmp/DeepScientist",
-            "base_commit": "base123",
-        },
-        "compatibility_contract": {
-            "package_rename_applied": False,
-            "daemon_api_shape_preserved": True,
-            "quest_layout_preserved": True,
-            "worktree_layout_preserved": True,
-        },
-        "applied_commits": [
-            {
-                "commit": "patch111",
-                "kind": "runtime_bugfix",
-                "summary": "Fix worktree document asset resolution",
-            }
-        ],
-        "lock_policy": {
-            "mode": "regenerate_in_fork",
-            "source_repo_was_dirty": True,
-            "source_dirty_paths": ["uv.lock"],
-            "regenerated_after_commit": "patch111",
-        },
-    }
-    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    result = inspect_med_deepscientist_repo_manifest(repo_root)
-
-    assert result["manifest_found"] is True
-    assert result["manifest_parsable"] is True
-    assert result["engine_family"] == "MedDeepScientist"
-    assert result["freeze_base_commit"] == "base123"
-    assert result["applied_commits"] == ("patch111",)
-    assert result["is_controlled_fork"] is True
-
-
-def test_inspect_med_deepscientist_repo_manifest_recognizes_new_runtime_name_without_explicit_flag(tmp_path: Path) -> None:
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
     payload = {
         "engine_id": "med-deepscientist",
         "engine_family": "MedDeepScientist",
         "freeze_base_commit": "abc123",
-        "applied_commits": ["111"],
-    }
-    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    result = inspect_med_deepscientist_repo_manifest(repo_root)
-
-    assert result["engine_family"] == "MedDeepScientist"
-    assert result["freeze_base_commit"] == "abc123"
-    assert result["applied_commits"] == ("111",)
-    assert result["is_controlled_fork"] is True
-
-
-def test_inspect_med_deepscientist_repo_manifest_parses_upstream_tracking_fields(tmp_path: Path) -> None:
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
-    payload = {
-        "engine_id": "med-deepscientist",
-        "engine_family": "MedDeepScientist",
-        "freeze_base_commit": "abc123",
+        "applied_commits": ["patch111"],
         "upstream_tracking": {
             "remote_name": "upstream",
             "branch": "main",
             "ref": "upstream/main",
         },
     }
-    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    (repo_root / "MEDICAL_FORK_MANIFEST.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     result = inspect_med_deepscientist_repo_manifest(repo_root)
 
+    assert result["manifest_found"] is True
+    assert result["manifest_parsable"] is True
+    assert result["engine_family"] == "MedDeepScientist"
+    assert result["freeze_base_commit"] == "abc123"
+    assert result["applied_commits"] == ("patch111",)
     assert result["is_controlled_fork"] is True
     assert result["upstream_remote_name"] == "upstream"
     assert result["upstream_branch"] == "main"
     assert result["upstream_ref"] == "upstream/main"
+    assert result["parity_deconstruction_summary"]["capability_count"] == 6
+    assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False

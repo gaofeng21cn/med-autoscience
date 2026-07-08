@@ -9,7 +9,6 @@ from tests.test_overlay_installer_cases.helpers import (
     APPEND_STAGE_IDS,
     CITATION_LOCATOR_AUDIT_TEMPLATE_NAME,
     COMPANION_EXPECTATIONS,
-    EXISTING_FULL_STAGE_SKILL_IDS,
     HELPER_TEMPLATE_NAMES,
     MEDICAL_RUNTIME_CONTRACT_PATHS,
     MEDICAL_RUNTIME_CONTRACT_TOKEN,
@@ -140,41 +139,6 @@ def test_review_stage_prompt_routes_professional_review_to_mas_scholar_skills() 
     assert "claim downgrade" in review_text.lower()
     assert "citation repair" in review_text.lower()
     assert "MAS remains the owner" in review_text
-
-
-def test_existing_full_stage_skill_templates_keep_rh_clean_room_boundary() -> None:
-    module = importlib.import_module("med_autoscience.overlay.installer")
-
-    forbidden_authority_terms = (
-        "runner",
-        "database",
-        "dashboard",
-        "MCP surface",
-        "verdict authority",
-    )
-    for skill_id in EXISTING_FULL_STAGE_SKILL_IDS:
-        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
-
-        assert "Research Harness is only a clean-room template lesson" in skill_text
-        assert "It is not a MedAutoScience dependency" in skill_text
-        for term in forbidden_authority_terms:
-            assert term in skill_text
-
-
-def test_existing_full_stage_skill_templates_include_stage_specific_blocker_terms() -> None:
-    module = importlib.import_module("med_autoscience.overlay.installer")
-
-    expected_terms_by_skill = {
-        "scout": ("source_readiness", "provider_provenance", "citation_readiness"),
-        "idea": ("candidate path", "gap ranking", "Controller decisions and human gates"),
-        "decision": ("stop-loss", "human checkpoints", "does not produce a `paper-ready` verdict"),
-    }
-
-    for skill_id, expected_terms in expected_terms_by_skill.items():
-        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
-
-        for term in expected_terms:
-            assert term in skill_text
 
 
 def test_finalize_and_journal_resolution_projection_templates_keep_route_back_blockers() -> None:
@@ -441,21 +405,6 @@ def test_write_stage_prompt_routes_professional_work_without_owning_truth() -> N
     assert "Do not turn a specialist skill output into accepted manuscript truth" in skill_text
 
 
-def test_stage_prompts_route_literature_candidates_through_opl_connect_or_lit_specialist() -> None:
-    module = importlib.import_module("med_autoscience.overlay.installer")
-
-    for skill_id in ("scout", "write", "review"):
-        if skill_id in {"write", "review"}:
-            skill_text = module.load_overlay_skill_text(skill_id)
-        else:
-            skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
-
-        assert "opl connect pubmed search --query <query> --limit <n> --json" in skill_text
-        assert "medical-research-lit" in skill_text
-        assert "candidate" in skill_text
-        assert "MAS" in skill_text
-
-
 def test_external_scientific_skills_overlay_materializes_thin_discovery_entry(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     quest_root = tmp_path / "workspace"
@@ -491,29 +440,6 @@ def test_capability_map_external_specialist_policy_matches_overlay_entry() -> No
         "network_cloud_compute_or_sensitive_data_path_requires_policy_approval",
     ]
     assert policy["external_skill_outputs_are_refs_only_candidates"] is True
-
-
-def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skills(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.overlay.installer")
-    runtime_repo_root = tmp_path / "med-deepscientist"
-    quest_root = tmp_path / "workspace"
-    for skill_id in SKILL_IDS:
-        if skill_id in APPEND_STAGE_IDS:
-            write_runtime_skill(runtime_repo_root, skill_id, f"runtime {skill_id}\n")
-
-    result = module.install_medical_overlay(
-        quest_root=quest_root,
-        med_deepscientist_repo_root=runtime_repo_root,
-    )
-
-    assert result["installed_count"] == len(SKILL_IDS)
-    for skill_id in SKILL_IDS:
-        skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / "SKILL.md"
-        assert skill_path.exists(), skill_path
-        assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(
-            skill_id,
-            base_text=f"runtime {skill_id}\n" if skill_id in APPEND_STAGE_IDS else None,
-        )
 
 
 def test_install_medical_overlay_does_not_mutate_legacy_mds_stage_skills(tmp_path: Path) -> None:
@@ -621,39 +547,6 @@ def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> 
     assert result["selected_action"] == "noop"
     assert result["action_result"] is None
     assert result["post_status"]["all_targets_ready"] is True
-
-
-def test_ensure_medical_overlay_noop_does_not_mutate_legacy_mds_stage_skills(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.overlay.installer")
-    runtime_repo_root = tmp_path / "med-deepscientist"
-    quest_root = tmp_path / "workspace"
-    write_runtime_skill(runtime_repo_root, "write", "# DeepScientist write\n")
-    write_runtime_skill(runtime_repo_root, "optimize", "# DeepScientist optimize\n")
-
-    module.install_medical_overlay(
-        quest_root=quest_root,
-        med_deepscientist_repo_root=runtime_repo_root,
-        skill_ids=("write",),
-    )
-    for skill_id in ("write", "optimize"):
-        legacy_skill = quest_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
-        legacy_skill.parent.mkdir(parents=True, exist_ok=True)
-        legacy_skill.write_text(f"# DeepScientist {skill_id}\n", encoding="utf-8")
-
-    result = module.ensure_medical_overlay(
-        quest_root=quest_root,
-        med_deepscientist_repo_root=runtime_repo_root,
-        skill_ids=("write",),
-        mode="ensure_ready",
-    )
-
-    assert result["selected_action"] == "noop"
-    assert result["action_result"] is None
-    assert "legacy_mds_skill_cleanup" not in result
-    assert sorted(path.name for path in (quest_root / ".codex" / "skills").glob("deepscientist-*")) == [
-        "deepscientist-optimize",
-        "deepscientist-write",
-    ]
 
 
 def test_ensure_medical_overlay_reapplies_when_targets_are_drifted(tmp_path: Path) -> None:

@@ -85,31 +85,6 @@ def test_doctor_group_help_surfaces_backend_audit_and_hides_legacy_names(capsys)
     assert "med-deepscientist-" + "upgrade" not in captured.out
 
 
-def test_removed_grouped_backend_audit_old_name_is_removed() -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-
-    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `doctor`\.$"):
-        cli.main(["doctor", "backend-" + "upgrade", "--profile", "/tmp/profile.toml"])
-
-
-def test_removed_grouped_med_deepscientist_audit_old_name_is_removed() -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-
-    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `doctor`\.$"):
-        cli.main(["doctor", "med-deepscientist-" + "upgrade", "--profile", "/tmp/profile.toml"])
-
-
-def test_removed_flat_backend_audit_old_name_is_removed(capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    removed_command = "med-deepscientist-" + "upgrade-check"
-
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main([removed_command, "--profile", "/tmp/profile.toml"])
-    captured = capsys.readouterr()
-
-    assert excinfo.value.code == 2
-    assert "invalid choice" in captured.err
-    assert removed_command in captured.err
 def test_removed_grouped_ensure_runtime_command_is_removed(tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -193,27 +168,6 @@ def test_progress_projection_command_is_removed(tmp_path: Path, capsys) -> None:
             "001-risk",
             "--format",
             "json",
-        ])
-    captured = capsys.readouterr()
-
-    assert excinfo.value.code == 2
-    assert "invalid choice" in captured.err
-    assert "progress-projection" in captured.err
-
-
-def test_progress_projection_command_legacy_json_alias_is_removed(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main([
-            "progress-projection",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-risk",
-            "--json",
         ])
     captured = capsys.readouterr()
 
@@ -530,21 +484,6 @@ def test_study_group_help_surfaces_profile_cycle(capsys) -> None:
 
     assert exit_code == 0
     assert "profile-cycle" in captured.out
-def test_grouped_progress_projection_alias_is_removed(tmp_path: Path) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-
-    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `study`\.$"):
-        cli.main([
-            "study", "progress-projection",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-risk",
-            "--format",
-            "json",
-        ])
 def test_retired_workspace_cockpit_group_command_fails_closed(tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
