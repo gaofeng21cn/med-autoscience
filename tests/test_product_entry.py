@@ -37,6 +37,12 @@ from tests.product_entry_cases.cockpit_status_and_entry_status_focus import (
     test_workspace_cockpit_markdown_prefers_human_facing_labels,
     test_workspace_cockpit_projects_operator_status_card_into_study_items_and_attention,
 )
+from tests.product_entry_cases.entry_status_focus_cases import (
+    test_build_product_entry_status_uses_gate_clearing_followthrough_for_attention_brief,
+    test_build_product_entry_status_uses_operator_status_card_for_now_summary,
+    test_build_product_entry_status_uses_quality_review_followthrough_for_monitor_focus,
+    test_build_product_entry_status_uses_same_line_route_truth_for_current_focus,
+)
 from tests.product_entry_cases.authority_operation_manifest import (
     test_product_entry_manifest_domain_commands_include_authority_operations,
     test_product_entry_manifest_schema_enum_matches_authority_command_catalog,
@@ -56,6 +62,17 @@ from tests.product_entry_cases.manifest_launch_and_task_intake import (
 from tests.product_entry_cases.repo_shell_and_handoff_templates import (
     test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_templates,
     test_product_entry_progress_projection_defaults_to_next_action_envelope,
+)
+from tests.product_entry_cases.manifest_launch_and_task_intake_cases.launch_study_surfaces import (
+    test_launch_study_markdown_prefers_human_facing_labels,
+    test_launch_study_markdown_prefers_shared_human_status_narration,
+    test_launch_study_packages_monitoring_progress_and_commands,
+)
+from tests.product_entry_cases.manifest_launch_and_task_intake_cases.test_explicit_wakeup import (
+    test_launch_study_explicit_wakeup_records_truth_resume,
+    test_launch_study_explicit_wakeup_releases_paused_runtime_gate,
+    test_launch_study_rejects_unsupported_entry_mode_before_runtime_projection,
+    test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff,
 )
 from tests.product_entry_cases.product_entry_preflight_and_task_submission import (
     annotations,

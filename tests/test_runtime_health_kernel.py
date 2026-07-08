@@ -193,6 +193,21 @@ from tests.test_runtime_health_kernel_cases.projection_reconcile import (
     test_runtime_health_reconcile_publishes_projection_without_persisting_liveness_events,
     test_runtime_health_reconcile_suppresses_opl_proof_backed_lifecycle_event_persistence,
 )
+from tests.test_runtime_health_kernel_cases.test_explicit_resume_cases import (
+    test_runtime_health_explicit_resume_reason_dominates_active_missing_live_session,
+    test_runtime_health_manual_hold_dominates_active_missing_live_session,
+    test_runtime_health_stopped_quest_waits_for_explicit_resume_without_probe,
+    test_runtime_health_user_pause_dominates_active_missing_live_session,
+)
+from tests.test_runtime_health_kernel_cases.test_new_run_grace_cases import (
+    test_runtime_health_does_not_recover_new_live_run_from_stale_slo_window,
+    test_runtime_health_live_new_run_does_not_inherit_stale_recovery_budget,
+    test_runtime_health_uses_status_observation_time_for_new_run_grace,
+)
+from tests.test_runtime_health_kernel_cases.test_reconcile_and_activity_timeout_cases import (
+    test_runtime_health_reconcile_materializes_snapshot_from_status_payload,
+    test_runtime_health_treats_strict_live_activity_timeout_as_recovery,
+)
 
 
 def test_runtime_health_kernel_no_longer_exposes_local_event_append_api() -> None:
