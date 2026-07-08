@@ -837,6 +837,18 @@
       ],
       "sync_policy": "repo_local_standard_primary_skill_with_plugin_carrier_compat",
       "externalization_reason": "Rich app skill is a required standard OPL primary skill source; plugin skill remains a Codex carrier mirror and does not own MAS truth.",
+      "carrier_projection_contract": {
+        "canonical_source": "agent/primary_skill/SKILL.md",
+        "carrier_skill_ref": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+        "carrier_materialization": "materialized_full_skill_copy",
+        "codex_install_requires_real_skill_md": true,
+        "plugin_skill_must_remain_real_file": true,
+        "carrier_role": "transport_install_detail_not_agent_membership_or_status",
+        "authority": false,
+        "carrier_can_override_canonical_source": false,
+        "carrier_can_claim_agent_membership_or_status": false,
+        "carrier_is_domain_truth_source": false
+      },
       "improvement_tokens": [
         "med-autoscience",
         "primary_skill",
