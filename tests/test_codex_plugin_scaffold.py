@@ -25,8 +25,7 @@ def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
     assert "export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1" in launcher_text
     assert 'exec "${repo_root}/scripts/run-python-clean.sh" -m med_autoscience.mcp_server "$@"' in launcher_text
     assert 'uv run --directory "${repo_root}"' not in launcher_text
-    assert LEGACY_PLUGIN_ROOT.is_symlink()
-    assert LEGACY_PLUGIN_ROOT.resolve() == PLUGIN_ROOT.resolve()
+    assert not LEGACY_PLUGIN_ROOT.exists()
 
     assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
 

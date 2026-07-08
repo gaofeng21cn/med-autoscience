@@ -1,4 +1,4 @@
-from .shared import *
+from tests.submission_minimal_cases.shared import *
 
 import re
 

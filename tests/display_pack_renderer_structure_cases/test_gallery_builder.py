@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .common import (
+from tests.display_pack_renderer_structure_cases.common import (
     CORE_PACK_MODULE_ROOT,
     CORE_PACK_ROOT,
     CORE_PACK_SRC_ROOT,

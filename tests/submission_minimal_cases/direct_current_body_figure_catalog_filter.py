@@ -4,7 +4,7 @@ from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
-from .shared import *
+from tests.submission_minimal_cases.shared import *
 
 
 def test_create_submission_minimal_package_filters_nested_supplementary_figures_when_canonical_catalog_exists(

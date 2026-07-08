@@ -1283,7 +1283,7 @@
           "src/med_autoscience/controllers/product_entry.py",
           "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
           "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
-          "plugins/mas/skills/mas/SKILL.md"
+          "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
         ],
         "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
         "current_surface_refs": [
@@ -1699,7 +1699,7 @@
       "handoff_surfaces": [
         {
           "current_paths": [
-            "src/med_autoscience/cli.py",
+            "src/med_autoscience/cli/__init__.py",
             "src/med_autoscience/cli/"
           ],
           "current_role": "domain_handler_command_target_refs_only",
@@ -1708,7 +1708,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/mcp_server.py"
+            "src/med_autoscience/mcp_server/__init__.py"
           ],
           "current_role": "domain_handler_tool_target_refs_only",
           "surface_id": "mcp",
@@ -1716,7 +1716,7 @@
         },
         {
           "current_paths": [
-            "plugins/mas/skills/mas/SKILL.md",
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
             "src/med_autoscience/controllers/product_entry/program_surfaces.py"
           ],
           "current_role": "domain_skill_handler_target_and_pack_refs_only",

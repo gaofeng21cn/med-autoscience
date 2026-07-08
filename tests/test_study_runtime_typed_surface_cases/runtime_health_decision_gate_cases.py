@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from .shared import make_status_payload
+from tests.test_study_runtime_typed_surface_cases.shared import make_status_payload
 
 
 def test_runtime_health_diagnostic_recovery_hint_cannot_rewrite_status_without_opl_readback(

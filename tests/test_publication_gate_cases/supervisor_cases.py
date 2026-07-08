@@ -6,7 +6,7 @@ from med_autoscience.controllers.submission_package_layout import (
 )
 from tests.control_plane_route_helpers import writable_route_context
 
-from . import shared as _shared
+from tests.test_publication_gate_cases import shared as _shared
 
 globals().update({
     name: value

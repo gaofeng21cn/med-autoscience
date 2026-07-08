@@ -70,6 +70,20 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - `contracts/agent_tool_arsenal.json` 是 generated/authority contract；source ref 是 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`。不能手工缩减 JSON；后续只能修改 generator / owner surface，并跑 focused contract tests。
 - Absorption gate：line-budget readback 候选与 `codex-parts-readback-v2-20260707` 同写集，wildcard reporting 候选与 `codex-parts-exports-v2-20260707` 同写集，domain-transition line-budget 剩余项与 `codex-parts-domain-transition-20260707` 同写集；这些代码候选未吸收进 `main`，等待对应 parts lane 交出或完成后再复核。
 
+## 2026-07-08 overengineering direct-cleanup tranche
+
+- Branding asset decision：按 owner 指令保留 raster logo `assets/branding/medautoscience-logo.png`，删除 README 不需要的 duplicate SVG `assets/branding/medautoscience-logo.svg`。README 仍使用 PNG，不声明 visual refresh 或 public branding release。
+- Display gallery stale manifest：删除 `gallery/medical-display/scholar_display_pack_manifest.json`。该 manifest 指向已退役的 `external/display-packs` / `outputs/display-pack-gallery` 路径；真实 display pack source 继续归外部 `mas-scholar-skills` pack 与 MAS display-pack resolver/readback surface。
+- Python package markers：删除测试树内 0 字节 `__init__.py` marker，保留 `src/med_autoscience/resources/__init__.py` 这类 package-data 边界。当前 pytest 仍通过 native discovery 与显式 aggregate/case module 工作；不恢复空 marker 当 package identity shim。
+- Plugin alias retirement：删除 tracked symlink `plugins/mas` 与 `plugins/med-autoscience/skills/mas`。所有 active source / contracts / tests / docs ref 已迁到 `plugins/med-autoscience/.codex-plugin/plugin.json`、`plugins/med-autoscience/bin/medautosci-mcp`、`plugins/med-autoscience/skills/med-autoscience/SKILL.md`；`scripts/opl-module-healthcheck.sh` 现在阻止 legacy alias 恢复。
+- Plugin launcher / installer currentness：`medautosci-mcp` launcher 识别 package 化后的 `src/med_autoscience/mcp_server/__init__.py`；`med_autoscience.cli` 与 `med_autoscience.mcp_server` 增加标准 `__main__.py`，让 clean runner 现有 `python -m <package>` entrypoint 不再依赖退役 file module shape。`codex_plugin_installer` 的 canonical plugin root 改为 `plugins/med-autoscience`，旧 `mas` 只作为本机 legacy symlink / test stub 清理对象。
+- Public facade status：`product_entry.py` 修正 `dispatch_guarded_medical_paper_operator_action` 的 public `__all__` re-export 顺序。其余 facade 物理删除仍等待 `_parts` lane / public identity contract 更新；不能因 facade 很薄就删除仍被 public smoke、runtime controller identity 或 tests 消费的 import surface。
+- `LazyModuleProxy` 保留：fresh evidence 显示它承担 controller currentness 语义，每次访问检查 `sys.modules` replacement；`tests/test_lazy_module_proxy.py` 与 `docs/runtime/control/controllers.md` 明确约束该行为。用一次性 `importlib.import_module` 替代会丢失 monkeypatch / reload currentness，不按 overengineering 删除。
+- Runtime diagnostic tail 保留边界：`current_work_unit`、`current_execution_envelope` 仍有 active projection / owner-surface imports；`provider_admission` 是活跃控制面族，不是无引用 facade。后续只能在 active caller 迁移、replacement parity、no-forbidden-write 和 tombstone evidence 齐备后继续物理删除。
+- Import-star status：top-level pytest aggregate entrypoints 保留以维持当前 focused nodeid / collection contract；production `import *` 主要绑定 `_parts` 退役 lane，当前 cleanup lane 不做孤立机械展开。后续在 parts lane 自然包吸收时按 concrete owner module 显式化。
+- Fresh cleanup verification：`rtk proxy scripts/verify.sh` -> repo hygiene passed，smoke / line-budget 8 passed；`git diff --check` clean；active ref scan 对 `medautoscience-logo.svg`、`scholar_display_pack_manifest.json`、legacy file-module entrypoints 和 legacy plugin skill alias 无命中，只剩 retirement wording / healthcheck guard；`find tests -path '*__init__.py' -size 0 -print` 无输出，`src/med_autoscience/resources/__init__.py` 是保留的 package-data marker。
+- Absorption status：此前根 checkout 被另一个 `_parts` 退役 lane 的 dirty write set 阻断；该 lane 已吸收到 `main`，本 cleanup tranche 已在其后 rebase，并按当前自然包路径保留 canonical plugin / package entrypoint cleanup。合入 `main` 仍必须走 fast-forward / evidence-bound absorption 和 post-absorption verify。
+
 ## 2026-07-06 P1 root artifact / facade cleanup evidence
 
 - `Rplots.pdf`、`visual_qa_demo.png`：`rg --hidden --glob '!.git/**' --glob '!*.pdf' --glob '!*.png' 'Rplots\.pdf|visual_qa_demo\.png' .` 仅命中本文 P1 清单；两者是未被 active source/tests 引用的 root demo artifact，已删除而非移入 history。

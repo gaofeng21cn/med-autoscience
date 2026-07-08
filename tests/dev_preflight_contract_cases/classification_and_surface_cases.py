@@ -120,7 +120,7 @@ def test_classify_changed_files_routes_mcp_plugin_config_to_codex_plugin_surface
 
     result = module.classify_changed_files(
         [
-            "plugins/mas/skills/mas/SKILL.md",
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
             "scripts/install-codex-plugin.sh",
         ]
     )
@@ -272,7 +272,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
-            "src/med_autoscience/mcp_server.py",
+            "src/med_autoscience/mcp_server/__init__.py",
             "src/med_autoscience/controllers/provider_admission/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
             "src/med_autoscience/controllers/study_progress/projection_quality_surfaces.py",
@@ -818,8 +818,8 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     result = module.classify_changed_files(
         [
             ".agents/plugins/marketplace.json",
-            "plugins/mas/.codex-plugin/plugin.json",
-            "plugins/mas/skills/mas/SKILL.md",
+            "plugins/med-autoscience/.codex-plugin/plugin.json",
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
             "tests/test_codex_plugin_scaffold.py",
         ]
     )

@@ -19,20 +19,20 @@ def build_generated_surface_handoff(
         "handoff_surfaces": [
             {
                 "surface_id": "cli",
-                "current_paths": ["src/med_autoscience/cli.py", "src/med_autoscience/cli/"],
+                "current_paths": ["src/med_autoscience/cli/__init__.py", "src/med_autoscience/cli/"],
                 "current_role": "domain_handler_command_target_refs_only",
                 "target_role": "opl_generated_command_surface",
             },
             {
                 "surface_id": "mcp",
-                "current_paths": ["src/med_autoscience/mcp_server.py"],
+                "current_paths": ["src/med_autoscience/mcp_server/__init__.py"],
                 "current_role": "domain_handler_tool_target_refs_only",
                 "target_role": "opl_generated_mcp_descriptor_surface",
             },
             {
                 "surface_id": "skill",
                 "current_paths": [
-                    "plugins/mas/skills/mas/SKILL.md",
+                    "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
                     "src/med_autoscience/controllers/product_entry/program_surfaces.py",
                 ],
                 "current_role": "domain_skill_handler_target_and_pack_refs_only",

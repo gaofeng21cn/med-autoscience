@@ -7,7 +7,7 @@ from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
-from .shared import dump_json, make_paper_workspace, write_text
+from tests.submission_minimal_cases.shared import dump_json, make_paper_workspace, write_text
 
 
 def _open_bundle_route_context() -> dict[str, object]:

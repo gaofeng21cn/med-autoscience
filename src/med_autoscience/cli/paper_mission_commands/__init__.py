@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -90,15 +91,13 @@ from .stage_closure_terminalizer import (
 from . import (
     stage_closure_terminalizer_readback as _stage_closure_terminalizer_readback,
 )
-from . import (
-    consumption_ledger_readback as _consumption_ledger_readback,
-)
 from .typed_blocker_resolution import (
     build_typed_blocker_resolution_readback as _build_typed_blocker_resolution_readback,
     latest_typed_blocker_resolution_readback,
     typed_blocker_resolution_apply_mode as _typed_blocker_resolution_apply_mode,
 )
 from .transaction_readback import (
+    FORBIDDEN_AUTHORITY_CLAIMS as _TRANSACTION_FORBIDDEN_AUTHORITY_CLAIMS,
     _candidate_manifest_transaction,
     _candidate_mission_id_for_readback,
     _consume_candidate_status_for_transaction_readback,
@@ -207,105 +206,102 @@ def _override_next_action_from_direct_terminal_closeout(**kwargs: Any) -> tuple[
     )
 
 
-FORBIDDEN_AUTHORITY_CLAIMS = _consumption_ledger_readback.FORBIDDEN_AUTHORITY_CLAIMS
-
-_consumption_ledger_inspect_readback_impl = (
-    _consumption_ledger_readback._consumption_ledger_inspect_readback
-)
-_study_progress_paper_mission_overlay_impl = (
-    _consumption_ledger_readback._study_progress_paper_mission_overlay
-)
-_merge_study_progress_overlay_impl = _consumption_ledger_readback._merge_study_progress_overlay
-_consumption_ledger_route_back_projection_impl = (
-    _consumption_ledger_readback._consumption_ledger_route_back_projection
-)
-_transaction_readback_has_route_back_owner_answer_impl = (
-    _consumption_ledger_readback._transaction_readback_has_route_back_owner_answer
-)
-_receipt_owner_consumption_status_impl = (
-    _consumption_ledger_readback._receipt_owner_consumption_status
-)
-_consumption_ledger_current_route_next_action_impl = (
-    _consumption_ledger_readback._consumption_ledger_current_route_next_action
-)
-_consumption_ledger_has_current_route_handoff_impl = (
-    _consumption_ledger_readback._consumption_ledger_has_current_route_handoff
-)
-_paper_mission_consume_non_advancing_fields_impl = (
-    _consumption_ledger_readback._paper_mission_consume_non_advancing_fields
-)
-_paper_mission_semantic_progress_readback_impl = (
-    _consumption_ledger_readback._paper_mission_semantic_progress_readback
-)
+FORBIDDEN_AUTHORITY_CLAIMS = _TRANSACTION_FORBIDDEN_AUTHORITY_CLAIMS
 
 
-def _sync_consumption_ledger_readback_deps() -> None:
-    _consumption_ledger_readback._latest_receipt_owner_consumption_readback = (
+def _consumption_ledger_readback_module() -> Any:
+    return importlib.import_module(
+        "med_autoscience.cli.paper_mission_commands.consumption_ledger_readback"
+    )
+
+
+def _sync_consumption_ledger_readback_deps() -> Any:
+    module = _consumption_ledger_readback_module()
+    module._latest_receipt_owner_consumption_readback = (
         _latest_receipt_owner_consumption_readback
     )
-    _consumption_ledger_readback._latest_current_stage_closure_for_consumption = (
+    module._latest_current_stage_closure_for_consumption = (
         _latest_current_stage_closure_for_consumption
     )
-    _consumption_ledger_readback._study_progress_paper_mission_overlay = (
+    module._study_progress_paper_mission_overlay = (
         _study_progress_paper_mission_overlay
     )
-    _consumption_ledger_readback._consumption_ledger_route_back_projection = (
+    module._consumption_ledger_route_back_projection = (
         _consumption_ledger_route_back_projection
     )
-    _consumption_ledger_readback._paper_mission_semantic_progress_readback = (
+    module._paper_mission_semantic_progress_readback = (
         _paper_mission_semantic_progress_readback
     )
+    return module
 
 
 def _consumption_ledger_inspect_readback(**kwargs: Any) -> dict[str, Any]:
-    _sync_consumption_ledger_readback_deps()
-    return _consumption_ledger_inspect_readback_impl(**kwargs)
+    module = _sync_consumption_ledger_readback_deps()
+    return module._consumption_ledger_inspect_readback(**kwargs)
 
 
 def _study_progress_paper_mission_overlay(**kwargs: Any) -> dict[str, Any]:
-    return _study_progress_paper_mission_overlay_impl(**kwargs)
+    return _consumption_ledger_readback_module()._study_progress_paper_mission_overlay(
+        **kwargs
+    )
 
 
 def _merge_study_progress_overlay(
     readback: Mapping[str, Any],
     overlay: Mapping[str, Any],
 ) -> dict[str, Any]:
-    return _merge_study_progress_overlay_impl(readback, overlay)
+    return _consumption_ledger_readback_module()._merge_study_progress_overlay(
+        readback, overlay
+    )
 
 
 def _consumption_ledger_route_back_projection(**kwargs: Any) -> dict[str, Any] | None:
-    return _consumption_ledger_route_back_projection_impl(**kwargs)
+    return _consumption_ledger_readback_module()._consumption_ledger_route_back_projection(
+        **kwargs
+    )
 
 
 def _transaction_readback_has_route_back_owner_answer(
     transaction_readback: Mapping[str, Any],
 ) -> bool:
-    return _transaction_readback_has_route_back_owner_answer_impl(transaction_readback)
+    return (
+        _consumption_ledger_readback_module()._transaction_readback_has_route_back_owner_answer(
+            transaction_readback
+        )
+    )
 
 
 def _receipt_owner_consumption_status(receipt_owner_consumption: Mapping[str, Any]) -> str:
-    return _receipt_owner_consumption_status_impl(receipt_owner_consumption)
+    return _consumption_ledger_readback_module()._receipt_owner_consumption_status(
+        receipt_owner_consumption
+    )
 
 
 def _consumption_ledger_current_route_next_action(**kwargs: Any) -> dict[str, Any] | None:
-    return _consumption_ledger_current_route_next_action_impl(**kwargs)
+    return _consumption_ledger_readback_module()._consumption_ledger_current_route_next_action(
+        **kwargs
+    )
 
 
 def _consumption_ledger_has_current_route_handoff(
     consumption_readback: Mapping[str, Any],
 ) -> bool:
-    return _consumption_ledger_has_current_route_handoff_impl(consumption_readback)
+    return _consumption_ledger_readback_module()._consumption_ledger_has_current_route_handoff(
+        consumption_readback
+    )
 
 
 def _paper_mission_consume_non_advancing_fields(**kwargs: Any) -> dict[str, Any]:
-    _sync_consumption_ledger_readback_deps()
-    return _paper_mission_consume_non_advancing_fields_impl(**kwargs)
+    module = _sync_consumption_ledger_readback_deps()
+    return module._paper_mission_consume_non_advancing_fields(**kwargs)
 
 
 def _paper_mission_semantic_progress_readback(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
-    return _paper_mission_semantic_progress_readback_impl(readback)
+    return _consumption_ledger_readback_module()._paper_mission_semantic_progress_readback(
+        readback
+    )
 
 def handle_paper_mission_command(
     args: argparse.Namespace,

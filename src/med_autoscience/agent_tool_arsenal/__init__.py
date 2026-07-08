@@ -269,7 +269,7 @@ def build_agent_tool_arsenal_index(
                 "src/med_autoscience/scientific_capability_registry.py"
             ),
             "stage_control_plane": "contracts/stage_control_plane.json",
-            "plugin_skill": "plugins/mas/skills/mas/SKILL.md",
+            "plugin_skill": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
         },
         "abi_surfaces": [
             "ToolArsenalIndex",

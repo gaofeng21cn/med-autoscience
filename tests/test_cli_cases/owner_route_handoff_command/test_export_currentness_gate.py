@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
 from tests.study_runtime_test_helpers import make_profile
 
 

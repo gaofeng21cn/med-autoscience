@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import shared as _shared
+from tests.test_cli_cases import shared as _shared
 
 globals().update({
     name: value
@@ -700,12 +700,12 @@ def test_lifecycle_report_command_dispatches_read_only_controller_options(monkey
     assert payload["mutation_policy"]["physical_cleanup_performed"] is False
 
 
-from .opl_unique_control_plane_boundary_commands import (
+from tests.test_cli_cases.opl_unique_control_plane_boundary_commands import (
     test_cli_has_no_opl_unique_control_plane_boundary_runtime_callable,
     test_runtime_supervision_flat_commands_are_not_public_aliases,
     test_runtime_supervision_grouped_commands_are_not_public_aliases,
 )
-from .public_entry_command_cases.publication_and_data_commands import (
+from tests.test_cli_cases.public_entry_command_cases.publication_and_data_commands import (
     test_init_portfolio_memory_command_dispatches_controller,
     test_init_workspace_literature_command_dispatches_controller,
     test_portfolio_memory_status_command_dispatches_controller,

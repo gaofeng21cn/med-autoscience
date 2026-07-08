@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from . import shared as _shared
+from tests.test_cli_cases import shared as _shared
 from med_autoscience.workspace_paths import DATA_ASSET_LAYER_IDS, DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
 
 globals().update({

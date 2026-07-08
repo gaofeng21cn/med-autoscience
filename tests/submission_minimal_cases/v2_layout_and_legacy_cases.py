@@ -7,7 +7,7 @@ from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
-from .shared import *
+from tests.submission_minimal_cases.shared import *
 
 
 def test_describe_submission_minimal_authority_prefers_v2_manifest_over_stale_legacy_root(

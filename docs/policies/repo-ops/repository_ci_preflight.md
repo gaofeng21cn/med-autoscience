@@ -120,7 +120,7 @@ preflight 不是启发式脚本。
 - `runtime_contract_surface`
 - `integration_harness_surface`
 
-`codex_plugin_surface` 覆盖 `plugins/mas/.codex-plugin/plugin.json`、`plugins/mas/skills/mas/SKILL.md`、installer 与 scaffold 测试；repo-local `.agents/plugins/marketplace.json` 是已退役本地状态，不作为 MAS 仓库的 active Codex marketplace source。
+`codex_plugin_surface` 覆盖 `plugins/med-autoscience/.codex-plugin/plugin.json`、`plugins/med-autoscience/skills/med-autoscience/SKILL.md`、installer 与 scaffold 测试；repo-local `.agents/plugins/marketplace.json` 是已退役本地状态，不作为 MAS 仓库的 active Codex marketplace source。
 
 `documentation_review_only` 覆盖 repo-tracked Markdown / README prose。它不会规划 pytest 命令，文档变更由人工/Agent review 负责，不再通过脚本锁定措辞、标题、链接或段落锚点。
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import shared_base as _shared_base
+from tests.submission_minimal_cases import shared_base as _shared_base
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():

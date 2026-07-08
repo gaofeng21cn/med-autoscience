@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 
 def test_existing_ai_reviewer_summary_redrives_when_consumed_identity_differs(

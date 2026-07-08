@@ -6,7 +6,7 @@ from pathlib import Path
 
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 
-from .paper_mission_commands import (
+from tests.test_cli_cases.paper_mission_commands import (
     _paper_mission_forbidden_write_guard,
     _paper_mission_transaction_payload,
     _write_profile_with_study,

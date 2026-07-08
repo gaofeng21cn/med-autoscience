@@ -497,13 +497,13 @@
       },
       {
         "surface_id": "mcp_tool_manifest",
-        "source_ref": "src/med_autoscience/mcp_server.py::list_tools",
+        "source_ref": "src/med_autoscience/mcp_server/__init__.py::list_tools",
         "required_policy": "no standalone domain diagnostic/owner-callable/PaperRecovery MCP tool is exposed as the paper mission default",
         "allowed_legacy_reference_class": "runtime diagnostic internals and descriptor metadata only"
       },
       {
         "surface_id": "plugin_skill_ordinary_path",
-        "source_ref": "plugins/mas/skills/mas/SKILL.md",
+        "source_ref": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
         "required_ordinary_path": "study -> stage -> domain owner receipt or typed blocker -> handoff",
         "allowed_legacy_reference_class": "Retired runtime controller references may name domain-diagnostic-report only as diagnostic/control readback, not ordinary paper mission execution"
       }

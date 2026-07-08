@@ -76,8 +76,8 @@ ACTIVE_PATH_DENYLIST = (
 )
 ENTRYPOINT_PATHS = frozenset(
     {
-        "src/med_autoscience/mcp_server.py",
-        "src/med_autoscience/cli.py",
+        "src/med_autoscience/mcp_server/__init__.py",
+        "src/med_autoscience/cli/__init__.py",
         "src/med_autoscience/cli/parser.py",
     }
 )

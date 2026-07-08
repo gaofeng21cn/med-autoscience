@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
 
 
 def _guarded_apply_current_owner_delta_contract() -> dict[str, object]:

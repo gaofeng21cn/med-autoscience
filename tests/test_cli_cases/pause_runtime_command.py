@@ -1,4 +1,4 @@
-from .shared import *
+from tests.test_cli_cases.shared import *
 
 
 def test_removed_grouped_pause_runtime_command_is_removed(tmp_path: Path) -> None:

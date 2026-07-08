@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
 
 
 def test_domain_handler_dispatch_materializes_embedded_ai_reviewer_handoff_inside_mas_owner(

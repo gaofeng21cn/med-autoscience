@@ -24613,7 +24613,7 @@
     "action_catalog": "contracts/action_catalog.json",
     "mcp_registry": "src/med_autoscience/mcp_server/tool_registry.py",
     "owner_callable_registry": "src/med_autoscience/runtime_control/owner_callable_registry.py",
-    "plugin_skill": "plugins/mas/skills/mas/SKILL.md",
+    "plugin_skill": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
     "scientific_capability_registry": "src/med_autoscience/scientific_capability_registry.py",
     "stage_control_plane": "contracts/stage_control_plane.json"
   }

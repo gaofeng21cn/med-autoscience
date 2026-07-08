@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.shared import *  # noqa: F403,F401
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:

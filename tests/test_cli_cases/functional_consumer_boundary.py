@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 
 def test_domain_handler_export_projects_functional_consumer_boundary(tmp_path: Path, capsys) -> None:

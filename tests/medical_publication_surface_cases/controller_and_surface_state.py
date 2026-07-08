@@ -1,6 +1,6 @@
 import os
 
-from .shared import *
+from tests.medical_publication_surface_cases.shared import *
 
 from med_autoscience.controllers.medical_publication_surface import controller, shared_base
 

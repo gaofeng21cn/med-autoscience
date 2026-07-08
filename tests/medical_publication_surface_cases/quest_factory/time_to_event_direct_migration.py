@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ..figure_contract_fixtures import evidence_renderer_display_to_claim_fields
-from ..shared_base import TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN, dump_json
+from tests.medical_publication_surface_cases.figure_contract_fixtures import evidence_renderer_display_to_claim_fields
+from tests.medical_publication_surface_cases.shared_base import TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN, dump_json
 
 
 def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f5: bool) -> None:

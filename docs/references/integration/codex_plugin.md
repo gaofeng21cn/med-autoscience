@@ -5,7 +5,7 @@ Purpose: `Support MAS integration and OPL handoff understanding.`
 State: `support_reference`
 Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
 
-`MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/mas/`。
+`MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/med-autoscience/`。
 
 本文件同时承接原 `codex_plugin_release.md` 的发布说明口径。当前叙事以 repo-tracked plugin source / skill / MCP 入口为准，不再把 MAS standalone release artifact、系统级 skill 安装或 repo-local marketplace 写成默认用户路径。
 
@@ -13,7 +13,7 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 - 通过 `.codex-plugin/plugin.json` 提供 Codex 可发现、可安装的入口
 - 提供一层 plugin skill，让 Codex 通过稳定接口操作 `MedAutoScience`
-- 保留 `plugins/mas/bin/medautosci-mcp` 作为显式 direct / proof lane；默认 Codex App 可见 MCP 能力由 OPL family registry / generated descriptor 统一投影，不由 MAS plugin manifest 单独暴露
+- 保留 `plugins/med-autoscience/bin/medautosci-mcp` 作为显式 direct / proof lane；默认 Codex App 可见 MCP 能力由 OPL family registry / generated descriptor 统一投影，不由 MAS plugin manifest 单独暴露
 
 ## 这个 plugin 不替代什么
 
@@ -77,10 +77,10 @@ Compatibility note:
 
 仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。MAS skill 默认随本仓库工作目录发现，不应安装到系统级 skill 目录。
 
-- 仓库内状态：plugin source 由 `plugins/mas/.codex-plugin/plugin.json` 和 `plugins/mas/skills/mas/SKILL.md` 维护；`plugins/mas/bin/medautosci-mcp` 只保留为 direct / proof lane launcher，不写入 Codex plugin manifest 的 `mcpServers`。
+- 仓库内状态：plugin source 由 `plugins/med-autoscience/.codex-plugin/plugin.json` 和 `plugins/med-autoscience/skills/med-autoscience/SKILL.md` 维护；`plugins/med-autoscience/bin/medautosci-mcp` 只保留为 direct / proof lane launcher，不写入 Codex plugin manifest 的 `mcpServers`。
 - 退役状态：repo-local `.agents/plugins/marketplace.json` 是 retired local-state surface；MAS 仓库不再跟踪、生成或写回它。
 - 全局状态：`scripts/install-codex-plugin.sh` 只安装 `~/.local/bin/medautosci` 和 `~/.local/bin/medautosci-mcp` clean-runner wrappers；不安装 `mas` shell wrapper，不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。`mas` 是 plugin / series agent id，不是本机 PATH readiness 证据；macOS 上 `mas` 常是 Mac App Store CLI。
-- Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。修改 `plugins/mas/**` 后，在 OPL 仓运行 `opl connect sync-skills --domain mas --json` 重新物化 `OPL_STATE_DIR/codex-plugin-marketplaces/mas-local`；Codex plugin cache 仍旧时需要刷新/重启 Codex App。
+- Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。修改 `plugins/med-autoscience/**` 后，通过 OPL-owned plugin sync surface 重新物化 med-autoscience marketplace；Codex plugin cache 仍旧时需要刷新/重启 Codex App。
 - 发布状态：Codex plugin 是薄入口，不是新的运行核心，也不是 MAS standalone GitHub Release / installer 通道。
 
 因此，仓库内置 plugin 和整机可用 plugin 不是一回事。
@@ -98,7 +98,7 @@ Compatibility note:
 
 3. 在本仓库工作目录中重启 Codex，让 repo-tracked skill 和 plugin source 重新加载
 
-然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录，也不要在 MAS 仓库恢复 `.agents/plugins/marketplace.json`；需要 Codex marketplace 注册时，通过 OPL-owned wrapper 处理。需要研究运行时，应通过仓库内 `plugins/mas/` 与当前 workspace 初始化面发现。
+然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录，也不要在 MAS 仓库恢复 `.agents/plugins/marketplace.json` 或 `plugins/mas`；需要 Codex marketplace 注册时，通过 OPL-owned wrapper 处理。需要研究运行时，应通过仓库内 `plugins/med-autoscience/` 与当前 workspace 初始化面发现。
 
 这里仍然只安装 `MedAutoScience` 的 plugin / skill / MCP 入口，不会顺带安装 `MedDeepScientist` runtime。
 

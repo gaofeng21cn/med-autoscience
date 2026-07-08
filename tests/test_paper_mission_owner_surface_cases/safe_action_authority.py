@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shared import *
+from tests.test_paper_mission_owner_surface_cases.shared import *
 
 
 def test_scan_domain_routes_isolates_retired_manual_finish_contract_from_other_studies(

@@ -24,6 +24,10 @@ def _reexport(module: ModuleType) -> None:
 for _module_name in _PART_MODULES:
     _reexport(import_module(f"{__package__}.{_module_name}"))
 
+from med_autoscience.controllers.medical_paper_operator_actions import (
+    dispatch_guarded_medical_paper_operator_action,
+)
+
 del import_module, ModuleType
 
 __all__ = tuple(name for name in globals() if not name.startswith("_"))

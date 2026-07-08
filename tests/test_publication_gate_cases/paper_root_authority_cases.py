@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shared import *
+from tests.test_publication_gate_cases.shared import *
 
 
 def test_build_gate_state_prefers_complete_bound_study_canonical_paper_when_branch_differs(

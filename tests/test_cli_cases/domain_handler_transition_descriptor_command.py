@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .owner_route_handoff_command.shared import _write_json
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import _write_json
+from tests.test_cli_cases.shared import *  # noqa: F403,F401
 from tests.transition_descriptor_assertions import (  # noqa: E402
     assert_family_transition_descriptor_shape,
     resolve_json_pointer,

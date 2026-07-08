@@ -194,7 +194,7 @@ def _tool_result_envelope(
         "audit_trail": {
             "surface_kind": "mas_tool_audit_trail",
             "source_refs": [
-                "src/med_autoscience/mcp_server.py",
+                "src/med_autoscience/mcp_server/__init__.py",
                 "src/med_autoscience/mcp_server/tool_registry.py",
                 "contracts/agent_tool_arsenal.json",
             ],

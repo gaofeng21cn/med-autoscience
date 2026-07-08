@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 
 
-PLUGIN_NAME = "mas"
-LEGACY_PLUGIN_NAMES = ("med-autoscience",)
+PLUGIN_NAME = "med-autoscience"
+LEGACY_PLUGIN_NAMES = ("mas",)
+LEGACY_TEST_SKILL_NAME = "mas"
 LEGACY_TEST_SKILL_MARKERS = (
     "description: mas test skill",
     "# mas",
@@ -87,7 +88,7 @@ def install_repo_local_codex_plugin(*, repo_root: Path, home: Path | None = None
         _remove_legacy_symlink(resolved_home / ".agents" / "skills" / legacy_name)
     _remove_legacy_symlink(_user_plugin_root(resolved_home))
     _remove_legacy_symlink(_user_skill_root(resolved_home))
-    _remove_legacy_test_skill_stub(resolved_home / ".codex" / "skills" / PLUGIN_NAME)
+    _remove_legacy_test_skill_stub(resolved_home / ".codex" / "skills" / LEGACY_TEST_SKILL_NAME)
     marketplace_path = _repo_marketplace_path(resolved_repo_root)
     repo_local_marketplace_removed = _remove_repo_local_marketplace(marketplace_path)
 

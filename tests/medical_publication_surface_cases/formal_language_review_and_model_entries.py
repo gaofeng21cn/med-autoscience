@@ -1,4 +1,4 @@
-from .shared import *
+from tests.medical_publication_surface_cases.shared import *
 
 manuscript_checks = importlib.import_module(
     "med_autoscience.controllers.medical_publication_surface.manuscript_checks"

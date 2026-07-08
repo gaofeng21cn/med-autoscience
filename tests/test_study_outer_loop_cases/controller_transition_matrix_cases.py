@@ -9,7 +9,7 @@ from tests.reviewer_os_fixture_helpers import (
     ready_claim_evidence_alignment_gate,
 )
 
-from . import shared as _shared
+from tests.test_study_outer_loop_cases import shared as _shared
 
 globals().update({
     name: value

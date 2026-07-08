@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .. import shared as _shared
+from tests.test_cli_cases import shared as _shared
 from tests.reviewer_os_fixture_helpers import (
     claim_evidence_alignment_digest,
     ready_claim_evidence_alignment_gate,

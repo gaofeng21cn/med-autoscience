@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 FORBIDDEN_AUTHORITY_RELATIVE_PATHS = (
     "publication_eval/latest.json",

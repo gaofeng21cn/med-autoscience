@@ -314,7 +314,7 @@ def _interfaces() -> dict[str, dict[str, Any]]:
             "points_to": [
                 "medautosci domain-handler export",
                 "medautosci domain-handler dispatch",
-                "plugins/mas/bin/medautosci-mcp",
+                "plugins/med-autoscience/bin/medautosci-mcp",
             ],
             "projection_role": "CLI, MCP and skill connector discovery",
         },

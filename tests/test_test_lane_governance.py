@@ -310,8 +310,8 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     projections = lane["entry_projection_surfaces"]
     assert projections["action_catalog"] == "med_autoscience.action_catalog family_action_catalog"
     assert projections["mcp"] == "med_autoscience.mcp_server build_tool_manifest action_catalog_projection"
-    assert projections["skill"] == "plugins/mas/skills/mas/SKILL.md"
-    assert projections["plugin_manifest"] == "plugins/mas/.codex-plugin/plugin.json"
+    assert projections["skill"] == "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
+    assert projections["plugin_manifest"] == "plugins/med-autoscience/.codex-plugin/plugin.json"
     assert (REPO_ROOT / projections["skill"]).exists()
     assert (REPO_ROOT / projections["plugin_manifest"]).exists()
     assert lane["projection_only_surfaces"] == [

@@ -5,7 +5,7 @@ from tests.standard_agent_purity_helpers import (
     assert_standard_agent_purity_handoff,
 )
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
 
 
 def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:

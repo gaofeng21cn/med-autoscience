@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.owner_route_handoff_command.shared import *  # noqa: F403,F401
 
 def test_domain_handler_dispatch_rejects_retired_owner_route_reconcile_task_kind(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")

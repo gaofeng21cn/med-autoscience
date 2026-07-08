@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .common import (
+from tests.scientific_capability_registry_cases.common import (
     SCHOLARSKILLS_MODULE_IDS,
     SCHOLARSKILLS_RECEIPT_REF_KEYS_BY_MODULE,
     _structured_payload,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 
 def test_study_owner_gate_decision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

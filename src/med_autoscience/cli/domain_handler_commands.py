@@ -5,12 +5,6 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
-from med_autoscience.cli.paper_mission_commands import (
-    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-    paper_mission_domain_handler_dispatch_receipt,
-)
-
-
 def handle_domain_handler_command(
     args: argparse.Namespace,
     *,
@@ -40,6 +34,11 @@ def handle_domain_handler_command(
     if args.domain_handler_command == "dispatch":
         task_path = Path(args.task)
         task = load_json_object_file(task_path)
+        from med_autoscience.cli.paper_mission_commands import (
+            PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            paper_mission_domain_handler_dispatch_receipt,
+        )
+
         if task.get("task_kind") == PAPER_MISSION_START_OR_RESUME_TASK_KIND:
             result = paper_mission_domain_handler_dispatch_receipt(
                 task=task,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from .shared import dump_json, make_delivery_workspace
+from tests.test_study_delivery_sync_cases.shared import dump_json, make_delivery_workspace
 
 
 def _open_bundle_route_context() -> dict[str, object]:

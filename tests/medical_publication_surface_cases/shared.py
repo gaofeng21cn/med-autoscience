@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from . import quest_factory as _quest_factory
-from . import shared_base as _shared_base
+from tests.medical_publication_surface_cases import quest_factory as _quest_factory
+from tests.medical_publication_surface_cases import shared_base as _shared_base
 
 
 def _module_reexport(module) -> None:

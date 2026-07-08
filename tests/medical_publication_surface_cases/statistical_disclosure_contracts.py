@@ -1,4 +1,4 @@
-from .shared import *
+from tests.medical_publication_surface_cases.shared import *
 
 
 def test_build_report_blocks_missing_statistical_reviewer_audit(tmp_path: Path) -> None:

@@ -4,7 +4,7 @@ import importlib
 
 import pytest
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 
 def test_launch_study_command_rejects_unsupported_entry_mode(monkeypatch, tmp_path, capsys) -> None:

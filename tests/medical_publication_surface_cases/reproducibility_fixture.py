@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .shared_base import dump_json
+from tests.medical_publication_surface_cases.shared_base import dump_json
 
 
 def write_reproducibility_supplement_fixture(paper_root: Path, *, missing_data_policy_id: str) -> None:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from med_autoscience.medical_prose_review import build_medical_prose_review
 
-from .shared_base import dump_json
+from tests.medical_publication_surface_cases.shared_base import dump_json
 
 
 def write_medical_manuscript_blueprint_fixture(paper_root: Path) -> None:

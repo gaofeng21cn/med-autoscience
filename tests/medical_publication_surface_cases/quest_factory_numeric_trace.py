@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .shared_base import dump_json
+from tests.medical_publication_surface_cases.shared_base import dump_json
 
 
 def write_numeric_trace_fixture(paper_root: Path) -> None:

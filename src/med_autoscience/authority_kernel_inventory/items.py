@@ -217,7 +217,7 @@ def _capability_item() -> AuthorityKernelItem:
         active_caller_refs=(
             "contracts/agent_tool_arsenal.json#/tool_cards/scientific_capability_registry",
             "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index",
-            "src/med_autoscience/mcp_server.py::agent_tool_arsenal",
+            "src/med_autoscience/mcp_server/__init__.py::agent_tool_arsenal",
         ),
         allowed_writes=(
             "artifacts/advisory/external_learning_sidecar/latest.json",

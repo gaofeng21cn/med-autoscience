@@ -16,6 +16,27 @@ AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 10
 NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 TEST_LANE_MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 
+DEFAULT_COLLECTED_NESTED_CASE_GLOBS = {
+    "display_surface_materialization_cases/basic_displays_and_renderers_cases/test_*.py",
+    "display_surface_materialization_cases/cohort_flow_layout_materialization_cases/test_*.py",
+    "domain_action_request_lifecycle_cases/ai_reviewer_request_currentness_cases/test_*.py",
+    "study_progress_cases/current_owner_handoff_projection_cases/test_*.py",
+    "test_cli_cases/owner_route_handoff_command/test_export_cases/test_*.py",
+    "test_cli_cases/paper_mission_command_cases/consume_submission_package_cases/test_*.py",
+    (
+        "test_cli_cases/paper_mission_command_cases/drive_and_route_handoff_cases/"
+        "direct_next_action_and_opl_stage_cases/test_*.py"
+    ),
+    "test_cli_cases/paper_mission_command_cases/materialized_readback_cases/test_*.py",
+    "test_cli_cases/paper_mission_command_cases/receipt_owner_consumption_cases/test_*.py",
+    "test_cli_cases/paper_mission_command_cases/typed_blocker_resolution_cases/test_*.py",
+    "test_cli_cases/paper_mission_commands_cases/stage_closure_terminalizer_cases/test_*.py",
+    "test_gate_clearing_batch_cases/direct_migration_transportability_registry_sync_cases/test_*.py",
+    "test_gate_clearing_batch_cases/publication_work_unit_routing_cases/test_*.py",
+    "test_quality_repair_batch_cases/dm002_writer_delta_preservation_cases/test_*.py",
+    "test_quality_repair_batch_cases/medical_prose_write_repair_cases/test_*.py",
+}
+
 AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_ai_first_operations.py",
@@ -31,7 +52,9 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     },
     "tests/test_cli_cases/ai_reviewer_publication_eval_command.py": {
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_identity_guard_cases.py",
+        "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_currentness_refs_cases.py",
         "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_currentness_guard_cases.py",
+        "tests/test_cli_cases/ai_reviewer_publication_eval_command_cases/test_payload_schema_and_trace_cases.py",
     },
     "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards.py": {
         "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_violation_guards_cases/test_authority_and_execution_wire_guards.py",
@@ -128,9 +151,15 @@ def _is_covered_by_nested_case_ignore(path: str) -> bool:
     )
 
 
+def _is_default_collected_nested_case_path(path: str) -> bool:
+    return any(fnmatch.fnmatch(path, pattern) for pattern in DEFAULT_COLLECTED_NESTED_CASE_GLOBS)
+
+
 def _is_marker_managed_nested_path(path: str) -> bool:
     relative_test_path = "tests/" + path
     return (
+        _is_default_collected_nested_case_path(path)
+        or
         relative_test_path in tests_conftest.META_FILES
         or relative_test_path in tests_conftest.DISPLAY_HEAVY_FILES
         or relative_test_path in tests_conftest.FAMILY_FILES
@@ -191,8 +220,8 @@ def _nested_structure_classification_failure_message(unclassified_paths: set[str
         f"{configured_globs}\n"
         "Aggregate-managed nested families must add a precise family glob to "
         "tests/conftest.py and declare aggregate/re-export coverage here. "
-        "Default-collected nested families must be marker-managed through tests/conftest.py "
-        "or module-level pytestmark."
+        "Default-collected nested families must be declared in "
+        "DEFAULT_COLLECTED_NESTED_CASE_GLOBS, tests/conftest.py, or module-level pytestmark."
     )
 
 

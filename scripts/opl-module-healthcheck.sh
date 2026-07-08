@@ -40,9 +40,7 @@ from pathlib import Path
 
 repo_root = Path.cwd()
 plugin_root = repo_root / "plugins" / "med-autoscience"
-legacy_plugin_root = repo_root / "plugins" / "mas"
 skill_root = plugin_root / "skills" / "med-autoscience"
-legacy_skill_root = legacy_plugin_root / "skills" / "mas"
 required_paths = [
     plugin_root / ".codex-plugin" / "plugin.json",
     plugin_root / "bin" / "medautosci-mcp",
@@ -54,14 +52,10 @@ if missing:
     raise SystemExit(f"Missing MedAutoScience OPL plugin files: {missing}")
 if not os.access(required_paths[1], os.X_OK):
     raise SystemExit("MedAutoScience plugin-local MCP launcher must be executable.")
-if not legacy_plugin_root.is_symlink():
-    raise SystemExit("Legacy plugins/mas compatibility path must remain a symlink to the canonical plugin root.")
-if legacy_plugin_root.resolve() != plugin_root.resolve():
-    raise SystemExit("Legacy plugins/mas compatibility path must resolve to plugins/med-autoscience.")
-if not legacy_skill_root.is_dir():
-    raise SystemExit("Legacy skills/mas compatibility path must remain available for lookup compatibility.")
-if legacy_skill_root.resolve() != skill_root.resolve():
-    raise SystemExit("Legacy skills/mas compatibility path must resolve to skills/med-autoscience.")
+if (repo_root / "plugins" / "mas").exists():
+    raise SystemExit("Legacy plugins/mas alias must stay retired; use plugins/med-autoscience.")
+if (plugin_root / "skills" / "mas").exists():
+    raise SystemExit("Legacy skills/mas alias must stay retired; use skills/med-autoscience.")
 
 manifest = json.loads(required_paths[0].read_text(encoding="utf-8"))
 if manifest.get("name") != "med-autoscience":

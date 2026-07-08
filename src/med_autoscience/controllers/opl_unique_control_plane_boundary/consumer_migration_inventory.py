@@ -562,7 +562,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "src/med_autoscience/controllers/product_entry.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
-            "plugins/mas/skills/mas/SKILL.md",
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
         ],
         "domain_ref_consumers": ["MAS CLI", "MCP tool handlers", "skill direct domain entry", "product-entry manifest"],
         "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",

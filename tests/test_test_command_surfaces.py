@@ -756,11 +756,11 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert 'retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}' in script
     assert "uv run --directory" not in script
     assert 'plugin_root = repo_root / "plugins" / "med-autoscience"' in script
-    assert 'legacy_plugin_root = repo_root / "plugins" / "mas"' in script
     assert 'skill_root = plugin_root / "skills" / "med-autoscience"' in script
-    assert 'legacy_skill_root = legacy_plugin_root / "skills" / "mas"' in script
-    assert 'legacy_plugin_root.resolve() != plugin_root.resolve()' in script
-    assert 'legacy_skill_root.resolve() != skill_root.resolve()' in script
+    assert 'Legacy plugins/mas alias must stay retired' in script
+    assert 'Legacy skills/mas alias must stay retired' in script
+    assert 'legacy_plugin_root = repo_root / "plugins" / "mas"' not in script
+    assert 'legacy_skill_root = legacy_plugin_root / "skills" / "mas"' not in script
 
 
 def test_parallel_full_lane_script_covers_all_marker_groups() -> None:

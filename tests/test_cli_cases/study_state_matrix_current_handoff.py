@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from .shared import write_profile
+from tests.test_cli_cases.shared import write_profile
 
 
 def test_study_state_matrix_projects_current_handoff_over_stale_transition_table_case(

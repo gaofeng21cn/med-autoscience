@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from . import shared as _shared
+from tests.test_gate_clearing_batch_cases import shared as _shared
 
 globals().update({
     name: value

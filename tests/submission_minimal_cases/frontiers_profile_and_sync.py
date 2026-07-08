@@ -1,4 +1,4 @@
-from .shared import *
+from tests.submission_minimal_cases.shared import *
 
 
 def test_create_submission_minimal_package_skips_missing_planned_table_entries(tmp_path: Path) -> None:

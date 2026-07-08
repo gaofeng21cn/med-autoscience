@@ -154,9 +154,9 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="skill",
             default_for_new_surfaces=True,
             repo_paths=[
-                "src/med_autoscience/cli.py",
+                "src/med_autoscience/cli/__init__.py",
                 "src/med_autoscience/cli/parser.py",
-                "plugins/mas/bin/medautosci-mcp",
+                "plugins/med-autoscience/bin/medautosci-mcp",
             ],
             mapping_explanation=(
                 "New skill-callable surfaces should land in the standard skill slot while the "

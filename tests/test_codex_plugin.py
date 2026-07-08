@@ -38,9 +38,7 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert 'stroke-width="44"' in icon_source
     assert 'stroke="#8AD6FF"' in icon_source
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
-    assert LEGACY_PLUGIN_ROOT.is_symlink()
-    assert LEGACY_PLUGIN_ROOT.resolve() == PLUGIN_ROOT.resolve()
-    assert (LEGACY_PLUGIN_ROOT / "skills" / "mas" / "SKILL.md").resolve() == PLUGIN_SKILL_PATH.resolve()
+    assert not LEGACY_PLUGIN_ROOT.exists()
 
 
 def test_mas_plugin_skill_tracks_current_domain_handler_and_doc_boundaries() -> None:

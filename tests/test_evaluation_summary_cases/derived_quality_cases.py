@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import shared as _shared
+from tests.test_evaluation_summary_cases import shared as _shared
 
 globals().update({
     name: value

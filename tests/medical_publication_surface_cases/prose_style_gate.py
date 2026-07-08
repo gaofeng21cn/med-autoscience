@@ -1,4 +1,4 @@
-from .shared import *
+from tests.medical_publication_surface_cases.shared import *
 
 from med_autoscience.controllers.medical_publication_surface import controller, reporting, shared_base
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy

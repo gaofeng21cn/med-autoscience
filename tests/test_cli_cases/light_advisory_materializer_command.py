@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .shared import *  # noqa: F403,F401
+from tests.test_cli_cases.shared import *  # noqa: F403,F401
 
 
 def test_light_advisory_materializer_cli_applies_refs_from_profile(

@@ -146,7 +146,7 @@ def test_plugin_local_mcp_launcher_execs_clean_runner(tmp_path: Path) -> None:
     temp_repo = tmp_path / "repo"
     temp_launcher = temp_repo / "plugins" / "med-autoscience" / "bin" / "medautosci-mcp"
     temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
-    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server.py"
+    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server" / "__init__.py"
     temp_launcher.parent.mkdir(parents=True)
     temp_runner.parent.mkdir(parents=True)
     temp_mcp_server.parent.mkdir(parents=True)
@@ -201,7 +201,7 @@ def test_plugin_cache_mcp_launcher_resolves_repo_from_opl_marketplace(tmp_path: 
         / "med-autoscience"
     )
     temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
-    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server.py"
+    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server" / "__init__.py"
     cache_launcher.parent.mkdir(parents=True)
     marketplace_plugin.parent.mkdir(parents=True)
     temp_runner.parent.mkdir(parents=True)
@@ -242,7 +242,7 @@ def test_plugin_cache_mcp_launcher_resolves_repo_from_opl_marketplace(tmp_path: 
     ]
 
 
-def test_plugin_cache_mcp_launcher_keeps_legacy_marketplace_lookup_compatibility(tmp_path: Path) -> None:
+def test_plugin_cache_mcp_launcher_retires_legacy_marketplace_lookup(tmp_path: Path) -> None:
     temp_repo = tmp_path / "repo"
     cache_launcher = tmp_path / "codex-cache" / "mas-local" / "mas" / "0.1.0a4" / "bin" / "medautosci-mcp"
     marketplace_plugin = (
@@ -258,7 +258,7 @@ def test_plugin_cache_mcp_launcher_keeps_legacy_marketplace_lookup_compatibility
         / "mas"
     )
     temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
-    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server.py"
+    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server" / "__init__.py"
     cache_launcher.parent.mkdir(parents=True)
     marketplace_plugin.parent.mkdir(parents=True)
     temp_runner.parent.mkdir(parents=True)
@@ -292,8 +292,6 @@ def test_plugin_cache_mcp_launcher_keeps_legacy_marketplace_lookup_compatibility
         text=True,
     )
 
-    assert result.returncode == 0, result.stderr
-    assert capture_path.read_text(encoding="utf-8").splitlines() == [
-        "-m",
-        "med_autoscience.mcp_server",
-    ]
+    assert result.returncode == 127
+    assert not capture_path.exists()
+    assert "med-autoscience-local marketplace" in result.stderr
