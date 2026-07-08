@@ -47,7 +47,12 @@ from .projection_existing_refresh import (
     refresh_existing_projection_task_intake_override as _refresh_existing_projection_task_intake_override,
 )
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
-from .projection_helpers import *
+from .projection_helpers import (
+    _current_gate_clearing_eval_ids,
+    _refresh_existing_projection_batch_followthroughs,
+    _refresh_existing_projection_user_visible_status,
+    _stage_artifact_index_projection,
+)
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 

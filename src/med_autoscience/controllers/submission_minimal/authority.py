@@ -1,6 +1,27 @@
-from .shared_base import *
-from .source_contract import build_submission_minimal_source_contract
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.publication_profiles import (
+    GENERAL_MEDICAL_JOURNAL_PROFILE,
+    normalize_publication_profile,
+)
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
+
+from .shared_base import (
+    _first_nonempty_string,
+    _load_display_pack_lock_payload,
+    load_json,
+    resolve_bundle_input_path,
+    resolve_compile_report_path,
+    resolve_compiled_markdown_path,
+    resolve_output_root,
+    resolve_relpath,
+    resolve_submission_compiled_source_excluded_roots,
+    workspace_root_from_paper_root,
+)
+from .source_contract import build_submission_minimal_source_contract
 
 def _resolve_authority_contract_markdown_path(
     *,

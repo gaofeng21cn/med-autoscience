@@ -4,7 +4,14 @@ from typing import Any, Mapping
 
 from med_autoscience.evaluation_summary import build_same_line_route_truth
 
-from .shared import *  # noqa: F403
+from .shared import (
+    _ATTENTION_PRIORITIES,
+    _gate_clearing_followthrough_preview,
+    _gate_clearing_followthrough_summary,
+    _non_empty_text,
+    _quality_repair_followthrough_preview,
+    _quality_review_followthrough_preview,
+)
 
 
 def _attention_item(

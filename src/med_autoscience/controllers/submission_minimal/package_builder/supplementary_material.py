@@ -1,9 +1,24 @@
 from collections.abc import Mapping
 from pathlib import Path
+import re
 import textwrap
 from typing import Any
 
-from ..shared_base import *
+from ..shared_base import (
+    _attach_pack_provenance,
+    _resolve_pack_id,
+    build_figure_basename,
+    copy_with_renamed_targets,
+    filter_existing_source_paths,
+    find_missing_source_paths,
+    is_planned_catalog_entry,
+    load_json,
+    relpath_from_workspace,
+    remap_staging_path_to_target,
+    resolve_figure_source_paths,
+    resolve_relpath,
+    write_text,
+)
 
 
 def supplementary_material_payload(

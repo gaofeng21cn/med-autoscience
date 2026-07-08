@@ -1,4 +1,14 @@
-from .shared import *
+import json
+from pathlib import Path
+import re
+from typing import Any
+
+from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
+
+from .shared import (
+    load_json,
+    medical_surface_policy,
+)
 
 
 def _figure_semantics_entries(payload: object) -> list[dict[str, Any]]:

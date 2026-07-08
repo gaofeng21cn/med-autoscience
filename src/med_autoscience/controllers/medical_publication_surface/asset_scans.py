@@ -1,4 +1,15 @@
-from .shared import *
+from pathlib import Path
+import re
+from typing import Any
+
+from .shared import (
+    SurfaceState,
+    excerpt_around,
+    load_json,
+    load_yaml_mapping,
+    medical_surface_policy,
+    unique_hits,
+)
 
 def scan_text_file(path: Path) -> list[dict[str, Any]]:
     if not path.exists():

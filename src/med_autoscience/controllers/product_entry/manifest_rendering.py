@@ -7,7 +7,22 @@ from med_autoscience.controllers.delivery_visibility_projection import render_de
 
 from .program_surfaces import _render_phase5_platform_target_markdown_lines
 from .paper_orchestra_operator import render_paper_orchestra_operator_projection_lines
-from .shared import *  # noqa: F403
+from .shared import (
+    _bool_label,
+    _check_status_label,
+    _gate_clearing_followthrough_preview,
+    _non_empty_text,
+    _operator_verdict_label,
+    _quality_repair_followthrough_preview,
+    _quality_review_followthrough_preview,
+    _quality_review_loop_preview,
+    _render_capability_owner_boundary_markdown_lines,
+    _render_single_project_boundary_markdown_lines,
+    _same_line_route_truth_preview,
+    _start_mode_label,
+    _surface_kind_label,
+    _user_interaction_mode_label,
+)
 from .workspace_attention import (
     _autonomy_soak_focus,
     _gate_clearing_followthrough_focus,

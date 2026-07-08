@@ -1,5 +1,19 @@
-from .shared import *
-from .asset_scans import *
+from pathlib import Path
+import re
+from typing import Any
+
+from .shared import (
+    MarkdownHeadingBlock,
+    medical_surface_policy,
+)
+from .asset_scans import (
+    MARKDOWN_HEADING_RE,
+    QUESTION_MARK_CHARS,
+    QUESTION_SENTENCE_CONTEXT_LIMIT,
+    SENTENCE_TERMINATOR_CHARS,
+    URL_RE,
+    scan_string_value_for_patterns,
+)
 
 BIBTEX_ENTRY_KEY_RE = re.compile(r"@\w+\s*\{\s*([^,\s]+)", flags=re.MULTILINE)
 MANUSCRIPT_CITATION_KEY_RE = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z0-9_:.+\-]+)")

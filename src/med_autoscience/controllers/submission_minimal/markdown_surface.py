@@ -1,6 +1,16 @@
 from difflib import SequenceMatcher
+import os
+from pathlib import Path
+import re
+from typing import Any
 
-from .shared_base import *
+from .shared_base import (
+    build_figure_basename,
+    load_json,
+    resolve_figure_source_paths,
+    resolve_relpath,
+    split_front_matter,
+)
 
 def extract_block_between_markers(
     text: str,
@@ -893,6 +903,3 @@ def count_main_text_figures_in_catalog(figure_catalog: dict[str, Any]) -> int:
         if str(item.get("paper_role") or "").strip().lower() == "main_text":
             count += 1
     return count
-
-
-from .markdown_surface_qc import *  # noqa: F403

@@ -1,11 +1,109 @@
-from ..shared_base import *
-from ..authority import *
+import argparse
+import inspect
+import shutil
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+from ..shared_base import (
+    GENERAL_MEDICAL_JOURNAL_PROFILE,
+    _attach_pack_provenance,
+    _build_display_pack_summary_by_id,
+    _load_display_pack_lock_payload,
+    _resolve_pack_id,
+    build_figure_basename,
+    build_front_matter_placeholders,
+    build_submission_minimal_readme,
+    build_table_basename,
+    copy_with_renamed_targets,
+    create_staging_output_root,
+    delivery_label_root_from_paper_root,
+    dump_json,
+    find_missing_source_paths,
+    is_frontiers_family_harvard_profile,
+    is_planned_catalog_entry,
+    load_json,
+    materialize_and_validate_submission_references,
+    materialize_archived_reference_only_submission_surface_manifests,
+    prune_legacy_paper_surface_exports,
+    relpath_from_workspace,
+    remap_staging_path_to_target,
+    remap_staging_relpath_to_target,
+    replace_directory_atomically,
+    resolve_bundle_input_path,
+    resolve_compile_report_path,
+    resolve_compiled_markdown_path,
+    resolve_compiled_pdf_path,
+    resolve_output_root,
+    resolve_publication_profile_config,
+    resolve_relpath,
+    resolve_submission_compiled_source_excluded_roots,
+    resolve_table_source_paths,
+    split_front_matter,
+    utc_now,
+    workspace_root_from_paper_root,
+    write_text,
+)
+from ..authority import (
+    _authority_blocking_artifact_refs,
+    _authority_gate_fingerprint,
+    _authority_handshake_fields,
+    _resolve_authority_contract_markdown_path,
+    describe_submission_minimal_authority,
+)
 from ..authority_note import (
     attach_submission_source_authority_note_qc,
     write_submission_source_authority_note,
 )
-from ..markdown_surface import *
+from ..markdown_surface import (
+    MANUSCRIPT_SHAPED_AUXILIARY_TOP_LEVEL_HEADINGS,
+    MARKDOWN_IMAGE_LINE_PATTERN,
+    _build_catalog_figure_heading,
+    _ensure_submission_image_width,
+    _first_image_alt_text,
+    _iter_figure_semantics_items,
+    _natural_figure_sort_key,
+    _select_submission_markdown_figure_source,
+    _sorted_figure_catalog_entries,
+    _submission_markdown_figure_relpath,
+    _submission_markdown_image_line,
+    build_catalog_backed_figure_blocks,
+    build_catalog_backed_main_figures,
+    build_catalog_backed_submission_figure_image_map,
+    build_figure_legend_blocks,
+    build_frontiers_required_sections,
+    build_submission_figure_blocks,
+    build_table_blocks,
+    canonicalize_manuscript_major_heading,
+    collect_duplicate_manuscript_major_sections,
+    collect_internal_instruction_hits,
+    contains_internal_instruction_text,
+    count_main_text_figures_in_catalog,
+    extract_block_between_markers,
+    extract_image_lines,
+    extract_main_figure_blocks,
+    extract_markdown_block,
+    extract_optional_block_between_markers,
+    extract_optional_markdown_block,
+    figure_id_aliases,
+    first_nonempty_block,
+    first_nonempty_named_block,
+    is_markdown_image_line,
+    load_figure_semantics_map,
+    merge_legend_with_figure_semantics,
+    normalize_materialized_figure_heading,
+    normalize_submission_figure_alt_text,
+    normalize_submission_figure_heading,
+    parse_figure_blocks,
+    parse_figure_id_from_heading,
+    parse_manuscript_shaped_draft,
+    rewrite_image_paths,
+    rewrite_submission_surface_image_lines,
+    sort_main_figure_blocks,
+    strip_image_lines,
+)
 from ..post_materialization_sync import replay_post_submission_minimal_sync
+from ..markdown_surface_qc import build_submission_manuscript_surface_qc
 from .supplementary_material import (
     build_combined_review_markdown,
     build_combined_supplementary_markdown,
@@ -18,15 +116,23 @@ from .supplementary_material import (
     write_combined_review_pdf,
     write_pdf_bundle,
 )
-from ..profile_builders import *
+from ..profile_builders import (
+    _extract_canonical_manuscript_section,
+    _extract_named_markdown_section,
+    _matches_named_markdown_heading,
+    _remove_canonical_manuscript_section,
+    build_frontiers_manuscript_markdown,
+    build_frontiers_supplementary_markdown,
+    build_general_medical_inline_supplementary_section_markdown,
+    build_general_medical_submission_markdown,
+    should_build_general_medical_submission_markdown,
+)
 from ..source_contract import build_submission_minimal_source_contract
 from ..source_hydration import (
     _filter_nested_figure_catalog_to_canonical_main_figures,
     hydrate_submission_package_sources_from_current_body,
 )
-from ..export_renderers import default_pdf_rendering_profile
-from collections.abc import Mapping
-import inspect
+from ..export_renderers import default_pdf_rendering_profile, export_docx, export_pdf
 from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.controllers.submission_package_layout import (
     build_analysis_results_from_source_contract,

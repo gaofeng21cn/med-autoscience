@@ -1,4 +1,4 @@
-from .shared_base import *
+import re
 
 
 def parse_heading_blocks(text: str, heading_prefix: str) -> list[tuple[str, str]]:
