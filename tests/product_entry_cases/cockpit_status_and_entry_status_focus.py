@@ -19,7 +19,7 @@ from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness i
     test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progress_lacks_it,
     test_workspace_cockpit_does_not_emit_action_cards_for_ready_medical_paper_readiness,
 )
-from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_ops_health import (
+from .cockpit_status_and_entry_status_focus_cases.test_workspace_medical_paper_ops_health import (
     test_workspace_cockpit_projects_v5_ops_health,
     test_product_entry_status_projects_workspace_v5_ops_health,
 )
