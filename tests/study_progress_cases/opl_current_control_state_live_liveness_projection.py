@@ -147,7 +147,7 @@ def test_opl_current_control_state_handoff_reader_reuses_unchanged_large_payload
 
 
 def test_read_study_progress_passes_live_provider_probe_policy(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status_projection = importlib.import_module(
         "med_autoscience.controllers.domain_status_projection"
     )

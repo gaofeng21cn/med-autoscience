@@ -316,7 +316,7 @@ def test_read_only_study_progress_does_not_materialize_status_artifacts(
     tmp_path: Path,
 ) -> None:
     status_module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
     study_root = write_study(

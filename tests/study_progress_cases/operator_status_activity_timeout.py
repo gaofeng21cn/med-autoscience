@@ -16,7 +16,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -156,7 +156,7 @@ def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_pr
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -261,7 +261,7 @@ def test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_tick
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

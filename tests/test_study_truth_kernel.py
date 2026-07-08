@@ -700,7 +700,7 @@ def test_explicit_resume_shadow_snapshot_dominates_older_methodology_rebuild_int
 
 
 def test_progress_projection_carries_truth_epoch_from_status_payload(tmp_path: Path) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     module = _kernel()
     profile = make_profile(tmp_path)
     study_root = profile.workspace_root / "studies" / "004-invasive"

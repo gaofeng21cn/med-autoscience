@@ -98,68 +98,8 @@ from .refs_and_validation import (
     _task_intake_scope_texts,
     _task_intake_contains_hint,
     _format_revision_scope_targets,
+    _task_intake_scoped_quality_agenda,
 )
-
-
-
-def _task_intake_scoped_quality_agenda(summary_payload: dict[str, Any]) -> dict[str, str] | None:
-    task_intake = (
-        dict(summary_payload.get("task_intake") or {})
-        if isinstance(summary_payload.get("task_intake"), dict)
-        else None
-    )
-    if not isinstance(task_intake, dict):
-        return None
-    quality_closure_truth = (
-        dict(summary_payload.get("quality_closure_truth") or {})
-        if isinstance(summary_payload.get("quality_closure_truth"), dict)
-        else {}
-    )
-    quality_execution_lane = (
-        dict(summary_payload.get("quality_execution_lane") or {})
-        if isinstance(summary_payload.get("quality_execution_lane"), dict)
-        else {}
-    )
-    if _optional_text(quality_closure_truth.get("state")) != "bundle_only_remaining" and _optional_text(
-        quality_execution_lane.get("lane_id")
-    ) != "submission_hardening":
-        return None
-    texts = _task_intake_scope_texts(task_intake)
-    if not texts:
-        return None
-    if not _task_intake_contains_hint(texts, _TASK_INTAKE_REPORTING_SCOPE_HINTS):
-        return None
-    if not (
-        _task_intake_contains_hint(texts, _TASK_INTAKE_NO_CLAIM_REOPEN_HINTS)
-        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_EVIDENCE_REOPEN_HINTS)
-        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS)
-    ):
-        return None
-    revision_targets = ["reporting contract"]
-    if _task_intake_contains_hint(texts, _TASK_INTAKE_DISPLAY_REGISTRY_HINTS):
-        revision_targets.append("display registry")
-    if _task_intake_contains_hint(texts, _TASK_INTAKE_SHELL_INPUT_HINTS):
-        revision_targets.append("必需 shell/input surfaces")
-    top_priority_issue = "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。"
-    suggested_revision = (
-        f"对齐 {_format_revision_scope_targets(revision_targets)}，"
-        "让 current package 与已接受展示包保持一致。"
-    )
-    next_review_focus = (
-        "复核 medical_reporting_audit、domain_diagnostic_report 与 publication gate 状态是否已清掉 stale reporting blockers。"
-        if _task_intake_contains_hint(texts, _TASK_INTAKE_STATUS_RECHECK_HINTS)
-        else "复核 reporting/display contract mismatch 是否已经清零，且 current package 与 submission surfaces 保持事实一致。"
-    )
-    return {
-        "top_priority_issue": top_priority_issue,
-        "suggested_revision": suggested_revision,
-        "next_review_focus": next_review_focus,
-        "agenda_summary": _agenda_summary(
-            top_priority_issue=top_priority_issue,
-            suggested_revision=suggested_revision,
-            next_review_focus=next_review_focus,
-        ),
-    }
 
 
 def _quality_revision_plan_id(summary_payload: dict[str, Any]) -> str:

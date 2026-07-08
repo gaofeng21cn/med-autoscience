@@ -16,7 +16,7 @@ def test_study_progress_does_not_keep_ai_reviewer_pending_after_ai_reviewer_eval
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(

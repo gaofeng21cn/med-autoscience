@@ -28,7 +28,7 @@ def _patch_canonical_current_work_unit(
     owner: str,
     source: str = "canonical_current_work_unit",
 ) -> None:
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     def _read_study_progress(**_: object) -> dict[str, object]:
         return {

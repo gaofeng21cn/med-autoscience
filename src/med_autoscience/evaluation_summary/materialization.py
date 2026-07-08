@@ -98,9 +98,9 @@ from .refs_and_validation import (
     _task_intake_scope_texts,
     _task_intake_contains_hint,
     _format_revision_scope_targets,
+    _task_intake_scoped_quality_agenda,
 )
 from .quality_revision_plan import (
-    _task_intake_scoped_quality_agenda,
     _quality_revision_plan_id,
     _quality_review_loop_id,
     _top_quality_revision_dimension,

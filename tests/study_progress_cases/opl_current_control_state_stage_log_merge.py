@@ -10,7 +10,7 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
@@ -140,7 +140,7 @@ def test_study_progress_live_opl_attempt_supersedes_stale_handoff_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -265,7 +265,7 @@ def test_study_progress_projects_live_opl_attempt_without_stage_progress_log(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -596,7 +596,7 @@ def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_runn
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(

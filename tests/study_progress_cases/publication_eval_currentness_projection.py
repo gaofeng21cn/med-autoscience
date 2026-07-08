@@ -18,7 +18,7 @@ def test_study_progress_drops_stale_submission_authority_blocker_after_controlle
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -126,7 +126,7 @@ def test_study_progress_drops_stale_submission_authority_blocker_after_controlle
 
 
 def test_study_progress_filters_cached_projection_after_controller_closure(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
     source_eval_id = "publication-eval::002-risk::quest-002::2026-05-13T04:00:00+00:00"
@@ -210,7 +210,7 @@ def test_study_progress_filters_cached_projection_after_controller_closure(tmp_p
 
 
 def test_study_progress_refreshes_cached_readiness_blocker_to_publication_eval_repair_action(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-risk", quest_id="quest-003")
     typed_blocker_ref = (
@@ -355,7 +355,7 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -505,25 +505,25 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
 
     assert refreshed_publication_eval["emitted_at"] == "2026-04-12T09:40:00+00:00"
     assert refreshed_publication_eval["gaps"][0]["summary"] == "medical_publication_surface_blocked"
-    assert refreshed_publication_eval["recommended_actions"][0]["action_type"] == "return_to_controller"
-    assert refreshed_publication_eval["recommended_actions"][0]["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert refreshed_publication_eval["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert refreshed_publication_eval["recommended_actions"][0]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。" not in result["current_blockers"]
     assert "论文叙事或方法/结果书写面仍有硬阻塞。" in result["current_blockers"]
-    assert result["operator_status_card"]["handling_state"] == "publication_gate_specificity_required"
-    assert "普通分析" in result["operator_status_card"]["user_visible_verdict"]
+    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
+    assert "论文可发表性硬阻塞" in result["operator_status_card"]["user_visible_verdict"]
     assert result["module_surfaces"]["eval_hygiene"]["overall_verdict"] == "blocked"
     assert result["module_surfaces"]["eval_hygiene"]["status_summary"] == "稿件书写面还有医学论文表达硬阻塞，需要继续修文。"
-    assert result["intervention_lane"]["repair_mode"] == "gate_needs_specificity"
-    assert result["intervention_lane"]["route_target"] == "controller"
-    assert result["intervention_lane"]["work_unit_id"] == "gate_needs_specificity"
-    assert "没有具体对象前不再启动普通分析或写作 worker" in result["next_system_action"]
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["intervention_lane"]["repair_mode"] == "same_line_route_back"
+    assert result["intervention_lane"]["route_target"] == "write"
+    assert "论文写作与结果收紧" in result["next_system_action"]
 
 
 def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_eval_is_newer(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

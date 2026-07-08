@@ -314,7 +314,7 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
 
 
 def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     markdown = render_study_progress_markdown(_progress_payload())
 

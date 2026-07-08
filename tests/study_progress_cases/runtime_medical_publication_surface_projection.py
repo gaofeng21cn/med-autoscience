@@ -16,7 +16,7 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(

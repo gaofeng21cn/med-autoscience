@@ -36,7 +36,7 @@ def test_materialize_domain_action_requests_routes_publication_eval_recommended_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

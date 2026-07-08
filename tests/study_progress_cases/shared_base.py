@@ -59,6 +59,7 @@ def test_study_progress_import_does_not_require_submission_pdf_dependency(monkey
     for module_name in list(sys.modules):
         if module_name in {
             "med_autoscience.controllers.study_progress",
+            "med_autoscience.controllers.study_progress.projection",
             "med_autoscience.controllers.gate_clearing_batch",
             "med_autoscience.controllers.publication_gate",
             "med_autoscience.controllers.submission_minimal",
@@ -75,7 +76,7 @@ def test_study_progress_import_does_not_require_submission_pdf_dependency(monkey
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     assert callable(module.read_study_progress)
 
@@ -83,7 +84,7 @@ def test_study_progress_import_does_not_require_submission_pdf_dependency(monkey
 def test_publishability_gate_report_path_prefers_fresher_latest_gate_over_runtime_readback_pointer(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     gate_root = quest_root / "artifacts" / "reports" / "publishability_gate"
     stale_gate_path = gate_root / "2026-04-24T024953Z.json"

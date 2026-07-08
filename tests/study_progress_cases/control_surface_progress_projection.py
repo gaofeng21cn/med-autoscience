@@ -16,7 +16,7 @@ def test_study_progress_freshness_does_not_treat_control_surface_as_artifact_del
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -118,7 +118,7 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -264,7 +264,7 @@ def test_study_progress_invalidates_live_run_after_no_selected_dispatch_closeout
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -399,7 +399,7 @@ def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

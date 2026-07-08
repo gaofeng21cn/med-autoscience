@@ -16,7 +16,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")

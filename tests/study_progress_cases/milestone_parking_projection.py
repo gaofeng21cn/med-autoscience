@@ -16,7 +16,7 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

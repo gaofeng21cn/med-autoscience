@@ -96,7 +96,7 @@ def test_compact_mcp_progress_projection_preserves_v5_ops_health() -> None:
 
 def test_mcp_and_study_progress_markdown_render_v5_ops_health() -> None:
     mcp_module = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     mcp_markdown = mcp_module.render_mcp_study_progress_markdown(_progress_payload())
     progress_markdown = render_study_progress_markdown(_progress_payload())

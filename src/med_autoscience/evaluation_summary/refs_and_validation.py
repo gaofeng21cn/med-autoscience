@@ -656,6 +656,138 @@ def _reviewer_agenda_from_quality_assessment(publication_eval: dict[str, Any]) -
     }
 
 
+def _task_intake_scoped_quality_agenda(summary_payload: dict[str, Any]) -> dict[str, str] | None:
+    task_intake = (
+        dict(summary_payload.get("task_intake") or {})
+        if isinstance(summary_payload.get("task_intake"), dict)
+        else None
+    )
+    if not isinstance(task_intake, dict):
+        return None
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    quality_execution_lane = (
+        dict(summary_payload.get("quality_execution_lane") or {})
+        if isinstance(summary_payload.get("quality_execution_lane"), dict)
+        else {}
+    )
+    if _optional_text(quality_closure_truth.get("state")) != "bundle_only_remaining" and _optional_text(
+        quality_execution_lane.get("lane_id")
+    ) != "submission_hardening":
+        return None
+    texts = _task_intake_scope_texts(task_intake)
+    if not texts:
+        return None
+    if not _task_intake_contains_hint(texts, _TASK_INTAKE_REPORTING_SCOPE_HINTS):
+        return None
+    if not (
+        _task_intake_contains_hint(texts, _TASK_INTAKE_NO_CLAIM_REOPEN_HINTS)
+        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_EVIDENCE_REOPEN_HINTS)
+        or _task_intake_contains_hint(texts, _TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS)
+    ):
+        return None
+    revision_targets = ["reporting contract"]
+    if _task_intake_contains_hint(texts, _TASK_INTAKE_DISPLAY_REGISTRY_HINTS):
+        revision_targets.append("display registry")
+    if _task_intake_contains_hint(texts, _TASK_INTAKE_SHELL_INPUT_HINTS):
+        revision_targets.append("必需 shell/input surfaces")
+    top_priority_issue = "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。"
+    suggested_revision = (
+        f"对齐 {_format_revision_scope_targets(revision_targets)}，"
+        "让 current package 与已接受展示包保持一致。"
+    )
+    next_review_focus = (
+        "复核 medical_reporting_audit、domain_diagnostic_report 与 publication gate 状态是否已清掉 stale reporting blockers。"
+        if _task_intake_contains_hint(texts, _TASK_INTAKE_STATUS_RECHECK_HINTS)
+        else "复核 reporting/display contract mismatch 是否已经清零，且 current package 与 submission surfaces 保持事实一致。"
+    )
+    return {
+        "top_priority_issue": top_priority_issue,
+        "suggested_revision": suggested_revision,
+        "next_review_focus": next_review_focus,
+        "agenda_summary": _agenda_summary(
+            top_priority_issue=top_priority_issue,
+            suggested_revision=suggested_revision,
+            next_review_focus=next_review_focus,
+        ),
+    }
+
+
+def _quality_execution_lane_from_summary_payload(summary_payload: dict[str, Any]) -> dict[str, Any]:
+    quality_closure_truth = (
+        dict(summary_payload.get("quality_closure_truth") or {})
+        if isinstance(summary_payload.get("quality_closure_truth"), dict)
+        else {}
+    )
+    route_repair_plan = (
+        dict(summary_payload.get("route_repair_plan") or {})
+        if isinstance(summary_payload.get("route_repair_plan"), dict)
+        else {}
+    )
+    current_required_action = _optional_text(quality_closure_truth.get("current_required_action")) or "return_to_publishability_gate"
+    closure_state = _optional_text(quality_closure_truth.get("state")) or "quality_repair_required"
+    route_target = _optional_text(route_repair_plan.get("route_target")) or _optional_text(quality_closure_truth.get("route_target"))
+    route_key_question = _optional_text(route_repair_plan.get("route_key_question"))
+    route_rationale = (
+        _optional_text(route_repair_plan.get("route_rationale"))
+        or _optional_text(quality_closure_truth.get("summary"))
+        or _optional_text(summary_payload.get("verdict_summary"))
+        or "当前应先收口现有论文质量缺口。"
+    )
+    action_type = _optional_text(route_repair_plan.get("action_type"))
+
+    if closure_state == "review_required":
+        lane_id = "general_quality_repair"
+    elif action_type == "bounded_analysis" or route_target == "analysis-campaign":
+        lane_id = "claim_evidence"
+    elif closure_state == "bundle_only_remaining" or current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+        lane_id = "submission_hardening"
+    elif current_required_action == "continue_write_stage" or route_target == "write":
+        lane_id = "write_ready"
+    else:
+        lane_id = "general_quality_repair"
+
+    lane_label = _QUALITY_EXECUTION_LANE_LABELS[lane_id]
+    repair_mode = (
+        "bounded_analysis"
+        if action_type == "bounded_analysis"
+        else "same_line_route_back"
+        if route_target is not None
+        else None
+    )
+
+    if lane_id == "submission_hardening":
+        route_target = "finalize"
+        route_key_question = "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
+        repair_mode = "same_line_route_back"
+
+    if lane_id == "submission_hardening":
+        summary = f"当前质量执行线聚焦{lane_label}；先回到定稿与投稿收尾，回答“{route_key_question}”。"
+    elif route_target and route_key_question:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target}，回答“{route_key_question}”。"
+    elif route_target:
+        verb = "进入" if repair_mode == "bounded_analysis" else "回到"
+        summary = f"当前质量执行线聚焦 {lane_label}；先{verb} {route_target} 收口当前缺口。"
+    elif current_required_action == "continue_write_stage":
+        summary = "当前质量执行线已经进入同线写作推进；核心科学面允许继续往写作收口。"
+    else:
+        summary = f"当前质量执行线聚焦 {lane_label}；应先收口当前质量缺口。"
+
+    return {
+        "lane_id": lane_id,
+        "lane_label": lane_label,
+        "repair_mode": repair_mode,
+        "route_target": route_target or None,
+        "route_key_question": route_key_question or None,
+        "summary": summary,
+        "why_now": route_rationale,
+    }
+
+
 def _normalized_quality_review_agenda(
     *,
     agenda_payload: dict[str, Any] | None,

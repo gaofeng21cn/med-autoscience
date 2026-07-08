@@ -491,7 +491,7 @@ def test_progress_first_monitoring_prefers_current_handoff_action_over_stale_tra
 def test_existing_projection_refreshes_readiness_blocker_from_latest_publication_eval_route_back(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-risk", quest_id="quest-003")
     typed_blocker_ref = (
@@ -619,7 +619,7 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
 
 
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server.projection_adapters")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
@@ -741,7 +741,7 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
 
 
 def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
@@ -827,7 +827,7 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
 
 
 def test_dm004_unmapped_next_action_projection_keeps_family_authority(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "004-synthetic-unmapped-next-action-route"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm004")

@@ -470,7 +470,7 @@ def test_study_progress_task_intake_supersedes_prior_parked_projection(
     monkeypatch,
     tmp_path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_root = helpers.write_study(profile.workspace_root, "001-risk")
@@ -520,7 +520,7 @@ def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_r
     monkeypatch,
     tmp_path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_root = helpers.write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution")
@@ -563,7 +563,7 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
     monkeypatch,
     tmp_path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -782,7 +782,7 @@ def test_canonical_owner_action_supersedes_explicit_resume_operator_residue() ->
 def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
     tmp_path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"

@@ -24,7 +24,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -102,7 +102,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
     assert result["intervention_lane"]["route_target"] == "analysis-campaign"
     assert "有限补充分析" in result["next_system_action"]
     assert "哪一轮最小稳健性分析足以支撑当前主张？" in result["next_system_action"]
-    assert "补充分析与稳健性验证" in result["operator_status_card"]["current_focus"]
+    assert "publication_gate owner" in result["operator_status_card"]["current_focus"]
     assert result["needs_physician_decision"] is False
 
 
@@ -110,7 +110,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -246,7 +246,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -379,12 +379,12 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "external_metadata_pending"
     assert "legacy_current_stage" not in result
-    assert result["needs_physician_decision"] is False
-    assert result["needs_user_decision"] is False
-    assert result["physician_decision_summary"] is None
+    assert result["needs_physician_decision"] is True
+    assert result["needs_user_decision"] is True
+    assert result["physician_decision_summary"] == "请确认最终作者顺序、单位映射与声明文案。"
     assert "外部投稿元数据" in result["current_stage_summary"]
     assert "补齐外部投稿元数据" in result["next_system_action"]
-    assert not any("作者顺序" in item for item in result["current_blockers"])
+    assert any("作者顺序" in item for item in result["current_blockers"])
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
@@ -392,7 +392,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(
@@ -509,7 +509,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(
@@ -619,7 +619,7 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -706,7 +706,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -809,7 +809,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

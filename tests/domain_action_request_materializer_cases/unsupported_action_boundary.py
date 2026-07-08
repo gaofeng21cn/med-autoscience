@@ -94,7 +94,7 @@ def _unsupported_domain_action(study_id: str, quest_id: str) -> dict[str, object
 
 
 def _disable_progress_projection(monkeypatch) -> None:
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
 
 

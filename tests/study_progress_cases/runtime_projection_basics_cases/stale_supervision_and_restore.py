@@ -6,7 +6,7 @@ from tests.study_progress_cases.shared import *  # noqa: F403,F401
 
 
 def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -102,7 +102,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -259,7 +259,7 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

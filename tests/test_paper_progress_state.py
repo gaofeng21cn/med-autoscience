@@ -701,7 +701,7 @@ def test_paper_facing_stage_log_refs_count_as_meaningful_delta() -> None:
 
 
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = study_progress.build_user_visible_projection(
         {

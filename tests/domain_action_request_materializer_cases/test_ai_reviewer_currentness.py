@@ -236,7 +236,7 @@ def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_t
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -478,7 +478,7 @@ def test_materialize_domain_action_requests_retires_current_work_unit_over_stale
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"

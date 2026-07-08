@@ -84,7 +84,7 @@ def _study_macro_state() -> dict[str, object]:
 
 
 def test_study_progress_compact_payload_derives_macro_state_from_current_payload() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     payload = module._normalize_study_progress_payload(
         {
@@ -106,7 +106,7 @@ def test_study_progress_compact_payload_derives_macro_state_from_current_payload
 
 
 def test_current_write_routeback_overrides_stale_progress_run_and_package_handoff() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     payload = module._normalize_study_progress_payload(
         {
