@@ -109,6 +109,14 @@ def build_research_frontier_board(
     }
 
 
+def frontier_board_packet_fields(board: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "research_frontier_board_summary": dict(board["summary"]),
+        "research_frontier_board_refs": [dict(ref) for ref in board["frontier_board_refs"]],
+        "opl_research_frontier_projection": dict(board["opl_refs_only_projection"]),
+    }
+
+
 def _collect_candidates(packet: Mapping[str, Any], *, source: str) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for status, keys in STATUS_KEYS.items():
@@ -532,5 +540,6 @@ def _fingerprint(payload: object) -> str:
 
 __all__ = [
     "build_research_frontier_board",
+    "frontier_board_packet_fields",
     "frontier_board_authority_boundary",
 ]

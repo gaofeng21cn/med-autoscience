@@ -16,9 +16,7 @@ from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_
 from med_autoscience.controllers.stage_knowledge_plane.paper_soak_memory_apply_proof import (
     build_paper_soak_memory_apply_proof_projection as _build_paper_soak_memory_apply_proof_projection,
 )
-from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import (
-    build_research_frontier_board,
-)
+from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import build_research_frontier_board, frontier_board_packet_fields
 from med_autoscience.stage_knowledge_contract import (
     EXPLORATORY_STAGES,
     KNOWLEDGE_PACKET_SURFACE,
@@ -176,9 +174,7 @@ def build_stage_knowledge_packet(
         "failed_paths": failed_paths,
         "citation_readiness": citation_readiness,
         "current_claim_boundary": current_claim_boundary,
-        "research_frontier_board_summary": research_frontier_board["summary"],
-        "research_frontier_board_refs": research_frontier_board["frontier_board_refs"],
-        "opl_research_frontier_projection": research_frontier_board["opl_refs_only_projection"],
+        **frontier_board_packet_fields(research_frontier_board),
         "source_fingerprint": source_fingerprint,
         "authority_boundary": _authority_boundary(),
         "idempotency_key": f"stage_knowledge_packet:{_required_text('study_id', study_id)}:{resolved_stage}:{source_fingerprint}",
@@ -376,9 +372,7 @@ def normalize_stage_memory_closeout_packet(
         "proposed_writes": proposed_writes,
         "typed_blockers": typed_blockers,
         "normalized_closeout": normalized,
-        "research_frontier_board_summary": research_frontier_board["summary"],
-        "research_frontier_board_refs": research_frontier_board["frontier_board_refs"],
-        "opl_research_frontier_projection": research_frontier_board["opl_refs_only_projection"],
+        **frontier_board_packet_fields(research_frontier_board),
         "source_fingerprint": source_fingerprint,
         "authority_boundary": _authority_boundary(),
         "idempotency_key": idempotency_key,
