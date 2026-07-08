@@ -3,56 +3,18 @@ from .shared import (
     importlib,
     json,
     _dump_json,
+    _prepare_display_golden_workspace,
 )
 
 def test_atlas_spatial_trajectory_storyboard_panel_preserves_deg_storyboard_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure31",
-                    "display_kind": "figure",
-                    "requirement_key": "atlas_spatial_trajectory_storyboard_panel",
-                    "catalog_id": "F31",
-                    "shell_path": "paper/figures/Figure31.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure31",
-                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_storyboard_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure31",
+        requirement_key="atlas_spatial_trajectory_storyboard_panel",
+        catalog_id="F31",
+        template_id="fenggaolab.org.medical-display-core::atlas_spatial_trajectory_storyboard_panel",
     )
     _dump_json(
         paper_root / "atlas_spatial_trajectory_storyboard_inputs.json",
@@ -209,51 +171,12 @@ def test_atlas_spatial_trajectory_storyboard_panel_preserves_deg_storyboard_cont
 def test_atlas_spatial_trajectory_density_coverage_panel_preserves_deg_density_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure32",
-                    "display_kind": "figure",
-                    "requirement_key": "atlas_spatial_trajectory_density_coverage_panel",
-                    "catalog_id": "F32",
-                    "shell_path": "paper/figures/Figure32.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure32",
-                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_density_coverage_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure32",
+        requirement_key="atlas_spatial_trajectory_density_coverage_panel",
+        catalog_id="F32",
+        template_id="fenggaolab.org.medical-display-core::atlas_spatial_trajectory_density_coverage_panel",
     )
     _dump_json(
         paper_root / "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
@@ -361,51 +284,12 @@ def test_atlas_spatial_trajectory_density_coverage_panel_preserves_deg_density_c
 def test_atlas_spatial_trajectory_context_support_panel_preserves_deg_multiview_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure33",
-                    "display_kind": "figure",
-                    "requirement_key": "atlas_spatial_trajectory_context_support_panel",
-                    "catalog_id": "F33",
-                    "shell_path": "paper/figures/Figure33.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure33",
-                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_context_support_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure33",
+        requirement_key="atlas_spatial_trajectory_context_support_panel",
+        catalog_id="F33",
+        template_id="fenggaolab.org.medical-display-core::atlas_spatial_trajectory_context_support_panel",
     )
     _dump_json(
         paper_root / "atlas_spatial_trajectory_context_support_panel_inputs.json",
@@ -593,51 +477,12 @@ def test_atlas_spatial_trajectory_multimanifold_context_support_panel_preserves_
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     surface_module = importlib.import_module("tests.test_display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "display_kind": "figure",
-                    "requirement_key": "atlas_spatial_trajectory_multimanifold_context_support_panel",
-                    "catalog_id": "F51",
-                    "shell_path": "paper/figures/Figure51.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_multimanifold_context_support_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure51",
+        requirement_key="atlas_spatial_trajectory_multimanifold_context_support_panel",
+        catalog_id="F51",
+        template_id="fenggaolab.org.medical-display-core::atlas_spatial_trajectory_multimanifold_context_support_panel",
     )
     _dump_json(
         paper_root / "atlas_spatial_trajectory_multimanifold_context_support_panel_inputs.json",

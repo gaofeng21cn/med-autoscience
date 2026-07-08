@@ -3,56 +3,18 @@ from .shared import (
     importlib,
     json,
     _dump_json,
+    _prepare_display_golden_workspace,
 )
 
 def test_generalizability_subgroup_composite_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure34",
-                    "display_kind": "figure",
-                    "requirement_key": "generalizability_subgroup_composite_panel",
-                    "catalog_id": "F34",
-                    "shell_path": "paper/figures/Figure34.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure34",
-                    "template_id": "generalizability_subgroup_composite_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure34",
+        requirement_key="generalizability_subgroup_composite_panel",
+        catalog_id="F34",
+        template_id="generalizability_subgroup_composite_panel",
     )
     _dump_json(
         paper_root / "generalizability_subgroup_composite_inputs.json",
@@ -140,51 +102,12 @@ def test_generalizability_subgroup_composite_panel_preserves_ch_bounded_contract
 def test_compact_effect_estimate_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure46",
-                    "display_kind": "figure",
-                    "requirement_key": "compact_effect_estimate_panel",
-                    "catalog_id": "F46",
-                    "shell_path": "paper/figures/Figure46.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure46",
-                    "template_id": "compact_effect_estimate_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure46",
+        requirement_key="compact_effect_estimate_panel",
+        catalog_id="F46",
+        template_id="compact_effect_estimate_panel",
     )
     _dump_json(
         paper_root / "compact_effect_estimate_panel_inputs.json",
@@ -309,51 +232,12 @@ def test_compact_effect_estimate_panel_preserves_ch_bounded_contract(tmp_path: P
 def test_coefficient_path_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure48",
-                    "display_kind": "figure",
-                    "requirement_key": "coefficient_path_panel",
-                    "catalog_id": "F48",
-                    "shell_path": "paper/figures/Figure48.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure48",
-                    "template_id": "coefficient_path_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure48",
+        requirement_key="coefficient_path_panel",
+        catalog_id="F48",
+        template_id="coefficient_path_panel",
     )
     _dump_json(
         paper_root / "coefficient_path_panel_inputs.json",
@@ -443,51 +327,12 @@ def test_coefficient_path_panel_preserves_ch_bounded_contract(tmp_path: Path) ->
 def test_broader_heterogeneity_summary_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure49",
-                    "display_kind": "figure",
-                    "requirement_key": "broader_heterogeneity_summary_panel",
-                    "catalog_id": "F49",
-                    "shell_path": "paper/figures/Figure49.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure49",
-                    "template_id": "broader_heterogeneity_summary_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure49",
+        requirement_key="broader_heterogeneity_summary_panel",
+        catalog_id="F49",
+        template_id="broader_heterogeneity_summary_panel",
     )
     _dump_json(
         paper_root / "broader_heterogeneity_summary_panel_inputs.json",
@@ -575,51 +420,12 @@ def test_broader_heterogeneity_summary_panel_preserves_ch_bounded_contract(tmp_p
 def test_interaction_effect_summary_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "display_kind": "figure",
-                    "requirement_key": "interaction_effect_summary_panel",
-                    "catalog_id": "F51",
-                    "shell_path": "paper/figures/Figure51.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "template_id": "interaction_effect_summary_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure51",
+        requirement_key="interaction_effect_summary_panel",
+        catalog_id="F51",
+        template_id="interaction_effect_summary_panel",
     )
     _dump_json(
         paper_root / "interaction_effect_summary_panel_inputs.json",

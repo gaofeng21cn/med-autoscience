@@ -3,57 +3,19 @@ from .shared import (
     importlib,
     json,
     _dump_json,
+    _prepare_display_golden_workspace,
 )
 
 def test_genomic_alteration_multiomic_consequence_panel_preserves_g_multiomic_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     surface_module = importlib.import_module("tests.test_display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure40",
-                    "display_kind": "figure",
-                    "requirement_key": "genomic_alteration_multiomic_consequence_panel",
-                    "catalog_id": "F40",
-                    "shell_path": "paper/figures/Figure40.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure40",
-                    "template_id": "fenggaolab.org.medical-display-core::genomic_alteration_multiomic_consequence_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure40",
+        requirement_key="genomic_alteration_multiomic_consequence_panel",
+        catalog_id="F40",
+        template_id="fenggaolab.org.medical-display-core::genomic_alteration_multiomic_consequence_panel",
     )
     _dump_json(
         paper_root / "genomic_alteration_multiomic_consequence_panel_inputs.json",
@@ -101,51 +63,12 @@ def test_genomic_alteration_pathway_integrated_composite_panel_preserves_g_pathw
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     surface_module = importlib.import_module("tests.test_display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure41",
-                    "display_kind": "figure",
-                    "requirement_key": "genomic_alteration_pathway_integrated_composite_panel",
-                    "catalog_id": "F41",
-                    "shell_path": "paper/figures/Figure41.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure41",
-                    "template_id": "fenggaolab.org.medical-display-core::genomic_alteration_pathway_integrated_composite_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure41",
+        requirement_key="genomic_alteration_pathway_integrated_composite_panel",
+        catalog_id="F41",
+        template_id="fenggaolab.org.medical-display-core::genomic_alteration_pathway_integrated_composite_panel",
     )
     _dump_json(
         paper_root / "genomic_alteration_pathway_integrated_composite_panel_inputs.json",
@@ -212,51 +135,12 @@ def test_genomic_program_governance_summary_panel_preserves_g_governance_contrac
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     surface_module = importlib.import_module("tests.test_display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "display_kind": "figure",
-                    "requirement_key": "genomic_program_governance_summary_panel",
-                    "catalog_id": "F51",
-                    "shell_path": "paper/figures/Figure51.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure51",
-                    "template_id": "fenggaolab.org.medical-display-core::genomic_program_governance_summary_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure51",
+        requirement_key="genomic_program_governance_summary_panel",
+        catalog_id="F51",
+        template_id="fenggaolab.org.medical-display-core::genomic_program_governance_summary_panel",
     )
     _dump_json(
         paper_root / "genomic_program_governance_summary_panel_inputs.json",
@@ -297,51 +181,12 @@ def test_genomic_program_governance_summary_panel_preserves_g_governance_contrac
 def test_spatial_niche_map_panel_preserves_deg_spatial_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure28",
-                    "display_kind": "figure",
-                    "requirement_key": "spatial_niche_map_panel",
-                    "catalog_id": "F28",
-                    "shell_path": "paper/figures/Figure28.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure28",
-                    "template_id": "fenggaolab.org.medical-display-core::spatial_niche_map_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure28",
+        requirement_key="spatial_niche_map_panel",
+        catalog_id="F28",
+        template_id="fenggaolab.org.medical-display-core::spatial_niche_map_panel",
     )
     _dump_json(
         paper_root / "spatial_niche_map_inputs.json",
@@ -427,51 +272,12 @@ def test_spatial_niche_map_panel_preserves_deg_spatial_contract(tmp_path: Path) 
 def test_trajectory_progression_panel_preserves_deg_trajectory_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure29",
-                    "display_kind": "figure",
-                    "requirement_key": "trajectory_progression_panel",
-                    "catalog_id": "F29",
-                    "shell_path": "paper/figures/Figure29.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure29",
-                    "template_id": "fenggaolab.org.medical-display-core::trajectory_progression_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure29",
+        requirement_key="trajectory_progression_panel",
+        catalog_id="F29",
+        template_id="fenggaolab.org.medical-display-core::trajectory_progression_panel",
     )
     _dump_json(
         paper_root / "trajectory_progression_inputs.json",
@@ -580,51 +386,12 @@ def test_trajectory_progression_panel_preserves_deg_trajectory_contract(tmp_path
 def test_atlas_spatial_bridge_panel_preserves_deg_bridge_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
-    _dump_json(
-        paper_root / "display_registry.json",
-        {
-            "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
-            "displays": [
-                {
-                    "display_id": "Figure30",
-                    "display_kind": "figure",
-                    "requirement_key": "atlas_spatial_bridge_panel",
-                    "catalog_id": "F30",
-                    "shell_path": "paper/figures/Figure30.shell.json",
-                }
-            ],
-        },
-    )
-    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
-    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
-    _dump_json(
-        paper_root / "medical_reporting_contract.json",
-        {
-            "schema_version": 1,
-            "style_roles": {
-                "model_curve": "#1f77b4",
-                "comparator_curve": "#d62728",
-                "reference_line": "#334155",
-            },
-            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
-            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
-            "stroke": {"marker_size": 4.5},
-        },
-    )
-    _dump_json(
-        paper_root / "display_overrides.json",
-        {
-            "schema_version": 1,
-            "displays": [
-                {
-                    "display_id": "Figure30",
-                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel",
-                    "layout_override": {"show_figure_title": False},
-                    "readability_override": {},
-                }
-            ],
-        },
+    _prepare_display_golden_workspace(
+        paper_root,
+        display_id="Figure30",
+        requirement_key="atlas_spatial_bridge_panel",
+        catalog_id="F30",
+        template_id="fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel",
     )
     _dump_json(
         paper_root / "atlas_spatial_bridge_panel_inputs.json",
