@@ -22,10 +22,12 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 ## Governance Decisions
 
 - `smoke` is a minimal entry contract. It covers the smoke entrypoint itself and line-budget advisory reporting, not broad command-surface or subprocess-heavy tests.
+- 2026-07-08 update: `test-fast` is no longer an alias for `test-regression`. It now runs only the smoke paths plus `tests/test_test_lane_governance.py`; broad behavior regression remains an explicit advisory/release lane.
 - `meta` owns repo-tracked contracts, workflows, package surfaces, and entry consistency. It no longer owns `test_dev_preflight.py` or `test_dev_preflight_contract.py`; those stay in `family`.
 - `control-plane` is a focused owner-surface gate. It intentionally overlaps with regression and is used for high-risk control-plane changes, not as a mutually exclusive full-lane partition.
 - `submission` owns both `submission_heavy` and `materialization_heavy`, so artifact/package materialization tests stay out of default regression.
 - `contracts/test-lane-manifest.json` is the durable read model for lane intent and allowed overlap policy.
+- 2026-07-08 update: focused lane entries should stay thin: lane id, kind, paths/docs, overlap policy, authority boundary, and source/policy refs. Deep owner-policy payloads belong in their owning source, contract, or human reference surface; the test-lane manifest should not mirror them unless a runtime consumer proves it needs the fields.
 
 ## Cleanup Rule
 

@@ -38,6 +38,11 @@ CONTROL_PLANE_TESTS := \
 	tests/test_study_progress.py \
 	tests/test_product_entry.py
 
+FAST_TESTS := \
+	tests/test_smoke_entrypoints.py \
+	tests/test_line_budget.py \
+	tests/test_test_lane_governance.py
+
 test: test-smoke
 
 test-smoke:
@@ -50,7 +55,8 @@ test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
 	scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"
 
-test-fast: test-regression
+test-fast:
+	scripts/run-pytest-clean.sh $(FAST_TESTS) -q
 
 test-meta:
 	scripts/run-pytest-clean.sh -q -m meta

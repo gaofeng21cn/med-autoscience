@@ -145,7 +145,7 @@ if [[ "${lane}" == "ci-preflight" ]]; then
 fi
 
 if [[ "${lane}" == "fast" ]]; then
-  run_with_optional_summary "fast" "make test-regression" make test-regression
+  run_with_optional_summary "fast" "make test-fast" make test-fast
   exit 0
 fi
 
