@@ -22,7 +22,7 @@ from med_autoscience.cli.paper_mission_commands import (
 from med_autoscience.cli.paper_mission_commands import (
     direct_next_action_handoff as direct_handoff,
 )
-from tests.test_cli_cases.paper_mission_command_helpers import DM_CANARY_FIXTURE_ROOT, FORBIDDEN_AUTHORITY_RELATIVE_PATHS, _assert_forbidden_authority_untouched, _paper_mission_forbidden_write_guard, _paper_mission_transaction_payload, _write_candidate_manifest, _write_matching_domain_gate_closeout, _write_paper_source_fixture, _write_profile_with_study, _write_submission_milestone_package
+from tests.test_cli_cases.paper_mission_command_helpers import DM_CANARY_FIXTURE_ROOT, FORBIDDEN_AUTHORITY_RELATIVE_PATHS, _assert_forbidden_authority_untouched, _assert_route_identity_matches_carrier, _paper_mission_forbidden_write_guard, _paper_mission_transaction_payload, _write_candidate_manifest, _write_matching_domain_gate_closeout, _write_paper_source_fixture, _write_profile_with_study, _write_submission_milestone_package
 
 
 @pytest.fixture(autouse=True)
@@ -132,23 +132,9 @@ def test_domain_handler_export_default_route_handoff_carries_top_level_identity(
     next_action = task["next_action"]
 
     for exported_handoff in (handoff, record, payload_handoff):
-        assert exported_handoff["route_identity_key"] == carrier["route_identity_key"]
-        assert exported_handoff["attempt_idempotency_key"] == (
-            carrier["attempt_idempotency_key"]
-        )
-        assert exported_handoff["request_idempotency_key"] == (
-            carrier["request_idempotency_key"]
-        )
-    assert task["route_identity_key"] == carrier["route_identity_key"]
-    assert task["attempt_idempotency_key"] == carrier["attempt_idempotency_key"]
-    assert task["request_idempotency_key"] == carrier["request_idempotency_key"]
-    assert task["payload"]["route_identity_key"] == carrier["route_identity_key"]
-    assert task["payload"]["attempt_idempotency_key"] == carrier[
-        "attempt_idempotency_key"
-    ]
-    assert task["payload"]["request_idempotency_key"] == carrier[
-        "request_idempotency_key"
-    ]
+        _assert_route_identity_matches_carrier(exported_handoff, carrier)
+    _assert_route_identity_matches_carrier(task, carrier)
+    _assert_route_identity_matches_carrier(task["payload"], carrier)
     assert task["payload"]["next_action"] == next_action
     assert next_action["surface_kind"] == "mas_next_action_envelope"
     assert next_action["action_family"] == "runtime.opl_route"

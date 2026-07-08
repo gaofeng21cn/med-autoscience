@@ -46,6 +46,15 @@ def _assert_forbidden_authority_untouched(tmp_path: Path, *, study_id: str = "00
         assert not (study_root / relative_path).exists()
 
 
+def _assert_route_identity_matches_carrier(projected: dict, carrier: dict) -> None:
+    for field in (
+        "route_identity_key",
+        "attempt_idempotency_key",
+        "request_idempotency_key",
+    ):
+        assert projected[field] == carrier[field]
+
+
 def _write_paper_source_fixture(tmp_path: Path, *, study_id: str) -> None:
     paper_root = tmp_path / "workspace" / "studies" / study_id / "paper"
     (paper_root / "build").mkdir(parents=True, exist_ok=True)
@@ -498,6 +507,7 @@ __all__ = [
     "DM_CANARY_FIXTURE_ROOT",
     "FORBIDDEN_AUTHORITY_RELATIVE_PATHS",
     "_assert_forbidden_authority_untouched",
+    "_assert_route_identity_matches_carrier",
     "_paper_mission_forbidden_write_guard",
     "_paper_mission_transaction_payload",
     "_write_candidate_manifest",

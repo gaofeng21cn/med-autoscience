@@ -8,6 +8,7 @@ from tests.test_cli_cases.paper_mission_command_helpers import (
     DM_CANARY_FIXTURE_ROOT,
     FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
     _assert_forbidden_authority_untouched,
+    _assert_route_identity_matches_carrier,
     _paper_mission_forbidden_write_guard,
     _paper_mission_transaction_payload,
     _write_candidate_manifest,
@@ -762,9 +763,7 @@ def test_paper_mission_consume_candidate_can_write_governed_consume_record(
     assert handoff["handoff_status"] == "ready_for_opl_route_command"
     assert handoff["can_submit_to_opl_runtime"] is True
     carrier = handoff["opl_runtime_carrier"]
-    assert handoff["route_identity_key"] == carrier["route_identity_key"]
-    assert handoff["attempt_idempotency_key"] == carrier["attempt_idempotency_key"]
-    assert handoff["request_idempotency_key"] == carrier["request_idempotency_key"]
+    _assert_route_identity_matches_carrier(handoff, carrier)
     assert handoff["can_claim_opl_stage_run_created"] is False
     assert handoff["can_claim_paper_progress"] is False
     assert payload["dispatch_plan"]["domain_handler_dispatch_mode"] == (
