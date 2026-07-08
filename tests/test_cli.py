@@ -8,23 +8,239 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_cli_cases.public_entry_commands import *  # noqa: F403,F401
-from .test_cli_cases.public_entry_command_cases.publication_and_data_commands import *  # noqa: F403,F401
-from .test_cli_cases.domain_action_request_materializer_command import *  # noqa: F403,F401
-from .test_cli_cases.runtime_and_quality_commands import *  # noqa: F403,F401
-from .test_cli_cases.data_asset_payload_commands import *  # noqa: F403,F401
-from .test_cli_cases.workspace_and_data_asset_commands import *  # noqa: F403,F401
-from .test_cli_cases.pause_runtime_command import *  # noqa: F403,F401
-from .test_cli_cases.truth_reconcile_command import *  # noqa: F403,F401
-from .test_cli_cases.mainline_projection_commands import *  # noqa: F403,F401
-from .test_cli_cases.ai_reviewer_publication_eval_command import *  # noqa: F403,F401
-from .test_cli_cases.domain_handler_and_submission_commands import *  # noqa: F403,F401
-from .test_cli_cases.functional_consumer_boundary import *  # noqa: F403,F401
-from .test_cli_cases.domain_handler_transition_descriptor_command import *  # noqa: F403,F401
-from .test_cli_cases.owner_route_handoff_guarded_apply_cases import *  # noqa: F403,F401
-from .test_cli_cases.domain_handler_functional_closure_command import *  # noqa: F403,F401
-from .test_cli_cases.stage_memory_cli_commands import *  # noqa: F403,F401
-from .test_cli_cases.stage_artifact_materialize_command import *  # noqa: F403,F401
-from .test_cli_cases.light_advisory_materializer_command import *  # noqa: F403,F401
-from .test_cli_cases.bootstrap_and_bundle_commands import *  # noqa: F403,F401
-from .test_cli_cases.authority_operation_commands import *  # noqa: F403,F401
+from .test_cli_cases.public_entry_commands import (
+    test_doctor_command_reports_profile_and_paths,
+    test_show_profile_prints_resolved_contract,
+    test_doctor_hermes_runtime_grouped_command_is_retired,
+    test_show_profile_json_exports_machine_readable_contract,
+    test_show_profile_does_not_require_display_surface_dependencies,
+    test_public_help_does_not_require_doctor_runtime_dependencies,
+    test_public_help_prints_grouped_surface,
+    test_legacy_ds_retire_is_not_runtime_public_surface,
+    test_foundry_status_exposes_series_spine,
+    test_foundry_json_flag_matches_format_json_for_series_operations,
+    test_top_level_status_alias_dispatches_foundry_status_json,
+    test_top_level_status_alias_accepts_json_flag,
+    test_foundry_peers_lists_series_members_without_domain_ready_claim,
+    test_foundry_doctor_passes_without_profile_or_runtime_dependencies,
+    test_group_help_lists_subcommands,
+    test_publication_group_help_lists_route_memory_inventory,
+    test_shell_argv_grouped_subcommand_dispatches,
+    test_shell_argv_grouped_subcommand_help_uses_grouped_prog,
+    test_show_stage_route_contract_outputs_canonical_payload,
+    test_show_stage_route_contract_is_only_public_route_contract_command,
+    test_old_entry_modes_alias_is_removed,
+    test_sync_agent_entry_assets_command_writes_four_files,
+    test_preflight_changes_command_outputs_json,
+    test_preflight_base_ref_command_uses_ci_preflight,
+    test_preflight_changes_command_rejects_multiple_change_sources,
+    test_study_progress_command_dispatches_controller_and_renders_markdown,
+    test_medical_reporting_audit_command_dispatches_controller,
+    test_workspace_authority_migration_audit_command_dispatches_read_only_controller,
+    test_control_plane_cleanup_apply_is_not_public,
+    test_lifecycle_report_command_dispatches_read_only_controller_options,
+)
+from .test_cli_cases.public_entry_command_cases.publication_and_data_commands import (
+    test_resolve_journal_shortlist_command_dispatches_controller,
+    test_publication_aftercare_plan_command_dispatches_controller,
+    test_resolve_journal_requirements_command_dispatches_controller,
+    test_init_portfolio_memory_command_dispatches_controller,
+    test_portfolio_memory_status_command_dispatches_controller,
+    test_init_workspace_literature_command_dispatches_controller,
+    test_workspace_literature_status_command_dispatches_controller,
+)
+from .test_cli_cases.domain_action_request_materializer_command import (
+    test_study_owner_gate_decision_command_dispatches_controller,
+    test_study_owner_gate_decision_command_dry_run_does_not_write,
+    test_study_owner_gate_decision_command_apply_materializes_truth_closeout,
+    test_study_owner_gate_decision_command_syncs_existing_event_without_reapply,
+    test_study_owner_gate_decision_command_applies_submission_authority_closeout,
+    test_study_owner_gate_decision_command_dry_runs_submission_authority_closeout,
+    test_study_owner_gate_decision_command_routes_b003_governed_blocker_disposition,
+    test_domain_owner_refresh_controller_decisions_command_is_retired,
+    test_owner_callable_dispatch_residue_cleanup_command_is_retired,
+    test_medical_paper_readiness_owner_blocker_command_materializes_controller_decision,
+)
+from .test_cli_cases.runtime_and_quality_commands import (
+    test_prepare_external_research_command_dispatches_controller,
+    test_external_research_status_command_dispatches_controller,
+    test_backend_audit_command_dispatches_controller,
+    test_doctor_group_help_surfaces_backend_audit_and_hides_legacy_names,
+    test_removed_grouped_backend_audit_old_name_is_removed,
+    test_removed_grouped_med_deepscientist_audit_old_name_is_removed,
+    test_removed_flat_backend_audit_old_name_is_removed,
+    test_removed_grouped_ensure_runtime_command_is_removed,
+    test_launch_study_command_dispatches_product_entry,
+    test_progress_projection_command_is_removed,
+    test_progress_projection_command_legacy_json_alias_is_removed,
+    test_study_progress_command_serializes_typed_controller_result,
+    test_study_progress_command_serializes_nested_path_values,
+    test_quality_repair_batch_command_dispatches_controller,
+    test_gate_clearing_batch_command_dispatches_controller,
+    test_paper_story_repair_command_dispatches_controller,
+    test_study_profile_cycle_command_dispatches_profiler,
+    test_study_group_help_surfaces_profile_cycle,
+    test_grouped_progress_projection_alias_is_removed,
+    test_retired_workspace_cockpit_group_command_fails_closed,
+    test_workspace_profile_cycles_command_dispatches_profiler,
+    test_retired_product_group_commands_fail_closed,
+    test_retired_product_entry_status_name_fails_closed,
+    test_mainline_status_command_dispatches_controller,
+    test_mainline_phase_command_dispatches_controller,
+    test_launch_study_command_dispatches_product_entry_controller,
+    test_submit_study_task_command_dispatches_product_entry_controller,
+)
+from .test_cli_cases.data_asset_payload_commands import (
+    test_apply_data_asset_update_command_dispatches_controller,
+    test_load_json_payload_from_args_rejects_non_object_payload_json,
+    test_load_json_payload_from_args_accepts_object_payload_json,
+)
+from .test_cli_cases.workspace_and_data_asset_commands import (
+    test_init_data_assets_command_dispatches_controller,
+    test_init_workspace_command_dispatches_controller,
+    test_data_assets_status_command_dispatches_controller,
+    test_manifest_refs_rebuild_command_dispatches_controller,
+    test_asset_retention_plan_command_dispatches_controller,
+    test_asset_sqlite_compact_plan_command_dispatches_controller,
+    test_assess_data_asset_impact_command_dispatches_controller,
+    test_diff_private_release_command_dispatches_controller,
+    test_validate_public_registry_command_dispatches_controller,
+    test_data_lifecycle_inspect_reports_read_only_categories_and_skips_dataset_body,
+    test_data_lifecycle_inspect_skips_broken_archive_symlinks,
+    test_data_lifecycle_closeout_dry_run_projects_plan_without_workspace_mutation,
+    test_data_lifecycle_compact_runtime_dry_run_indexes_small_runtime_files_only,
+    test_data_lifecycle_compact_runtime_apply_writes_sqlite_index_without_deleting_sources,
+    test_data_lifecycle_compact_runtime_apply_migrates_existing_manifest_without_plane,
+    test_data_lifecycle_index_assets_apply_writes_refs_only_asset_index,
+    test_data_lifecycle_compact_study_apply_writes_study_index_without_deleting_sources,
+    test_data_lifecycle_closeout_completed_project_apply_writes_semantic_capsule_only,
+    test_data_lifecycle_finalize_governance_apply_writes_refs_only_without_delete_or_transform,
+    test_data_lifecycle_inspect_classifies_current_package_zip_as_exchange,
+)
+from .test_cli_cases.pause_runtime_command import (
+    test_removed_grouped_pause_runtime_command_is_removed,
+)
+from .test_cli_cases.truth_reconcile_command import (
+    test_reconcile_study_truth_command_materializes_from_runtime_status,
+)
+from .test_cli_cases.mainline_projection_commands import (
+    test_mainline_status_cli_projects_unified_enhancement_program,
+)
+from .test_cli_cases.ai_reviewer_publication_eval_command import (
+    test_publication_ai_reviewer_eval_command_dispatches_controller,
+    test_publication_ai_reviewer_eval_command_can_request_production_trace_rebuild,
+    test_publication_ai_reviewer_record_command_dispatches_record_materializer,
+    test_publication_ai_reviewer_record_command_can_request_production_trace_rebuild,
+    test_publication_ai_reviewer_record_command_runs_identity_guard_before_write,
+    test_publication_ai_reviewer_record_command_stops_when_identity_guard_blocks,
+    test_publication_ai_reviewer_record_dry_run_dispatches_no_write_plan,
+    test_ai_reviewer_record_dry_run_plan_reports_current_identity_without_writes,
+)
+from .test_cli_cases.ai_reviewer_publication_eval_command_cases.test_identity_guard_cases import (
+    test_ai_reviewer_record_dry_run_plan_accepts_canonical_next_action_identity,
+    test_ai_reviewer_record_dry_run_plan_blocks_when_expected_identity_is_unavailable,
+    test_ai_reviewer_record_dry_run_plan_fails_closed_on_expected_owner_mismatch,
+)
+from .test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_guard_cases import (
+    test_ai_reviewer_authoring_target_output_refuses_study_root_write,
+    test_ai_reviewer_payload_guard_prefers_stable_medical_prose_review_over_legacy_request_ref,
+    test_ai_reviewer_payload_guard_refreshes_target_metadata_before_record_payload_currentness,
+    test_ai_reviewer_record_dry_run_rejects_stale_authoring_target_stale_record_ref,
+    test_ai_reviewer_record_materializer_rejects_stale_authoring_target_before_write,
+    test_ai_reviewer_record_observe_writes_non_authority_authoring_target,
+)
+from .test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_refs_cases import (
+    test_ai_reviewer_record_dry_run_accepts_current_authoring_target_metadata,
+    test_ai_reviewer_record_dry_run_accepts_current_payload_currentness_refs,
+    test_ai_reviewer_record_dry_run_normalizes_stale_lifecycle_refs_to_current_input_refs,
+    test_ai_reviewer_record_dry_run_rejects_stale_payload_currentness_refs,
+)
+from .test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_schema_and_trace_cases import (
+    test_ai_reviewer_build_production_trace_covers_extra_required_currentness_refs,
+    test_ai_reviewer_record_dry_run_rejects_schema_invalid_authoring_target,
+)
+from .test_cli_cases.opl_unique_control_plane_boundary_commands import (
+    test_cli_has_no_opl_unique_control_plane_boundary_runtime_callable,
+    test_runtime_supervision_flat_commands_are_not_public_aliases,
+    test_runtime_supervision_grouped_commands_are_not_public_aliases,
+)
+from .test_cli_cases.domain_handler_and_submission_commands import (
+    test_cli_runtime_facing_controller_proxies_are_named_currentness_surfaces,
+    test_removed_provider_specific_aris_sidecar_commands_are_rejected,
+    test_delivery_inspect_command_dispatches_read_only_controller,
+    test_startup_data_readiness_command_dispatches_controller,
+    test_data_asset_gate_command_dispatches_controller,
+    test_tooluniverse_status_command_dispatches_adapter,
+    test_export_submission_minimal_command_dispatches_exporter,
+    test_resolve_submission_targets_command_dispatches_controller,
+    test_export_submission_targets_command_dispatches_controller,
+    test_resolve_reference_papers_command_dispatches_controller,
+    test_publication_gate_command_dispatches_controller,
+    test_materialize_journal_package_command_dispatches_controller,
+    test_materialize_journal_package_command_accepts_confirmed_target_flag,
+    test_medical_publication_surface_command_dispatches_controller,
+    test_materialize_ai_medical_prose_review_command_uses_validator_surface,
+    test_figure_loop_guard_command_dispatches_controller,
+    test_sync_study_delivery_command_dispatches_controller,
+    test_overlay_status_command_dispatches_installer,
+    test_install_medical_overlay_command_dispatches_installer,
+    test_reapply_medical_overlay_command_dispatches_installer,
+    test_overlay_status_command_dispatches_profile_overlay,
+    test_bootstrap_command_ensures_profile_overlay,
+    test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_home_global_writes,
+    test_bootstrap_command_honors_status_only_overlay_mode,
+)
+from .test_cli_cases.functional_consumer_boundary import (
+    test_domain_handler_export_projects_functional_consumer_boundary,
+)
+from .test_cli_cases.domain_handler_transition_descriptor_command import (
+    test_domain_handler_export_exposes_domain_declared_transition_spec_without_domain_truth_write,
+)
+from .test_cli_cases.owner_route_handoff_guarded_apply_cases import (
+    test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_without_forbidden_writes,
+    test_domain_handler_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_write,
+    test_domain_handler_dispatch_guarded_apply_records_mas_owner_receipt_present,
+    test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_typed_blocker,
+    test_domain_handler_dispatch_guarded_apply_binds_current_owner_delta_identity,
+    test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta_lineage,
+    test_domain_handler_dispatch_guarded_apply_rejects_three_shape_owner_delta,
+    test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint,
+    test_domain_handler_dispatch_guarded_apply_replays_duplicate_attempt_idempotently,
+    test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_receipt,
+    test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta_identity,
+)
+from .test_cli_cases.domain_handler_functional_closure_command import (
+    test_domain_handler_export_exposes_functional_closeout_contracts,
+)
+from .test_cli_cases.stage_memory_cli_commands import (
+    test_publication_route_memory_apply_seed_cli_requires_explicit_apply_or_dry_run,
+    test_publication_route_memory_apply_seed_cli_dispatches_controller,
+    test_publication_route_memory_apply_seed_cli_accepts_markdown_library,
+    test_stage_knowledge_packet_cli_materializes_strategy_memory_prompt_policy,
+    test_publication_route_memory_inventory_cli_lists_cards_without_body_by_default,
+    test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance_surface,
+    test_publication_strategy_memory_workbench_cli_reports_missing_pack_queue,
+    test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_review_refs,
+    test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_writeback_receipts,
+    test_publication_route_memory_inventory_cli_can_include_body_for_maintainers,
+    test_stage_knowledge_packet_cli_materializes_packet,
+    test_stage_memory_closeout_route_cli_materializes_and_routes_typed_closeout,
+    test_stage_memory_closeout_route_cli_can_route_existing_packet,
+    test_paper_soak_memory_proof_cli_materializes_readonly_proof,
+)
+from .test_cli_cases.stage_artifact_materialize_command import (
+    test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index,
+)
+from .test_cli_cases.light_advisory_materializer_command import (
+    test_light_advisory_materializer_cli_applies_refs_from_profile,
+    test_light_advisory_materializer_cli_grouped_study_alias,
+)
+from .test_cli_cases.bootstrap_and_bundle_commands import (
+    test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper,
+    test_ensure_analysis_bundle_command_prints_controller_payload,
+)
+from .test_cli_cases.authority_operation_commands import (
+    test_delivery_authority_backfill_apply_command_passes_authority_snapshot_json,
+    test_storage_governance_report_command_projects_read_only_surface,
+    test_control_plane_cleanup_commands_are_not_public_cli,
+)

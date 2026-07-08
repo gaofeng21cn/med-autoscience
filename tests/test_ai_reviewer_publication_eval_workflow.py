@@ -695,4 +695,8 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_package_freshne
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
-from tests.test_ai_reviewer_publication_eval_workflow_cases.latest_authority_validation import *  # noqa: E402,F403,F401
+from tests.test_ai_reviewer_publication_eval_workflow_cases.latest_authority_validation import (
+    test_ai_reviewer_publication_eval_latest_rejects_trace_without_currentness_checks,
+    test_ai_reviewer_publication_eval_latest_rejects_ready_without_quality_readiness_kernel,
+    test_ai_reviewer_publication_eval_latest_rejects_requested_prose_currentness_without_clean_migration,
+)

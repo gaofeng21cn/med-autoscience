@@ -7,9 +7,30 @@ from typing import Any
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
-from .test_quality_repair_batch_cases.claim_evidence_alignment_owner_route import *  # noqa: F403,F401
-from .test_quality_repair_batch_cases.specificity_targets import *  # noqa: F403,F401
-from .test_quality_repair_batch_cases.upstream_paper_owner_surface import *  # noqa: F403,F401
+from .test_quality_repair_batch_cases.claim_evidence_alignment_owner_route import (
+    test_run_quality_repair_batch_honors_claim_evidence_alignment_owner_route,
+    test_run_quality_repair_batch_honors_current_manuscript_claim_alignment_owner_route,
+    test_run_quality_repair_batch_consumes_current_ai_reviewer_record,
+    test_claim_alignment_repair_materializes_missing_claim_from_ledger_items,
+)
+from .test_quality_repair_batch_cases.specificity_targets import (
+    test_build_quality_repair_batch_action_uses_publication_eval_specificity_targets_for_generic_gate_blocker,
+    test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_runtime_authorization,
+    test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology_route,
+    test_run_quality_repair_batch_overrides_stale_bundle_route_for_medical_prose_write_repair,
+    test_run_quality_repair_batch_records_hard_unit_harmonization_handoff_without_generic_completion,
+    test_run_quality_repair_batch_hard_handoff_reads_incomplete_upstream_specificity_targets,
+    test_run_quality_repair_batch_replaces_stale_upstream_route_context_with_current_specificity_work_unit,
+)
+from .test_quality_repair_batch_cases.upstream_paper_owner_surface import (
+    test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bundle_gate,
+    test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summary,
+    test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for_upstream_repair,
+    test_run_quality_repair_batch_rejects_invalid_projected_blueprint_as_canonical,
+    test_run_quality_repair_batch_does_not_materialize_paper_owner_surface_without_projection,
+    test_run_quality_repair_batch_materializes_owner_surface_from_hydration_projection_inputs,
+    test_quality_repair_batch_upstream_work_unit_writes_canonical_delta_and_ai_reviewer_request,
+)
 
 
 def _write_json(path: Path, payload: object) -> None:

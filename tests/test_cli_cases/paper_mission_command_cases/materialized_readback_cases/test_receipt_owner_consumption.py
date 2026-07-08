@@ -6,7 +6,25 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
-from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_helpers import (
+    DM_CANARY_FIXTURE_ROOT,
+    FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+    _assert_forbidden_authority_untouched,
+    _paper_mission_forbidden_write_guard,
+    _paper_mission_transaction_payload,
+    _write_candidate_manifest,
+    _write_matching_domain_gate_closeout,
+    _write_paper_source_fixture,
+    _write_profile_with_study,
+    _write_submission_milestone_package,
+)
+from tests.test_cli_cases.paper_mission_command_cases.materialized_readback_cases.test_direct_stage_attempt_and_inspect import (
+    test_direct_stage_attempt_handoff_reads_owner_consumption_from_top_level_receipt,
+    test_direct_terminal_closeout_can_override_next_action_source,
+    test_direct_terminal_closeout_does_not_override_after_owner_consumed_route_checkpoint,
+    test_paper_mission_inspect_projects_receipt_owner_consumption_without_materialized_mission,
+    test_thin_legacy_stage_closure_keeps_owner_consumption_visible,
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -765,5 +783,3 @@ def test_same_attempt_direct_readback_is_aligned_with_owner_consumption() -> Non
             ]["mas_receipt_consumption"]["status"]
             == "owner_consumed_route_checkpoint"
         )
-
-from tests.test_cli_cases.paper_mission_command_cases.materialized_readback_cases.test_direct_stage_attempt_and_inspect import *  # noqa: F401,F403

@@ -906,4 +906,11 @@ def _execute_decision_with_evidence(evidence_refs: list[str]) -> dict[str, objec
     }
 
 
-from tests.test_paper_autonomy_supervisor_cases.terminal_owner_boundary_cases import *  # noqa: F403,F401,E402
+from tests.test_paper_autonomy_supervisor_cases.terminal_owner_boundary_cases import (
+    test_terminal_closeout_phase_consumes_closeout,
+    test_human_gate_phase_consumes_opl_resume_token_without_mas_generation,
+    test_human_gate_phase_does_not_synthesize_resume_token,
+    test_stable_typed_blocker_stops_same_identity_redrive,
+    test_owner_callable_recovery_materializes_action_even_when_queue_empty,
+    test_obligation_shape_is_identity_bound,
+)

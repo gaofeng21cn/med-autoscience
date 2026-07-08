@@ -5,7 +5,28 @@ from med_autoscience.controllers.opl_provider_ready_adapter.workspace_evidence i
 )
 from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
 
-from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
+from tests.product_entry_cases.action_catalog_parity_cases.shared import (
+    annotations,
+    importlib,
+    json,
+    _shared_base,
+    Path,
+    threading,
+    SimpleNamespace,
+    pytest,
+    SERVICE_SAFE_DOMAIN_COMMANDS,
+    make_profile,
+    read_runtime_state,
+    runtime_state_path,
+    write_runtime_state,
+    write_study,
+    write_text,
+    product_entry_cockpit_payload_module,
+    product_entry_manifest_surfaces_module,
+    product_entry_program_surfaces_module,
+    product_entry_shared_base_module,
+    _write_opl_production_proof,
+)
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:

@@ -895,4 +895,8 @@ def test_live_provider_attempt_projection_skips_attempt_ledger_entry_with_termin
         ("family-runtime", "attempt", "inspect", "sat-live", "--json"),
     ]
 
-from tests.paper_mission_owner_surface_cases.test_opl_provider_attempt_projection_cases.terminal_closeout_cases import *  # noqa: F403,F401
+from tests.paper_mission_owner_surface_cases.test_opl_provider_attempt_projection_cases.terminal_closeout_cases import (
+    test_terminal_provider_attempt_closeout_projection_reads_completed_accepted_attempt,
+    test_terminal_provider_attempt_closeout_inspects_compact_attempt_before_preferred_match,
+    test_terminal_provider_attempt_closeout_prioritizes_preferred_attempt_within_budget,
+)

@@ -919,4 +919,9 @@ def test_route_gate_assertion_raises_for_blocked_managed_context() -> None:
         )
 
 
-from tests.test_authority_route_gate_cases.synthetic_action_family_routes import *  # noqa: E402,F401,F403
+from tests.test_authority_route_gate_cases.synthetic_action_family_routes import (
+    test_stage_outcome_paper_write_family_routes_exact_ids_to_paper_write_not_submission_materialize,
+    test_synthetic_new_study_route_uses_action_family_not_exact_work_unit_mapping,
+    test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_unit_mapping,
+    test_synthetic_submission_family_envelope_routes_without_exact_work_unit_mapping,
+)

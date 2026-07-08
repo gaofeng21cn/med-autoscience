@@ -6,7 +6,15 @@ from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_quality_repair_batch import _write_blocked_publication_eval, _write_quality_summary
-from tests.test_paper_repair_execution_evidence_cases.story_surface_delta_cases import *  # noqa: F403,F401
+from tests.test_paper_repair_execution_evidence_cases.story_surface_delta_cases import (
+    test_quality_repair_batch_evidence_does_not_treat_canonical_story_surface_refs_as_delta,
+    test_medical_prose_write_repair_does_not_count_ai_reviewer_bound_current_manuscript_as_delta,
+    test_dm002_publication_hardening_work_unit_requires_story_surface_delta,
+    test_dm002_publication_hardening_consumes_writer_story_delta_since_previous_blocker,
+    test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair,
+    test_treatment_gap_reporting_repair_requires_story_surface_delta,
+    test_medical_prose_currentness_delta_requires_synchronized_journal_story_surfaces,
+)
 
 
 def _write_json(path: Path, payload: object) -> Path:

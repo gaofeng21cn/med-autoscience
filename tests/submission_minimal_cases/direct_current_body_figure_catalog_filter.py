@@ -4,7 +4,34 @@ from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
-from tests.submission_minimal_cases.shared import *
+from tests.submission_minimal_cases.shared import (
+    annotations,
+    _shared_base,
+    importlib,
+    io,
+    json,
+    os,
+    Path,
+    shutil,
+    zipfile,
+    zlib,
+    pytest,
+    PdfReader,
+    dump_json,
+    write_text,
+    write_png,
+    write_open_authority_snapshots,
+    remove_authority_snapshots,
+    real_submission_exports,
+    lightweight_submission_exports,
+    write_docx,
+    make_paper_workspace,
+    make_current_draft_workspace,
+    make_manuscript_shaped_draft_workspace,
+    make_materialized_submission_source_workspace,
+    make_authoritative_worktree_source_workspace,
+    make_stage_native_current_body_workspace,
+)
 
 
 def test_create_submission_minimal_package_filters_nested_supplementary_figures_when_canonical_catalog_exists(

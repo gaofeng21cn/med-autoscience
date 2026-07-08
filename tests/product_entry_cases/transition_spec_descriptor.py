@@ -1,7 +1,27 @@
 from __future__ import annotations
 
 from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
-from .shared import *  # noqa: F403,F401
+from .shared import (
+    annotations,
+    _shared_base,
+    importlib,
+    json,
+    Path,
+    threading,
+    SimpleNamespace,
+    pytest,
+    SERVICE_SAFE_DOMAIN_COMMANDS,
+    make_profile,
+    read_runtime_state,
+    runtime_state_path,
+    write_runtime_state,
+    write_study,
+    write_text,
+    product_entry_cockpit_payload_module,
+    product_entry_manifest_surfaces_module,
+    product_entry_program_surfaces_module,
+    product_entry_shared_base_module,
+)
 from tests.transition_descriptor_assertions import (  # noqa: E402
     assert_family_transition_descriptor_shape,
     resolve_json_pointer,

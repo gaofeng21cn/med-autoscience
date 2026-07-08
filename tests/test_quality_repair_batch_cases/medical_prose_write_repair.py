@@ -920,6 +920,3 @@ def test_medical_prose_write_repair_preserves_medication_coverage_writer_story_d
         _fingerprint(paper_root / "draft.md")["content_sha256"]
     }
     assert "recorded treatment-review gap" not in (paper_root / "draft.md").read_text(encoding="utf-8")
-
-
-from tests.test_quality_repair_batch_cases.medical_prose_write_repair_cases.test_route_context_and_registry_recovery import *  # noqa: F403,F401

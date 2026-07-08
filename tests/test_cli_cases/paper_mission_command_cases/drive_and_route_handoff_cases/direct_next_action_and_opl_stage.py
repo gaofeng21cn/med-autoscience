@@ -16,7 +16,18 @@ from med_autoscience.cli.paper_mission_commands.drive_readback import (
 from med_autoscience.cli.paper_mission_commands import (
     materialized_mission_readback as materialized_readback,
 )
-from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_helpers import (
+    DM_CANARY_FIXTURE_ROOT,
+    FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+    _assert_forbidden_authority_untouched,
+    _paper_mission_forbidden_write_guard,
+    _paper_mission_transaction_payload,
+    _write_candidate_manifest,
+    _write_matching_domain_gate_closeout,
+    _write_paper_source_fixture,
+    _write_profile_with_study,
+    _write_submission_milestone_package,
+)
 
 
 def test_paper_mission_drive_still_submits_same_work_unit_after_owner_consumed_route_checkpoint() -> None:

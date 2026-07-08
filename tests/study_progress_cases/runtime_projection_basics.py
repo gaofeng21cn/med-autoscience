@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
-from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import *  # noqa: F403,F401
+from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import (
+    test_study_progress_projects_stale_progress_signal_for_active_runtime,
+    test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_when_runtime_is_escalated,
+    test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint_lineage,
+)
 
 from . import shared as _shared
 

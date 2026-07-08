@@ -806,4 +806,7 @@ def test_run_gate_clearing_batch_allows_current_f3_payload_after_transport_sync(
     assert result_by_unit["materialize_display_surface"]["status"] == "materialized"
     assert result["repair_blocking_artifact_refs"] == []
 
-from tests.test_gate_clearing_batch_cases.direct_migration_display_refresh_cases.table1_and_transportability_cases import *  # noqa: F403,F401
+from tests.test_gate_clearing_batch_cases.direct_migration_display_refresh_cases.table1_and_transportability_cases import (
+    test_run_gate_clearing_batch_syncs_legacy_table1_schema_before_materialize,
+    test_transportability_f5_ignores_historical_runtime_metrics_path_and_uses_current_direct_migration_payload,
+)

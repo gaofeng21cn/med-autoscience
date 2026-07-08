@@ -961,4 +961,9 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
     assert route["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
 
 
-from tests.test_domain_transition_table_ai_reviewer_routeback_cases.materialized_controller_story_recheck import *  # noqa: F403,F401
+from tests.test_domain_transition_table_ai_reviewer_routeback_cases.materialized_controller_story_recheck import (
+    test_materialized_controller_ai_reviewer_route_has_own_next_action,
+    test_materialized_controller_write_route_preempts_stale_ai_reviewer_projection,
+    test_current_ai_reviewer_write_routeback_preempts_consumed_story_recheck_request,
+    test_current_ai_reviewer_write_routeback_preempts_unconsumed_story_recheck_request,
+)

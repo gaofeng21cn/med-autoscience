@@ -5,7 +5,18 @@ import json
 import os
 from pathlib import Path
 
-from tests.test_cli_cases.paper_mission_command_helpers import *  # noqa: F401,F403
+from tests.test_cli_cases.paper_mission_command_helpers import (
+    DM_CANARY_FIXTURE_ROOT,
+    FORBIDDEN_AUTHORITY_RELATIVE_PATHS,
+    _assert_forbidden_authority_untouched,
+    _paper_mission_forbidden_write_guard,
+    _paper_mission_transaction_payload,
+    _write_candidate_manifest,
+    _write_matching_domain_gate_closeout,
+    _write_paper_source_fixture,
+    _write_profile_with_study,
+    _write_submission_milestone_package,
+)
 
 
 def test_paper_mission_terminalize_stage_materializes_non_authority_decision(
@@ -580,7 +591,6 @@ def test_stage_closure_terminalizer_reads_workspace_consumption_closeout_account
     assert closeout["cost"]["missing_cost_reason"] == "provider_attempt_cost_not_exposed"
     assert "observability_gaps" not in payload["stage_closure_decision"]
 
-from tests.test_cli_cases.paper_mission_commands_cases.stage_closure_terminalizer_cases.test_latest_source_precedence import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_commands_cases.stage_closure_terminalizer_cases.test_latest_source_precedence import (  # noqa: F401
     _paper_mission_carrier_for_transaction,
     _write_consumption_ledger,
