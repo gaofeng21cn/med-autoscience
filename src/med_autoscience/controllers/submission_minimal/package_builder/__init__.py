@@ -133,92 +133,17 @@ from ..source_hydration import (
     hydrate_submission_package_sources_from_current_body,
 )
 from ..export_renderers import default_pdf_rendering_profile, export_docx, export_pdf
+from .delivery_layout import (
+    apply_controller_authorized_delivery_layout,
+    write_submission_lineage_reproducibility_bundle,
+    write_submission_reproducibility_documents,
+)
 from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.controllers.submission_package_layout import (
-    build_analysis_results_from_source_contract,
-    build_analysis_manifest_document,
-    build_artifact_lineage_graph_document,
     build_package_layout_block,
-    build_software_environment_document,
-    build_source_relative_paths_document,
-    build_source_signature_document,
     audit_path,
-    reproducibility_path,
     submission_manifest_path as layout_submission_manifest_path,
 )
-
-
-def _apply_controller_authorized_delivery_layout(
-    *,
-    manifest: dict[str, Any],
-    target_submission_root: Path,
-    workspace_root: Path,
-    source_contract: dict[str, Any],
-) -> None:
-    manifest["source_signature"] = source_contract["source_signature"]
-    manifest["source_contract"] = source_contract
-    manifest["delivery_layout"] = build_package_layout_block(
-        package_root=target_submission_root,
-        workspace_root=workspace_root,
-        package_role="controller_authorized_package_source",
-        source_package_root=target_submission_root,
-        source_signature=source_contract["source_signature"],
-        legacy_input_status="v2_generated",
-    )
-
-
-def _write_submission_reproducibility_documents(
-    *,
-    target_submission_root: Path,
-    source_contract: dict[str, Any],
-) -> None:
-    dump_json(
-        reproducibility_path(target_submission_root, "source_signature"),
-        build_source_signature_document(
-            source_signature=source_contract["source_signature"],
-            source_contract=source_contract,
-            package_role="controller_authorized_package_source",
-        ),
-    )
-    dump_json(
-        reproducibility_path(target_submission_root, "source_relative_paths"),
-        build_source_relative_paths_document(
-            source_relative_paths=source_contract.get("source_paths") or [],
-            source_files=source_contract.get("source_files") or [],
-            package_role="controller_authorized_package_source",
-        ),
-    )
-
-
-def _write_submission_lineage_reproducibility_bundle(
-    *,
-    target_submission_root: Path,
-    source_contract: dict[str, Any],
-) -> None:
-    analysis_results = build_analysis_results_from_source_contract(source_contract)
-    dump_json(
-        reproducibility_path(target_submission_root, "software_environment"),
-        build_software_environment_document(
-            package_role="controller_authorized_package_source",
-        ),
-    )
-    dump_json(
-        reproducibility_path(target_submission_root, "analysis_manifest"),
-        build_analysis_manifest_document(
-            analysis_manifest_source=None,
-            analysis_manifest_present=bool(analysis_results),
-            package_role="controller_authorized_package_source",
-            analysis_results=analysis_results,
-        ),
-    )
-    dump_json(
-        reproducibility_path(target_submission_root, "artifact_lineage_graph"),
-        build_artifact_lineage_graph_document(
-            package_role="controller_authorized_package_source",
-            source_signature=source_contract["source_signature"],
-            source_contract=source_contract,
-        ),
-    )
 
 
 def _journal_target_payload(profile_config: Any) -> dict[str, str] | None:
@@ -914,18 +839,18 @@ def create_submission_minimal_package(
         table_catalog=table_catalog,
         pack_lock_path=pack_lock_path,
     )
-    _apply_controller_authorized_delivery_layout(
+    apply_controller_authorized_delivery_layout(
         manifest=manifest,
         target_submission_root=target_submission_root,
         workspace_root=label_root,
         source_contract=refreshed_source_contract,
     )
     dump_json(submission_manifest_path, manifest)
-    _write_submission_reproducibility_documents(
+    write_submission_reproducibility_documents(
         target_submission_root=target_submission_root,
         source_contract=refreshed_source_contract,
     )
-    _write_submission_lineage_reproducibility_bundle(
+    write_submission_lineage_reproducibility_bundle(
         target_submission_root=target_submission_root,
         source_contract=refreshed_source_contract,
     )
@@ -965,18 +890,18 @@ def create_submission_minimal_package(
             table_catalog=table_catalog,
             pack_lock_path=pack_lock_path,
         )
-        _apply_controller_authorized_delivery_layout(
+        apply_controller_authorized_delivery_layout(
             manifest=manifest,
             target_submission_root=target_submission_root,
             workspace_root=label_root,
             source_contract=refreshed_source_contract,
         )
         dump_json(submission_manifest_path, manifest)
-        _write_submission_reproducibility_documents(
+        write_submission_reproducibility_documents(
             target_submission_root=target_submission_root,
             source_contract=refreshed_source_contract,
         )
-        _write_submission_lineage_reproducibility_bundle(
+        write_submission_lineage_reproducibility_bundle(
             target_submission_root=target_submission_root,
             source_contract=refreshed_source_contract,
         )
