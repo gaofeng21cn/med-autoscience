@@ -23,84 +23,38 @@ def test_domain_diagnostic_report_outer_loop_routes_startup_freshness_gate_befor
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-05-05T10:11:17+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-05-05T10:11:17+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Publication gate is blocked by current package freshness and reviewer story issues.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-delivery",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "stale_study_delivery_mirror",
-                    "evidence_refs": [str(publication_eval_path)],
-                },
-                {
-                    "gap_id": "gap-story",
-                    "gap_type": "reporting",
-                    "severity": "must_fix",
-                    "summary": "reviewer_first_concerns_unresolved",
-                    "evidence_refs": [str(publication_eval_path)],
-                },
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-write",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Route back to write after startup freshness is resolved.",
-                    "route_target": "write",
-                    "route_key_question": "manuscript_story_repair: Repair the paper story around the current evidence and claim boundary.",
-                    "route_rationale": "The reviewer-facing story needs repair.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "work_unit_fingerprint": "publication-blockers::dm002",
-                    "next_work_unit": {
-                        "unit_id": "manuscript_story_repair",
-                        "lane": "write",
-                        "summary": "Repair the paper story around the current evidence and claim boundary.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-05-05T10:11:17+00:00',
+                'emitted_at': '2026-05-05T10:11:17+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Publication gate is blocked by current package freshness and reviewer story issues.', 'stop_loss_pressure': 'watch'},
+                'gaps': [
+                    {'gap_id': 'gap-delivery', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'stale_study_delivery_mirror', 'evidence_refs': [str(publication_eval_path)]},
+                    {'gap_id': 'gap-story', 'gap_type': 'reporting', 'severity': 'must_fix', 'summary': 'reviewer_first_concerns_unresolved', 'evidence_refs': [str(publication_eval_path)]},
+                ],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-write',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Route back to write after startup freshness is resolved.',
+                        'route_target': 'write',
+                        'route_key_question': 'manuscript_story_repair: Repair the paper story around the current evidence and claim boundary.',
+                        'route_rationale': 'The reviewer-facing story needs repair.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'work_unit_fingerprint': 'publication-blockers::dm002',
+                        'next_work_unit': {'unit_id': 'manuscript_story_repair', 'lane': 'write', 'summary': 'Repair the paper story around the current evidence and claim boundary.'},
+                        'blocking_work_units': [
+                            {'unit_id': 'manuscript_story_repair', 'lane': 'write', 'summary': 'Repair the paper story around the current evidence and claim boundary.'},
+                            {'unit_id': 'submission_minimal_refresh', 'lane': 'finalize', 'summary': 'Refresh the stale submission_minimal package and current delivery bundle.'},
+                        ],
+                        'requires_controller_decision': True,
                     },
-                    "blocking_work_units": [
-                        {
-                            "unit_id": "manuscript_story_repair",
-                            "lane": "write",
-                            "summary": "Repair the paper story around the current evidence and claim boundary.",
-                        },
-                        {
-                            "unit_id": "submission_minimal_refresh",
-                            "lane": "finalize",
-                            "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
-                        },
-                    ],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -184,83 +138,38 @@ def test_domain_diagnostic_report_outer_loop_routes_startup_freshness_gate_befor
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": (
-                "publication-eval::002-dm-china-us-mortality-attribution::quest-002::"
-                "2026-05-05T10:53:41+00:00"
-            ),
-            "study_id": "002-dm-china-us-mortality-attribution",
-            "quest_id": "quest-002",
-            "emitted_at": "2026-05-05T10:53:41+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
-                "publication_objective": "mortality attribution manuscript",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Publication eval recommends an analysis work-unit, but startup freshness is still required.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-analysis",
-                    "gap_type": "evidence",
-                    "severity": "must_fix",
-                    "summary": "claim_evidence_consistency_failed",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-analysis",
-                    "action_type": "bounded_analysis",
-                    "priority": "now",
-                    "reason": "Repair claim-evidence and story blockers.",
-                    "route_target": "analysis-campaign",
-                    "route_key_question": (
-                        "analysis_claim_evidence_repair: Repair claim-evidence, story, figure, "
-                        "and results traceability blockers."
-                    ),
-                    "route_rationale": "The current publication eval still has analysis blockers.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "work_unit_fingerprint": "publication-blockers::analysis",
-                    "next_work_unit": {
-                        "unit_id": "analysis_claim_evidence_repair",
-                        "lane": "analysis-campaign",
-                        "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::002-dm-china-us-mortality-attribution::quest-002::2026-05-05T10:53:41+00:00',
+                'study_id': '002-dm-china-us-mortality-attribution',
+                'quest_id': 'quest-002',
+                'emitted_at': '2026-05-05T10:53:41+00:00',
+                'charter_context_ref': {'ref': str(study_root / 'artifacts' / 'controller' / 'study_charter.json'), 'charter_id': 'charter::002-dm-china-us-mortality-attribution::v1', 'publication_objective': 'mortality attribution manuscript'},
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Publication eval recommends an analysis work-unit, but startup freshness is still required.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-analysis', 'gap_type': 'evidence', 'severity': 'must_fix', 'summary': 'claim_evidence_consistency_failed', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-analysis',
+                        'action_type': 'bounded_analysis',
+                        'priority': 'now',
+                        'reason': 'Repair claim-evidence and story blockers.',
+                        'route_target': 'analysis-campaign',
+                        'route_key_question': 'analysis_claim_evidence_repair: Repair claim-evidence, story, figure, and results traceability blockers.',
+                        'route_rationale': 'The current publication eval still has analysis blockers.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'work_unit_fingerprint': 'publication-blockers::analysis',
+                        'next_work_unit': {'unit_id': 'analysis_claim_evidence_repair', 'lane': 'analysis-campaign', 'summary': 'Repair claim-evidence, story, figure, and results traceability blockers.'},
+                        'blocking_work_units': [
+                            {'unit_id': 'analysis_claim_evidence_repair', 'lane': 'analysis-campaign', 'summary': 'Repair claim-evidence, story, figure, and results traceability blockers.'},
+                            {'unit_id': 'submission_minimal_refresh', 'lane': 'finalize', 'summary': 'Refresh the stale submission_minimal package and current delivery bundle.'},
+                        ],
+                        'requires_controller_decision': True,
                     },
-                    "blocking_work_units": [
-                        {
-                            "unit_id": "analysis_claim_evidence_repair",
-                            "lane": "analysis-campaign",
-                            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
-                        },
-                        {
-                            "unit_id": "submission_minimal_refresh",
-                            "lane": "finalize",
-                            "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
-                        },
-                    ],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     gate_report = {
         "status": "blocked",
@@ -332,75 +241,35 @@ def test_domain_diagnostic_report_outer_loop_routes_bundle_stage_ready_before_st
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": (
-                "publication-eval::002-dm-china-us-mortality-attribution::quest-002::"
-                "2026-05-12T13:24:00+00:00"
-            ),
-            "study_id": "002-dm-china-us-mortality-attribution",
-            "quest_id": "quest-002",
-            "emitted_at": "2026-05-12T13:24:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
-                "publication_objective": "mortality attribution manuscript",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Gate replay is clear; bundle-stage authority sync is now the critical path.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-submission-authority",
-                    "gap_type": "delivery",
-                    "severity": "important",
-                    "summary": "submission_authority_sync_closure",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::route_back_same_line::submission-authority",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Continue bundle-stage submission authority sync.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The publication gate is clear and bundle-stage authority sync is current critical path.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "work_unit_fingerprint": "publication-blockers::submission-authority",
-                    "next_work_unit": {
-                        "unit_id": "submission_authority_sync_closure",
-                        "lane": "finalize",
-                        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::002-dm-china-us-mortality-attribution::quest-002::2026-05-12T13:24:00+00:00',
+                'study_id': '002-dm-china-us-mortality-attribution',
+                'quest_id': 'quest-002',
+                'emitted_at': '2026-05-12T13:24:00+00:00',
+                'charter_context_ref': {'ref': str(study_root / 'artifacts' / 'controller' / 'study_charter.json'), 'charter_id': 'charter::002-dm-china-us-mortality-attribution::v1', 'publication_objective': 'mortality attribution manuscript'},
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Gate replay is clear; bundle-stage authority sync is now the critical path.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-submission-authority', 'gap_type': 'delivery', 'severity': 'important', 'summary': 'submission_authority_sync_closure', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::route_back_same_line::submission-authority',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Continue bundle-stage submission authority sync.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The publication gate is clear and bundle-stage authority sync is current critical path.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'work_unit_fingerprint': 'publication-blockers::submission-authority',
+                        'next_work_unit': {'unit_id': 'submission_authority_sync_closure', 'lane': 'finalize', 'summary': 'Regenerate submission authority signatures, then replay the publication gate.'},
+                        'blocking_work_units': [{'unit_id': 'submission_authority_sync_closure', 'lane': 'finalize', 'summary': 'Regenerate submission authority signatures, then replay the publication gate.'}],
+                        'requires_controller_decision': True,
                     },
-                    "blocking_work_units": [
-                        {
-                            "unit_id": "submission_authority_sync_closure",
-                            "lane": "finalize",
-                            "summary": "Regenerate submission authority signatures, then replay the publication gate.",
-                        }
-                    ],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -485,75 +354,35 @@ def test_domain_diagnostic_report_outer_loop_routes_bundle_ready_eval_review_uni
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": (
-                "publication-eval::002-dm-china-us-mortality-attribution::quest-002::"
-                "2026-05-13T16:15:57+00:00"
-            ),
-            "study_id": "002-dm-china-us-mortality-attribution",
-            "quest_id": "quest-002",
-            "emitted_at": "2026-05-13T16:15:57+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
-                "publication_objective": "mortality attribution manuscript",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "optional",
-                    "summary": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::continue_same_line::review",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "work_unit_fingerprint": "publication-blockers::review",
-                    "next_work_unit": {
-                        "unit_id": "publication_gate_blocker_review",
-                        "lane": "review",
-                        "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::002-dm-china-us-mortality-attribution::quest-002::2026-05-13T16:15:57+00:00',
+                'study_id': '002-dm-china-us-mortality-attribution',
+                'quest_id': 'quest-002',
+                'emitted_at': '2026-05-13T16:15:57+00:00',
+                'charter_context_ref': {'ref': str(study_root / 'artifacts' / 'controller' / 'study_charter.json'), 'charter_id': 'charter::002-dm-china-us-mortality-attribution::v1', 'publication_objective': 'mortality attribution manuscript'},
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'bundle-stage work is unlocked and can proceed on the critical path', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'optional', 'summary': 'bundle-stage work is unlocked and can proceed on the critical path', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::continue_same_line::review',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'bundle-stage work is unlocked and can proceed on the critical path',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'bundle-stage work is unlocked and can proceed on the critical path',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'work_unit_fingerprint': 'publication-blockers::review',
+                        'next_work_unit': {'unit_id': 'publication_gate_blocker_review', 'lane': 'review', 'summary': 'Review the current publication gate blockers and select the narrowest repair unit.'},
+                        'blocking_work_units': [{'unit_id': 'publication_gate_blocker_review', 'lane': 'review', 'summary': 'Review the current publication gate blockers and select the narrowest repair unit.'}],
+                        'requires_controller_decision': True,
                     },
-                    "blocking_work_units": [
-                        {
-                            "unit_id": "publication_gate_blocker_review",
-                            "lane": "review",
-                            "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
-                        }
-                    ],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -665,72 +494,35 @@ def test_domain_diagnostic_report_outer_loop_routes_bundle_blocked_eval_review_u
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::latest",
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "quest_id": "quest-003",
-            "emitted_at": "2026-05-13T22:45:40+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::003-dpcc-primary-care-phenotype-treatment-gap::v1",
-                "publication_objective": "primary care treatment gap manuscript",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-submission-authority",
-                    "gap_type": "delivery",
-                    "severity": "important",
-                    "summary": "stale_submission_minimal_authority",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::continue_same_line::review",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "work_unit_fingerprint": "publication-blockers::review",
-                    "next_work_unit": {
-                        "unit_id": "publication_gate_blocker_review",
-                        "lane": "review",
-                        "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::latest',
+                'study_id': '003-dpcc-primary-care-phenotype-treatment-gap',
+                'quest_id': 'quest-003',
+                'emitted_at': '2026-05-13T22:45:40+00:00',
+                'charter_context_ref': {'ref': str(study_root / 'artifacts' / 'controller' / 'study_charter.json'), 'charter_id': 'charter::003-dpcc-primary-care-phenotype-treatment-gap::v1', 'publication_objective': 'primary care treatment gap manuscript'},
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'bundle-stage work is unlocked and can proceed on the critical path', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-submission-authority', 'gap_type': 'delivery', 'severity': 'important', 'summary': 'stale_submission_minimal_authority', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::continue_same_line::review',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'bundle-stage work is unlocked and can proceed on the critical path',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'bundle-stage work is unlocked and can proceed on the critical path',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'work_unit_fingerprint': 'publication-blockers::review',
+                        'next_work_unit': {'unit_id': 'publication_gate_blocker_review', 'lane': 'review', 'summary': 'Review the current publication gate blockers and select the narrowest repair unit.'},
+                        'blocking_work_units': [{'unit_id': 'publication_gate_blocker_review', 'lane': 'review', 'summary': 'Review the current publication gate blockers and select the narrowest repair unit.'}],
+                        'requires_controller_decision': True,
                     },
-                    "blocking_work_units": [
-                        {
-                            "unit_id": "publication_gate_blocker_review",
-                            "lane": "review",
-                            "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
-                        }
-                    ],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -804,59 +596,29 @@ def test_domain_diagnostic_report_outer_loop_keeps_current_write_task_intake_bef
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-05-12T14:00:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-05-12T14:00:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-05-12T14:00:00+00:00',
+                'emitted_at': '2026-05-12T14:00:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Only bundle-stage cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-bundle', 'gap_type': 'delivery', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::continue-finalize',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The publication gate is clear and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Only bundle-stage cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-bundle",
-                    "gap_type": "delivery",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::continue-finalize",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The publication gate is clear and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,

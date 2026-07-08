@@ -75,63 +75,30 @@ def test_build_runtime_readback_outer_loop_tick_request_materializes_bounded_ana
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'mixed', 'primary_claim_status': 'partial', 'summary': 'Primary line is stable and a bounded robustness analysis should run next.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'evidence', 'severity': 'important', 'summary': 'Robustness check is still missing.', 'evidence_refs': [str(quest_root / 'artifacts' / 'results' / 'main_result.json')]}],
+                'recommended_actions': [
+                    {'action_id': 'action-000', 'action_type': 'return_to_controller', 'priority': 'now', 'reason': 'Controller can review the current evidence posture.', 'evidence_refs': [str(publication_eval_path)], 'requires_controller_decision': True},
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'bounded_analysis',
+                        'priority': 'now',
+                        'reason': 'Run the bounded robustness analysis before the next publication gate pass.',
+                        'route_target': 'analysis-campaign',
+                        'route_key_question': 'What is the narrowest supplementary analysis still required before the paper line can continue?',
+                        'route_rationale': 'The current line is clear enough to continue after one bounded supplementary analysis pass.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "mixed",
-                "primary_claim_status": "partial",
-                "summary": "Primary line is stable and a bounded robustness analysis should run next.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "evidence",
-                    "severity": "important",
-                    "summary": "Robustness check is still missing.",
-                    "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-000",
-                    "action_type": "return_to_controller",
-                    "priority": "now",
-                    "reason": "Controller can review the current evidence posture.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                },
-                {
-                    "action_id": "action-001",
-                    "action_type": "bounded_analysis",
-                    "priority": "now",
-                    "reason": "Run the bounded robustness analysis before the next publication gate pass.",
-                    "route_target": "analysis-campaign",
-                    "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
-                    "route_rationale": "The current line is clear enough to continue after one bounded supplementary analysis pass.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
 
     request = module.build_runtime_readback_outer_loop_tick_request(
@@ -170,59 +137,29 @@ def test_domain_diagnostic_report_outer_loop_prefers_active_task_intake_analysis
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-22T13:19:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-22T13:19:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-22T13:19:00+00:00',
+                'emitted_at': '2026-04-22T13:19:00+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Return to finalize to close submission-readiness gaps.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'stale_submission_minimal_authority', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-finalize',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Return to finalize.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'Return to finalize.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Return to finalize to close submission-readiness gaps.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "stale_submission_minimal_authority",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-finalize",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Return to finalize.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "Return to finalize.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -294,59 +231,29 @@ def test_domain_diagnostic_report_outer_loop_promotes_task_intake_generic_gate_s
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-05-03T09:10:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-05-03T09:10:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-05-03T09:10:00+00:00',
+                'emitted_at': '2026-05-03T09:10:00+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Publication gate needs concrete blocker targets.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-claim-evidence', 'gap_type': 'evidence', 'severity': 'must_fix', 'summary': 'claim_evidence_consistency_failed', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-analysis',
+                        'action_type': 'bounded_analysis',
+                        'priority': 'now',
+                        'reason': 'Prior task intake still points at analysis.',
+                        'route_target': 'analysis-campaign',
+                        'route_key_question': 'Update paper/rebuttal/review_matrix.md and paper/rebuttal/action_plan.md.',
+                        'route_rationale': 'The stale task-intake route is no longer executable while the gate lacks concrete targets.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Publication gate needs concrete blocker targets.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-claim-evidence",
-                    "gap_type": "evidence",
-                    "severity": "must_fix",
-                    "summary": "claim_evidence_consistency_failed",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-analysis",
-                    "action_type": "bounded_analysis",
-                    "priority": "now",
-                    "reason": "Prior task intake still points at analysis.",
-                    "route_target": "analysis-campaign",
-                    "route_key_question": "Update paper/rebuttal/review_matrix.md and paper/rebuttal/action_plan.md.",
-                    "route_rationale": "The stale task-intake route is no longer executable while the gate lacks concrete targets.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -415,70 +322,21 @@ def test_domain_diagnostic_report_outer_loop_routes_deterministic_closeout_befor
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-22T23:53:24+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-22T23:53:24+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-22T23:53:24+00:00',
+                'emitted_at': '2026-04-22T23:53:24+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Only deterministic submission closeout remains.', 'stop_loss_pressure': 'watch'},
+                'gaps': [
+                    {'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'stale_submission_minimal_authority', 'evidence_refs': [str(publication_eval_path)]},
+                    {'gap_id': 'gap-002', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'stale_study_delivery_mirror', 'evidence_refs': [str(publication_eval_path)]},
+                    {'gap_id': 'gap-003', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'submission_surface_qc_failure_present', 'evidence_refs': [str(publication_eval_path)]},
+                ],
+                'recommended_actions': [{'action_id': 'action-return', 'action_type': 'return_to_controller', 'priority': 'now', 'reason': 'Clear deterministic submission closeout blockers.', 'evidence_refs': [str(publication_eval_path)], 'requires_controller_decision': True}],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(quest_root / ".ds" / "worktrees" / "paper-run" / "paper"),
-                "submission_minimal_ref": str(
-                    quest_root / ".ds" / "worktrees" / "paper-run" / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Only deterministic submission closeout remains.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "stale_submission_minimal_authority",
-                    "evidence_refs": [str(publication_eval_path)],
-                },
-                {
-                    "gap_id": "gap-002",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "stale_study_delivery_mirror",
-                    "evidence_refs": [str(publication_eval_path)],
-                },
-                {
-                    "gap_id": "gap-003",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "submission_surface_qc_failure_present",
-                    "evidence_refs": [str(publication_eval_path)],
-                },
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-return",
-                    "action_type": "return_to_controller",
-                    "priority": "now",
-                    "reason": "Clear deterministic submission closeout blockers.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -568,55 +426,29 @@ def test_build_runtime_readback_outer_loop_tick_request_materializes_route_back_
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'partial', 'summary': 'The direction and claim boundary are stable, but ordinary paper quality gaps remain.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'important', 'summary': 'The paper needs a same-line route-back to repair reporting quality.', 'evidence_refs': [str(quest_root / 'artifacts' / 'results' / 'main_result.json')]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Route back to the same core route; direction and claim boundary are unchanged.',
+                        'route_target': 'write',
+                        'route_key_question': 'What is the narrowest same-line manuscript repair or continuation step required now?',
+                        'route_rationale': 'The publication gate is clear and the current paper line can continue through same-line manuscript work.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "partial",
-                "summary": "The direction and claim boundary are stable, but ordinary paper quality gaps remain.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "important",
-                    "summary": "The paper needs a same-line route-back to repair reporting quality.",
-                    "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Route back to the same core route; direction and claim boundary are unchanged.",
-                    "route_target": "write",
-                    "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
-                    "route_rationale": "The publication gate is clear and the current paper line can continue through same-line manuscript work.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
 
     request = module.build_runtime_readback_outer_loop_tick_request(
@@ -650,55 +482,29 @@ def test_build_runtime_readback_outer_loop_tick_request_falls_back_to_quest_runt
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'partial', 'summary': 'The same-line paper route can continue.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'important', 'summary': 'The paper needs same-line reporting repair.', 'evidence_refs': [str(quest_root / 'artifacts' / 'results' / 'main_result.json')]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Route back to the same paper line.',
+                        'route_target': 'write',
+                        'route_key_question': 'What is the narrowest same-line manuscript repair or continuation step required now?',
+                        'route_rationale': 'The publication gate is clear and the current paper line can continue through same-line manuscript work.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "partial",
-                "summary": "The same-line paper route can continue.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "important",
-                    "summary": "The paper needs same-line reporting repair.",
-                    "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Route back to the same paper line.",
-                    "route_target": "write",
-                    "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
-                    "route_rationale": "The publication gate is clear and the current paper line can continue through same-line manuscript work.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
 
     request = module.build_runtime_readback_outer_loop_tick_request(
@@ -731,89 +537,63 @@ def test_build_runtime_readback_outer_loop_tick_request_autoparks_ready_submissi
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only bundle-stage cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "quality_assessment": {
-                "clinical_significance": {
-                    "status": "ready",
-                    "summary": "Clinical question is already publication-ready.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Clinical framing is stable.",
-                    "reviewer_revision_advice": "Only minor bundle cleanup remains.",
-                    "reviewer_next_round_focus": "Keep the clinician-facing framing consistent across surfaces.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only bundle-stage cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'quality_assessment': {
+                    'clinical_significance': {
+                        'status': 'ready',
+                        'summary': 'Clinical question is already publication-ready.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Clinical framing is stable.',
+                        'reviewer_revision_advice': 'Only minor bundle cleanup remains.',
+                        'reviewer_next_round_focus': 'Keep the clinician-facing framing consistent across surfaces.',
+                    },
+                    'evidence_strength': {
+                        'status': 'ready',
+                        'summary': 'Evidence chain is already closed.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Evidence posture is stable.',
+                        'reviewer_revision_advice': 'Only refresh delivery surfaces if needed.',
+                        'reviewer_next_round_focus': 'Keep evidence references synchronized across package surfaces.',
+                    },
+                    'novelty_positioning': {
+                        'status': 'ready',
+                        'summary': 'Contribution boundary is already explicit.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Novelty framing is fixed.',
+                        'reviewer_revision_advice': 'Do not expand the claim boundary.',
+                        'reviewer_next_round_focus': 'Keep contribution wording aligned with the frozen charter.',
+                    },
+                    'human_review_readiness': {
+                        'status': 'ready',
+                        'summary': 'The human-facing current package is ready for review.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'The review package is synchronized.',
+                        'reviewer_revision_advice': 'Only keep bundle surfaces aligned.',
+                        'reviewer_next_round_focus': 'Double-check package surface consistency before submission.',
+                    },
                 },
-                "evidence_strength": {
-                    "status": "ready",
-                    "summary": "Evidence chain is already closed.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Evidence posture is stable.",
-                    "reviewer_revision_advice": "Only refresh delivery surfaces if needed.",
-                    "reviewer_next_round_focus": "Keep evidence references synchronized across package surfaces.",
-                },
-                "novelty_positioning": {
-                    "status": "ready",
-                    "summary": "Contribution boundary is already explicit.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Novelty framing is fixed.",
-                    "reviewer_revision_advice": "Do not expand the claim boundary.",
-                    "reviewer_next_round_focus": "Keep contribution wording aligned with the frozen charter.",
-                },
-                "human_review_readiness": {
-                    "status": "ready",
-                    "summary": "The human-facing current package is ready for review.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "The review package is synchronized.",
-                    "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
-                    "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
-                },
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     _write_json(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",

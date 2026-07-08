@@ -22,65 +22,31 @@ def test_build_runtime_readback_outer_loop_tick_request_routes_quality_repair_ba
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-25T04:41:53+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-25T04:41:53+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Quality-floor blockers remain before the paper line can continue.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "must_fix",
-                    "summary": "claim_evidence_map_missing_or_incomplete",
-                    "evidence_refs": [str(study_root / "paper")],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-task-intake",
-                    "action_type": "bounded_analysis",
-                    "priority": "now",
-                    "reason": "Return to the same line for bounded repair.",
-                    "route_target": "analysis-campaign",
-                    "route_key_question": "Which claim-evidence repair is still blocking publishability?",
-                    "route_rationale": "Publication gate selected a MAS-owned quality repair work unit.",
-                    "evidence_refs": [str(study_root / "paper")],
-                    "requires_controller_decision": True,
-                    "next_work_unit": {
-                        "unit_id": "analysis_claim_evidence_repair",
-                        "lane": "analysis-campaign",
-                        "summary": "Repair claim-evidence and results traceability blockers.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-25T04:41:53+00:00',
+                'emitted_at': '2026-04-25T04:41:53+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Quality-floor blockers remain before the paper line can continue.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'must_fix', 'summary': 'claim_evidence_map_missing_or_incomplete', 'evidence_refs': [str(study_root / 'paper')]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-task-intake',
+                        'action_type': 'bounded_analysis',
+                        'priority': 'now',
+                        'reason': 'Return to the same line for bounded repair.',
+                        'route_target': 'analysis-campaign',
+                        'route_key_question': 'Which claim-evidence repair is still blocking publishability?',
+                        'route_rationale': 'Publication gate selected a MAS-owned quality repair work unit.',
+                        'evidence_refs': [str(study_root / 'paper')],
+                        'requires_controller_decision': True,
+                        'next_work_unit': {'unit_id': 'analysis_claim_evidence_repair', 'lane': 'analysis-campaign', 'summary': 'Repair claim-evidence and results traceability blockers.'},
+                        'work_unit_fingerprint': 'publication-blockers::quality',
                     },
-                    "work_unit_fingerprint": "publication-blockers::quality",
-                }
-            ],
-        },
+                ],
+            },
+        ),
     )
     gate_report = {
         "status": "blocked",

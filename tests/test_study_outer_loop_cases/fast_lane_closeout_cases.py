@@ -23,59 +23,29 @@ def test_build_runtime_readback_outer_loop_tick_request_stops_live_runtime_after
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2099-04-28T00:32:47+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2099-04-28T00:32:47+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2099-04-28T00:32:47+00:00',
+                'emitted_at': '2099-04-28T00:32:47+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Bundle-stage blockers remain after manual foreground finishing.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'must_fix', 'summary': 'stale_submission_minimal_authority', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::route_back_same_line::publication-blockers',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Route back to finalize to close submission-readiness gaps.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'Route back to finalize to close submission-readiness gaps.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Bundle-stage blockers remain after manual foreground finishing.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "must_fix",
-                    "summary": "stale_submission_minimal_authority",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::route_back_same_line::publication-blockers",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Route back to finalize to close submission-readiness gaps.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "Route back to finalize to close submission-readiness gaps.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_payload = task_intake_module.write_task_intake(
         profile=profile,
@@ -206,59 +176,30 @@ def test_build_runtime_readback_outer_loop_tick_request_does_not_stop_when_fast_
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-05-03T16:10:00+00:00",
-            "study_id": "001-dm-cvd-mortality-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-05-03T16:10:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-05-03T16:10:00+00:00',
+                'study_id': '001-dm-cvd-mortality-risk',
+                'emitted_at': '2026-05-03T16:10:00+00:00',
+                'verdict': {'overall_verdict': 'blocked', 'primary_claim_status': 'partial', 'summary': 'Publication gate remains blocked after foreground fast-lane closeout.', 'stop_loss_pressure': 'watch'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'must_fix', 'summary': 'medical_publication_surface_blocked', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'publication-eval-action::route_back_same_line::publication-blockers',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Route back to write to close reviewer-first publication-surface concerns.',
+                        'route_target': 'write',
+                        'route_key_question': 'Which reviewer-first publication-surface concern remains open?',
+                        'route_rationale': 'The publication gate is still blocked after foreground fast-lane closeout.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "blocked",
-                "primary_claim_status": "partial",
-                "summary": "Publication gate remains blocked after foreground fast-lane closeout.",
-                "stop_loss_pressure": "watch",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "must_fix",
-                    "summary": "medical_publication_surface_blocked",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "publication-eval-action::route_back_same_line::publication-blockers",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Route back to write to close reviewer-first publication-surface concerns.",
-                    "route_target": "write",
-                    "route_key_question": "Which reviewer-first publication-surface concern remains open?",
-                    "route_rationale": "The publication gate is still blocked after foreground fast-lane closeout.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_payload = task_intake_module.write_task_intake(
         profile=profile,

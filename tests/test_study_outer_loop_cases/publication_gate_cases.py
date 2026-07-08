@@ -22,59 +22,29 @@ def test_build_runtime_readback_outer_loop_tick_request_ignores_stale_task_intak
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-24T04:41:53+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00',
+                'emitted_at': '2026-04-24T04:41:53+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only finalize-level cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only finalize-level cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -177,91 +147,63 @@ def test_build_runtime_readback_outer_loop_tick_request_autoparks_without_runtim
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only bundle-stage cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "quality_assessment": {
-                "clinical_significance": {
-                    "status": "ready",
-                    "summary": "Clinical question is already publication-ready.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Clinical framing is stable.",
-                    "reviewer_revision_advice": "Only minor bundle cleanup remains.",
-                    "reviewer_next_round_focus": "Keep the clinician-facing framing consistent across surfaces.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only bundle-stage cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'quality_assessment': {
+                    'clinical_significance': {
+                        'status': 'ready',
+                        'summary': 'Clinical question is already publication-ready.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Clinical framing is stable.',
+                        'reviewer_revision_advice': 'Only minor bundle cleanup remains.',
+                        'reviewer_next_round_focus': 'Keep the clinician-facing framing consistent across surfaces.',
+                    },
+                    'evidence_strength': {
+                        'status': 'ready',
+                        'summary': 'Evidence chain is already closed.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Evidence posture is stable.',
+                        'reviewer_revision_advice': 'Only refresh delivery surfaces if needed.',
+                        'reviewer_next_round_focus': 'Keep evidence references synchronized across package surfaces.',
+                    },
+                    'novelty_positioning': {
+                        'status': 'ready',
+                        'summary': 'Contribution boundary is already explicit.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Novelty framing is fixed.',
+                        'reviewer_revision_advice': 'Do not expand the claim boundary.',
+                        'reviewer_next_round_focus': 'Keep contribution wording aligned with the frozen charter.',
+                    },
+                    'human_review_readiness': {
+                        'status': 'ready',
+                        'summary': 'The human-facing current package is ready for review.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'The review package is synchronized.',
+                        'reviewer_revision_advice': 'Only keep bundle surfaces aligned.',
+                        'reviewer_next_round_focus': 'Double-check package surface consistency before submission.',
+                    },
                 },
-                "evidence_strength": {
-                    "status": "ready",
-                    "summary": "Evidence chain is already closed.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Evidence posture is stable.",
-                    "reviewer_revision_advice": "Only refresh delivery surfaces if needed.",
-                    "reviewer_next_round_focus": "Keep evidence references synchronized across package surfaces.",
-                },
-                "novelty_positioning": {
-                    "status": "ready",
-                    "summary": "Contribution boundary is already explicit.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Novelty framing is fixed.",
-                    "reviewer_revision_advice": "Do not expand the claim boundary.",
-                    "reviewer_next_round_focus": "Keep contribution wording aligned with the frozen charter.",
-                },
-                "human_review_readiness": {
-                    "status": "ready",
-                    "summary": "The human-facing current package is ready for review.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "The review package is synchronized.",
-                    "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
-                    "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
-                },
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     _write_json(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
@@ -325,91 +267,63 @@ def test_build_runtime_readback_outer_loop_tick_request_routes_active_write_task
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
-            },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only bundle-stage cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "quality_assessment": {
-                "clinical_significance": {
-                    "status": "ready",
-                    "summary": "Clinical question is already publication-ready.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Clinical framing is stable.",
-                    "reviewer_revision_advice": "Only minor bundle cleanup remains.",
-                    "reviewer_next_round_focus": "Keep the clinician-facing framing consistent across surfaces.",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only bundle-stage cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'quality_assessment': {
+                    'clinical_significance': {
+                        'status': 'ready',
+                        'summary': 'Clinical question is already publication-ready.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Clinical framing is stable.',
+                        'reviewer_revision_advice': 'Only minor bundle cleanup remains.',
+                        'reviewer_next_round_focus': 'Keep the clinician-facing framing consistent across surfaces.',
+                    },
+                    'evidence_strength': {
+                        'status': 'ready',
+                        'summary': 'Evidence chain is already closed.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Evidence posture is stable.',
+                        'reviewer_revision_advice': 'Only refresh delivery surfaces if needed.',
+                        'reviewer_next_round_focus': 'Keep evidence references synchronized across package surfaces.',
+                    },
+                    'novelty_positioning': {
+                        'status': 'ready',
+                        'summary': 'Contribution boundary is already explicit.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'Novelty framing is fixed.',
+                        'reviewer_revision_advice': 'Do not expand the claim boundary.',
+                        'reviewer_next_round_focus': 'Keep contribution wording aligned with the frozen charter.',
+                    },
+                    'human_review_readiness': {
+                        'status': 'ready',
+                        'summary': 'The human-facing current package is ready for review.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'reviewer_reason': 'The review package is synchronized.',
+                        'reviewer_revision_advice': 'Only keep bundle surfaces aligned.',
+                        'reviewer_next_round_focus': 'Double-check package surface consistency before submission.',
+                    },
                 },
-                "evidence_strength": {
-                    "status": "ready",
-                    "summary": "Evidence chain is already closed.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Evidence posture is stable.",
-                    "reviewer_revision_advice": "Only refresh delivery surfaces if needed.",
-                    "reviewer_next_round_focus": "Keep evidence references synchronized across package surfaces.",
-                },
-                "novelty_positioning": {
-                    "status": "ready",
-                    "summary": "Contribution boundary is already explicit.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "Novelty framing is fixed.",
-                    "reviewer_revision_advice": "Do not expand the claim boundary.",
-                    "reviewer_next_round_focus": "Keep contribution wording aligned with the frozen charter.",
-                },
-                "human_review_readiness": {
-                    "status": "ready",
-                    "summary": "The human-facing current package is ready for review.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "reviewer_reason": "The review package is synchronized.",
-                    "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
-                    "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
-                }
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     task_intake_module.write_task_intake(
         profile=profile,
@@ -502,59 +416,29 @@ def test_refresh_parked_submission_milestone_controller_decision_writes_parked_f
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-24T04:41:53+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00',
+                'emitted_at': '2026-04-24T04:41:53+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only finalize-level cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(
-                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
-                ),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only finalize-level cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     _write_json(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
@@ -626,57 +510,29 @@ def test_build_runtime_readback_outer_loop_tick_request_skips_autonomous_dispatc
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-24T04:41:53+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-24T04:41:53+00:00',
+                'emitted_at': '2026-04-24T04:41:53+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'supported', 'summary': 'Human-review package is ready and only finalize-level cleanup remains.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'delivery', 'severity': 'optional', 'summary': 'Only optional submission-bundle cleanup remains.', 'evidence_refs': [str(publication_eval_path)]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'continue_same_line',
+                        'priority': 'now',
+                        'reason': 'Only finalize-level bundle cleanup remains on the current paper line.',
+                        'route_target': 'finalize',
+                        'route_key_question': '当前论文线还差哪一个最窄的定稿或投稿包收尾动作？',
+                        'route_rationale': 'The paper itself is ready for human review and only finalize-level cleanup remains.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(
-                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
-                ),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "supported",
-                "summary": "Human-review package is ready and only finalize-level cleanup remains.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "delivery",
-                    "severity": "optional",
-                    "summary": "Only optional submission-bundle cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "continue_same_line",
-                    "priority": "now",
-                    "reason": "Only finalize-level bundle cleanup remains on the current paper line.",
-                    "route_target": "finalize",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "route_rationale": "The paper itself is ready for human review and only finalize-level cleanup remains.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     _write_json(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
@@ -771,55 +627,29 @@ def test_build_runtime_readback_outer_loop_tick_request_prefers_quality_review_l
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
-        {
-            "schema_version": 1,
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "emitted_at": "2026-04-05T05:58:00+00:00",
-            "evaluation_scope": "publication",
-            "charter_context_ref": {
-                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                "charter_id": "charter::001-risk::v1",
-                "publication_objective": "risk stratification external validation",
+        _publication_eval_payload(
+            study_root,
+            quest_root,
+            {
+                'eval_id': 'publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00',
+                'emitted_at': '2026-04-05T05:58:00+00:00',
+                'verdict': {'overall_verdict': 'promising', 'primary_claim_status': 'partial', 'summary': 'Publication eval itself still reflects the pre-re-review state.', 'stop_loss_pressure': 'none'},
+                'gaps': [{'gap_id': 'gap-001', 'gap_type': 'reporting', 'severity': 'important', 'summary': 'A previous reporting gap existed.', 'evidence_refs': [str(quest_root / 'artifacts' / 'results' / 'main_result.json')]}],
+                'recommended_actions': [
+                    {
+                        'action_id': 'action-001',
+                        'action_type': 'route_back_same_line',
+                        'priority': 'now',
+                        'reason': 'Older publication eval would still route back to write.',
+                        'route_target': 'write',
+                        'route_key_question': 'What is the narrowest same-line manuscript repair or continuation step required now?',
+                        'route_rationale': 'This is the stale pre-re-review route.',
+                        'evidence_refs': [str(publication_eval_path)],
+                        'requires_controller_decision': True,
+                    },
+                ],
             },
-            "runtime_context_refs": {
-                "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
-            },
-            "delivery_context_refs": {
-                "paper_root_ref": str(study_root / "paper"),
-                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-            },
-            "verdict": {
-                "overall_verdict": "promising",
-                "primary_claim_status": "partial",
-                "summary": "Publication eval itself still reflects the pre-re-review state.",
-                "stop_loss_pressure": "none",
-            },
-            "gaps": [
-                {
-                    "gap_id": "gap-001",
-                    "gap_type": "reporting",
-                    "severity": "important",
-                    "summary": "A previous reporting gap existed.",
-                    "evidence_refs": [str(quest_root / "artifacts" / "results" / "main_result.json")],
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "action_id": "action-001",
-                    "action_type": "route_back_same_line",
-                    "priority": "now",
-                    "reason": "Older publication eval would still route back to write.",
-                    "route_target": "write",
-                    "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
-                    "route_rationale": "This is the stale pre-re-review route.",
-                    "evidence_refs": [str(publication_eval_path)],
-                    "requires_controller_decision": True,
-                }
-            ],
-        },
+        ),
     )
     _write_json(
         study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",

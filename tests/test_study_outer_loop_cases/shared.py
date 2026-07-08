@@ -14,6 +14,48 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _deep_merge(base: dict, overrides: dict) -> dict:
+    merged = dict(base)
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _publication_eval_payload(study_root: Path, quest_root: Path, overrides: dict | None = None) -> dict:
+    overrides = overrides or {}
+    study_id = str(overrides.get("study_id", "001-risk"))
+    quest_id = str(overrides.get("quest_id", "quest-001"))
+    charter = overrides.get("charter_context_ref")
+    publication_objective = (
+        charter.get("publication_objective")
+        if isinstance(charter, dict) and charter.get("publication_objective")
+        else "risk stratification external validation"
+    )
+    payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "evaluation_scope": "publication",
+        "charter_context_ref": {
+            "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "charter_id": f"charter::{study_id}::v1",
+            "publication_objective": publication_objective,
+        },
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+            "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+        },
+        "delivery_context_refs": {
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        },
+    }
+    return _deep_merge(payload, overrides)
+
+
 def _domain_diagnostic_report_tick_request_module() -> object:
     return importlib.import_module("med_autoscience.controllers.study_outer_loop.tick_request")
 
