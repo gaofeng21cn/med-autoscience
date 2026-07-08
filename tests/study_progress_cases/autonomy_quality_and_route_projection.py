@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 
@@ -98,7 +100,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     assert result["autonomy_contract"]["summary"] == (
         "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。"
@@ -261,7 +263,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     assert result["quality_closure_truth"] == {
         "state": "bundle_only_remaining",
@@ -402,7 +404,7 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
     }
     assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] == result["same_line_route_truth"]
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
     assert markdown.strip()
 
 

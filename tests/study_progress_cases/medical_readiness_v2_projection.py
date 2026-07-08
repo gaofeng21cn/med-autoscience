@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 
 def _v2_readiness_payload() -> dict[str, object]:
     return {
@@ -314,7 +316,7 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
 def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
-    markdown = module.render_study_progress_markdown(_progress_payload())
+    markdown = render_study_progress_markdown(_progress_payload())
 
     assert "路线裁决: 把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。" not in markdown
     assert "统计 blocker: 逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。" not in markdown

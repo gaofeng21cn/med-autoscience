@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
@@ -791,7 +793,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     assert result["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
     assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"

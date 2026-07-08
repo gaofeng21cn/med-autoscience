@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from types import ModuleType
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 
 
@@ -200,7 +202,7 @@ def test_delivery_inspection_attach_refreshes_stale_user_visible_package_state(
     assert result["user_visible_projection"]["paper_progress_state"]["package_delivered"] is True
 
     progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
-    markdown = progress_module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
     assert markdown.strip()
 
 

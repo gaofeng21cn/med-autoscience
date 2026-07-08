@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 
 
@@ -165,7 +167,7 @@ def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     lifecycle = result["ai_first_action_dispatch_lifecycle"]
     assert lifecycle["surface"] == "ai_first_action_dispatch_lifecycle"
@@ -382,7 +384,7 @@ def test_study_progress_projects_paper_orchestra_operator_read_model_without_new
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     projection = result["paper_orchestra_operator_projection"]
     assert projection["surface"] == "paper_orchestra_operator_projection"
@@ -820,7 +822,7 @@ def test_study_progress_operator_projection_integrates_landed_paper_orchestra_su
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     projection = result["paper_orchestra_operator_projection"]
     assert projection["status"] == "blocked"

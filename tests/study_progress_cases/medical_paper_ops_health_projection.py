@@ -3,6 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 import importlib
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from tests.test_medical_paper_ops_health import _readiness, assert_projection_authority_false
 
 
@@ -97,7 +99,7 @@ def test_mcp_and_study_progress_markdown_render_v5_ops_health() -> None:
     progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
 
     mcp_markdown = mcp_module.render_mcp_study_progress_markdown(_progress_payload())
-    progress_markdown = progress_module.render_study_progress_markdown(_progress_payload())
+    progress_markdown = render_study_progress_markdown(_progress_payload())
 
     assert mcp_markdown.strip()
     assert progress_markdown.strip()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 
 
@@ -67,7 +69,7 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     state = result["ai_first_default_entry_state"]
     assert state["surface"] == "ai_first_default_entry_state"

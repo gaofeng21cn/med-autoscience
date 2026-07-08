@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from tests.study_progress_cases.shared import *  # noqa: F403,F401
 
 
@@ -249,7 +251,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     assert "OPL current_control_state" in result["next_system_action"]
     assert "MedDeepScientist" not in result["next_system_action"]
     assert result["refs"]["opl_runtime_owner_handoff_path"] == str(opl_runtime_owner_handoff_path)
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
     assert markdown.strip()
 
 

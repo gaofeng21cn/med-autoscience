@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
@@ -49,7 +51,7 @@ def test_quality_review_followthrough_projects_auto_re_review_pending_when_runti
 def test_render_study_progress_markdown_surfaces_quality_review_followthrough() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -819,7 +821,7 @@ def test_quality_repair_batch_followthrough_survives_gate_replay_eval_refresh(tm
 def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrough() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -853,7 +855,7 @@ def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrou
 def test_render_study_progress_markdown_surfaces_quality_repair_batch_followthrough() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
