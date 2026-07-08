@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from tests.display_schema_contract_cases.shared import *
-from tests.display_schema_contract_cases.top_level_display_classes import *
+from tests.display_schema_contract_cases.top_level_display_classes import (
+    test_schema_contract_exposes_phase2_top_level_display_classes,
+)
 from tests.display_schema_contract_cases.input_shape_contracts import *
-from tests.display_schema_contract_cases.registered_display_surface_contracts import *
-from tests.display_schema_contract_cases.shap_templates_and_docs_contracts import *
+from tests.display_schema_contract_cases.registered_display_surface_contracts import (
+    test_schema_contract_covers_all_registered_display_surface_items,
+    test_current_schema_contract_has_no_python_evidence_or_empty_evidence_schema,
+    test_current_key_schema_contracts_remain_registered,
+)
+from tests.display_schema_contract_cases.shap_templates_and_docs_contracts import (
+    test_current_shap_schema_contracts_are_registered,
+    test_render_display_template_catalog_covers_current_registered_templates,
+)

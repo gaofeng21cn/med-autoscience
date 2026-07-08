@@ -942,6 +942,25 @@ def test_foreground_file_delta_without_owner_receipt_is_unadopted() -> None:
     assert state["next_safe_action"]["kind"] == "adopt_manual_delta_through_mas_owner_receipt"
     assert state["next_safe_action"]["provider_admission_allowed"] is False
 
-from tests.test_paper_recovery_state_cases.provider_admission_transition_cases import *  # noqa: F401,F403
+from tests.test_paper_recovery_state_cases.provider_admission_transition_cases import (
+    test_naked_provider_admission_candidate_is_diagnostic_not_pending_recovery,
+    test_provider_admission_candidate_with_clean_mas_transition_request_waits_for_opl_readback,
+    test_provider_admission_candidate_with_opl_runtime_readback_stays_pending,
+    test_observe_only_diagnostic_does_not_block_provider_admission,
+    test_executable_owner_action_without_candidate_is_owner_action_ready_not_admission_pending,
+    test_runtime_retry_exhausted_provider_admission_fails_closed,
+    test_runtime_retry_exhausted_without_admission_candidate_keeps_owner_action_ready,
+    test_projection_contradiction_fails_closed,
+    test_matching_provider_admission_supersedes_stale_parked_projection,
+    test_current_work_unit_provider_admission_pending_supersedes_stale_parked_projection,
+    test_current_work_unit_provider_admission_without_candidate_or_opl_readback_repairs_projection_before_admission,
+    test_provider_admission_without_study_identity_does_not_suppress_projection_contradiction,
+    test_accepted_closeout_typed_blocker_owns_recovery_before_admission_blocked,
+    test_provider_admission_without_current_obligation_fingerprint_does_not_suppress_projection_contradiction,
+)
 
-from tests.test_paper_recovery_state_cases.running_attempt_identity_cases import *  # noqa: F401,F403
+from tests.test_paper_recovery_state_cases.running_attempt_identity_cases import (
+    test_running_attempt_accepts_current_work_unit_provider_attempt_proof,
+    test_running_attempt_requires_strong_identity_binding,
+    test_running_attempt_accepts_matching_recovery_obligation_identity,
+)

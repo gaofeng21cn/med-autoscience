@@ -949,9 +949,28 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     assert_default_next_action_legacy_surfaces_retired(result)
 
 
-from .opl_current_control_state_handoff_projection_cases.supervisor_tick_audit import *  # noqa: F403,F401,E402
-from .opl_current_control_state_handoff_projection_cases.owner_receipt_closeout import *  # noqa: F403,F401,E402
-from .opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import *  # noqa: F403,F401,E402
-from .opl_current_control_state_handoff_projection_cases.running_attempt_identity import *  # noqa: F403,F401,E402
-from .opl_current_control_state_handoff_projection_cases.stage_progress_log_delta import *  # noqa: F403,F401,E402
-from .opl_current_control_state_handoff_projection_cases.terminal_closeout_cases import *  # noqa: F403,F401,E402
+from .opl_current_control_state_handoff_projection_cases.supervisor_tick_audit import (
+    test_supervisor_tick_audit_uses_workspace_opl_current_control_state,
+)
+from .opl_current_control_state_handoff_projection_cases.owner_receipt_closeout import (
+    test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate,
+    test_owner_receipt_closeout_consumes_stale_transition_request_candidate,
+)
+from .opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import (
+    test_study_handoff_preserves_current_control_current_work_unit,
+    test_same_identity_provider_readback_supersedes_request_only_current_surface,
+    test_provider_readback_not_consumed_by_prior_request_wrapper_domain_closeout,
+)
+from .opl_current_control_state_handoff_projection_cases.running_attempt_identity import (
+    test_running_handoff_without_opl_readback_does_not_consume_current_execution,
+    test_opl_current_control_state_handoff_preserves_running_attempt_identity,
+    test_provider_admission_handoff_without_active_attempt_ids_is_not_running,
+    test_study_progress_keeps_unbound_live_attempt_as_observability_only,
+)
+from .opl_current_control_state_handoff_projection_cases.stage_progress_log_delta import (
+    test_stage_progress_log_alone_does_not_trigger_platform_repair_delta,
+)
+from .opl_current_control_state_handoff_projection_cases.terminal_closeout_cases import (
+    test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projection,
+    test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handoff,
+)

@@ -765,5 +765,3 @@ def test_same_attempt_direct_readback_is_aligned_with_owner_consumption() -> Non
             ]["mas_receipt_consumption"]["status"]
             == "owner_consumed_route_checkpoint"
         )
-
-from tests.test_cli_cases.paper_mission_command_cases.materialized_readback_cases.test_direct_stage_attempt_and_inspect import *  # noqa: F401,F403

@@ -580,7 +580,6 @@ def test_stage_closure_terminalizer_reads_workspace_consumption_closeout_account
     assert closeout["cost"]["missing_cost_reason"] == "provider_attempt_cost_not_exposed"
     assert "observability_gaps" not in payload["stage_closure_decision"]
 
-from tests.test_cli_cases.paper_mission_commands_cases.stage_closure_terminalizer_cases.test_latest_source_precedence import *  # noqa: F401,F403
 from tests.test_cli_cases.paper_mission_commands_cases.stage_closure_terminalizer_cases.test_latest_source_precedence import (  # noqa: F401
     _paper_mission_carrier_for_transaction,
     _write_consumption_ledger,

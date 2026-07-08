@@ -1,8 +1,51 @@
 from __future__ import annotations
 
-from tests.test_study_task_intake_cases.progress_override_closeout_cases import *  # noqa: F401,F403
-from tests.test_study_task_intake_cases.reviewer_revision_intake_cases import *  # noqa: F401,F403
-from tests.test_study_task_intake_cases.stop_loss_manual_hold_cases import *  # noqa: F401,F403
-from tests.test_study_task_intake_cases.submission_revision_contract_cases import *  # noqa: F401,F403
-from tests.test_study_task_intake_cases.revision_handoff_completion_cases import *  # noqa: F401,F403
-from tests.test_study_task_intake_cases.fast_lane_closeout_cases import *  # noqa: F401,F403
+from tests.test_study_task_intake_cases.progress_override_closeout_cases import (
+    test_task_intake_progress_override_yields_to_deterministic_submission_closeout,
+    test_task_intake_progress_override_yields_to_fresh_bundle_only_closeout,
+    test_reviewer_revision_intake_does_not_yield_to_fresh_bundle_only_closeout,
+    test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout,
+    test_reviewer_revision_intake_yields_to_current_delivery_package_closeout,
+    test_reviewer_revision_intake_yields_to_evaluation_promotion_gate_when_gate_report_not_loaded,
+    test_reviewer_revision_intake_yields_to_blocked_deterministic_submission_closeout,
+    test_reviewer_revision_intake_does_not_yield_to_submission_closeout_with_open_review_ledger_concerns,
+    test_reviewer_revision_yields_to_complete_rebuttal_route_coverage_closeout,
+    test_reviewer_revision_keeps_override_when_rebuttal_route_coverage_incomplete,
+    test_reviewer_revision_route_coverage_closeout_cannot_override_publishability_gate_block,
+)
+from tests.test_study_task_intake_cases.reviewer_revision_intake_cases import (
+    test_reviewer_revision_intake_detects_chinese_submission_review_feedback_reactivation,
+    test_explicit_reviewer_revision_kind_materializes_revision_intake_without_text_marker,
+    test_methodology_correction_routes_reviewer_revision_back_to_analysis,
+    test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_callable_foreground,
+    test_final_micro_revision_with_no_new_analyses_uses_manuscript_fast_lane,
+    test_reviewer_task_intake_preserves_publication_gate_work_unit_identity,
+    test_reviewer_first_user_feedback_intake_detects_revision_reactivation,
+    test_reviewer_revision_intake_is_detected_and_summarized,
+    test_non_revision_intake_does_not_emit_revision_checklist,
+)
+from tests.test_study_task_intake_cases.stop_loss_manual_hold_cases import (
+    test_publishability_stop_loss_intake_preempts_reviewer_revision_route,
+    test_publishability_stop_loss_task_intake_recommends_stop_runtime_action,
+    test_publishability_stop_loss_requires_structured_task_intake_contract,
+    test_manual_hold_intake_blocks_auto_recovery_without_stop_loss,
+    test_manual_hold_requires_structured_task_intake_contract,
+)
+from tests.test_study_task_intake_cases.submission_revision_contract_cases import (
+    test_submission_revision_operating_catalog_covers_platform_incident_guards,
+    test_manuscript_fast_lane_intake_exposes_controller_visible_contract,
+)
+from tests.test_study_task_intake_cases.revision_handoff_completion_cases import (
+    test_reviewer_revision_intake_yields_to_ai_reviewer_quality_closure_after_verified_handoff,
+    test_reviewer_revision_intake_yields_to_verified_bundle_only_closeout_with_admin_open_items,
+    test_reviewer_revision_intake_yields_to_direct_table1_pvalue_completion,
+)
+from tests.test_study_task_intake_cases.fast_lane_closeout_cases import (
+    test_reviewer_revision_intake_yields_to_fresh_manuscript_fast_lane_closeout,
+    test_manuscript_revision_fast_lane_closeout_retires_progress_override_without_gate_loaded,
+    test_manuscript_revision_fast_lane_closeout_ignores_submission_authority_snapshot_blocker,
+    test_manuscript_revision_fast_lane_closeout_ignores_stale_gate_blockers,
+    test_manuscript_revision_fast_lane_closeout_ignores_stale_reviewer_blockers,
+    test_existing_progress_projection_drops_stale_fast_lane_override_after_closeout,
+    test_reviewer_revision_fast_lane_closeout_does_not_yield_when_publication_gate_still_blocked,
+)

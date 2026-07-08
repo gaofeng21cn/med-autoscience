@@ -1,6 +1,11 @@
 from __future__ import annotations
-from tests.test_current_control_executable_handoff_cases.provider_readback_cases import *  # noqa: F403,F401
-from tests.test_current_control_executable_handoff_cases.terminal_provider_precedence_cases import *  # noqa: F403,F401
+from tests.test_current_control_executable_handoff_cases.provider_readback_cases import (
+    test_complete_provider_readback_supersedes_same_identity_request_only_current_surface,
+    test_provider_readback_does_not_supersede_different_identity_request_only_surface,
+)
+from tests.test_current_control_executable_handoff_cases.terminal_provider_precedence_cases import (
+    test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admission_handoff,
+)
 
 import importlib
 import json

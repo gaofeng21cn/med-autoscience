@@ -11,7 +11,6 @@ from tests.provider_admission_current_control_helpers import (
 from med_autoscience.controllers.provider_admission.provider_admission import (
     current_control_provider_admission_candidates,
 )
-from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases_cases.test_request_only_dry_run_closeout import *  # noqa: F403,F401
 
 
 def _explicit_queue_action_from_current(study: dict) -> dict:
@@ -801,4 +800,8 @@ def test_provider_admission_current_control_consumes_opl_readback_inside_provide
         "idempotency_key"
     ] == readback_identity["idempotency_key"]
 
-from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases_cases.terminal_closeout_and_identity_cases import *  # noqa: F403,F401
+from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases_cases.terminal_closeout_and_identity_cases import (
+    test_provider_admission_current_control_consumes_terminal_closeout_currentness_for_same_request,
+    test_provider_admission_current_control_rejects_mismatched_opl_readback_identity,
+    test_provider_admission_current_control_keeps_same_tick_materialized_recovery_request_consume_only,
+)

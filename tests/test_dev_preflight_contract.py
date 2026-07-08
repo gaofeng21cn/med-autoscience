@@ -7,7 +7,17 @@ import shlex
 
 import pytest
 
-from tests.dev_preflight_contract_cases.plan_commands import *
+from tests.dev_preflight_contract_cases.plan_commands import (
+    test_plan_commands_for_categories_deduplicates_results,
+    test_plan_commands_for_documentation_review_only_do_not_run_pytest,
+    test_plan_commands_for_optional_provider_archive_audit_surface_include_gate_proofs,
+    test_plan_commands_for_integration_harness_surface_include_runtime_eval_proofs,
+    test_plan_commands_for_runtime_contract_surface_include_mas_runtime_proofs,
+    test_plan_commands_for_family_shared_surface_use_focused_family_lane,
+    test_plan_commands_for_structure_quality_surface_use_structure_lane,
+    test_plan_commands_for_root_governance_contract_surface_use_focused_contract_lanes,
+    test_plan_commands_for_control_plane_surface_use_focused_lane,
+)
 
 pytestmark = pytest.mark.family
 
@@ -234,4 +244,40 @@ def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:
     )
 
 
-from tests.dev_preflight_contract_cases.classification_and_surface_cases import *  # noqa: F403,F401
+from tests.dev_preflight_contract_cases.classification_and_surface_cases import (
+    test_preflight_category_audit_keeps_spec_paths_explicit,
+    test_classify_changed_files_matches_runtime_contract_surface,
+    test_classify_changed_files_routes_display_docs_to_review_only,
+    test_classify_changed_files_routes_branding_assets_to_review_only,
+    test_classify_changed_files_routes_publication_route_memory_fixture_to_owner_surface,
+    test_classify_changed_files_routes_mcp_plugin_config_to_codex_plugin_surface,
+    test_classify_changed_files_flags_unclassified_paths,
+    test_classify_changed_files_routes_unknown_python_to_generic_smoke,
+    test_classify_changed_files_keeps_unknown_docs_fail_closed,
+    test_audit_preflight_contract_coverage_identifies_explicit_classification,
+    test_audit_preflight_contract_coverage_marks_generic_python_fallback,
+    test_audit_preflight_contract_coverage_keeps_docs_review_only_and_workflow_fail_closed,
+    test_classify_changed_files_matches_control_plane_surface,
+    test_classify_changed_files_matches_cli_parser_surface,
+    test_classify_changed_files_matches_owner_answer_candidate_intake_surface,
+    test_classify_changed_files_matches_study_owner_gate_decision_surface,
+    test_classify_changed_files_matches_paper_progress_transition_boundary_surface,
+    test_classify_changed_files_matches_optional_provider_archive_audit_surface,
+    test_classify_changed_files_routes_public_docs_to_review_only,
+    test_classify_changed_files_matches_ci_workflow_surface,
+    test_classify_changed_files_matches_packaging_workflow_surface,
+    test_classify_changed_files_matches_integration_harness_surface,
+    test_classify_changed_files_matches_family_shared_surface,
+    test_classify_changed_files_matches_root_governance_contract_surface,
+    test_classify_changed_files_matches_standard_agent_pack_surface,
+    test_classify_changed_files_matches_external_learning_sidecar_surface,
+    test_classify_changed_files_matches_evo_scientist_progress_accelerator_surface,
+    test_classify_changed_files_matches_data_asset_display_and_overlay_contracts,
+    test_classify_changed_files_matches_stage_kernel_pack_contract_surface,
+    test_classify_changed_files_matches_domain_action_materializer_surface,
+    test_classify_changed_files_matches_paper_autonomy_supervisor_surface,
+    test_classify_changed_files_matches_production_acceptance_surface,
+    test_classify_changed_files_matches_codex_plugin_skill_surface,
+    test_classify_changed_clean_runner_scripts_as_family_shared_surface,
+    test_classify_changed_sentrux_baseline_as_structure_quality_surface,
+)

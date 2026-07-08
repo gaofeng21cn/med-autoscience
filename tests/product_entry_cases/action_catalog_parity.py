@@ -1,6 +1,32 @@
 from __future__ import annotations
 
-from .action_catalog_parity_cases.action_catalog_cases import *  # noqa: F403,F401
-from .action_catalog_parity_cases.stage_descriptor_cases import *  # noqa: F403,F401
-from .action_catalog_parity_cases.provider_cases import *  # noqa: F403,F401
-from .action_catalog_parity_cases.memory_and_skeleton_cases import *  # noqa: F403,F401
+from .action_catalog_parity_cases.action_catalog_cases import (
+    test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata,
+    test_mas_action_catalog_exposes_study_state_matrix_for_opl_transition_runner,
+    test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool,
+    test_mas_action_catalog_exposes_display_pack_agent_capability_as_grouped_mcp_runtime,
+    test_mas_action_catalog_exposes_scientific_capability_registry_as_public_mcp_runtime,
+    test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surface,
+    test_mas_action_catalog_exposes_lightweight_executor_receipt_as_descriptor_only_contract,
+    test_product_entry_manifest_exposes_foundry_agent_product_positioning,
+    test_product_entry_manifest_exposes_functional_consumer_boundary,
+)
+from .action_catalog_parity_cases.stage_descriptor_cases import (
+    test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor,
+)
+from .action_catalog_parity_cases.provider_cases import (
+    test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers,
+    test_product_entry_manifest_exposes_real_paper_owner_payload_closeout,
+    test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_residue,
+    test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability,
+    test_default_manifest_keeps_history_projection_out_of_current_surface,
+    test_product_entry_manifest_exposes_provider_residency_typed_blocker,
+    test_provider_residency_read_model_requires_all_opl_receipts,
+    test_product_entry_manifest_omits_history_only_retirement_audit_surface,
+)
+from .action_catalog_parity_cases.memory_and_skeleton_cases import (
+    test_product_entry_manifest_exposes_publication_route_memory_descriptor,
+    test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_authority,
+    test_manifest_exposes_body_free_workspace_runtime_evidence_receipt_with_typed_blocker,
+    test_workspace_runtime_evidence_receipt_observes_mas_owner_receipt_refs,
+)

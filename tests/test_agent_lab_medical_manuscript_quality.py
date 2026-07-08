@@ -7,7 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tests.test_agent_lab_medical_manuscript_quality_cases.refs_only_feedback_obesity import *  # noqa: F401,F403
+from tests.test_agent_lab_medical_manuscript_quality_cases.refs_only_feedback_obesity import (
+    test_medical_manuscript_quality_agent_lab_suite_materializes_refs_only_surface,
+    test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigger,
+    test_obesity_registry_quality_profile_requires_sci_draft_volume_and_clinical_value,
+)
 from tests.study_runtime_test_helpers import write_text
 
 

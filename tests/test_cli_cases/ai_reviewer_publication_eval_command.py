@@ -1,10 +1,29 @@
 from __future__ import annotations
 
 from tests.test_cli_cases import shared as _shared
-from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_identity_guard_cases import *  # noqa: F401,F403
-from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_refs_cases import *  # noqa: F401,F403
-from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_guard_cases import *  # noqa: F401,F403
-from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_schema_and_trace_cases import *  # noqa: F401,F403
+from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_identity_guard_cases import (
+    test_ai_reviewer_record_dry_run_plan_blocks_when_expected_identity_is_unavailable,
+    test_ai_reviewer_record_dry_run_plan_accepts_canonical_next_action_identity,
+    test_ai_reviewer_record_dry_run_plan_fails_closed_on_expected_owner_mismatch,
+)
+from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_refs_cases import (
+    test_ai_reviewer_record_dry_run_rejects_stale_payload_currentness_refs,
+    test_ai_reviewer_record_dry_run_accepts_current_payload_currentness_refs,
+    test_ai_reviewer_record_dry_run_normalizes_stale_lifecycle_refs_to_current_input_refs,
+    test_ai_reviewer_record_dry_run_accepts_current_authoring_target_metadata,
+)
+from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_currentness_guard_cases import (
+    test_ai_reviewer_record_dry_run_rejects_stale_authoring_target_stale_record_ref,
+    test_ai_reviewer_record_materializer_rejects_stale_authoring_target_before_write,
+    test_ai_reviewer_payload_guard_refreshes_target_metadata_before_record_payload_currentness,
+    test_ai_reviewer_record_observe_writes_non_authority_authoring_target,
+    test_ai_reviewer_authoring_target_output_refuses_study_root_write,
+    test_ai_reviewer_payload_guard_prefers_stable_medical_prose_review_over_legacy_request_ref,
+)
+from tests.test_cli_cases.ai_reviewer_publication_eval_command_cases.test_payload_schema_and_trace_cases import (
+    test_ai_reviewer_record_dry_run_rejects_schema_invalid_authoring_target,
+    test_ai_reviewer_build_production_trace_covers_extra_required_currentness_refs,
+)
 
 globals().update({
     name: value

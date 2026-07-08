@@ -1,12 +1,44 @@
 from __future__ import annotations
 
-from .cockpit_status_and_entry_status_focus_cases.test_ai_first_operations import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_autonomy_runtime_control import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_cross_study_completion import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_gate_clearing_followthrough import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_ops_health import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness_v2_actions import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_projection_error_isolation import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_quality_lane import *  # noqa: F403,F401
-from .cockpit_status_and_entry_status_focus_cases.test_status_cards import *  # noqa: F403,F401
+from .cockpit_status_and_entry_status_focus_cases.test_ai_first_operations import (
+    test_workspace_cockpit_projects_ai_first_operations_state_from_study_progress,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_autonomy_runtime_control import (
+    test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough,
+    test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_gate,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_cross_study_completion import (
+    test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_state,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_gate_clearing_followthrough import (
+    test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_and_brief,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
+    test_workspace_cockpit_passes_through_medical_paper_readiness_from_study_progress,
+    test_workspace_cockpit_uses_canonical_user_visible_progress_projection,
+    test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progress_lacks_it,
+    test_workspace_cockpit_does_not_emit_action_cards_for_ready_medical_paper_readiness,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_ops_health import (
+    test_workspace_cockpit_projects_v5_ops_health,
+    test_product_entry_status_projects_workspace_v5_ops_health,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness_v2_actions import (
+    test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards,
+    test_product_entry_status_promotes_v2_action_cards_to_workflow_steps,
+    test_workspace_cockpit_markdown_renders_v2_action_card_status_and_missing_reason,
+    test_guarded_operator_action_dispatch_fails_closed_without_payload,
+    test_guarded_operator_action_replays_duplicate_submit_without_rematerializing,
+    test_guarded_operator_action_blocks_payload_drift_for_same_idempotency_key,
+    test_guarded_operator_action_reconciles_missing_result_artifact_from_ledger,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_projection_error_isolation import (
+    test_workspace_cockpit_isolates_single_study_progress_projection_error,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_quality_lane import (
+    test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_brief,
+)
+from .cockpit_status_and_entry_status_focus_cases.test_status_cards import (
+    test_workspace_cockpit_markdown_prefers_human_facing_labels,
+    test_workspace_cockpit_projects_operator_status_card_into_study_items_and_attention,
+)

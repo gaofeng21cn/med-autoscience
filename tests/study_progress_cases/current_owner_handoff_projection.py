@@ -11,8 +11,13 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 
-from .current_owner_handoff_terminal_log_cases import *  # noqa: F403,F401,E402
-from .current_owner_handoff_projection_cases.test_next_action_authority import *  # noqa: F403,F401,E402
+from .current_owner_handoff_terminal_log_cases import (
+    test_current_owner_handoff_action_keeps_scalar_remaining_blocker_text,
+    test_current_owner_handoff_action_ignores_structured_remaining_blocker_payload,
+    test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker,
+    test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfaces,
+    test_terminal_stage_log_observability_reads_contract_stage_log_telemetry,
+)
 
 
 def test_progress_first_monitoring_projects_terminal_closeout_semantic_completeness() -> None:

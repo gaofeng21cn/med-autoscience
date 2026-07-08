@@ -882,4 +882,10 @@ def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_sto
     ).exists()
 
 
-from tests.domain_action_request_materializer_cases.current_control_authority_selection_cases import *  # noqa: F403,F401,E402
+from tests.domain_action_request_materializer_cases.current_control_authority_selection_cases import (
+    test_materializer_selects_identity_different_current_owner_action_over_prior_typed_blocker,
+    test_materializer_selects_owner_gate_route_back_followthrough_over_typed_blocker,
+    test_opl_authorization_typed_blocker_fails_closed_before_gate_replay_materialization,
+    test_owner_receipt_recorded_preempts_stale_owner_route_observability_action,
+    test_fresh_opl_authorization_blocker_preempts_stale_executable_scan,
+)

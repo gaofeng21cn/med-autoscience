@@ -994,5 +994,12 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     ]
 
 
-from tests.test_opl_standard_pack_cases.generated_interface_cases import *  # noqa: F403,F401
-from tests.test_opl_standard_pack_cases.stage_contract_cases import *  # noqa: F403,F401
+from tests.test_opl_standard_pack_cases.generated_interface_cases import (
+    test_light_external_pattern_intake_projects_into_stage_surfaces_as_refs_only,
+    test_opl_generated_interfaces_compile_mas_standard_pack,
+    test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_delete,
+    test_opl_standard_scaffold_validates_mas_pack,
+)
+from tests.test_opl_standard_pack_cases.stage_contract_cases import (
+    test_opl_standard_pack_declares_single_ordinary_default_stage,
+)

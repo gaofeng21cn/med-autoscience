@@ -991,4 +991,6 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
     assert "pytestmark = pytest.mark.family" in agent_lab_longline
 
 
-from tests.test_test_command_surfaces_cases.authority_operation_catalog_cases import *  # noqa: F403,F401
+from tests.test_test_command_surfaces_cases.authority_operation_catalog_cases import (
+    test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces,
+)

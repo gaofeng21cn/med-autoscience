@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from tests.paper_mission_owner_surface_cases.test_current_write_routeback_projection_cases.provider_admission_and_stale_projection_cases import *  # noqa: F403,F401
+from tests.paper_mission_owner_surface_cases.test_current_write_routeback_projection_cases.provider_admission_and_stale_projection_cases import (
+    test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_with_current_work_unit,
+    test_scan_routes_projects_provider_admission_when_queue_matches_current_work_unit,
+    test_scan_projects_current_write_routeback_despite_stale_progress_active_run,
+    test_fresh_ai_reviewer_write_routeback_supersedes_stale_reviewer_redrive,
+    test_owner_receipt_consumption_routes_domain_transition_reviewer_successor_over_gate_replay,
+)
 from pathlib import Path
 import json
 

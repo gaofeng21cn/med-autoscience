@@ -983,5 +983,14 @@ def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Pa
     assert bundle["metadata"]["agent_trace"]["codex_transcript"]["status"] == "restricted"
 
 
-from tests.test_display_pack_e2e_runtime_cases.real_r_and_multi_figure_cases import *  # noqa: F403,F401
-from tests.test_display_pack_e2e_runtime_cases.subprocess_renderer_cases import *  # noqa: F403,F401
+from tests.test_display_pack_e2e_runtime_cases.real_r_and_multi_figure_cases import (
+    test_materialize_display_pack_publication_manifest_runs_real_core_r_subprocess_renderer,
+    test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsort_exact_path,
+    test_display_pack_publication_manifest_auto_consumes_prepared_dependency_environment_for_cohort_flow,
+    test_materialize_display_pack_publication_manifest_runs_cohort_source_layer_accounting_mode,
+    test_materialize_display_pack_publication_manifest_keeps_obesity_cohort_flow_inside_panel,
+    test_materialize_display_pack_publication_manifest_runs_multi_figure_batch,
+)
+from tests.test_display_pack_e2e_runtime_cases.subprocess_renderer_cases import (
+    test_materialize_display_pack_publication_manifest_runs_subprocess_renderer,
+)

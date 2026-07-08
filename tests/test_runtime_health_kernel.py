@@ -189,10 +189,10 @@ def _assert_attempt_ledger_authority_boundary(boundary: dict[str, object]) -> No
     assert boundary["suppressed_transient_lifecycle_events_can_advance_attempt_ledger"] is False
 
 
-from tests.test_runtime_health_kernel_cases.projection_reconcile import *  # noqa: F401,F403
-from tests.test_runtime_health_kernel_cases.test_explicit_resume_cases import *  # noqa: F401,F403
-from tests.test_runtime_health_kernel_cases.test_new_run_grace_cases import *  # noqa: F401,F403
-from tests.test_runtime_health_kernel_cases.test_reconcile_and_activity_timeout_cases import *  # noqa: F401,F403
+from tests.test_runtime_health_kernel_cases.projection_reconcile import (
+    test_runtime_health_reconcile_publishes_projection_without_persisting_liveness_events,
+    test_runtime_health_reconcile_suppresses_opl_proof_backed_lifecycle_event_persistence,
+)
 
 
 def test_runtime_health_kernel_no_longer_exposes_local_event_append_api() -> None:

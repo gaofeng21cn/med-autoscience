@@ -24,7 +24,15 @@ def _disable_default_opl_live_probe(monkeypatch: pytest.MonkeyPatch, tmp_path) -
 
 
 from tests.test_study_progress_mission_summary_cases.materialized_readback import *  # noqa: F403,F401
-from tests.test_study_progress_mission_summary_cases.next_action_stage_closure import *  # noqa: F403,F401
+from tests.test_study_progress_mission_summary_cases.next_action_stage_closure import (
+    test_top_level_next_legal_action_prefers_canonical_runtime_readback_request,
+    test_single_next_action_projection_prefers_domain_transition_reviewer_action,
+    test_typed_blocker_successor_does_not_override_domain_transition_reviewer_action,
+    test_new_reviewer_revision_intake_retire_stale_typed_blocker_resolution,
+    test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay,
+    test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_progress_projection,
+    test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields,
+)
 
 
 def test_receipt_owner_consumption_route_checkpoint_maps_to_route_back_status() -> None:
