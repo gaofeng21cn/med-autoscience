@@ -14,10 +14,6 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
-def _runtime_state_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
-
-
 def _non_advancing_opl_transition_readback(
     *,
     study_id: str,
@@ -181,16 +177,15 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": quest_id,
-            "quest_root": str(profile.runtime_root / quest_id),
-            "quest_status": "active",
-            "decision": "continue",
-            "reason": "quality_repair_followthrough",
-            "current_executable_owner_action": {
+        lambda **_: progress_projection_payload(
+            study_root,
+            profile.runtime_root / quest_id,
+            study_id=study_id,
+            quest_id=quest_id,
+            quest_status="active",
+            decision="continue",
+            reason="quality_repair_followthrough",
+            current_executable_owner_action={
                 "surface_kind": "current_executable_owner_action",
                 "status": "ready",
                 "source": "paper_recovery_state.next_safe_action.successor_owner_action",
@@ -201,7 +196,7 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
                 "work_unit_fingerprint": fingerprint,
                 "action_fingerprint": fingerprint,
             },
-            "current_work_unit": {
+            current_work_unit={
                 "surface_kind": "current_work_unit",
                 "schema_version": 1,
                 "status": "executable_owner_action",
@@ -213,16 +208,16 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
                 "work_unit_fingerprint": fingerprint,
                 "action_fingerprint": fingerprint,
             },
-            "provider_admission_pending_count": 1,
-            "provider_admission_candidates": [{"status": "stale"}],
-            "transition_request_pending_count": 1,
-            "transition_request_candidates": [{"status": "stale"}],
-            "runtime_health_snapshot": {
+            provider_admission_pending_count=1,
+            provider_admission_candidates=[{"status": "stale"}],
+            transition_request_pending_count=1,
+            transition_request_candidates=[{"status": "stale"}],
+            runtime_health_snapshot={
                 "runtime_health_epoch": "runtime-health-event-current",
                 "runtime_liveness_status": "none",
                 "health_status": "none",
             },
-        },
+        ),
     )
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
@@ -337,17 +332,16 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": quest_id,
-            "quest_root": str(profile.runtime_root / quest_id),
-            "quest_status": "active",
-            "decision": "continue",
-            "reason": "stale_terminal_typed_blocker",
-            "current_executable_owner_action": None,
-            "current_work_unit": {
+        lambda **_: progress_projection_payload(
+            study_root,
+            profile.runtime_root / quest_id,
+            study_id=study_id,
+            quest_id=quest_id,
+            quest_status="active",
+            decision="continue",
+            reason="stale_terminal_typed_blocker",
+            current_executable_owner_action=None,
+            current_work_unit={
                 "surface_kind": "current_work_unit",
                 "schema_version": 1,
                 "status": "typed_blocker",
@@ -369,7 +363,7 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
                     },
                 },
             },
-            "current_execution_envelope": {
+            current_execution_envelope={
                 "state_kind": "typed_blocker",
                 "owner": "one-person-lab",
                 "typed_blocker": {
@@ -379,16 +373,16 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
                     "work_unit_fingerprint": fingerprint,
                 },
             },
-            "provider_admission_pending_count": 0,
-            "provider_admission_candidates": [],
-            "transition_request_pending_count": 0,
-            "transition_request_candidates": [],
-            "runtime_health_snapshot": {
+            provider_admission_pending_count=0,
+            provider_admission_candidates=[],
+            transition_request_pending_count=0,
+            transition_request_candidates=[],
+            runtime_health_snapshot={
                 "runtime_health_epoch": "runtime-health-event-current",
                 "runtime_liveness_status": "none",
                 "health_status": "none",
             },
-        },
+        ),
     )
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
@@ -663,18 +657,15 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_status": "running",
-            "decision": "blocked",
-            "reason": "runtime_recovery_retry_budget_exhausted",
-            "runtime_health_snapshot": {"attempt_state": "escalated", "retry_budget_remaining": 0},
-            "authority_snapshot": {"control_state": "blocked_runtime_escalation"},
-        },
+        lambda **_: progress_projection_payload(
+            study_root,
+            quest_root,
+            quest_status="running",
+            decision="blocked",
+            reason="runtime_recovery_retry_budget_exhausted",
+            runtime_health_snapshot={"attempt_state": "escalated", "retry_budget_remaining": 0},
+            authority_snapshot={"control_state": "blocked_runtime_escalation"},
+        ),
     )
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
@@ -914,22 +905,21 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": quest_id,
-            "quest_root": str(profile.runtime_root / quest_id),
-            "quest_status": "active",
-            "decision": "handoff_required",
-            "reason": "opl_stage_attempt_admission_required",
-            "active_run_id": None,
-            "runtime_health_snapshot": {
+        lambda **_: progress_projection_payload(
+            study_root,
+            profile.runtime_root / quest_id,
+            study_id=study_id,
+            quest_id=quest_id,
+            quest_status="active",
+            decision="handoff_required",
+            reason="opl_stage_attempt_admission_required",
+            active_run_id=None,
+            runtime_health_snapshot={
                 "runtime_health_epoch": "runtime-health-event-after-gate-closeout",
                 "runtime_liveness_status": "none",
                 "attempt_state": "blocked",
             },
-        },
+        ),
     )
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})

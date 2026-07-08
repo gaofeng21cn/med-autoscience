@@ -19,13 +19,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_readback_report_path = quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json"
     _write_json(
@@ -52,29 +46,18 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "controller_stage_note": "当前同线质量修复仍在继续。",
-            },
-            "continuation_state": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            include_execution=False,
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            decision="resume",
+            publication_supervisor_state=publication_gate_supervisor_state(
+                controller_stage_note="当前同线质量修复仍在继续。",
+            ),
+            continuation_state={
                 "quest_status": "running",
                 "active_run_id": "run-001",
                 "continuation_policy": "wait_for_user_or_resume",
@@ -82,21 +65,21 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
                 "continuation_reason": "unchanged_finalize_state",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-            "family_checkpoint_lineage": {
+            family_checkpoint_lineage={
                 "version": "family-checkpoint-lineage.v1",
                 "resume_contract": {
                     "resume_mode": "resume_from_checkpoint",
                     "human_gate_required": False,
                 },
             },
-            "pending_user_interaction": {},
-            "interaction_arbitration": None,
-            "supervisor_tick_audit": {
+            pending_user_interaction={},
+            interaction_arbitration=None,
+            supervisor_tick_audit={
                 "required": True,
                 "status": "fresh",
                 "summary": "监管心跳新鲜。",
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -135,13 +118,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
 def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(
@@ -230,36 +207,25 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "bundle_stage_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": False,
-                "current_required_action": "complete_bundle_stage",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
-            },
-            "runtime_escalation_ref": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            publication_supervisor_state=publication_gate_supervisor_state(
+                supervisor_phase="bundle_stage_blocked",
+                bundle_tasks_downstream_only=False,
+                current_required_action="complete_bundle_stage",
+                deferred_downstream_actions=[],
+                controller_stage_note="bundle-stage blockers are now on the critical path for this paper line",
+            ),
+            runtime_escalation_ref={
                 "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
                 "artifact_path": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
                 "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -488,6 +454,28 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
+    same_line_route_truth = {
+        "surface_kind": "same_line_route_truth",
+        "same_line_state": "finalize_only_remaining",
+        "same_line_state_label": "同线定稿与投稿包收尾",
+        "route_mode": "return",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
+        "current_focus": "Only finalize-level submission hardening remains.",
+    }
+    same_line_route_surface = {
+        "surface_kind": "same_line_route_surface",
+        "lane_id": "submission_hardening",
+        "repair_mode": "same_line_route_back",
+        "route_target": "finalize",
+        "route_target_label": "定稿与投稿收尾",
+        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+        "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
+        "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
+        "current_required_action": "continue_bundle_stage",
+        "closure_state": "bundle_only_remaining",
+    }
 
     result = module.build_study_progress_projection(
         profile=profile,
@@ -512,52 +500,12 @@ def test_study_progress_suppresses_same_line_route_when_publication_supervisor_b
                     "lane_id": "submission_hardening",
                     "summary": "Only finalize-level submission hardening remains.",
                 },
-                "same_line_route_truth": {
-                    "surface_kind": "same_line_route_truth",
-                    "same_line_state": "finalize_only_remaining",
-                    "same_line_state_label": "同线定稿与投稿包收尾",
-                    "route_mode": "return",
-                    "route_target": "finalize",
-                    "route_target_label": "定稿与投稿收尾",
-                    "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
-                    "current_focus": "Only finalize-level submission hardening remains.",
-                },
-                "same_line_route_surface": {
-                    "surface_kind": "same_line_route_surface",
-                    "lane_id": "submission_hardening",
-                    "repair_mode": "same_line_route_back",
-                    "route_target": "finalize",
-                    "route_target_label": "定稿与投稿收尾",
-                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                    "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
-                    "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
-                    "current_required_action": "continue_bundle_stage",
-                    "closure_state": "bundle_only_remaining",
-                },
+                "same_line_route_truth": same_line_route_truth,
+                "same_line_route_surface": same_line_route_surface,
                 "module_surfaces": {
                     "eval_hygiene": {
-                        "same_line_route_truth": {
-                            "surface_kind": "same_line_route_truth",
-                            "same_line_state": "finalize_only_remaining",
-                            "same_line_state_label": "同线定稿与投稿包收尾",
-                            "route_mode": "return",
-                            "route_target": "finalize",
-                            "route_target_label": "定稿与投稿收尾",
-                            "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
-                            "current_focus": "Only finalize-level submission hardening remains.",
-                        },
-                        "same_line_route_surface": {
-                            "surface_kind": "same_line_route_surface",
-                            "lane_id": "submission_hardening",
-                            "repair_mode": "same_line_route_back",
-                            "route_target": "finalize",
-                            "route_target_label": "定稿与投稿收尾",
-                            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-                            "summary": "当前质量执行线聚焦投稿包硬化收口；先回到定稿与投稿收尾，回答“当前论文线还差哪一个最窄的定稿或投稿包收尾动作？”。",
-                            "why_now": "bundle-stage work is unlocked and can proceed on the critical path",
-                            "current_required_action": "continue_bundle_stage",
-                            "closure_state": "bundle_only_remaining",
-                        },
+                        "same_line_route_truth": same_line_route_truth,
+                        "same_line_route_surface": same_line_route_surface,
                     }
                 },
             },
@@ -576,13 +524,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
@@ -620,36 +562,23 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": "quest-001",
-                "auto_resume": True,
-            },
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "active",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_parked_on_unchanged_finalize_state",
-            "publication_supervisor_state": {
-                "supervisor_phase": "scientific_anchor_missing",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": False,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
-            },
-            "pending_user_interaction": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            execution=managed_runtime_execution(),
+            quest_status="active",
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            decision="resume",
+            reason="quest_parked_on_unchanged_finalize_state",
+            publication_supervisor_state=publication_gate_supervisor_state(
+                supervisor_phase="scientific_anchor_missing",
+                upstream_scientific_anchor_ready=False,
+                deferred_downstream_actions=[],
+                controller_stage_note="bundle suggestions are downstream-only until the publication gate allows write",
+            ),
+            pending_user_interaction={
                 "interaction_id": "progress-finalize-001",
                 "kind": "decision_request",
                 "waiting_interaction_id": "progress-finalize-001",
@@ -668,7 +597,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
                 "source_artifact_path": str(quest_root / "artifacts" / "decisions" / "progress-finalize-001.json"),
                 "relay_required": True,
             },
-            "interaction_arbitration": {
+            interaction_arbitration={
                 "classification": "invalid_blocking",
                 "action": "resume",
                 "reason_code": "mas_managed_policy_rejects_runtime_user_gate",
@@ -682,7 +611,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
                     "decisions inside the MAS outer loop; runtime blocking may only ask for external secrets or credentials."
                 ),
             },
-            "continuation_state": {
+            continuation_state={
                 "quest_status": "active",
                 "active_run_id": None,
                 "continuation_policy": "wait_for_user_or_resume",
@@ -690,7 +619,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
                 "continuation_reason": "unchanged_finalize_state",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -712,13 +641,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     _write_controller_decision(
@@ -733,37 +656,22 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": "quest-001",
-                "auto_resume": True,
-            },
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "active",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "publishability_gate_blocked",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-            },
-            "pending_user_interaction": {},
-            "interaction_arbitration": None,
-        },
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            execution=managed_runtime_execution(),
+            quest_status="active",
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            decision="resume",
+            reason="publishability_gate_blocked",
+            publication_supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=[],
+            ),
+            pending_user_interaction={},
+            interaction_arbitration=None,
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -781,13 +689,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_controller_decision(
@@ -802,37 +704,22 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": "quest-001",
-                "auto_resume": True,
-            },
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "active",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "publishability_gate_blocked",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-            },
-            "pending_user_interaction": {},
-            "interaction_arbitration": None,
-        },
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            execution=managed_runtime_execution(),
+            quest_status="active",
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            decision="resume",
+            reason="publishability_gate_blocked",
+            publication_supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=[],
+            ),
+            pending_user_interaction={},
+            interaction_arbitration=None,
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -848,13 +735,7 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(
         study_root,
@@ -885,37 +766,26 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"engine": "med-deepscientist", "quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "publishability_gate_blocked",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "controller_stage_note": "当前论文仍需先修质量面，再考虑后续打包。",
-            },
-            "pending_user_interaction": {},
-            "interaction_arbitration": None,
-            "supervisor_tick_audit": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            execution=managed_runtime_execution(auto_entry=False),
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            decision="resume",
+            reason="publishability_gate_blocked",
+            publication_supervisor_state=publication_gate_supervisor_state(
+                controller_stage_note="当前论文仍需先修质量面，再考虑后续打包。",
+            ),
+            pending_user_interaction={},
+            interaction_arbitration=None,
+            supervisor_tick_audit={
                 "required": True,
                 "status": "fresh",
                 "summary": "监管心跳新鲜。",
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")

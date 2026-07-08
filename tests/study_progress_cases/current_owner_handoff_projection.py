@@ -542,31 +542,27 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
             ],
         },
     )
-    status_payload = {
-        "study_id": "003-risk",
-        "publication_supervisor_state": {},
-        "progress_projection": {
-            "schema_version": 1,
-            "study_id": "003-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-003",
-            "current_stage": "auto_runtime_parked",
-            "paper_stage": "publication_supervision",
-            "next_system_action": "complete_medical_paper_readiness_surface",
-            "current_blockers": ["medical_paper_readiness_missing"],
-            "medical_paper_readiness": {"overall_status": "blocked"},
-            "publication_eval": {
+    status_payload = status_payload_with_progress_projection(
+        study_root,
+        study_id="003-risk",
+        quest_id="quest-003",
+        current_stage="auto_runtime_parked",
+        paper_stage="publication_supervision",
+        next_system_action="complete_medical_paper_readiness_surface",
+        current_blockers=["medical_paper_readiness_missing"],
+        medical_paper_readiness={"overall_status": "blocked"},
+        publication_eval={
                 "schema_version": 1,
                 "surface_kind": "paper_authority_cutover_projection",
                 "gaps": [],
                 "recommended_actions": [],
-            },
-            "auto_runtime_parked": {
+        },
+        auto_runtime_parked={
                 "parked": True,
                 "parked_state": "waiting_user_decision",
                 "auto_execution_complete": False,
-            },
-            "current_execution_envelope": {
+        },
+        current_execution_envelope={
                 "state_kind": "typed_blocker",
                 "owner": "MedAutoScience",
                 "typed_blocker": {
@@ -575,8 +571,8 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
                     "work_unit_id": "complete_medical_paper_readiness_surface",
                     "source_ref": typed_blocker_ref,
                 },
-            },
-            "stage_kernel_projection": {
+        },
+        stage_kernel_projection={
                 "current_owner_delta": {
                     "owner": "MedAutoScience",
                     "action": "complete_medical_paper_readiness_surface",
@@ -591,16 +587,15 @@ def test_existing_projection_refreshes_readiness_blocker_from_latest_publication
                         "owner_answer_ref": typed_blocker_ref,
                     },
                 },
-            },
-            "user_visible_projection": {
+        },
+        user_visible_projection={
                 "surface_kind": "study_progress_user_visible_projection",
                 "schema_version": 2,
                 "next_owner": "MedAutoScience",
                 "next_step": "complete_medical_paper_readiness_surface",
                 "paper_progress_state": {"next_owner": "MedAutoScience"},
-            },
         },
-    }
+    )
 
     result = module.build_study_progress_projection(
         profile=profile,
@@ -632,21 +627,15 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
         "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
-    status_payload = {
-        "study_id": "001-risk",
-        "publication_supervisor_state": {},
-        "progress_projection": {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-            "current_stage": "publication_revision",
-            "current_stage_summary": "同线质量复评待推进。",
-            "paper_stage_summary": "待 AI reviewer 复评。",
-            "next_system_action": stale_next_step,
-            "needs_physician_decision": False,
-            "current_blockers": [],
-            "latest_events": [
+    status_payload = status_payload_with_progress_projection(
+        study_root,
+        current_stage="publication_revision",
+        current_stage_summary="同线质量复评待推进。",
+        paper_stage_summary="待 AI reviewer 复评。",
+        next_system_action=stale_next_step,
+        needs_physician_decision=False,
+        current_blockers=[],
+        latest_events=[
                 {
                     "timestamp": "2026-05-30T06:50:18+00:00",
                     "category": "controller_decision",
@@ -657,8 +646,8 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
                     "category": "publication_eval",
                     "source": "publication_eval",
                 },
-            ],
-            "domain_transition": {
+        ],
+        domain_transition={
                 "decision_type": "ai_reviewer_re_eval",
                 "route_target": "review",
                 "owner": "ai_reviewer",
@@ -669,48 +658,47 @@ def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path
                         "the publication-eval workflow."
                     ),
                 },
-            },
-            "opl_current_control_state_handoff": {
+        },
+        opl_current_control_state_handoff={
                 "surface_kind": "opl_current_control_state_study_handoff",
                 "generated_at": "2026-05-30T03:44:25+00:00",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
                 "blocked_reason": "opl_stage_attempt_admission_required",
                 "why_not_applied": ["opl_stage_attempt_admission_required"],
-            },
-            "ai_repair_lifecycle": {
+        },
+        ai_repair_lifecycle={
                 "surface": "ai_repair_lifecycle",
                 "blocked_reason": "opl_stage_attempt_admission_required",
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": True,
                 "last_apply_attempt_at": "2026-05-30T05:57:59+00:00",
-            },
-            "intervention_lane": {
+        },
+        intervention_lane={
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
                 "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
-            },
-            "operator_verdict": {
+        },
+        operator_verdict={
                 "summary": stale_next_step,
                 "route_target": "external_supervisor",
                 "route_key_question": "opl_stage_attempt_admission_required",
-            },
-            "user_visible_projection": {
+        },
+        user_visible_projection={
                 "surface_kind": "study_progress_user_visible_projection",
                 "schema_version": 2,
                 "next_owner": "external_supervisor",
                 "next_step": stale_next_step,
                 "next_system_action": stale_next_step,
                 "paper_progress_state": {"next_owner": "external_supervisor"},
-            },
-            "refs": {
+        },
+        refs={
                 "ai_repair_lifecycle_path": "/tmp/repair_lifecycle/latest.json",
                 "opl_current_control_state_handoff_path": "/tmp/opl_current_control_state/latest.json",
-            },
         },
-    }
+    )
 
     result = module.build_study_progress_projection(
         profile=profile,
@@ -753,21 +741,15 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
         "等待 external_supervisor owner 执行 request_opl_handoff_hydration，"
         "关闭 opl_stage_attempt_admission_required 或产出 typed blocker。"
     )
-    status_payload = {
-        "study_id": "001-risk",
-        "publication_supervisor_state": {},
-        "progress_projection": {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-            "current_stage": "publication_revision",
-            "current_stage_summary": "同线质量复评待推进。",
-            "paper_stage_summary": "待 AI reviewer 复评。",
-            "next_system_action": stale_next_step,
-            "needs_physician_decision": False,
-            "current_blockers": [],
-            "latest_events": [
+    status_payload = status_payload_with_progress_projection(
+        study_root,
+        current_stage="publication_revision",
+        current_stage_summary="同线质量复评待推进。",
+        paper_stage_summary="待 AI reviewer 复评。",
+        next_system_action=stale_next_step,
+        needs_physician_decision=False,
+        current_blockers=[],
+        latest_events=[
                 {
                     "timestamp": "2026-05-30T06:50:18+00:00",
                     "category": "controller_decision",
@@ -783,34 +765,33 @@ def test_existing_projection_refreshes_stale_lane_after_handoff_surface_removed(
                     "category": "opl_runtime_owner_handoff",
                     "source": "opl_runtime_owner_handoff",
                 },
-            ],
-            "domain_transition": {
+        ],
+        domain_transition={
                 "decision_type": "ai_reviewer_re_eval",
                 "route_target": "review",
                 "owner": "ai_reviewer",
                 "next_work_unit": {
                     "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 },
-            },
-            "opl_current_control_state_handoff": None,
-            "ai_repair_lifecycle": None,
-            "intervention_lane": {
+        },
+        opl_current_control_state_handoff=None,
+        ai_repair_lifecycle=None,
+        intervention_lane={
                 "lane_id": "quality_floor_blocker",
                 "route_target": "external_supervisor",
                 "route_key_question": "opl_stage_attempt_admission_required",
                 "summary": stale_next_step,
                 "handoff_source": "opl_current_control_state.next_owner",
-            },
-            "user_visible_projection": {
+        },
+        user_visible_projection={
                 "surface_kind": "study_progress_user_visible_projection",
                 "schema_version": 2,
                 "next_owner": "external_supervisor",
                 "next_step": stale_next_step,
                 "next_system_action": stale_next_step,
                 "paper_progress_state": {"next_owner": "external_supervisor"},
-            },
         },
-    }
+    )
 
     result = module.build_study_progress_projection(
         profile=profile,
@@ -852,25 +833,20 @@ def test_dm004_unmapped_next_action_projection_keeps_family_authority(tmp_path: 
             "exact_work_unit_id_authority": False,
         },
     }
-    status_payload = {
-        "study_id": study_id,
-        "publication_supervisor_state": {},
-        "progress_projection": {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": "quest-dm004",
-            "next_action": next_action,
-            "current_work_unit": {"surface_kind": "current_work_unit", "status": "ready"},
-            "current_executable_owner_action": {
-                "surface_kind": "current_executable_owner_action",
-                "action_type": "legacy_complete_owner_action",
-            },
-            "provider_admission_pending_count": 1,
-            "provider_admission_candidates": [{"action_type": "legacy_provider_admission"}],
-            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+    status_payload = status_payload_with_progress_projection(
+        study_root,
+        study_id=study_id,
+        quest_id="quest-dm004",
+        next_action=next_action,
+        current_work_unit={"surface_kind": "current_work_unit", "status": "ready"},
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "action_type": "legacy_complete_owner_action",
         },
-    }
+        provider_admission_pending_count=1,
+        provider_admission_candidates=[{"action_type": "legacy_provider_admission"}],
+        current_execution_envelope={"state_kind": "executable_owner_action"},
+    )
 
     result = module.build_study_progress_projection(
         profile=profile,

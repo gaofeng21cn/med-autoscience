@@ -22,9 +22,40 @@ def write_prediction_study(profile, study_id: str = "001-risk", **kwargs: object
     )
 
 
-def running_progress_payload(
+def managed_runtime_execution(
+    quest_id: str = "quest-001",
+    *,
+    auto_entry: bool = True,
+) -> dict[str, object]:
+    payload: dict[str, object] = {"engine": "med-deepscientist"}
+    if auto_entry:
+        payload["auto_entry"] = "on_managed_research_intent"
+    payload.update({"quest_id": quest_id, "auto_resume": True})
+    return payload
+
+
+def publication_gate_supervisor_state(
+    *,
+    supervisor_phase: str = "publishability_gate_blocked",
+    upstream_scientific_anchor_ready: bool = True,
+    bundle_tasks_downstream_only: bool = True,
+    current_required_action: str = "return_to_publishability_gate",
+    **overrides: object,
+) -> dict[str, object]:
+    payload = {
+        "supervisor_phase": supervisor_phase,
+        "phase_owner": "publication_gate",
+        "upstream_scientific_anchor_ready": upstream_scientific_anchor_ready,
+        "bundle_tasks_downstream_only": bundle_tasks_downstream_only,
+        "current_required_action": current_required_action,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def progress_projection_payload(
     study_root: Path,
-    quest_root: Path,
+    quest_root: Path | None = None,
     *,
     study_id: str = "001-risk",
     quest_id: str = "quest-001",
@@ -34,17 +65,63 @@ def running_progress_payload(
         "schema_version": 1,
         "study_id": study_id,
         "study_root": str(study_root),
-        "entry_mode": "full_research",
-        "execution": {"quest_id": quest_id, "auto_resume": True},
         "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_exists": True,
-        "quest_status": "running",
-        "decision": "noop",
-        "reason": "quest_already_running",
     }
+    if quest_root is not None:
+        payload["quest_root"] = str(quest_root)
     payload.update(overrides)
     return payload
+
+
+def running_progress_payload(
+    study_root: Path,
+    quest_root: Path,
+    *,
+    study_id: str = "001-risk",
+    quest_id: str = "quest-001",
+    include_execution: bool = True,
+    **overrides: object,
+) -> dict[str, object]:
+    payload = progress_projection_payload(
+        study_root,
+        quest_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        entry_mode="full_research",
+    )
+    if include_execution:
+        payload["execution"] = {"quest_id": quest_id, "auto_resume": True}
+    payload.update(
+        {
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+        }
+    )
+    payload.update(overrides)
+    return payload
+
+
+def status_payload_with_progress_projection(
+    study_root: Path,
+    *,
+    study_id: str = "001-risk",
+    quest_id: str = "quest-001",
+    **progress_projection: object,
+) -> dict[str, object]:
+    return {
+        "study_id": study_id,
+        "publication_supervisor_state": {},
+        "progress_projection": progress_projection_payload(
+            study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            **progress_projection,
+        ),
+    }
 
 
 def _runtime_state_path(quest_root: Path) -> Path:

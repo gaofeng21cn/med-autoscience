@@ -545,31 +545,17 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": ["submission_minimal"],
-                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
-            },
-            "autonomous_runtime_notice": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            publication_supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=["submission_minimal"],
+                controller_stage_note="论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            ),
+            autonomous_runtime_notice={
                 "required": True,
                 "notice_key": "notice-001",
                 "notification_reason": "managed_runtime_live",
@@ -583,7 +569,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
                 "monitoring_error": None,
                 "launch_report_path": str(launch_report_path),
             },
-            "execution_owner_guard": {
+            execution_owner_guard={
                 "owner": "managed_runtime",
                 "supervisor_only": True,
                 "guard_reason": "runtime_live",
@@ -597,12 +583,12 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
                 "publication_gate_allows_direct_write": False,
                 "controller_stage_note": "当前只能做监管，不能直接越过托管运行时写入其拥有的表面。",
             },
-            "runtime_escalation_ref": {
+            runtime_escalation_ref={
                 "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
                 "artifact_path": str(runtime_escalation_path),
                 "summary_ref": str(launch_report_path),
             },
-        },
+        ),
     )
     monkeypatch.setattr(
         importlib.import_module("med_autoscience.controllers.study_progress.shared"),
@@ -737,36 +723,22 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": ["submission_minimal"],
-                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
-            },
-            "runtime_escalation_ref": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            publication_supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=["submission_minimal"],
+                controller_stage_note="论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            ),
+            runtime_escalation_ref={
                 "record_id": "runtime-escalation::missing",
                 "artifact_path": str(runtime_escalation_path),
                 "summary_ref": str(launch_report_path),
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -826,31 +798,17 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": ["submission_minimal"],
-                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
-            },
-            "autonomous_runtime_notice": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+            runtime_binding_exists=True,
+            study_completion_contract={},
+            publication_supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=["submission_minimal"],
+                controller_stage_note="论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            ),
+            autonomous_runtime_notice={
                 "required": True,
                 "notice_key": "notice-001",
                 "notification_reason": "managed_runtime_live",
@@ -864,7 +822,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
                 "monitoring_error": None,
                 "launch_report_path": str(launch_report_path),
             },
-            "execution_owner_guard": {
+            execution_owner_guard={
                 "owner": "managed_runtime",
                 "supervisor_only": True,
                 "guard_reason": "runtime_live",
@@ -878,12 +836,12 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
                 "publication_gate_allows_direct_write": False,
                 "controller_stage_note": "当前只能做监管，不能直接越过托管运行时写入其拥有的表面。",
             },
-            "runtime_escalation_ref": {
+            runtime_escalation_ref={
                 "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-10T09:07:00+00:00",
                 "artifact_path": str(runtime_escalation_path),
                 "summary_ref": str(launch_report_path),
             },
-        },
+        ),
     )
     monkeypatch.setattr(
         importlib.import_module("med_autoscience.controllers.study_progress.shared"),
