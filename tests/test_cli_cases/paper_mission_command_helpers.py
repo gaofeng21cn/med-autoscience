@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from textwrap import dedent
 
 from tests.test_cli_cases.shared import write_profile
 
@@ -53,6 +54,109 @@ def _assert_route_identity_matches_carrier(projected: dict, carrier: dict) -> No
         "request_idempotency_key",
     ):
         assert projected[field] == carrier[field]
+
+
+def _write_fake_opl_stage_route_runtime(
+    path: Path,
+    *,
+    capture_path: Path,
+    task_id: str,
+    running_stage_attempt_id: str,
+    terminal_stage_attempt_id: str | None = None,
+    terminal_on_first_readback: bool = False,
+    include_queue_stage_attempts: bool = False,
+) -> Path:
+    if terminal_on_first_readback and terminal_stage_attempt_id is None:
+        raise ValueError("terminal_stage_attempt_id is required")
+    terminal_stage_attempt_id = terminal_stage_attempt_id or running_stage_attempt_id
+    path.write_text(
+        dedent(
+            f"""\
+            #!/usr/bin/env python3
+            import json, sys
+            capture_path = {str(capture_path)!r}
+            terminal_on_first = {terminal_on_first_readback!r}
+            include_queue_stage_attempts = {include_queue_stage_attempts!r}
+            args = sys.argv[1:]
+            try:
+                records = json.loads(open(capture_path, encoding='utf-8').read())
+            except Exception:
+                records = []
+            def persist(record):
+                records.append(record)
+                open(capture_path, 'w', encoding='utf-8').write(json.dumps(records))
+            def payloads():
+                return [r['payload'] for r in records if 'payload' in r]
+            def current_payload():
+                ps = payloads()
+                return (ps[-1] if terminal_on_first else ps[0]) if ps else {{}}
+            def workspace_locator(payload):
+                return {{key: payload.get(key) for key in (
+                    'study_id', 'paper_mission_transaction_ref', 'opl_route_command_ref',
+                    'command_kind', 'route_target'
+                )}}
+            def running_attempt(payload):
+                return {{
+                    'surface_kind': 'opl_stage_attempt_running_readback',
+                    'status': 'running',
+                    'stage_id': payload.get('route_target'),
+                    'stage_attempt_id': {running_stage_attempt_id!r},
+                    'provider_status': 'running',
+                    'workspace_locator': workspace_locator(payload),
+                }}
+            def terminal_attempt(payload):
+                return {{
+                    'surface_kind': 'opl_stage_attempt_terminal_readback',
+                    'status': 'completed',
+                    'stage_id': payload.get('route_target'),
+                    'stage_attempt_id': {terminal_stage_attempt_id!r},
+                    'closeout_receipt_status': 'accepted_typed_closeout',
+                    'typed_blocker_ref': 'typed-blocker:domain-gate-pending',
+                    'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',
+                    'domain_ready_verdict': 'domain_gate_pending',
+                    'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],
+                    'workspace_locator': workspace_locator(payload),
+                }}
+            def current_attempt(payload):
+                ps = payloads()
+                return terminal_attempt(payload) if terminal_on_first and len(ps) == 1 else running_attempt(payload)
+            def current_task(payload):
+                return {{
+                    'task_id': {task_id!r},
+                    'domain_id': 'medautoscience',
+                    'task_kind': 'paper_mission/stage-route',
+                    'status': 'running',
+                    'payload': payload,
+                }}
+            if args[:2] == ['family-runtime', 'enqueue']:
+                payload = json.loads(args[args.index('--payload') + 1])
+                persist({{'argv': args, 'payload': payload}})
+                print(json.dumps({{'version':'g2','family_runtime_enqueue':{{'surface_id':'opl_family_runtime_enqueue','accepted':True,'idempotent_noop':False,'task':{{'task_id':{task_id!r},'status':'queued','payload':payload}}}}}}))
+            elif args[:2] == ['family-runtime', 'tick']:
+                persist({{'argv': args}})
+                print(json.dumps({{'family_runtime_tick':{{'selected_count':1,'dispatches':[{{'status':'running','stage_run_request':{{'stage_run_created':True,'provider_attempt_requested':True,'provider_running':True}}}}]}}}}))
+            elif args[:3] == ['family-runtime', 'queue', 'list']:
+                payload = current_payload()
+                attempt = current_attempt(payload)
+                task = current_task(payload)
+                queue = {{'tasks': [task]}}
+                if include_queue_stage_attempts:
+                    queue.update({{'queue': {{'total': 1}}, 'stage_attempts': [attempt]}})
+                print(json.dumps({{'family_runtime_queue': queue}}))
+            elif args[:3] == ['family-runtime', 'queue', 'inspect']:
+                payload = current_payload()
+                attempt = current_attempt(payload)
+                task = current_task(payload)
+                print(json.dumps({{'family_runtime_task':{{'task':task,'stage_attempts':[attempt]}}}}))
+            else:
+                persist({{'argv': args}})
+                print(json.dumps({{'error':'unexpected_args','args':args}}))
+            """
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+    return path
 
 
 def _write_paper_source_fixture(tmp_path: Path, *, study_id: str) -> None:
@@ -511,6 +615,7 @@ __all__ = [
     "_paper_mission_forbidden_write_guard",
     "_paper_mission_transaction_payload",
     "_write_candidate_manifest",
+    "_write_fake_opl_stage_route_runtime",
     "_write_matching_domain_gate_closeout",
     "_write_paper_source_fixture",
     "_write_profile_with_study",
