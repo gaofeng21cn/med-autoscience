@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import parked_progress_payload
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -176,20 +177,20 @@ def test_ai_reviewer_pending_parked_truth_routes_to_ai_reviewer_workflow(
             }
         ],
     }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "scientific_anchor_missing",
-        "auto_runtime_parked": status_payload["auto_runtime_parked"],
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-ai-reviewer",
-            "source_signature": "truth-source-ai-reviewer",
+    progress_payload = parked_progress_payload(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=profile.runtime_root / quest_id,
+        status_payload={
+            **status_payload,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-ai-reviewer",
+                "source_signature": "truth-source-ai-reviewer",
+            },
         },
-    }
+        paper_stage="scientific_anchor_missing",
+        ai_repair_lifecycle=None,
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -255,24 +256,19 @@ def test_domain_transition_ai_reviewer_preempts_submission_metadata_parked_truth
             },
         }
     )
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(profile.runtime_root / quest_id),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "publishability_gate_blocked",
-        "auto_runtime_parked": status_payload["auto_runtime_parked"],
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
+    progress_payload = parked_progress_payload(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=profile.runtime_root / quest_id,
+        status_payload=status_payload,
+        paper_stage="publishability_gate_blocked",
+        ai_repair_lifecycle={
             "state": "blocked",
             "blocked_reason": "runtime_relaunch_no_live_run_started",
             "next_owner": "external_supervisor",
             "external_supervisor_required": True,
         },
-    }
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -390,18 +386,14 @@ def test_explicit_resume_pending_with_current_controller_route_queues_ai_reviewe
             },
         }
     )
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "publishability_gate_blocked",
-        "auto_runtime_parked": status_payload["auto_runtime_parked"],
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-    }
+    progress_payload = parked_progress_payload(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        status_payload=status_payload,
+        paper_stage="publishability_gate_blocked",
+        ai_repair_lifecycle=None,
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -514,24 +506,13 @@ def test_hard_methodology_quality_repair_handoff_routes_past_parked_ai_reviewer_
             },
         }
     )
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "auto_runtime_parked": status_payload["auto_runtime_parked"],
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    progress_payload = parked_progress_payload(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        status_payload=status_payload,
+        paper_stage="analysis-campaign",
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",

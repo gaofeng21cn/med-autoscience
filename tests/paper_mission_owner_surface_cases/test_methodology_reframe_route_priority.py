@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import parked_owner_surface_payloads
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
@@ -55,37 +56,17 @@ def test_scan_prefers_materialized_methodology_decision_over_analysis_source_blo
     _set_mtime(analysis_result_path, 1_000)
     _set_mtime(source_result_path, 2_000)
     _set_mtime(decision_path, 3_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-methodology-reframe",
-            "source_signature": "truth-source-dm002-methodology-reframe",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-methodology-reframe",
+        source_signature="truth-source-dm002-methodology-reframe",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -154,37 +135,17 @@ def test_scan_routes_authorized_provenance_limited_rebuild_to_analysis_owner(
     _set_mtime(source_result_path, 2_000)
     _set_mtime(decision_path, 3_000)
     _set_mtime(provenance_result_path, 4_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-authorized-rebuild",
-            "source_signature": "truth-source-dm002-authorized-rebuild",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-authorized-rebuild",
+        source_signature="truth-source-dm002-authorized-rebuild",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -270,37 +231,17 @@ def test_scan_prefers_current_provenance_limited_rebuild_handoff_over_stale_audi
     _set_mtime(decision_path, 3_000)
     _set_mtime(task_intake_path, 4_000)
     _set_mtime(provenance_result_path, 5_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-current-provenance-limited-rebuild",
-            "source_signature": "truth-source-dm002-current-provenance-limited-rebuild",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-current-provenance-limited-rebuild",
+        source_signature="truth-source-dm002-current-provenance-limited-rebuild",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -361,37 +302,17 @@ def test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner(
     _write_json(decision_path, _materialized_clean_rebuild_decision(study_id=study_id, quest_id=quest_id))
     _set_mtime(source_result_path, 2_000)
     _set_mtime(decision_path, 3_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-direct-clean-rebuild",
-            "source_signature": "truth-source-dm002-direct-clean-rebuild",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-direct-clean-rebuild",
+        source_signature="truth-source-dm002-direct-clean-rebuild",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -455,37 +376,17 @@ def test_scan_routes_clean_rebuild_decision_consumes_prior_source_blocker_even_w
     _write_json(decision_path, _materialized_clean_rebuild_decision(study_id=study_id, quest_id=quest_id))
     _set_mtime(decision_path, 3_000)
     _set_mtime(source_result_path, 4_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-direct-clean-rebuild-consumed-source",
-            "source_signature": "truth-source-dm002-direct-clean-rebuild-consumed-source",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-direct-clean-rebuild-consumed-source",
+        source_signature="truth-source-dm002-direct-clean-rebuild-consumed-source",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -555,37 +456,17 @@ def test_scan_requeues_decision_when_clean_rebuild_authorization_supersedes_audi
     _set_mtime(source_result_path, 2_000)
     _set_mtime(task_intake_path, 3_000)
     _set_mtime(decision_path, 4_000)
-    status_payload = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_status": "waiting_for_user",
-        "active_run_id": None,
-        "current_stage": "publication_supervision",
-        "study_truth_snapshot": {
-            "truth_epoch": "truth-epoch-dm002-clean-rebuild-supersedes-audit",
-            "source_signature": "truth-source-dm002-clean-rebuild-supersedes-audit",
-        },
-        "publication_eval": publication_eval,
-    }
-    progress_payload = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "current_stage": "auto_runtime_parked",
-        "paper_stage": "analysis-campaign",
-        "supervision": {"active_run_id": None, "health_status": "parked"},
-        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-        "quality_review_loop": {"closure_state": "review_required"},
-        "study_truth_snapshot": status_payload["study_truth_snapshot"],
-        "ai_repair_lifecycle": {
-            "state": "blocked",
-            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
-            "next_owner": "external_supervisor",
-            "external_supervisor_required": True,
-        },
-    }
+    status_payload, progress_payload = parked_owner_surface_payloads(
+        study_root=study_root,
+        quest_id=quest_id,
+        quest_root=quest_root,
+        publication_eval=publication_eval,
+        truth_epoch="truth-epoch-dm002-clean-rebuild-supersedes-audit",
+        source_signature="truth-source-dm002-clean-rebuild-supersedes-audit",
+        paper_stage="analysis-campaign",
+        quest_status="waiting_for_user",
+        status_updates={"schema_version": 1, "current_stage": "publication_supervision"},
+    )
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
