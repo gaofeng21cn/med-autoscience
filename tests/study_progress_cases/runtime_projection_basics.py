@@ -135,13 +135,7 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     evidence_index_path = quest_root / ".ds" / "evidence_packets" / "run-live" / "index.json"
     gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
@@ -174,30 +168,21 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "active_run_id": "run-current",
-            "publication_supervisor_state": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            active_run_id="run-current",
+            publication_supervisor_state={
                 "supervisor_phase": "write",
                 "phase_owner": "publication_gate",
                 "current_required_action": "continue_write_stage",
             },
-            "supervisor_tick_audit": {
+            supervisor_tick_audit={
                 "required": True,
                 "status": "fresh",
                 "summary": "监管心跳新鲜。",
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -216,13 +201,7 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(
         study_root,
@@ -292,29 +271,20 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
+        lambda **_: running_progress_payload(
+            study_root,
+            quest_root,
+            publication_supervisor_state={
                 "supervisor_phase": "publishability_gate_blocked",
                 "phase_owner": "publication_gate",
                 "current_required_action": "return_to_publishability_gate",
             },
-            "supervisor_tick_audit": {
+            supervisor_tick_audit={
                 "required": True,
                 "status": "fresh",
                 "summary": "监管心跳新鲜。",
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -354,13 +324,7 @@ def test_study_progress_marks_work_unit_lifecycle_span_as_elapsed_window(
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     identity = control_identity.ControlWorkUnitIdentity(
@@ -392,19 +356,7 @@ def test_study_progress_marks_work_unit_lifecycle_span_as_elapsed_window(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "decision": "noop",
-            "reason": "quest_already_running",
-        },
+        lambda **_: running_progress_payload(study_root, quest_root),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -428,13 +380,7 @@ def test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_t
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     closeout_ref = (
         "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
@@ -476,19 +422,7 @@ def test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_t
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "decision": "noop",
-            "reason": "quest_already_running",
-        },
+        lambda **_: running_progress_payload(study_root, quest_root),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -510,13 +444,7 @@ def test_study_progress_reads_provider_token_usage_from_closeout_top_level(
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     closeout_ref = (
         "studies/001-risk/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
@@ -556,19 +484,7 @@ def test_study_progress_reads_provider_token_usage_from_closeout_top_level(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "decision": "noop",
-            "reason": "quest_already_running",
-        },
+        lambda **_: running_progress_payload(study_root, quest_root),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -586,12 +502,9 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
+    study_root = write_prediction_study(
+        profile,
         "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
         paper_framing_summary="研究主线是糖尿病死亡风险外部验证。",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
@@ -793,12 +706,9 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
+    study_root = write_prediction_study(
+        profile,
         "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
         paper_framing_summary="研究主线是糖尿病死亡风险外部验证。",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
@@ -876,13 +786,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(study_root, quest_root)
