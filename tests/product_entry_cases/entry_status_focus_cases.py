@@ -19,188 +19,142 @@ _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
 
 
+_PRODUCT_ENTRY_COMMAND = (
+    "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml"
+)
+_WORKSPACE_COCKPIT_COMMAND = (
+    "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"
+)
+
+
+def _ready_product_entry_manifest() -> dict[str, object]:
+    module = product_entry_manifest_surfaces_module()
+    return {
+        "surface_kind": "product_entry_manifest",
+        "manifest_version": 2,
+        "manifest_kind": "med_autoscience_product_entry_manifest",
+        "target_domain_id": "med-autoscience",
+        "formal_entry": {
+            "default": "CLI",
+            "supported_protocols": ["MCP"],
+            "internal_surface": "controller",
+        },
+        "workspace_locator": {"profile_name": "test-profile"},
+        "product_entry_shell": {
+            "product_entry_status": {
+                "command": _PRODUCT_ENTRY_COMMAND,
+                "surface_kind": "product_entry_status",
+            },
+            "workspace_cockpit": {
+                "command": _WORKSPACE_COCKPIT_COMMAND,
+                "surface_kind": "workspace_cockpit",
+            },
+            "study_progress": {
+                "command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml",
+                "surface_kind": "study_progress",
+            },
+        },
+        "shared_handoff": {
+            "direct_entry_builder": {
+                "command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct",
+                "entry_mode": "direct",
+            }
+        },
+        "runtime": {"runtime_owner": "one-person-lab"},
+        "product_entry_status": {"summary": "test status"},
+        "product_entry_surface": {
+            "surface_kind": "product_entry_status",
+            "command": _PRODUCT_ENTRY_COMMAND,
+            "summary": "open entry_status",
+        },
+        "operator_loop_surface": {
+            "surface_kind": "workspace_cockpit",
+            "command": _WORKSPACE_COCKPIT_COMMAND,
+            "summary": "open workspace cockpit",
+        },
+        "operator_loop_actions": {},
+        "product_entry_start": {
+            "surface_kind": "product_entry_start",
+            "summary": "open entry_status first",
+            "recommended_mode_id": "open_product_entry",
+            "modes": [],
+            "resume_surface": {
+                "surface_kind": "workspace_cockpit",
+                "command": _WORKSPACE_COCKPIT_COMMAND,
+                "session_locator_field": "profile_name",
+            },
+            "human_gate_ids": ["workspace_gate"],
+        },
+        "product_entry_overview": {
+            "surface_kind": "product_entry_overview",
+            "summary": "workspace overview",
+            "entry_status_command": _PRODUCT_ENTRY_COMMAND,
+            "recommended_command": _WORKSPACE_COCKPIT_COMMAND,
+            "operator_loop_command": _WORKSPACE_COCKPIT_COMMAND,
+        },
+        "product_entry_preflight": {
+            "surface_kind": "product_entry_preflight",
+            "summary": "preflight ready",
+            "ready_to_try_now": True,
+            "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
+            "recommended_start_command": _PRODUCT_ENTRY_COMMAND,
+            "blocking_check_ids": [],
+            "checks": [],
+        },
+        "product_entry_readiness": {
+            "surface_kind": "product_entry_readiness",
+            "verdict": "ready_for_task",
+            "usable_now": True,
+            "good_to_use_now": True,
+            "fully_automatic": False,
+            "summary": "workspace ready",
+            "recommended_start_surface": "product_entry_status",
+            "recommended_start_command": _PRODUCT_ENTRY_COMMAND,
+            "recommended_loop_surface": "workspace_cockpit",
+            "recommended_loop_command": _WORKSPACE_COCKPIT_COMMAND,
+            "blocking_gaps": [],
+        },
+        "product_entry_quickstart": {
+            "surface_kind": "product_entry_quickstart",
+            "recommended_step_id": "open_product_entry",
+            "summary": "open entry_status first",
+            "steps": [],
+            "resume_contract": {
+                "surface_kind": "workspace_cockpit",
+                "session_locator_field": "profile_name",
+            },
+            "human_gate_ids": ["workspace_gate"],
+        },
+        "family_orchestration": {
+            "human_gates": [{"gate_id": "workspace_gate"}],
+            "resume_contract": {
+                "surface_kind": "workspace_cockpit",
+                "session_locator_field": "profile_name",
+            },
+        },
+        "domain_entry_contract": module._build_domain_entry_contract(),
+        "user_interaction_contract": module._build_user_interaction_contract(),
+        "single_project_boundary": module._single_project_boundary_payload(None),
+        "capability_owner_boundary": module._capability_owner_boundary_payload(None),
+        "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
+        "recommended_command": _WORKSPACE_COCKPIT_COMMAND,
+        "summary": {"recommended_command": _WORKSPACE_COCKPIT_COMMAND},
+    }
+
+
+def _patch_ready_product_entry_manifest(monkeypatch) -> None:
+    monkeypatch.setattr(
+        product_entry_manifest_surfaces_module(),
+        "build_product_entry_manifest",
+        lambda **kwargs: _ready_product_entry_manifest(),
+    )
+
+
 def test_build_product_entry_status_uses_operator_status_card_for_now_summary(monkeypatch, tmp_path: Path) -> None:
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    monkeypatch.setattr(
-        product_entry_manifest_surfaces_module(),
-        "build_product_entry_manifest",
-        lambda **kwargs: {
-            "surface_kind": "product_entry_manifest",
-            "manifest_version": 2,
-            "manifest_kind": "med_autoscience_product_entry_manifest",
-            "target_domain_id": "med-autoscience",
-            "formal_entry": {
-                "default": "CLI",
-                "supported_protocols": ["MCP"],
-                "internal_surface": "controller",
-            },
-            "workspace_locator": {"profile_name": "test-profile"},
-            "product_entry_shell": {
-                "product_entry_status": {
-                    "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                    "surface_kind": "product_entry_status",
-                },
-                "workspace_cockpit": {
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                    "surface_kind": "workspace_cockpit",
-                },
-                "submit_study_task": {
-                    "command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml",
-                    "surface_kind": "study_task_intake",
-                },
-                "launch_study": {
-                    "command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml",
-                    "surface_kind": "launch_study",
-                },
-                "study_progress": {
-                    "command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml",
-                    "surface_kind": "study_progress",
-                },
-                "mainline_status": {
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-status",
-                    "surface_kind": "mainline_status",
-                },
-                "mainline_phase": {
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-phase",
-                    "surface_kind": "mainline_phase",
-                },
-            },
-            "shared_handoff": {
-                "direct_entry_builder": {
-                    "command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct",
-                    "entry_mode": "direct",
-                }
-            },
-            "runtime": {"runtime_owner": "one-person-lab"},
-            "product_entry_status": {"summary": "test status"},
-            "product_entry_surface": {
-                "surface_kind": "product_entry_status",
-                "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                "summary": "open entry_status",
-            },
-            "operator_loop_surface": {
-                "surface_kind": "workspace_cockpit",
-                "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                "summary": "open workspace cockpit",
-            },
-            "operator_loop_actions": {},
-            "product_entry_start": {
-                "surface_kind": "product_entry_start",
-                "summary": "open entry_status first",
-                "recommended_mode_id": "open_product_entry",
-                "modes": [
-                    {
-                        "mode_id": "open_product_entry",
-                        "title": "Open entry_status",
-                        "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                        "surface_kind": "product_entry_status",
-                        "summary": "open entry_status",
-                        "requires": [],
-                    }
-                ],
-                "resume_surface": {
-                    "surface_kind": "workspace_cockpit",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                    "session_locator_field": "profile_name",
-                },
-                "human_gate_ids": ["workspace_gate"],
-            },
-            "product_entry_overview": {
-                "surface_kind": "product_entry_overview",
-                "summary": "workspace overview",
-                "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                "progress_surface": {
-                    "surface_kind": "workspace_cockpit",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                },
-                "resume_surface": {
-                    "surface_kind": "workspace_cockpit",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                    "session_locator_field": "profile_name",
-                },
-                "recommended_step_id": "open_product_entry",
-                "next_focus": ["open workspace cockpit"],
-                "remaining_gaps_count": 0,
-                "human_gate_ids": ["workspace_gate"],
-            },
-            "domain_entry_contract": {
-                "entry_adapter": "MedAutoScienceDomainEntry",
-                "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry",
-                "product_entry_builder_command": "build-product-entry",
-                "supported_commands": ["workspace-cockpit"],
-                "command_contracts": [
-                    {"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}
-                ],
-            },
-            "user_interaction_contract": {
-                "surface_kind": "user_interaction_contract",
-                "entry_owner": "opl_product_entry_or_domain_gui",
-                "user_interaction_mode": "natural_language_entry",
-                "user_commands_required": False,
-                "command_surfaces_for_agent_consumption_only": True,
-                "shared_downstream_entry": "MedAutoScienceDomainEntry",
-                "shared_handoff_envelope": ["target_domain_id"],
-            },
-            "product_entry_preflight": {
-                "surface_kind": "product_entry_preflight",
-                "summary": "preflight ready",
-                "ready_to_try_now": True,
-                "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
-                "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                "blocking_check_ids": [],
-                "checks": [],
-            },
-            "product_entry_readiness": {
-                "surface_kind": "product_entry_readiness",
-                "verdict": "ready_for_task",
-                "usable_now": True,
-                "good_to_use_now": True,
-                "fully_automatic": False,
-                "summary": "workspace ready",
-                "recommended_start_surface": "product_entry_status",
-                "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                "recommended_loop_surface": "workspace_cockpit",
-                "recommended_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-                "blocking_gaps": [],
-            },
-            "product_entry_quickstart": {
-                "surface_kind": "product_entry_quickstart",
-                "recommended_step_id": "open_product_entry",
-                "summary": "open entry_status first",
-                "steps": [
-                    {
-                        "step_id": "open_product_entry",
-                        "title": "Open entry_status",
-                        "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                        "surface_kind": "product_entry_status",
-                        "summary": "open entry_status",
-                        "requires": [],
-                    }
-                ],
-                "resume_contract": {
-                    "surface_kind": "workspace_cockpit",
-                    "session_locator_field": "profile_name",
-                },
-                "human_gate_ids": ["workspace_gate"],
-            },
-            "family_orchestration": {
-                "human_gates": [{"gate_id": "workspace_gate"}],
-                "resume_contract": {
-                    "surface_kind": "workspace_cockpit",
-                    "session_locator_field": "profile_name",
-                },
-            },
-            "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
-            "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-            "summary": {
-                "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"
-            },
-        },
-    )
+    _patch_ready_product_entry_manifest(monkeypatch)
     monkeypatch.setattr(
         product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
@@ -253,76 +207,7 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    monkeypatch.setattr(
-        product_entry_manifest_surfaces_module(),
-        "build_product_entry_manifest",
-        lambda **kwargs: {
-            "surface_kind": "product_entry_manifest",
-            "manifest_version": 2,
-            "manifest_kind": "med_autoscience_product_entry_manifest",
-            "target_domain_id": "med-autoscience",
-            "formal_entry": {"default": "CLI", "supported_protocols": ["MCP"], "internal_surface": "controller"},
-            "workspace_locator": {"profile_name": "test-profile"},
-            "product_entry_shell": {
-                "product_entry_status": {"command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status"},
-                "workspace_cockpit": {"command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "surface_kind": "workspace_cockpit"},
-                "submit_study_task": {"command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml", "surface_kind": "study_task_intake"},
-                "launch_study": {"command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml", "surface_kind": "launch_study"},
-                "study_progress": {"command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml", "surface_kind": "study_progress"},
-                "mainline_status": {"command": "uv run python -m med_autoscience.cli doctor mainline-status", "surface_kind": "mainline_status"},
-                "mainline_phase": {"command": "uv run python -m med_autoscience.cli doctor mainline-phase", "surface_kind": "mainline_phase"},
-            },
-            "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-            "runtime": {"runtime_owner": "one-person-lab"},
-            "product_entry_status": {"summary": "test status"},
-            "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "summary": "open entry_status"},
-            "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
-            "operator_loop_actions": {},
-            "product_entry_start": {
-                "surface_kind": "product_entry_start",
-                "summary": "open entry_status first",
-                "recommended_mode_id": "open_product_entry",
-                "modes": [
-                    {
-                        "mode_id": "open_product_entry",
-                        "title": "Open entry_status",
-                        "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                        "surface_kind": "product_entry_status",
-                        "summary": "open entry_status",
-                        "requires": [],
-                    }
-                ],
-                "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"},
-                "human_gate_ids": ["workspace_gate"],
-            },
-            "product_entry_overview": {"surface_kind": "product_entry_overview", "summary": "workspace overview", "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "progress_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"}, "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "recommended_step_id": "open_product_entry", "next_focus": ["open workspace cockpit"], "remaining_gaps_count": 0, "human_gate_ids": ["workspace_gate"]},
-            "domain_entry_contract": {"entry_adapter": "MedAutoScienceDomainEntry", "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry", "product_entry_builder_command": "build-product-entry", "supported_commands": ["workspace-cockpit"], "command_contracts": [{"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}]},
-            "user_interaction_contract": {"surface_kind": "user_interaction_contract", "entry_owner": "opl_product_entry_or_domain_gui", "user_interaction_mode": "natural_language_entry", "user_commands_required": False, "command_surfaces_for_agent_consumption_only": True, "shared_downstream_entry": "MedAutoScienceDomainEntry", "shared_handoff_envelope": ["target_domain_id"]},
-            "product_entry_preflight": {"surface_kind": "product_entry_preflight", "summary": "preflight ready", "ready_to_try_now": True, "recommended_check_command": "uv run python -m med_autoscience.cli doctor", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "blocking_check_ids": [], "checks": []},
-            "product_entry_readiness": {"surface_kind": "product_entry_readiness", "verdict": "ready_for_task", "usable_now": True, "good_to_use_now": True, "fully_automatic": False, "summary": "workspace ready", "recommended_start_surface": "product_entry_status", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_loop_surface": "workspace_cockpit", "recommended_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "blocking_gaps": []},
-            "product_entry_quickstart": {
-                "surface_kind": "product_entry_quickstart",
-                "recommended_step_id": "open_product_entry",
-                "summary": "open entry_status first",
-                "steps": [
-                    {
-                        "step_id": "open_product_entry",
-                        "title": "Open entry_status",
-                        "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
-                        "surface_kind": "product_entry_status",
-                        "summary": "open entry_status",
-                        "requires": [],
-                    }
-                ],
-                "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"},
-                "human_gate_ids": ["workspace_gate"],
-            },
-            "family_orchestration": {"human_gates": [{"gate_id": "workspace_gate"}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}},
-            "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
-            "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-            "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"},
-        },
-    )
+    _patch_ready_product_entry_manifest(monkeypatch)
     monkeypatch.setattr(
         product_entry_manifest_surfaces_module(),
         "read_workspace_cockpit",
@@ -383,41 +268,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "build_product_entry_manifest", lambda **kwargs: {
-        "surface_kind": "product_entry_manifest",
-        "manifest_version": 2,
-        "manifest_kind": "med_autoscience_product_entry_manifest",
-        "target_domain_id": "med-autoscience",
-        "formal_entry": {"default": "CLI", "supported_protocols": ["MCP"], "internal_surface": "controller"},
-        "workspace_locator": {"profile_name": "test-profile"},
-        "product_entry_shell": {
-            "product_entry_status": {"command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status"},
-            "workspace_cockpit": {"command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "surface_kind": "workspace_cockpit"},
-            "submit_study_task": {"command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml", "surface_kind": "study_task_intake"},
-            "launch_study": {"command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml", "surface_kind": "launch_study"},
-            "study_progress": {"command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml", "surface_kind": "study_progress"},
-            "mainline_status": {"command": "uv run python -m med_autoscience.cli doctor mainline-status", "surface_kind": "mainline_status"},
-            "mainline_phase": {"command": "uv run python -m med_autoscience.cli doctor mainline-phase", "surface_kind": "mainline_phase"},
-        },
-        "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "one-person-lab"},
-        "product_entry_status": {"summary": "test status"},
-        "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "summary": "open entry_status"},
-        "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
-        "operator_loop_actions": {},
-        "product_entry_start": {"surface_kind": "product_entry_start", "summary": "open entry_status first", "recommended_mode_id": "open_product_entry", "modes": [{"mode_id": "open_product_entry", "title": "Open entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status", "summary": "open entry_status", "requires": []}], "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
-        "product_entry_overview": {"surface_kind": "product_entry_overview", "summary": "workspace overview", "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "progress_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"}, "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "recommended_step_id": "open_product_entry", "next_focus": ["open workspace cockpit"], "remaining_gaps_count": 0, "human_gate_ids": ["workspace_gate"]},
-        "domain_entry_contract": {"entry_adapter": "MedAutoScienceDomainEntry", "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry", "product_entry_builder_command": "build-product-entry", "supported_commands": ["workspace-cockpit"], "command_contracts": [{"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}]},
-        "user_interaction_contract": {"surface_kind": "user_interaction_contract", "entry_owner": "opl_product_entry_or_domain_gui", "user_interaction_mode": "natural_language_entry", "user_commands_required": False, "command_surfaces_for_agent_consumption_only": True, "shared_downstream_entry": "MedAutoScienceDomainEntry", "shared_handoff_envelope": ["target_domain_id"]},
-        "product_entry_preflight": {"surface_kind": "product_entry_preflight", "summary": "preflight ready", "ready_to_try_now": True, "recommended_check_command": "uv run python -m med_autoscience.cli doctor", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "blocking_check_ids": [], "checks": []},
-        "product_entry_readiness": {"surface_kind": "product_entry_readiness", "verdict": "ready_for_task", "usable_now": True, "good_to_use_now": True, "fully_automatic": False, "summary": "workspace ready", "recommended_start_surface": "product_entry_status", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_loop_surface": "workspace_cockpit", "recommended_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "blocking_gaps": []},
-        "product_entry_quickstart": {"surface_kind": "product_entry_quickstart", "recommended_step_id": "open_product_entry", "summary": "open entry_status first", "steps": [{"step_id": "open_product_entry", "title": "Open entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status", "summary": "open entry_status", "requires": []}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
-        "family_orchestration": {"human_gates": [{"gate_id": "workspace_gate"}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}},
-        "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
-        "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-        "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
-    })
+    _patch_ready_product_entry_manifest(monkeypatch)
     monkeypatch.setattr(product_entry_manifest_surfaces_module(), "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
             "surface_kind": "workspace_operator_brief",
@@ -451,41 +302,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
     followthrough_summary = "当前已按 gate-clearing batch 回放 deterministic 修复，正在等待新的 publication gate 结论。"
     next_signal = "看 replay 后的 publication gate 是否收窄 medical_publication_surface_blocked。"
 
-    monkeypatch.setattr(product_entry_manifest_surfaces_module(), "build_product_entry_manifest", lambda **kwargs: {
-        "surface_kind": "product_entry_manifest",
-        "manifest_version": 2,
-        "manifest_kind": "med_autoscience_product_entry_manifest",
-        "target_domain_id": "med-autoscience",
-        "formal_entry": {"default": "CLI", "supported_protocols": ["MCP"], "internal_surface": "controller"},
-        "workspace_locator": {"profile_name": "test-profile"},
-        "product_entry_shell": {
-            "product_entry_status": {"command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status"},
-            "workspace_cockpit": {"command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "surface_kind": "workspace_cockpit"},
-            "submit_study_task": {"command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml", "surface_kind": "study_task_intake"},
-            "launch_study": {"command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml", "surface_kind": "launch_study"},
-            "study_progress": {"command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml", "surface_kind": "study_progress"},
-            "mainline_status": {"command": "uv run python -m med_autoscience.cli doctor mainline-status", "surface_kind": "mainline_status"},
-            "mainline_phase": {"command": "uv run python -m med_autoscience.cli doctor mainline-phase", "surface_kind": "mainline_phase"},
-        },
-        "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "one-person-lab"},
-        "product_entry_status": {"summary": "test status"},
-        "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "summary": "open entry_status"},
-        "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
-        "operator_loop_actions": {},
-        "product_entry_start": {"surface_kind": "product_entry_start", "summary": "open entry_status first", "recommended_mode_id": "open_product_entry", "modes": [{"mode_id": "open_product_entry", "title": "Open entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status", "summary": "open entry_status", "requires": []}], "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
-        "product_entry_overview": {"surface_kind": "product_entry_overview", "summary": "workspace overview", "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "progress_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"}, "resume_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "session_locator_field": "profile_name"}, "recommended_step_id": "open_product_entry", "next_focus": ["open workspace cockpit"], "remaining_gaps_count": 0, "human_gate_ids": ["workspace_gate"]},
-        "domain_entry_contract": {"entry_adapter": "MedAutoScienceDomainEntry", "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry", "product_entry_builder_command": "build-product-entry", "supported_commands": ["workspace-cockpit"], "command_contracts": [{"command": "workspace-cockpit", "required_fields": [], "optional_fields": []}]},
-        "user_interaction_contract": {"surface_kind": "user_interaction_contract", "entry_owner": "opl_product_entry_or_domain_gui", "user_interaction_mode": "natural_language_entry", "user_commands_required": False, "command_surfaces_for_agent_consumption_only": True, "shared_downstream_entry": "MedAutoScienceDomainEntry", "shared_handoff_envelope": ["target_domain_id"]},
-        "product_entry_preflight": {"surface_kind": "product_entry_preflight", "summary": "preflight ready", "ready_to_try_now": True, "recommended_check_command": "uv run python -m med_autoscience.cli doctor", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "blocking_check_ids": [], "checks": []},
-        "product_entry_readiness": {"surface_kind": "product_entry_readiness", "verdict": "ready_for_task", "usable_now": True, "good_to_use_now": True, "fully_automatic": False, "summary": "workspace ready", "recommended_start_surface": "product_entry_status", "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "recommended_loop_surface": "workspace_cockpit", "recommended_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml", "blocking_gaps": []},
-        "product_entry_quickstart": {"surface_kind": "product_entry_quickstart", "recommended_step_id": "open_product_entry", "summary": "open entry_status first", "steps": [{"step_id": "open_product_entry", "title": "Open entry_status", "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml", "surface_kind": "product_entry_status", "summary": "open entry_status", "requires": []}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}, "human_gate_ids": ["workspace_gate"]},
-        "family_orchestration": {"human_gates": [{"gate_id": "workspace_gate"}], "resume_contract": {"surface_kind": "workspace_cockpit", "session_locator_field": "profile_name"}},
-        "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
-        "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
-        "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
-    })
+    _patch_ready_product_entry_manifest(monkeypatch)
     monkeypatch.setattr(product_entry_manifest_surfaces_module(), "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
             "surface_kind": "workspace_operator_brief",

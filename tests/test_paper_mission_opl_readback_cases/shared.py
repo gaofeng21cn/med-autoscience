@@ -234,6 +234,26 @@ def _opl_running_task_running_attempt_payload() -> dict[str, object]:
     return payload
 
 
+def _record_only_authority_boundary() -> dict[str, bool]:
+    return {
+        "record_only_surface": True,
+        "candidate_is_authority": False,
+        "writes_authority": False,
+        "writes_authority_surface": False,
+        "writes_runtime": False,
+        "writes_yang_authority": False,
+        "writes_current_package": False,
+        "writes_publication_eval": False,
+        "writes_controller_decision": False,
+        "writes_owner_receipt": False,
+        "writes_typed_blocker": False,
+        "writes_human_gate": False,
+        "writes_runtime_queue": False,
+        "writes_provider_attempt": False,
+        "writes_runtime_queue_or_provider_attempt": False,
+    }
+
+
 def _opl_transition_receipt(
     *,
     stage_attempt_id: str = "sat-terminal",

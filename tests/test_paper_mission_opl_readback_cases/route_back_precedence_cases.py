@@ -11,6 +11,7 @@ from med_autoscience.paper_mission_opl_readback import (
 from tests.test_paper_mission_opl_readback_cases.shared import (
     _opl_route_carrier,
     _opl_transition_receipt,
+    _record_only_authority_boundary,
     _write_closeout,
 )
 
@@ -114,19 +115,7 @@ def test_opl_terminal_closeout_readback_prefers_latest_alias_bound_route_back_ev
                     "workspace_relative_ref": route_back_ref,
                 }
             ],
-            "authority_boundary": {
-                "candidate_is_authority": False,
-                "writes_authority_surface": False,
-                "writes_publication_eval": False,
-                "writes_controller_decision": False,
-                "writes_owner_receipt": False,
-                "writes_typed_blocker": False,
-                "writes_human_gate": False,
-                "writes_current_package": False,
-                "writes_runtime_queue": False,
-                "writes_provider_attempt": False,
-                "writes_yang_authority": False,
-            },
+            "authority_boundary": _record_only_authority_boundary(),
         },
         mtime=2000.0,
     )
@@ -222,19 +211,7 @@ def test_opl_terminal_closeout_readback_keeps_live_runtime_terminal_over_stale_r
                     ),
                 }
             ],
-            "authority_boundary": {
-                "candidate_is_authority": False,
-                "writes_authority_surface": False,
-                "writes_publication_eval": False,
-                "writes_controller_decision": False,
-                "writes_owner_receipt": False,
-                "writes_typed_blocker": False,
-                "writes_human_gate": False,
-                "writes_current_package": False,
-                "writes_runtime_queue": False,
-                "writes_provider_attempt": False,
-                "writes_yang_authority": False,
-            },
+            "authority_boundary": _record_only_authority_boundary(),
         },
     )
     live_closeout = {
@@ -353,11 +330,7 @@ def test_opl_terminal_closeout_readback_enriches_same_attempt_thin_live_terminal
             "ops/medautoscience/paper_mission_stage_attempts/"
             f"{attempt_id}/candidate_manifest.json"
         ),
-        "authority_boundary": {
-            "record_only_surface": True,
-            "writes_authority": False,
-            "writes_runtime_queue_or_provider_attempt": False,
-        },
+        "authority_boundary": _record_only_authority_boundary(),
     }
     closeout_path = closeout_root / "stage_attempt_closeout_packet.json"
     closeout_path.write_text(json.dumps(local_closeout), encoding="utf-8")
@@ -494,19 +467,7 @@ def test_opl_terminal_closeout_readback_prefers_newer_same_route_candidate(
                     else []
                 ),
             ],
-            "authority_boundary": {
-                "record_only_surface": True,
-                "writes_authority": False,
-                "writes_runtime": False,
-                "writes_yang_authority": False,
-                "writes_current_package": False,
-                "writes_publication_eval": False,
-                "writes_controller_decision": False,
-                "writes_owner_receipt": False,
-                "writes_typed_blocker": False,
-                "writes_human_gate": False,
-                "writes_runtime_queue_or_provider_attempt": False,
-            },
+            "authority_boundary": _record_only_authority_boundary(),
         }
         route_back = {
             "surface_kind": "paper_mission_stage_route_back_evidence_packet",
@@ -616,19 +577,7 @@ def test_opl_terminal_closeout_readback_prefers_newer_same_work_unit_over_stale_
                     f"{attempt_id}/{study_id}/candidate_manifest.json"
                 ),
             ],
-            "authority_boundary": {
-                "record_only_surface": True,
-                "writes_authority": False,
-                "writes_runtime": False,
-                "writes_yang_authority": False,
-                "writes_current_package": False,
-                "writes_publication_eval": False,
-                "writes_controller_decision": False,
-                "writes_owner_receipt": False,
-                "writes_typed_blocker": False,
-                "writes_human_gate": False,
-                "writes_runtime_queue_or_provider_attempt": False,
-            },
+            "authority_boundary": _record_only_authority_boundary(),
         }
         route_back = {
             "surface_kind": "paper_mission_stage_route_back_evidence_packet",
@@ -739,19 +688,7 @@ def test_opl_terminal_closeout_readback_uses_newer_route_back_without_closeout_p
             ),
             "progress_events.jsonl",
         ],
-        "authority_boundary": {
-            "record_only_surface": True,
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_current_package": False,
-            "writes_publication_eval": False,
-            "writes_controller_decision": False,
-            "writes_owner_receipt": False,
-            "writes_typed_blocker": False,
-            "writes_human_gate": False,
-            "writes_runtime_queue_or_provider_attempt": False,
-        },
+        "authority_boundary": _record_only_authority_boundary(),
     }
     old_closeout_path = old_root / "stage_attempt_closeout_packet.json"
     old_closeout_path.write_text(json.dumps(old_closeout), encoding="utf-8")
