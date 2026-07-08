@@ -14,7 +14,7 @@ _module_reexport(_shared)
 
 def test_handoff_user_visible_status_does_not_promote_opl_action_queue_without_canonical_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     existing_next_step = "等待 MAS canonical next action。"
 

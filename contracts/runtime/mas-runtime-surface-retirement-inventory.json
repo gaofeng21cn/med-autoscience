@@ -506,7 +506,7 @@
       },
       "replacement_surface": "domain_progress_transition_requests plus OPL DomainProgressTransitionRuntime durable carrier",
       "retained_mas_role": "none_physically_retired_no_alias",
-      "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer_parts/persistence.py",
+      "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer/persistence.py",
       "retired_symbols": [
         "persist_owner_callable_adapters",
         "persist_request_packets",
@@ -589,7 +589,7 @@
       "retired_code_path": "src/med_autoscience/controllers/domain_action_request_materializer.py",
       "retired_symbols": [
         "current_owner_callable_adapters",
-        "domain_action_request_materializer_parts.current_owner_callable_adapters"
+        "domain_action_request_materializer.current_owner_callable_adapters"
       ],
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,
@@ -914,9 +914,9 @@
     {
       "active_caller_migrated": true,
       "canonical_first_readers": [
-        "provider_admission_parts.provider_admission.persisted_provider_admission_candidates",
-        "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
-        "paper_mission_owner_surface_parts.recovery_actions._latest_clean_migration_rehydrate_execution"
+        "provider_admission.provider_admission.persisted_provider_admission_candidates",
+        "owner_route_handoff.export_study_projection._current_provider_handoff_execution",
+        "paper_mission_owner_surface.recovery_actions._latest_clean_migration_rehydrate_execution"
       ],
       "canonical_surface": "owner_callable_adapter_receipt_study_latest",
       "canonical_wire_path": "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json",
@@ -963,13 +963,13 @@
         "abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
         "active_stage_run_abi_caller_scan": {
           "active_callers": [
-            "study_transition_receipt_consumption_parts.owner_callable_candidates.owner_callable_receipt_candidates::_stage_closeout_candidates",
+            "study_transition_receipt_consumption.owner_callable_candidates.owner_callable_receipt_candidates::_stage_closeout_candidates",
             "study_transition_receipt_consumption.owner_callable_receipt_consumption",
             "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
-            "study_transition_receipt_consumption_parts.owner_callable_followthrough.owner_callable_receipt_followthrough_consumption",
-            "provider_admission_parts.provider_admission_report_closeout_scan",
+            "study_transition_receipt_consumption.owner_callable_followthrough.owner_callable_receipt_followthrough_consumption",
+            "provider_admission.provider_admission_report_closeout_scan",
             "study_outer_loop_work_units",
-            "study_progress_parts.opl_current_control_state_terminal_logs"
+            "study_progress.opl_current_control_state_terminal_logs"
           ],
           "allowed_consumption": [
             "terminal_closeout_consumption",
@@ -1115,7 +1115,7 @@
         "can_create_opl_event_outbox_or_stage_run": false,
         "can_create_provider_attempt": false,
         "canonical_current_surface": "domain_progress_transition_requests",
-        "canonical_projection_helper": "domain_action_request_materializer_parts.transition_request_projection.domain_progress_transition_request_projection",
+        "canonical_projection_helper": "domain_action_request_materializer.transition_request_projection.domain_progress_transition_request_projection",
         "canonical_projection_helper_exports_dispatcher_boundary_fields": true,
         "canonical_prompt_contract_field": "prompt_contract_ref",
         "dispatcher_prompt_contract_normalization": "prompt_contract_ref_to_prompt_contract_for_adapter_preflight_only",
@@ -1277,7 +1277,9 @@
       "mas_can_mutate_recovery_obligation_store": false,
       "mas_can_run_supervisor_decision_engine": false,
       "mas_owner_claim_allowed": false,
-      "mas_typed_blocker_authority_result_adapter": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.mas_domain_typed_blocker_authority_result",
+      "mas_typed_blocker_authority_result_adapter": "mas_domain_typed_blocker_authority_result_adapter_removed_split_package",
+      "mas_typed_blocker_authority_result_adapter_active_source_present": false,
+      "mas_typed_blocker_authority_result_adapter_source_status": "retired_source_reference",
       "missing_explicit_supervisor_projection_outcome": "opl_supervisor_decision_readback_required",
       "no_forbidden_write_proof_surface": "artifacts/mas_authority/typed_blockers/domain_diagnostic_report_obligation/latest.json",
       "obligation_readback_boundary": {
@@ -1393,7 +1395,7 @@
         "read_model_can_run_supervisor_decision_engine": false,
         "requires_opl_supervisor_decision_engine_readback": true,
         "study_progress_supervisor_projection_can_build_decision": false,
-        "surface": "study_progress_parts.paper_autonomy_supervisor_decision.supervisor_decision_for_projection"
+        "surface": "study_progress.paper_autonomy_supervisor_decision.supervisor_decision_for_projection"
       },
       "study_progress_supervisor_projection_can_build_decision": false,
       "surface_id": "domain_diagnostic_obligation_actuator",
@@ -1416,7 +1418,9 @@
         "surface_kind": "mas_domain_typed_blocker_authority_result_boundary"
       },
       "typed_blocker_authority_result_adapter_surface": "mas_domain_typed_blocker_authority_result_adapter",
-      "validator_module": "med_autoscience.controllers.provider_admission_parts.obligation_actuator_parts.readback_result_validator",
+      "validator_module": "mas_domain_typed_blocker_readback_validator_removed_split_package",
+      "validator_module_active_source_present": false,
+      "validator_module_source_status": "retired_source_reference",
       "validator_role": "accepted_owner_answer_or_opl_readback_shape_validator",
       "verified_by": [
         "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#obligation_actuator_tail_readback_false_completion_guard",
@@ -1523,8 +1527,8 @@
       "opl_runtime_health_observability_tail_readback": {
         "active_diagnostic_projection_caller_scan": {
           "active_callers": [
-            "paper_repair_executor_parts.ai_reviewer_currentness::runtime_health_snapshot_path_read",
-            "study_runtime_decision_parts.runtime_health_dominance::runtime_health_decision_gate_projection",
+            "paper_repair_executor.ai_reviewer_currentness::runtime_health_snapshot_path_read",
+            "study_runtime_decision.runtime_health_dominance::runtime_health_decision_gate_projection",
             "runtime_health_kernel.run_runtime_health_kernel::read_runtime_status_projection"
           ],
           "allowed_consumption": [
@@ -1587,7 +1591,7 @@
       "retained_mas_role": "body_free_runtime_health_diagnostic_projection",
       "retired_code_symbols": [
         "runtime_health_kernel.append_runtime_health_event",
-        "runtime_health_kernel_parts.event_log.append_runtime_health_event"
+        "runtime_health_kernel.event_log.append_runtime_health_event"
       ],
       "retirement_gate": {
         "active_caller_alone_retains_surface": false,

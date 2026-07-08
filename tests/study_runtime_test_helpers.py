@@ -7,7 +7,7 @@ import shutil
 
 import yaml
 
-from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions import (
+from med_autoscience.controllers.study_delivery_sync.delivery_descriptions import (
     _submission_source_relative_paths,
     _submission_source_signature,
 )

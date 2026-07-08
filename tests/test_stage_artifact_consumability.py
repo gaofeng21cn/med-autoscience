@@ -10,7 +10,7 @@ from med_autoscience.controllers.stage_artifact_index import build_stage_artifac
 from med_autoscience.controllers.stage_run_kernel import (
     stage_run_kernel_projection_from_stage_folder,
 )
-from med_autoscience.controllers.study_progress_parts.stage_kernel_projection import (
+from med_autoscience.controllers.study_progress.stage_kernel_projection import (
     stage_kernel_projection_from_artifact_index,
 )
 from tests.stage_artifact_index_cases.shared import (

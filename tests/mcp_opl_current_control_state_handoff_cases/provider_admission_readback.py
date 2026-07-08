@@ -11,7 +11,7 @@ from tests.mcp_opl_current_control_state_handoff_cases.shared import (
 )
 
 def test_study_progress_opl_current_control_state_handoff_consumes_live_transition_log_readback(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -144,7 +144,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_live_transiti
 
 def test_provider_admission_transition_log_readback_uses_current_transition_reader(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_transition_log_readback"
+        "med_autoscience.controllers.provider_admission.provider_admission_transition_log_readback"
     )
 
     result = module.domain_progress_transition_log_readbacks_by_idempotency_key(
@@ -155,7 +155,7 @@ def test_provider_admission_transition_log_readback_uses_current_transition_read
 
 
 def test_study_progress_opl_current_control_state_handoff_consumes_provider_admission_with_matching_terminal_closeout(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
     work_unit_id = "medical_prose_write_repair"
@@ -266,7 +266,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_provider_admi
 
 
 def test_study_progress_opl_current_control_state_handoff_preserves_runtime_backed_admission_when_closeout_identity_is_not_bound(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
     fingerprint = "publication-blockers::abc"
@@ -385,7 +385,7 @@ def test_study_progress_opl_current_control_state_handoff_preserves_runtime_back
 def test_study_progress_opl_current_control_state_handoff_consumes_global_terminal_readback_action_queue(
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "ai_reviewer_record_gate_consumption"
@@ -487,7 +487,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_global_termin
 
 
 def test_study_progress_opl_current_control_state_handoff_preserves_replayed_provider_admission_over_old_typed_blocker_closeout(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "publication-blockers::0915410f804b3697"

@@ -135,7 +135,7 @@ def test_domain_handler_export_projects_functional_consumer_boundary(tmp_path: P
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
-        "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
+        "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
     ]
     assert inventory_by_id["paper_progress_transition_refs"]["classification"] == "domain_authority_refs"
     assert inventory_by_id["artifact_authority"]["cannot_absorb_reason"] == (

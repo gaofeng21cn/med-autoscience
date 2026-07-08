@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from med_autoscience.controllers.study_progress_parts import projection as study_progress_projection
+from med_autoscience.controllers.study_progress import projection as study_progress_projection
 from tests.mcp_server_cases.profile import write_profile
 from tests.mcp_server_cases.result_envelope import _assert_tool_result_envelope, _structured_payload
 

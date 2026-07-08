@@ -297,7 +297,7 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
 
 def test_dm003_story_surface_reads_stage_native_bounded_revision_tables(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = (

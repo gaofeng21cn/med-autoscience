@@ -14,9 +14,9 @@ Machine boundary: Human-readable design support only; implementation truth remai
 - `src/med_autoscience/journal_requirements.py`
 - `src/med_autoscience/controllers/journal_requirements.py`
 - `src/med_autoscience/controllers/journal_package.py`
-- `src/med_autoscience/controllers/publication_gate_parts/state_resolvers.py`
-- `src/med_autoscience/controllers/publication_gate_parts/report_builders.py`
-- `src/med_autoscience/controllers/publication_gate_parts/supervisor_and_cli.py`
+- `src/med_autoscience/controllers/publication_gate/state_resolvers.py`
+- `src/med_autoscience/controllers/publication_gate/report_builders.py`
+- `src/med_autoscience/controllers/publication_gate/supervisor_and_cli.py`
 - `tests/test_journal_requirements_controller.py`
 - `tests/test_journal_package_controller.py`
 - `tests/test_publication_gate_cases/*`

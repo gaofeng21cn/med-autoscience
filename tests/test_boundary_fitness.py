@@ -67,8 +67,8 @@ def test_audit_reports_new_or_growing_files_over_preferred_boundary_as_advisory(
 
 def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
-    mechanical_path = Path("src/med_autoscience/controllers/provider_admission_parts/chunk_01.py")
-    semantic_path = Path("src/med_autoscience/controllers/product_entry_parts/shared.py")
+    mechanical_path = Path("src/med_autoscience/controllers/provider_admission/chunk_01.py")
+    semantic_path = Path("src/med_autoscience/controllers/product_entry/shared.py")
     _write_python_lines(tmp_path / mechanical_path, 3)
     _write_python_lines(tmp_path / semantic_path, 3)
 
@@ -90,7 +90,7 @@ def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path:
         "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_events_parts/human_gates.py"
     )
     parts_marker_path = Path("src/med_autoscience/controllers/product_entry_parts/__init__.py")
-    shared_base_path = Path("src/med_autoscience/controllers/product_entry_parts/shared_base.py")
+    shared_base_path = Path("src/med_autoscience/controllers/product_entry/shared_base.py")
     near_limit_path = Path("src/med_autoscience/controllers/study_progress_parts/projection.py")
     wildcard_export_path = Path("tests/test_gate_facade.py")
     exec_compile_path = Path("src/med_autoscience/controllers/study_runtime_decision.py")
@@ -161,7 +161,7 @@ def test_current_default_boundary_baseline_does_not_keep_under_limit_entries() -
 
 def test_submission_minimal_shared_facade_is_physically_retired() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    retired_facade = repo_root / "src/med_autoscience/controllers/submission_minimal_parts/shared.py"
+    retired_facade = repo_root / "src/med_autoscience/controllers/submission_minimal/shared.py"
 
     assert not retired_facade.exists()
     result = subprocess.run(
@@ -169,7 +169,7 @@ def test_submission_minimal_shared_facade_is_physically_retired() -> None:
             "git",
             "ls-files",
             "src/med_autoscience/controllers/submission_minimal.py",
-            "src/med_autoscience/controllers/submission_minimal_parts",
+            "src/med_autoscience/controllers/submission_minimal",
         ],
         cwd=repo_root,
         check=True,
@@ -177,7 +177,7 @@ def test_submission_minimal_shared_facade_is_physically_retired() -> None:
         stdout=subprocess.PIPE,
     )
     with pytest.raises(ModuleNotFoundError):
-        importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared")
+        importlib.import_module("med_autoscience.controllers.submission_minimal.shared")
 
     offenders = []
     for relative_path in result.stdout.splitlines():
@@ -188,7 +188,7 @@ def test_submission_minimal_shared_facade_is_physically_retired() -> None:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 if any(
-                    alias.name == "med_autoscience.controllers.submission_minimal_parts.shared"
+                    alias.name == "med_autoscience.controllers.submission_minimal.shared"
                     for alias in node.names
                 ):
                     offenders.append(relative_path)
@@ -198,7 +198,7 @@ def test_submission_minimal_shared_facade_is_physically_retired() -> None:
             if node.module == "shared" and node.level == 1:
                 offenders.append(relative_path)
                 break
-            if node.module == "med_autoscience.controllers.submission_minimal_parts.shared":
+            if node.module == "med_autoscience.controllers.submission_minimal.shared":
                 offenders.append(relative_path)
                 break
             if node.module is None and node.level == 1 and any(alias.name == "shared" for alias in node.names):

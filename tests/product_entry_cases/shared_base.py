@@ -21,17 +21,17 @@ from tests.study_runtime_test_helpers import (
 
 def product_entry_cockpit_payload_module():
     return importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload"
+        "med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload"
     )
 
 
 def product_entry_manifest_surfaces_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.manifest_surfaces")
+    return importlib.import_module("med_autoscience.controllers.product_entry.manifest_surfaces")
 
 
 def product_entry_program_surfaces_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.program_surfaces")
+    return importlib.import_module("med_autoscience.controllers.product_entry.program_surfaces")
 
 
 def product_entry_shared_base_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.shared_base")
+    return importlib.import_module("med_autoscience.controllers.product_entry.shared_base")

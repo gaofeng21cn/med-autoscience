@@ -2,7 +2,7 @@ from .shared import *
 
 
 def test_create_submission_minimal_package_skips_missing_planned_table_entries(tmp_path: Path) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_paper_workspace(tmp_path)
 
@@ -40,7 +40,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     monkeypatch,
 ) -> None:
     from med_autoscience.controllers import study_delivery_sync
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_paper_workspace(tmp_path)
     called: dict[str, object] = {}
@@ -86,14 +86,15 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers import study_delivery_sync
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_paper_workspace(tmp_path)
     called: dict[str, object] = {}
 
-    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
     monkeypatch.setattr(
-        package_builder.study_delivery_sync,
+        study_delivery_sync,
         "sync_study_delivery",
         lambda **_: {"stage": "submission_minimal"},
     )
@@ -135,7 +136,7 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
@@ -180,7 +181,7 @@ def test_create_submission_minimal_package_rejects_legacy_frontiers_profile(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
@@ -212,7 +213,7 @@ def test_create_submission_minimal_package_frontiers_family_profile_preserves_re
     monkeypatch,
     real_submission_exports,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
@@ -243,7 +244,7 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
@@ -322,7 +323,7 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
     monkeypatch,
 ) -> None:
     from med_autoscience.controllers import study_delivery_sync
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     # keep this assertion impossible for current implementation so the new sync contract is explicit
@@ -367,7 +368,7 @@ def test_create_submission_minimal_package_frontiers_family_uses_admin_gap_notes
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder, profile_config
+    from med_autoscience.controllers.submission_minimal import package_builder, profile_config
 
     paper_root = make_paper_workspace(tmp_path)
     frontiers_root = tmp_path / "frontiers_resources"
@@ -409,7 +410,7 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
     from docx import Document
 
     paper_root = make_current_draft_workspace(tmp_path)
@@ -444,7 +445,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_current_draft_workspace(tmp_path)
 
@@ -498,7 +499,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
 def test_create_submission_minimal_package_uses_dict_figure_semantics_for_all_catalog_figures(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_current_draft_workspace(tmp_path)
     write_png(paper_root / "figures" / "F2_main.png")
@@ -571,7 +572,7 @@ def test_create_submission_minimal_package_uses_catalog_backed_figures_when_main
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_paper_workspace(tmp_path)
 
@@ -626,7 +627,7 @@ def test_create_submission_minimal_package_supports_short_f_figure_headings_from
     tmp_path: Path,
     real_submission_exports,
 ) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import package_builder
+    from med_autoscience.controllers.submission_minimal import package_builder
 
     paper_root = make_paper_workspace(tmp_path)
 
@@ -681,7 +682,7 @@ Caption retained under the short F heading.
 
 
 def test_inspect_submission_source_markdown_counts_alt_text_inline_figures(tmp_path: Path) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import markdown_surface_qc
+    from med_autoscience.controllers.submission_minimal import markdown_surface_qc
 
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
@@ -708,7 +709,7 @@ Legend text for the main figure.
 
 
 def test_inspect_submission_source_markdown_accepts_main_figures_alias(tmp_path: Path) -> None:
-    from med_autoscience.controllers.submission_minimal_parts import markdown_surface_qc
+    from med_autoscience.controllers.submission_minimal import markdown_surface_qc
 
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(

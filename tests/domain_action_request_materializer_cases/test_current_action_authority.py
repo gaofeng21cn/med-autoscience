@@ -5,7 +5,7 @@ import importlib
 
 def _module():
     return importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_authority"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_authority"
     )
 
 

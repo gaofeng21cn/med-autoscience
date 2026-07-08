@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.provider_admission_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission.provider_admission import (
     current_control_provider_admission_candidates,
 )
 from tests.provider_admission_current_control_helpers import (
@@ -34,7 +34,7 @@ def test_provider_admission_current_control_consumes_opl_transition_log_readback
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

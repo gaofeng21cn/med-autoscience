@@ -92,7 +92,7 @@ def paper_mission_delivery_projection_fields(
     profile_ref: str | Path,
     study_root: Path,
 ) -> dict[str, Any]:
-    from med_autoscience.controllers.study_progress_parts.delivery_inspection import (
+    from med_autoscience.controllers.study_progress.delivery_inspection import (
         read_delivery_inspection_projection,
     )
 

@@ -9,7 +9,7 @@ from typing import Any, Mapping
 import yaml
 
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
-from med_autoscience.controllers.workspace_init_parts.retired_entries import (
+from med_autoscience.controllers.workspace_init.retired_entries import (
     retired_file_cleanup_reason,
     retired_workspace_service_paths,
 )

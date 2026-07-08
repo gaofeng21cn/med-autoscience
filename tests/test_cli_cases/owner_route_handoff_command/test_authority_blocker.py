@@ -9,7 +9,7 @@ def test_domain_handler_dispatch_records_quality_repair_authority_gate_as_stable
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"

@@ -99,7 +99,7 @@ def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() 
 def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_target(tmp_path: Path) -> None:
     progress_projection = importlib.import_module("med_autoscience.controllers.progress_projection")
     runtime_summary = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_events.runtime_summary"
+        "med_autoscience.controllers.study_runtime_decision.runtime_events.runtime_summary"
     )
     study_root = tmp_path / "studies" / "001-risk"
     latest_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
@@ -150,7 +150,7 @@ def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_ta
 def test_opl_runtime_owner_handoff_materialization_uses_runtime_health_recovery_target_for_strict_live_timeout(tmp_path: Path) -> None:
     progress_projection = importlib.import_module("med_autoscience.controllers.progress_projection")
     runtime_summary = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_events.runtime_summary"
+        "med_autoscience.controllers.study_runtime_decision.runtime_events.runtime_summary"
     )
     study_root = tmp_path / "studies" / "001-risk"
     latest_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"

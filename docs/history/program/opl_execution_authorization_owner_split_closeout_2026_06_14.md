@@ -18,7 +18,7 @@ Semantic theme: `opl_execution_authorization_required owner split`.
 
 SSOT owner:
 
-- Machine truth: `src/med_autoscience/controllers/current_work_unit.py`, `src/med_autoscience/controllers/paper_recovery_state.py`, `src/med_autoscience/controllers/current_work_unit_parts/policy_constants.py`, focused tests, and fresh `study progress` output.
+- Machine truth: `src/med_autoscience/controllers/current_work_unit.py`, `src/med_autoscience/controllers/paper_recovery_state.py`, `src/med_autoscience/controllers/current_work_unit/policy_constants.py`, focused tests, and fresh `study progress` output.
 - Human current owner: `docs/decisions.md` for durable decision boundary, `docs/status.md` for compact current status.
 
 Peer docs:

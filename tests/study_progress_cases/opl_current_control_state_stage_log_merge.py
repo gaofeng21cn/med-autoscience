@@ -377,7 +377,7 @@ def test_study_progress_projects_live_opl_attempt_without_stage_progress_log(
 
 def test_running_provider_top_level_projection_yields_to_matching_owner_receipt_closeout() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.running_provider_status"
     )
 
     payload = {
@@ -421,7 +421,7 @@ def test_running_provider_top_level_projection_yields_to_matching_owner_receipt_
 
 def test_running_provider_top_level_projection_yields_to_progress_first_terminal_closeout() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.running_provider_status"
     )
 
     payload = {
@@ -463,7 +463,7 @@ def test_running_provider_top_level_projection_yields_to_progress_first_terminal
 
 def test_paper_mission_live_carrier_suppresses_stale_explicit_wakeup_status() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.running_provider_status"
     )
 
     payload = {
@@ -521,7 +521,7 @@ def test_paper_mission_live_carrier_suppresses_stale_explicit_wakeup_status() ->
 
 def test_running_provider_top_level_projection_requires_current_action_running_proof() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.running_provider_status"
     )
 
     payload = {

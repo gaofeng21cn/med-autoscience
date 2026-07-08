@@ -5,7 +5,7 @@ import importlib
 
 def test_progress_projection_recomputes_actions_after_consumed_closeout_typed_blocker() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     handoff = {

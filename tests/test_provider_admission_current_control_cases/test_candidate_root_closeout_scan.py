@@ -107,7 +107,7 @@ def test_provider_admission_report_consumes_candidate_root_record_only_closeout_
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -151,7 +151,7 @@ def test_provider_admission_report_merges_candidate_root_closeout_when_scan_has_
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -209,7 +209,7 @@ def test_provider_admission_report_consumes_closeout_with_top_level_owner_route_
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -367,7 +367,7 @@ def test_provider_admission_report_consumes_progress_currentness_candidate_root_
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -543,7 +543,7 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -629,7 +629,7 @@ def test_provider_admission_report_consumes_transition_request_from_progress_ter
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -730,7 +730,7 @@ def test_provider_admission_report_demotes_candidate_root_record_only_closeout_w
     tmp_path: Path,
 ) -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

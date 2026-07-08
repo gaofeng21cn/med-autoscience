@@ -5,10 +5,10 @@ from tests.product_entry_cases import attention_queue_and_cockpit_base as _atten
 from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
 
 from med_autoscience.controllers import mainline_status, medical_paper_readiness
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown import (
+from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_markdown import (
     render_workspace_cockpit_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload import (
     read_workspace_cockpit,
 )
 

@@ -11,7 +11,7 @@ from tests.mcp_opl_current_control_state_handoff_cases.shared import (
 )
 
 def test_study_progress_opl_current_control_state_handoff_projection_reads_developer_supervisor_mode(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -51,7 +51,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_reads_devel
 
 
 def test_study_progress_opl_current_control_state_handoff_projection_preserves_string_why_not_applied(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -77,7 +77,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
 
 
 def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top_level_provider_admission_candidate(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -131,7 +131,7 @@ def test_study_progress_opl_current_control_state_handoff_rejects_incomplete_top
 
 
 def test_study_progress_opl_current_control_state_handoff_merges_complete_top_level_provider_admission_readback(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
     work_unit_id = "medical_prose_write_repair"
@@ -202,7 +202,7 @@ def test_study_progress_opl_current_control_state_handoff_merges_complete_top_le
 
 
 def test_study_progress_opl_current_control_state_handoff_binds_root_readback_to_action_queue(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"

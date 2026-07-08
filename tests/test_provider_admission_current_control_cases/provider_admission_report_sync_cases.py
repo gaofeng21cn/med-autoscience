@@ -16,7 +16,7 @@ def test_provider_admission_report_suppresses_candidate_blocked_by_report_paper_
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -95,7 +95,7 @@ def test_provider_admission_report_retains_matching_current_action_candidate_ove
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -187,7 +187,7 @@ def test_provider_admission_report_sync_updates_managed_action_candidate_surface
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -257,7 +257,7 @@ def test_provider_admission_report_sync_clears_stale_managed_action_pending_stat
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -306,7 +306,7 @@ def test_provider_admission_report_sync_consumes_terminal_readback_in_managed_ac
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -462,7 +462,7 @@ def test_provider_admission_report_sync_keeps_transition_request_out_of_managed_
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

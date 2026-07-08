@@ -658,7 +658,7 @@ def test_successor_owner_gate_blocker_supersedes_prior_owner_receipt() -> None:
 
 def test_paper_recovery_state_supersedes_stale_operator_parked_projection() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     state = _module().build_paper_recovery_state(
         {
@@ -760,7 +760,7 @@ def test_paper_recovery_state_supersedes_stale_operator_parked_projection() -> N
 
 def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_projection() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     state = _module().build_paper_recovery_state(
         {
@@ -845,7 +845,7 @@ def test_paper_recovery_admission_blocked_suppresses_active_provider_admission_p
 
 def test_paper_recovery_human_gate_keeps_user_decision_signal() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     state = _module().build_paper_recovery_state(
         {

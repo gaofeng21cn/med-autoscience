@@ -245,7 +245,7 @@ def test_materialized_contracts_satisfy_current_reporting_and_publication_valida
     materializer = importlib.import_module("med_autoscience.controllers.descriptive_registry_evidence_materializer")
     reporting_policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
     publication_policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
-    catalog_checks = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.catalog_checks")
+    catalog_checks = importlib.import_module("med_autoscience.controllers.medical_publication_surface.catalog_checks")
     study_root, paper_root = _write_study_fixture(tmp_path)
 
     materializer.materialize_descriptive_registry_evidence(study_root=study_root, paper_root=paper_root, apply=True)

@@ -46,25 +46,25 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `src/med_autoscience/controllers/backend_audit.py`
 - `src/med_autoscience/controllers/domain_status_projection.py`
 - `src/med_autoscience/controllers/progress_projection.py`
-- `src/med_autoscience/controllers/progress_projection_parts/`
+- `src/med_autoscience/controllers/progress_projection/`
 - `src/med_autoscience/controllers/study_runtime_types.py`
 - `src/med_autoscience/controllers/study_runtime_decision.py`
-- `src/med_autoscience/controllers/study_runtime_decision_parts/`
+- `src/med_autoscience/controllers/study_runtime_decision/`
 - `src/med_autoscience/controllers/study_runtime_startup.py`
 - `src/med_autoscience/controllers/study_runtime_completion.py`
 - `src/med_autoscience/controllers/study_runtime_resolution.py`
-- `src/med_autoscience/controllers/study_runtime_execution_parts/`
+- `src/med_autoscience/controllers/study_runtime_execution/`
 - `src/med_autoscience/controllers/restore_proof_compaction_helpers.py`
-- `src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py`
-- `src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py`
+- `src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py`
+- `src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
 - `src/med_autoscience/controllers/submission_inspection_export.py`
 - `src/med_autoscience/controllers/paper_authority_migration.py`
 - `src/med_autoscience/controllers/paper_authority_delivery_guard.py`
-- `src/med_autoscience/controllers/paper_mission_owner_surface_parts/action_projection.py`
+- `src/med_autoscience/controllers/paper_mission_owner_surface/action_projection.py`
 - `src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py`
 - `src/med_autoscience/controllers/publication_aftercare.py`
-- `src/med_autoscience/controllers/stage_outcome_authority_parts/action_execution_parts/publication_handoff.py`
+- `src/med_autoscience/controllers/stage_outcome_authority/action_execution/publication_handoff.py`
 
 对应测试：
 
@@ -126,9 +126,9 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 - `domain_status_projection.progress_projection(...)`
   - 当前 diagnostic/status projection 入口，读取 MAS domain refs 并返回 status payload；不 re-export 私有 runtime authority-dispatch binding。
-- `progress_projection.py`、`progress_projection_parts/` 与 `study_runtime_types.py`
+- `progress_projection.py`、`progress_projection/` 与 `study_runtime_types.py`
   - 负责 `ProgressProjectionStatus`、decision/reason/status enum 和 runtime result wrapper 等 typed surface；`study_runtime_types.py` 只是 lazy import shim，不是 router re-export 合同。
-- `study_runtime_decision.py`、`study_runtime_startup.py`、`study_runtime_completion.py`、`study_runtime_resolution.py` 与 `study_runtime_execution_parts/`
+- `study_runtime_decision.py`、`study_runtime_startup.py`、`study_runtime_completion.py`、`study_runtime_resolution.py` 与 `study_runtime_execution/`
   - 负责 status decision、startup projection、completion sync、study/root resolution、controller authorization、owner handoff、control-intent lifecycle 和 work-unit evidence adoption。
 
 对应稳定技术说明见：
@@ -164,7 +164,7 @@ Legacy `domain-diagnostic-report --apply` obligation closeout 已被 Stage Closu
 
 `paper_recovery_state.supervisor_decision`、`study_progress` 和 provider-admission projection 只能消费显式 `paper_autonomy_supervisor_decision` / `paper_progress_policy_result_projection` 或 OPL `RecoveryObligationStore/SupervisorDecisionEngine` readback；缺显式 projection/readback 时不得调用 `paper_autonomy_supervisor.build_supervisor_decision` 重新生成 decision。此时 `supervisor_decision_for_projection` 必须返回 `opl_supervisor_decision_readback_required`，并携带 `decision_authority=false`、`read_model_can_build_supervisor_decision=false`、`requires_opl_supervisor_decision_engine_readback=true`、`mas_can_run_supervisor_decision_engine=false`、`mas_can_store_recovery_obligation=false` 和 `provider_admission_pending=false`；`paper_recovery_state` 只能嵌入该 no-authority projection 或原样透传显式 policy projection/readback，不得把自己的 phase / next_safe_action 重新提升成 PAS decision。`provider_admission_supervisor_gate` 必须 fail closed 为同名 reason。这个 readback-required projection 只说明 OPL supervisor decision engine 缺 evidence，不授权 provider admission、next action、running claim、domain diagnostic apply success 或 paper progress。
 
-`domain_diagnostic_obligation_actuator` 的 physical source morphology 尾项现在只允许按 `contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator` 读取：它是临时 refs projection 和 fail-closed MAS typed-blocker authority-result consumer，不是 MAS recovery-obligation store、supervisor decision engine、event log、outbox、fixed-point runtime 或私有 blocker writer。fail-closed 写入边界属于 `obligation_actuator_parts.mas_domain_typed_blocker_authority_result`，该 adapter 只能持久化 MAS `mas_domain_typed_blocker` authority result，不能创建 OPL command/event/outbox/StageRun、不能授权 provider admission、不能声明 paper progress。active caller 不能单独保留该面；repo-source 删除看 OPL replacement parity、active caller migrated/deleted、no-forbidden-write proof、tombstone/provenance 和 no resurrection guard。live OPL `RecoveryObligationStore` / `SupervisorDecisionEngine` readback、no-active production caller 或 owner retirement decision只用于 runtime readiness / production readiness，不授权 domain diagnostic apply、provider start、paper progress、publication-ready 或 physical completion claim。
+`domain_diagnostic_obligation_actuator` 的 physical source morphology 尾项现在只允许按 `contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator` 读取：它是临时 refs projection 和 fail-closed MAS typed-blocker authority-result consumer，不是 MAS recovery-obligation store、supervisor decision engine、event log、outbox、fixed-point runtime 或私有 blocker writer。合同中保留的 `mas_domain_typed_blocker_authority_result_adapter_removed_split_package` 是 retired source reference，`*_active_source_present=false`；它只能描述 MAS `mas_domain_typed_blocker` authority-result 边界，不能被当作可导入 active adapter，不能创建 OPL command/event/outbox/StageRun、不能授权 provider admission、不能声明 paper progress。active caller 不能单独保留该面；repo-source 删除看 OPL replacement parity、active caller migrated/deleted、no-forbidden-write proof、tombstone/provenance 和 no resurrection guard。live OPL `RecoveryObligationStore` / `SupervisorDecisionEngine` readback、no-active production caller 或 owner retirement decision只用于 runtime readiness / production readiness，不授权 domain diagnostic apply、provider start、paper progress、publication-ready 或 physical completion claim。
 
 该尾项的机器读根是 `opl_obligation_actuator_tail_readback`：它要求 OPL `RecoveryObligationStore` active-caller readback、OPL `SupervisorDecisionEngine` active-caller readback、MAS obligation-actuator no-active-caller scan、no-forbidden-write proof、owner retirement decision 与 tombstone/provenance。`tail_readback_proven=false` 和 `no_active_mas_obligation_actuator_caller_proven=false` 必须保持为 live-readiness open-tail 状态，直到真实 OPL readback 或 no-active proof 到位；repo no-authority guard、MAS policy projection、MAS transition request、focused tests、typed-blocker authority result 都不能满足 live tail，也不能写成 domain diagnostic obligation actuator runtime-ready 或 production-ready。repo-source 物理退役另按 inventory 的 `repo-source retirement` 栏验收。
 

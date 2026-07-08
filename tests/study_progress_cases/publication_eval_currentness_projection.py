@@ -440,7 +440,7 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
@@ -589,7 +589,7 @@ def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )

@@ -125,7 +125,7 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
 
 
 def test_parked_operator_verdicts_keep_mds_out_of_current_owner_text() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.parked_operator")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.parked_operator")
 
     for handling_state in module.PARKED_HANDLING_STATES:
         verdict = module.parked_status_verdict(handling_state)

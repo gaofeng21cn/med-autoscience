@@ -51,7 +51,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)

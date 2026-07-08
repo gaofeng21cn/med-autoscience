@@ -921,9 +921,9 @@ def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.domain_transition_arbitration"
+        "med_autoscience.controllers.study_runtime_decision.domain_transition_arbitration"
     )
-    status_module = importlib.import_module("med_autoscience.controllers.progress_projection_parts")
+    status_module = importlib.import_module("med_autoscience.controllers.progress_projection")
     study_root = tmp_path / "studies" / "001-risk"
     study_root.mkdir(parents=True)
     _write_charter(study_root)

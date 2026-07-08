@@ -14,7 +14,7 @@ _module_reexport(_shared)
 
 def test_current_owner_handoff_action_keeps_scalar_remaining_blocker_text() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
 
     action = module.current_owner_handoff_action(
@@ -38,7 +38,7 @@ def test_current_owner_handoff_action_keeps_scalar_remaining_blocker_text() -> N
 
 def test_current_owner_handoff_action_ignores_structured_remaining_blocker_payload() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
 
     action = module.current_owner_handoff_action(
@@ -64,7 +64,7 @@ def test_current_owner_handoff_action_ignores_structured_remaining_blocker_paylo
 
 def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
@@ -145,7 +145,7 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
 
 def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfaces(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
@@ -218,7 +218,7 @@ def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
 ) -> None:
     progress = importlib.import_module("med_autoscience.controllers.study_progress")
     handoff_module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")

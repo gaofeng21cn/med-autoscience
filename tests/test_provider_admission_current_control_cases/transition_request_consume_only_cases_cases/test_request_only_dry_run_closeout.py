@@ -8,7 +8,7 @@ import pytest
 from tests.provider_admission_current_control_helpers import (
     provider_candidate as _provider_candidate,
 )
-from med_autoscience.controllers.provider_admission_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission.provider_admission import (
     current_control_provider_admission_candidates,
 )
 
@@ -29,7 +29,7 @@ def test_dry_run_materialized_transition_request_waits_for_opl_readback(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -99,7 +99,7 @@ def test_request_only_transition_waits_for_readback_across_owner_action_recovery
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -179,7 +179,7 @@ def test_request_only_successor_transition_candidate_carries_current_work_unit_s
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -313,7 +313,7 @@ def test_dry_run_transition_request_is_not_promoted_by_unconsumed_closeout_guard
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

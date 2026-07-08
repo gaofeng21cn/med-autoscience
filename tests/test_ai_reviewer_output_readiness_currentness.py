@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from med_autoscience.controllers.stage_outcome_authority_parts import output_readiness
+from med_autoscience.controllers.stage_outcome_authority import output_readiness
 
 from tests.stage_outcome_authority_helpers import (
     owner_route as _owner_route,

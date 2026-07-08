@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+from med_autoscience.controllers.product_entry.manifest_rendering import (
     render_product_entry_status_markdown as _render_product_entry_status_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_status as _build_product_entry_status,
 )
 

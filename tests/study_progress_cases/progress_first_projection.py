@@ -157,7 +157,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
 
 def test_next_forced_delta_marks_next_forced_target_surface_as_precise() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -195,7 +195,7 @@ def test_next_forced_delta_marks_next_forced_target_surface_as_precise() -> None
 
 def test_next_forced_delta_uses_domain_transition_required_owner_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -248,7 +248,7 @@ def test_next_forced_delta_uses_domain_transition_required_owner_surface() -> No
 
 def test_next_forced_delta_prefers_domain_transition_when_handoff_route_lacks_target_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -291,7 +291,7 @@ def test_next_forced_delta_prefers_domain_transition_when_handoff_route_lacks_ta
 
 def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_transition() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -379,7 +379,7 @@ def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_trans
 
 def test_next_forced_delta_ignores_stale_provider_admission_action_queue_when_transition_routes_write() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -457,7 +457,7 @@ def test_next_forced_delta_ignores_stale_provider_admission_action_queue_when_tr
 
 def test_next_forced_delta_does_not_redrive_readiness_queue_after_paper_delta_with_current_transition() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -521,7 +521,7 @@ def test_next_forced_delta_does_not_redrive_readiness_queue_after_paper_delta_wi
 
 def test_next_forced_delta_drops_readiness_queue_after_paper_delta_without_current_route() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -563,7 +563,7 @@ def test_next_forced_delta_drops_readiness_queue_after_paper_delta_without_curre
 
 def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -608,7 +608,7 @@ def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_
 
 def test_next_forced_delta_maps_current_ai_reviewer_consumption_write_route_to_quality_repair_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -665,7 +665,7 @@ def test_next_forced_delta_maps_current_ai_reviewer_consumption_write_route_to_q
 
 def test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_repair_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -713,7 +713,7 @@ def test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_re
 
 def test_next_forced_delta_reads_current_execution_evidence_owner_route() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(
@@ -749,7 +749,7 @@ def test_next_forced_delta_reads_current_execution_evidence_owner_route() -> Non
 
 def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_route_lacks_precise_surface() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     result = projection.build_progress_first_projection(

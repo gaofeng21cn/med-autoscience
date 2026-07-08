@@ -17,7 +17,7 @@ from tests.study_progress_cases.provider_admission_projection import (
 
 def test_provider_admission_projection_emits_candidate_for_current_executable_action(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -65,7 +65,7 @@ def test_provider_admission_projection_consumes_matching_terminal_closeout_over_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -140,7 +140,7 @@ def test_provider_admission_projection_blocks_queue_residue_under_supervisor_sto
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -186,7 +186,7 @@ def test_provider_admission_projection_blocks_queue_residue_under_supervisor_sto
 
 def test_provider_admission_projection_execute_decision_allows_current_candidate(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -229,10 +229,10 @@ def test_provider_admission_projection_materialize_recovery_action_accepts_log_r
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -347,7 +347,7 @@ def test_provider_admission_projection_consumes_same_identity_owner_receipt_succ
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -476,7 +476,7 @@ def test_provider_admission_projection_keeps_handoff_live_readback_for_successor
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -576,7 +576,7 @@ def test_provider_admission_projection_consumes_non_advancing_apply_without_prov
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -627,7 +627,7 @@ def test_provider_admission_projection_materializes_gate_followthrough_owner_act
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

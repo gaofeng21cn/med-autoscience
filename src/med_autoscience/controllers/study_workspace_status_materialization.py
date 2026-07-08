@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.controllers.study_workspace_status_parts import (
+from med_autoscience.controllers.study_workspace_status.contract import (
     AUTHORITY_BOUNDARY,
     LEGACY_USER_ENTRY_REFS,
     MIGRATION_HISTORY_ROOT_RELPATH,

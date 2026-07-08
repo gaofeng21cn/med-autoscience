@@ -10,7 +10,7 @@ from med_autoscience.controllers.paper_autonomy_supervisor import (
     build_supervisor_decision,
 )
 from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
-from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
+from med_autoscience.controllers.study_progress.projection import read_study_progress
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 

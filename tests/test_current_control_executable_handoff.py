@@ -11,7 +11,7 @@ from tests.provider_admission_current_control_helpers import opl_transition_read
 
 def test_transition_request_candidate_projects_current_executable_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_control_executable_handoff"
+        "med_autoscience.controllers.study_progress.current_control_executable_handoff"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -121,7 +121,7 @@ def test_transition_request_candidate_projects_current_executable_action() -> No
 
 def test_legacy_current_surfaces_without_canonical_next_action_fail_closed() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_control_executable_handoff"
+        "med_autoscience.controllers.study_progress.current_control_executable_handoff"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -175,7 +175,7 @@ def test_legacy_current_surfaces_without_canonical_next_action_fail_closed() -> 
 
 def test_canonical_next_action_allows_current_surface_diagnostic_match() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_control_executable_handoff"
+        "med_autoscience.controllers.study_progress.current_control_executable_handoff"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -246,7 +246,7 @@ def test_canonical_next_action_allows_current_surface_diagnostic_match() -> None
 
 def test_consumed_provider_terminal_closeout_does_not_project_next_forced_delta_handoff() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     consumed_work_unit_id = "medical_prose_write_repair"
@@ -372,7 +372,7 @@ def test_terminal_probe_does_not_consume_different_identity_transition_request(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
@@ -492,7 +492,7 @@ def test_terminal_probe_does_not_consume_different_identity_transition_request(
 
 def test_terminal_consumed_provider_candidate_is_not_active_provider_control() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_currentness"
+        "med_autoscience.controllers.study_progress.provider_admission_currentness"
     )
     fingerprint = "publication-blockers::f11710a114497b27"
     route_key = "paper-policy-request:60cf5242a09d91458cb21e22"
@@ -538,7 +538,7 @@ def test_terminal_consumed_provider_candidate_is_not_active_provider_control() -
 
 def test_terminal_closeout_typed_blocker_suppresses_stale_provider_admission_candidate() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_currentness"
+        "med_autoscience.controllers.study_progress.provider_admission_currentness"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     stale_fingerprint = "publication-blockers::f11710a114497b27"
@@ -602,7 +602,7 @@ def test_terminal_closeout_typed_blocker_suppresses_stale_provider_admission_can
 
 def test_terminal_closeout_typed_blocker_outranks_stale_provider_admission_projection() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     stale_work_unit_id = "analysis_claim_evidence_repair"

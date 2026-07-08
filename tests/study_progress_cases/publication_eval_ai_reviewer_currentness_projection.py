@@ -220,7 +220,7 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
@@ -279,7 +279,7 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
     tmp_path: Path,
 ) -> None:
     publication_runtime = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.publication_runtime"
+        "med_autoscience.controllers.study_progress.publication_runtime"
     )
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
@@ -400,7 +400,7 @@ def test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_
     tmp_path: Path,
 ) -> None:
     publication_runtime = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.publication_runtime"
+        "med_autoscience.controllers.study_progress.publication_runtime"
     )
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
@@ -520,7 +520,7 @@ def test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_
 def test_blocked_gate_projection_does_not_overwrite_current_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)

@@ -259,7 +259,7 @@ def test_owner_receipt_recorded_replay_requires_non_advancing_apply_when_readbac
 
 def test_terminal_owner_receipt_closeout_consumes_transition_request_projection_residue() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     apply_terminal_closeout = getattr(module, "_apply_matching_terminal_closeout_to_handoff")
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

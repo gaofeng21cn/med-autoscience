@@ -739,7 +739,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
@@ -845,7 +845,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 16, 48, tzinfo=timezone.utc),
     )

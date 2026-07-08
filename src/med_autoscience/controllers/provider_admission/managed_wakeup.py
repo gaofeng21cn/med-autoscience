@@ -1,0 +1,561 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from importlib import import_module
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.controllers import (
+    opl_runtime_refs,
+)
+
+
+_HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
+_HARD_AUTO_RECOVERY_REASONS = frozenset(
+    {
+        "quest_marked_running_but_no_live_session",
+        "quest_waiting_on_invalid_blocking",
+        "quest_completion_requested_before_publication_gate_clear",
+        "quest_stopped_by_controller_guard",
+    }
+)
+_OPL_STAGE_ATTEMPT_REQUEST_STATES = frozenset(
+    {
+        "opl_stage_attempt_admission_required",
+        "opl_stage_attempt_requested",
+    }
+)
+_EXPLICIT_WAKEUP_REASONS = frozenset(
+    {
+        "quest_user_paused_requires_explicit_wakeup",
+        "quest_waiting_for_explicit_wakeup_after_manual_hold",
+    }
+)
+_EXPLICIT_WAKEUP_PARKED_STATES = frozenset({"explicit_resume_pending", "manual_hold"})
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _serialize_managed_study_action(
+    action_payload: dict[str, Any] | Any,
+) -> dict[str, Any]:
+    payload = _managed_study_status_payload(action_payload)
+    terminal_authorization = _terminal_controller_work_unit_projection(payload)
+    if terminal_authorization is not None:
+        return terminal_authorization
+    ProgressProjectionStatus = import_module("med_autoscience.controllers.progress_projection").ProgressProjectionStatus
+
+    action = (
+        action_payload
+        if isinstance(action_payload, ProgressProjectionStatus)
+        else ProgressProjectionStatus.from_payload(action_payload)
+    )
+    serialized = {
+        "study_id": action.study_id,
+        "decision": action.decision.value if action.decision is not None else None,
+        "reason": action.reason.value if action.reason is not None else None,
+    }
+    current_owner_action = _mapping(payload.get("current_executable_owner_action"))
+    if current_owner_action:
+        serialized["current_executable_owner_action"] = current_owner_action
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    if current_work_unit:
+        serialized["current_work_unit"] = current_work_unit
+    current_execution_envelope = _mapping(payload.get("current_execution_envelope"))
+    if current_execution_envelope:
+        serialized["current_execution_envelope"] = current_execution_envelope
+    truth_snapshot = _truth_snapshot_summary(payload.get("study_truth_snapshot"))
+    if truth_snapshot is not None:
+        serialized["truth_epoch"] = _non_empty_text(truth_snapshot.get("truth_epoch"))
+        serialized["study_truth_snapshot"] = truth_snapshot
+    runtime_health_snapshot = _runtime_health_snapshot_summary(payload.get("runtime_health_snapshot"))
+    if runtime_health_snapshot is not None:
+        serialized["runtime_health_epoch"] = _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch"))
+        serialized["runtime_health_snapshot"] = runtime_health_snapshot
+    authority_snapshot = _authority_snapshot_summary(payload.get("authority_snapshot"))
+    if authority_snapshot is not None:
+        serialized["authority_snapshot"] = authority_snapshot
+    authority_recovery_block = _mapping(payload.get("authority_dispatch_runtime_recovery_block"))
+    if authority_recovery_block:
+        serialized["authority_dispatch_runtime_recovery_block"] = authority_recovery_block
+    resume_postcondition = _resume_postcondition_summary(payload.get("resume_postcondition"))
+    if resume_postcondition is not None:
+        serialized["resume_postcondition"] = resume_postcondition
+    return serialized
+
+
+def _terminal_controller_work_unit_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    authorization = payload.get("last_controller_decision_authorization")
+    if not isinstance(authorization, Mapping):
+        return None
+    lifecycle = authorization.get("controller_work_unit_lifecycle")
+    if not isinstance(lifecycle, Mapping):
+        return None
+    lifecycle_state = _non_empty_text(lifecycle.get("lifecycle_state"))
+    if lifecycle_state not in {"needs_specificity", "opl_runtime_handoff_required"}:
+        return None
+    serialized = {
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "decision": "blocked",
+        "reason": lifecycle_state,
+        "controller_work_unit_lifecycle": {
+            "lifecycle_state": lifecycle_state,
+            "latest_event_type": _non_empty_text(lifecycle.get("latest_event_type")),
+            "delivery_blocked": bool(lifecycle.get("delivery_blocked")),
+            "block_reason": _non_empty_text(lifecycle.get("block_reason")),
+            "terminal_consumed": bool(lifecycle.get("terminal_consumed")),
+        },
+        "work_unit_id": _non_empty_text(authorization.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(authorization.get("work_unit_fingerprint")),
+    }
+    return {key: value for key, value in serialized.items() if value is not None}
+
+
+def _managed_study_status_payload(
+    action_payload: dict[str, Any] | Any,
+) -> dict[str, Any]:
+    ProgressProjectionStatus = import_module("med_autoscience.controllers.progress_projection").ProgressProjectionStatus
+
+    if isinstance(action_payload, ProgressProjectionStatus):
+        return action_payload.to_dict()
+    return dict(action_payload)
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _truth_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "truth_epoch",
+        "authority_epoch",
+        "canonical_next_action",
+        "blocking_reasons",
+        "dominant_authority_refs",
+        "allowed_controller_actions",
+        "package_state",
+        "writer_epoch",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "runtime_health_epoch",
+        "canonical_runtime_action",
+        "attempt_state",
+        "retry_budget_remaining",
+        "worker_liveness_state",
+        "supervisor_state",
+        "dominant_runtime_refs",
+        "blocking_reasons",
+        "allowed_controller_actions",
+        "source_signature",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _authority_snapshot_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "control_state",
+        "canonical_next_action",
+        "canonical_runtime_action",
+        "dispatch_gate",
+        "route_authorization",
+        "blocking_reasons",
+        "allowed_controller_actions",
+        "authority_refs",
+        "quality_gate_relaxation_allowed",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _resume_postcondition_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "effective",
+        "status",
+        "failure_mode",
+        "snapshot_status",
+        "active_run_id",
+        "scheduled",
+        "started",
+        "queued",
+        "blocked_reason",
+        "terminal_reason",
+        "terminal_source",
+        "typed_blocker",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    typed_blocker = summary.get("typed_blocker")
+    if isinstance(typed_blocker, Mapping):
+        summary["typed_blocker"] = dict(typed_blocker)
+    return summary or None
+
+
+def _candidate_path(value: object) -> Path | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return Path(text).expanduser().resolve()
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected JSON object at {path}")
+    return payload
+
+
+def _write_json_object(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any]:
+    value = payload.get(key)
+    return value if isinstance(value, Mapping) else {}
+
+
+def _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    reason = _non_empty_text(status_payload.get("reason"))
+    continuation_state = _mapping_value(status_payload, "continuation_state")
+    auto_runtime_parked = _mapping_value(status_payload, "auto_runtime_parked")
+    runtime_health_snapshot = _mapping_value(status_payload, "runtime_health_snapshot")
+    publication_supervisor_state = _mapping_value(status_payload, "publication_supervisor_state")
+
+    stop_reason = _non_empty_text(continuation_state.get("stop_reason"))
+    parked_state = _non_empty_text(auto_runtime_parked.get("parked_state"))
+    runtime_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    supervisor_phase = _non_empty_text(publication_supervisor_state.get("supervisor_phase"))
+
+    if auto_runtime_parked.get("superseded_by_current_owner_action") is True:
+        return None
+
+    user_pause_contract = stop_reason == "user_pause"
+    reason_requires_wakeup = reason in _EXPLICIT_WAKEUP_REASONS
+    parked_requires_wakeup = False
+    if auto_runtime_parked.get("awaiting_explicit_wakeup") is True:
+        if parked_state == "manual_hold":
+            parked_requires_wakeup = True
+        elif parked_state == "explicit_resume_pending":
+            parked_requires_wakeup = reason_requires_wakeup or user_pause_contract
+    health_requires_wakeup = runtime_action == "await_explicit_resume" and (
+        reason_requires_wakeup or parked_requires_wakeup or user_pause_contract
+    )
+    manual_hold_contract = supervisor_phase == "manual_hold" and parked_state == "manual_hold"
+
+    if not (
+        user_pause_contract
+        or reason_requires_wakeup
+        or parked_requires_wakeup
+        or health_requires_wakeup
+        or manual_hold_contract
+    ):
+        return None
+    return {
+        "explicit_wakeup_contract": {
+            "stop_reason": stop_reason,
+            "reason": reason,
+            "parked_state": parked_state,
+            "awaiting_explicit_wakeup": bool(auto_runtime_parked.get("awaiting_explicit_wakeup")),
+            "canonical_runtime_action": runtime_action,
+            "supervisor_phase": supervisor_phase,
+        }
+    }
+
+
+def _payload_active_run_id(payload: Mapping[str, Any]) -> str | None:
+    return opl_runtime_refs.active_run_id(payload)
+
+
+def _payload_runtime_liveness_status(payload: Mapping[str, Any]) -> str | None:
+    return opl_runtime_refs.runtime_liveness_status(payload)
+
+
+def _payload_strict_live(payload: Mapping[str, Any]) -> bool:
+    return opl_runtime_refs.strict_live(payload)
+
+
+def _should_refresh_managed_study_status_after_stage_request(payload: Mapping[str, Any]) -> bool:
+    if _non_empty_text(payload.get("status")) not in _OPL_STAGE_ATTEMPT_REQUEST_STATES:
+        return False
+    return not _payload_strict_live(payload)
+
+
+def _domain_diagnostic_wakeup_latest_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "runtime" / "domain_diagnostic_wakeup" / "latest.json"
+
+
+def _artifact_fingerprint(path: Path | None) -> dict[str, Any]:
+    if path is None:
+        return {"path": None, "exists": False}
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return {
+            "path": str(resolved),
+            "exists": False,
+        }
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+        "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+    }
+
+
+def _ai_reviewer_request_fingerprint(path: Path) -> dict[str, Any]:
+    payload = _artifact_fingerprint(path)
+    if payload.get("exists") is not True:
+        return payload
+    request_payload = _read_json_object(Path(str(payload["path"]))) or {}
+    lifecycle = request_payload.get("request_lifecycle")
+    input_contract = request_payload.get("input_contract")
+    stable_payload = {
+        "request_kind": _non_empty_text(request_payload.get("request_kind")),
+        "request_owner": _non_empty_text(request_payload.get("request_owner")),
+        "request_lifecycle": dict(lifecycle) if isinstance(lifecycle, Mapping) else {},
+        "required_inputs": dict(request_payload.get("required_inputs"))
+        if isinstance(request_payload.get("required_inputs"), Mapping)
+        else {},
+        "required_refs": dict(input_contract.get("required_refs"))
+        if isinstance(input_contract, Mapping) and isinstance(input_contract.get("required_refs"), Mapping)
+        else {},
+    }
+    canonical = json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)
+    return {
+        **payload,
+        "stable_payload_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "stable_payload": stable_payload,
+    }
+
+
+def _opl_runtime_owner_handoff_fingerprint(path: Path) -> dict[str, Any]:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        return {
+            "path": str(resolved),
+            "exists": False,
+        }
+    payload = _read_json_object(resolved) or {}
+    stable_payload = {
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "quest_id": _non_empty_text(payload.get("quest_id")),
+        "status": _non_empty_text(payload.get("status")),
+        "reason": _non_empty_text(payload.get("reason")),
+        "runtime_owner": _non_empty_text(payload.get("runtime_owner")),
+        "domain_owner": _non_empty_text(payload.get("domain_owner")),
+        "mas_runtime_read_model_retired": bool(payload.get("mas_runtime_read_model_retired")),
+        "mas_materializes_runtime_supervision": bool(payload.get("mas_materializes_runtime_supervision")),
+    }
+    canonical = json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)
+    return {
+        "path": str(resolved),
+        "exists": True,
+        "stable_payload_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "stable_payload": stable_payload,
+    }
+
+
+def _managed_outer_loop_wakeup_fingerprint(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    quest_root = _candidate_path(status_payload.get("quest_root"))
+    watched_payload = {
+        "status": {
+            "study_id": _non_empty_text(status_payload.get("study_id")),
+            "quest_id": _non_empty_text(status_payload.get("quest_id")),
+            "quest_root": str(quest_root) if quest_root is not None else None,
+            "quest_status": _non_empty_text(status_payload.get("quest_status")),
+            "decision": _non_empty_text(status_payload.get("decision")),
+            "reason": _non_empty_text(status_payload.get("reason")),
+            "active_run_id": _payload_active_run_id(status_payload),
+            "runtime_liveness_status": _payload_runtime_liveness_status(status_payload),
+            "runtime_event_ref": dict(status_payload.get("runtime_event_ref") or {})
+            if isinstance(status_payload.get("runtime_event_ref"), Mapping)
+            else None,
+            "runtime_escalation_ref": dict(status_payload.get("runtime_escalation_ref") or {})
+            if isinstance(status_payload.get("runtime_escalation_ref"), Mapping)
+            else None,
+            "publication_supervisor_state": dict(status_payload.get("publication_supervisor_state") or {})
+            if isinstance(status_payload.get("publication_supervisor_state"), Mapping)
+            else None,
+        },
+        "artifacts": {
+            "publication_eval_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
+            ),
+            "evaluation_summary_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "evaluation_summary" / "latest.json"
+            ),
+            "controller_decision_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"
+            ),
+            "quality_repair_batch_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+            ),
+            "gate_clearing_batch_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+            ),
+            "repair_execution_evidence_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+            ),
+            "publication_work_unit_lifecycle_latest": _artifact_fingerprint(
+                resolved_study_root
+                / "artifacts"
+                / "controller"
+                / "publication_work_unit_lifecycle"
+                / "latest.json"
+            ),
+            "ai_reviewer_request_latest": _ai_reviewer_request_fingerprint(
+                resolved_study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+            ),
+            "opl_runtime_owner_handoff_latest": _opl_runtime_owner_handoff_fingerprint(
+                resolved_study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
+            "publication_gate_latest": _artifact_fingerprint(
+                (quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+                if quest_root is not None
+                else None
+            ),
+        },
+    }
+    canonical = json.dumps(watched_payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest(), watched_payload
+
+
+def _build_outer_loop_wakeup_audit(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    input_fingerprint, watched_payload = _managed_outer_loop_wakeup_fingerprint(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    latest_path = _domain_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve())
+    previous = _read_json_object(latest_path) or {}
+    previous_outcome = _non_empty_text(previous.get("outcome"))
+    previous_fingerprint = _non_empty_text(previous.get("input_fingerprint"))
+    return {
+        "schema_version": 1,
+        "recorded_at": utc_now(),
+        "study_id": _non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
+        "quest_id": _non_empty_text(status_payload.get("quest_id")),
+        "input_fingerprint": input_fingerprint,
+        "previous_input_fingerprint": previous_fingerprint,
+        "previous_outcome": previous_outcome,
+        "dispatch_cause": "input_unchanged" if previous_fingerprint == input_fingerprint else "input_changed",
+        "watched_inputs": watched_payload,
+        "latest_path": str(latest_path),
+    }
+
+
+def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]) -> None:
+    _write_json_object(_domain_diagnostic_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
+
+
+def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Any) -> bool:
+    payload = _managed_study_status_payload(action_payload)
+    decision = _non_empty_text(payload.get("decision"))
+    if decision == "resume":
+        if _non_empty_text(payload.get("quest_status")) not in _HARD_AUTO_RECOVERY_QUEST_STATUSES:
+            return False
+        if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
+            return False
+        return not _payload_strict_live(payload)
+    return _is_auto_continuation_recovery_pending(payload)
+
+
+def _is_auto_continuation_recovery_pending(payload: Mapping[str, Any]) -> bool:
+    refs = opl_runtime_refs.resolve_opl_runtime_refs(payload)
+    if refs.strict_live:
+        return False
+    quest_status = _non_empty_text(payload.get("quest_status"))
+    if quest_status not in {"running", "active"}:
+        return False
+    supervisor_tick_audit = payload.get("supervisor_tick_audit")
+    supervisor_tick_status = (
+        _non_empty_text(supervisor_tick_audit.get("status"))
+        if isinstance(supervisor_tick_audit, Mapping)
+        else None
+    )
+    if supervisor_tick_status not in {"missing", "stale", "invalid"}:
+        return False
+    return refs.active_run_id is None
+
+
+def _serialize_managed_study_auto_recovery(
+    *,
+    preflight_payload: dict[str, Any] | Any,
+    applied_payload: dict[str, Any] | Any,
+    source: str,
+) -> dict[str, Any]:
+    preflight = _serialize_managed_study_action(preflight_payload)
+    applied = _serialize_managed_study_action(applied_payload)
+    return {
+        "study_id": applied.get("study_id") or preflight.get("study_id"),
+        "preflight_decision": preflight.get("decision"),
+        "preflight_reason": preflight.get("reason"),
+        "applied_decision": applied.get("decision"),
+        "applied_reason": applied.get("reason"),
+        "source": source,
+    }
+
+
+def _controller_decision_latest_matches_outer_loop_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+) -> bool:
+    decision_match = import_module("med_autoscience.controllers.provider_admission.decision_match")
+    return decision_match.controller_decision_latest_matches_outer_loop_request(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+    )
+
+
+def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | None) -> bool:
+    if not isinstance(report, Mapping):
+        return False
+    controllers = report.get("controllers")
+    if not isinstance(controllers, Mapping):
+        return False
+    figure_loop_guard_report = controllers.get("figure_loop_guard")
+    if not isinstance(figure_loop_guard_report, Mapping):
+        return False
+    if _non_empty_text(figure_loop_guard_report.get("action")) != "applied":
+        return False
+    return bool(figure_loop_guard_report.get("quest_stop_applied"))

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit import launch_surface
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import (
+from med_autoscience.controllers.product_entry.workspace_cockpit import launch_surface
+from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import (
     launch_study,
     render_launch_study_markdown,
 )

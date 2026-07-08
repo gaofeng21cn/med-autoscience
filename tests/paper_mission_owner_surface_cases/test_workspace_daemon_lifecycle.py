@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.runtime_health_kernel_parts import event_log as runtime_health_event_log
+from med_autoscience.controllers.runtime_health_kernel import event_log as runtime_health_event_log
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -153,7 +153,7 @@ def test_scan_domain_routes_projects_opl_provider_readiness_from_owner_surface(
 
 def test_opl_bin_prefers_packaged_runtime_over_dev_checkout(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
     dev_bin = tmp_path / "one-person-lab" / "bin" / "opl"
@@ -172,7 +172,7 @@ def test_opl_bin_prefers_packaged_runtime_over_dev_checkout(monkeypatch, tmp_pat
 
 def test_current_provider_readiness_uses_current_cli_over_stale_packaged_runtime(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     path_bin = tmp_path / "homebrew" / "opl"
     packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
@@ -210,7 +210,7 @@ def test_current_provider_readiness_uses_current_cli_over_stale_packaged_runtime
 
 def test_current_provider_readiness_can_skip_stale_packaged_for_current_dev_cli(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
     dev_bin = tmp_path / "one-person-lab" / "bin" / "opl"
@@ -247,7 +247,7 @@ def test_current_provider_readiness_can_skip_stale_packaged_for_current_dev_cli(
 
 def test_opl_bin_keeps_explicit_env_override(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     override_bin = tmp_path / "custom" / "opl"
     packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
@@ -302,7 +302,7 @@ def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

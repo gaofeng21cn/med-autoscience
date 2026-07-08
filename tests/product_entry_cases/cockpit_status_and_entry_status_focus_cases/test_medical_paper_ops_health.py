@@ -13,16 +13,16 @@ from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_
 )
 from tests.test_medical_paper_ops_health import _readiness, assert_projection_authority_false
 from med_autoscience.controllers import mainline_status
-from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+from med_autoscience.controllers.product_entry.manifest_rendering import (
     render_product_entry_status_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_status,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown import (
+from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_markdown import (
     render_workspace_cockpit_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload import (
     read_workspace_cockpit,
 )
 

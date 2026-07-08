@@ -15,7 +15,7 @@ def test_rejects_completed_receipt_for_hard_unit_harmonization_target(
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
     study_root = tmp_path / "workspace" / "studies" / "002-dm"
@@ -104,7 +104,7 @@ def test_rejects_completed_receipt_for_hard_unit_harmonization_target(
     _write_runtime_state(quest_root, {"status": "running", "active_run_id": None, "pending_user_message_count": 0})
 
     adoption_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.work_unit_evidence_adoption"
+        "med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption"
     )
     adoption = adoption_module.adopt_controller_work_unit_evidence_if_present(
         study_root=study_root,
@@ -126,7 +126,7 @@ def test_adopts_hard_unit_harmonization_owner_handoff(
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
     study_root = tmp_path / "workspace" / "studies" / "002-dm"
@@ -202,7 +202,7 @@ def test_adopts_hard_unit_harmonization_owner_handoff(
     )
 
     adoption_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.work_unit_evidence_adoption"
+        "med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption"
     )
     adoption = adoption_module.adopt_controller_work_unit_evidence_if_present(
         study_root=study_root,

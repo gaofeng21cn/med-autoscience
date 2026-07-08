@@ -2,7 +2,7 @@ import os
 
 from .shared import *
 
-from med_autoscience.controllers.medical_publication_surface_parts import controller, shared_base
+from med_autoscience.controllers.medical_publication_surface import controller, shared_base
 
 
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:

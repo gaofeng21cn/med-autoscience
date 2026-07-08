@@ -5,7 +5,7 @@ import re
 from tests.submission_minimal_cases.shared import *
 
 from med_autoscience.literature_records import LiteratureRecord
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
@@ -124,7 +124,7 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared_base")
+    shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal.shared_base")
     paper_root = make_current_draft_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",
@@ -185,7 +185,7 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
 def test_create_submission_minimal_package_rejects_unrepairable_missing_reference_keys(
     tmp_path: Path,
 ) -> None:
-    shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared_base")
+    shared_base = importlib.import_module("med_autoscience.controllers.submission_minimal.shared_base")
     paper_root = make_current_draft_workspace(tmp_path)
     write_text(
         paper_root / "draft.md",

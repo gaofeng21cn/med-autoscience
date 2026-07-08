@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.controllers.submission_minimal_parts import package_builder as submission_minimal_package_builder
+from med_autoscience.controllers.submission_minimal import package_builder as submission_minimal_package_builder
 from med_autoscience.journal_requirements import slugify_journal_name
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_protocol import paper_artifacts

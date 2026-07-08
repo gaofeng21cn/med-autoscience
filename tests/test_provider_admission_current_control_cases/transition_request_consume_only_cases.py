@@ -8,7 +8,7 @@ from tests.provider_admission_current_control_helpers import (
     opl_transition_readback as _opl_transition_readback,
     provider_candidate as _provider_candidate,
 )
-from med_autoscience.controllers.provider_admission_parts.provider_admission import (
+from med_autoscience.controllers.provider_admission.provider_admission import (
     current_control_provider_admission_candidates,
 )
 from tests.test_provider_admission_current_control_cases.transition_request_consume_only_cases_cases.test_request_only_dry_run_closeout import *  # noqa: F403,F401
@@ -84,7 +84,7 @@ def test_provider_admission_current_control_treats_mas_request_without_opl_readb
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -189,7 +189,7 @@ def test_provider_admission_current_control_backfills_owner_from_transition_requ
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -300,7 +300,7 @@ def test_owner_receipt_current_work_unit_keeps_accepted_owner_gate_transition_re
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -524,7 +524,7 @@ def test_provider_admission_current_control_treats_current_transition_authority_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -595,7 +595,7 @@ def test_paper_recovery_successor_without_explicit_dispatch_fails_closed(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -728,7 +728,7 @@ def test_provider_admission_current_control_consumes_opl_readback_inside_provide
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

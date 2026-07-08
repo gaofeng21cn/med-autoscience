@@ -13,7 +13,7 @@ PLUGIN_ICON_PATH = PLUGIN_ROOT / "assets" / "icon.png"
 PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
 PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "SKILL.md"
 PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "agents" / "openai.yaml"
-MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server.py"
+MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server" / "__init__.py"
 ACTION_CATALOG_PATH = REPO_ROOT / "src" / "med_autoscience" / "action_catalog.py"
 
 

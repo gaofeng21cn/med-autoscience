@@ -1,16 +1,16 @@
 from tests.submission_minimal_cases.shared import *
 
-from med_autoscience.controllers.submission_minimal_parts import (
+from med_autoscience.controllers.submission_minimal import (
     package_builder,
     source_contract,
 )
-from med_autoscience.controllers.submission_minimal_parts.authority import (
+from med_autoscience.controllers.submission_minimal.authority import (
     describe_submission_minimal_authority,
 )
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
-from med_autoscience.controllers.submission_minimal_parts.shared_base import (
+from med_autoscience.controllers.submission_minimal.shared_base import (
     resolve_compiled_markdown_path,
     resolve_compiled_pdf_path,
 )
@@ -267,7 +267,9 @@ def test_create_submission_minimal_package_supports_stage_native_current_body_so
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: False)
+    from med_autoscience.controllers import study_delivery_sync
+
+    monkeypatch.setattr(study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: False)
     paper_root = make_stage_native_current_body_workspace(tmp_path)
     study_root = paper_root.parents[5]
 
@@ -299,16 +301,18 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from med_autoscience.controllers import study_delivery_sync
+
     paper_root = make_paper_workspace(tmp_path)
     write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[]}' + "\n")
 
-    monkeypatch.setattr(package_builder.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
 
     def sync_study_delivery(*, paper_root: Path, stage: str, publication_profile: str) -> dict:
         write_text(paper_root / "evidence_ledger.json", '{"schema_version":1,"items":[{"id":"post-sync"}]}' + "\n")
         return {"status": "synced", "stage": stage, "publication_profile": publication_profile}
 
-    monkeypatch.setattr(package_builder.study_delivery_sync, "sync_study_delivery", sync_study_delivery)
+    monkeypatch.setattr(study_delivery_sync, "sync_study_delivery", sync_study_delivery)
     monkeypatch.setattr(
         package_builder,
         "replay_post_submission_minimal_sync",
@@ -635,7 +639,7 @@ def test_submission_source_contract_signature_changes_when_renderer_contract_cha
         "_controller_renderer_contract_entries",
         lambda: [
             {
-                "path": "controller_module://submission_minimal_parts/profile_builders.py",
+                "path": "controller_module://submission_minimal/profile_builders.py",
                 "size": 1,
                 "mtime_ns": 1,
                 "sha256": "1" * 64,

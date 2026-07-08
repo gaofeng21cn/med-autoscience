@@ -186,7 +186,7 @@ def test_scan_domain_routes_keeps_specificity_queued_when_targets_lack_source_pa
 
 
 def test_publication_gate_materialization_adds_concrete_specificity_targets(tmp_path: Path) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     (study_root / "artifacts" / "controller").mkdir(parents=True)
@@ -259,7 +259,7 @@ def test_publication_gate_materialization_adds_concrete_specificity_targets(tmp_
 def test_publication_gate_materialization_uses_default_metric_source_when_report_main_result_is_null(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     (study_root / "artifacts" / "controller").mkdir(parents=True)
@@ -335,7 +335,7 @@ def test_publication_gate_materialization_uses_default_metric_source_when_report
 def test_publication_gate_materialization_refreshes_blocked_bundle_targets_over_current_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
@@ -438,7 +438,7 @@ def test_publication_gate_materialization_refreshes_blocked_bundle_targets_over_
 def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_blocked_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -563,7 +563,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
 def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_over_semantically_same_blocked_bundle_gate(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
@@ -659,7 +659,7 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
 def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_over_return_to_publishability_gate(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
@@ -756,7 +756,7 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
 def test_publication_gate_materialization_force_refreshes_specificity_targets_over_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
@@ -859,7 +859,7 @@ def test_publication_gate_materialization_force_refreshes_specificity_targets_ov
 def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
-    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"

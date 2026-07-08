@@ -248,7 +248,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    executor = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
+    executor = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_execution")
     owner_module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner")
     monkeypatch.setattr(owner_module, "_materialize_unit_harmonized_rerun_evidence", _fake_rerun_evidence, raising=False)
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

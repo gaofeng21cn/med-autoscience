@@ -8,7 +8,7 @@ SUBMISSION_AUTHORITY_ACTION = "await_human_or_mas_authority_decision_for_submiss
 
 def test_submission_authority_owner_gate_removes_superseded_next_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     payload = _submission_authority_payload()
@@ -26,7 +26,7 @@ def test_submission_authority_owner_gate_removes_superseded_next_action() -> Non
 
 def test_submission_authority_owner_gate_keeps_new_next_action_for_different_identity() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     payload = _submission_authority_payload(

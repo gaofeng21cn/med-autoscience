@@ -1,13 +1,13 @@
 from .shared import *
 
 manuscript_checks = importlib.import_module(
-    "med_autoscience.controllers.medical_publication_surface_parts.manuscript_checks"
+    "med_autoscience.controllers.medical_publication_surface.manuscript_checks"
 )
 reporting = importlib.import_module(
-    "med_autoscience.controllers.medical_publication_surface_parts.reporting"
+    "med_autoscience.controllers.medical_publication_surface.reporting"
 )
 shared_base = importlib.import_module(
-    "med_autoscience.controllers.medical_publication_surface_parts.shared_base"
+    "med_autoscience.controllers.medical_publication_surface.shared_base"
 )
 
 

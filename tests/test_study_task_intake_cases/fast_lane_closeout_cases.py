@@ -251,7 +251,7 @@ def test_existing_progress_projection_drops_stale_fast_lane_override_after_close
     tmp_path: Path,
 ) -> None:
     intake_module = importlib.import_module("med_autoscience.study_task_intake")
-    projection_module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    projection_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     study_root = tmp_path / "studies" / "001-dm-cvd-mortality-risk"
     payload = {
         **_reviewer_revision_payload(),

@@ -108,7 +108,7 @@ def _write_publication_eval_work_unit_authority(study_root: Path) -> None:
 
 def _write_adopted_artifact_event(study_root: Path) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
     authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)

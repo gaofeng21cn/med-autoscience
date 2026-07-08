@@ -212,7 +212,7 @@ def test_dm004_unmapped_work_unit_materializes_from_action_family_envelope(
 
 def test_canonical_transition_request_projection_carries_dispatcher_boundary_fields() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+        "med_autoscience.controllers.domain_action_request_materializer.transition_request_projection"
     )
     dispatch = {
         "surface": "owner_callable_dispatch_request",

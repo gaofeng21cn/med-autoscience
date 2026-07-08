@@ -2,8 +2,8 @@ from .shared import *
 
 
 def test_build_report_blocks_when_manuscript_under_cites_reference_database(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,

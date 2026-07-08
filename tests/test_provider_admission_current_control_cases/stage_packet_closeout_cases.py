@@ -8,7 +8,7 @@ def test_provider_admission_current_control_does_not_consume_new_stage_packet_wi
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -114,7 +114,7 @@ def test_provider_admission_current_control_does_not_consume_new_stage_packet_wi
 
 def test_accepted_closeout_matching_requires_current_stage_packet_identity() -> None:
     receipts = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_receipts"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control_receipts"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"

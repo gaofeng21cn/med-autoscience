@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.submission_minimal_parts.package_builder import create_submission_minimal_package
+from med_autoscience.controllers.submission_minimal.package_builder import create_submission_minimal_package
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from tests.test_submission_minimal_display_surface import dump_json, full_id, make_workspace, write_png, write_text
 

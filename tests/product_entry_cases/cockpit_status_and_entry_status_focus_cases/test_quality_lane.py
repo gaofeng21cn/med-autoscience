@@ -4,7 +4,7 @@ from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
 from med_autoscience.controllers import mainline_status
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload import (
     read_workspace_cockpit,
 )
 

@@ -4,13 +4,13 @@ import importlib
 
 
 closeout_identity = importlib.import_module(
-    "med_autoscience.controllers.provider_admission_parts.provider_admission_report_closeout_identity"
+    "med_autoscience.controllers.provider_admission.provider_admission_report_closeout_identity"
 )
 
 
 def test_provider_admission_report_accepts_record_only_owner_refs_closeout_without_top_level_fingerprint_when_currentness_matches() -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     identity = {
         "action_type": "return_to_ai_reviewer_workflow",
@@ -65,7 +65,7 @@ def test_provider_admission_report_accepts_record_only_owner_refs_closeout_witho
 
 def test_provider_admission_report_preserves_action_fingerprint_from_owner_route_basis() -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     identity = {
         "action_type": "return_to_ai_reviewer_workflow",
@@ -122,7 +122,7 @@ def test_provider_admission_report_preserves_action_fingerprint_from_owner_route
 
 def test_provider_admission_report_identity_prefers_identity_different_current_owner_action() -> None:
     report = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
 
     identity = report._progress_currentness_current_identity(

@@ -10,7 +10,7 @@ def test_runtime_health_diagnostic_recovery_hint_cannot_rewrite_status_without_o
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance"
+        "med_autoscience.controllers.study_runtime_decision.runtime_health_dominance"
     )
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     study_root = tmp_path / "studies" / "001-risk"
@@ -79,7 +79,7 @@ def test_runtime_health_recovery_decision_rejects_cross_identity_opl_readback(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance"
+        "med_autoscience.controllers.study_runtime_decision.runtime_health_dominance"
     )
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     study_root = tmp_path / "studies" / "001-risk"
@@ -154,7 +154,7 @@ def test_runtime_health_recovery_decision_rejects_top_level_opl_readback_claim(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance"
+        "med_autoscience.controllers.study_runtime_decision.runtime_health_dominance"
     )
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     study_root = tmp_path / "studies" / "001-risk"
@@ -212,7 +212,7 @@ def test_runtime_health_recovery_decision_requires_opl_current_control_readback(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance"
+        "med_autoscience.controllers.study_runtime_decision.runtime_health_dominance"
     )
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     study_root = tmp_path / "studies" / "001-risk"
@@ -285,7 +285,7 @@ def test_runtime_health_recovery_decision_requires_both_observability_and_route_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance"
+        "med_autoscience.controllers.study_runtime_decision.runtime_health_dominance"
     )
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     study_root = tmp_path / "studies" / "001-risk"

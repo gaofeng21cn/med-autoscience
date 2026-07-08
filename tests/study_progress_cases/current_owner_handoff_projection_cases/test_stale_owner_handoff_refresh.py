@@ -104,7 +104,7 @@ def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_
 
 def test_owner_receipt_recovery_visibility_supersedes_stale_anti_loop_lane() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     receipt_ref = "/tmp/studies/002/artifacts/controller/gate_clearing_batch/latest.json"
     stale_next_step = (

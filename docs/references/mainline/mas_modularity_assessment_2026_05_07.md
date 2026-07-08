@@ -11,7 +11,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 
 ## 结论
 
-MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projection 边界可识别”的阶段。本评估后续触发的一轮 architecture fitness wave 已经落地到 `main`：原先的 `exec(compile(...))` 拼接、nested `_parts`、near-limit part、oversized runtime execution facade 和 `study_progress_parts/shared_base.py` 大桶都已收口到自然子域，boundary fitness 现在是 `0 blocking / 0 advisory`。
+MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projection 边界可识别”的阶段。本评估后续触发的一轮 architecture fitness wave 已经落地到 `main`：原先的 `exec(compile(...))` 拼接、nested `_parts`、near-limit part、oversized runtime execution facade 和 `study_progress/shared_base.py` 大桶都已收口到自然子域，boundary fitness 现在是 `0 blocking / 0 advisory`。
 
 按架构质量判断，MAS 已满足继续推进真实 product/runtime 工作的结构门槛：依赖方向干净、主要 truth owner 已固定、public surface 与内部实现边界基本分离。
 

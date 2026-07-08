@@ -1,6 +1,6 @@
 from .shared import *
 
-from med_autoscience.controllers.medical_publication_surface_parts import reporting, shared_base
+from med_autoscience.controllers.medical_publication_surface import reporting, shared_base
 
 
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:

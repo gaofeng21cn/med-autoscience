@@ -17,7 +17,7 @@ IDEMPOTENCY_KEY = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
 
 def _module():
     return importlib.import_module(
-        "med_autoscience.controllers.paper_recovery_state_parts.provider_admission_state"
+        "med_autoscience.controllers.paper_recovery_state.provider_admission_state"
     )
 
 

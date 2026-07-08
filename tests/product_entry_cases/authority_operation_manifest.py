@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
 from tests.study_runtime_test_helpers import make_profile
 
 

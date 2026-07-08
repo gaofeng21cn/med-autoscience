@@ -14,7 +14,7 @@ def test_existing_projection_refresh_promotes_progress_first_gate_followthrough_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -162,10 +162,10 @@ def test_existing_projection_refresh_promotes_selected_gate_successor_over_stale
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     reconcile = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+        "med_autoscience.controllers.study_progress.current_owner_action_projection_reconcile"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -377,7 +377,7 @@ def test_existing_projection_refresh_promotes_gate_followthrough_successor_over_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -528,7 +528,7 @@ def test_existing_projection_refresh_keeps_paper_recovery_successor_over_stage_r
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

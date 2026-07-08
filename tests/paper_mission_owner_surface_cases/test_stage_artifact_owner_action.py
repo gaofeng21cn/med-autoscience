@@ -400,7 +400,7 @@ def test_scan_domain_routes_derives_repair_from_stable_readiness_blocker_gaps(
 
 def test_readiness_repair_supersedes_stale_repair_progress_gate_replay() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.stage_artifact_owner_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface.stage_artifact_owner_actions"
     )
     typed_blocker_ref = (
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
@@ -477,7 +477,7 @@ def test_readiness_repair_supersedes_stale_repair_progress_gate_replay() -> None
 
 def test_stage_kernel_typed_blocker_answer_without_next_action_suppresses_requeue() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.stage_artifact_owner_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface.stage_artifact_owner_actions"
     )
     typed_blocker_ref = (
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"

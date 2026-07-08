@@ -479,7 +479,7 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
 
 def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.mainline_status")
-    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status_parts.program_surfaces")
+    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status.program_surfaces")
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(program_surfaces, "_build_shared_clearance_target", lambda **kwargs: kwargs)
@@ -514,7 +514,7 @@ def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
 
 def test_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.mainline_status")
-    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status_parts.program_surfaces")
+    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status.program_surfaces")
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(program_surfaces, "_build_shared_program_capability", lambda **kwargs: kwargs)
@@ -534,7 +534,7 @@ def test_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
 
 def test_platform_target_uses_shared_builder(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.mainline_status")
-    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status_parts.program_surfaces")
+    program_surfaces = importlib.import_module("med_autoscience.controllers.mainline_status.program_surfaces")
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(program_surfaces, "_build_shared_program_sequence_step", lambda **kwargs: kwargs)

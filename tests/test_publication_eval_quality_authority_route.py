@@ -47,7 +47,7 @@ def _complete_specificity_targets(report: dict[str, object]) -> tuple[dict[str, 
 
 def test_blocked_gate_uses_complete_specificity_targets_for_recommended_work_unit() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_decision"
+        "med_autoscience.controllers.study_runtime_decision.publication_decision"
     )
 
     action = module.publication_eval_action(
@@ -90,7 +90,7 @@ def test_clear_gate_routes_back_to_review_when_medical_prose_quality_is_not_read
     current_required_action: str,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_decision"
+        "med_autoscience.controllers.study_runtime_decision.publication_decision"
     )
     report = {
         "status": "clear",
@@ -130,7 +130,7 @@ def test_clear_gate_routes_back_to_review_when_medical_prose_quality_is_not_read
 
 def test_clear_bundle_gate_can_continue_to_finalize_when_medical_prose_quality_is_ready() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_decision"
+        "med_autoscience.controllers.study_runtime_decision.publication_decision"
     )
 
     action = module.publication_eval_action(
@@ -154,7 +154,7 @@ def test_clear_bundle_gate_can_continue_to_finalize_when_medical_prose_quality_i
 
 def test_mechanical_projection_cannot_mark_medical_journal_prose_quality_ready() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality"
+        "med_autoscience.controllers.study_runtime_decision.publication_eval_quality"
     )
 
     assessment = module.publication_eval_quality_assessment(
@@ -191,7 +191,7 @@ def test_mechanical_projection_cannot_mark_medical_journal_prose_quality_ready()
 
 def test_publication_eval_consumes_ai_medical_prose_review_route_back(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality"
+        "med_autoscience.controllers.study_runtime_decision.publication_eval_quality"
     )
     review_path = tmp_path / "medical_prose_review.json"
     review_path.write_text(

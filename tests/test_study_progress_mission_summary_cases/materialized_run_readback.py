@@ -25,7 +25,7 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     workspace_root = tmp_path / "workspace"
@@ -196,7 +196,7 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     workspace_root = tmp_path / "workspace"

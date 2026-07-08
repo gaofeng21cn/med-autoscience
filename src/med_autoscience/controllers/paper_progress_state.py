@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection import (
+from med_autoscience.controllers.study_progress.current_owner_handoff_projection import (
     current_owner_handoff_action,
     current_owner_route_back_checklist,
 )

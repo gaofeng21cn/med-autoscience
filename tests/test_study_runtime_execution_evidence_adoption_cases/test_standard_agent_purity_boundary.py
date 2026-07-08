@@ -10,9 +10,9 @@ import pytest
 
 def test_execution_evidence_parts_remain_domain_authority_surfaces() -> None:
     for module_name in (
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization",
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_receipts",
-        "med_autoscience.controllers.study_runtime_execution_parts.work_unit_evidence_adoption",
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization",
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization_receipts",
+        "med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption",
     ):
         module = importlib.import_module(module_name)
         assert module.__name__ == module_name
@@ -27,8 +27,8 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
     for module_name in (
         "med_autoscience.controllers.study_runtime_execution",
         "med_autoscience.controllers.study_runtime_transport",
-        f"med_autoscience.controllers.paper_mission_owner_surface_parts.{retired_runtime_module}",
-        *(f"med_autoscience.controllers.stage_outcome_authority_parts.{part}" for part in retired_dispatch_parts),
+        f"med_autoscience.controllers.paper_mission_owner_surface.{retired_runtime_module}",
+        *(f"med_autoscience.controllers.stage_outcome_authority.{part}" for part in retired_dispatch_parts),
     ):
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module(module_name)
@@ -39,7 +39,7 @@ def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_acti
     attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
     dispatcher = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
-    router = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_router")
+    router = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_router")
     retired_action = _legacy_runtime_repair_marker()
 
     assert retired_action not in owner_route.ALLOWED_ACTION_TYPES

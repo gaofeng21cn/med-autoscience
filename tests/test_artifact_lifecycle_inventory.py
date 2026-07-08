@@ -425,7 +425,7 @@ def test_v2_current_package_audit_manifest_is_projection_only_read_model(tmp_pat
 
 
 def test_submission_surface_docx_inspector_is_read_only_for_generated_projection(tmp_path: Path) -> None:
-    from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+    from med_autoscience.controllers.submission_minimal.markdown_surface_qc import (
         inspect_submission_docx_surface,
     )
 

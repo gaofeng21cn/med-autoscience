@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.controllers.provider_admission_parts.provider_admission_stage_run_identity import (
+from med_autoscience.controllers.provider_admission.provider_admission_stage_run_identity import (
     candidate_with_stage_run_admission_identity,
 )
 

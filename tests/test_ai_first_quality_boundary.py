@@ -15,7 +15,7 @@ def _read(relative_path: str) -> str:
 
 
 def test_gate_materialized_publication_eval_is_marked_as_mechanical_projection() -> None:
-    source = _read("src/med_autoscience/controllers/study_runtime_decision_parts/publication_and_submission.py")
+    source = _read("src/med_autoscience/controllers/study_runtime_decision/publication_and_submission.py")
 
     assert 'owner="mechanical_projection"' in source
     assert 'source_kind="publication_gate_report"' in source
@@ -40,7 +40,7 @@ def test_quality_surfaces_require_ai_reviewer_provenance_before_ready_verdicts()
 def test_mechanical_gate_controllers_do_not_claim_ai_reviewer_ownership() -> None:
     for relative_path in (
         "src/med_autoscience/controllers/medical_reporting_audit.py",
-        "src/med_autoscience/controllers/publication_gate.py",
+        "src/med_autoscience/controllers/publication_gate/__init__.py",
     ):
         source = _read(relative_path)
         assert "assessment_provenance" not in source
@@ -65,7 +65,7 @@ def test_ai_reviewer_materializer_is_separate_from_generic_latest_writer() -> No
 
 def test_subjective_medical_prose_quality_is_ai_reviewer_owned() -> None:
     publication_surface = _read(
-        "src/med_autoscience/controllers/medical_publication_surface_parts/reporting.py"
+        "src/med_autoscience/controllers/medical_publication_surface/reporting.py"
     )
 
     assert 'blockers.append("medical_journal_prose_style_not_met")' in publication_surface

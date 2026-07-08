@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts.queue_slo import (
-    DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
-    OWNER_PICKUP_OVERDUE_HOURS,
-)
-
 
 SCHEMA_VERSION = 1
 INTERNAL_AI_MONITOR_INTERVAL_SECONDS = 5 * 60
 INTERNAL_AI_DOCTOR_TIMEOUT_SECONDS = 15 * 60
 INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS = 30 * 60
 DEVELOPER_HEARTBEAT_INTERVAL_SECONDS = 60 * 60
+OWNER_PICKUP_OVERDUE_HOURS = 2
+DEVELOPER_SUPERVISOR_ATTENTION_HOURS = 6
 
 
 def owner_callable_policy() -> dict[str, Any]:

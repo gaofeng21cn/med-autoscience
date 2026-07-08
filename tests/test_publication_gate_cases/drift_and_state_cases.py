@@ -62,7 +62,7 @@ def test_build_gate_report_exposes_authority_handshake_signatures_and_gate_finge
         include_current_medical_publication_surface_report=True,
     )
     paper_root = quest_root / "paper"
-    from med_autoscience.controllers.submission_minimal_parts.authority import describe_submission_minimal_authority
+    from med_autoscience.controllers.submission_minimal.authority import describe_submission_minimal_authority
 
     authority = describe_submission_minimal_authority(paper_root=paper_root)
     manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"

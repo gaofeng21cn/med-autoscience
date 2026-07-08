@@ -67,7 +67,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 10, 0, tzinfo=timezone.utc),
     )
@@ -360,7 +360,7 @@ def test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_tick
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 14, 30, tzinfo=timezone.utc),
     )

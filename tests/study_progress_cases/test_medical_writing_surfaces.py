@@ -10,7 +10,7 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 
 def test_medical_writing_surfaces_use_stage_native_blueprint_after_cutover(tmp_path: Path) -> None:
-    from med_autoscience.controllers.study_progress_parts.medical_writing_surfaces import (
+    from med_autoscience.controllers.study_progress.medical_writing_surfaces import (
         medical_writing_quality_surface_status,
     )
 

@@ -1,6 +1,6 @@
 from .shared import *
 
-from med_autoscience.controllers.medical_publication_surface_parts import reporting, shared_base
+from med_autoscience.controllers.medical_publication_surface import reporting, shared_base
 
 
 def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: Path) -> None:

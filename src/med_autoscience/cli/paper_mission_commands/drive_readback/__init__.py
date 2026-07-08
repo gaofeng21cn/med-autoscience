@@ -63,7 +63,7 @@ from med_autoscience.cli.paper_mission_output_roots import (
     _is_yang_ops_candidate_package_root,
     _is_yang_ops_consumption_ledger_root,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.paper_mission_consumption_route_handoff import (
+from med_autoscience.controllers.owner_route_handoff.paper_mission_consumption_route_handoff import (
     latest_paper_mission_consumption_route_handoff,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (

@@ -1,0 +1,231 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.controllers import gate_clearing_batch_time_to_event_grouped
+from med_autoscience.controllers import gate_clearing_batch_transportability
+from med_autoscience.controllers import publication_shell_sync
+from med_autoscience.controllers.gate_clearing_batch.io_utils import (
+    non_empty_text,
+    read_json,
+    string_list,
+)
+from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
+
+
+_CORE_DISPLAY_PACK_ID = "fenggaolab.org.medical-display-core"
+_LEGACY_TIME_TO_EVENT_RISK_GROUP_SUMMARY_TEMPLATE_ID = (
+    f"{_CORE_DISPLAY_PACK_ID}::time_to_event_risk_group_summary"
+)
+
+
+def publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path) -> bool:
+    try:
+        publication_shell_sync._resolve_cohort_flow_source_payload(
+            study_root=study_root,
+            paper_root=paper_root,
+        )
+        publication_shell_sync._resolve_table1_source_path(
+            study_root=study_root,
+            paper_root=paper_root,
+        )
+        registry_payload = read_json(Path(paper_root) / "display_registry.json")
+        publication_shell_sync._require_binding(
+            registry_payload=registry_payload,
+            requirement_key="cohort_flow_figure",
+        )
+        publication_shell_sync._require_binding(
+            registry_payload=registry_payload,
+            requirement_key="table1_baseline_characteristics",
+        )
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return False
+    payload = read_json(Path(paper_root) / "baseline_characteristics_schema.json")
+    groups = payload.get("groups")
+    variables = payload.get("variables")
+    if not isinstance(groups, list) or not groups:
+        return True
+    if not isinstance(variables, list) or not variables:
+        return True
+    return any(not isinstance(item, dict) for item in variables)
+
+
+def _registry_display_ids_for_requirement(
+    *,
+    registry_items: object,
+    requirement_key: str,
+) -> set[str]:
+    if not isinstance(registry_items, list):
+        return set()
+    display_ids: set[str] = set()
+    for item in registry_items:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("requirement_key") or "").strip() != requirement_key:
+            continue
+        display_id = str(item.get("display_id") or "").strip()
+        if display_id:
+            display_ids.add(display_id)
+    return display_ids
+
+
+def _is_stale_time_to_event_grouped_payload_candidate(
+    *,
+    display: object,
+    risk_summary_display_ids: set[str],
+    expected_template_id: str,
+) -> str | None:
+    if not isinstance(display, dict):
+        return None
+    display_id = str(display.get("display_id") or "").strip()
+    if display_id not in risk_summary_display_ids:
+        return None
+    if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
+        return None
+    groups = display.get("groups")
+    if not isinstance(groups, list) or not groups:
+        return None
+    return display_id
+
+
+def _stale_time_to_event_grouped_payload_candidate_ids(
+    *,
+    displays: list[object],
+    risk_summary_display_ids: set[str],
+    expected_template_id: str,
+) -> list[str]:
+    candidate_display_ids: list[str] = []
+    payload_display_ids: set[str] = set()
+    for display in displays:
+        if isinstance(display, dict):
+            display_id = str(display.get("display_id") or "").strip()
+            if display_id:
+                payload_display_ids.add(display_id)
+        display_id = _is_stale_time_to_event_grouped_payload_candidate(
+            display=display,
+            risk_summary_display_ids=risk_summary_display_ids,
+            expected_template_id=expected_template_id,
+        )
+        if display_id is not None:
+            candidate_display_ids.append(display_id)
+    missing_registry_ids = sorted(risk_summary_display_ids - payload_display_ids)
+    candidate_display_ids.extend(
+        display_id for display_id in missing_registry_ids if display_id not in candidate_display_ids
+    )
+    return candidate_display_ids
+
+
+def stale_time_to_event_grouped_payload_candidates(
+    *,
+    paper_root: Path,
+    display_surface_materialization_controller: Any,
+) -> tuple[Path, list[str], str | None]:
+    payload_path = Path(paper_root) / INPUT_FILENAME_BY_SCHEMA_ID["time_to_event_grouped_inputs_v1"]
+    registry_payload = read_json(Path(paper_root) / "display_registry.json")
+    payload = read_json(payload_path)
+    displays = payload.get("displays")
+    registry_items = registry_payload.get("displays")
+    if not isinstance(displays, list) or not isinstance(registry_items, list):
+        return payload_path, [], None
+
+    risk_summary_display_ids = _registry_display_ids_for_requirement(
+        registry_items=registry_items,
+        requirement_key="time_to_event_risk_group_summary",
+    )
+    if not risk_summary_display_ids:
+        return payload_path, [], None
+
+    expected_template_id = _LEGACY_TIME_TO_EVENT_RISK_GROUP_SUMMARY_TEMPLATE_ID
+    candidate_display_ids = _stale_time_to_event_grouped_payload_candidate_ids(
+        displays=displays,
+        risk_summary_display_ids=risk_summary_display_ids,
+        expected_template_id=expected_template_id,
+    )
+
+    return payload_path, candidate_display_ids, expected_template_id
+
+
+def stale_time_to_event_grouped_payloads_need_rematerialization(
+    *,
+    paper_root: Path,
+    display_surface_materialization_controller: Any,
+) -> bool:
+    _, candidate_display_ids, _ = stale_time_to_event_grouped_payload_candidates(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization_controller,
+    )
+    return bool(candidate_display_ids)
+
+
+def time_to_event_risk_group_surface_present(*, paper_root: Path) -> bool:
+    return gate_clearing_batch_time_to_event_grouped.time_to_event_risk_group_surface_present(
+        paper_root=paper_root,
+        read_json=read_json,
+    )
+
+
+def display_registry_item_for_requirement(
+    *,
+    paper_root: Path,
+    requirement_key: str,
+) -> dict[str, Any] | None:
+    registry_payload = read_json(Path(paper_root) / "display_registry.json")
+    displays = registry_payload.get("displays")
+    if not isinstance(displays, list):
+        return None
+    for item in displays:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("requirement_key") or "").strip() == requirement_key:
+            return item
+    return None
+
+
+def time_to_event_direct_migration_display_inputs_need_refresh(
+    *,
+    paper_root: Path,
+    display_surface_materialization_controller: Any,
+) -> bool:
+    if stale_time_to_event_grouped_payloads_need_rematerialization(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization_controller,
+    ):
+        return True
+    item = display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="generalizability_subgroup_composite_panel",
+    )
+    if item is not None and display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="multicenter_generalizability_overview",
+    ) is not None:
+        return True
+    if item is None and display_registry_item_for_requirement(
+        paper_root=paper_root,
+        requirement_key="multicenter_generalizability_overview",
+    ) is not None:
+        return True
+    if item is None:
+        return False
+    display_id = non_empty_text(item.get("display_id"))
+    if display_id is None:
+        return True
+    if gate_clearing_batch_transportability.transportability_governance_display_inputs_need_refresh(
+        paper_root=paper_root
+    ):
+        return True
+    spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
+        "generalizability_subgroup_composite_panel"
+    )
+    try:
+        _, payload = display_surface_materialization_controller._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id=display_id,
+        )
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return True
+    source_paths = string_list(payload.get("source_paths"))
+    return any("ops/med-the research workflow" in item for item in source_paths)

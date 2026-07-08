@@ -63,23 +63,23 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
     payload = _canonical_payload()
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
     assert current_action.build_canonical_owner_action_projection(payload) is None
     assert (
         _module_absent(
-            "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
+            "med_autoscience.controllers.domain_action_request_materializer.current_work_unit_action"
         )
     )
     assert (
         _module_absent(
-            "med_autoscience.controllers.domain_action_request_materializer_parts."
+            "med_autoscience.controllers.domain_action_request_materializer."
             "legacy_next_action_authority"
         )
     )
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.domain_transition"
         )
     )
@@ -87,7 +87,7 @@ def test_canonical_next_action_blocks_legacy_current_owner_producers() -> None:
 
 def test_canonical_next_action_cleanup_does_not_back_project_legacy_owner_action() -> None:
     mission_summary = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
     payload = _canonical_payload()
     payload["next_action"] = {
@@ -115,7 +115,7 @@ def test_canonical_next_action_cleanup_does_not_back_project_legacy_owner_action
 
 def test_canonical_next_action_blocks_provider_admission_current_control_candidate() -> None:
     provider_actions = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control_actions"
     )
 
     assert not hasattr(provider_actions, "_study_current_action_for_provider_admission")
@@ -127,7 +127,7 @@ def test_missing_canonical_next_action_does_not_resurrect_legacy_default_owner_a
     payload.pop("canonical_next_action_source")
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     assert current_action.build_canonical_owner_action_projection(payload) is None
@@ -181,10 +181,10 @@ def test_missing_canonical_next_action_closes_all_legacy_owner_inputs() -> None:
     }
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
     provider_actions = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control_actions"
     )
 
     assert current_action.build_canonical_owner_action_projection(payload) is None
@@ -193,7 +193,7 @@ def test_missing_canonical_next_action_closes_all_legacy_owner_inputs() -> None:
 
 def test_canonical_next_action_does_not_let_paper_recovery_materialize_owner_action() -> None:
     selection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_selection"
     )
     payload = _canonical_payload()
     payload["paper_recovery_state"] = {
@@ -236,7 +236,7 @@ def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() 
     payload.pop("canonical_next_action_source")
 
     current_action = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     assert current_action.build_canonical_owner_action_projection(payload) is None
@@ -246,7 +246,7 @@ def test_legacy_owner_action_selector_has_no_callable_diagnostic_escape_hatch() 
 def test_terminal_next_forced_delta_owner_successor_producer_is_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.terminal_next_forced_delta"
         )
     )
@@ -259,7 +259,7 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "study_progress_parts"
+        / "study_progress"
         / "owner_action_diagnostics"
     )
     if not producer_dir.exists():
@@ -281,7 +281,7 @@ def test_legacy_owner_successor_producers_declare_noncanonical_boundary() -> Non
 def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.stage_artifact_index"
         )
     )
@@ -290,7 +290,7 @@ def test_stage_artifact_index_current_owner_producer_is_physically_retired() -> 
 def test_repair_progress_owner_successor_producer_is_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.repair_progress"
         )
     )
@@ -299,7 +299,7 @@ def test_repair_progress_owner_successor_producer_is_physically_retired() -> Non
 def test_non_advancing_terminal_closeout_diagnostic_is_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.non_advancing_terminal_closeout"
         )
     )
@@ -308,7 +308,7 @@ def test_non_advancing_terminal_closeout_diagnostic_is_physically_retired() -> N
 def test_owner_action_diagnostic_action_types_are_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.action_types"
         )
     )
@@ -317,7 +317,7 @@ def test_owner_action_diagnostic_action_types_are_physically_retired() -> None:
 def test_paper_recovery_owner_successor_producer_is_physically_retired() -> None:
     assert (
         _module_absent(
-            "med_autoscience.controllers.study_progress_parts."
+            "med_autoscience.controllers.study_progress."
             "owner_action_diagnostics.paper_recovery"
         )
     )
@@ -330,7 +330,7 @@ def test_stage_outcome_authority_has_no_paper_recovery_legacy_bridge() -> None:
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "stage_outcome_authority_parts"
+        / "stage_outcome_authority"
         / "owner_route_selection.py"
     ).read_text()
 
@@ -344,7 +344,7 @@ def test_stage_outcome_authority_has_no_paper_recovery_legacy_bridge() -> None:
 
 def test_current_work_unit_paper_recovery_successor_accepts_mas_owner_callable() -> None:
     successor = importlib.import_module(
-        "med_autoscience.controllers.current_work_unit_parts.paper_recovery_successor"
+        "med_autoscience.controllers.current_work_unit.paper_recovery_successor"
     )
 
     assert successor.paper_recovery_successor_action_ready(
@@ -369,8 +369,8 @@ def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions()
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "study_progress_parts"
-        / "projection_payload_assembly_parts"
+        / "study_progress"
+        / "projection_payload_assembly"
         / "current_execution_surfaces.py"
     ).read_text()
 
@@ -387,7 +387,7 @@ def test_current_execution_refresh_does_not_resurrect_legacy_successor_actions()
 
 def test_materializer_retires_legacy_current_action_even_with_complete_next_action_identity() -> None:
     legacy = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "med_autoscience.controllers.domain_action_request_materializer."
         "legacy_next_action_retirement_guard"
     )
 
@@ -417,7 +417,7 @@ def test_materializer_retires_legacy_current_action_even_with_complete_next_acti
 
 def test_residual_current_work_unit_projection_does_not_default_owner_without_envelope() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.current_work_unit_parts.projection"
+        "med_autoscience.controllers.current_work_unit.projection"
     )
 
     work_unit = projection.current_work_unit(
@@ -444,7 +444,7 @@ def test_residual_current_work_unit_projection_does_not_default_owner_without_en
 
 def test_current_execution_envelope_barriers_are_diagnostic_only() -> None:
     current_action = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+        "med_autoscience.controllers.domain_action_request_materializer.fresh_progress_current_action"
     )
 
     typed_blocker = current_action._fresh_progress_current_action(
@@ -496,7 +496,7 @@ def test_current_execution_envelope_barriers_are_diagnostic_only() -> None:
 
 def test_missing_canonical_next_action_retires_per_study_top_level_fallback() -> None:
     selection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_selection"
     )
     study_id = "004-legacy-top-level-fallback"
     action = {
@@ -530,7 +530,7 @@ def test_missing_canonical_next_action_retires_per_study_top_level_fallback() ->
 
 def test_paper_recovery_ignores_monitoring_summary_legacy_current_action() -> None:
     recovery = importlib.import_module(
-        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+        "med_autoscience.controllers.paper_recovery_state.successor_owner_resolution"
     )
 
     progress = {
@@ -552,7 +552,7 @@ def test_paper_recovery_ignores_monitoring_summary_legacy_current_action() -> No
 
 def test_paper_recovery_ignores_top_level_legacy_current_action_even_with_canonical_source() -> None:
     recovery = importlib.import_module(
-        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+        "med_autoscience.controllers.paper_recovery_state.successor_owner_resolution"
     )
 
     progress = {
@@ -643,7 +643,7 @@ def test_paper_recovery_obligation_does_not_resurrect_legacy_owner_with_canonica
 
 def test_paper_recovery_materialize_successor_action_is_diagnostic_only() -> None:
     projection = importlib.import_module(
-        "med_autoscience.controllers.current_work_unit_parts.paper_recovery_projection"
+        "med_autoscience.controllers.current_work_unit.paper_recovery_projection"
     )
 
     progress = {
@@ -666,7 +666,7 @@ def test_paper_recovery_materialize_successor_action_is_diagnostic_only() -> Non
 
 def test_stage_packet_identity_does_not_use_legacy_current_actions() -> None:
     identity = importlib.import_module(
-        "med_autoscience.controllers.current_work_unit_parts.stage_packet_identity"
+        "med_autoscience.controllers.current_work_unit.stage_packet_identity"
     )
     blocker = {
         "blocker_type": "no_selected_dispatch_for_authorized_stage_packet",

@@ -11,7 +11,7 @@ SRC_ROOT = REPO_ROOT / "src" / "med_autoscience"
 def test_materializer_local_carrier_persistence_api_is_physically_retired() -> None:
     try:
         importlib.import_module(
-            "med_autoscience.controllers.domain_action_request_materializer_parts.persistence"
+            "med_autoscience.controllers.domain_action_request_materializer.persistence"
         )
     except ModuleNotFoundError:
         return
@@ -309,7 +309,7 @@ def test_public_owner_callable_adapter_reader_is_not_active_carrier() -> None:
 
 def test_materializer_canonical_projection_preserves_strong_identity_without_legacy_body() -> None:
     transition_request_projection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+        "med_autoscience.controllers.domain_action_request_materializer.transition_request_projection"
     )
     projection = importlib.import_module("med_autoscience.controllers.owner_callable_adapter_projection")
 
@@ -405,14 +405,14 @@ def test_materializer_canonical_projection_preserves_strong_identity_without_leg
 
 def test_domain_diagnostic_same_tick_admission_consumes_only_canonical_transition_requests(tmp_path: Path) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     source = (
         REPO_ROOT
         / "src"
         / "med_autoscience"
         / "controllers"
-        / "provider_admission_parts"
+        / "provider_admission"
         / "provider_admission_report.py"
     ).read_text(encoding="utf-8")
 
@@ -466,7 +466,7 @@ def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_al
     action_execution_root = (
         SRC_ROOT
         / "controllers"
-        / "stage_outcome_authority_parts"
+        / "stage_outcome_authority"
         / "action_execution"
     )
     forbidden_tokens = (
@@ -522,7 +522,7 @@ def test_current_controller_decision_refresh_does_not_emit_legacy_domain_owner_a
     source = (
         SRC_ROOT
         / "controllers"
-        / "stage_outcome_authority_parts"
+        / "stage_outcome_authority"
         / "controller_refresh.py"
     ).read_text(encoding="utf-8")
 

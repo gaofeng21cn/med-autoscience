@@ -23,7 +23,7 @@ def test_opl_runtime_refs_regression_cases(case: fixtures.ControlPlaneFactCase) 
 
 
 def test_supervisor_lightweight_path_preserves_liveness() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.runtime_liveness_projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.runtime_liveness_projection")
     payload = fixtures.supervisor_lightweight_payload()
 
     assert module.live_managed_runtime_present(
@@ -67,7 +67,7 @@ def test_opl_runtime_refs_invalidates_stale_active_run_when_liveness_has_no_work
 
 
 def test_same_fingerprint_repeated_turn_stays_stable(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.provider_admission_parts.managed_wakeup")
+    module = importlib.import_module("med_autoscience.controllers.provider_admission.managed_wakeup")
     study_root = tmp_path / "studies" / "001-risk"
     status_payload = fixtures.same_fingerprint_status_payload()
 

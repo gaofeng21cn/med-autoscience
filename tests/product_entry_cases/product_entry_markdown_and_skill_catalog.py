@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_skill_catalog
+from med_autoscience.controllers.product_entry.manifest_surfaces import build_skill_catalog
 from .product_entry_preflight_and_task_submission import *  # noqa: F403,F401
 
 

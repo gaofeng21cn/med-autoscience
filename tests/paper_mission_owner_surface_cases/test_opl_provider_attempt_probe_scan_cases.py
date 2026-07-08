@@ -11,7 +11,7 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -67,7 +67,7 @@ def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkey
 
 def test_run_opl_json_timeout_kills_process_group(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     marker = tmp_path / "child.pid"
     script = tmp_path / "opl"
@@ -117,7 +117,7 @@ def test_run_opl_json_timeout_kills_process_group(tmp_path: Path) -> None:
 def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeypatch, tmp_path: Path) -> None:
     scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     opl_attempts = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -255,7 +255,7 @@ def _live_provider_attempt_fixture(
 def test_scan_passes_bounded_opl_probe_budget_to_provider_projection(monkeypatch, tmp_path: Path) -> None:
     scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     opl_attempts = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -353,7 +353,7 @@ def test_scan_passes_bounded_opl_probe_budget_to_provider_projection(monkeypatch
 def test_scan_does_not_project_terminal_stage_attempt_as_active_run(monkeypatch, tmp_path: Path) -> None:
     scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     opl_attempts = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)

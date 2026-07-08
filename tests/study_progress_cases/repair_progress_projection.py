@@ -14,7 +14,7 @@ _module_reexport(_shared)
 
 def test_repair_progress_projection_carries_recheck_and_gate_done_flags(tmp_path: Path) -> None:
     repair_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+        "med_autoscience.controllers.study_progress.repair_progress_projection"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -82,7 +82,7 @@ def test_repair_progress_projection_uses_accepted_receipt_identity_over_evidence
     tmp_path: Path,
 ) -> None:
     repair_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+        "med_autoscience.controllers.study_progress.repair_progress_projection"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     draft = study_root / "paper" / "draft.md"
@@ -142,7 +142,7 @@ def test_repair_progress_projection_accepts_executed_quality_batch_owner_result(
     tmp_path: Path,
 ) -> None:
     repair_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+        "med_autoscience.controllers.study_progress.repair_progress_projection"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -243,7 +243,7 @@ def test_repair_progress_projection_rejects_quality_batch_without_current_eval_i
     tmp_path: Path,
 ) -> None:
     repair_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+        "med_autoscience.controllers.study_progress.repair_progress_projection"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     draft = study_root / "paper" / "draft.md"

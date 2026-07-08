@@ -122,7 +122,7 @@ def patch_dispatchable_study_progress(
     default_study_id: str | None = None,
     actions_by_study: dict[str, dict[str, object]] | None = None,
 ) -> None:
-    from med_autoscience.controllers.study_progress_parts import projection as study_progress_projection
+    from med_autoscience.controllers.study_progress import projection as study_progress_projection
 
     def fake_read_study_progress(**kwargs) -> dict[str, object]:
         study_id = str(kwargs.get("study_id") or default_study_id or "test-study")

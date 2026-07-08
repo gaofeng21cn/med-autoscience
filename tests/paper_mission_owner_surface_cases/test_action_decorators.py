@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts import action_decorators
+from med_autoscience.controllers.paper_mission_owner_surface import action_decorators
 
 
 def test_decorate_action_defaults_request_only_handoff_packet() -> None:

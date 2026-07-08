@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+from med_autoscience.controllers.study_progress.paper_autonomy_supervisor_decision import (
     provider_admission_supervisor_gate,
 )
 from tests.provider_admission_current_control_helpers import opl_transition_readback

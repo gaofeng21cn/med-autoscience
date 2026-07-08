@@ -5,7 +5,7 @@ import importlib
 
 def test_current_owner_action_projects_typed_blocker_resolution_next_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     action = module.build_canonical_owner_action_projection(
@@ -84,7 +84,7 @@ def test_current_owner_action_projects_typed_blocker_resolution_next_action() ->
 
 def test_legacy_next_action_cleanup_preserves_canonical_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     canonical_action = {
@@ -112,7 +112,7 @@ def test_legacy_next_action_cleanup_preserves_canonical_owner_action() -> None:
 
 def test_legacy_next_action_cleanup_removes_noncanonical_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     cleaned = module.without_legacy_next_action_authority(
@@ -129,7 +129,7 @@ def test_legacy_next_action_cleanup_removes_noncanonical_owner_action() -> None:
 
 def test_legacy_next_action_cleanup_preserves_typed_blocker_resolution_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     typed_blocker_resolution_action = {
@@ -152,7 +152,7 @@ def test_legacy_next_action_cleanup_preserves_typed_blocker_resolution_owner_act
 
 def test_legacy_next_action_cleanup_restores_typed_blocker_action_from_paper_facing_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     cleaned = module.without_legacy_next_action_authority(
@@ -187,7 +187,7 @@ def test_legacy_next_action_cleanup_restores_typed_blocker_action_from_paper_fac
 
 def test_paper_recovery_accepts_typed_blocker_resolution_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_recovery_state_parts.successor_owner_resolution"
+        "med_autoscience.controllers.paper_recovery_state.successor_owner_resolution"
     )
 
     action = {
@@ -208,7 +208,7 @@ def test_paper_recovery_accepts_typed_blocker_resolution_owner_action() -> None:
 
 def test_current_owner_action_projects_submission_authority_owner_gate_surface() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     action = module.build_canonical_owner_action_projection(
@@ -254,7 +254,7 @@ def test_current_owner_action_projects_submission_authority_owner_gate_surface()
 
 def test_current_owner_action_retired_after_matching_submission_authority_gate_event() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     payload = {
@@ -330,7 +330,7 @@ def test_current_owner_action_retired_after_matching_submission_authority_gate_e
 
 def test_submission_authority_gate_readback_projects_terminal_closeout_event() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     payload = {
@@ -436,7 +436,7 @@ def test_submission_authority_gate_readback_projects_terminal_closeout_event() -
 
 def test_submission_authority_gate_does_not_retire_unrelated_reviewer_route() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     payload = {
@@ -475,7 +475,7 @@ def test_submission_authority_gate_does_not_retire_unrelated_reviewer_route() ->
 
 def test_submission_blocker_gate_does_not_retire_quality_repair_successor_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     payload = {
@@ -550,7 +550,7 @@ def test_submission_blocker_gate_does_not_retire_quality_repair_successor_action
 
 def test_submission_blocker_gate_readback_ignores_stale_submission_ready_closeout() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection"
+        "med_autoscience.controllers.study_progress.canonical_owner_action_projection"
     )
 
     payload = {

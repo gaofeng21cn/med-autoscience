@@ -218,7 +218,7 @@ def test_literature_hygiene_blocker_keeps_publication_gate_blocked(
             "items": [],
         },
     )
-    from med_autoscience.controllers.submission_minimal_parts.authority import describe_submission_minimal_authority
+    from med_autoscience.controllers.submission_minimal.authority import describe_submission_minimal_authority
 
     authority = describe_submission_minimal_authority(paper_root=paper_root)
     manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"

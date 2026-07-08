@@ -287,7 +287,7 @@ def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_execution")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -313,7 +313,7 @@ def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_execution")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -362,7 +362,7 @@ def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
 
 
 def test_clean_room_publication_surface_blocks_when_descriptor_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_execution")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -380,7 +380,7 @@ def test_clean_room_publication_surface_blocks_when_descriptor_missing(tmp_path:
 
 
 def test_clean_room_publication_surface_blocks_when_verified_paper_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority_parts.action_execution")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_execution")
     clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

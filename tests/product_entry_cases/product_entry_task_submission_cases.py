@@ -18,7 +18,7 @@ _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
 def product_entry_entry_runtime_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.entry_runtime")
+    return importlib.import_module("med_autoscience.controllers.product_entry.entry_runtime")
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
     entry_runtime = product_entry_entry_runtime_module()

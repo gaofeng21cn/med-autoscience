@@ -12,7 +12,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 
 def test_study_progress_projects_medical_writing_quality_surfaces(tmp_path: Path) -> None:
-    from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
+    from med_autoscience.controllers.study_progress.projection import read_study_progress
 
     profile = make_profile(tmp_path)
     workspace_root = profile.workspace_root

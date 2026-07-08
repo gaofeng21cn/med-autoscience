@@ -6,10 +6,10 @@ from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
 
-from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+from med_autoscience.controllers.product_entry.manifest_rendering import (
     render_product_entry_status_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_manifest,
 )
 

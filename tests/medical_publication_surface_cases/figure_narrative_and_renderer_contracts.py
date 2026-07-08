@@ -1,6 +1,6 @@
 from .shared import *
 
-from med_autoscience.controllers.medical_publication_surface_parts import (
+from med_autoscience.controllers.medical_publication_surface import (
     catalog_checks,
     reporting,
     shared_base,

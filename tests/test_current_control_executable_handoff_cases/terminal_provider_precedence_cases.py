@@ -12,7 +12,7 @@ def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admissi
     monkeypatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     stale_fingerprint = "publication-blockers::f11710a114497b27"

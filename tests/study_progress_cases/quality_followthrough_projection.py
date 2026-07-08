@@ -508,7 +508,7 @@ def test_existing_projection_refreshes_current_gate_followthrough_before_owner_s
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     current_blocker_fingerprint = "publication-blockers::0915410f804b3697"

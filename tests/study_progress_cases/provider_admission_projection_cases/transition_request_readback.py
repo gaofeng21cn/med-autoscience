@@ -14,7 +14,7 @@ def test_provider_admission_projection_preserves_handoff_transition_request_when
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -180,7 +180,7 @@ def test_provider_admission_projection_same_identity_provider_readback_consumes_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -306,7 +306,7 @@ def test_same_identity_provider_readback_retains_transition_request_stage_packet
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -434,7 +434,7 @@ def test_request_only_candidate_with_live_readback_promotes_to_provider_admissio
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"

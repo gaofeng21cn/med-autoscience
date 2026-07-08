@@ -19,7 +19,7 @@ from tests.product_entry_cases.functional_closure_projection import *
 
 
 def test_product_entry_manifest_exposes_paper_mission_default_entry(tmp_path):
-    from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+    from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
     from med_autoscience.profiles import load_profile
     from tests.test_cli_cases.shared import write_profile
 

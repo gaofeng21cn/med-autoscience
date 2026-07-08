@@ -133,7 +133,7 @@ def test_domain_handler_dispatch_routes_quality_repair_batch_callable_inside_mas
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
@@ -207,7 +207,7 @@ def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_d
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -304,7 +304,7 @@ def test_domain_handler_dispatch_prefers_runtime_binding_quest_id_for_quality_re
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"

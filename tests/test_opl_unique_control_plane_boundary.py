@@ -4,8 +4,8 @@ import importlib
 
 import pytest
 
-import med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps as followthrough_gaps
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
+import med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps as followthrough_gaps
+from med_autoscience.controllers.opl_unique_control_plane_boundary import consumer_migration
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
 

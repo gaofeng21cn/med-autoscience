@@ -13,7 +13,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
 )
-from med_autoscience.controllers.quality_repair_batch_parts import (
+from med_autoscience.controllers.quality_repair_batch import (
     medical_prose_story_surface,
 )
 from med_autoscience.controllers.story_surface_work_units import (

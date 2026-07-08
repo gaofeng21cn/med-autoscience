@@ -14,7 +14,7 @@ def test_current_control_provider_admission_reads_transition_request_path_withou
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -144,7 +144,7 @@ def test_current_control_provider_admission_defaults_missing_carrier_to_transiti
     tmp_path: Path,
 ) -> None:
     actions = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control_actions"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control_actions"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id

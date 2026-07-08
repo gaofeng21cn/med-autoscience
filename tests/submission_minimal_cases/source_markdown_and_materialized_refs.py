@@ -2,16 +2,16 @@ from .shared import *
 
 import re
 
-from med_autoscience.controllers.submission_minimal_parts.authority import (
+from med_autoscience.controllers.submission_minimal.authority import (
     describe_submission_minimal_authority,
 )
-from med_autoscience.controllers.submission_minimal_parts.markdown_surface import (
+from med_autoscience.controllers.submission_minimal.markdown_surface import (
     merge_legend_with_figure_semantics,
 )
-from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+from med_autoscience.controllers.submission_minimal.markdown_surface_qc import (
     inspect_submission_source_markdown,
 )
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
@@ -440,7 +440,7 @@ def test_create_submission_minimal_package_materializes_supplementary_tables_wor
     assert float(pdf_reader.pages[0].mediabox.width) > 595
 
     supplementary_material = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.package_builder_parts.supplementary_material"
+        "med_autoscience.controllers.submission_minimal.package_builder.supplementary_material"
     )
     wrapped_rows = supplementary_material._wrap_table_rows_for_pdf(
         [

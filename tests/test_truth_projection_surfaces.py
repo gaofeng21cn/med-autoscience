@@ -253,7 +253,7 @@ def test_mcp_progress_markdown_renders_medical_paper_readiness_summary() -> None
 
 
 def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.workspace_surfaces")
+    module = importlib.import_module("med_autoscience.controllers.product_entry.workspace_surfaces")
 
     item = module._study_item(
         progress_payload={
@@ -314,7 +314,7 @@ def test_mcp_compact_projection_carries_study_macro_state() -> None:
 
 
 def test_domain_diagnostic_report_managed_study_action_carries_truth_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.provider_admission_parts.managed_wakeup")
+    module = importlib.import_module("med_autoscience.controllers.provider_admission.managed_wakeup")
 
     action = module._serialize_managed_study_action(
         {
@@ -334,7 +334,7 @@ def test_domain_diagnostic_report_managed_study_action_carries_truth_snapshot_su
 
 
 def test_product_entry_surfaces_expose_medical_writing_quality_artifacts() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.generated_status_projection")
+    module = importlib.import_module("med_autoscience.controllers.product_entry.generated_status_projection")
     artifact_inventory = module._build_artifact_inventory_surface(
         profile=type("Profile", (), {"workspace_root": Path("/tmp/workspace"), "runtime_root": Path("/tmp/runtime")})(),
         progress_projection={},

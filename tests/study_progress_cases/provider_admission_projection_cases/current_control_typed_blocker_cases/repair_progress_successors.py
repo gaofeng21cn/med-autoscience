@@ -14,7 +14,7 @@ def test_existing_projection_refresh_materializes_recovery_successor_after_consu
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -237,7 +237,7 @@ def test_existing_projection_refresh_ignores_current_control_executable_residue_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -370,7 +370,7 @@ def test_existing_projection_refresh_consumes_current_repair_progress_over_stale
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -544,7 +544,7 @@ def test_existing_projection_refresh_consumes_current_repair_successor_over_refs
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -762,7 +762,7 @@ def test_existing_projection_refresh_materializes_recovery_successor_over_stale_
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -927,7 +927,7 @@ def test_existing_projection_refresh_promotes_domain_transition_after_consumed_p
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

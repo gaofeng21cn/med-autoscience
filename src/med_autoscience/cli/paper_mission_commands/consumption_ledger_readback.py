@@ -67,11 +67,8 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
 )
-from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
+from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
-)
-from med_autoscience.controllers.study_progress_parts.projection import (
-    read_study_progress as _read_study_progress,
 )
 from med_autoscience.mcp_server.projection_adapters import (
     serialize_study_runtime_result as _serialize_study_runtime_result,
@@ -465,6 +462,10 @@ def _study_progress_paper_mission_overlay(
     profile_ref: str | Path,
     study_id: str,
 ) -> dict[str, Any]:
+    from med_autoscience.controllers.study_progress.projection import (
+        read_study_progress as _read_study_progress,
+    )
+
     try:
         result = _read_study_progress(
             profile=profile,

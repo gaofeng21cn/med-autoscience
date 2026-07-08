@@ -180,7 +180,7 @@ def test_current_ai_reviewer_write_routeback_uses_blocking_work_unit_when_next_w
     tmp_path: Path,
 ) -> None:
     current_truth_owner = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
     manuscript_path = study_root / "paper" / "draft.md"

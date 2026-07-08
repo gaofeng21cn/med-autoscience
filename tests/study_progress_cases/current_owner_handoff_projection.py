@@ -17,7 +17,7 @@ from .current_owner_handoff_projection_cases.test_next_action_authority import *
 
 def test_progress_first_monitoring_projects_terminal_closeout_semantic_completeness() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -130,7 +130,7 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
 
 def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not_running() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -189,7 +189,7 @@ def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not
 
 def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_observability() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -255,7 +255,7 @@ def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_o
 
 def test_progress_first_monitoring_counts_stage_delta_despite_missing_closeout_observability() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -321,7 +321,7 @@ def test_progress_first_monitoring_counts_stage_delta_despite_missing_closeout_o
 
 def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -386,7 +386,7 @@ def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() 
 
 def test_progress_first_monitoring_prefers_consumed_transition_owner_action_over_stale_execution_blocker() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -434,7 +434,7 @@ def test_progress_first_monitoring_prefers_consumed_transition_owner_action_over
 
 def test_progress_first_monitoring_prefers_current_handoff_action_over_stale_transition() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
 
     monitoring = module.build_progress_first_monitoring_summary(
@@ -893,7 +893,7 @@ def test_dm004_unmapped_next_action_projection_keeps_family_authority(tmp_path: 
 
 def test_handoff_user_visible_status_does_not_promote_legacy_provider_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     stale_next_step = "等待 MAS 已登记的 owner/action 处理。"
 
@@ -937,7 +937,7 @@ def test_handoff_user_visible_status_does_not_promote_legacy_provider_action() -
 
 def test_handoff_user_visible_status_keeps_canonical_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
 
     result = module.apply_current_owner_handoff_user_visible_status(

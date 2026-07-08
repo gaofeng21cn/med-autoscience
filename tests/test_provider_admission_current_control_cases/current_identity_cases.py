@@ -14,7 +14,7 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -154,7 +154,7 @@ def test_provider_admission_current_control_uses_worker_liveness_as_running_gate
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -258,7 +258,7 @@ def test_provider_admission_uses_explicit_action_queue_identity_over_stale_statu
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -369,7 +369,7 @@ def test_provider_admission_uses_fresh_repair_progress_action_over_stale_current
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = tmp_path / "studies" / study_id
@@ -476,7 +476,7 @@ def test_provider_admission_rejects_same_fingerprint_with_stale_action_identity(
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     dispatch_path = tmp_path / "dispatches" / "return_to_ai_reviewer_workflow.json"
@@ -520,7 +520,7 @@ def test_provider_admission_execution_requires_current_identity_for_current_cont
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     dispatch_path = tmp_path / "dispatches" / "run_gate_clearing_batch.json"

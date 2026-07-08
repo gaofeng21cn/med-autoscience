@@ -265,7 +265,7 @@ def test_existing_progress_projection_refreshes_top_level_routeback_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    projection_module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    projection_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(

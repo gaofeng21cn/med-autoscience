@@ -472,7 +472,7 @@ def test_paper_repair_executor_accepts_quality_repair_writer_handoff_without_ter
 
 
 def test_paper_repair_executor_does_not_promote_unproven_writer_handoff() -> None:
-    results = importlib.import_module("med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results")
+    results = importlib.import_module("med_autoscience.controllers.paper_repair_executor.owner_callable_results")
     owner_result = {
         "ok": True,
         "status": "handoff_ready",

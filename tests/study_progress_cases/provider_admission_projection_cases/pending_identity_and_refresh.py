@@ -15,7 +15,7 @@ from tests.study_progress_cases.provider_admission_projection import (
 
 def test_provider_admission_projection_uses_current_work_unit_pending_identity(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -165,7 +165,7 @@ def test_existing_projection_refresh_promotes_progress_first_owner_action_admiss
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "sha256:2c4793a4e41859fd21a0bc088459c85f298bacb7d06eea811b44beae568fbf9f"
@@ -284,7 +284,7 @@ def test_existing_projection_refresh_clears_stale_provider_admission_on_no_curre
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "publication-blockers::0915410f804b3697"
@@ -335,7 +335,7 @@ def test_existing_projection_refresh_consumes_same_identity_provider_readback(
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -493,7 +493,7 @@ def test_existing_projection_refresh_prefers_live_attempt_over_stale_handoff(
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "sha256:446e24afa9bc729b3fc0f43184024d2c95ddbcf71db0d8db0183e4c42467ee30"
@@ -618,7 +618,7 @@ def test_existing_projection_refresh_rejects_superseded_live_attempt_identity(
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     current_fingerprint = "sha256:current-publication-gate-replay"

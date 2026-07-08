@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.paper_mission_owner_surface_parts import current_truth_owner
-from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
+from med_autoscience.controllers.paper_mission_owner_surface import current_truth_owner
+from med_autoscience.controllers.study_outer_loop.domain_transition_actions import (
     domain_transition_recommended_action,
 )
 from tests.test_domain_transition_table_ai_reviewer_routeback_cases.shared import (

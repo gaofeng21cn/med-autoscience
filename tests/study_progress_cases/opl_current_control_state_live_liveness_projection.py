@@ -18,7 +18,7 @@ def test_progress_projection_uses_opl_current_control_state_as_live_liveness_pro
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -104,7 +104,7 @@ def test_opl_current_control_state_handoff_reader_reuses_unchanged_large_payload
     tmp_path: Path,
 ) -> None:
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     handoff_path = tmp_path / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -191,7 +191,7 @@ def test_progress_projection_uses_opl_live_attempt_when_runtime_state_waiting_fo
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -271,10 +271,10 @@ def test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     decision_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+        "med_autoscience.controllers.study_runtime_decision.domain_status_authority"
     )
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -377,10 +377,10 @@ def test_progress_projection_uses_live_opl_attempt_when_fresh_handoff_is_non_run
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     decision_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+        "med_autoscience.controllers.study_runtime_decision.domain_status_authority"
     )
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     write_study(
@@ -480,10 +480,10 @@ def test_progress_projection_uses_live_opl_attempt_when_quest_state_is_paused(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     decision_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+        "med_autoscience.controllers.study_runtime_decision.domain_status_authority"
     )
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -572,10 +572,10 @@ def test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     decision_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+        "med_autoscience.controllers.study_runtime_decision.domain_status_authority"
     )
     publication_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     profile = make_profile(tmp_path)
     profile.runtime_root.mkdir(parents=True)

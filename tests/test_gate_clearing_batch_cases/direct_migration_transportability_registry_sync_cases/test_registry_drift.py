@@ -12,7 +12,7 @@ globals().update({
 def test_stale_time_to_event_grouped_payload_candidates_detects_registry_display_id_drift(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_parts.display_refresh")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch.display_refresh")
     paper_root = tmp_path / "paper"
     _write_json(
         paper_root / "display_registry.json",

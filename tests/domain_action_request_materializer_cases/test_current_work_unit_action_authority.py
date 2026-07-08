@@ -6,7 +6,7 @@ import importlib.util
 
 def _selection_module():
     return importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_selection"
     )
 
 
@@ -34,7 +34,7 @@ def _next_action_envelope(
 
 def test_fresh_progress_current_action_reads_without_live_provider_probe(monkeypatch) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+        "med_autoscience.controllers.domain_action_request_materializer.fresh_progress_current_action"
     )
     observed: dict[str, object] = {}
 
@@ -115,7 +115,7 @@ def test_current_action_selection_retires_legacy_carrier_even_with_complete_next
 
 def test_legacy_guard_keeps_non_legacy_canonical_owner_action_envelope() -> None:
     legacy = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "med_autoscience.controllers.domain_action_request_materializer."
         "legacy_next_action_retirement_guard"
     )
     study_id = "004-synthetic-new-study"
@@ -142,7 +142,7 @@ def test_legacy_guard_keeps_non_legacy_canonical_owner_action_envelope() -> None
 
 def test_queue_attaches_non_opl_canonical_envelope_from_study_payload() -> None:
     queue = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_queue"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_queue"
     )
     study_id = "004-synthetic-new-study"
     next_action = _next_action_envelope(
@@ -164,7 +164,7 @@ def test_queue_attaches_non_opl_canonical_envelope_from_study_payload() -> None:
 
 def test_fresh_progress_uses_canonical_envelope_without_legacy_current_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.fresh_progress_current_action"
+        "med_autoscience.controllers.domain_action_request_materializer.fresh_progress_current_action"
     )
     study_id = "004-synthetic-new-study"
     next_action = _next_action_envelope(
@@ -445,7 +445,7 @@ def test_current_action_selection_retires_queue_carrier_that_borrows_study_envel
 
 def test_next_action_identity_mismatch_includes_action_family_and_output_kind() -> None:
     legacy = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts."
+        "med_autoscience.controllers.domain_action_request_materializer."
         "legacy_next_action_retirement_guard"
     )
     study_id = "004-synthetic-new-study"
@@ -482,7 +482,7 @@ def test_next_action_identity_mismatch_includes_action_family_and_output_kind() 
 def test_current_work_unit_action_producer_is_physically_retired() -> None:
     assert (
         importlib.util.find_spec(
-            "med_autoscience.controllers.domain_action_request_materializer_parts.current_work_unit_action"
+            "med_autoscience.controllers.domain_action_request_materializer.current_work_unit_action"
         )
         is None
     )
@@ -492,7 +492,7 @@ def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_ide
     monkeypatch,
 ) -> None:
     selection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_selection"
     )
     monkeypatch.setattr(
         selection.fresh_progress_current_action,
@@ -566,7 +566,7 @@ def test_current_action_selection_does_not_let_typed_blocker_barrier_preempt_ide
 
 def test_current_action_selection_has_no_paper_recovery_callable_selector() -> None:
     selection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.current_action_selection"
+        "med_autoscience.controllers.domain_action_request_materializer.current_action_selection"
     )
 
     assert not hasattr(selection, "paper_recovery_owner_callable")

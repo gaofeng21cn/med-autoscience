@@ -521,7 +521,7 @@ def test_typed_blocker_resolution_successor_supersedes_stale_wakeup_top_level(
     from types import SimpleNamespace
 
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
     study_id = "obesity_multicenter_phenotype_atlas"
     workspace_root = tmp_path / "workspace"

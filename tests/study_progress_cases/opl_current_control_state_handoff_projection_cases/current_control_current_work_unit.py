@@ -280,7 +280,7 @@ def test_same_identity_provider_readback_supersedes_request_only_current_surface
         },
     )
     handoff_module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     monkeypatch.setattr(
         handoff_module,
@@ -373,7 +373,7 @@ def test_provider_readback_not_consumed_by_prior_request_wrapper_domain_closeout
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

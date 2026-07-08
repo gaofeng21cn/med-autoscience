@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_manifest,
 )
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary

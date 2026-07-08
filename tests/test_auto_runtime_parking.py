@@ -640,7 +640,7 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
 
 def test_legacy_owner_action_does_not_supersede_explicit_resume_operator_residue() -> None:
     reconcile = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+        "med_autoscience.controllers.study_progress.current_owner_action_projection_reconcile"
     )
 
     result = reconcile.reconcile_current_owner_action_projection(
@@ -710,7 +710,7 @@ def test_legacy_owner_action_does_not_supersede_explicit_resume_operator_residue
 
 def test_canonical_owner_action_supersedes_explicit_resume_operator_residue() -> None:
     reconcile = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+        "med_autoscience.controllers.study_progress.current_owner_action_projection_reconcile"
     )
 
     result = reconcile.reconcile_current_owner_action_projection(

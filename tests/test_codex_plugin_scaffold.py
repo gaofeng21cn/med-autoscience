@@ -33,7 +33,9 @@ def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
 
 def test_codex_plugin_is_additive_and_keeps_python_cli_entrypoint() -> None:
     pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    cli_text = (REPO_ROOT / "src" / "med_autoscience" / "cli.py").read_text(encoding="utf-8")
+    cli_text = (REPO_ROOT / "src" / "med_autoscience" / "cli" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
     install_script = (REPO_ROOT / "scripts" / "install-codex-plugin.sh").read_text(encoding="utf-8")
     clean_runner_script = (REPO_ROOT / "scripts" / "run-python-clean.sh").read_text(encoding="utf-8")
 

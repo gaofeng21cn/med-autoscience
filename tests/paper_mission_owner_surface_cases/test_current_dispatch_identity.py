@@ -7,7 +7,7 @@ from med_autoscience.controllers import control_identity
 
 def test_canonical_dispatch_identity_suppresses_residual_action_when_current_work_unit_is_typed_blocker() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
 
     identity = module.canonical_current_dispatch_identity(
@@ -49,7 +49,7 @@ def test_canonical_dispatch_identity_suppresses_residual_action_when_current_wor
 
 def test_canonical_dispatch_identity_allows_owner_gate_route_back_stage_packet_blocker() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
 
     identity = module.canonical_current_dispatch_identity(
@@ -106,7 +106,7 @@ def test_canonical_dispatch_identity_allows_owner_gate_route_back_stage_packet_b
 
 def test_canonical_dispatch_identity_prefers_current_work_unit_over_residual_owner_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
 
     identity = module.canonical_current_dispatch_identity(
@@ -146,7 +146,7 @@ def test_canonical_dispatch_identity_prefers_current_work_unit_over_residual_own
 
 def test_canonical_dispatch_identity_promotes_owner_action_when_executable_work_unit_lacks_fingerprint() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
 
     identity = module.canonical_current_dispatch_identity(
@@ -186,7 +186,7 @@ def test_canonical_dispatch_identity_promotes_owner_action_when_executable_work_
 
 def test_canonical_dispatch_identity_derives_route_currentness_when_only_synthetic_ticket_is_present() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
@@ -245,7 +245,7 @@ def test_canonical_dispatch_identity_derives_route_currentness_when_only_synthet
 
 def test_current_owner_action_identity_overlays_stale_same_action_dispatch_work_unit() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.current_dispatch_identity"
+        "med_autoscience.controllers.owner_route_handoff.current_dispatch_identity"
     )
 
     dispatch = {

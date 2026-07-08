@@ -346,7 +346,7 @@ def test_medical_prose_write_repair_preserves_descriptive_registry_writer_delta_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
     paper_root = study_root / "paper"
@@ -423,7 +423,7 @@ def test_medical_prose_write_repair_recovers_divergent_registry_story_surface_wi
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
     paper_root = study_root / "paper"
@@ -485,7 +485,7 @@ def test_medical_prose_write_repair_recovers_divergent_registry_story_surface_af
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "obesity-registry"
     paper_root = study_root / "paper"

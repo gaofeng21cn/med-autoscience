@@ -522,7 +522,7 @@ def _call_progress_projection(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
-    from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
+    from med_autoscience.controllers.study_progress.projection import read_study_progress
     from .projection_adapters import render_study_progress_result
 
     profile = profiles.load_profile(_require_string(arguments, "profile_path"))

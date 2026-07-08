@@ -409,7 +409,7 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+        "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

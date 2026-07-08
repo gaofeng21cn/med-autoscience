@@ -53,7 +53,7 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         check_id="runtime_materialized_eval_marks_mechanical_projection",
         category="mechanical_projection_as_quality",
         root_key="mas_repo_root",
-        relative_path="src/med_autoscience/controllers/study_runtime_decision_parts/publication_and_submission.py",
+        relative_path="src/med_autoscience/controllers/study_runtime_decision/publication_and_submission.py",
         summary="Runtime-derived publication eval records must be mechanical projections.",
         required_markers=(
             'owner="mechanical_projection"',
@@ -85,7 +85,7 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         check_id="pattern_hits_are_evidence_not_subjective_prose_authority",
         category="pattern_only_subjective_blockers",
         root_key="mas_repo_root",
-        relative_path="src/med_autoscience/controllers/medical_publication_surface_parts/reporting.py",
+        relative_path="src/med_autoscience/controllers/medical_publication_surface/reporting.py",
         summary="Pattern scans may provide evidence snippets, but subjective prose blockers need AI review.",
         required_markers=(
             'medical_journal_prose_ai_verdict in {"block", "revise"}',

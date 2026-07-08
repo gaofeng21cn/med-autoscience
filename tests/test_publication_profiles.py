@@ -15,7 +15,7 @@ def test_jacs_publication_profile_is_explicitly_supported() -> None:
 
 
 def test_jacs_submission_profile_config_uses_acs_package_surface() -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared_base")
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal.shared_base")
 
     config = module.resolve_publication_profile_config(publication_profile="jacs", citation_style="auto")
 

@@ -10,7 +10,7 @@ from typing import Any
 
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import domain_action_requests
-from med_autoscience.controllers.paper_mission_owner_surface_parts import study_identity
+from med_autoscience.controllers.paper_mission_owner_surface import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 

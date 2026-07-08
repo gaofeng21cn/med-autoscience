@@ -208,7 +208,7 @@ def test_run_gate_clearing_batch_blocks_f3_payload_rewritten_by_transport_sync(
 def test_repair_paper_live_paths_canonicalizes_absolute_paths_from_old_worktree(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_parts.execution_helpers")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch.execution_helpers")
     current_workspace_root = tmp_path / "workspace" / "current"
     paper_root = current_workspace_root / "studies" / "003" / "paper"
     old_worktree_root = tmp_path / "runtime" / "quests" / "003" / ".ds" / "worktrees" / "old-run"
@@ -232,7 +232,7 @@ def test_repair_paper_live_paths_canonicalizes_absolute_paths_from_old_worktree(
 def test_repair_paper_live_paths_collapses_nested_study_paper_segments(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_parts.execution_helpers")
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch.execution_helpers")
     study_root = tmp_path / "workspace" / "studies" / "obesity_multicenter_phenotype_atlas"
     paper_root = study_root / "paper"
     stale_path = (

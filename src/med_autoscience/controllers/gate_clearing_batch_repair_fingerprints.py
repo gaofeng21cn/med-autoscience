@@ -56,7 +56,7 @@ def catalog_asset_fingerprints(
     path_fingerprint: Callable[[Path | None], dict[str, Any] | None],
     limit: int = 128,
 ) -> list[dict[str, Any]]:
-    from med_autoscience.controllers.submission_minimal_parts.shared_base import resolve_relpath
+    from med_autoscience.controllers.submission_minimal.shared_base import resolve_relpath
 
     items = catalog_payload.get(item_key)
     if not isinstance(items, list):
@@ -90,10 +90,10 @@ def submission_minimal_fingerprint_payload(
     path_fingerprint: Callable[[Path | None], dict[str, Any] | None],
     path_fingerprints: Callable[..., list[dict[str, Any]]],
 ) -> dict[str, Any]:
-    from med_autoscience.controllers.submission_minimal_parts.profile_config import (
+    from med_autoscience.controllers.submission_minimal.profile_config import (
         resolve_publication_profile_config,
     )
-    from med_autoscience.controllers.submission_minimal_parts.shared_base import (
+    from med_autoscience.controllers.submission_minimal.shared_base import (
         GENERAL_MEDICAL_JOURNAL_PROFILE,
         load_json,
         resolve_bundle_input_path,

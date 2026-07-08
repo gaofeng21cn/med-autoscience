@@ -301,7 +301,7 @@ def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
 
 def test_current_owner_ticket_exposes_current_owner_native_jit_affordance_policy() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
 
     projection = module.build_progress_first_projection(

@@ -8,7 +8,7 @@ import shutil
 from typing import Any
 
 from med_autoscience import display_registry
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 from tests.submission_minimal_cases.shared import lightweight_submission_exports, real_submission_exports

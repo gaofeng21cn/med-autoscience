@@ -7,7 +7,7 @@ from pathlib import Path
 from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_stage_closure,
 )
-from med_autoscience.controllers.paper_mission_receipt_owner_consumption_parts.storage import (
+from med_autoscience.controllers.paper_mission_receipt_owner_consumption.storage import (
     _write_output_packet,
 )
 from tests.test_paper_mission_consumption_currentness_cases.shared import (

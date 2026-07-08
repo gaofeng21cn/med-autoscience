@@ -24,7 +24,7 @@ def test_story_repair_executor_consumes_writer_handoff_into_canonical_story_delt
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
     paper_root = study_root / "paper"
@@ -391,7 +391,7 @@ def test_story_repair_executor_targets_stage_native_body_authority(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
     legacy_paper_root = study_root / "paper"
@@ -534,7 +534,7 @@ def test_story_repair_executor_normalizes_gate_selected_publishability_work_unit
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -601,7 +601,7 @@ def test_story_repair_executor_normalizes_dm002_ai_reviewer_gate_work_unit(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     paper_root = study_root / "paper"
@@ -668,7 +668,7 @@ def test_story_repair_executor_normalizes_current_dm002_quality_batch_work_unit(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     paper_root = study_root / "paper"
@@ -735,7 +735,7 @@ def test_story_repair_executor_normalizes_current_dm003_gate_replay_work_unit(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -801,7 +801,7 @@ def test_story_repair_executor_normalizes_dm003_post_sync_bounded_prose_route(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -879,7 +879,7 @@ def test_story_repair_executor_uses_dm002_action_family_when_exact_stage_work_un
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     paper_root = study_root / "paper"
@@ -926,7 +926,7 @@ def test_story_repair_executor_uses_dm003_action_family_when_exact_stage_work_un
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"

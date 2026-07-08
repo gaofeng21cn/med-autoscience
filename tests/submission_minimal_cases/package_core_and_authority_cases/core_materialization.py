@@ -1,10 +1,10 @@
 from tests.submission_minimal_cases.shared import *
 
-import med_autoscience.controllers.submission_minimal_parts.package_builder as package_builder
-from med_autoscience.controllers.submission_minimal_parts.authority import (
+import med_autoscience.controllers.submission_minimal.package_builder as package_builder
+from med_autoscience.controllers.submission_minimal.authority import (
     describe_submission_minimal_authority,
 )
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 

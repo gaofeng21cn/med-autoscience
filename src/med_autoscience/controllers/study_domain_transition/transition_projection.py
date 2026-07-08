@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
-from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
+from med_autoscience.controllers.study_domain_transition_table import ai_reviewer_transitions
+from med_autoscience.controllers.study_domain_transition_table import family_transition_spec
 
 
 SURFACE = "study_domain_transition_table"

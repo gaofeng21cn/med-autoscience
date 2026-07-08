@@ -282,7 +282,7 @@ def test_user_visible_projection_fails_closed_without_macro_state() -> None:
 
 def test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts."
+        "med_autoscience.controllers.study_progress.projection_payload_assembly."
         "paper_recovery_visibility"
     )
 
@@ -665,7 +665,7 @@ def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delive
 
 
 def test_terminal_delivery_correction_suppresses_stale_top_level_blockers() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection_payload_assembly")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection_payload_assembly")
     study_root = Path("/tmp/studies/003-dpcc")
 
     payload = module._apply_terminal_delivery_user_visible_status(
@@ -737,7 +737,7 @@ def test_terminal_delivery_correction_suppresses_stale_top_level_blockers() -> N
 
 
 def test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_override() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection_payload_assembly")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection_payload_assembly")
 
     payload = module._apply_post_user_visible_status_overrides(
         {

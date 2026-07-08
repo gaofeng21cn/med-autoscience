@@ -437,7 +437,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
 
     consumer_migration = importlib.import_module(
-        "med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration"
+        "med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migration"
     )
     runtime_boundary = consumer_migration.build_functional_consumer_boundary()
 
@@ -591,7 +591,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
-        "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
+        "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
     ]
     assert set(inventory_by_id["domain_authority_refs_index"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",

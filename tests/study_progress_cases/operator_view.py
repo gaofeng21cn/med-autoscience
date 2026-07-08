@@ -6,7 +6,7 @@ from tests.study_progress_cases.shared import make_profile
 
 
 def test_study_command_surfaces_include_paper_mission_refresh(tmp_path: Path) -> None:
-    from med_autoscience.controllers.study_progress_parts.operator_view import (
+    from med_autoscience.controllers.study_progress.operator_view import (
         _study_command_surfaces,
     )
 

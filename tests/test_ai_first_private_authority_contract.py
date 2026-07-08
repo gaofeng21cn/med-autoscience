@@ -3,7 +3,7 @@ from __future__ import annotations
 from med_autoscience.controllers.ai_first_private_authority import (
     validate_ai_first_private_authority_gate,
 )
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migration import (
     build_functional_consumer_boundary,
 )
 

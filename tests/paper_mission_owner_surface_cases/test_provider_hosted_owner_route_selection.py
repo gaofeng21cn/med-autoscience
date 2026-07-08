@@ -10,7 +10,7 @@ def test_provider_hosted_stage_attempt_uses_bound_dispatch_owner_route_when_scan
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.stage_outcome_authority_parts.owner_route_selection"
+        "med_autoscience.controllers.stage_outcome_authority.owner_route_selection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

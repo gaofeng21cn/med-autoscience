@@ -319,7 +319,7 @@ def test_owner_route_consumes_negative_result_refs_before_repeat_guard() -> None
 
 
 def test_scan_domain_routes_observes_only_fresh_artifact_delta_as_meaningful() -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface_parts.artifact_freshness")
+    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface.artifact_freshness")
 
     stale_progress = {
         "progress_freshness": {

@@ -8,13 +8,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 CONTROL_PLANE_MODULES = (
     "src/med_autoscience/controllers/opl_runtime_refs.py",
-    "src/med_autoscience/controllers/provider_admission_parts/managed_wakeup.py",
+    "src/med_autoscience/controllers/provider_admission/managed_wakeup.py",
     "src/med_autoscience/controllers/study_outer_loop_recovery_policy.py",
-    "src/med_autoscience/controllers/study_outer_loop_parts/runtime_refs.py",
-    "src/med_autoscience/controllers/study_progress_parts/projection.py",
-    "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
-    "src/med_autoscience/controllers/study_progress_parts/runtime_efficiency.py",
-    "src/med_autoscience/controllers/study_progress_parts/runtime_liveness_projection.py",
+    "src/med_autoscience/controllers/study_outer_loop/runtime_refs.py",
+    "src/med_autoscience/controllers/study_progress/projection.py",
+    "src/med_autoscience/controllers/study_progress/projection_runtime_surfaces.py",
+    "src/med_autoscience/controllers/study_progress/runtime_efficiency.py",
+    "src/med_autoscience/controllers/study_progress/runtime_liveness_projection.py",
 )
 
 ALLOWED_COMPAT_ALIAS_FUNCTIONS = {

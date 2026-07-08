@@ -5,7 +5,7 @@ import importlib
 
 def test_sync_progress_first_owner_action_admission_suppresses_stale_identity() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.payload_sync"
     )
 
     result = module.sync_progress_first_owner_action_admission(
@@ -69,7 +69,7 @@ def test_sync_progress_first_owner_action_admission_suppresses_stale_identity() 
 
 def test_sync_progress_first_owner_action_admission_rebuilds_after_provider_candidate_cleared() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.payload_sync"
     )
 
     result = module.sync_progress_first_owner_action_admission(
@@ -147,7 +147,7 @@ def test_sync_progress_first_owner_action_admission_rebuilds_after_provider_cand
 
 def test_sync_progress_first_owner_action_admission_suppresses_terminal_closeout_candidate() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.payload_sync"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.payload_sync"
     )
     stage_attempt_id = "sat_f73bda556baf30ed6a9d5bdf"
     fingerprint = "publication-blockers::0915410f804b3697"

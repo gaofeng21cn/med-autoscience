@@ -19,7 +19,7 @@ def test_pending_ai_reviewer_recheck_request_preempts_consumed_write_routeback(
 ) -> None:
     reconcile = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     canonical_inputs = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.canonical_inputs"
+        "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
     transition_table = importlib.import_module("med_autoscience.controllers.study_domain_transition_table")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

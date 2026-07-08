@@ -15,7 +15,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 
 def _domain_diagnostic_report_tick_request_module() -> object:
-    return importlib.import_module("med_autoscience.controllers.study_outer_loop_parts.tick_request")
+    return importlib.import_module("med_autoscience.controllers.study_outer_loop.tick_request")
 
 
 def _write_runtime_escalation_record(

@@ -1,1 +1,0 @@
-"""DPCC table helper parts."""

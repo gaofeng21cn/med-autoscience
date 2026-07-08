@@ -9,7 +9,7 @@ import pytest
 from med_autoscience.controllers.stage_run_kernel import (
     stage_run_kernel_projection_from_stage_folder,
 )
-from med_autoscience.controllers.study_progress_parts.stage_kernel_projection import (
+from med_autoscience.controllers.study_progress.stage_kernel_projection import (
     stage_kernel_projection_from_artifact_index,
 )
 

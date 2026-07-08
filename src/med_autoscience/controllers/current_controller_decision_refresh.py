@@ -7,7 +7,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from .stage_outcome_authority_parts import controller_refresh
+from .stage_outcome_authority import controller_refresh
 
 
 SCHEMA_VERSION = 1

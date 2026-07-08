@@ -83,7 +83,7 @@ def test_medical_quality_regression_lane_covers_dm002_and_dm003_route_back_contr
 
 
 def test_medical_quality_regression_lane_keeps_platform_repair_out_of_paper_progress() -> None:
-    projection = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_projection")
+    projection = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_projection")
 
     result = projection.build_progress_first_projection(
         {
@@ -102,7 +102,7 @@ def test_medical_quality_regression_lane_keeps_platform_repair_out_of_paper_prog
 
 
 def test_progress_first_projection_exposes_current_owner_ticket_without_domain_authority() -> None:
-    projection = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_projection")
+    projection = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_projection")
 
     result = projection.build_progress_first_projection(
         {

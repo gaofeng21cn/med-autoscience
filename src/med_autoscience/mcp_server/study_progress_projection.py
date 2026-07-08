@@ -20,10 +20,10 @@ from med_autoscience.controllers.medical_paper_research_loop import (
 )
 from med_autoscience.controllers.medical_paper_v4_operations import build_v4_operations_dashboard
 from med_autoscience.controllers.pi_action_projection import compact_pi_action_projection
-from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
+from med_autoscience.controllers.study_progress.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
-from med_autoscience.controllers.study_progress_parts.user_visible_projection import (
+from med_autoscience.controllers.study_progress.user_visible_projection import (
     build_user_visible_projection,
 )
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection

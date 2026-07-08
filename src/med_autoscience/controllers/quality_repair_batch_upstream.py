@@ -15,11 +15,11 @@ from med_autoscience.controllers.claim_evidence_alignment_work_units import (
     is_claim_evidence_alignment_repair_work_unit,
 )
 from med_autoscience.claim_evidence_alignment import build_claim_evidence_alignment_gate
-from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+from med_autoscience.controllers.medical_prose_story_surface.eval_bound_currentness import (
     eval_bound_current_story_delta_blocker,
     eval_bound_current_story_delta_source_basis,
 )
-from med_autoscience.controllers.quality_repair_batch_parts import medical_prose_story_surface
+from med_autoscience.controllers.quality_repair_batch import medical_prose_story_surface
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )

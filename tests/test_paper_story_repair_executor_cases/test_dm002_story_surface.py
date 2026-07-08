@@ -15,7 +15,7 @@ def test_story_repair_executor_accepts_idempotent_dm002_story_surface(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_story_repair_executor")
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     paper_root = study_root / "paper"
@@ -126,7 +126,7 @@ def test_dm002_story_surface_carries_archived_fixed_equation_and_clinical_bounda
     tmp_path: Path,
 ) -> None:
     story_surface = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     paper_root = study_root / "paper"

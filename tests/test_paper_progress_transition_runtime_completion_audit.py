@@ -661,7 +661,7 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         "owner_callable_adapter_receipt_latest_wire_projection#legacy_stage_run_abi_boundary"
     ) in physical_gate["observed_refs"]
     assert (
-        "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/"
+        "src/med_autoscience/controllers/study_transition_receipt_consumption/"
         "owner_callable_candidates.py::_execution_from_stage_closeout#"
         "legacy_stage_run_abi_provenance_only"
     ) in physical_gate["observed_refs"]
@@ -732,7 +732,7 @@ def test_transition_runtime_completion_audit_records_provider_admission_repo_con
     assert lane["status"] == "evidence_required"
     assert {
         (
-            "src/med_autoscience/controllers/provider_admission_parts/"
+            "src/med_autoscience/controllers/provider_admission/"
             "provider_admission_current_control_arbiter.py::"
             "_provider_admission_readback_consumption_evidence"
         ),

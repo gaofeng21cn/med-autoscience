@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.submission_minimal_parts.profile_builders import (
+from med_autoscience.controllers.submission_minimal.profile_builders import (
     build_general_medical_submission_markdown,
 )
 

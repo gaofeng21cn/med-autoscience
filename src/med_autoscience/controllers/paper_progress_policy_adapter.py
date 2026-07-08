@@ -9,7 +9,7 @@ from med_autoscience.controllers import opl_domain_progress_transition_contract 
 from med_autoscience.controllers.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
-from med_autoscience.controllers.domain_action_request_materializer_parts.currentness_identity import (
+from med_autoscience.controllers.domain_action_request_materializer.currentness_identity import (
     normalize_currentness_sources,
 )
 

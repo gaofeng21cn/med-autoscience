@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 
-from med_autoscience.controllers.stage_outcome_authority_parts import (
+from med_autoscience.controllers.stage_outcome_authority import (
     consumed_transition_currentness,
     fresh_progress_owner_actions,
     owner_route_selection,
@@ -159,7 +159,7 @@ def test_paper_recovery_successor_dispatch_uses_current_successor_surface() -> N
     )
     assert (
         importlib.util.find_spec(
-            "med_autoscience.controllers.domain_action_request_materializer_parts."
+            "med_autoscience.controllers.domain_action_request_materializer."
             "paper_recovery_owner_callable"
         )
         is None

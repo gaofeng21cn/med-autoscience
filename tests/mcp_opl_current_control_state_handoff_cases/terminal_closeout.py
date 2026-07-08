@@ -14,7 +14,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_matching_opl_
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "publication-blockers::0915410f804b3697"
@@ -163,7 +163,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
@@ -295,7 +295,7 @@ def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapp
 def test_study_progress_opl_current_control_state_handoff_consumes_request_wrapper_domain_owner_closeout(
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"
@@ -455,7 +455,7 @@ def test_study_progress_opl_current_control_state_handoff_uses_transition_reques
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "publication-blockers::0915410f804b3697"
@@ -548,7 +548,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_top_level_tra
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "domain-transition::route_back_same_line::medical_prose_write_repair"

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts import provider_admission_projection
+from med_autoscience.controllers.paper_mission_owner_surface import provider_admission_projection
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -270,7 +270,7 @@ def test_scan_routes_projects_provider_admission_when_queue_matches_current_work
 def test_scan_projects_current_write_routeback_despite_stale_progress_active_run(monkeypatch, tmp_path: Path) -> None:
     scan = __import__("med_autoscience.controllers.paper_mission_owner_surface", fromlist=["paper_mission_owner_surface"])
     opl_attempts = __import__(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts",
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts",
         fromlist=["opl_provider_attempts"],
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

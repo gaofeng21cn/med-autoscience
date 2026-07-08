@@ -630,7 +630,7 @@ def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_s
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
     )
@@ -716,7 +716,7 @@ def test_study_progress_freshness_separates_supervisor_tick_from_artifact_delta(
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 7, 0, tzinfo=timezone.utc),
     )
@@ -846,7 +846,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 10, 40, tzinfo=timezone.utc),
     )
@@ -970,7 +970,7 @@ def test_study_progress_gives_new_live_run_grace_before_activity_timeout(
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 5, 2, 10, 40, tzinfo=timezone.utc),
     )

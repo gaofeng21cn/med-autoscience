@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts import provider_admission_projection
+from med_autoscience.controllers.paper_mission_owner_surface import provider_admission_projection
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -23,7 +23,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def test_owner_receipt_consumption_successor_overrides_stage_readiness_residue() -> None:
     stage_artifact_owner_actions = __import__(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.stage_artifact_owner_actions",
+        "med_autoscience.controllers.paper_mission_owner_surface.stage_artifact_owner_actions",
         fromlist=["stage_artifact_owner_actions"],
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -325,7 +325,7 @@ def test_action_queue_routes_accepted_repair_delta_to_gate_replay_when_current_a
     tmp_path: Path,
 ) -> None:
     action_projection = __import__(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.action_projection",
+        "med_autoscience.controllers.paper_mission_owner_surface.action_projection",
         fromlist=["action_projection"],
     )
     study_id = "002-dm-china-us-mortality-attribution"
@@ -442,7 +442,7 @@ def test_action_queue_routes_projected_current_ai_reviewer_record_to_repair_gate
     tmp_path: Path,
 ) -> None:
     action_projection = __import__(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.action_projection",
+        "med_autoscience.controllers.paper_mission_owner_surface.action_projection",
         fromlist=["action_projection"],
     )
     records = __import__(
@@ -544,7 +544,7 @@ def test_action_queue_accepts_dm002_ai_reviewer_record_gate_consumption_work_uni
     tmp_path: Path,
 ) -> None:
     action_projection = __import__(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.action_projection",
+        "med_autoscience.controllers.paper_mission_owner_surface.action_projection",
         fromlist=["action_projection"],
     )
     study_id = "002-dm-china-us-mortality-attribution"

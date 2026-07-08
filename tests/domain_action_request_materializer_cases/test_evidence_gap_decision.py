@@ -9,7 +9,7 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 def test_materializer_evidence_gap_prompt_defaults_do_not_block_without_gap() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.evidence_gap_decision"
+        "med_autoscience.controllers.domain_action_request_materializer.evidence_gap_decision"
     )
     projection = {"study_id": "DM003", "quest_id": "quest-dm003"}
 

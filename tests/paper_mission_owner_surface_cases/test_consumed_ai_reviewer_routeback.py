@@ -806,7 +806,7 @@ def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     canonical_inputs = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.canonical_inputs"
+        "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)

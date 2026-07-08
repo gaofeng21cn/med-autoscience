@@ -12,7 +12,7 @@ from tests.study_progress_cases.provider_admission_projection_cases.current_cont
 
 def test_provider_admission_projection_ignores_unconsumed_handoff_typed_blocker(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -41,7 +41,7 @@ def test_existing_projection_refresh_honors_current_control_typed_blocker(
     monkeypatch,
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
@@ -164,7 +164,7 @@ def test_existing_projection_refresh_honors_current_control_typed_blocker(
 
 def test_current_execution_refresh_keeps_handoff_current_typed_blocker_over_gate_followthrough_residue() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     gate_fingerprint = "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"

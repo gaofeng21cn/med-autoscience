@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.opl_provider_ready_adapter_parts.workspace_evidence import (
+from med_autoscience.controllers.opl_provider_ready_adapter.workspace_evidence import (
     build_workspace_runtime_evidence_receipt_surface,
 )
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
 
 from tests.product_entry_cases.action_catalog_parity_cases.shared import *  # noqa: F403,F401
 

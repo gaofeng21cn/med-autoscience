@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import gate_clearing_batch
-from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
+from med_autoscience.controllers.study_progress import canonical_next_action_gate
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 from med_autoscience.profiles import WorkspaceProfile
 

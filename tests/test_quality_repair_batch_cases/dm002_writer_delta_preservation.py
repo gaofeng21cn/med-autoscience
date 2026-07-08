@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.quality_repair_batch_parts import (
+from med_autoscience.controllers.quality_repair_batch import (
     medical_prose_story_surface,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study

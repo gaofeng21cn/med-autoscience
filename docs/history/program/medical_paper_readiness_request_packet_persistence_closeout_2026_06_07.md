@@ -13,7 +13,7 @@ It changed MAS source and focused tests. This closeout only adds repo-local evid
 
 ## SSOT
 
-- `src/med_autoscience/controllers/owner_route_handoff_parts/default_executor_dispatch_tasks.py` owns default-executor task generation, persisted dispatch identity and canonical medical-paper-readiness request packet persistence.
+- `src/med_autoscience/controllers/owner_route_handoff/default_executor_dispatch_tasks.py` owns default-executor task generation, persisted dispatch identity and canonical medical-paper-readiness request packet persistence.
 - `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/action_execution/medical_paper_readiness.py` owns owner dispatch surface arbitration and request/ref payload consumption.
 - `tests/test_cli_cases/owner_route_handoff_command_cases/default_executor_dispatch_currentness_cases.py` owns regression coverage that readiness surface changes persist request packet identity, `surface_key` and payload authoring target.
 - `tests/test_domain_owner_action_dispatch_cases/medical_paper_readiness_dispatch.py` owns regression coverage that stale request payloads cannot override the current readiness surface.

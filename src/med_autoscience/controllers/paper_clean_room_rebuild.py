@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_workspace_status
-from med_autoscience.controllers.paper_mission_owner_surface_parts import study_identity
+from med_autoscience.controllers.paper_mission_owner_surface import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 

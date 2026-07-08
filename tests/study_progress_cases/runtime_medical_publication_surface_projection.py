@@ -168,7 +168,7 @@ def test_runtime_medical_publication_surface_projects_structured_and_invalid_blo
     tmp_path: Path,
 ) -> None:
     surface = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.runtime_medical_publication_surface"
+        "med_autoscience.controllers.study_progress.runtime_medical_publication_surface"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")

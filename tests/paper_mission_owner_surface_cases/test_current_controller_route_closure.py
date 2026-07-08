@@ -170,7 +170,7 @@ def test_current_controller_route_uses_archived_domain_transition_when_readiness
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -241,7 +241,7 @@ def test_current_controller_route_uses_archived_domain_transition_when_readiness
 
 def test_current_controller_route_stays_open_for_unsettled_authority_lifecycle(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -313,7 +313,7 @@ def test_current_controller_route_stays_open_for_unsettled_authority_lifecycle(t
 
 def test_current_controller_route_accepts_domain_transition_without_publication_action(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -358,7 +358,7 @@ def test_current_controller_route_ignores_non_json_turn_closeout_artifact_refs(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -430,7 +430,7 @@ def test_current_controller_route_accepts_bundle_stage_domain_transition_without
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -475,7 +475,7 @@ def test_current_controller_route_canonicalizes_publication_gate_replay_action(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -520,7 +520,7 @@ def test_current_controller_route_canonicalizes_publication_gate_replay_action(
 
 def test_current_controller_route_ignores_successfully_closed_publication_work_unit(tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -590,7 +590,7 @@ def test_current_controller_route_closes_bundle_stage_work_unit_from_package_clo
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.current_truth_owner"
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id

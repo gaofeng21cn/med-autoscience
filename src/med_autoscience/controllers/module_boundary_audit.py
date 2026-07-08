@@ -250,8 +250,8 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "owner": "MedAutoScience",
         "repo_targets": [
             "src/med_autoscience/controllers/study_progress.py",
-            "src/med_autoscience/controllers/study_progress_parts/",
-            "src/med_autoscience/controllers/product_entry_parts/",
+            "src/med_autoscience/controllers/study_progress/",
+            "src/med_autoscience/controllers/product_entry/",
             "src/med_autoscience/controllers/workspace_entry_rendering.py",
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "runtime_authority_refs", "artifact_delivery", "observability_os"],

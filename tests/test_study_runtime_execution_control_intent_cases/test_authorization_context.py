@@ -19,7 +19,7 @@ from tests.test_study_runtime_execution_control_intent_cases.helpers import (
 
 def test_controller_authorization_prefers_publication_work_unit_over_stale_route_text(tmp_path: Path) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(study_root)
@@ -47,7 +47,7 @@ def test_controller_authorization_carries_publication_specificity_targets_for_cu
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(
@@ -77,7 +77,7 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(
@@ -119,7 +119,7 @@ def test_controller_authorization_accepts_ai_reviewer_workflow_runtime_action(
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(
@@ -146,7 +146,7 @@ def test_controller_authorization_projects_finalize_route_for_controller_owned_s
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(
@@ -184,7 +184,7 @@ def test_controller_authorization_keeps_record_route_over_review_only_publicatio
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(
@@ -217,7 +217,7 @@ def test_controller_authorization_converts_gate_replay_targets_to_upstream_paper
     tmp_path: Path,
 ) -> None:
     auth_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+        "med_autoscience.controllers.study_runtime_execution.controller_authorization"
     )
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     _write_controller_decision_authorization(study_root)

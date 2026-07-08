@@ -1,7 +1,7 @@
 from tests.submission_minimal_cases.shared import *
 
-from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import inspect_submission_docx_surface
-from med_autoscience.controllers.submission_minimal_parts.package_builder import create_submission_minimal_package
+from med_autoscience.controllers.submission_minimal.markdown_surface_qc import inspect_submission_docx_surface
+from med_autoscience.controllers.submission_minimal.package_builder import create_submission_minimal_package
 
 
 def test_export_pdf_uses_submission_layout_header_for_fixed_figures_and_wide_tables(
@@ -9,7 +9,7 @@ def test_export_pdf_uses_submission_layout_header_for_fixed_figures_and_wide_tab
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     export_renderers = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.export_renderers"
+        "med_autoscience.controllers.submission_minimal.export_renderers"
     )
     source_markdown = tmp_path / "manuscript_submission.md"
     write_text(
@@ -178,7 +178,7 @@ def test_inspect_submission_docx_surface_treats_directory_placeholder_as_missing
 
 def test_general_medical_docx_markdown_keeps_wide_main_tables(tmp_path: Path) -> None:
     profile_builders = importlib.import_module(
-        "med_autoscience.controllers.submission_minimal_parts.profile_builders"
+        "med_autoscience.controllers.submission_minimal.profile_builders"
     )
     paper_root = make_paper_workspace(tmp_path)
     write_text(

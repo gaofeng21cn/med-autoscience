@@ -83,7 +83,7 @@ def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkey
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )

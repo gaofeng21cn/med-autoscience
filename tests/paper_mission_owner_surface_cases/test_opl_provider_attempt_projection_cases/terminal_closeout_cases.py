@@ -11,7 +11,7 @@ def test_terminal_provider_attempt_closeout_projection_reads_completed_accepted_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -98,7 +98,7 @@ def test_terminal_provider_attempt_closeout_inspects_compact_attempt_before_pref
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -180,7 +180,7 @@ def test_terminal_provider_attempt_closeout_prioritizes_preferred_attempt_within
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

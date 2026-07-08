@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
 from .shared import *  # noqa: F403,F401
 
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:

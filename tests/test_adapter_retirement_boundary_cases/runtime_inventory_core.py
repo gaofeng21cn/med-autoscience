@@ -148,7 +148,7 @@ def assert_runtime_inventory_core(surfaces: dict[str, dict]) -> None:
     )
     assert set(current_default_preview["retired_symbols"]) == {
         "current_owner_callable_adapters",
-        "domain_action_request_materializer_parts.current_owner_callable_adapters",
+        "domain_action_request_materializer.current_owner_callable_adapters",
     }
     assert "legacy_current_owner_callable_adapters_preview_api" in current_default_preview["forbidden_claims"]
 

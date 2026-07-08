@@ -8,7 +8,7 @@ from tests.provider_admission_current_control_helpers import opl_transition_read
 
 def test_complete_provider_readback_supersedes_same_identity_request_only_current_surface() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"
@@ -109,7 +109,7 @@ def test_complete_provider_readback_supersedes_same_identity_request_only_curren
 
 def test_provider_readback_does_not_supersede_different_identity_request_only_surface() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     work_unit_id = "medical_prose_write_repair"

@@ -16,11 +16,11 @@ _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_launch_study_surfaces)
 
 def product_entry_manifest_rendering_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.manifest_rendering")
+    return importlib.import_module("med_autoscience.controllers.product_entry.manifest_rendering")
 
 
 def product_entry_entry_runtime_module():
-    return importlib.import_module("med_autoscience.controllers.product_entry_parts.entry_runtime")
+    return importlib.import_module("med_autoscience.controllers.product_entry.entry_runtime")
 
 
 def test_build_product_entry_manifest_projects_contract_bundle_with_product_entry_fields(

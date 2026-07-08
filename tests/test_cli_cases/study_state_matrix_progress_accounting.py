@@ -316,7 +316,7 @@ def test_study_state_matrix_counts_domain_transition_explicit_target_surface_own
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
@@ -392,7 +392,7 @@ def test_study_state_matrix_counts_domain_transition_explicit_target_surface_own
 
 def test_study_state_matrix_progress_accounting_consumes_canonical_current_work_unit() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_state_matrix_parts.progress_first_tick_accounting"
+        "med_autoscience.controllers.study_state_matrix.progress_first_tick_accounting"
     )
     accounting = module.progress_first_tick_accounting(
         [

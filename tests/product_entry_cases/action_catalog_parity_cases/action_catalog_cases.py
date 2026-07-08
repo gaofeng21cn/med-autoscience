@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_manifest,
     build_skill_catalog,
 )

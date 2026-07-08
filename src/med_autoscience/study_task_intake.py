@@ -818,7 +818,7 @@ def build_task_intake_progress_override(
 def _owner_callable_receipt_ref(*, study_root: Path | None) -> str | None:
     if study_root is None:
         return None
-    from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates import (
+    from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
         latest_owner_callable_receipt_payload,
     )
 

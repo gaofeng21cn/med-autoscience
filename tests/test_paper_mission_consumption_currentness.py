@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from med_autoscience.controllers.owner_route_handoff_parts.paper_mission_consumption_route_handoff import (
+from med_autoscience.controllers.owner_route_handoff.paper_mission_consumption_route_handoff import (
     _paper_mission_handoff_timestamp_key,
     latest_paper_mission_consumption_route_handoff,
 )

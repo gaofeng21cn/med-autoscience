@@ -11,8 +11,8 @@ import pytest
 from pypdf import PdfWriter
 
 from med_autoscience.controllers import study_truth_kernel
-from med_autoscience.controllers.submission_minimal_parts import package_builder
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal import package_builder
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 from med_autoscience.runtime_status_summary import (
@@ -24,11 +24,11 @@ from tests.submission_minimal_cases.package_core_and_authority import (
     remove_authority_snapshots,
 )
 from tests.test_study_delivery_sync_cases.shared import make_delivery_workspace
-from med_autoscience.controllers.study_delivery_sync_parts.delivery_descriptions import (
+from med_autoscience.controllers.study_delivery_sync.delivery_descriptions import (
     _submission_source_relative_paths,
     _submission_source_signature,
 )
-from med_autoscience.controllers.study_delivery_sync_parts.sync_orchestration import (
+from med_autoscience.controllers.study_delivery_sync.sync_orchestration import (
     sync_study_delivery,
 )
 

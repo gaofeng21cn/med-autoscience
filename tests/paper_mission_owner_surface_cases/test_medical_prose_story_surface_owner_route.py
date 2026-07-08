@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts import domain_transition_actions
+from med_autoscience.controllers.paper_mission_owner_surface import domain_transition_actions
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 

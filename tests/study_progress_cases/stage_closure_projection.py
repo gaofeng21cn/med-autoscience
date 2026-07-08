@@ -5,7 +5,7 @@ import importlib
 
 def test_stage_closure_next_legal_action_prefers_submission_authority_owner_gate_readback() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary_parts.stage_closure_projection"
+        "med_autoscience.controllers.study_progress.mission_summary.stage_closure_projection"
     )
 
     projection = module.top_level_stage_closure_projection(
@@ -35,7 +35,7 @@ def test_stage_closure_next_legal_action_prefers_submission_authority_owner_gate
 
 def test_stage_closure_next_legal_action_prefers_successor_action_after_owner_consumed_route_checkpoint() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary_parts.stage_closure_projection"
+        "med_autoscience.controllers.study_progress.mission_summary.stage_closure_projection"
     )
 
     projection = module.top_level_stage_closure_projection(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
-from med_autoscience.controllers.study_progress_parts import canonical_next_action_gate
+from med_autoscience.controllers.study_progress import canonical_next_action_gate
 from med_autoscience.runtime_control import callable_owner_names
 
 

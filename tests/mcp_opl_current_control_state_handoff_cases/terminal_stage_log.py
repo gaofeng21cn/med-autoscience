@@ -12,7 +12,7 @@ from tests.mcp_opl_current_control_state_handoff_cases.shared import (
 )
 
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -126,7 +126,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
 def test_study_progress_latest_terminal_stage_log_prefers_current_stage_closure_route_checkpoint_over_newer_stale_closeout(
     tmp_path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -246,7 +246,7 @@ def test_study_progress_latest_terminal_stage_log_prefers_current_stage_closure_
 
 
 def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -393,7 +393,7 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
 
 
 def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -469,7 +469,7 @@ def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tm
 
 
 def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answer(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -556,7 +556,7 @@ def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answe
 
 
 def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -645,7 +645,7 @@ def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path
 
 
 def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(

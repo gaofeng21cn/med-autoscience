@@ -221,7 +221,7 @@
     "canonical_agent_pack_root": "agent/",
     "capability_map_source_ref": "contracts/capability_map.json",
     "executor_policy_source_ref": "contracts/stage_control_plane.json#/stages/0/selected_executor",
-    "functional_audit": "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/consumer_migration.py::build_functional_consumer_boundary",
+    "functional_audit": "src/med_autoscience/controllers/opl_unique_control_plane_boundary/consumer_migration.py::build_functional_consumer_boundary",
     "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
     "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
     "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",

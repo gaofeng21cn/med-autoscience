@@ -1,0 +1,992 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Mapping
+
+from med_autoscience.controllers.provider_admission import provider_admission
+from med_autoscience.controllers.opl_transition_readback import (
+    non_advancing_apply_opl_transition_readback as _non_advancing_apply_opl_transition_readback,
+    provider_admission_opl_transition_readback as _provider_admission_opl_transition_readback,
+)
+from med_autoscience.controllers.provider_admission.provider_admission_transition_log_readback import (
+    candidate_with_transition_log_readback as _candidate_with_transition_log_readback,
+)
+from med_autoscience.controllers.current_work_unit import action_supersedes_typed_blocker
+
+from ..owner_action_admission import provider_attempt_proof_for_current_action
+from ..owner_receipt_successor import paper_recovery_consumed_owner_receipt_successor
+from ..paper_autonomy_supervisor_decision import (
+    provider_admission_supervisor_gate,
+    supervisor_block_projection,
+)
+from ..shared import _mapping_copy, _non_empty_text
+from .non_advancing import (
+    non_advancing_apply_consumption_projection as _non_advancing_apply_consumption_projection,
+)
+from .stage_refs import (
+    dedupe_text_items as _dedupe_text_items,
+    first_non_empty_text as _first_non_empty_text,
+    merge_stage_packet_ref_family as _merge_stage_packet_ref_family,
+    retain_stage_packet_refs_for_provider_readback as _retain_stage_packet_refs_for_provider_readback,
+    stage_packet_ref_family as _stage_packet_ref_family,
+    text_list as _text_list,
+)
+
+_GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE = "gate_clearing_batch_followthrough.actionable_current_work_unit"
+_PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE = (
+    "paper_recovery_state.next_safe_action.successor_owner_action"
+)
+_REQUEST_ONLY_OWNER_ACTION_SOURCES = {
+    _GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE,
+    _PAPER_RECOVERY_SUCCESSOR_OWNER_ACTION_SOURCE,
+}
+_OPL_TRANSITION_LIVE_READBACK_SOURCE = "opl_domain_progress_transition_runtime_live_readback"
+
+
+def provider_admission_projection_fields(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    accepted_owner_gate_admission = _accepted_owner_gate_admission_pending(payload)
+    if not accepted_owner_gate_admission:
+        consumed_terminal_closeout = _handoff_consumed_terminal_closeout_fields(
+            payload=payload,
+            handoff=handoff,
+        )
+        if consumed_terminal_closeout is not None:
+            return consumed_terminal_closeout
+    running_proof = _handoff_running_proof_consumes_provider_admission(
+        payload=payload,
+        handoff=handoff,
+    )
+    if running_proof is not None:
+        return running_proof
+    if _handoff_has_unbound_running_attempt(payload=payload, handoff=handoff):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
+    if not accepted_owner_gate_admission:
+        terminal_closeout = _handoff_terminal_closeout_consumes_provider_admission(
+            payload=payload,
+            handoff=handoff,
+        )
+        if terminal_closeout is not None:
+            return terminal_closeout
+    handoff_fields = _identity_bound_handoff_provider_admission_fields(
+        handoff=handoff,
+        payload=payload,
+        study_root=study_root,
+    )
+    if handoff_fields is not None:
+        return handoff_fields
+    if _handoff_typed_blocker_consumes_current_action(payload=payload, handoff=handoff):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+        }
+    if _payload_typed_blocker_without_current_action(payload):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
+    if _mas_owner_callable_controls_current_action(payload):
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+        }
+    current_control_payload = _current_control_payload_for_provider_admission(
+        payload=payload,
+        handoff=handoff,
+    )
+    candidates = provider_admission.current_control_provider_admission_candidates(
+        current_control_payload,
+        study_root=study_root,
+        status_payload=payload,
+        current_control_ref=_non_empty_text(_mapping_copy(handoff.get("refs")).get("latest_path"))
+        or _non_empty_text(handoff.get("source_path")),
+    )
+    normalized_candidates = [
+        _candidate_with_opl_runtime_readback(
+            _request_only_candidate_without_readback(candidate)
+            if _request_only_owner_action_candidate(candidate)
+            else dict(candidate),
+            study_root=study_root,
+        )
+        for candidate in candidates
+    ]
+    normalized_candidates = _merge_handoff_transition_request_candidates(
+        normalized_candidates,
+        handoff=handoff,
+        payload=payload,
+        study_root=study_root,
+    )
+    owner_receipt_consumed = _owner_receipt_recorded_consumes_transition_request(
+        payload=payload,
+        candidates=normalized_candidates,
+    )
+    if owner_receipt_consumed is not None:
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "owner_receipt_transition_request_consumed": owner_receipt_consumed,
+        }
+    non_advancing_consumed = _non_advancing_apply_consumed(normalized_candidates)
+    if non_advancing_consumed is not None:
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": 0,
+            "transition_request_candidates": [],
+            "opl_transition_non_advancing_apply_consumed": non_advancing_consumed,
+        }
+    provider_admission_candidates = [
+        candidate
+        for candidate in normalized_candidates
+        if _provider_admission_opl_transition_readback(candidate)
+        and not _request_only_owner_action_candidate(candidate)
+    ]
+    transition_request_candidates = [
+        candidate
+        for candidate in normalized_candidates
+        if not (
+            _provider_admission_opl_transition_readback(candidate)
+            and not _request_only_owner_action_candidate(candidate)
+        )
+    ]
+    gate_payload = {
+        **dict(payload),
+        "provider_admission_pending_count": len(provider_admission_candidates),
+        "provider_admission_candidates": provider_admission_candidates,
+        "transition_request_pending_count": len(transition_request_candidates),
+        "transition_request_candidates": list(transition_request_candidates),
+    }
+    supervisor_gate = provider_admission_supervisor_gate(gate_payload)
+    if supervisor_gate.get("blocked") is True:
+        supervisor_decision = _mapping_copy(supervisor_gate.get("supervisor_decision"))
+        return {
+            "provider_admission_pending_count": 0,
+            "provider_admission_candidates": [],
+            "transition_request_pending_count": len(transition_request_candidates),
+            "transition_request_candidates": list(transition_request_candidates),
+            "paper_autonomy_supervisor_decision": supervisor_decision,
+            "provider_admission_blocked_by_supervisor_decision": supervisor_block_projection(supervisor_gate),
+        }
+    return {
+        "provider_admission_pending_count": len(provider_admission_candidates),
+        "provider_admission_candidates": provider_admission_candidates,
+        "transition_request_pending_count": len(transition_request_candidates),
+        "transition_request_candidates": list(transition_request_candidates),
+    }
+
+
+def _handoff_consumed_terminal_closeout_fields(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    consumed = _mapping_copy(handoff.get("provider_admission_terminal_closeout_consumed"))
+    if not consumed:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    current_action_matches = bool(current_action and _same_action_identity(current_action, consumed))
+    current_work_unit_matches = _same_action_identity(current_work_unit, consumed)
+    if current_action and _request_only_owner_action_surface(current_action) and (
+        paper_recovery_consumed_owner_receipt_successor(recovery)
+    ):
+        if not current_action_matches:
+            return None
+    elif not (current_action_matches or current_work_unit_matches):
+        return None
+    typed_blocker = _handoff_terminal_typed_blocker(handoff)
+    consumed_projection = dict(consumed)
+    if typed_blocker:
+        consumed_projection.setdefault("typed_blocker", dict(typed_blocker))
+        consumed_projection.setdefault(
+            "blocker_type",
+            _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(typed_blocker.get("blocker_id")),
+        )
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_terminal_closeout_consumed": consumed_projection,
+    }
+
+
+def _request_only_owner_action_candidate(candidate: Mapping[str, Any]) -> bool:
+    if _owner_action_source(candidate) == _GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE:
+        return True
+    if (
+        _non_empty_text(candidate.get("opl_transition_readback_source"))
+        == _OPL_TRANSITION_LIVE_READBACK_SOURCE
+        or _explicit_opl_transition_runtime_live_readback(candidate)
+    ):
+        return False
+    return _owner_action_source(candidate) in _REQUEST_ONLY_OWNER_ACTION_SOURCES
+
+
+def _owner_action_source(candidate: Mapping[str, Any]) -> str | None:
+    basis = _mapping_copy(candidate.get("currentness_basis"))
+    source_refs = _mapping_copy(candidate.get("source_refs"))
+    return (
+        _non_empty_text(candidate.get("mas_owner_action_source"))
+        or _non_empty_text(source_refs.get("mas_owner_action_source"))
+        or _non_empty_text(basis.get("mas_owner_action_source"))
+        or _non_empty_text(candidate.get("source"))
+        or _non_empty_text(basis.get("source"))
+    )
+
+
+def _request_only_owner_action_surface(action: Mapping[str, Any]) -> bool:
+    source = (
+        _non_empty_text(action.get("source"))
+        or _non_empty_text(action.get("source_surface"))
+        or _non_empty_text(_mapping_copy(action.get("owner_route_currentness_basis")).get("source"))
+    )
+    return source in _REQUEST_ONLY_OWNER_ACTION_SOURCES
+
+
+def _candidate_with_opl_runtime_readback(
+    candidate: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    payload = _candidate_with_transition_log_readback(candidate, study_root=study_root)
+    inline_readback = _provider_admission_opl_transition_readback(payload)
+    if inline_readback:
+        payload["opl_transition_readback_source"] = _opl_transition_readback_source(inline_readback)
+        payload["status"] = "provider_admission_pending"
+        payload["provider_admission_pending"] = True
+        payload["provider_attempt_or_lease_required"] = True
+        payload["provider_admission_requires_opl_runtime_result"] = False
+        _retain_stage_packet_refs_for_provider_readback(payload)
+    return payload
+
+
+def _non_advancing_apply_consumed(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for candidate in candidates:
+        readback = _non_advancing_apply_opl_transition_readback(candidate)
+        if readback:
+            return _non_advancing_apply_consumption_projection(candidate, readback=readback)
+    return None
+
+
+def _opl_transition_readback_source(readback: Mapping[str, Any]) -> str:
+    return _OPL_TRANSITION_LIVE_READBACK_SOURCE
+
+
+def _transition_request_only_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    for key in (
+        "opl_domain_progress_transition_result",
+        "opl_domain_progress_transition_live_readback",
+        "opl_domain_progress_transition_runtime_live_readback",
+        "opl_domain_progress_runtime_result",
+        "opl_runtime_result",
+    ):
+        payload.pop(key, None)
+    payload["status"] = "transition_request_pending"
+    payload["provider_admission_pending"] = False
+    payload["provider_attempt_or_lease_required"] = False
+    payload["provider_admission_requires_opl_runtime_result"] = True
+    payload["opl_transition_runtime_required"] = True
+    return payload
+
+
+def _request_only_candidate_without_readback(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _transition_request_only_candidate(candidate)
+    payload.pop("opl_transition_readback_source", None)
+    return payload
+
+
+def _merge_handoff_transition_request_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    handoff: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    study_root: Path,
+) -> list[dict[str, Any]]:
+    merged = list(candidates)
+    for item in handoff.get("transition_request_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if _transition_request_readback_promotes_to_provider_admission(item):
+            candidate = _candidate_with_opl_runtime_readback(dict(item), study_root=study_root)
+        else:
+            candidate = _transition_request_only_candidate(item)
+            if not _request_only_owner_action_candidate(candidate):
+                continue
+        if not _same_current_transition_identity(candidate, payload=payload):
+            continue
+        existing_index = next(
+            (
+                index
+                for index, existing in enumerate(merged)
+                if _same_action_identity(candidate, existing)
+            ),
+            None,
+        )
+        if existing_index is not None:
+            if _provider_admission_opl_transition_readback(candidate) and not _provider_admission_opl_transition_readback(
+                merged[existing_index]
+            ):
+                _merge_stage_packet_ref_family(candidate, merged[existing_index])
+                merged[existing_index] = candidate
+            else:
+                _merge_stage_packet_ref_family(merged[existing_index], candidate)
+            continue
+        merged.append(candidate)
+    return merged
+
+
+def _transition_request_readback_promotes_to_provider_admission(
+    candidate: Mapping[str, Any],
+) -> bool:
+    if not _provider_admission_opl_transition_readback(candidate):
+        return False
+    if not _explicit_opl_transition_runtime_live_readback(candidate):
+        return False
+    if _owner_action_source(candidate) == _GATE_FOLLOWTHROUGH_OWNER_ACTION_SOURCE:
+        return False
+    return True
+
+
+def _explicit_opl_transition_runtime_live_readback(candidate: Mapping[str, Any]) -> bool:
+    if _mapping_copy(candidate.get(_OPL_TRANSITION_LIVE_READBACK_SOURCE)):
+        return True
+    if _non_empty_text(candidate.get("opl_transition_readback_source")) == _OPL_TRANSITION_LIVE_READBACK_SOURCE:
+        return True
+    provider_identity = _mapping_copy(candidate.get("provider_admission_identity"))
+    return bool(_mapping_copy(provider_identity.get(_OPL_TRANSITION_LIVE_READBACK_SOURCE)))
+
+
+def _same_current_transition_identity(
+    candidate: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+) -> bool:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return (current_action and _same_action_identity(candidate, current_action)) or _same_action_identity(
+        candidate,
+        current_work_unit,
+    )
+
+
+def _owner_receipt_recorded_consumes_transition_request(
+    *,
+    payload: Mapping[str, Any],
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "owner_receipt_recorded":
+        return None
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return None
+    matching = [
+        candidate
+        for candidate in candidates
+        if _request_only_owner_action_candidate(candidate)
+        and _same_action_identity(current_work_unit, candidate)
+    ]
+    if not matching and not _owner_receipt_consumes_accepted_owner_gate_recovery(
+        payload=payload,
+        current_work_unit=current_work_unit,
+    ):
+        return None
+    state = _mapping_copy(current_work_unit.get("state"))
+    required_output = _mapping_copy(current_work_unit.get("required_output_contract"))
+    owner_receipt_ref = (
+        _non_empty_text(state.get("owner_receipt_ref"))
+        or _non_empty_text(required_output.get("owner_receipt_ref"))
+        or _first_text(current_work_unit.get("acceptance_refs"))
+    )
+    candidate = matching[0] if matching else {}
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    currentness_basis = _mapping_copy(current_work_unit.get("currentness_basis"))
+    recovery_obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "owner_receipt_transition_request_consumed",
+            "source": "current_work_unit.owner_receipt_recorded",
+            "owner_receipt_ref": owner_receipt_ref,
+            "action_type": _non_empty_text(current_work_unit.get("action_type"))
+            or _non_empty_text(candidate.get("action_type")),
+            "work_unit_id": _non_empty_text(current_work_unit.get("work_unit_id"))
+            or _non_empty_text(candidate.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+            or _non_empty_text(current_work_unit.get("action_fingerprint"))
+            or _non_empty_text(candidate.get("work_unit_fingerprint"))
+            or _non_empty_text(candidate.get("action_fingerprint"))
+            or _non_empty_text(recovery_obligation.get("work_unit_fingerprint")),
+            "transition_request_source": _non_empty_text(candidate.get("source")),
+            "transition_request_idempotency_key": _non_empty_text(
+                _mapping_copy(candidate.get("opl_domain_progress_transition_request")).get(
+                    "idempotency_key"
+                )
+            )
+            or _non_empty_text(_mapping_copy(candidate.get("currentness_basis")).get("idempotency_key"))
+            or _non_empty_text(currentness_basis.get("idempotency_key"))
+            or _non_empty_text(candidate.get("attempt_idempotency_key"))
+            or _non_empty_text(candidate.get("route_identity_key")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _owner_receipt_consumes_accepted_owner_gate_recovery(
+    *,
+    payload: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "admission_pending":
+        return False
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_safe_action.get("kind")) != "admit_identity_bound_stage_packet":
+        return False
+    if next_safe_action.get("provider_admission_allowed") is not True:
+        return False
+    has_condition = any(
+        _non_empty_text(_mapping_copy(item).get("condition")) == "accepted_owner_gate_decision"
+        and _non_empty_text(_mapping_copy(item).get("decision")) == "admit_identity_bound_stage_packet"
+        for item in recovery.get("conditions") or []
+    )
+    if not has_condition:
+        return False
+    refs = _text_items(recovery.get("evidence_refs"))
+    if not any(ref.startswith("owner-gate-decision:") for ref in refs):
+        return False
+    if not any("stage_packet" in ref or "owner_callable_adapters" in ref for ref in refs):
+        return False
+    obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    if obligation and not _same_action_identity(current_work_unit, obligation):
+        return False
+    return _same_action_identity(current_work_unit, _accepted_owner_gate_identity_from_recovery(recovery))
+
+
+def _accepted_owner_gate_identity_from_recovery(recovery: Mapping[str, Any]) -> dict[str, Any]:
+    obligation = _mapping_copy(_mapping_copy(recovery.get("current_authority")).get("obligation"))
+    next_safe_action = _mapping_copy(recovery.get("next_safe_action"))
+    return {
+        key: value
+        for key, value in {
+            "action_type": _non_empty_text(obligation.get("action_type"))
+            or _non_empty_text(recovery.get("action_type"))
+            or _non_empty_text(next_safe_action.get("action_type")),
+            "work_unit_id": _non_empty_text(obligation.get("work_unit_id"))
+            or _non_empty_text(recovery.get("work_unit_id"))
+            or _non_empty_text(next_safe_action.get("work_unit_id"))
+            or _non_empty_text(next_safe_action.get("next_work_unit")),
+            "work_unit_fingerprint": _non_empty_text(obligation.get("work_unit_fingerprint"))
+            or _non_empty_text(recovery.get("work_unit_fingerprint"))
+            or _non_empty_text(recovery.get("action_fingerprint"))
+            or _non_empty_text(next_safe_action.get("work_unit_fingerprint"))
+            or _non_empty_text(next_safe_action.get("action_fingerprint")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _first_text(value: object) -> str | None:
+    if isinstance(value, str):
+        return _non_empty_text(value)
+    if not isinstance(value, list | tuple | set):
+        return None
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None:
+            return text
+    return None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None:
+            result.append(text)
+    return result
+
+
+def _handoff_running_proof_consumes_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_action:
+        return None
+    handoff = _handoff_with_matching_provider_admission_readback(
+        handoff=handoff,
+        current_action=current_action,
+    )
+    proof = provider_attempt_proof_for_current_action(
+        handoff=handoff,
+        current_action=current_action,
+    )
+    if proof is None:
+        return None
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_running_proof_consumed": {
+            "surface_kind": "provider_admission_running_proof_consumed",
+            "source": "opl_current_control_state_handoff.running_provider_attempt",
+            "status": "running_provider_attempt",
+            "running_provider_attempt": True,
+            "provider_attempt_proof": proof,
+            "action_type": _non_empty_text(current_action.get("action_type")),
+            "work_unit_id": _non_empty_text(current_action.get("work_unit_id"))
+            or _non_empty_text(current_action.get("next_work_unit")),
+            "work_unit_fingerprint": _non_empty_text(current_action.get("work_unit_fingerprint"))
+            or _non_empty_text(current_action.get("action_fingerprint")),
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_running_is_paper_progress": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        },
+    }
+
+
+def _handoff_with_matching_provider_admission_readback(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    if _provider_admission_opl_transition_readback(handoff):
+        return handoff
+    for item in handoff.get("provider_admission_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if not _same_action_identity(current_action, item):
+            continue
+        readback = _provider_admission_opl_transition_readback(item)
+        if readback:
+            return {
+                **dict(item),
+                **dict(handoff),
+                _OPL_TRANSITION_LIVE_READBACK_SOURCE: readback,
+            }
+    return handoff
+
+
+def _handoff_has_unbound_running_attempt(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    if handoff.get("running_provider_attempt") is not True:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return bool(current_action or _non_empty_text(current_work_unit.get("status")) == "executable_owner_action")
+
+
+def _handoff_terminal_closeout_consumes_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    typed_blocker = _handoff_terminal_typed_blocker(handoff)
+    if not typed_blocker:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if not (
+        _same_action_identity(current_work_unit, typed_blocker)
+        or (current_action and _same_action_identity(current_action, typed_blocker))
+    ):
+        return None
+    if current_action and action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=typed_blocker,
+        progress=payload,
+    ):
+        return None
+    latest_terminal_stage_log = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    return {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+        "provider_admission_terminal_closeout_consumed": {
+            "surface_kind": "provider_admission_terminal_closeout_consumed",
+            "source": "opl_current_control_state_handoff.latest_terminal_stage_log",
+            "stage_attempt_id": _non_empty_text(typed_blocker.get("stage_attempt_id"))
+            or _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+            "blocker_type": _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(typed_blocker.get("blocker_id")),
+            "typed_blocker": dict(typed_blocker),
+            "latest_terminal_stage_log": latest_terminal_stage_log or None,
+            "authority_boundary": {
+                "projection_only": True,
+                "runtime_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "can_authorize_provider_admission": False,
+                "can_start_provider_attempt": False,
+                "provider_completion_is_domain_completion": False,
+            },
+        },
+    }
+
+
+def _handoff_terminal_typed_blocker(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    typed_blocker = _mapping_copy(handoff.get("typed_blocker"))
+    if not typed_blocker:
+        handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
+        handoff_state = _mapping_copy(handoff_work_unit.get("state"))
+        typed_blocker = (
+            _mapping_copy(handoff_state.get("typed_blocker"))
+            or _mapping_copy(handoff_work_unit.get("typed_blocker"))
+        )
+    if not typed_blocker:
+        handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+        typed_blocker = _mapping_copy(handoff_envelope.get("typed_blocker"))
+    if not typed_blocker:
+        return {}
+    latest_terminal_stage_log = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    if _non_empty_text(typed_blocker.get("stage_attempt_id")) is not None:
+        return typed_blocker
+    if _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")) is None:
+        return {}
+    return {
+        **typed_blocker,
+        "stage_attempt_id": _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+    }
+
+
+def _identity_bound_handoff_provider_admission_fields(
+    *,
+    handoff: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any] | None:
+    candidates = [
+        _candidate_with_opl_runtime_readback(dict(item), study_root=study_root)
+        for item in handoff.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+        and _provider_admission_opl_transition_readback(item)
+    ]
+    pending_count = int(handoff.get("provider_admission_pending_count") or 0)
+    if pending_count <= 0 and not candidates:
+        return None
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) not in {
+        "executable_owner_action",
+        "owner_receipt_recorded",
+        "typed_blocker",
+        "blocked_current_work_unit",
+    }:
+        return None
+    matching = [
+        item
+        for item in candidates
+        if _same_action_identity(current_action, item) or _same_action_identity(current_work_unit, item)
+    ]
+    if not matching:
+        return None
+    _merge_matching_transition_request_refs_into_provider_candidates(
+        matching,
+        handoff=handoff,
+        payload=payload,
+    )
+    return {
+        "provider_admission_pending_count": len(matching),
+        "provider_admission_candidates": matching,
+        "transition_request_pending_count": 0,
+        "transition_request_candidates": [],
+    }
+
+
+def _merge_matching_transition_request_refs_into_provider_candidates(
+    provider_candidates: list[dict[str, Any]],
+    *,
+    handoff: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> None:
+    for item in handoff.get("transition_request_candidates") or []:
+        if not isinstance(item, Mapping):
+            continue
+        candidate = _transition_request_only_candidate(item)
+        if not _same_current_transition_identity(candidate, payload=payload):
+            continue
+        for provider_candidate in provider_candidates:
+            if _same_action_identity(candidate, provider_candidate):
+                _merge_stage_packet_ref_family(provider_candidate, candidate)
+
+
+def _handoff_typed_blocker_consumes_current_action(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_action:
+        return False
+    handoff_work_unit = _mapping_copy(handoff.get("current_work_unit"))
+    handoff_envelope = _mapping_copy(handoff.get("current_execution_envelope"))
+    if _non_empty_text(handoff_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"} and (
+        _non_empty_text(handoff_envelope.get("state_kind")) != "typed_blocker"
+    ):
+        return False
+    handoff_state = _mapping_copy(handoff_work_unit.get("state"))
+    if (
+        _non_empty_text(handoff_state.get("source")) != "accepted_closeout_consumed_pending"
+        and _non_empty_text(handoff_envelope.get("source")) != "accepted_closeout_consumed_pending"
+    ):
+        return False
+    typed_blocker = _mapping_copy(handoff_state.get("typed_blocker"))
+    if not typed_blocker:
+        typed_blocker = _mapping_copy(handoff_work_unit.get("typed_blocker"))
+    if not typed_blocker:
+        typed_blocker = _mapping_copy(handoff_envelope.get("typed_blocker"))
+    if not typed_blocker:
+        return False
+    if action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=typed_blocker,
+        progress=payload,
+    ):
+        return False
+    return _same_action_identity(current_work_unit, typed_blocker) or _same_action_identity(
+        current_action,
+        typed_blocker,
+    )
+
+
+def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
+    if _accepted_owner_gate_admission_pending(payload):
+        return False
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
+    if _mapping_copy(payload.get("current_executable_owner_action")):
+        return False
+    return _non_empty_text(current_work_unit.get("status")) in {
+        "typed_blocker",
+        "blocked_current_work_unit",
+    } or _non_empty_text(execution.get("state_kind")) == "typed_blocker"
+
+
+def _same_action_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_action = _non_empty_text(left.get("action_type"))
+    right_action = _non_empty_text(right.get("action_type"))
+    if left_action is not None and right_action is not None and left_action != right_action:
+        return False
+    left_work_unit = _non_empty_text(left.get("work_unit_id")) or _non_empty_text(left.get("next_work_unit"))
+    right_work_unit = _non_empty_text(right.get("work_unit_id")) or _non_empty_text(right.get("next_work_unit"))
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprint = _non_empty_text(left.get("work_unit_fingerprint")) or _non_empty_text(
+        left.get("action_fingerprint")
+    )
+    right_fingerprint = _non_empty_text(right.get("work_unit_fingerprint")) or _non_empty_text(
+        right.get("action_fingerprint")
+    )
+    if left_fingerprint is not None and right_fingerprint is not None and left_fingerprint != right_fingerprint:
+        return False
+    return (
+        left_action is not None
+        and right_action is not None
+        and left_work_unit is not None
+        and right_work_unit is not None
+        and left_fingerprint is not None
+        and right_fingerprint is not None
+    )
+
+
+def _mas_owner_callable_controls_current_action(payload: Mapping[str, Any]) -> bool:
+    recovery = _mapping_copy(payload.get("paper_recovery_state"))
+    if _non_empty_text(recovery.get("phase")) != "owner_action_ready":
+        return False
+    next_action = _mapping_copy(recovery.get("next_safe_action"))
+    if _non_empty_text(next_action.get("kind")) != "run_mas_owner_callable":
+        return False
+    owner_callable = _mapping_copy(next_action.get("owner_callable"))
+    if _non_empty_text(owner_callable.get("callable_surface")) is None:
+        return False
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    return bool(
+        current_action
+        and _non_empty_text(current_action.get("source"))
+        == "paper_recovery_state.next_safe_action.successor_owner_action"
+        and _same_action_identity(current_action, current_work_unit)
+    )
+
+
+def _current_control_payload_for_provider_admission(
+    *,
+    payload: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_control = _mapping_copy(handoff)
+    study_action = _study_current_executable_owner_action(payload)
+    if study_action or _accepted_owner_gate_admission_pending(payload):
+        studies = [item for item in current_control.get("studies") or [] if isinstance(item, Mapping)]
+        study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(study_action.get("study_id"))
+        study_payload = {**dict(payload), **study_action} if study_action else dict(payload)
+        studies = [
+            {**dict(item), **study_payload} if _non_empty_text(item.get("study_id")) == study_id else item
+            for item in studies
+        ]
+        if not any(_non_empty_text(item.get("study_id")) == study_id for item in studies):
+            studies.append(study_payload)
+        current_control["studies"] = studies
+    return current_control
+
+
+def _accepted_owner_gate_admission_pending(payload: Mapping[str, Any]) -> bool:
+    return provider_admission.accepted_owner_gate_admission_matches_selected_dispatch_blocker(
+        study=payload,
+        recovery=_mapping_copy(payload.get("paper_recovery_state")),
+    )
+
+
+def _study_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return {}
+    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_action:
+        current_action = {
+            key: value
+            for key, value in {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "canonical_current_work_unit",
+                "next_owner": _non_empty_text(current_work_unit.get("owner")),
+                "owner": _non_empty_text(current_work_unit.get("owner")),
+                "action_type": _non_empty_text(current_work_unit.get("action_type")),
+                "allowed_actions": _text_list(current_work_unit.get("action_type")),
+                "work_unit_id": _non_empty_text(current_work_unit.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
+                "action_fingerprint": _non_empty_text(current_work_unit.get("action_fingerprint"))
+                or _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
+                "owner_route_currentness_basis": _mapping_copy(current_work_unit.get("currentness_basis")),
+                "currentness_basis": _mapping_copy(current_work_unit.get("currentness_basis")),
+                "required_output_surface": _non_empty_text(
+                    _mapping_copy(current_work_unit.get("required_output_contract")).get(
+                        "required_output_surface"
+                    )
+                ),
+            }.items()
+            if value not in (None, "", [], {})
+        }
+    currentness_basis = _provider_admission_currentness_basis(
+        payload=payload,
+        current_action=current_action,
+        current_work_unit=current_work_unit,
+    )
+    study_id = _non_empty_text(payload.get("study_id")) or _non_empty_text(current_work_unit.get("study_id"))
+    work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id")) or _non_empty_text(
+        current_action.get("work_unit_id")
+    )
+    work_unit_fingerprint = _non_empty_text(current_work_unit.get("work_unit_fingerprint")) or _non_empty_text(
+        current_action.get("work_unit_fingerprint")
+    )
+    action_fingerprint = _non_empty_text(current_work_unit.get("action_fingerprint")) or _non_empty_text(
+        current_action.get("action_fingerprint")
+    )
+    source_refs = {
+        key: value
+        for key, value in {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": action_fingerprint,
+            "mas_owner_action_source": _non_empty_text(current_action.get("source")),
+            "owner_route_currentness_basis": currentness_basis or None,
+        }.items()
+        if value not in (None, "", [], {})
+    }
+    return {
+        "study_id": study_id,
+        "quest_id": _non_empty_text(payload.get("quest_id")) or _non_empty_text(current_work_unit.get("quest_id")),
+        "current_work_unit": current_work_unit,
+        "current_execution_envelope": _mapping_copy(payload.get("current_execution_envelope")),
+        "current_executable_owner_action": current_action,
+        "mas_owner_action_source": _non_empty_text(current_action.get("source")),
+        "owner_route": {
+            "next_owner": _non_empty_text(current_action.get("next_owner"))
+            or _non_empty_text(current_work_unit.get("owner")),
+            "allowed_actions": _text_list(current_action.get("allowed_actions"))
+            or _text_list(current_work_unit.get("action_type")),
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_refs": source_refs,
+        },
+    }
+
+
+def _provider_admission_currentness_basis(
+    *,
+    payload: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> dict[str, Any]:
+    generated_at = _non_empty_text(payload.get("study_progress_generated_at")) or _non_empty_text(
+        payload.get("generated_at")
+    )
+    basis = {
+        **_mapping_copy(current_work_unit.get("currentness_basis")),
+        **_mapping_copy(current_action.get("currentness_basis")),
+        **_mapping_copy(current_action.get("owner_route_currentness_basis")),
+    }
+    source = _non_empty_text(current_action.get("source"))
+    basis = {
+        **basis,
+        "source": _non_empty_text(basis.get("source")) or source,
+        "mas_owner_action_source": _non_empty_text(basis.get("mas_owner_action_source")) or source,
+        "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
+        or _non_empty_text(current_action.get("source_eval_id")),
+        "source_ref": _non_empty_text(basis.get("source_ref")) or _non_empty_text(current_action.get("source_ref")),
+        "source_surface": _non_empty_text(basis.get("source_surface"))
+        or _non_empty_text(current_action.get("source_surface")),
+        "work_unit_id": _non_empty_text(basis.get("work_unit_id"))
+        or _non_empty_text(current_work_unit.get("work_unit_id"))
+        or _non_empty_text(current_action.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_action.get("work_unit_fingerprint"))
+        or _non_empty_text(current_action.get("action_fingerprint")),
+        "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
+        or _non_empty_text(current_action.get("truth_epoch"))
+        or generated_at,
+        "runtime_health_epoch": _non_empty_text(basis.get("runtime_health_epoch"))
+        or _non_empty_text(current_action.get("runtime_health_epoch"))
+        or generated_at,
+    }
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}

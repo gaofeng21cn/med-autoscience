@@ -20,7 +20,7 @@ Concrete retirement/materializer theme: `paper_recovery_state owner_action_ready
 
 Source of truth:
 
-- Machine truth: `src/med_autoscience/controllers/domain_action_request_materializer_parts/paper_recovery_owner_callable.py`, `src/med_autoscience/controllers/domain_action_request_materializer.py`, `src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py`, `src/med_autoscience/controllers/domain_action_request_materializer_parts/current_typed_blocker_transition_barrier.py`, `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/fresh_progress_owner_actions.py`, `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/progress_blocking_selection.py`, focused tests.
+- Machine truth: `src/med_autoscience/controllers/domain_action_request_materializer/paper_recovery_owner_callable.py`, `src/med_autoscience/controllers/domain_action_request_materializer.py`, `src/med_autoscience/controllers/domain_action_request_materializer/current_action_selection.py`, `src/med_autoscience/controllers/domain_action_request_materializer/current_typed_blocker_transition_barrier.py`, `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/fresh_progress_owner_actions.py`, `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/progress_blocking_selection.py`, focused tests.
 - Contract boundary: MAS-owned `paper_recovery_state` may materialize successor owner actions/gates; diagnostic `current_execution_envelope_*` actions are not supported request actions and must not swallow current owner-route queue, consumed transition, or paper-recovery dispatch candidates unless the blocker is the hard OPL execution authorization boundary.
 - Human owner docs: this closeout ledger only. No active docs truth was changed.
 
@@ -41,9 +41,9 @@ Safety gate:
 Changed source:
 
 - `src/med_autoscience/controllers/domain_action_request_materializer.py`
-- `src/med_autoscience/controllers/domain_action_request_materializer_parts/current_action_selection.py`
-- `src/med_autoscience/controllers/domain_action_request_materializer_parts/current_typed_blocker_transition_barrier.py`
-- `src/med_autoscience/controllers/domain_action_request_materializer_parts/paper_recovery_owner_callable.py`
+- `src/med_autoscience/controllers/domain_action_request_materializer/current_action_selection.py`
+- `src/med_autoscience/controllers/domain_action_request_materializer/current_typed_blocker_transition_barrier.py`
+- `src/med_autoscience/controllers/domain_action_request_materializer/paper_recovery_owner_callable.py`
 - `src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_dry_run_previews.py`
 - `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/fresh_progress_owner_actions.py`
 - `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py`

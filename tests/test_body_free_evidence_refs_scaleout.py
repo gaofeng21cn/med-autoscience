@@ -50,7 +50,7 @@ def test_publication_route_memory_receipt_inventory_projects_accepted_rejected_a
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"
+        "med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_inventory"
     )
     receipt_root = (
         tmp_path

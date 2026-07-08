@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.domain_action_request_materializer_parts import currentness_identity
+from med_autoscience.controllers.domain_action_request_materializer import currentness_identity
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 

@@ -12,7 +12,7 @@ from med_autoscience.controllers import reviewer_refinement_loop
 from med_autoscience.controllers.reviewer_residual_issue_document import (
     render_residual_user_review_markdown,
 )
-from med_autoscience.controllers.study_delivery_sync_parts.delivery_io import (
+from med_autoscience.controllers.study_delivery_sync.delivery_io import (
     build_zip_from_directory,
     dump_json,
     replace_directory_atomically,

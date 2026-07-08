@@ -87,7 +87,7 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     normalization = shared_identity["normalization_helper"]
     assert normalization["surface"] == "stage_route_currentness_normalization"
     assert normalization["module"] == (
-        "src/med_autoscience/controllers/domain_action_request_materializer_parts/"
+        "src/med_autoscience/controllers/domain_action_request_materializer/"
         "currentness_identity.py"
     )
     assert normalization["merge_rule"] == (
@@ -261,12 +261,12 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     assert graph["canonical_authority_source_code_refs"] == [
         "src/med_autoscience/controllers/stage_outcome_authority.py",
         "src/med_autoscience/paper_mission_opl_readback/next_action_envelope.py",
-        "src/med_autoscience/controllers/study_progress_parts/projection_payload_assembly.py",
+        "src/med_autoscience/controllers/study_progress/projection_payload_assembly.py",
     ]
     assert graph["legacy_diagnostic_source_code_refs"] == [
         "src/med_autoscience/controllers/current_work_unit.py",
         "src/med_autoscience/controllers/current_execution_envelope.py",
-        "src/med_autoscience/controllers/provider_admission_parts/provider_admission_current_control.py",
+        "src/med_autoscience/controllers/provider_admission/provider_admission_current_control.py",
     ]
     assert graph["legacy_diagnostic_source_semantics"] == (
         "retired_or_diagnostic_only_not_canonical_reducer"

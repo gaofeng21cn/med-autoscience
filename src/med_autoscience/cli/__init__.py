@@ -23,7 +23,6 @@ from med_autoscience.profiles import load_profile
 from .authority_operations import handle_authority_operation_command
 from .current_owner_delta_owner_answer_commands import handle_current_owner_delta_owner_answer_command
 from .display_pack_commands import handle_display_pack_command
-from .parser import build_parser as _build_cli_parser
 from .payloads import (
     _load_json_object_file,
     _load_json_payload_from_args,
@@ -38,24 +37,10 @@ from .stage_memory_commands import handle_stage_memory_command
 from .study_action_commands import handle_study_action_command
 from .study_owner_gate_commands import handle_study_owner_gate_command
 from .study_read_commands import handle_study_read_command
-from med_autoscience.controllers.study_progress_parts.markdown_projection_rendering import (
-    render_study_progress_markdown,
-)
-from med_autoscience.controllers.study_progress_parts.projection import read_study_progress
-from med_autoscience.controllers.product_entry_parts.entry_runtime import (
-    render_submit_study_task_markdown,
-    submit_study_task,
-)
-from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import (
-    launch_study,
-    render_launch_study_markdown,
-)
-from .domain_handler_commands import handle_domain_handler_command
 from .evo_scientist_sidecar_commands import (
     handle_evo_scientist_sidecar_command,
 )
 from .overlay_requests import overlay_request_from_args as _build_overlay_request_from_args
-from .paper_mission_commands import handle_paper_mission_command
 from .public_root_commands import handle_public_root_command
 from .submission_delivery_commands import handle_submission_delivery_command
 from .workspace_data_commands import handle_workspace_data_command
@@ -130,7 +115,7 @@ ai_reviewer_publication_eval = _LazyModuleProxy(lambda: _load_controller("ai_rev
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_paper_readiness_owner_blocker = _LazyModuleProxy(lambda: _load_controller("medical_paper_readiness_owner_blocker"))
 medical_publication_controller = _LazyModuleProxy(
-    lambda: _load_module("med_autoscience.controllers.medical_publication_surface_parts.controller")
+    lambda: _load_module("med_autoscience.controllers.medical_publication_surface.controller")
 )
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 descriptive_registry_evidence_materializer = _LazyModuleProxy(
@@ -148,7 +133,7 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 quality_repair_batch = _lazy_controller_module("quality_repair_batch")
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
-publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
+publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
@@ -159,7 +144,7 @@ study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kern
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_inspection_export = _LazyModuleProxy(lambda: _load_controller("submission_inspection_export"))
 submission_package_builder = _LazyModuleProxy(
-    lambda: _load_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
+    lambda: _load_module("med_autoscience.controllers.submission_minimal.package_builder")
 )
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
 time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
@@ -227,6 +212,8 @@ def _resolve_study_and_quest_for_batch_command(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from .parser import build_parser as _build_cli_parser
+
     return _build_cli_parser(study_cycle_profiler=study_cycle_profiler)
 
 
@@ -268,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
         if (handler_result := handler(args)) is not None:
             return handler_result
 
+    from .domain_handler_commands import handle_domain_handler_command
+
     domain_handler_result = handle_domain_handler_command(
         args,
         load_profile=load_profile,
@@ -276,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if domain_handler_result is not None:
         return domain_handler_result
+
+    from .paper_mission_commands import handle_paper_mission_command
 
     paper_mission_result = handle_paper_mission_command(args, load_profile=load_profile)
     if paper_mission_result is not None:
@@ -298,6 +289,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    from med_autoscience.controllers.study_progress.markdown_projection_rendering import (
+        render_study_progress_markdown,
+    )
+    from med_autoscience.controllers.study_progress.projection import read_study_progress
+
     study_read_result = handle_study_read_command(
         args,
         parser=parser,
@@ -312,6 +308,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     if study_read_result is not None:
         return study_read_result
+
+    from med_autoscience.controllers.product_entry.entry_runtime import (
+        render_submit_study_task_markdown,
+        submit_study_task,
+    )
+    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import (
+        launch_study,
+        render_launch_study_markdown,
+    )
 
     study_action_result = handle_study_action_command(
         args,

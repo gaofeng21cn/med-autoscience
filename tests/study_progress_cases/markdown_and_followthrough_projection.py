@@ -643,7 +643,7 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 16, 16, 5, tzinfo=timezone.utc),
     )
@@ -761,7 +761,7 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
         },
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: datetime(2026, 4, 16, 16, 5, tzinfo=timezone.utc),
     )

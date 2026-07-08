@@ -2,8 +2,8 @@ from .shared import *
 
 
 def test_build_report_blocks_missing_statistical_reviewer_audit(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -20,8 +20,8 @@ def test_build_report_blocks_missing_statistical_reviewer_audit(tmp_path: Path) 
 
 
 def test_build_report_blocks_unresolved_statistical_review_domain(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -42,8 +42,8 @@ def test_build_report_blocks_unresolved_statistical_review_domain(tmp_path: Path
 
 
 def test_build_report_blocks_missing_structured_disclosure_audit(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -60,8 +60,8 @@ def test_build_report_blocks_missing_structured_disclosure_audit(tmp_path: Path)
 
 
 def test_build_report_requires_disclosure_data_asset_evidence(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,
@@ -83,8 +83,8 @@ def test_build_report_requires_disclosure_data_asset_evidence(tmp_path: Path) ->
 
 
 def test_build_report_carries_statistical_and_disclosure_audits_when_clear(tmp_path: Path) -> None:
-    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.reporting")
-    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface_parts.shared_base")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
     quest_root = make_quest(
         tmp_path,
         medicalized=True,

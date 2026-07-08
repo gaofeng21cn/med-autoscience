@@ -14,7 +14,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     project_ai_reviewer_request_lifecycle,
     read_ai_reviewer_request,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_input_contract import (
+from med_autoscience.controllers.domain_action_request_lifecycle.ai_reviewer_input_contract import (
     normalized_required_inputs,
 )
 

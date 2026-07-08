@@ -8,7 +8,7 @@ from .shared import make_profile, write_study
 
 def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
-    projection_module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    projection_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     observed: dict[str, object] = {}
@@ -204,7 +204,7 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
 
 def test_stage_kernel_projection_exposes_stage_run_transition_authority() -> None:
     projection_module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.stage_kernel_projection"
+        "med_autoscience.controllers.study_progress.stage_kernel_projection"
     )
 
     result = projection_module.stage_kernel_projection_from_artifact_index(

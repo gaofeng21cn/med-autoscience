@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from med_autoscience.controllers.medical_publication_surface_parts import (
+from med_autoscience.controllers.medical_publication_surface import (
     controller as medical_publication_surface_controller,
 )
 

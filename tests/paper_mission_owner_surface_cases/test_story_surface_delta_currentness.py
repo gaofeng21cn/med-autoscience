@@ -524,7 +524,7 @@ def test_story_surface_recheck_transition_carries_ai_reviewer_next_action(
     tmp_path: Path,
 ) -> None:
     transition_module = importlib.import_module(
-        "med_autoscience.controllers.study_domain_transition_table_parts.story_surface_recheck_transition"
+        "med_autoscience.controllers.study_domain_transition_table.story_surface_recheck_transition"
     )
     study_root = tmp_path / "study"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

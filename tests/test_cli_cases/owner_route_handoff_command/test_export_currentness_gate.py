@@ -12,7 +12,7 @@ def test_build_study_projection_does_not_promote_stage_native_workspace_next_act
     tmp_path: Path,
 ) -> None:
     export_projection = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
+        "med_autoscience.controllers.owner_route_handoff.export_study_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -656,7 +656,7 @@ def test_domain_handler_export_does_not_resurrect_owner_callable_adapter_under_s
 
 
 def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff.domain_handler_export")
 
     action = module._export_current_owner_action(
         study={
@@ -686,7 +686,7 @@ def test_export_current_owner_action_suppresses_residual_action_under_typed_bloc
 
 
 def test_export_current_owner_action_merges_projection_route_currentness_identity() -> None:
-    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff.domain_handler_export")
     currentness_basis = {
         "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
         "work_unit_fingerprint": "sha256:current-route",

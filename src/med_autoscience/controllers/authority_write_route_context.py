@@ -203,7 +203,7 @@ def _gate_signature_matches_delivery(*, study_root: Path, gate: dict[str, Any]) 
 
 
 def _gate_signature_matches_current_source(*, gate: dict[str, Any], gate_signature: str) -> bool:
-    from med_autoscience.controllers.study_delivery_sync_parts.submission_delivery_descriptions import (
+    from med_autoscience.controllers.study_delivery_sync.submission_delivery_descriptions import (
         _submission_source_relative_paths,
         _submission_source_signature,
     )

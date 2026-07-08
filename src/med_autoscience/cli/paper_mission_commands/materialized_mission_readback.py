@@ -97,7 +97,7 @@ from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
 )
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
+from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (

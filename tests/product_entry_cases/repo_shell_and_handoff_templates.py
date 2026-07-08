@@ -6,8 +6,8 @@ from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 
 from med_autoscience.controllers import mainline_status
-from med_autoscience.controllers.product_entry_parts import manifest_rendering
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry import manifest_rendering
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_manifest,
 )
 

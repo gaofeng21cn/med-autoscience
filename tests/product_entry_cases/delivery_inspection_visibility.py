@@ -12,14 +12,14 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 from med_autoscience.controllers import mainline_status
-from med_autoscience.controllers.product_entry_parts.manifest_rendering import (
+from med_autoscience.controllers.product_entry.manifest_rendering import (
     render_product_entry_status_markdown,
 )
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+from med_autoscience.controllers.product_entry.manifest_surfaces import (
     build_product_entry_manifest,
     build_product_entry_status,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces import (
+from med_autoscience.controllers.product_entry.workspace_surfaces import (
     read_workspace_cockpit,
     render_workspace_cockpit_markdown,
 )

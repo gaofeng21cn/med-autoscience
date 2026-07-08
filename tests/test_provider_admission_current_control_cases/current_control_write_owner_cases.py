@@ -14,7 +14,7 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = tmp_path / "studies" / study_id
@@ -128,7 +128,7 @@ def test_current_control_provider_admission_rejects_write_owner_gate_clearing_wi
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = tmp_path / "studies" / study_id
@@ -217,7 +217,7 @@ def test_current_control_provider_admission_allows_write_quality_repair_from_stu
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -305,7 +305,7 @@ def test_provider_admission_candidate_never_promotes_provider_completion_to_doma
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     dispatch_path = tmp_path / "dispatches" / "return_to_ai_reviewer_workflow.json"

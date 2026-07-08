@@ -101,7 +101,7 @@ def test_invalid_current_ai_reviewer_response_record_does_not_supersede_latest_e
     tmp_path: Path,
 ) -> None:
     canonical_inputs = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.canonical_inputs"
+        "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -211,7 +211,7 @@ def test_stage_native_current_body_record_supersedes_mechanical_latest_eval(
     tmp_path: Path,
 ) -> None:
     canonical_inputs = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.canonical_inputs"
+        "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -302,7 +302,7 @@ def test_same_eval_id_record_supersedes_latest_when_currentness_trace_is_stronge
     tmp_path: Path,
 ) -> None:
     canonical_inputs = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.canonical_inputs"
+        "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

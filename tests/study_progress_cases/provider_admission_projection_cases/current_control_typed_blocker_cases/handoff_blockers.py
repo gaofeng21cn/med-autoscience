@@ -12,7 +12,7 @@ from tests.study_progress_cases.provider_admission_projection_cases.current_cont
 
 def test_provider_admission_projection_honors_handoff_consumed_typed_blocker(tmp_path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.provider_admission_projection"
+        "med_autoscience.controllers.study_progress.provider_admission_projection"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -36,7 +36,7 @@ def test_existing_projection_refresh_keeps_current_control_typed_blocker_over_st
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.existing_projection_refresh"
+        "med_autoscience.controllers.study_progress.existing_projection_refresh"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

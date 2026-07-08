@@ -14,7 +14,7 @@ _module_reexport(_shared)
 
 def test_redrive_projection_keeps_mas_domain_transition_over_opl_handoff_queue() -> None:
     handoff_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     payload = {
@@ -110,7 +110,7 @@ def test_redrive_projection_keeps_mas_domain_transition_over_opl_handoff_queue()
 
 def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> None:
     handoff_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     payload = {
@@ -270,7 +270,7 @@ def test_user_visible_projection_uses_current_domain_transition_owner_when_hando
 
 
 def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_record() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -303,7 +303,7 @@ def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_re
 
 
 def test_progress_first_monitoring_uses_canonical_next_action_over_legacy_current_work_unit() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "next_action": {
@@ -340,7 +340,7 @@ def test_progress_first_monitoring_uses_canonical_next_action_over_legacy_curren
 
 
 def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_different_identity() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -380,7 +380,7 @@ def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_dif
 
 
 def test_progress_first_monitoring_does_not_redrive_executed_gate_clearing_batch() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     source_eval_id = "publication-eval::003-dpcc::ai-reviewer-record::current"
     work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     payload = {
@@ -430,7 +430,7 @@ def test_progress_first_monitoring_does_not_redrive_executed_gate_clearing_batch
 
 
 def test_progress_first_monitoring_does_not_redrive_same_scalar_consumed_ai_reviewer_record() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -460,7 +460,7 @@ def test_progress_first_monitoring_does_not_redrive_same_scalar_consumed_ai_revi
 
 
 def test_progress_first_monitoring_keeps_consumed_ai_reviewer_closeout_blocker_blocked() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.progress_first_monitoring")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -504,7 +504,7 @@ def test_progress_first_monitoring_keeps_consumed_ai_reviewer_closeout_blocker_b
 
 def test_redrive_projection_keeps_mas_transition_over_explicit_opl_handoff_owner() -> None:
     handoff_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     payload = {
@@ -597,7 +597,7 @@ def test_redrive_projection_keeps_mas_transition_over_explicit_opl_handoff_owner
 
 def test_redrive_projection_ignores_handoff_older_than_current_controller_truth() -> None:
     handoff_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+        "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     payload = {

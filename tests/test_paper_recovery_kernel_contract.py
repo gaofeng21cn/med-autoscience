@@ -11,7 +11,14 @@ pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "paper_recovery_kernel_contract.json"
-REDUCER_PATH = REPO_ROOT / "src" / "med_autoscience" / "controllers" / "paper_recovery_state.py"
+REDUCER_PATH = (
+    REPO_ROOT
+    / "src"
+    / "med_autoscience"
+    / "controllers"
+    / "paper_recovery_state"
+    / "__init__.py"
+)
 
 
 def _contract() -> dict[str, object]:

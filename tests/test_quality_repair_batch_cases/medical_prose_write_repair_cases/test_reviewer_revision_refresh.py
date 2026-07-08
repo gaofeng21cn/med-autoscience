@@ -11,7 +11,7 @@ def test_dm003_reviewer_revision_forces_story_refresh_from_latest_intake(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -98,7 +98,7 @@ def test_dm003_latest_reviewer_tightening_refreshes_without_legacy_stale_markers
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.medical_prose_story_surface"
+        "med_autoscience.controllers.quality_repair_batch.medical_prose_story_surface"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"

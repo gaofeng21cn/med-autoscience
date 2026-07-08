@@ -10,7 +10,7 @@ from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
 
 def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     payload = module.refresh_top_level_stage_closure_projection(
@@ -47,7 +47,7 @@ def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request(
 
 def test_single_next_action_projection_prefers_domain_transition_reviewer_action() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     payload = module._attach_single_next_action_projection(
@@ -107,7 +107,7 @@ def test_typed_blocker_successor_does_not_override_domain_transition_reviewer_ac
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.typed_blocker_resolution_successor"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.typed_blocker_resolution_successor"
     )
     monkeypatch.setattr(
         module,
@@ -163,7 +163,7 @@ def test_new_reviewer_revision_intake_retire_stale_typed_blocker_resolution(
     tmp_path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.typed_blocker_resolution_successor"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.typed_blocker_resolution_successor"
     )
     study_id = "obesity_multicenter_phenotype_atlas"
     workspace_root = tmp_path / "workspace"
@@ -226,7 +226,7 @@ def test_new_reviewer_revision_intake_retire_stale_typed_blocker_resolution(
 
 def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     payload = module.refresh_top_level_stage_closure_projection(
@@ -257,7 +257,7 @@ def test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     monkeypatch.setattr(module, "_latest_materialized_mission", lambda *_: {})
@@ -342,7 +342,7 @@ def test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_
 
 def test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     paper_mission_run = {

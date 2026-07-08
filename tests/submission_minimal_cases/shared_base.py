@@ -156,8 +156,7 @@ def lightweight_submission_exports(request: pytest.FixtureRequest, monkeypatch: 
     if "real_submission_exports" in request.fixturenames:
         return
 
-    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.package_builder")
-    submission_minimal = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    package_builder = importlib.import_module("med_autoscience.controllers.submission_minimal.package_builder")
 
     def export_docx(
         *,
@@ -184,8 +183,6 @@ def lightweight_submission_exports(request: pytest.FixtureRequest, monkeypatch: 
 
     monkeypatch.setattr(package_builder, "export_docx", export_docx)
     monkeypatch.setattr(package_builder, "export_pdf", export_pdf)
-    monkeypatch.setattr(submission_minimal, "export_docx", export_docx)
-    monkeypatch.setattr(submission_minimal, "export_pdf", export_pdf)
 
 
 def write_docx(path: Path, text: str) -> None:

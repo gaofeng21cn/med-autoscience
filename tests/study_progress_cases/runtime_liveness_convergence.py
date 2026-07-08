@@ -234,7 +234,7 @@ def test_study_progress_ignores_retired_runtime_supervision_currentness(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: module.datetime.fromisoformat("2026-05-13T08:00:00+00:00"),
     )
@@ -322,7 +322,7 @@ def test_study_progress_treats_opl_runtime_owner_handoff_as_refs_only(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        importlib.import_module("med_autoscience.controllers.study_progress_parts.shared"),
+        importlib.import_module("med_autoscience.controllers.study_progress.shared"),
         "_progress_freshness_now",
         lambda: module.datetime.fromisoformat("2026-05-13T08:00:00+00:00"),
     )

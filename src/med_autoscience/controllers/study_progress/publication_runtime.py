@@ -1,0 +1,902 @@
+from __future__ import annotations
+
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
+from med_autoscience.evaluation_summary.materialization_builders import _build_evaluation_summary_payload
+from med_autoscience.evaluation_summary.refs_and_validation import _build_promotion_gate_payload
+from med_autoscience.study_charter import read_study_charter
+
+from . import shared as _shared
+from . import publication_runtime_followthrough as _publication_runtime_followthrough
+
+def _module_reexport(module) -> None:
+    for name, value in vars(module).items():
+        if not name.startswith("__") and name != "_module_reexport":
+            globals()[name] = value
+
+_module_reexport(_shared)
+_module_reexport(_publication_runtime_followthrough)
+
+
+def _evaluation_summary_module():
+    return import_module("med_autoscience.evaluation_summary")
+
+
+def stable_evaluation_summary_path(*, study_root):
+    return _evaluation_summary_module().stable_evaluation_summary_path(study_root=study_root)
+
+
+def stable_promotion_gate_path(*, study_root):
+    return _evaluation_summary_module().stable_promotion_gate_path(study_root=study_root)
+
+
+def materialize_evaluation_summary_artifacts(*, study_root, runtime_escalation_ref, publishability_gate_report_ref):
+    return _evaluation_summary_module().materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+        publishability_gate_report_ref=publishability_gate_report_ref,
+    )
+
+
+def read_evaluation_summary(*, study_root, ref=None):
+    return _evaluation_summary_module().read_evaluation_summary(study_root=study_root, ref=ref)
+
+
+def _publication_eval_route_repair(publication_eval_payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    actions = (publication_eval_payload or {}).get("recommended_actions") or []
+    candidates: list[tuple[int, int, dict[str, Any]]] = []
+    for index, action in enumerate(actions):
+        if not isinstance(action, dict):
+            continue
+        action_type = _non_empty_text(action.get("action_type"))
+        if action_type not in _ROUTE_REPAIR_ACTION_TYPES:
+            continue
+        route_target = _non_empty_text(action.get("route_target"))
+        route_key_question = _non_empty_text(action.get("route_key_question"))
+        route_rationale = _non_empty_text(action.get("route_rationale"))
+        if route_target is None or route_key_question is None or route_rationale is None:
+            continue
+        route_label = _paper_stage_label(route_target) or route_target
+        repair_mode = _route_repair_mode(action_type)
+        priority = _non_empty_text(action.get("priority")) or "next"
+        candidate = {
+            "action_id": _non_empty_text(action.get("action_id")),
+            "action_type": action_type,
+            "priority": priority,
+            "repair_mode": repair_mode,
+            "repair_mode_label": _ROUTE_REPAIR_MODE_LABELS.get(repair_mode),
+            "route_target": route_target,
+            "route_target_label": route_label,
+            "route_key_question": route_key_question,
+            "route_rationale": route_rationale,
+        }
+        route_summary = _route_repair_summary(candidate)
+        if route_summary is not None:
+            candidate["route_summary"] = route_summary
+        candidates.append((0 if priority == "now" else 1, index, candidate))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: (item[0], item[1]))[2]
+
+
+def _publication_eval_specificity_request(publication_eval_payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    actions = (publication_eval_payload or {}).get("recommended_actions") or []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        next_work_unit = action.get("next_work_unit")
+        if not isinstance(next_work_unit, dict):
+            continue
+        unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+        if unit_id not in {"gate_needs_specificity", "needs_specificity"}:
+            continue
+        if _publication_eval_specificity_superseded_by_ai_review(publication_eval_payload, action):
+            continue
+        fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
+        questions = [
+            _non_empty_text(item)
+            for item in (action.get("specificity_questions") or [])
+            if _non_empty_text(item) is not None
+        ]
+        return {
+            "action_id": _non_empty_text(action.get("action_id")),
+            "action_type": _non_empty_text(action.get("action_type")),
+            "work_unit_id": unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "summary": (
+                _non_empty_text(next_work_unit.get("summary"))
+                or "Publication gate must identify concrete blocker targets before any repair worker can run."
+            ),
+            "specificity_questions": questions,
+            "reason": _non_empty_text(action.get("reason")),
+        }
+    return None
+
+
+def _publication_eval_specificity_superseded_by_ai_review(
+    publication_eval_payload: dict[str, Any] | None,
+    action: dict[str, Any],
+) -> bool:
+    if specificity_target_status(action.get("specificity_targets")).get("complete") is not True:
+        return False
+    provenance = (publication_eval_payload or {}).get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    return (
+        _non_empty_text(provenance.get("owner")) == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
+
+
+def _decision_type_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _DECISION_TYPE_LABELS.get(text, _humanize_token(text))
+
+
+def _controller_action_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _CONTROLLER_ACTION_LABELS.get(text, _humanize_token(text))
+
+
+def _reason_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _REASON_LABELS.get(text, _humanize_token(text))
+
+
+def _runtime_decision_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _RUNTIME_DECISION_LABELS.get(text, _humanize_token(text))
+
+
+def _manual_finish_active(manual_finish_contract: dict[str, Any] | None) -> bool:
+    return manual_finish_guard_only(manual_finish_contract)
+
+
+def _manual_finish_runtime_decision_summary(manual_finish_contract: dict[str, Any] | None) -> str:
+    del manual_finish_contract
+    return "兼容性监督中"
+
+
+def _manual_finish_runtime_reason_summary(manual_finish_contract: dict[str, Any] | None) -> str:
+    summary = _non_empty_text((manual_finish_contract or {}).get("summary"))
+    if summary is not None:
+        return _display_text(summary) or summary
+    return "当前 study 已转入人工收尾；MAS 只保持兼容性与监督入口。"
+
+
+def _runtime_health_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _RUNTIME_HEALTH_LABELS.get(text, _humanize_token(text))
+
+
+def _supervisor_tick_status_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _SUPERVISOR_TICK_STATUS_LABELS.get(text, _humanize_token(text))
+
+
+def _continuation_reason_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    if text.startswith("decision:"):
+        return "运行停在待处理的决策节点"
+    if text.startswith("latest_user_requirement:"):
+        return "最新用户要求已接管当前优先级"
+    return _CONTINUATION_REASON_LABELS.get(text, _humanize_token(text))
+
+
+def _action_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _ACTION_LABELS.get(text, _humanize_token(text))
+
+
+def _watch_blocker_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _WATCH_BLOCKER_LABELS.get(text, _humanize_token(text))
+
+
+def _blocker_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    normalized = text.replace(" ", "_")
+    direct_label = _BLOCKER_LABELS.get(text) or _BLOCKER_LABELS.get(normalized)
+    if direct_label is not None:
+        return direct_label
+    watch_label = _WATCH_BLOCKER_LABELS.get(text) or _WATCH_BLOCKER_LABELS.get(normalized)
+    if watch_label is not None:
+        return watch_label
+    reason_label = _REASON_LABELS.get(text) or _REASON_LABELS.get(normalized)
+    if reason_label is not None:
+        return reason_label
+    return _display_text(text) or _humanize_token(text)
+
+
+def _humanized_blockers(items: list[str]) -> list[str]:
+    blockers: list[str] = []
+    for item in items:
+        label = _blocker_label(item) or str(item)
+        if label not in blockers:
+            blockers.append(label)
+    return blockers
+
+
+def _append_unique(items: list[str], message: str | None) -> None:
+    if not message:
+        return
+    if message not in items:
+        items.append(message)
+
+
+def _publication_eval_gap_is_blocking(gap: dict[str, Any]) -> bool:
+    summary = _non_empty_text(gap.get("summary"))
+    if summary is None:
+        return False
+    severity = _non_empty_text(gap.get("severity"))
+    if severity in {"optional", "advisory", "watch", "info", "informational"}:
+        return False
+    return True
+
+
+def _publication_supervisor_state_marker(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    supervisor_phase = _non_empty_text(payload.get("supervisor_phase"))
+    if supervisor_phase is None:
+        return None
+    return {
+        "supervisor_phase": supervisor_phase,
+        "bundle_tasks_downstream_only": bool(payload.get("bundle_tasks_downstream_only")),
+        "current_required_action": _non_empty_text(payload.get("current_required_action")),
+    }
+
+
+def _publication_supervisor_state_conflicts(
+    *,
+    current: dict[str, Any],
+    candidate: dict[str, Any] | None,
+) -> bool:
+    current_marker = _publication_supervisor_state_marker(current)
+    candidate_marker = _publication_supervisor_state_marker(candidate)
+    if current_marker is None or candidate_marker is None:
+        return False
+    return any(candidate_marker[key] != current_marker[key] for key in current_marker)
+
+
+def _publication_eval_has_closed_ai_reviewer_authority(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    if _non_empty_text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    if validate_ai_reviewer_operating_system_trace(reviewer_os):
+        return False
+    provenance_checks = reviewer_os.get("provenance_checks")
+    if not isinstance(provenance_checks, dict):
+        return False
+    return (
+        _non_empty_text(reviewer_os.get("contract_id")) == "medical_publication_ai_reviewer_os_v1"
+        and _non_empty_text(provenance_checks.get("assessment_owner")) == "ai_reviewer"
+        and provenance_checks.get("ai_reviewer_required") is False
+        and provenance_checks.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
+def _publication_eval_has_ai_reviewer_owner_authority(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    if _non_empty_text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    provenance_checks = reviewer_os.get("provenance_checks")
+    if not isinstance(provenance_checks, dict):
+        return False
+    return (
+        _non_empty_text(provenance_checks.get("assessment_owner")) == "ai_reviewer"
+        and provenance_checks.get("ai_reviewer_required") is False
+        and provenance_checks.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
+def _gate_report_is_clear_progress_projection(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    blockers = [
+        _non_empty_text(item)
+        for item in (payload.get("blockers") or [])
+        if _non_empty_text(item) is not None
+    ]
+    if blockers:
+        return False
+    current_required_action = _non_empty_text(payload.get("current_required_action"))
+    if current_required_action == "return_to_publishability_gate":
+        return False
+    return _non_empty_text(payload.get("status")) == "clear" or payload.get("allow_write") is True
+
+
+def _latest_runtime_readback_report(quest_root: Path | None) -> Path | None:
+    if quest_root is None:
+        return None
+    report_root = quest_root / "artifacts" / "reports" / "runtime_readback"
+    if not report_root.exists():
+        return None
+    latest_path = report_root / "latest.json"
+    if latest_path.exists():
+        return latest_path
+    candidates = [
+        path
+        for path in report_root.glob("*.json")
+        if path.name not in {"state.json", "latest.json"}
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item.stat().st_mtime)
+
+
+def _details_projection_payload(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    wrapper = _read_json_object(path)
+    if wrapper is None:
+        return None
+    payload = wrapper.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _runtime_module_surface(
+    *,
+    generated_at: str,
+    study_id: str,
+    quest_id: str | None,
+    study_root: Path,
+    launch_report_path: Path,
+    opl_runtime_owner_handoff_path: Path,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
+    runtime_escalation_path: Path | None,
+    runtime_readback_report_path: Path | None,
+    recovery_contract: dict[str, Any],
+    execution_owner_guard: dict[str, Any],
+    publication_supervisor_state: dict[str, Any],
+    current_stage: str,
+    current_stage_summary: str,
+    next_system_action: str,
+    needs_physician_decision: bool,
+    status: dict[str, Any],
+    supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
+    auto_runtime_parked: dict[str, Any] | None,
+    publication_gate_stationary: bool = False,
+    materialize_read_model_artifacts: bool = True,
+) -> dict[str, Any]:
+    manual_finish_active = _manual_finish_active(manual_finish_contract)
+    runtime_parked = bool((auto_runtime_parked or {}).get("parked"))
+    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
+    retry_budget_remaining = runtime_health_snapshot.get("retry_budget_remaining")
+    if runtime_health_action == "escalate_runtime" or (
+        runtime_health_attempt_state == "escalated"
+        and retry_budget_remaining == 0
+    ):
+        dominant_runtime_health_status = "escalated"
+    elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
+        dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_recovering":
+        dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_degraded":
+        dominant_runtime_health_status = "degraded"
+    elif current_stage == "managed_runtime_escalated":
+        dominant_runtime_health_status = "escalated"
+    else:
+        dominant_runtime_health_status = None
+    runtime_health_status = (
+        "parked"
+        if runtime_parked
+        else "publication_gate_blocked"
+        if publication_gate_stationary
+        else (
+            _non_empty_text(status.get("runtime_liveness_status")) or "none"
+            if manual_finish_active
+            else dominant_runtime_health_status
+            or "unknown"
+        )
+    )
+    current_required_action = (
+        _non_empty_text(publication_supervisor_state.get("current_required_action"))
+        if manual_finish_active or runtime_parked
+        else (
+            _non_empty_text(execution_owner_guard.get("current_required_action"))
+        )
+    )
+    status_summary = (
+        current_stage_summary
+        if manual_finish_active or runtime_parked
+        else current_stage_summary
+        or next_system_action
+    )
+    next_action_summary = (
+        next_system_action
+        if manual_finish_active or runtime_parked
+        else next_system_action
+        or current_stage_summary
+    )
+    summary = build_runtime_status_summary(
+        study_id=study_id,
+        quest_id=quest_id,
+        generated_at=generated_at,
+        runtime_status_ref=(
+            str(opl_runtime_owner_handoff_path.resolve())
+            if opl_runtime_owner_handoff_payload is not None
+            else str(launch_report_path.resolve())
+        ),
+        runtime_artifact_ref=str(launch_report_path.resolve()),
+        runtime_escalation_record_ref=(
+            str(runtime_escalation_path.resolve()) if runtime_escalation_path is not None else None
+        ),
+        runtime_readback_report_ref=str(runtime_readback_report_path.resolve()) if runtime_readback_report_path is not None else None,
+        health_status=runtime_health_status,
+        runtime_decision=_non_empty_text(status.get("decision")) or "noop",
+        runtime_reason=_non_empty_text(status.get("reason")),
+        recovery_action_mode=_non_empty_text(recovery_contract.get("action_mode")) or "monitor_only",
+        supervisor_tick_status=_non_empty_text(supervisor_tick_audit.get("status")),
+        current_required_action=current_required_action,
+        controller_stage_note=(
+            _non_empty_text(execution_owner_guard.get("controller_stage_note"))
+            or _non_empty_text(publication_supervisor_state.get("controller_stage_note"))
+        ),
+        status_summary=status_summary,
+        next_action_summary=next_action_summary,
+        needs_human_intervention=needs_physician_decision,
+    )
+    if materialize_read_model_artifacts:
+        summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
+    else:
+        summary_ref = {
+            "summary_id": summary["summary_id"],
+            "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_status_summary.json"),
+        }
+    return {
+        "module": "runtime",
+        "surface_kind": "runtime_module_surface",
+        "summary_id": summary_ref["summary_id"],
+        "summary_ref": summary_ref["artifact_path"],
+        "runtime_status_ref": summary["runtime_status_ref"],
+        "runtime_artifact_ref": summary["runtime_artifact_ref"],
+        "runtime_escalation_record_ref": summary["runtime_escalation_record_ref"],
+        "runtime_readback_report_ref": summary["runtime_readback_report_ref"],
+        "health_status": summary["health_status"],
+        "runtime_decision": summary["runtime_decision"],
+        "runtime_reason": summary["runtime_reason"],
+        "recovery_action_mode": summary["recovery_action_mode"],
+        "status_summary": summary["status_summary"],
+        "next_action_summary": summary["next_action_summary"],
+        "needs_human_intervention": summary["needs_human_intervention"],
+        "auto_runtime_parked": dict(auto_runtime_parked or {}) or None,
+    }
+
+
+def _publishability_gate_report_path(
+    *,
+    runtime_readback_payload: dict[str, Any] | None,
+    quest_root: Path | None,
+) -> Path | None:
+    publication_gate = (
+        dict((((runtime_readback_payload or {}).get("controllers") or {}).get("publication_gate") or {}))
+        if isinstance(((runtime_readback_payload or {}).get("controllers") or {}).get("publication_gate"), dict)
+        else {}
+    )
+    report_json = _non_empty_text(publication_gate.get("report_json"))
+    runtime_readback_report_candidate: Path | None = None
+    if report_json is not None:
+        candidate = Path(report_json).expanduser()
+        if candidate.is_absolute():
+            runtime_readback_report_candidate = candidate.resolve()
+        elif quest_root is not None:
+            runtime_readback_report_candidate = (quest_root / candidate).resolve()
+    latest_candidate = None
+    if quest_root is not None:
+        candidate = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+        if candidate.exists():
+            latest_candidate = candidate.resolve()
+    if runtime_readback_report_candidate is None:
+        return latest_candidate
+    if latest_candidate is None:
+        return runtime_readback_report_candidate
+    if not runtime_readback_report_candidate.exists():
+        return latest_candidate
+    if latest_candidate.stat().st_mtime >= runtime_readback_report_candidate.stat().st_mtime:
+        return latest_candidate
+    return runtime_readback_report_candidate
+
+
+def _refresh_publication_surfaces_from_gate_report(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_root: Path | None,
+    quest_id: str | None,
+    publication_eval_path: Path,
+    runtime_escalation_path: Path | None,
+    runtime_readback_payload: dict[str, Any] | None,
+    materialize_read_model_artifacts: bool = True,
+) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any] | None]:
+    publishability_gate_path = _publishability_gate_report_path(
+        runtime_readback_payload=runtime_readback_payload,
+        quest_root=quest_root,
+    )
+    publishability_gate_payload = (
+        _read_json_object(publishability_gate_path)
+        if publishability_gate_path is not None
+        else None
+    )
+    publication_eval_payload = _read_json_object(publication_eval_path)
+    gate_generated_at = _non_empty_text((publishability_gate_payload or {}).get("generated_at"))
+    eval_emitted_at = _non_empty_text((publication_eval_payload or {}).get("emitted_at"))
+    if (
+        publishability_gate_path is not None
+        and publishability_gate_payload is not None
+        and quest_root is not None
+        and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
+        and not (
+            _gate_report_is_clear_progress_projection(publishability_gate_payload)
+            and _publication_eval_has_ai_reviewer_owner_authority(publication_eval_payload)
+        )
+        and (
+            _timestamp_is_newer(gate_generated_at, eval_emitted_at)
+            or _publication_eval_semantically_stale_against_gate(
+                publication_eval_payload=publication_eval_payload,
+                publishability_gate_payload=publishability_gate_payload,
+            )
+        )
+    ):
+        try:
+            from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
+                _materialize_publication_eval_from_gate_report,
+            )
+
+            _materialize_publication_eval_from_gate_report(
+                study_root=study_root,
+                study_id=study_id,
+                quest_root=quest_root,
+                quest_id=quest_id,
+                publication_gate_report=publishability_gate_payload,
+            )
+            publication_eval_payload = _read_json_object(publication_eval_path)
+        except (AttributeError, ImportError, OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+
+    refreshed_eval_emitted_at = _non_empty_text((publication_eval_payload or {}).get("emitted_at"))
+    evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
+    evaluation_summary_payload = _read_json_object(evaluation_summary_path)
+    evaluation_summary_emitted_at = _non_empty_text((evaluation_summary_payload or {}).get("emitted_at"))
+    evaluation_summary_runtime_escalation_ref = _evaluation_summary_runtime_escalation_ref(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_escalation_path=runtime_escalation_path,
+        publication_eval_payload=publication_eval_payload,
+        evaluation_summary_payload=evaluation_summary_payload,
+    )
+    if (
+        publication_eval_payload is not None
+        and publishability_gate_path is not None
+        and evaluation_summary_runtime_escalation_ref is not None
+        and refreshed_eval_emitted_at is not None
+        and refreshed_eval_emitted_at != evaluation_summary_emitted_at
+        and materialize_read_model_artifacts
+    ):
+        try:
+            materialize_evaluation_summary_artifacts(
+                study_root=study_root,
+                runtime_escalation_ref=evaluation_summary_runtime_escalation_ref,
+                publishability_gate_report_ref=publishability_gate_path,
+            )
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            pass
+    return publication_eval_payload, publishability_gate_path, publishability_gate_payload
+
+
+def _evaluation_summary_runtime_escalation_ref(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    runtime_escalation_path: Path | None,
+    publication_eval_payload: dict[str, Any] | None,
+    evaluation_summary_payload: dict[str, Any] | None,
+) -> Path | dict[str, str] | None:
+    if runtime_escalation_path is not None and runtime_escalation_path.exists():
+        return runtime_escalation_path
+    publication_eval_runtime_ref = _runtime_escalation_ref_from_payload(publication_eval_payload)
+    if publication_eval_runtime_ref is not None:
+        return publication_eval_runtime_ref
+    existing_runtime_ref = _runtime_escalation_ref_from_payload(evaluation_summary_payload)
+    if existing_runtime_ref is not None:
+        return existing_runtime_ref
+    return _materialize_missing_runtime_escalation_context_ref(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+    )
+
+
+def _runtime_escalation_ref_from_payload(payload: dict[str, Any] | None) -> Path | dict[str, str] | None:
+    if not isinstance(payload, dict):
+        return None
+    runtime_context_refs = payload.get("runtime_context_refs")
+    if isinstance(runtime_context_refs, dict):
+        ref_text = _non_empty_text(runtime_context_refs.get("runtime_escalation_ref"))
+        if ref_text is not None:
+            ref_path = Path(ref_text).expanduser()
+            if ref_path.exists():
+                return ref_path
+    runtime_ref = payload.get("runtime_escalation_ref")
+    if isinstance(runtime_ref, dict):
+        artifact_text = _non_empty_text(runtime_ref.get("artifact_path"))
+        if artifact_text is not None and Path(artifact_text).expanduser().exists():
+            return {
+                "record_id": _non_empty_text(runtime_ref.get("record_id")) or "",
+                "artifact_path": artifact_text,
+                "summary_ref": _non_empty_text(runtime_ref.get("summary_ref")) or "",
+            }
+    return None
+
+
+def _materialize_missing_runtime_escalation_context_ref(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+) -> Path:
+    artifact_path = (
+        study_root
+        / "artifacts"
+        / "eval_hygiene"
+        / "runtime_escalation_context"
+        / "latest.json"
+    )
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    summary_ref = launch_report_path if launch_report_path.exists() else artifact_path
+    payload = {
+        "schema_version": 1,
+        "record_id": f"runtime-escalation-context::{study_id}::{quest_id or 'unknown'}::not_available",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "status": "not_available",
+        "reason": "runtime_escalation_record_missing_for_evaluation_summary_refresh",
+        "artifact_path": str(artifact_path.resolve()),
+        "summary_ref": str(summary_ref.resolve()),
+        "authority_boundary": {
+            "surface_role": "read_model_context_only",
+            "can_claim_runtime_escalation": False,
+            "can_claim_paper_progress": False,
+        },
+    }
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return artifact_path
+
+
+def _controller_module_surface(*, study_root: Path) -> dict[str, Any] | None:
+    summary_path = stable_controller_summary_path(study_root=study_root)
+    if not summary_path.exists():
+        return None
+    summary = read_controller_summary(study_root=study_root, ref=summary_path)
+    confirmation_summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
+    confirmation_summary = (
+        read_controller_confirmation_summary(study_root=study_root, ref=confirmation_summary_path)
+        if confirmation_summary_path.exists()
+        else None
+    )
+    controller_policy = dict(summary.get("controller_policy") or {})
+    route_trigger_authority = dict(summary.get("route_trigger_authority") or {})
+    decision_policy = _non_empty_text(route_trigger_authority.get("decision_policy")) or "unknown"
+    launch_profile = _non_empty_text(route_trigger_authority.get("launch_profile")) or "unknown"
+    required_first_anchor = _non_empty_text(controller_policy.get("required_first_anchor"))
+    human_confirmation_surface = (
+        {
+            "gate_id": confirmation_summary["gate_id"],
+            "status": confirmation_summary["status"],
+            "requested_at": confirmation_summary["requested_at"],
+            "question_for_user": confirmation_summary["question_for_user"],
+            "allowed_responses": list(confirmation_summary.get("allowed_responses") or []),
+            "next_action_if_approved": confirmation_summary["next_action_if_approved"],
+            "summary_ref": str(confirmation_summary_path),
+        }
+        if confirmation_summary is not None
+        else None
+    )
+    status_summary = (
+        "研究合同已冻结；当前控制面决策等待用户确认。"
+        if human_confirmation_surface is not None
+        else f"研究合同已冻结；决策策略 {decision_policy}，启动入口 {launch_profile}。"
+    )
+    next_action_summary = (
+        f"{human_confirmation_surface['question_for_user']} 确认后系统将{human_confirmation_surface['next_action_if_approved']}。"
+        if human_confirmation_surface is not None
+        else (
+            f"从 {required_first_anchor} 锚点继续推进当前研究。"
+            if required_first_anchor
+            else "沿 controller contract 继续推进当前研究。"
+        )
+    )
+    return {
+        "module": "controller_charter",
+        "surface_kind": "controller_module_surface",
+        "summary_id": summary["summary_id"],
+        "summary_ref": str(summary_path),
+        "study_charter_ref": dict(summary.get("study_charter_ref") or {}),
+        "decision_policy": decision_policy,
+        "launch_profile": launch_profile,
+        "status_summary": status_summary,
+        "next_action_summary": next_action_summary,
+        "human_confirmation": human_confirmation_surface,
+    }
+
+
+def _evaluation_module_surface(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+    runtime_escalation_path: Path | None,
+    runtime_readback_payload: dict[str, Any] | None,
+    quest_root: Path | None,
+    materialize_read_model_artifacts: bool = True,
+) -> dict[str, Any] | None:
+    evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
+    promotion_gate_path = stable_promotion_gate_path(study_root=study_root)
+    if not evaluation_summary_path.exists():
+        gate_report_path = _publishability_gate_report_path(
+            runtime_readback_payload=runtime_readback_payload,
+            quest_root=quest_root,
+        )
+        charter_path = stable_study_charter_path(study_root=study_root)
+        if (
+            publication_eval_payload is None
+            or runtime_escalation_path is None
+            or not runtime_escalation_path.exists()
+            or gate_report_path is None
+            or not gate_report_path.exists()
+            or not charter_path.exists()
+        ):
+            return None
+        if not materialize_read_model_artifacts:
+            gate_report = _read_json_object(gate_report_path)
+            charter_payload = read_study_charter(study_root=study_root, ref=charter_path)
+            if gate_report is None or charter_payload is None:
+                return None
+            summary = _build_evaluation_summary_payload(
+                study_root=study_root,
+                publication_eval=publication_eval_payload,
+                charter_payload=charter_payload,
+                runtime_escalation_ref={
+                    "artifact_path": str(runtime_escalation_path),
+                },
+                promotion_gate_ref={
+                    "artifact_path": str(promotion_gate_path),
+                    "materialized": False,
+                    "source_ref": str(gate_report_path),
+                },
+                promotion_gate_payload=_build_promotion_gate_payload(
+                    study_root=study_root,
+                    publication_eval=publication_eval_payload,
+                    runtime_escalation_ref={"artifact_path": str(runtime_escalation_path)},
+                    gate_report={**gate_report, "source_gate_report_ref": str(gate_report_path)},
+                ),
+            )
+            return _evaluation_module_surface_from_summary(
+                summary=summary,
+                evaluation_summary_path=evaluation_summary_path,
+                promotion_gate_path=promotion_gate_path,
+            )
+        materialize_evaluation_summary_artifacts(
+            study_root=study_root,
+            runtime_escalation_ref=runtime_escalation_path,
+            publishability_gate_report_ref=gate_report_path,
+        )
+    if not evaluation_summary_path.exists():
+        return None
+    summary = read_evaluation_summary(study_root=study_root, ref=evaluation_summary_path)
+    return _evaluation_module_surface_from_summary(
+        summary=summary,
+        evaluation_summary_path=evaluation_summary_path,
+        promotion_gate_path=promotion_gate_path,
+    )
+
+
+def _evaluation_module_surface_from_summary(
+    *,
+    summary: dict[str, Any],
+    evaluation_summary_path: Path,
+    promotion_gate_path: Path,
+) -> dict[str, Any]:
+    promotion_gate_status = _mapping_copy(summary.get("promotion_gate_status"))
+    quality_closure_truth = _mapping_copy(summary.get("quality_closure_truth"))
+    quality_execution_lane = _mapping_copy(summary.get("quality_execution_lane"))
+    same_line_route_truth = _mapping_copy(summary.get("same_line_route_truth"))
+    same_line_route_surface = _mapping_copy(summary.get("same_line_route_surface"))
+    quality_closure_basis = _mapping_copy(summary.get("quality_closure_basis"))
+    quality_review_agenda = _mapping_copy(summary.get("quality_review_agenda"))
+    quality_revision_plan = _mapping_copy(summary.get("quality_revision_plan"))
+    quality_review_loop = _mapping_copy(summary.get("quality_review_loop"))
+    current_required_action = _non_empty_text(promotion_gate_status.get("current_required_action"))
+    plan_items = [
+        dict(item)
+        for item in (quality_revision_plan.get("items") or [])
+        if isinstance(item, dict)
+    ]
+    plan_next_action = (
+        _display_text((plan_items[0] or {}).get("action")) if plan_items else None
+    ) or (_non_empty_text((plan_items[0] or {}).get("action")) if plan_items else None)
+    review_loop_next_action = _display_text(quality_review_loop.get("recommended_next_action")) or _non_empty_text(
+        quality_review_loop.get("recommended_next_action")
+    )
+    next_action_summary = (
+        review_loop_next_action
+        or plan_next_action
+        or (
+        _display_text(quality_review_agenda.get("suggested_revision"))
+        or _non_empty_text(quality_review_agenda.get("suggested_revision"))
+        or _ACTION_LABELS.get(current_required_action or "", "")
+        or current_required_action
+        or "按当前 eval hygiene 结论继续推进。"
+        )
+    )
+    return {
+        "module": "eval_hygiene",
+        "surface_kind": "evaluation_module_surface",
+        "summary_id": summary["summary_id"],
+        "summary_ref": str(evaluation_summary_path),
+        "promotion_gate_ref": str(promotion_gate_path),
+        "overall_verdict": summary["overall_verdict"],
+        "primary_claim_status": summary["primary_claim_status"],
+        "stop_loss_pressure": summary["stop_loss_pressure"],
+        "requires_controller_decision": bool(summary.get("requires_controller_decision")),
+        "status_summary": summary["verdict_summary"],
+        "next_action_summary": next_action_summary,
+        "quality_closure_truth": quality_closure_truth or None,
+        "quality_execution_lane": quality_execution_lane or None,
+        "same_line_route_truth": same_line_route_truth or None,
+        "same_line_route_surface": same_line_route_surface or None,
+        "quality_closure_basis": quality_closure_basis or None,
+        "quality_review_agenda": quality_review_agenda or None,
+        "quality_revision_plan": quality_revision_plan or None,
+        "quality_review_loop": quality_review_loop or None,
+    }
+__all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

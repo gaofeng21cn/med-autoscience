@@ -89,7 +89,7 @@ def _batch_quality_authority_refs(batch_payload: dict[str, Any]) -> dict[str, An
 
 
 def _current_quality_authority_refs(*, study_root: Path) -> dict[str, Any]:
-    from med_autoscience.controllers.study_delivery_sync_parts.authority_refs import (
+    from med_autoscience.controllers.study_delivery_sync.authority_refs import (
         build_delivery_authority_ref_block,
     )
 

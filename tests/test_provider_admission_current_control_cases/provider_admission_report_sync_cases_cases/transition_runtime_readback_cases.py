@@ -15,7 +15,7 @@ def test_provider_admission_report_sync_consumes_transition_request_after_termin
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -136,7 +136,7 @@ def test_provider_admission_report_sync_preserves_non_advancing_transition_reque
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -274,7 +274,7 @@ def test_provider_admission_report_sync_clears_pending_when_managed_action_is_ru
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -353,7 +353,7 @@ def test_provider_admission_current_control_runtime_health_live_attempt_suppress
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -418,7 +418,7 @@ def test_provider_admission_current_control_runtime_health_live_attempt_suppress
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_current_control"
+        "med_autoscience.controllers.provider_admission.provider_admission_current_control"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -490,7 +490,7 @@ def test_provider_admission_report_sync_clears_domain_blocked_recovery_pending_s
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -579,7 +579,7 @@ def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candi
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
@@ -687,7 +687,7 @@ def test_provider_admission_report_sync_lifts_study_level_provider_readback_to_t
     tmp_path: Path,
 ) -> None:
     report_module = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_report"
+        "med_autoscience.controllers.provider_admission.provider_admission_report"
     )
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)

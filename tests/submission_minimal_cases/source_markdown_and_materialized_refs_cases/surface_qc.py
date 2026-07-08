@@ -1,8 +1,8 @@
 from tests.submission_minimal_cases.shared import *
-from med_autoscience.controllers.submission_minimal_parts.markdown_surface_qc import (
+from med_autoscience.controllers.submission_minimal.markdown_surface_qc import (
     build_submission_manuscript_surface_qc,
 )
-from med_autoscience.controllers.submission_minimal_parts.package_builder import (
+from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 

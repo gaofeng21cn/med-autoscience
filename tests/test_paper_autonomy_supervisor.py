@@ -4,7 +4,7 @@ from med_autoscience.controllers.paper_autonomy_supervisor import (
     build_paper_autonomy_obligation,
     build_supervisor_decision,
 )
-from med_autoscience.controllers.study_progress_parts.paper_autonomy_supervisor_decision import (
+from med_autoscience.controllers.study_progress.paper_autonomy_supervisor_decision import (
     execute_decision_identity_evidence_complete,
     provider_admission_supervisor_gate,
     supervisor_decision_for_projection,

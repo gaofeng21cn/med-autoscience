@@ -3,10 +3,10 @@ from __future__ import annotations
 import shlex
 
 from med_autoscience.controllers import mainline_status
-from med_autoscience.controllers.product_entry_parts import (
+from med_autoscience.controllers.product_entry import (
     attention_projection as product_entry_attention,
 )
-from med_autoscience.controllers.product_entry_parts import workspace_surfaces as product_entry_workspace
+from med_autoscience.controllers.product_entry import workspace_surfaces as product_entry_workspace
 
 from . import shared as _shared
 from .repo_shell_entry_assertions import _phase2_loop_without_guarded_fields

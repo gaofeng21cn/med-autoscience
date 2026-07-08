@@ -111,7 +111,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.study_progress_parts.canonical_next_action_selection import (
+from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
 )
 

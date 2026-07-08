@@ -29,7 +29,7 @@ from tests.test_study_progress_mission_summary_cases.next_action_stage_closure i
 
 def test_receipt_owner_consumption_route_checkpoint_maps_to_route_back_status() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     status = module._effective_consume_candidate_status_for_receipt_owner_consumption(
@@ -335,7 +335,7 @@ def test_study_progress_resolves_dm_alias_to_materialized_paper_mission_run(
 
 def test_artifact_first_mission_summary_ignores_platform_repair_for_terminal_outcome() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     summary = module.build_artifact_first_mission_summary(
@@ -505,7 +505,7 @@ def _count_surface_kind(value: object, surface_kind: str) -> int:
 
 def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fields() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     payload = module.attach_artifact_first_mission_summary(
@@ -610,7 +610,7 @@ def test_attach_artifact_first_mission_summary_exposes_top_level_read_model_fiel
 
 def test_stage_closure_projection_uses_real_followthrough_budget_for_degraded_handoff() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     payload = module.attach_artifact_first_mission_summary(
@@ -688,7 +688,7 @@ def test_stage_closure_projection_uses_real_followthrough_budget_for_degraded_ha
 
 def test_artifact_first_mission_summary_projects_opl_transition_receipt_from_runtime_readback() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     payload = module.attach_artifact_first_mission_summary(
@@ -788,7 +788,7 @@ def test_live_terminal_receipt_consumption_supersedes_stale_runtime_readback_req
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
 
     def fake_live_readback(**kwargs):
@@ -887,7 +887,7 @@ def test_attach_artifact_first_mission_summary_prefers_stage_closure_owner_consu
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.mission_summary"
+        "med_autoscience.controllers.study_progress.mission_summary"
     )
     stale_next_action = {
         "surface_kind": SURFACE_KIND,
@@ -953,7 +953,7 @@ def test_attach_artifact_first_mission_summary_prefers_stage_closure_owner_consu
 
 def test_domain_transition_next_action_yields_to_stage_closure_route_checkpoint() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.canonical_next_action_selection"
+        "med_autoscience.controllers.study_progress.canonical_next_action_selection"
     )
 
     next_action = module.domain_transition_canonical_next_action(

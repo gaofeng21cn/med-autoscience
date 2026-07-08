@@ -453,7 +453,7 @@ def test_legacy_control_receipt_markers_are_filter_only_not_active_aliases() -> 
 def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.owner_route_handoff_parts import domain_handler_export
+    from med_autoscience.controllers.owner_route_handoff import domain_handler_export
 
     profile = make_profile(tmp_path)
     write_study(
@@ -515,7 +515,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
 def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.owner_route_handoff_parts import dispatch_orchestration
+    from med_autoscience.controllers.owner_route_handoff import dispatch_orchestration
 
     task_path = tmp_path / "legacy-owner-callable-task.json"
     task_path.write_text(
@@ -552,7 +552,7 @@ def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind
 def test_product_entry_default_mainline_has_no_legacy_domain_diagnostic_or_dispatch_command(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.product_entry_parts.manifest_surfaces import (
+    from med_autoscience.controllers.product_entry.manifest_surfaces import (
         build_product_entry_manifest,
     )
 

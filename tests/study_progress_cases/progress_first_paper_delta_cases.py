@@ -14,10 +14,10 @@ _module_reexport(_shared)
 
 def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projection() -> None:
     assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
     handoff = {
         "latest_terminal_stage_log": {
@@ -72,7 +72,7 @@ def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projectio
 
 def test_paper_delta_with_missing_runtime_token_usage_reports_unknown_token_total() -> None:
     assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     progress_delta = assembly._progress_delta_metrics(
@@ -101,7 +101,7 @@ def test_paper_delta_with_missing_runtime_token_usage_reports_unknown_token_tota
 
 def test_controller_stage_execution_record_alone_does_not_count_paper_delta_or_zero_fill_tokens() -> None:
     assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
     progress_delta = assembly._progress_delta_metrics(
@@ -138,10 +138,10 @@ def test_controller_stage_execution_record_alone_does_not_count_paper_delta_or_z
 
 def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delta() -> None:
     assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
     handoff = {
         "latest_terminal_stage_log": {
@@ -189,13 +189,13 @@ def test_repair_execution_evidence_counts_as_current_paper_delta_and_drops_stale
     tmp_path: Path,
 ) -> None:
     assembly = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
     projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+        "med_autoscience.controllers.study_progress.progress_first_projection"
     )
     repair_projection = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+        "med_autoscience.controllers.study_progress.repair_progress_projection"
     )
     study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     paper_root = study_root / "paper"
@@ -305,7 +305,7 @@ def test_repair_execution_evidence_counts_as_current_paper_delta_and_drops_stale
 
 def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker() -> None:
     surfaces = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     action = {
         "surface_kind": "current_executable_owner_action",
@@ -330,7 +330,7 @@ def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker(
 
 def test_repair_progress_gate_replay_survives_identity_different_terminal_handoff_closeout() -> None:
     surfaces = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     gate_replay_fingerprint = (
         "sha256:c69e0d2890655ebc1e7a774e9a83dfe333cbc855bf85c3b2cdaf021289e8fc32"
@@ -413,7 +413,7 @@ def test_repair_progress_gate_replay_survives_identity_different_terminal_handof
 
 def test_consumed_provider_completion_blocker_does_not_promote_domain_transition_successor() -> None:
     surfaces = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     fingerprint = "publication-blockers::0915410f804b3697"
@@ -485,7 +485,7 @@ def test_consumed_provider_completion_blocker_does_not_promote_domain_transition
 
 def test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker() -> None:
     surfaces = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.current_execution_surfaces"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.current_execution_surfaces"
     )
     action = {
         "surface_kind": "current_executable_owner_action",

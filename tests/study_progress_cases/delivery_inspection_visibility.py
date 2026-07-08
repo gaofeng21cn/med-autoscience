@@ -153,7 +153,7 @@ def test_delivery_inspection_attach_refreshes_stale_user_visible_package_state(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.delivery_inspection"
+        "med_autoscience.controllers.study_progress.delivery_inspection"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")

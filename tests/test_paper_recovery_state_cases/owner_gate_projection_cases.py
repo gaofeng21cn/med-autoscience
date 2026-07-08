@@ -7,7 +7,7 @@ from tests.test_paper_recovery_state_cases.shared import _module, _typed_blocker
 
 def test_owner_gate_route_back_suppresses_residual_provider_admission_projection() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     fingerprint = "publication-blockers::497d1260db522f01"
     state = _module().build_paper_recovery_state(
@@ -87,7 +87,7 @@ def test_owner_gate_route_back_suppresses_residual_provider_admission_projection
 
 def test_user_visible_projection_blocks_provider_admission_by_supervisor_decision() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     fingerprint = "publication-blockers::497d1260db522f01"
     state = {
@@ -156,7 +156,7 @@ def test_user_visible_projection_blocks_provider_admission_by_supervisor_decisio
 
 def test_successor_recovery_visibility_keeps_provider_admission_projection() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     result = visibility.apply_paper_recovery_state_user_visible_status(
         {
@@ -200,7 +200,7 @@ def test_successor_recovery_visibility_keeps_provider_admission_projection() -> 
 
 def test_successor_recovery_visibility_keeps_opl_live_readback_with_owner_receipt_current_work_unit() -> None:
     visibility = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.paper_recovery_visibility"
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.paper_recovery_visibility"
     )
     fingerprint = "publication-blockers::0915410f804b3697"
     result = visibility.apply_paper_recovery_state_user_visible_status(

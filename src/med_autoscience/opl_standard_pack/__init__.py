@@ -7,10 +7,10 @@ from typing import Any, Mapping
 
 from med_autoscience.agent_tool_arsenal import build_agent_tool_arsenal_index
 from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migration import (
     build_functional_consumer_boundary,
 )
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps import (
     PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX,
     PRIVATE_SURFACE_RETIREMENT_GATE_POLICY,
 )
@@ -478,7 +478,7 @@ def _pack_compiler_input() -> dict[str, Any]:
                 "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor"
             ),
             "functional_audit": (
-                "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
+                "src/med_autoscience/controllers/opl_unique_control_plane_boundary/"
                 "consumer_migration.py::build_functional_consumer_boundary"
             ),
         },

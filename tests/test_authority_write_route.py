@@ -88,7 +88,7 @@ def test_flat_progress_first_publication_gate_replay_route_context_is_explicit_w
 
 
 def test_publication_gate_apply_false_is_read_only_without_snapshot(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
+    module = importlib.import_module("med_autoscience.controllers.publication_gate.supervisor_and_cli")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     quest_root.mkdir(parents=True)
     report_path = quest_root / "publication_gate_report.json"
@@ -119,7 +119,7 @@ def test_publication_gate_apply_true_passes_same_route_context_to_downstream_wri
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
+    module = importlib.import_module("med_autoscience.controllers.publication_gate.supervisor_and_cli")
     route_context = {"authority_snapshot": _snapshot(bundle_build_allowed=True)}
     paper_root = tmp_path / "study" / "paper"
     study_root = tmp_path / "study"
@@ -193,7 +193,7 @@ def test_publication_gate_apply_does_not_run_delivery_sync_with_upstream_repair_
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
+    module = importlib.import_module("med_autoscience.controllers.publication_gate.supervisor_and_cli")
     route_context = {
         "controller_route_context": {
             "control_surface": "gate_clearing_batch",
@@ -266,7 +266,7 @@ def test_publication_gate_apply_derives_delivery_sync_controller_route_when_snap
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
+    module = importlib.import_module("med_autoscience.controllers.publication_gate.supervisor_and_cli")
     paper_root = tmp_path / "study" / "paper"
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"

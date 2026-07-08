@@ -43,9 +43,9 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "can_satisfy_current_recovery_action": False,
     }
     assert set(execution_latest["canonical_first_readers"]) == {
-        "provider_admission_parts.provider_admission.persisted_provider_admission_candidates",
-        "owner_route_handoff_parts.export_study_projection._current_provider_handoff_execution",
-        "paper_mission_owner_surface_parts.recovery_actions._latest_clean_migration_rehydrate_execution",
+        "provider_admission.provider_admission.persisted_provider_admission_candidates",
+        "owner_route_handoff.export_study_projection._current_provider_handoff_execution",
+        "paper_mission_owner_surface.recovery_actions._latest_clean_migration_rehydrate_execution",
     }
     assert "mas_local_execution_ledger_authority" in execution_latest["forbidden_claims"]
     assert "legacy_wire_latest_as_current_provider_admission" in execution_latest["forbidden_claims"]
@@ -98,18 +98,18 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             ),
             "active_callers": [
                 (
-                    "study_transition_receipt_consumption_parts.owner_callable_candidates."
+                    "study_transition_receipt_consumption.owner_callable_candidates."
                     "owner_callable_receipt_candidates::_stage_closeout_candidates"
                 ),
                 "study_transition_receipt_consumption.owner_callable_receipt_consumption",
                 "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
                 (
-                    "study_transition_receipt_consumption_parts.owner_callable_followthrough."
+                    "study_transition_receipt_consumption.owner_callable_followthrough."
                     "owner_callable_receipt_followthrough_consumption"
                 ),
-                "provider_admission_parts.provider_admission_report_closeout_scan",
+                "provider_admission.provider_admission_report_closeout_scan",
                 "study_outer_loop_work_units",
-                "study_progress_parts.opl_current_control_state_terminal_logs",
+                "study_progress.opl_current_control_state_terminal_logs",
             ],
             "allowed_consumption": [
                 "terminal_closeout_consumption",
@@ -271,7 +271,7 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
     )
     assert runtime_health["retired_code_symbols"] == [
         "runtime_health_kernel.append_runtime_health_event",
-        "runtime_health_kernel_parts.event_log.append_runtime_health_event",
+        "runtime_health_kernel.event_log.append_runtime_health_event",
     ]
     assert runtime_health["active_caller_boundary"]["active_caller_effect"] == (
         "body_free_runtime_health_diagnostic_projection"
@@ -333,11 +333,11 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
             ),
             "active_callers": [
                 (
-                    "paper_repair_executor_parts.ai_reviewer_currentness::"
+                    "paper_repair_executor.ai_reviewer_currentness::"
                     "runtime_health_snapshot_path_read"
                 ),
                 (
-                    "study_runtime_decision_parts.runtime_health_dominance::"
+                    "study_runtime_decision.runtime_health_dominance::"
                     "runtime_health_decision_gate_projection"
                 ),
                 "runtime_health_kernel.run_runtime_health_kernel::read_runtime_status_projection",
@@ -422,9 +422,15 @@ def assert_runtime_inventory_tails(surfaces: dict[str, dict]) -> None:
         "opl_obligation_actuator_tail_readback_requirement"
     ]["physical_delete_allowed_without_tail_proof"] is False
     assert obligation_actuator["mas_typed_blocker_authority_result_adapter"] == (
-        "med_autoscience.controllers.provider_admission_parts."
-        "obligation_actuator_parts.mas_domain_typed_blocker_authority_result"
+        "mas_domain_typed_blocker_authority_result_adapter_removed_split_package"
     )
+    assert obligation_actuator["mas_typed_blocker_authority_result_adapter_active_source_present"] is False
+    assert obligation_actuator["mas_typed_blocker_authority_result_adapter_source_status"] == (
+        "retired_source_reference"
+    )
+    assert obligation_actuator["validator_module"] == "mas_domain_typed_blocker_readback_validator_removed_split_package"
+    assert obligation_actuator["validator_module_active_source_present"] is False
+    assert obligation_actuator["validator_module_source_status"] == "retired_source_reference"
     assert obligation_actuator["typed_blocker_authority_result_adapter_surface"] == (
         "mas_domain_typed_blocker_authority_result_adapter"
     )

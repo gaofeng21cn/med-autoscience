@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.runtime_health_kernel_parts import event_log as runtime_health_event_log
+from med_autoscience.controllers.runtime_health_kernel import event_log as runtime_health_event_log
 
 
 def _kernel():

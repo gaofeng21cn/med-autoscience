@@ -50,7 +50,7 @@ def _write_stage_attempt_closeout(
 
 def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -161,7 +161,7 @@ def test_live_provider_attempt_projection_reads_queue_list_linked_liveness(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -230,7 +230,7 @@ def test_live_provider_attempt_projection_rejects_unobserved_linked_liveness(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -292,7 +292,7 @@ def test_live_provider_attempt_projection_skips_linked_liveness_with_terminal_ma
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -357,7 +357,7 @@ def test_live_provider_attempt_projection_skips_queue_inspect_with_terminal_mas_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -443,7 +443,7 @@ def test_live_provider_attempt_projection_prefers_current_owner_action(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -560,7 +560,7 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -665,7 +665,7 @@ def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_di
 
 def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
@@ -721,7 +721,7 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -823,7 +823,7 @@ def test_live_provider_attempt_projection_skips_attempt_ledger_entry_with_termin
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.opl_provider_attempts"
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

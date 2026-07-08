@@ -8,17 +8,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WRITE_ROUTE_SURFACES = (
     (
-        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal_parts/package_builder.py",
+        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal/package_builder.py",
         "create_submission_minimal_package",
         "submission_materialize",
     ),
     (
-        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
+        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync/sync_orchestration.py",
         "sync_study_delivery",
         "delivery_sync",
     ),
     (
-        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/submission_delivery_descriptions.py",
+        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync/submission_delivery_descriptions.py",
         "materialize_submission_delivery_stale_notice",
         "submission_notice_materialize",
     ),
@@ -31,7 +31,7 @@ WRITE_ROUTE_SURFACES = (
 
 ROUTE_CONTEXT_REPLAY_SURFACES = (
     (
-        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal_parts/post_materialization_sync.py",
+        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal/post_materialization_sync.py",
         "replay_post_submission_minimal_sync",
     ),
 )
@@ -43,8 +43,8 @@ LOWER_LEVEL_DELIVERY_HELPERS = {
     "sync_promoted_journal_delivery",
 }
 LOWER_LEVEL_DELIVERY_HELPER_SURFACES = (
-    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/delivery_stage_sync.py",
-    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/promoted_journal_delivery.py",
+    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync/delivery_stage_sync.py",
+    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync/promoted_journal_delivery.py",
 )
 
 MUTATING_ENTRY_PREFIXES = ("create_", "materialize_", "replay_", "sync_")

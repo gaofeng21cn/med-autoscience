@@ -580,7 +580,7 @@
           "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
           "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
           "src/med_autoscience/opl_domain_pack/",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py"
+          "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py"
         ],
         "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
         "domain_ref_consumers": [
@@ -852,8 +852,8 @@
         "classification": "domain_authority_refs",
         "code_paths": [
           "src/med_autoscience/controllers/stage_knowledge_plane.py",
-          "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_inventory.py",
-          "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_writeback.py"
+          "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_inventory.py",
+          "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_writeback.py"
         ],
         "current_ref_status": "body_free_locator_transport_active",
         "domain_ref_consumers": [
@@ -1015,9 +1015,9 @@
         },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
-          "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
-          "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
+          "src/med_autoscience/controllers/product_entry/workspace_cockpit/",
+          "src/med_autoscience/controllers/product_entry/attention_projection.py",
+          "src/med_autoscience/controllers/product_entry/generated_status_projection.py"
         ],
         "current_ref_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
         "current_surface_refs": [
@@ -1038,13 +1038,13 @@
           "does_not_claim_physical_delete": true,
           "does_not_touch_publication_or_package_authority": true,
           "domain_projection_entry_shells": [
-            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
-            "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
-            "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
+            "src/med_autoscience/controllers/product_entry/program_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/workspace_attention.py",
+            "src/med_autoscience/controllers/product_entry/manifest_surfaces.py"
           ],
           "extracted_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
-            "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
+            "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
+            "src/med_autoscience/controllers/product_entry/attention_projection.py"
           ],
           "read_model_materializer_boundary": {
             "active_callers": [],
@@ -1079,7 +1079,7 @@
             "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
             "retired_paths": [
               "retired_combined_portal_runtime_soak_entry_removed_no_alias",
-              "retired_combined_portal_runtime_soak_parts_removed_no_alias"
+              "retired_combined_portal_runtime_soak_split_package_removed_no_alias"
             ],
             "scope": "retired_read_model_evidence_shell_provenance",
             "status": "physically_retired_no_alias"
@@ -1281,8 +1281,8 @@
         "code_paths": [
           "src/med_autoscience/domain_entry.py",
           "src/med_autoscience/controllers/product_entry.py",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
+          "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
+          "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
           "plugins/mas/skills/mas/SKILL.md"
         ],
         "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
@@ -1326,7 +1326,7 @@
       {
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
+          "src/med_autoscience/controllers/opl_unique_control_plane_boundary/"
         ],
         "current_ref_status": "opl_replacement_default_local_tombstone_only",
         "domain_ref_consumers": [
@@ -1350,7 +1350,7 @@
         "authority_boundary": "opl_owns_queue_attempt_retry_transport_mas_signs_stage_closeout_receipts",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/study_runtime_execution_parts/controller_authorization_receipts.py"
+          "src/med_autoscience/controllers/study_runtime_execution/controller_authorization_receipts.py"
         ],
         "current_ref_status": "opl_owned_runtime_control_mas_consumes_closeout_refs",
         "domain_ref_consumers": [
@@ -1429,7 +1429,7 @@
         "classification": "minimal_authority_function",
         "code_paths": [
           "src/med_autoscience/controllers/publication_gate.py",
-          "src/med_autoscience/controllers/study_progress_parts/publication_runtime.py",
+          "src/med_autoscience/controllers/study_progress/publication_runtime.py",
           "src/med_autoscience/controllers/ai_reviewer_runtime_workflow.py",
           "src/med_autoscience/controllers/ai_reviewer_publication_eval.py"
         ],
@@ -1717,7 +1717,7 @@
         {
           "current_paths": [
             "plugins/mas/skills/mas/SKILL.md",
-            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py"
+            "src/med_autoscience/controllers/product_entry/program_surfaces.py"
           ],
           "current_role": "domain_skill_handler_target_and_pack_refs_only",
           "surface_id": "skill",
@@ -1733,9 +1733,9 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_functional_closure.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
+            "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
+            "src/med_autoscience/controllers/owner_route_handoff/domain_handler_functional_closure.py",
+            "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py"
           ],
           "current_role": "domain_owner_route_refs_export_dispatch_source",
           "surface_id": "domain_handler",
@@ -1743,7 +1743,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/",
+            "src/med_autoscience/controllers/product_entry/",
             "src/med_autoscience/controllers/progress_projection.py"
           ],
           "current_role": "domain_truth_refs_status_projection_source",
@@ -1752,7 +1752,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/"
           ],
           "current_role": "domain_refs_workbench_projection_source",
           "surface_id": "workbench",
@@ -1760,7 +1760,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/"
+            "src/med_autoscience/controllers/product_entry/"
           ],
           "current_role": "domain_refs_projection_builder_source",
           "surface_id": "projection_shell",

@@ -613,7 +613,7 @@ def test_stale_time_to_event_grouped_payload_detection_does_not_require_retired_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.gate_clearing_batch_parts.display_refresh"
+        "med_autoscience.controllers.gate_clearing_batch.display_refresh"
     )
     paper_root = tmp_path / "paper"
     paper_root.mkdir(parents=True)

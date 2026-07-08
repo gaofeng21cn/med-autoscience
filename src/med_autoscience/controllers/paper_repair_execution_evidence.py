@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
+from med_autoscience.controllers.medical_prose_story_surface.writer_delta_preservation import (
     current_writer_story_delta_is_preservable,
 )
 from med_autoscience.controllers.story_surface_work_units import (

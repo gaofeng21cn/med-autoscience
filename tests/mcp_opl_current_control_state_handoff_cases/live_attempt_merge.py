@@ -11,7 +11,7 @@ from tests.mcp_opl_current_control_state_handoff_cases.shared import (
 )
 
 def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
 
     merged = module.merge_live_attempt_observability_into_handoff(
         handoff={
@@ -52,7 +52,7 @@ def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> N
 
 
 def test_live_attempt_merge_replaces_stale_handoff_work_unit_identity() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
 
     merged = module.merge_live_attempt_observability_into_handoff(
         handoff={
@@ -105,7 +105,7 @@ def test_live_attempt_merge_replaces_stale_handoff_work_unit_identity() -> None:
 
 
 def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_closeout() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
 
     merged = module.merge_live_attempt_observability_into_handoff(
         handoff={
@@ -163,7 +163,7 @@ def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_clo
 
 
 def test_live_attempt_merge_supersedes_unsupported_dispatch_blocker() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
 
     merged = module.merge_live_attempt_observability_into_handoff(
         handoff={
@@ -201,7 +201,7 @@ def test_live_attempt_merge_supersedes_unsupported_dispatch_blocker() -> None:
 
 
 def test_live_attempt_merge_ignores_prior_typed_closeout_for_different_stage_attempt() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
 
     merged = module.merge_live_attempt_observability_into_handoff(
         handoff={
@@ -257,7 +257,7 @@ def test_live_attempt_merge_ignores_prior_typed_closeout_for_different_stage_att
 
 
 def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
@@ -324,7 +324,7 @@ def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None
 
 
 def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(

@@ -8,7 +8,7 @@ from med_autoscience.runtime_protocol.topology import PaperRootContext
 
 
 def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_gate_replay(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.post_materialization_sync")
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal.post_materialization_sync")
     paper_root = tmp_path / "paper"
     submission_root = paper_root / "submission_minimal"
     current_package_root = tmp_path / "studies" / "001-risk" / "manuscript" / "current_package"
@@ -95,7 +95,7 @@ def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_g
 
 
 def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.post_materialization_sync")
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal.post_materialization_sync")
     paper_root = tmp_path / "paper"
     context = PaperRootContext(
         paper_root=paper_root,
@@ -255,7 +255,7 @@ def test_replay_post_submission_minimal_sync_skips_progress_refresh_when_profile
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.submission_minimal_parts.post_materialization_sync")
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal.post_materialization_sync")
     paper_root = tmp_path / "paper"
     context = PaperRootContext(
         paper_root=paper_root,

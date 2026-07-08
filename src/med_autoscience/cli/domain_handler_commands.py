@@ -26,7 +26,7 @@ def handle_domain_handler_command(
         profile = load_profile(profile_ref)
         study_ids = tuple(dict.fromkeys([*(args.studies or ()), *(args.study_ids or ())]))
         domain_handler_export = load_module(
-            "med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export"
+            "med_autoscience.controllers.owner_route_handoff.domain_handler_export"
         )
         result = domain_handler_export.export_family_domain_handler(
             profile=profile,
@@ -49,7 +49,7 @@ def handle_domain_handler_command(
             _print_json(result)
             return 0 if bool(result.get("accepted")) else 1
         dispatch_orchestration = load_module(
-            "med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration"
+            "med_autoscience.controllers.owner_route_handoff.dispatch_orchestration"
         )
         result = dispatch_orchestration.dispatch_family_domain_handler_task(task_path=Path(args.task))
         _print_json(result)

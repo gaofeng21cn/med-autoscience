@@ -104,7 +104,7 @@ def test_materializer_does_not_keep_registry_known_legacy_successor_action_as_ma
 def test_mas_foreground_owner_callable_adapter_has_no_dispatch_or_success_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     projection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection"
+        "med_autoscience.controllers.domain_action_request_materializer.transition_request_projection"
     )
     action = {
         "action_type": "run_quality_repair_batch",

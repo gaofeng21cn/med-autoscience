@@ -33,13 +33,13 @@ def test_launch_study_explicit_wakeup_records_truth_resume(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import launch_study
 
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
     )
     monitoring_module = importlib.import_module(
-        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+        "med_autoscience.controllers.study_progress.progress_first_monitoring"
     )
     truth_kernel = importlib.import_module("med_autoscience.controllers.study_truth_kernel")
     profile = make_profile(tmp_path)
@@ -113,10 +113,10 @@ def test_launch_study_explicit_wakeup_releases_paused_runtime_gate(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import launch_study
 
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
     )
     runtime_protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_models = importlib.import_module("med_autoscience.runtime_protocol.study_runtime_models")
@@ -210,10 +210,10 @@ def test_launch_study_rejects_unsupported_entry_mode_before_runtime_projection(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import launch_study
 
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
     )
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -239,10 +239,10 @@ def test_launch_study_uses_formal_runtime_entry_mode_for_opl_handoff(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface import launch_study
+    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import launch_study
 
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
     )
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"

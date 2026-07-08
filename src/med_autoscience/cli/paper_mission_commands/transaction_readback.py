@@ -15,7 +15,7 @@ from med_autoscience.cli.paper_mission_commands.materialized_readback_context im
     paper_audit_pack_for_cli_readback as _paper_audit_pack_for_cli_readback,
 )
 from med_autoscience.controllers.study_interventions import read_intervention_events
-from med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection import (
+from med_autoscience.controllers.study_progress.canonical_owner_action_projection import (
     submission_authority_owner_gate_readback,
 )
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier

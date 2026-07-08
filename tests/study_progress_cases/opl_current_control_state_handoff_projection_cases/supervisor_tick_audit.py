@@ -17,7 +17,7 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     tmp_path: Path,
 ) -> None:
     runtime_decision = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+        "med_autoscience.controllers.study_runtime_decision.publication_and_submission"
     )
     status_module = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     profile = make_profile(tmp_path)

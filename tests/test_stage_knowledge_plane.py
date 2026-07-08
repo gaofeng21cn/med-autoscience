@@ -566,7 +566,7 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
 
 def test_publication_route_memory_inventory_projects_body_free_receipts_across_paper_lines(tmp_path) -> None:
     inventory_module = importlib.import_module(
-        "med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"
+        "med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_inventory"
     )
     workspace_root = tmp_path / "workspace"
     stage_knowledge_plane.apply_publication_route_memory_seed_fixture(

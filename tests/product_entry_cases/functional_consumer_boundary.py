@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from med_autoscience.controllers.product_entry_parts.manifest_surfaces import build_product_entry_manifest
+from med_autoscience.controllers.product_entry.manifest_surfaces import build_product_entry_manifest
 from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
 from .shared import make_profile
@@ -219,7 +219,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
-        "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
+        "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
     ]
     assert by_id["paper_progress_transition_refs"]["classification"] == "domain_authority_refs"
     assert by_id["publication_quality_verdict"]["classification"] == "minimal_authority_function"

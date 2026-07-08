@@ -199,7 +199,7 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
@@ -343,7 +343,7 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     dispatch_contract = importlib.import_module(
-        "med_autoscience.controllers.stage_outcome_authority_parts.dispatch_contract"
+        "med_autoscience.controllers.stage_outcome_authority.dispatch_contract"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
@@ -540,7 +540,7 @@ def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_trans
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     writer_handoff = importlib.import_module(
-        "med_autoscience.controllers.quality_repair_batch_parts.writer_handoff"
+        "med_autoscience.controllers.quality_repair_batch.writer_handoff"
     )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))

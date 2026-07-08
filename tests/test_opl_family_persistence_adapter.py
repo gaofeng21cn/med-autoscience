@@ -171,7 +171,7 @@ def test_legacy_authority_refs_payload_helper_is_history_replay_only(tmp_path: P
 
 
 def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.manifest_surfaces")
+    module = importlib.import_module("med_autoscience.controllers.product_entry.manifest_surfaces")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
@@ -396,8 +396,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert by_slot["agent/quality_gates"]["surface_class"] == "quality"
     assert by_slot["agent/quality_gates"]["default_for_new_surfaces"] is True
     assert by_slot["contracts/runtime/domain-handler"]["repo_paths"] == [
-        "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
-        "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
+        "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
+        "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
         "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
     ]
     assert by_slot["contracts/runtime/projection_builders"]["surface_class"] == "projection"

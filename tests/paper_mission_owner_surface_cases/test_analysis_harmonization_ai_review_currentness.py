@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from med_autoscience.controllers.paper_mission_owner_surface_parts.analysis_harmonization_ai_review import (
+from med_autoscience.controllers.paper_mission_owner_surface.analysis_harmonization_ai_review import (
     publication_eval_covers_currentness_refs,
 )
 

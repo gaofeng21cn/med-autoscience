@@ -10,7 +10,7 @@ from med_autoscience.controllers.next_action_envelope import (
     resolve_action_family,
 )
 from med_autoscience.controllers import opl_domain_progress_transition_contract
-from med_autoscience.controllers.domain_action_request_materializer_parts.transition_request_projection import (
+from med_autoscience.controllers.domain_action_request_materializer.transition_request_projection import (
     domain_progress_transition_request_projection,
 )
 from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope

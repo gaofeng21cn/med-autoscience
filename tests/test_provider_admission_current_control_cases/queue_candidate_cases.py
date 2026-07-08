@@ -14,7 +14,7 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_can
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = tmp_path / "studies" / study_id
@@ -131,7 +131,7 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_c
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id
@@ -239,10 +239,10 @@ def test_provider_admission_candidate_carries_top_level_work_unit_identity_from_
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     handoffs = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission_handoffs"
+        "med_autoscience.controllers.provider_admission.provider_admission_handoffs"
     )
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = tmp_path / "studies" / study_id

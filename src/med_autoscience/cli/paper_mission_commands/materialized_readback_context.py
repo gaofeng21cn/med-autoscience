@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_progress_parts.canonical_owner_action_projection import (
+from med_autoscience.controllers.study_progress.canonical_owner_action_projection import (
     build_canonical_owner_action_projection,
     owner_action_next_step,
 )

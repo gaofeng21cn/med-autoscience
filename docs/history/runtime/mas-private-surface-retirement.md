@@ -78,7 +78,7 @@ Forbidden interpretation: the old cleanup command, parser entry, controller modu
 
 Disposition: `physically_retired`
 
-Retired code path: `src/med_autoscience/controllers/domain_action_request_materializer_parts/persistence.py`
+Retired code path: `src/med_autoscience/controllers/domain_action_request_materializer/persistence.py`
 
 Retired symbols: `persist_default_executor_dispatches`, `persist_request_packets`, `persist_consumer_payload`, `request_packet_for_persistence`, `medical_paper_readiness_packet_for_persistence`, `source_workflow_ref_for_ai_reviewer_request`.
 

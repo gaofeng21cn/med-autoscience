@@ -15,7 +15,10 @@ def test_owner_callable_dispatch_residue_cleanup_surface_is_physically_retired()
     ).exists()
     assert not (REPO_ROOT / "tests" / "test_owner_callable_dispatch_residue_cleanup.py").exists()
 
-    cli_text = (SRC_ROOT / "cli.py").read_text(encoding="utf-8")
+    cli_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((SRC_ROOT / "cli").rglob("*.py"))
+    )
     parser_text = (SRC_ROOT / "cli" / "parser.py").read_text(encoding="utf-8")
     assert "_load_controller(\"owner_callable_dispatch_residue_cleanup\")" not in cli_text
     assert "owner_callable_dispatch_residue_cleanup =" not in cli_text
@@ -52,7 +55,7 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
 
 def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_path) -> None:
     candidates = importlib.import_module(
-        "med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_callable_candidates"
+        "med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates"
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"
@@ -141,13 +144,13 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     )
     assert {
         (
-            "study_transition_receipt_consumption_parts.owner_callable_candidates."
+            "study_transition_receipt_consumption.owner_callable_candidates."
             "owner_callable_receipt_candidates::_stage_closeout_candidates"
         ),
         "study_transition_receipt_consumption.owner_callable_receipt_consumption",
         "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
-        "provider_admission_parts.provider_admission_report_closeout_scan",
-        "study_progress_parts.opl_current_control_state_terminal_logs",
+        "provider_admission.provider_admission_report_closeout_scan",
+        "study_progress.opl_current_control_state_terminal_logs",
     } <= set(scan["active_callers"])
     assert "terminal_closeout_consumption" in scan["allowed_consumption"]
     assert "typed_blocker_consumption" in scan["allowed_consumption"]
@@ -182,7 +185,7 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
     tmp_path,
 ) -> None:
     execution_io = importlib.import_module(
-        "med_autoscience.controllers.stage_outcome_authority_parts.execution_io"
+        "med_autoscience.controllers.stage_outcome_authority.execution_io"
     )
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.WorkspaceProfile(
@@ -239,13 +242,13 @@ def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
 
 def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_path) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     export_projection = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
+        "med_autoscience.controllers.owner_route_handoff.export_study_projection"
     )
     recovery_actions = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.recovery_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface.recovery_actions"
     )
     study_root = tmp_path / "studies" / "study-1"
     legacy_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json"
@@ -320,13 +323,13 @@ def test_current_owner_callable_readers_do_not_consume_legacy_latest_wire(tmp_pa
 
 def test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first(tmp_path) -> None:
     provider_admission = importlib.import_module(
-        "med_autoscience.controllers.provider_admission_parts.provider_admission"
+        "med_autoscience.controllers.provider_admission.provider_admission"
     )
     export_projection = importlib.import_module(
-        "med_autoscience.controllers.owner_route_handoff_parts.export_study_projection"
+        "med_autoscience.controllers.owner_route_handoff.export_study_projection"
     )
     recovery_actions = importlib.import_module(
-        "med_autoscience.controllers.paper_mission_owner_surface_parts.recovery_actions"
+        "med_autoscience.controllers.paper_mission_owner_surface.recovery_actions"
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"

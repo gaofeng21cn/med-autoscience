@@ -128,8 +128,8 @@ Progress Portal 和 MCP compact projection 已能显示 `progress_first_monitori
 - `agent/stages/stage_route_contract.yaml`
 - `src/med_autoscience/opl_domain_pack/progress_first_policies.py`
 - `src/med_autoscience/opl_domain_pack/stage_throughput_contracts.py`
-- `src/med_autoscience/controllers/study_progress_parts/progress_first_projection.py`
-- `src/med_autoscience/controllers/study_progress_parts/progress_first_monitoring.py`
+- `src/med_autoscience/controllers/study_progress/progress_first_projection.py`
+- `src/med_autoscience/controllers/study_progress/progress_first_monitoring.py`
 - `src/med_autoscience/controllers/study_state_matrix.py`
 - `src/med_autoscience/controllers/domain_owner_action_dispatch.py`
 - `src/med_autoscience/controllers/progress_first_closeout.py`
