@@ -121,6 +121,9 @@ def test_removed_grouped_ensure_runtime_command_is_removed(tmp_path: Path) -> No
 
 def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    launch_surface = importlib.import_module(
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
+    )
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
@@ -146,8 +149,8 @@ def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Pa
         called["force"] = force
         return {"surface": "launch_study", "study_id": study_id, "quest_id": study_id}
 
-    monkeypatch.setattr(cli, "launch_study", fake_launch_study)
-    monkeypatch.setattr(cli, "render_launch_study_markdown", lambda payload: json.dumps(payload))
+    monkeypatch.setattr(launch_surface, "launch_study", fake_launch_study)
+    monkeypatch.setattr(launch_surface, "render_launch_study_markdown", lambda payload: json.dumps(payload))
 
     exit_code = cli.main(
         [
@@ -221,12 +224,13 @@ def test_progress_projection_command_legacy_json_alias_is_removed(tmp_path: Path
 
 def test_study_progress_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    progress_projection = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 
     monkeypatch.setattr(
-        cli,
+        progress_projection,
         "read_study_progress",
         lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
@@ -266,11 +270,12 @@ def test_study_progress_command_serializes_typed_controller_result(monkeypatch, 
     assert '"study_id": "001-risk"' in captured.out
 def test_study_progress_command_serializes_nested_path_values(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    progress_projection = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        cli,
+        progress_projection,
         "read_study_progress",
         lambda **kwargs: {
             "decision": "blocked",
@@ -659,6 +664,9 @@ def test_mainline_phase_command_dispatches_controller(monkeypatch, capsys) -> No
     assert json.loads(captured.out)["phase"]["id"] == "phase_2_user_product_loop"
 def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    launch_surface = importlib.import_module(
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
+    )
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
@@ -689,7 +697,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
             "commands": {},
         }
 
-    monkeypatch.setattr(cli, "launch_study", fake_launch)
+    monkeypatch.setattr(launch_surface, "launch_study", fake_launch)
 
     exit_code = cli.main(
         [
@@ -724,6 +732,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
 
 def test_submit_study_task_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    entry_runtime = importlib.import_module("med_autoscience.controllers.product_entry.entry_runtime")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
@@ -763,7 +772,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
             "artifacts": {"latest_json": "/tmp/latest.json", "latest_markdown": "/tmp/latest.md"},
         }
 
-    monkeypatch.setattr(cli, "submit_study_task", fake_submit)
+    monkeypatch.setattr(entry_runtime, "submit_study_task", fake_submit)
 
     exit_code = cli.main(
         [

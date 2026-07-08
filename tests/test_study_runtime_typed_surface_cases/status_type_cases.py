@@ -8,12 +8,19 @@ globals().update({
     if not name.startswith('__')
 })
 
+
+def _assert_progress_projection_owned(symbol, status_surface) -> None:
+    assert symbol.__module__ == status_surface.__name__ or symbol.__module__.startswith(
+        f"{status_surface.__name__}."
+    )
+
+
 def test_study_runtime_types_reexports_status_surfaces_from_progress_projection() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.ProgressProjectionStatus is status_surface.ProgressProjectionStatus
-    assert typed_surface.ProgressProjectionStatus.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(typed_surface.ProgressProjectionStatus, status_surface)
     assert not hasattr(typed_surface, "StudyRuntimeExecutionContext")
     assert not hasattr(typed_surface, "StudyRuntimeExecutionOutcome")
 
@@ -30,25 +37,25 @@ def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimePublicationSupervisorState is status_surface.StudyRuntimePublicationSupervisorState
-    assert typed_surface.StudyRuntimePublicationSupervisorState.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(typed_surface.StudyRuntimePublicationSupervisorState, status_surface)
 def test_study_runtime_types_reexports_execution_owner_guard_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimeExecutionOwnerGuard is status_surface.StudyRuntimeExecutionOwnerGuard
-    assert typed_surface.StudyRuntimeExecutionOwnerGuard.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(typed_surface.StudyRuntimeExecutionOwnerGuard, status_surface)
 def test_study_runtime_types_reexports_pending_user_interaction_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimePendingUserInteraction is status_surface.StudyRuntimePendingUserInteraction
-    assert typed_surface.StudyRuntimePendingUserInteraction.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(typed_surface.StudyRuntimePendingUserInteraction, status_surface)
 def test_study_runtime_types_reexports_continuation_state_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimeContinuationState is status_surface.StudyRuntimeContinuationState
-    assert typed_surface.StudyRuntimeContinuationState.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(typed_surface.StudyRuntimeContinuationState, status_surface)
 def test_domain_status_projection_reexports_typed_surface_from_study_runtime_types() -> None:
     router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
@@ -69,7 +76,7 @@ def test_domain_status_projection_reexports_typed_surface_from_study_runtime_typ
     assert router.StudyRuntimeReentryGate is typed_surface.StudyRuntimeReentryGate
     assert router.StudyCompletionSyncResult is typed_surface.StudyCompletionSyncResult
     assert router.ProgressProjectionStatus is typed_surface.ProgressProjectionStatus
-    assert router.ProgressProjectionStatus.__module__ == status_surface.__name__
+    _assert_progress_projection_owned(router.ProgressProjectionStatus, status_surface)
     assert router.progress_projection.__module__ == router.__name__
     assert not hasattr(router, "StudyRuntimeDecision")
     assert not hasattr(router, "StudyRuntimeReason")
@@ -85,7 +92,7 @@ def test_study_runtime_types_excludes_retired_execution_aggregate() -> None:
     assert typed_surface.ProgressProjectionStatus is status_module.ProgressProjectionStatus
     assert typed_surface.StudyRuntimeDecision is status_module.StudyRuntimeDecision
     assert typed_surface.StudyRuntimeReason is status_module.StudyRuntimeReason
-    assert typed_surface.ProgressProjectionStatus.__module__ == status_module.__name__
+    _assert_progress_projection_owned(typed_surface.ProgressProjectionStatus, status_module)
     assert not hasattr(typed_surface, "StudyRuntimeExecutionContext")
     assert not hasattr(typed_surface, "StudyRuntimeExecutionOutcome")
 def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() -> None:

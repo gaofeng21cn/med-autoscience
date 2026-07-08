@@ -325,9 +325,13 @@ def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, c
             "current_stage_summary": "shell argv grouped command works.",
         }
 
-    monkeypatch.setattr(cli, "read_study_progress", fake_read_study_progress)
+    progress_projection = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    markdown_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress.markdown_projection_rendering"
+    )
+    monkeypatch.setattr(progress_projection, "read_study_progress", fake_read_study_progress)
     monkeypatch.setattr(
-        cli,
+        markdown_projection,
         "render_study_progress_markdown",
         lambda payload: "# 研究进度\n\nshell argv grouped command works.\n",
     )
@@ -514,9 +518,13 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
             "current_stage_summary": "系统已经推进到需要用户确认的节点。",
         }
 
-    monkeypatch.setattr(cli, "read_study_progress", fake_read_study_progress)
+    progress_projection = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    markdown_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress.markdown_projection_rendering"
+    )
+    monkeypatch.setattr(progress_projection, "read_study_progress", fake_read_study_progress)
     monkeypatch.setattr(
-        cli,
+        markdown_projection,
         "render_study_progress_markdown",
         lambda payload: "# 研究进度\n\n系统已经推进到需要用户确认的节点。\n",
     )

@@ -9,13 +9,16 @@ from tests.test_cli_cases.shared import write_profile
 
 def test_launch_study_command_rejects_unsupported_entry_mode(monkeypatch, tmp_path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    launch_surface = importlib.import_module(
+        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
+    )
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
 
     def fake_launch(**kwargs) -> dict:
         raise ValueError("study launch entry mode 不支持: managed; supported_entry_modes=direct, opl-handoff")
 
-    monkeypatch.setattr(cli, "launch_study", fake_launch)
+    monkeypatch.setattr(launch_surface, "launch_study", fake_launch)
 
     with pytest.raises(SystemExit) as excinfo:
         cli.main(
