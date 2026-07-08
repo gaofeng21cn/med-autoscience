@@ -77,12 +77,20 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - Python package markers：删除测试树内 0 字节 `__init__.py` marker，保留 `src/med_autoscience/resources/__init__.py` 这类 package-data 边界。当前 pytest 仍通过 native discovery 与显式 aggregate/case module 工作；不恢复空 marker 当 package identity shim。
 - Plugin alias retirement：删除 tracked symlink `plugins/mas` 与 `plugins/med-autoscience/skills/mas`。所有 active source / contracts / tests / docs ref 已迁到 `plugins/med-autoscience/.codex-plugin/plugin.json`、`plugins/med-autoscience/bin/medautosci-mcp`、`plugins/med-autoscience/skills/med-autoscience/SKILL.md`；`scripts/opl-module-healthcheck.sh` 现在阻止 legacy alias 恢复。
 - Plugin launcher / installer currentness：`medautosci-mcp` launcher 识别 package 化后的 `src/med_autoscience/mcp_server/__init__.py`；`med_autoscience.cli` 与 `med_autoscience.mcp_server` 增加标准 `__main__.py`，让 clean runner 现有 `python -m <package>` entrypoint 不再依赖退役 file module shape。`codex_plugin_installer` 的 canonical plugin root 改为 `plugins/med-autoscience`，旧 `mas` 只作为本机 legacy symlink / test stub 清理对象。
-- Public facade status：`product_entry.py` 修正 `dispatch_guarded_medical_paper_operator_action` 的 public `__all__` re-export 顺序。其余 facade 物理删除仍等待 `_parts` lane / public identity contract 更新；不能因 facade 很薄就删除仍被 public smoke、runtime controller identity 或 tests 消费的 import surface。
+- Public facade status：`product_entry.py` 修正 `dispatch_guarded_medical_paper_operator_action` 的 public `__all__` re-export 顺序。`*_parts` lane 已关闭；其余 facade 是否物理删除只看 active caller、public identity contract 和 focused tests，不能因 facade 很薄就删除仍被 public smoke、runtime controller identity 或 tests 消费的 import surface。
 - `LazyModuleProxy` 保留：fresh evidence 显示它承担 controller currentness 语义，每次访问检查 `sys.modules` replacement；`tests/test_lazy_module_proxy.py` 与 `docs/runtime/control/controllers.md` 明确约束该行为。用一次性 `importlib.import_module` 替代会丢失 monkeypatch / reload currentness，不按 overengineering 删除。
 - Runtime diagnostic tail 保留边界：`current_work_unit`、`current_execution_envelope` 仍有 active projection / owner-surface imports；`provider_admission` 是活跃控制面族，不是无引用 facade。后续只能在 active caller 迁移、replacement parity、no-forbidden-write 和 tombstone evidence 齐备后继续物理删除。
-- Import-star status：top-level pytest aggregate entrypoints 保留以维持当前 focused nodeid / collection contract；production `import *` 主要绑定 `_parts` 退役 lane，当前 cleanup lane 不做孤立机械展开。后续在 parts lane 自然包吸收时按 concrete owner module 显式化。
+- Import-star status：top-level pytest aggregate entrypoints 保留以维持当前 focused nodeid / collection contract；production `import *` 不作为 `_parts` 退役残留保留。后续若继续收薄测试 aggregate，只按 case-family discovery contract 做，不恢复 `_parts` bucket。
 - Fresh cleanup verification：`rtk proxy scripts/verify.sh` -> repo hygiene passed，smoke / line-budget 8 passed；`git diff --check` clean；active ref scan 对 `medautoscience-logo.svg`、`scholar_display_pack_manifest.json`、legacy file-module entrypoints 和 legacy plugin skill alias 无命中，只剩 retirement wording / healthcheck guard；`find tests -path '*__init__.py' -size 0 -print` 无输出，`src/med_autoscience/resources/__init__.py` 是保留的 package-data marker。
-- Absorption status：此前根 checkout 被另一个 `_parts` 退役 lane 的 dirty write set 阻断；该 lane 已吸收到 `main`，本 cleanup tranche 已在其后 rebase，并按当前自然包路径保留 canonical plugin / package entrypoint cleanup。合入 `main` 仍必须走 fast-forward / evidence-bound absorption 和 post-absorption verify。
+- Absorption status：此前根 checkout 被另一个 `_parts` 退役 lane 的 dirty write set 阻断；该 lane 已吸收到 `main`，本 cleanup tranche 已在其后 rebase，并按当前自然包路径保留 canonical plugin / package entrypoint cleanup。最终 closeout 以 `src/` 与 `tests/` 下真实 `*_parts` 目录/文件归零、worktree/branch 清理和 post-absorption verify 为准。
+
+## 2026-07-08 `*_parts` hard-retirement closeout
+
+- Scope：`src/` 与 `tests/` 下所有真实 `*_parts` 目录/文件按自然 owner boundary 迁移或合并；不新增 wrapper、facade、compat alias 或二级 parts bucket。
+- Current source/test shape：`find src tests -type d -name '*_parts' -print` 无输出；`rg --files src tests | rg '_parts'` 无输出；`git ls-files 'src/**/*_parts*' 'tests/**/*_parts*'` 无输出。
+- Test surface follow-through：CLI / typed surface tests 已从旧 facade monkeypatch 与“单文件定义”断言迁到 concrete owner module / package-owned assertion，避免测试继续保护退役 wrapper 或旧单文件边界。
+- Worktree/branch hygiene：当前 `git worktree list --porcelain` 只保留根 checkout；`git branch --format='%(refname:short)'` 只剩 `main`。历史 `parts-zero-*`、`cleanup-overengineering-*` 与 top-cli/product/control/docs lane 已吸收或废弃后清理。
+- Boundary rule：`_parts` 只允许在 `boundary_fitness` 反模式 fixture、history/provenance 文档或普通变量名如 `relative_parts` / `date_parts` 中出现；不得作为 active source/test package、file path、new split target 或 compatibility route。
 
 ## 2026-07-06 P1 root artifact / facade cleanup evidence
 

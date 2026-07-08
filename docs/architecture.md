@@ -149,7 +149,7 @@ MAS 的模块数量已经足够大，单靠文档描述 owner 容易漂移。因
 
 ## Boundary Governance 与自然边界
 
-全仓 `_parts` 目录已经成为当前结构治理的主要观察面。它们表达自然职责边界：controller 薄入口、read-model/projection、publication gate、artifact lifecycle、display contract、CLI parser/command、test case family 等。`boundary_fitness` 把 hard blocking 与 advisory governance 分开：机械 `part/chunk/split` 编号仍是阻断；nested `_parts`、膨胀的 `shared_base.py`、接近 1000 行的单个 part、`exec(compile(...))` 拼接加载先作为 advisory 报告，服务后续自然边界拆分计划。
+全仓 `_parts` 目录已经退役，不再作为源码或测试的长期边界形态。当前结构治理只接受真实 owner / domain 边界：controller 薄入口、read-model/projection、publication gate、artifact lifecycle、display contract、CLI parser/command、test case family 等应落在具名 package、case module 或 owner module 下，而不是通过 `*_parts` bucket 维持机械拆分。`boundary_fitness` 继续把 hard blocking 与 advisory governance 分开：机械 `part/chunk/split` 编号仍是阻断；`*_parts` package marker、wildcard/dynamic export、膨胀的 `shared_base.py`、接近 1000 行的单个模块、`exec(compile(...))` 拼接加载作为结构治理信号，服务后续自然边界收薄。
 
 这组治理信号保持当前 authority API / contract / generated descriptor 稳定：`CLI`、`MCP`、controller callable surface、product-entry payload、manifest/schema 与当前测试入口按 owner 边界维护。已退役 import facade、compat alias、legacy wrapper 和旧聚合入口只保留 history / tombstone / provenance 语境，不作为 public contract 继续保护。后续 lane 若处理 advisory，在对应 owner 边界内把内部实现迁到更清晰的 importable module、case module 或 shared helper family；study truth、publication truth、runtime truth、artifact authority 和用户可见 next action 继续由对应 authority 持有。
 
