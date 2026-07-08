@@ -11,6 +11,29 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared_base)
 _module_reexport(_layout_sidecar_fixtures)
 
+
+def _label_order(*labels: str) -> list[dict[str, str]]:
+    return [{"label": label} for label in labels]
+
+
+def _valued_cells(*rows: tuple[str, str, float]) -> list[dict[str, object]]:
+    return [{"x": x, "y": y, "value": value} for x, y, value in rows]
+
+
+def _composition_group(
+    group_label: str,
+    group_order: int,
+    proportion_key: str,
+    label_key: str,
+    rows: tuple[tuple[str, float], ...],
+) -> dict[str, object]:
+    return {
+        "group_label": group_label,
+        "group_order": group_order,
+        proportion_key: [{label_key: label, "proportion": value} for label, value in rows],
+    }
+
+
 def _make_workflow_fact_sheet_panel_payload() -> dict[str, object]:
     return {
         "schema_version": 1,
@@ -109,41 +132,21 @@ def _make_single_cell_atlas_overview_display(display_id: str = "Figure27") -> di
         "composition_x_label": "Cell-state composition",
         "composition_y_label": "Group",
         "composition_groups": [
-            {
-                "group_label": "Tumor",
-                "group_order": 1,
-                "state_proportions": [
-                    {"state_label": "T cells", "proportion": 0.58},
-                    {"state_label": "Myeloid", "proportion": 0.42},
-                ],
-            },
-            {
-                "group_label": "Adjacent",
-                "group_order": 2,
-                "state_proportions": [
-                    {"state_label": "T cells", "proportion": 0.37},
-                    {"state_label": "Myeloid", "proportion": 0.63},
-                ],
-            },
+            _composition_group("Tumor", 1, "state_proportions", "state_label", (("T cells", 0.58), ("Myeloid", 0.42))),
+            _composition_group("Adjacent", 2, "state_proportions", "state_label", (("T cells", 0.37), ("Myeloid", 0.63))),
         ],
         "heatmap_panel_title": "Marker-program definition",
         "heatmap_x_label": "Cell state",
         "heatmap_y_label": "Marker / program",
         "score_method": "AUCell",
-        "row_order": [
-            {"label": "IFN response"},
-            {"label": "TGF-beta signaling"},
-        ],
-        "column_order": [
-            {"label": "T cells"},
-            {"label": "Myeloid"},
-        ],
-        "cells": [
-            {"x": "T cells", "y": "IFN response", "value": 0.81},
-            {"x": "Myeloid", "y": "IFN response", "value": -0.22},
-            {"x": "T cells", "y": "TGF-beta signaling", "value": -0.18},
-            {"x": "Myeloid", "y": "TGF-beta signaling", "value": 0.64},
-        ],
+        "row_order": _label_order("IFN response", "TGF-beta signaling"),
+        "column_order": _label_order("T cells", "Myeloid"),
+        "cells": _valued_cells(
+            ("T cells", "IFN response", 0.81),
+            ("Myeloid", "IFN response", -0.22),
+            ("T cells", "TGF-beta signaling", -0.18),
+            ("Myeloid", "TGF-beta signaling", 0.64),
+        ),
     }
 
 def _make_atlas_spatial_bridge_display(display_id: str = "Figure30") -> dict[str, object]:
@@ -177,41 +180,21 @@ def _make_atlas_spatial_bridge_display(display_id: str = "Figure30") -> dict[str
         "composition_x_label": "Cell-state composition",
         "composition_y_label": "Region",
         "composition_groups": [
-            {
-                "group_label": "Tumor core",
-                "group_order": 1,
-                "state_proportions": [
-                    {"state_label": "T cells", "proportion": 0.64},
-                    {"state_label": "Myeloid", "proportion": 0.36},
-                ],
-            },
-            {
-                "group_label": "Invasive margin",
-                "group_order": 2,
-                "state_proportions": [
-                    {"state_label": "T cells", "proportion": 0.42},
-                    {"state_label": "Myeloid", "proportion": 0.58},
-                ],
-            },
+            _composition_group("Tumor core", 1, "state_proportions", "state_label", (("T cells", 0.64), ("Myeloid", 0.36))),
+            _composition_group("Invasive margin", 2, "state_proportions", "state_label", (("T cells", 0.42), ("Myeloid", 0.58))),
         ],
         "heatmap_panel_title": "Marker-program definition",
         "heatmap_x_label": "Cell state",
         "heatmap_y_label": "Marker / program",
         "score_method": "AUCell",
-        "row_order": [
-            {"label": "CXCL13 program"},
-            {"label": "TGF-beta program"},
-        ],
-        "column_order": [
-            {"label": "T cells"},
-            {"label": "Myeloid"},
-        ],
-        "cells": [
-            {"x": "T cells", "y": "CXCL13 program", "value": 0.78},
-            {"x": "Myeloid", "y": "CXCL13 program", "value": -0.14},
-            {"x": "T cells", "y": "TGF-beta program", "value": -0.21},
-            {"x": "Myeloid", "y": "TGF-beta program", "value": 0.66},
-        ],
+        "row_order": _label_order("CXCL13 program", "TGF-beta program"),
+        "column_order": _label_order("T cells", "Myeloid"),
+        "cells": _valued_cells(
+            ("T cells", "CXCL13 program", 0.78),
+            ("Myeloid", "CXCL13 program", -0.14),
+            ("T cells", "TGF-beta program", -0.21),
+            ("Myeloid", "TGF-beta program", 0.66),
+        ),
     }
 
 def _make_spatial_niche_map_display(display_id: str = "Figure28") -> dict[str, object]:
@@ -236,41 +219,21 @@ def _make_spatial_niche_map_display(display_id: str = "Figure28") -> dict[str, o
         "composition_x_label": "Niche composition",
         "composition_y_label": "Region",
         "composition_groups": [
-            {
-                "group_label": "Tumor core",
-                "group_order": 1,
-                "niche_proportions": [
-                    {"niche_label": "Immune niche", "proportion": 0.64},
-                    {"niche_label": "Stromal niche", "proportion": 0.36},
-                ],
-            },
-            {
-                "group_label": "Invasive margin",
-                "group_order": 2,
-                "niche_proportions": [
-                    {"niche_label": "Immune niche", "proportion": 0.42},
-                    {"niche_label": "Stromal niche", "proportion": 0.58},
-                ],
-            },
+            _composition_group("Tumor core", 1, "niche_proportions", "niche_label", (("Immune niche", 0.64), ("Stromal niche", 0.36))),
+            _composition_group("Invasive margin", 2, "niche_proportions", "niche_label", (("Immune niche", 0.42), ("Stromal niche", 0.58))),
         ],
         "heatmap_panel_title": "Marker-program definition",
         "heatmap_x_label": "Niche state",
         "heatmap_y_label": "Marker / program",
         "score_method": "AUCell",
-        "row_order": [
-            {"label": "CXCL13 program"},
-            {"label": "TGF-beta program"},
-        ],
-        "column_order": [
-            {"label": "Immune niche"},
-            {"label": "Stromal niche"},
-        ],
-        "cells": [
-            {"x": "Immune niche", "y": "CXCL13 program", "value": 0.78},
-            {"x": "Stromal niche", "y": "CXCL13 program", "value": -0.14},
-            {"x": "Immune niche", "y": "TGF-beta program", "value": -0.21},
-            {"x": "Stromal niche", "y": "TGF-beta program", "value": 0.66},
-        ],
+        "row_order": _label_order("CXCL13 program", "TGF-beta program"),
+        "column_order": _label_order("Immune niche", "Stromal niche"),
+        "cells": _valued_cells(
+            ("Immune niche", "CXCL13 program", 0.78),
+            ("Stromal niche", "CXCL13 program", -0.14),
+            ("Immune niche", "TGF-beta program", -0.21),
+            ("Stromal niche", "TGF-beta program", 0.66),
+        ),
     }
 
 def _make_trajectory_progression_display(display_id: str = "Figure29") -> dict[str, object]:
@@ -296,10 +259,7 @@ def _make_trajectory_progression_display(display_id: str = "Figure29") -> dict[s
         "composition_panel_title": "Pseudotime-bin branch composition",
         "composition_x_label": "Branch composition",
         "composition_y_label": "Pseudotime bin",
-        "branch_order": [
-            {"label": "Branch A"},
-            {"label": "Branch B"},
-        ],
+        "branch_order": _label_order("Branch A", "Branch B"),
         "progression_bins": [
             {
                 "bin_label": "Early",
@@ -336,23 +296,16 @@ def _make_trajectory_progression_display(display_id: str = "Figure29") -> dict[s
         "heatmap_x_label": "Pseudotime bin",
         "heatmap_y_label": "Marker / module",
         "score_method": "GSVA",
-        "row_order": [
-            {"label": "Interferon module"},
-            {"label": "EMT module"},
-        ],
-        "column_order": [
-            {"label": "Early"},
-            {"label": "Mid"},
-            {"label": "Late"},
-        ],
-        "cells": [
-            {"x": "Early", "y": "Interferon module", "value": 0.72},
-            {"x": "Mid", "y": "Interferon module", "value": 0.28},
-            {"x": "Late", "y": "Interferon module", "value": -0.18},
-            {"x": "Early", "y": "EMT module", "value": -0.31},
-            {"x": "Mid", "y": "EMT module", "value": 0.22},
-            {"x": "Late", "y": "EMT module", "value": 0.68},
-        ],
+        "row_order": _label_order("Interferon module", "EMT module"),
+        "column_order": _label_order("Early", "Mid", "Late"),
+        "cells": _valued_cells(
+            ("Early", "Interferon module", 0.72),
+            ("Mid", "Interferon module", 0.28),
+            ("Late", "Interferon module", -0.18),
+            ("Early", "EMT module", -0.31),
+            ("Mid", "EMT module", 0.22),
+            ("Late", "EMT module", 0.68),
+        ),
     }
 
 def _make_atlas_spatial_trajectory_storyboard_display(display_id: str = "Figure31") -> dict[str, object]:
@@ -397,38 +350,27 @@ def _make_atlas_spatial_trajectory_storyboard_display(display_id: str = "Figure3
         "composition_x_label": "State composition",
         "composition_y_label": "Region",
         "composition_groups": [
-            {
-                "group_label": "Tumor core",
-                "group_order": 1,
-                "state_proportions": [
-                    {"state_label": "Stem-like", "proportion": 0.48},
-                    {"state_label": "Cycling", "proportion": 0.32},
-                    {"state_label": "Effector", "proportion": 0.20},
-                ],
-            },
-            {
-                "group_label": "Invasive margin",
-                "group_order": 2,
-                "state_proportions": [
-                    {"state_label": "Stem-like", "proportion": 0.18},
-                    {"state_label": "Cycling", "proportion": 0.34},
-                    {"state_label": "Effector", "proportion": 0.48},
-                ],
-            },
+            _composition_group(
+                "Tumor core",
+                1,
+                "state_proportions",
+                "state_label",
+                (("Stem-like", 0.48), ("Cycling", 0.32), ("Effector", 0.20)),
+            ),
+            _composition_group(
+                "Invasive margin",
+                2,
+                "state_proportions",
+                "state_label",
+                (("Stem-like", 0.18), ("Cycling", 0.34), ("Effector", 0.48)),
+            ),
         ],
         "heatmap_panel_title": "Program kinetics",
         "heatmap_x_label": "Pseudotime bin",
         "heatmap_y_label": "Marker / module",
         "score_method": "GSVA",
-        "state_order": [
-            {"label": "Stem-like"},
-            {"label": "Cycling"},
-            {"label": "Effector"},
-        ],
-        "branch_order": [
-            {"label": "Branch A"},
-            {"label": "Branch B"},
-        ],
+        "state_order": _label_order("Stem-like", "Cycling", "Effector"),
+        "branch_order": _label_order("Branch A", "Branch B"),
         "progression_bins": [
             {
                 "bin_label": "Early",
@@ -461,23 +403,16 @@ def _make_atlas_spatial_trajectory_storyboard_display(display_id: str = "Figure3
                 ],
             },
         ],
-        "row_order": [
-            {"label": "IFN response"},
-            {"label": "EMT module"},
-        ],
-        "column_order": [
-            {"label": "Early"},
-            {"label": "Mid"},
-            {"label": "Late"},
-        ],
-        "cells": [
-            {"x": "Early", "y": "IFN response", "value": 0.74},
-            {"x": "Mid", "y": "IFN response", "value": 0.26},
-            {"x": "Late", "y": "IFN response", "value": -0.14},
-            {"x": "Early", "y": "EMT module", "value": -0.28},
-            {"x": "Mid", "y": "EMT module", "value": 0.18},
-            {"x": "Late", "y": "EMT module", "value": 0.72},
-        ],
+        "row_order": _label_order("IFN response", "EMT module"),
+        "column_order": _label_order("Early", "Mid", "Late"),
+        "cells": _valued_cells(
+            ("Early", "IFN response", 0.74),
+            ("Mid", "IFN response", 0.26),
+            ("Late", "IFN response", -0.14),
+            ("Early", "EMT module", -0.28),
+            ("Mid", "EMT module", 0.18),
+            ("Late", "EMT module", 0.72),
+        ),
     }
 
 def _make_atlas_spatial_trajectory_density_coverage_panel_display(display_id: str = "Figure32") -> dict[str, object]:
@@ -522,25 +457,21 @@ def _make_atlas_spatial_trajectory_density_coverage_panel_display(display_id: st
         "support_x_label": "Context",
         "support_y_label": "Cell state",
         "support_scale_label": "Coverage fraction",
-        "state_order": [
-            {"label": "Stem-like"},
-            {"label": "Cycling"},
-            {"label": "Effector"},
-        ],
+        "state_order": _label_order("Stem-like", "Cycling", "Effector"),
         "context_order": [
             {"label": "Atlas density", "context_kind": "atlas_density"},
             {"label": "Spatial coverage", "context_kind": "spatial_coverage"},
             {"label": "Trajectory coverage", "context_kind": "trajectory_coverage"},
         ],
-        "support_cells": [
-            {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
-            {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
-            {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
-            {"x": "Atlas density", "y": "Cycling", "value": 0.49},
-            {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
-            {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
-            {"x": "Atlas density", "y": "Effector", "value": 0.31},
-            {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
-            {"x": "Trajectory coverage", "y": "Effector", "value": 0.81},
-        ],
+        "support_cells": _valued_cells(
+            ("Atlas density", "Stem-like", 0.84),
+            ("Spatial coverage", "Stem-like", 0.73),
+            ("Trajectory coverage", "Stem-like", 0.58),
+            ("Atlas density", "Cycling", 0.49),
+            ("Spatial coverage", "Cycling", 0.61),
+            ("Trajectory coverage", "Cycling", 0.66),
+            ("Atlas density", "Effector", 0.31),
+            ("Spatial coverage", "Effector", 0.54),
+            ("Trajectory coverage", "Effector", 0.81),
+        ),
     }

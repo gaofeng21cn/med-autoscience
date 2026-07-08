@@ -230,6 +230,56 @@ def _delivery_manifest_publication_refs(
     }
 
 
+def _write_delivery_study_fixture(
+    *,
+    study_id: str,
+    study_root: Path,
+    paper_root: Path,
+    current_package: Path,
+    submission_minimal: Path,
+    delivery_manifest_path: Path,
+    delivery_refs: dict[str, dict[str, str]],
+) -> None:
+    _write_json(
+        paper_root / "study_manifest.json",
+        {"study_id": study_id, "surface": "study_manifest", "authority_owner": "controller"},
+    )
+    _write_json(
+        delivery_manifest_path,
+        {
+            "study_id": study_id,
+            "surface": "delivery_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+            **delivery_refs,
+            "publication_refs": _delivery_manifest_publication_refs(
+                paper_root=paper_root,
+                current_package=current_package,
+                submission_minimal=submission_minimal,
+            ),
+            "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
+                study_root=study_root,
+                current_package=current_package,
+                submission_minimal=submission_minimal,
+            ),
+        },
+    )
+    _write_json(
+        submission_minimal / "submission_manifest.json",
+        {
+            "study_id": study_id,
+            "surface": "submission_minimal_manifest",
+            "authority_owner": "controller",
+            "source_signature": f"sig-{study_id}",
+            "authority_source_signature": f"sig-{study_id}",
+        },
+    )
+    _write_text(current_package / "README.md", f"# {study_id}\n")
+    _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
+    _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
+
+
 def build_dm_cvd_migration_audit_fixture(root: Path) -> Path:
     workspace_root = root / "DM-CVD-Mortality-Risk"
     studies_root = workspace_root / "studies"
@@ -243,51 +293,20 @@ def build_dm_cvd_migration_audit_fixture(root: Path) -> Path:
         manuscript_root = study_root / "manuscript"
         current_package = manuscript_root / "current_package"
         submission_minimal = paper_root / "submission_minimal"
-        _write_json(
-            paper_root / "study_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "study_manifest",
-                "authority_owner": "controller",
-            },
-        )
-        _write_json(
-            manuscript_root / "delivery_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "delivery_manifest",
-                "authority_owner": "controller",
-                "source_signature": f"sig-{study_id}",
-                "authority_source_signature": f"sig-{study_id}",
+        _write_delivery_study_fixture(
+            study_id=study_id,
+            study_root=study_root,
+            paper_root=paper_root,
+            current_package=current_package,
+            submission_minimal=submission_minimal,
+            delivery_manifest_path=manuscript_root / "delivery_manifest.json",
+            delivery_refs={
                 "surface_roles": {
                     "human_facing_current_package_root": str(current_package),
                     "human_facing_current_package_zip": str(current_package.with_suffix(".zip")),
                 },
-                "publication_refs": _delivery_manifest_publication_refs(
-                    paper_root=paper_root,
-                    current_package=current_package,
-                    submission_minimal=submission_minimal,
-                ),
-                "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
-                    study_root=study_root,
-                    current_package=current_package,
-                    submission_minimal=submission_minimal,
-                ),
             },
         )
-        _write_json(
-            submission_minimal / "submission_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "submission_minimal_manifest",
-                "authority_owner": "controller",
-                "source_signature": f"sig-{study_id}",
-                "authority_source_signature": f"sig-{study_id}",
-            },
-        )
-        _write_text(current_package / "README.md", f"# {study_id}\n")
-        _write_text(current_package.with_suffix(".zip"), "zip-placeholder\n")
-        _write_text(submission_minimal / "paper.md", f"# {study_id} submission\n")
 
     _write_json(
         workspace_root / "product_entry_manifest.json",
@@ -308,51 +327,20 @@ def build_nf_pitnet_migration_audit_fixture(root: Path) -> Path:
         paper_root = study_root / "paper"
         package_root = study_root / "manuscript" / "current_package"
         submission_root = paper_root / "submission_minimal"
-        _write_json(
-            paper_root / "study_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "study_manifest",
-                "authority_owner": "controller",
-            },
-        )
-        _write_json(
-            study_root / "manuscript" / "delivery_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "delivery_manifest",
-                "authority_owner": "controller",
-                "source_signature": f"sig-{study_id}",
-                "authority_source_signature": f"sig-{study_id}",
+        _write_delivery_study_fixture(
+            study_id=study_id,
+            study_root=study_root,
+            paper_root=paper_root,
+            current_package=package_root,
+            submission_minimal=submission_root,
+            delivery_manifest_path=study_root / "manuscript" / "delivery_manifest.json",
+            delivery_refs={
                 "targets": {
                     "current_package_root": str(package_root),
                     "current_package_zip": str(package_root.with_suffix(".zip")),
                 },
-                "publication_refs": _delivery_manifest_publication_refs(
-                    paper_root=paper_root,
-                    current_package=package_root,
-                    submission_minimal=submission_root,
-                ),
-                "artifact_lifecycle": _delivery_manifest_lifecycle_hook(
-                    study_root=study_root,
-                    current_package=package_root,
-                    submission_minimal=submission_root,
-                ),
             },
         )
-        _write_json(
-            submission_root / "submission_manifest.json",
-            {
-                "study_id": study_id,
-                "surface": "submission_minimal_manifest",
-                "authority_owner": "controller",
-                "source_signature": f"sig-{study_id}",
-                "authority_source_signature": f"sig-{study_id}",
-            },
-        )
-        _write_text(package_root / "README.md", f"# {study_id}\n")
-        _write_text(package_root.with_suffix(".zip"), "zip-placeholder\n")
-        _write_text(submission_root / "paper.md", f"# {study_id} submission\n")
 
     _write_json(
         workspace_root / "workspace_manifest.json",
