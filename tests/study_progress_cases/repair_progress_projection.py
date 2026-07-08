@@ -294,7 +294,7 @@ def test_repair_progress_projection_rejects_quality_batch_without_current_eval_i
 def test_existing_progress_projection_refreshes_stable_repair_delta_over_old_stage_packet_blocker(
     tmp_path: Path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)

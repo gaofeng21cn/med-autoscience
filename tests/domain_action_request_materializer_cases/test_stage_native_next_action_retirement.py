@@ -123,7 +123,7 @@ def _write_readiness_route(*, profile, study_id: str, readiness_route: dict[str,
 
 
 def _patch_readiness_blocker_progress(monkeypatch, *, study_id: str, readiness_route: dict[str, object]) -> None:
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     def read_progress(**_: object) -> dict[str, object]:
         return {
@@ -258,7 +258,7 @@ def test_materialize_domain_action_requests_does_not_route_stage_native_write_wi
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
     profile = make_profile(tmp_path)

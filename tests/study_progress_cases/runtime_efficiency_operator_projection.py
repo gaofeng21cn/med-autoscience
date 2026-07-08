@@ -17,7 +17,7 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -151,7 +151,7 @@ def test_study_progress_projects_autonomy_slo_ai_doctor_state(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -218,7 +218,7 @@ def test_study_progress_materializes_autonomy_slo_when_surface_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -282,7 +282,7 @@ def test_study_progress_projects_completed_parked_auto_continue_without_live_run
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -370,7 +370,7 @@ def test_study_progress_prioritizes_no_live_recovery_over_closeout_continuation(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -471,7 +471,7 @@ def test_study_progress_prioritizes_no_live_recovery_over_closeout_continuation(
 
 
 def test_study_progress_merges_autonomy_slo_refs_into_existing_projection(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -533,7 +533,7 @@ def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_s
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -646,7 +646,7 @@ def test_study_progress_freshness_separates_supervisor_tick_from_artifact_delta(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -737,7 +737,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -870,7 +870,7 @@ def test_study_progress_gives_new_live_run_grace_before_activity_timeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,

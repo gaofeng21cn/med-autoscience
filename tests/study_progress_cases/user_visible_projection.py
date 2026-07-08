@@ -13,7 +13,7 @@ _module_reexport(_shared)
 
 
 def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
@@ -98,7 +98,7 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
 
 
 def test_user_visible_projection_uses_macro_state_as_single_user_status() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     payload = {
         "study_id": "001-risk",
@@ -146,7 +146,7 @@ def test_user_visible_projection_uses_macro_state_as_single_user_status() -> Non
 
 
 def test_user_visible_projection_does_not_promote_legacy_action_as_next_step() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -180,7 +180,7 @@ def test_user_visible_projection_does_not_promote_legacy_action_as_next_step() -
 
 
 def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -235,7 +235,7 @@ def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body
 
 
 def test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_with_macro_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -265,7 +265,7 @@ def test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_wi
 
 
 def test_user_visible_projection_fails_closed_without_macro_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -337,7 +337,7 @@ def test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state() 
 
 
 def test_user_visible_projection_does_not_call_live_worker_active_without_artifact_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -379,7 +379,7 @@ def test_user_visible_projection_does_not_call_live_worker_active_without_artifa
 
 
 def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -428,7 +428,7 @@ def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
 
 
 def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -469,7 +469,7 @@ def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_de
 
 
 def test_user_visible_projection_ignores_body_authority_stage_output_mirror_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -519,7 +519,7 @@ def test_user_visible_projection_ignores_body_authority_stage_output_mirror_delt
 
 
 def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -561,7 +561,7 @@ def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason()
 
 
 def test_user_visible_projection_uses_current_delivery_read_model_for_package_delivered() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -596,7 +596,7 @@ def test_user_visible_projection_uses_current_delivery_read_model_for_package_de
 
 
 def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delivery() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -820,7 +820,7 @@ def test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_overrid
 
 
 def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -864,7 +864,7 @@ def test_user_visible_projection_projects_supervisor_only_live_quality_repair_ow
 
 
 def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     projection = module.build_user_visible_projection(
         {
@@ -916,7 +916,7 @@ def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_wr
 
 
 def test_user_visible_projection_labels_all_macro_state_classes() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     cases = [
         (
             {"writer_state": "live", "user_next": "watch", "reason": "runtime", "details": {"active_run_id": "run-1"}},

@@ -81,7 +81,7 @@ def _scan_with_action(tmp_path: Path, *, evidence_gap_inputs: list[dict[str, obj
 
 def test_materializer_hard_evidence_gap_blocks_current_dispatch(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile, study_id = _scan_with_action(
@@ -116,7 +116,7 @@ def test_materializer_hard_evidence_gap_blocks_current_dispatch(monkeypatch, tmp
 
 def test_materializer_soft_gap_continues_and_records_ledger(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile, study_id = _scan_with_action(
@@ -148,7 +148,7 @@ def test_materializer_soft_gap_continues_and_records_ledger(monkeypatch, tmp_pat
 
 def test_materializer_evidence_tail_continues_but_withholds_readiness_claims(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile, study_id = _scan_with_action(

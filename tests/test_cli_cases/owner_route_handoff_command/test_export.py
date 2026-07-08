@@ -661,7 +661,7 @@ def test_domain_handler_export_suppresses_controller_route_back_after_owner_rece
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

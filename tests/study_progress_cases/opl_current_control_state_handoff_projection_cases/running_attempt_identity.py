@@ -17,7 +17,7 @@ def test_running_handoff_without_opl_readback_does_not_consume_current_execution
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -128,7 +128,7 @@ def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -217,7 +217,7 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
@@ -384,7 +384,7 @@ def test_study_progress_keeps_unbound_live_attempt_as_observability_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(

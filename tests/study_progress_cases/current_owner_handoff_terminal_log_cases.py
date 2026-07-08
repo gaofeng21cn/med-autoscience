@@ -216,7 +216,7 @@ def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfa
 def test_terminal_stage_log_observability_reads_contract_stage_log_telemetry(
     tmp_path: Path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     handoff_module = importlib.import_module(
         "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )

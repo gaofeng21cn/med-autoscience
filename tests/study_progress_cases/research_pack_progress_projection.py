@@ -16,7 +16,7 @@ def test_research_pack_progress_summary_projects_from_current_control_state(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"

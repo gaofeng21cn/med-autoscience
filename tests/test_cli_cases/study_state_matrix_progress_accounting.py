@@ -199,7 +199,7 @@ def test_study_progress_suppresses_non_running_opl_stage_attempt_handoff(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status_projection = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"

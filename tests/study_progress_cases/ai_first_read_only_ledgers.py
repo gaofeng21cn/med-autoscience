@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 
 
@@ -18,7 +20,7 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
 ) -> None:
     from med_autoscience.controllers import ai_first_action_dispatch
 
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -67,7 +69,7 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     state = result["ai_first_default_entry_state"]
     assert state["surface"] == "ai_first_default_entry_state"
@@ -143,7 +145,7 @@ def test_study_progress_default_read_does_not_materialize_ai_first_ledgers(
 ) -> None:
     from med_autoscience.controllers import ai_first_action_dispatch, ai_first_feedback
 
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"

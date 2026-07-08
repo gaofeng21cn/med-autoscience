@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
@@ -18,7 +20,7 @@ _module_reexport(_operator_status_and_eval_refresh)
 _module_reexport(_supervision_blockers_and_task_reopen)
 
 def test_quality_review_followthrough_projects_auto_re_review_pending_when_runtime_recovery_requested() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     payload = module._quality_review_followthrough_projection(
         quality_review_loop={
@@ -47,9 +49,9 @@ def test_quality_review_followthrough_projects_auto_re_review_pending_when_runti
 
 
 def test_render_study_progress_markdown_surfaces_quality_review_followthrough() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -96,7 +98,7 @@ def test_render_study_progress_markdown_surfaces_quality_review_followthrough() 
 
 
 def test_study_progress_projects_gate_clearing_batch_followthrough(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -167,7 +169,7 @@ def test_study_progress_projects_gate_clearing_batch_followthrough(tmp_path: Pat
 def test_gate_clearing_batch_followthrough_accepts_domain_transition_eval_basis(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -232,7 +234,7 @@ def test_gate_clearing_batch_followthrough_accepts_domain_transition_eval_basis(
 def test_gate_clearing_batch_followthrough_keeps_actionable_route_back_after_mechanical_eval(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -306,7 +308,7 @@ def test_gate_clearing_batch_followthrough_keeps_actionable_route_back_after_mec
 def test_gate_clearing_batch_followthrough_accepts_current_publication_blocker_fingerprint_after_eval_refresh(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -409,7 +411,7 @@ def test_gate_clearing_batch_followthrough_accepts_current_publication_blocker_f
 def test_gate_clearing_batch_followthrough_reads_cutover_source_publication_eval(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -650,7 +652,7 @@ def test_existing_projection_refreshes_current_gate_followthrough_before_owner_s
 
 
 def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -739,7 +741,7 @@ def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Pa
 
 
 def test_quality_repair_batch_followthrough_survives_gate_replay_eval_refresh(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -817,9 +819,9 @@ def test_quality_repair_batch_followthrough_survives_gate_replay_eval_refresh(tm
 
 
 def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrough() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -851,9 +853,9 @@ def test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrou
 
 
 def test_render_study_progress_markdown_surfaces_quality_repair_batch_followthrough() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",

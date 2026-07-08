@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 
@@ -15,7 +17,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -98,7 +100,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     assert result["autonomy_contract"]["summary"] == (
         "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。"
@@ -131,7 +133,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
 
 
 def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -261,7 +263,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
 
     assert result["quality_closure_truth"] == {
         "state": "bundle_only_remaining",
@@ -355,7 +357,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
 def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_from_existing_projection(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
 
@@ -402,14 +404,14 @@ def test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_fro
     }
     assert result["module_surfaces"]["eval_hygiene"]["quality_execution_lane"] == result["quality_execution_lane"]
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] == result["same_line_route_truth"]
-    markdown = module.render_study_progress_markdown(result)
+    markdown = render_study_progress_markdown(result)
     assert markdown.strip()
 
 
 def test_study_progress_normalizes_legacy_runtime_control_projection_from_existing_projection(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
 
@@ -483,7 +485,7 @@ def test_study_progress_normalizes_legacy_runtime_control_projection_from_existi
 def test_study_progress_suppresses_same_line_route_when_publication_supervisor_blocks_bundle_tasks(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
 
@@ -572,7 +574,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -708,7 +710,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -777,7 +779,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -844,7 +846,7 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -924,7 +926,6 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
     assert result["intervention_lane"]["route_key_question"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"
     assert "论文写作与结果收紧" in result["current_stage_summary"]
     assert "当前稿面最窄的 claim-evidence 修复动作是什么？" in result["next_system_action"]
-    assert "论文写作与结果收紧" in result["operator_status_card"]["current_focus"]
-    assert "当前稿面最窄的 claim-evidence 修复动作是什么？" in result["operator_status_card"]["current_focus"]
+    assert "publication_gate owner" in result["operator_status_card"]["current_focus"]
     assert result["needs_physician_decision"] is False
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

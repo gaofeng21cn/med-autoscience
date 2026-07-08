@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from types import ModuleType
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 
 
@@ -80,7 +82,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -199,8 +201,8 @@ def test_delivery_inspection_attach_refreshes_stale_user_visible_package_state(
     assert result["user_visible_projection"]["package_delivered"] is True
     assert result["user_visible_projection"]["paper_progress_state"]["package_delivered"] is True
 
-    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
-    markdown = progress_module.render_study_progress_markdown(result)
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    markdown = render_study_progress_markdown(result)
     assert markdown.strip()
 
 

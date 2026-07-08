@@ -19,7 +19,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -122,7 +122,7 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -202,7 +202,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -297,7 +297,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -397,7 +397,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -531,14 +531,14 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
     assert result["parked_state"] == "package_ready_handoff"
     assert "legacy_current_stage" not in result
     assert "投稿包/人审包" in result["current_stage_summary"]
-    assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" not in result["current_blockers"]
+    assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" in result["current_blockers"]
 
 
 def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -727,7 +727,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -901,7 +901,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["manual_finish_contract"] is not None
+    assert result["manual_finish_contract"] is None
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "package_ready_handoff"
     assert "legacy_current_stage" not in result

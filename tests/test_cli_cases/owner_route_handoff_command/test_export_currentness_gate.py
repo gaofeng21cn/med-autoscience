@@ -45,7 +45,7 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "002-dm-china-us-mortality-attribution"
@@ -173,7 +173,7 @@ def test_domain_handler_export_materializes_opl_typed_blocker_owner_resolution_t
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -306,7 +306,7 @@ def test_domain_handler_export_materializes_mas_dispatch_selection_blocker_resol
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -381,7 +381,7 @@ def test_domain_handler_export_suppresses_supervisor_stable_blocker_owner_resolu
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -531,7 +531,7 @@ def test_domain_handler_export_does_not_resurrect_owner_callable_adapter_under_s
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "002-dm-china-us-mortality-attribution"
@@ -740,7 +740,7 @@ def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner
     monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     study_id = "002-dm-china-us-mortality-attribution"

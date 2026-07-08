@@ -18,7 +18,7 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -252,7 +252,7 @@ def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handof
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id

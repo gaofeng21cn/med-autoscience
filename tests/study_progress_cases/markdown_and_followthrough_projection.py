@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
+
 from . import shared as _shared
 from . import runtime_projection_basics as _runtime_projection_basics
 from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
@@ -23,7 +25,7 @@ _module_reexport(_supervision_blockers_and_task_reopen)
 _module_reexport(_quality_followthrough_projection)
 
 def test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_gate_blocked() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
     payload = {
         "study_id": "001-risk",
@@ -70,13 +72,13 @@ def test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_ga
     assert result["same_line_route_surface"] is None
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_truth"] is None
     assert result["module_surfaces"]["eval_hygiene"]["same_line_route_surface"] is None
-    assert "## 同线路由真相" not in module.render_study_progress_markdown(result)
+    assert "## 同线路由真相" not in render_study_progress_markdown(result)
 
 
 def test_render_study_progress_markdown_humanizes_decision_continuation_reason() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -105,9 +107,9 @@ def test_render_study_progress_markdown_humanizes_decision_continuation_reason()
 
 
 def test_render_study_progress_markdown_humanizes_latest_user_requirement_continuation_reason() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -136,9 +138,9 @@ def test_render_study_progress_markdown_humanizes_latest_user_requirement_contin
 
 
 def test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual_finishing() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -175,9 +177,9 @@ def test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual
 
 
 def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_blockers() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "004-invasive-architecture",
             "quest_id": "004-invasive-architecture-managed-20260408",
@@ -268,10 +270,10 @@ def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_bloc
 
 
 def test_render_study_progress_markdown_prefers_shared_human_status_narration() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     from opl_harness_shared.status_narration import build_status_narration_contract
 
-    markdown = module.render_study_progress_markdown(
+    markdown = render_study_progress_markdown(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -344,7 +346,7 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
 
 
 def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_readback(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.runtime_root / "quest-001"
@@ -404,7 +406,7 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_readbac
 
 
 def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "004-invasive-architecture")
     quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
@@ -564,7 +566,7 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "004-invasive-architecture")
     quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
@@ -676,7 +678,7 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "004-invasive-architecture")
     quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
@@ -773,7 +775,7 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
     assert result["operator_status_card"]["handling_state"] == "monitor_only"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在持续监管当前 study。"
 def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "004-invasive-architecture")
     quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"

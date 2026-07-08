@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
 from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import *  # noqa: F403,F401
 
 from . import shared as _shared
@@ -11,7 +13,7 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
     publication_eval_path = tmp_path / "studies" / "001-risk" / "artifacts" / "publication_eval" / "latest.json"
     controller_decision_path = tmp_path / "studies" / "001-risk" / "artifacts" / "controller_decisions" / "latest.json"
@@ -127,7 +129,7 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -208,7 +210,7 @@ def test_study_progress_records_stage_actions_when_runner_telemetry_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -344,7 +346,7 @@ def test_study_progress_marks_work_unit_lifecycle_span_as_elapsed_window(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
@@ -418,7 +420,7 @@ def test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_t
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
@@ -500,7 +502,7 @@ def test_study_progress_reads_provider_token_usage_from_closeout_top_level(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     work_unit_ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
     control_identity = importlib.import_module("med_autoscience.controllers.control_identity")
     profile = make_profile(tmp_path)
@@ -577,7 +579,7 @@ def test_study_progress_reads_provider_token_usage_from_closeout_top_level(
 
 
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -712,7 +714,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert "写作" in result["paper_stage_summary"]
     assert any("外部验证" in item for item in result["current_blockers"])
     assert any("发表" in item for item in result["current_blockers"])
-    assert "owner receipt" in result["next_system_action"]
+    assert "publication_gate owner" in result["next_system_action"]
     assert result["supervision"]["browser_url"] == "http://127.0.0.1:21999/quests/quest-001"
     assert result["supervision"]["quest_session_api_url"] == "http://127.0.0.1:21999/api/sessions/run-001"
     assert result["supervision"]["active_run_id"] == "run-001"
@@ -785,7 +787,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -867,7 +869,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
 
 
 def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -982,6 +984,6 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     )
 
     payload = module.read_study_progress(profile=profile, study_id="001-risk")
-    markdown = module.render_study_progress_markdown(payload)
+    markdown = render_study_progress_markdown(payload)
 
     assert markdown.strip()

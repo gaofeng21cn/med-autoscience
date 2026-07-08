@@ -16,7 +16,7 @@ def test_redrive_projection_keeps_mas_domain_transition_over_opl_handoff_queue()
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -112,7 +112,7 @@ def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> 
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -214,7 +214,7 @@ def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> 
 
 
 def test_user_visible_projection_uses_current_domain_transition_owner_when_handoff_shell_is_stale() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -506,7 +506,7 @@ def test_redrive_projection_keeps_mas_transition_over_explicit_opl_handoff_owner
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -599,7 +599,7 @@ def test_redrive_projection_ignores_handoff_older_than_current_controller_truth(
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress.current_owner_handoff_projection"
     )
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     payload = {
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",

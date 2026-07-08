@@ -102,7 +102,7 @@ def test_study_progress_consumes_opl_supervisor_decision_readback_ledger(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     action_type = "run_quality_repair_batch"

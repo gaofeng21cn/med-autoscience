@@ -16,7 +16,7 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
@@ -84,7 +84,7 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -151,7 +151,7 @@ def test_study_progress_suppresses_opl_handoff_lifecycle_after_newer_owner_truth
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -224,7 +224,7 @@ def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_ac
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"

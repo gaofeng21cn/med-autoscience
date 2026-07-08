@@ -16,7 +16,7 @@ def test_study_progress_projects_gate_specificity_as_controller_lane(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -125,7 +125,7 @@ def test_gate_specificity_supersedes_older_task_intake_route_override(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -231,7 +231,7 @@ def test_gate_specificity_takes_priority_over_live_activity_timeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -377,7 +377,7 @@ def test_study_progress_reads_gate_specificity_request_surface(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
     quest_root = profile.managed_runtime_home / "quests" / "quest-002"
@@ -477,7 +477,7 @@ def test_study_progress_suppresses_stale_gate_specificity_request_after_targets_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
     quest_root = profile.managed_runtime_home / "quests" / "quest-002"

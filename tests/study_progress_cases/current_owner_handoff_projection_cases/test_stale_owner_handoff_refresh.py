@@ -13,7 +13,7 @@ _module_reexport(_shared)
 
 
 def test_current_owner_receipt_consumption_suppresses_fresh_opl_owner_route(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
@@ -187,7 +187,7 @@ def test_owner_receipt_recovery_visibility_supersedes_stale_anti_loop_lane() -> 
 
 
 def test_stale_opl_handoff_refresh_uses_route_target_when_owner_missing(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     stale_next_step = (
