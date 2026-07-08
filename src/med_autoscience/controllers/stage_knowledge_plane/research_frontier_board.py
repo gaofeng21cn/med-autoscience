@@ -20,7 +20,7 @@ PACK_ROLLBACK_TARGETS = (
     "04-analysis_execution",
     "05-evidence_synthesis",
     "06-manuscript_authoring",
-    "07-quality_review_and_revision",
+    "07-independent_review_and_revision",
     "08-publication_package_handoff",
 )
 STAGE_TO_PACK_TARGET = {
@@ -30,8 +30,8 @@ STAGE_TO_PACK_TARGET = {
     "experiment": "04-analysis_execution",
     "analysis-campaign": "04-analysis_execution",
     "write": "06-manuscript_authoring",
-    "review": "07-quality_review_and_revision",
-    "decision": "07-quality_review_and_revision",
+    "review": "07-independent_review_and_revision",
+    "decision": "07-independent_review_and_revision",
     "finalize": "08-publication_package_handoff",
 }
 FAILURE_SCOPE_TARGETS = {
@@ -104,11 +104,11 @@ FAILURE_SCOPE_TARGETS = {
         "manuscript claim wording or evidence expression needs authoring repair",
     ),
     "reviewer_quality": (
-        "07-quality_review_and_revision",
+        "07-independent_review_and_revision",
         "reviewer or AI-reviewer quality issue needs revision routing before package handoff",
     ),
     "quality_review": (
-        "07-quality_review_and_revision",
+        "07-independent_review_and_revision",
         "reviewer or AI-reviewer quality issue needs revision routing before package handoff",
     ),
     "publication_package": (
@@ -222,6 +222,50 @@ def frontier_board_packet_fields(board: Mapping[str, Any]) -> dict[str, Any]:
         "research_frontier_board_refs": [dict(ref) for ref in board["frontier_board_refs"]],
         "opl_research_frontier_projection": dict(board["opl_refs_only_projection"]),
     }
+
+
+def adopt_frontier_route_back_terminal_decision(
+    *,
+    board: Mapping[str, Any],
+    selected_target_stage: str,
+    repair_scope: str | None = None,
+    candidate_id: str | None = None,
+    signal: str | None = None,
+    reason: str | None = None,
+    next_owner: str = "mission_executor",
+) -> dict[str, Any]:
+    target_stage = _pack_target_for_stage(selected_target_stage)
+    suggestion = _selected_frontier_suggestion(
+        board=board,
+        target_stage=target_stage,
+        candidate_id=candidate_id,
+        signal=signal,
+    )
+    if not suggestion:
+        raise ValueError(
+            "frontier route-back adoption requires an observed rollback target suggestion"
+        )
+    selected_reason = _text(reason) or _text(suggestion.get("reason"))
+    return _drop_empty(
+        {
+            "decision_kind": "route_back",
+            "status": "frontier_route_back_adopted",
+            "reason": selected_reason
+            or "MAS stage closeout adopted a research frontier rollback suggestion",
+            "next_owner": _required_text("next_owner", next_owner),
+            "target_stage_id": target_stage,
+            "repair_scope": _text(repair_scope) or selected_reason,
+            "frontier_advisory_ref": _frontier_advisory_ref(
+                board=board,
+                suggestion=suggestion,
+                target_stage=target_stage,
+            ),
+            "frontier_candidate_id": _text(suggestion.get("candidate_id")),
+            "frontier_signal": _text(suggestion.get("signal")),
+            "frontier_advisory_authority": False,
+            "stage_closeout_authority_required": True,
+        }
+    )
 
 
 def _collect_candidates(packet: Mapping[str, Any], *, source: str) -> list[dict[str, Any]]:
@@ -416,7 +460,7 @@ def _rollback_policy(
     rules = [
         _rule(
             "stop_loss",
-            "07-quality_review_and_revision",
+            "07-independent_review_and_revision",
             "formal stop-loss remains a quality review or controller decision input before package handoff",
         ),
         _rule(
@@ -489,7 +533,7 @@ def _target_for_signal(*, signal: str, stage: str) -> tuple[str, str] | None:
     normalized_signal = signal.replace("-", "_").replace(" ", "_")
     if signal == "stop_loss":
         return (
-            "07-quality_review_and_revision",
+            "07-independent_review_and_revision",
             "formal stop-loss remains a quality review or controller decision input before package handoff",
         )
     if signal == "claim_downgrade":
@@ -553,7 +597,7 @@ def _pack_advisory_mapping() -> list[dict[str, str]]:
             "advisory_role": "adjust manuscript wording, claim expression, and paper-native presentation",
         },
         {
-            "target_stage": "07-quality_review_and_revision",
+            "target_stage": "07-independent_review_and_revision",
             "advisory_role": "route reviewer, stop-loss, downgrade, or revision risk before handoff",
         },
         {
@@ -602,6 +646,62 @@ def _next_hypothesis(*, packet: Mapping[str, Any], candidates: Sequence[Mapping[
         if _text(candidate.get("status")) in {"active", "testing"}:
             return _text(candidate.get("candidate_id"))
     return ""
+
+
+def _selected_frontier_suggestion(
+    *,
+    board: Mapping[str, Any],
+    target_stage: str,
+    candidate_id: str | None,
+    signal: str | None,
+) -> dict[str, Any]:
+    requested_candidate = _text(candidate_id)
+    requested_signal = _text(signal)
+    for suggestion in _frontier_suggestions(board):
+        suggestion_target = _pack_target_for_stage(
+            _text(
+                suggestion.get("suggested_target_stage")
+                or suggestion.get("target_stage_id")
+                or suggestion.get("rollback_target_ref")
+            )
+        )
+        if suggestion_target != target_stage:
+            continue
+        if requested_candidate and _text(suggestion.get("candidate_id")) != requested_candidate:
+            continue
+        if requested_signal and _text(suggestion.get("signal")) != requested_signal:
+            continue
+        return suggestion
+    return {}
+
+
+def _frontier_suggestions(board: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return _dedupe_dicts(
+        [
+            *_mapping_list(board.get("rollback_target_suggestions")),
+            *_mapping_list(_mapping(board.get("summary")).get("rollback_target_suggestions")),
+            *_mapping_list(_mapping(board.get("rollback_target_policy")).get("suggested_targets")),
+            *_mapping_list(_mapping(board.get("opl_refs_only_projection")).get("rollback_target_suggestions")),
+        ]
+    )
+
+
+def _frontier_advisory_ref(
+    *,
+    board: Mapping[str, Any],
+    suggestion: Mapping[str, Any],
+    target_stage: str,
+) -> str:
+    return "research-frontier-advisory:" + _fingerprint(
+        {
+            "study_id": board.get("study_id"),
+            "stage": board.get("stage"),
+            "source_fingerprint": board.get("source_fingerprint"),
+            "candidate_id": suggestion.get("candidate_id"),
+            "signal": suggestion.get("signal"),
+            "target_stage": target_stage,
+        }
+    )
 
 
 def _candidate_writeback_refs(candidates: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -734,6 +834,7 @@ def _fingerprint(payload: object) -> str:
 
 
 __all__ = [
+    "adopt_frontier_route_back_terminal_decision",
     "build_research_frontier_board",
     "frontier_board_packet_fields",
     "frontier_board_authority_boundary",

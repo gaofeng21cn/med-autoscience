@@ -16,7 +16,11 @@ from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_
 from med_autoscience.controllers.stage_knowledge_plane.paper_soak_memory_apply_proof import (
     build_paper_soak_memory_apply_proof_projection as _build_paper_soak_memory_apply_proof_projection,
 )
-from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import build_research_frontier_board, frontier_board_packet_fields
+from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import (
+    adopt_frontier_route_back_terminal_decision,
+    build_research_frontier_board,
+    frontier_board_packet_fields,
+)
 from med_autoscience.stage_knowledge_contract import (
     EXPLORATORY_STAGES,
     KNOWLEDGE_PACKET_SURFACE,
@@ -1051,6 +1055,7 @@ __all__ = [
     "PUBLICATION_ROUTE_MEMORY_ROOT",
     "PUBLICATION_ROUTE_MEMORY_STAGES",
     "STAGE_OBLIGATIONS",
+    "adopt_frontier_route_back_terminal_decision",
     "apply_publication_route_memory_seed_fixture",
     "apply_publication_route_memory_seed_library",
     "build_paper_soak_memory_apply_proof",

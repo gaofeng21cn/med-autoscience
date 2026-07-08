@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-08：Research Frontier 只在被 stage closeout 采纳后进入可执行 route
+
+- 决策：`research_frontier_board` 继续只是 stage-local working board / research memory projection。它可以记录候选路线、负结果、`rollback_target_suggestions` 和 refs-only OPL 可视化输入，但不得直接成为 stage completion、next-action 或 OPL stage-route authority。
+- 决策：当 MAS stage closeout 自己决定采纳某条 frontier rollback suggestion 时，必须把采纳结果物化为标准 `StageTerminalDecision(decision_kind=route_back)`，并带 canonical 8-stage `target_stage_id`、`repair_scope` 和 `frontier_advisory_ref`。后续仍走既有 `build_paper_mission_transaction -> opl_route_command -> opl_route_handoff -> OPL family-runtime stage-route` 链路；OPL 只运行 handoff，不从 frontier board 猜路线。
+- 决策：frontier rollback target 必须使用 `contracts/mas-paper-study-stage-pack.json` 的真实 stage id。第 7 步统一为 `07-independent_review_and_revision`；旧 `07-quality_review_and_revision` 只能视为历史/描述标签，不能作为 executable target。
+- 理由：这让用户能看到“为什么建议回 03/04/05”，同时不新增 Stage 外控制层，不让 OPL 做医学判断，也不让 refs-only board 变成第二套 route authority。
+- 影响：本决策只收紧 MAS frontier adoption 和 OPL handoff 边界；不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、runtime queue/provider attempt 或 current package；也不声明 live OPL 已运行或具体论文已推进。
+
 ## 2026-07-08：专业能力升级优先回折到现有 Skill，不新增细粒度 Skill
 
 - 决策：后续按“AI First，Contract Light；模块化在运维层，弹性保留在 Skill 层”升级 MAS / OPL 能力时，先按能力模块判断，再决定物理暴露方式。逻辑上的 reviewer concern recall、critique-as-repair-hint、reusable lesson extraction、triggered meta-review、opportunistic knowledge prefetch、claim warning、annotation-to-source regeneration、ledger pointer/hash 或 rerun receipt 消费，默认回折到现有 `mas-scholar-skills` 的 `medical-*` 专业 Skill、MAS stage policy、OPL support Skill 或 OMA developer work-order route；不得因为它们是独立判断点就新增一组物理 Skill。
