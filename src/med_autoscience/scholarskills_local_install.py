@@ -29,6 +29,14 @@ SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS = (
     "research-pdf-evidence-explorer",
     "scientific-compute-runner",
 )
+SCHOLARSKILLS_OPTIONAL_ADVANCED_ROUTER_SKILL_IDS = (
+    "medical-advanced-biomed-router",
+)
+SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_ROUTER_SKILL_IDS = (
+    "medical-methodology-planner",
+    "medical-evidence-integrity-reviewer",
+    "medical-publication-routeback-reviewer",
+)
 SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS = (
     "medical-protocol-and-sap-planner",
     "medical-cohort-phenotyping",
@@ -40,11 +48,31 @@ SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS = (
     "medical-survival-analysis-plan",
     "medical-risk-model-transportability-reviewer",
     "medical-registry-atlas-story-architect",
-    "medical-owner-gate-handoff-reviewer",
+    "medical-research-portfolio-memory-curator",
     "medical-display-regression-debugger",
     "medical-data-freeze-and-analysis-readiness-reviewer",
 )
+SCHOLARSKILLS_RETIRED_OPTIONAL_SKILL_REDIRECTS = {
+    "medical-evidence-gap-triage-reviewer": {
+        "covered_by": "medical-evidence-integrity-reviewer",
+        "mode": "evidence_gap_triage",
+    },
+    "medical-methodology-routeback-reviewer": {
+        "covered_by": "medical-publication-routeback-reviewer",
+        "mode": "methodology_routeback",
+    },
+    "medical-owner-gate-handoff-reviewer": {
+        "covered_by": "medical-publication-routeback-reviewer",
+        "mode": "owner_gate_handoff",
+    },
+    "medical-publication-strategy-memory-curator": {
+        "covered_by": "medical-research-portfolio-memory-curator",
+        "mode": "publication_strategy_memory",
+    },
+}
 SCHOLARSKILLS_OPTIONAL_SKILL_IDS = (
+    *SCHOLARSKILLS_OPTIONAL_ADVANCED_ROUTER_SKILL_IDS,
+    *SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_ROUTER_SKILL_IDS,
     *SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS,
     *SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS,
 )
@@ -68,7 +96,6 @@ SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS = (
     "medical-survival-analysis-plan",
     "medical-risk-model-transportability-reviewer",
     "medical-registry-atlas-story-architect",
-    "medical-owner-gate-handoff-reviewer",
     "medical-display-regression-debugger",
     "medical-data-freeze-and-analysis-readiness-reviewer",
     "medical-structural-biology",
@@ -121,6 +148,7 @@ def build_scholarskills_local_install_template() -> dict[str, Any]:
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
         "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
         "optional_skill_policy": _optional_skill_policy(),
+        "retired_optional_skill_redirects": _retired_optional_skill_redirects(),
         "skill_local_deterministic_helper_policy": _skill_local_deterministic_helper_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
@@ -180,6 +208,7 @@ def build_scholarskills_local_install_readback(
         "synced_skill_ids": list(SCHOLARSKILLS_DEFAULT_SKILL_IDS),
         "optional_skill_ids": list(SCHOLARSKILLS_OPTIONAL_SKILL_IDS),
         "optional_skill_policy": _optional_skill_policy(),
+        "retired_optional_skill_redirects": _retired_optional_skill_redirects(),
         "skill_local_deterministic_helper_policy": _skill_local_deterministic_helper_policy(),
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "install_owner": "one-person-lab",
@@ -276,10 +305,16 @@ def _optional_skill_policy() -> dict[str, Any]:
         "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
         "source_contract_refs": [
             "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/codex_skill_exposure_policy/optional_router_skill_ids",
+            "external:mas-scholar-skills/contracts/"
             "scholar-skills-capability-modules.json#/advanced_specialist_pack_policy",
             "external:mas-scholar-skills/contracts/"
             "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy",
         ],
+        "optional_advanced_router_skill_ids": list(SCHOLARSKILLS_OPTIONAL_ADVANCED_ROUTER_SKILL_IDS),
+        "optional_medical_method_router_skill_ids": list(
+            SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_ROUTER_SKILL_IDS
+        ),
         "optional_advanced_skill_ids": list(SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS),
         "optional_medical_method_skill_ids": list(SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS),
         "materialization_owner": "one-person-lab",
@@ -289,6 +324,20 @@ def _optional_skill_policy() -> dict[str, Any]:
         "default_core": False,
         "missing_optional_skills_block_mas_ordinary_progress": False,
         "writes_authority": False,
+    }
+
+
+def _retired_optional_skill_redirects() -> dict[str, dict[str, Any]]:
+    return {
+        skill_id: {
+            **redirect,
+            "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
+            "redirect_only": True,
+            "exposed_as_optional_skill": False,
+            "body_included": False,
+            "writes_authority": False,
+        }
+        for skill_id, redirect in SCHOLARSKILLS_RETIRED_OPTIONAL_SKILL_REDIRECTS.items()
     }
 
 
@@ -344,9 +393,12 @@ __all__ = [
     "SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF",
     "SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS",
     "SCHOLARSKILLS_DEFAULT_SKILL_IDS",
+    "SCHOLARSKILLS_OPTIONAL_ADVANCED_ROUTER_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS",
+    "SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_ROUTER_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS",
     "SCHOLARSKILLS_OPTIONAL_SKILL_IDS",
+    "SCHOLARSKILLS_RETIRED_OPTIONAL_SKILL_REDIRECTS",
     "SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS",
     "SCHOLARSKILLS_SKILL_ID",
     "SCHOLARSKILLS_SOURCE_REPO_REF",

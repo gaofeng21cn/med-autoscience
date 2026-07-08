@@ -118,12 +118,20 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     optional_skill_ids = install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
     assert payload["scholarskills_local_install"]["synced_skill_ids"] == list(default_skill_ids)
     assert payload["scholarskills_local_install"]["optional_skill_ids"] == list(optional_skill_ids)
+    assert "medical-advanced-biomed-router" in optional_skill_ids
+    assert "medical-methodology-planner" in optional_skill_ids
     assert "medical-structural-biology" in optional_skill_ids
     assert "medical-protocol-and-sap-planner" in optional_skill_ids
     assert "medical-registry-atlas-story-architect" in optional_skill_ids
+    assert "medical-publication-routeback-reviewer" in optional_skill_ids
+    assert "medical-owner-gate-handoff-reviewer" not in optional_skill_ids
     assert "medical-registry-atlas-story-architect" not in default_skill_ids
     assert "medical-structural-biology" not in default_skill_ids
     assert "medical-protocol-and-sap-planner" not in default_skill_ids
+    retired_redirects = payload["scholarskills_local_install"]["retired_optional_skill_redirects"]
+    assert retired_redirects["medical-owner-gate-handoff-reviewer"]["covered_by"] == (
+        "medical-publication-routeback-reviewer"
+    )
     helper_policy = payload["scholarskills_local_install"]["skill_local_deterministic_helper_policy"]
     assert helper_policy["expected_helper_skill_ids"] == list(
         install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS

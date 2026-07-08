@@ -392,8 +392,15 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     assert profile_readback["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
     assert profile_readback["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
     assert "research-pdf-evidence-explorer" in profile_readback["optional_skill_ids"]
+    assert "medical-advanced-biomed-router" in profile_readback["optional_skill_ids"]
+    assert "medical-methodology-planner" in profile_readback["optional_skill_ids"]
     assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
     assert "medical-display-regression-debugger" in profile_readback["optional_skill_ids"]
+    assert "medical-evidence-integrity-reviewer" in profile_readback["optional_skill_ids"]
+    assert "medical-owner-gate-handoff-reviewer" not in profile_readback["optional_skill_ids"]
+    assert profile_readback["retired_optional_skill_redirects"]["medical-owner-gate-handoff-reviewer"][
+        "covered_by"
+    ] == "medical-publication-routeback-reviewer"
     assert "research-pdf-evidence-explorer" not in profile_readback["synced_skill_ids"]
     assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
     assert "medical-display-regression-debugger" not in profile_readback["synced_skill_ids"]

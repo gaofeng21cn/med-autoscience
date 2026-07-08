@@ -146,11 +146,33 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS
     )
     assert "scientific-compute-runner" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-advanced-biomed-router" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-methodology-planner" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "medical-rebuttal-strategy" in registry["scholarskills_local_install"]["optional_skill_ids"]
     assert "medical-risk-model-transportability-reviewer" in registry["scholarskills_local_install"][
         "optional_skill_ids"
     ]
-    assert "medical-owner-gate-handoff-reviewer" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-evidence-integrity-reviewer" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-publication-routeback-reviewer" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-research-portfolio-memory-curator" in registry["scholarskills_local_install"]["optional_skill_ids"]
+    assert "medical-owner-gate-handoff-reviewer" not in registry["scholarskills_local_install"][
+        "optional_skill_ids"
+    ]
+    retired_redirects = registry["scholarskills_local_install"]["retired_optional_skill_redirects"]
+    assert retired_redirects["medical-owner-gate-handoff-reviewer"]["covered_by"] == (
+        "medical-publication-routeback-reviewer"
+    )
+    assert retired_redirects["medical-methodology-routeback-reviewer"]["covered_by"] == (
+        "medical-publication-routeback-reviewer"
+    )
+    assert retired_redirects["medical-publication-strategy-memory-curator"]["covered_by"] == (
+        "medical-research-portfolio-memory-curator"
+    )
+    assert retired_redirects["medical-evidence-gap-triage-reviewer"]["covered_by"] == (
+        "medical-evidence-integrity-reviewer"
+    )
+    assert retired_redirects["medical-owner-gate-handoff-reviewer"]["redirect_only"] is True
+    assert retired_redirects["medical-owner-gate-handoff-reviewer"]["exposed_as_optional_skill"] is False
     assert "scientific-compute-runner" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert "medical-rebuttal-strategy" not in registry["scholarskills_local_install"]["synced_skill_ids"]
     assert "medical-owner-gate-handoff-reviewer" not in registry["scholarskills_local_install"][
@@ -182,10 +204,18 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
         "source_repo_ref": "external:mas-scholar-skills",
         "source_contract_refs": [
             "external:mas-scholar-skills/contracts/"
+            "scholar-skills-capability-modules.json#/codex_skill_exposure_policy/optional_router_skill_ids",
+            "external:mas-scholar-skills/contracts/"
             "scholar-skills-capability-modules.json#/advanced_specialist_pack_policy",
             "external:mas-scholar-skills/contracts/"
             "scholar-skills-capability-modules.json#/medical_method_specialist_pack_policy",
         ],
+        "optional_advanced_router_skill_ids": list(
+            install_readback.SCHOLARSKILLS_OPTIONAL_ADVANCED_ROUTER_SKILL_IDS
+        ),
+        "optional_medical_method_router_skill_ids": list(
+            install_readback.SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_ROUTER_SKILL_IDS
+        ),
         "optional_advanced_skill_ids": list(install_readback.SCHOLARSKILLS_OPTIONAL_ADVANCED_SKILL_IDS),
         "optional_medical_method_skill_ids": list(
             install_readback.SCHOLARSKILLS_OPTIONAL_MEDICAL_METHOD_SKILL_IDS
@@ -228,6 +258,13 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"][
         "medical-risk-model-transportability-reviewer"
     ] == "<workspace_root>/.codex/skills/medical-risk-model-transportability-reviewer"
+    assert registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"][
+        "medical-publication-routeback-reviewer"
+    ] == "<workspace_root>/.codex/skills/medical-publication-routeback-reviewer"
+    assert (
+        "medical-owner-gate-handoff-reviewer"
+        not in registry["scholarskills_local_install"]["workspace"]["optional_target_skill_path_templates"]
+    )
     assert (
         "medical-rebuttal-strategy"
         not in registry["scholarskills_local_install"]["workspace"]["target_skill_path_templates"]
@@ -256,6 +293,13 @@ def test_scholarskills_registry_declares_workspace_local_install_boundary() -> N
     assert registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"][
         "medical-risk-model-transportability-reviewer"
     ] == "<quest_root>/.codex/skills/medical-risk-model-transportability-reviewer"
+    assert registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"][
+        "medical-research-portfolio-memory-curator"
+    ] == "<quest_root>/.codex/skills/medical-research-portfolio-memory-curator"
+    assert (
+        "medical-owner-gate-handoff-reviewer"
+        not in registry["scholarskills_local_install"]["quest"]["optional_target_skill_path_templates"]
+    )
     assert registry["scholarskills_local_install"]["mas_program_repo_plugin_is_execution_source"] is False
     assert registry["scholarskills_local_install"]["source_repo_ref"] == "external:mas-scholar-skills"
     assert registry["scholarskills_local_install"]["mas_program_repo_mirror"] == {

@@ -61,6 +61,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 
 能力治理先按逻辑模块审计，再决定物理暴露方式。写作、审稿、文献、统计、表图、数据治理和投稿可以是多个独立逻辑能力，但不必一一对应独立物理 skill；默认吸收到既有 ScholarSkills professional skill。只有复用边界、版本边界、安装/发现边界或 metadata 隔离收益明确时，才新增或拆分 physical skill。MAS 本仓保留 owner/runtime/contract authority；弹性判断保留在专业 skill；generated descriptors、contracts 和 runtime projection 只负责 locator、receipt、allowed-write、sync/install/readback 等轻量边界。
 
+当前 optional professional skill 降噪规则是：`medical-evidence-integrity-reviewer` 覆盖 evidence-gap triage mode，`medical-publication-routeback-reviewer` 覆盖 methodology routeback 和 owner-gate handoff modes，`medical-research-portfolio-memory-curator` 覆盖 publication strategy memory mode。旧 `medical-evidence-gap-triage-reviewer`、`medical-methodology-routeback-reviewer`、`medical-owner-gate-handoff-reviewer` 和 `medical-publication-strategy-memory-curator` 只作为 redirect-only provenance 读取，不再作为本地 Codex skill path、helper path 或默认/optional install target 暴露。
+
 执行可用性来自 OPL Connect 同步到 workspace 或 quest 的本地 skill，而不是 MAS 仓内 plugin mirror：
 
 ```bash
