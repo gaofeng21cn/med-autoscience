@@ -4,13 +4,6 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.paper_mission_owner_surface_cases.test_opl_provider_attempt_probe_scan_cases import (
-    test_live_provider_attempt_projection_limits_queue_inspect_candidates,
-    test_run_opl_json_timeout_kills_process_group,
-    test_scan_does_not_project_terminal_stage_attempt_as_active_run,
-    test_scan_passes_bounded_opl_probe_budget_to_provider_projection,
-    test_scan_projects_live_opl_provider_attempt_for_current_owner_route,
-)
 from tests.study_runtime_test_helpers import make_profile
 
 

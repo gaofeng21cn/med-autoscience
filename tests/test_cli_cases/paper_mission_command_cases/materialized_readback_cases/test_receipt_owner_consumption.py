@@ -18,13 +18,6 @@ from tests.test_cli_cases.paper_mission_command_helpers import (
     _write_profile_with_study,
     _write_submission_milestone_package,
 )
-from tests.test_cli_cases.paper_mission_command_cases.materialized_readback_cases.test_direct_stage_attempt_and_inspect import (
-    test_direct_stage_attempt_handoff_reads_owner_consumption_from_top_level_receipt,
-    test_direct_terminal_closeout_can_override_next_action_source,
-    test_direct_terminal_closeout_does_not_override_after_owner_consumed_route_checkpoint,
-    test_paper_mission_inspect_projects_receipt_owner_consumption_without_materialized_mission,
-    test_thin_legacy_stage_closure_keeps_owner_consumption_visible,
-)
 
 
 def _write_json(path: Path, payload: dict) -> None:
