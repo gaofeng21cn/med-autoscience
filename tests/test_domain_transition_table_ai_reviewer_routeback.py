@@ -20,6 +20,17 @@ from tests.reviewer_os_fixture_helpers import (
 )
 
 
+def _assert_write_routeback_transition(
+    transition: dict[str, object],
+    *,
+    work_unit_id: str = "manuscript_story_repair",
+) -> None:
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["next_work_unit"]["unit_id"] == work_unit_id
+
+
 def test_current_ai_reviewer_write_routeback_does_not_project_reviewer_redrive_for_live_run(
     tmp_path: Path,
 ) -> None:
@@ -67,10 +78,7 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
         active_run_id=None,
     )
 
-    assert transition["decision_type"] == "route_back_same_line"
-    assert transition["route_target"] == "write"
-    assert transition["owner"] == "write"
-    assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    _assert_write_routeback_transition(transition)
     assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
     assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
     assert transition["next_action"]["owner"] == "write"
@@ -174,10 +182,7 @@ def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeba
         active_run_id=None,
     )
 
-    assert transition["decision_type"] == "route_back_same_line"
-    assert transition["route_target"] == "write"
-    assert transition["owner"] == "write"
-    assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    _assert_write_routeback_transition(transition)
     assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
     assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
     assert transition["next_action"]["owner"] == "write"
@@ -566,11 +571,8 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
         active_run_id=None,
     )
 
-    assert transition["decision_type"] == "route_back_same_line"
-    assert transition["route_target"] == "write"
-    assert transition["owner"] == "write"
+    _assert_write_routeback_transition(transition, work_unit_id="medical_prose_write_repair")
     assert transition["controller_action"] == "request_opl_stage_attempt"
-    assert transition["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
     assert "reviewer-revision manuscript, figure, table, abstract, discussion, and supplementary repairs" in (
         transition["next_work_unit"]["summary"]
     )
@@ -678,10 +680,7 @@ def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_targ
         active_run_id=None,
     )
 
-    assert transition["decision_type"] == "route_back_same_line"
-    assert transition["route_target"] == "write"
-    assert transition["owner"] == "write"
-    assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    _assert_write_routeback_transition(transition)
 
 
 def test_current_ai_reviewer_analysis_routeback_projects_analysis_campaign_handoff_when_not_live(
