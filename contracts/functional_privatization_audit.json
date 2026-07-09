@@ -348,7 +348,18 @@
           "gate_id": "standard_agent_purity_guard",
           "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
           "owner": "med-autoscience",
-          "physical_delete_authorized": false
+          "physical_delete_authorized": false,
+          "latest_retained_facade_delete_gate_readback": {
+            "as_of": "2026-07-09",
+            "scan_command": "rg -n 'import_module\\(\"med_autoscience\\.controllers\\.(medical_publication_surface|product_entry|study_runtime_decision|submission_minimal)\"\\)' tests src",
+            "remaining_top_level_facade_import_guards": [
+              "tests/test_study_runtime_execution_evidence_adoption_cases/test_standard_agent_purity_boundary.py",
+              "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
+              "tests/product_entry_cases/product_entry_builder_cases.py"
+            ],
+            "delete_gate_status": "no_physical_delete_candidate",
+            "reason": "remaining imports are public smoke, tombstone, or contract guards rather than helper dependencies"
+          }
         },
         {
           "closure_proof_refs": [
@@ -2446,7 +2457,18 @@
         "gate_id": "standard_agent_purity_guard",
         "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
         "owner": "med-autoscience",
-        "physical_delete_authorized": false
+        "physical_delete_authorized": false,
+        "latest_retained_facade_delete_gate_readback": {
+          "as_of": "2026-07-09",
+          "scan_command": "rg -n 'import_module\\(\"med_autoscience\\.controllers\\.(medical_publication_surface|product_entry|study_runtime_decision|submission_minimal)\"\\)' tests src",
+          "remaining_top_level_facade_import_guards": [
+            "tests/test_study_runtime_execution_evidence_adoption_cases/test_standard_agent_purity_boundary.py",
+            "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
+            "tests/product_entry_cases/product_entry_builder_cases.py"
+          ],
+          "delete_gate_status": "no_physical_delete_candidate",
+          "reason": "remaining imports are public smoke, tombstone, or contract guards rather than helper dependencies"
+        }
       },
       {
         "closure_proof_refs": [
