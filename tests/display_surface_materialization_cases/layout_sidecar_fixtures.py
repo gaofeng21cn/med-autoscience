@@ -14,6 +14,75 @@ _module_reexport(_shared_base)
 _module_reexport(_workspace_surface_fixtures)
 
 
+def _box(box_id: str, box_type: str, x0: float, y0: float, x1: float, y1: float) -> dict[str, object]:
+    return {"box_id": box_id, "box_type": box_type, "x0": x0, "y0": y0, "x1": x1, "y1": y1}
+
+
+def _flow_node(
+    box_id: object,
+    box_type: object,
+    line_count: int,
+    max_line_chars: int,
+    rendered_height_pt: float,
+    rendered_width_pt: float,
+    padding_pt: float,
+) -> dict[str, object]:
+    return {
+        "box_id": box_id,
+        "box_type": box_type,
+        "line_count": line_count,
+        "max_line_chars": max_line_chars,
+        "rendered_height_pt": rendered_height_pt,
+        "rendered_width_pt": rendered_width_pt,
+        "padding_pt": padding_pt,
+    }
+
+
+def _sidecar(
+    template_id: str,
+    *,
+    layout_boxes: list[dict[str, object]],
+    panel_boxes: list[dict[str, object]],
+    guide_boxes: list[dict[str, object]],
+    metrics: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": layout_boxes,
+        "panel_boxes": panel_boxes,
+        "guide_boxes": guide_boxes,
+        "metrics": metrics,
+    }
+
+
+def _basic_xy_plot_sidecar(template_id: str, metrics: dict[str, object]) -> dict[str, object]:
+    return _sidecar(
+        template_id,
+        layout_boxes=[
+            _box("title", "title", 0.10, 0.02, 0.56, 0.08),
+            _box("x_axis_title", "x_axis_title", 0.30, 0.92, 0.60, 0.97),
+            _box("y_axis_title", "y_axis_title", 0.02, 0.24, 0.06, 0.74),
+        ],
+        panel_boxes=[_box("panel", "panel", 0.10, 0.16, 0.74, 0.86)],
+        guide_boxes=[_box("legend", "legend", 0.80, 0.30, 0.96, 0.44)],
+        metrics=metrics,
+    )
+
+
+def _heatmap_sidecar(template_id: str, metrics: dict[str, object]) -> dict[str, object]:
+    return _sidecar(
+        template_id,
+        layout_boxes=[
+            _box("x_axis_title", "x_axis_title", 0.28, 0.92, 0.60, 0.97),
+            _box("y_axis_title", "y_axis_title", 0.02, 0.24, 0.06, 0.74),
+        ],
+        panel_boxes=[_box("panel", "heatmap_tile_region", 0.12, 0.16, 0.72, 0.84)],
+        guide_boxes=[_box("colorbar", "colorbar", 0.80, 0.22, 0.90, 0.80)],
+        metrics=metrics,
+    )
+
+
 def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: dict[str, object]) -> dict[str, object]:
     source_layers = list(display_payload.get("source_layers") or [])
     subcohort_coverage = list(display_payload.get("subcohort_coverage") or [])
@@ -123,37 +192,13 @@ def _minimal_source_layer_accounting_sidecar(template_id: str, display_payload: 
             "subcohort_coverage": subcohort_coverage,
             "exported_centers": display_payload.get("exported_centers"),
             "flow_nodes": [
-                {
-                    "box_id": f"source_denominator_{denominator_step['step_id']}",
-                    "box_type": "main_step",
-                    "line_count": 2,
-                    "max_line_chars": 44,
-                    "rendered_height_pt": 78.0,
-                    "rendered_width_pt": 400.0,
-                    "padding_pt": 9.0,
-                },
+                _flow_node(f"source_denominator_{denominator_step['step_id']}", "main_step", 2, 44, 78.0, 400.0, 9.0),
                 *[
-                    {
-                        "box_id": f"source_layer_{item.get('layer_id')}",
-                        "box_type": "source_layer_box",
-                        "line_count": 2,
-                        "max_line_chars": 40,
-                        "rendered_height_pt": 72.0,
-                        "rendered_width_pt": 170.0,
-                        "padding_pt": 8.0,
-                    }
+                    _flow_node(f"source_layer_{item.get('layer_id')}", "source_layer_box", 2, 40, 72.0, 170.0, 8.0)
                     for item in source_layers
                 ],
                 *[
-                    {
-                        "box_id": f"coverage_bar_{item.get('coverage_id')}",
-                        "box_type": "coverage_step",
-                        "line_count": 1,
-                        "max_line_chars": 24,
-                        "rendered_height_pt": 52.0,
-                        "rendered_width_pt": 180.0,
-                        "padding_pt": 6.0,
-                    }
+                    _flow_node(f"coverage_bar_{item.get('coverage_id')}", "coverage_step", 1, 24, 52.0, 180.0, 6.0)
                     for item in subcohort_coverage
                 ],
             ],
@@ -287,15 +332,15 @@ def _minimal_participant_flow_sidecar(template_id: str, display_payload: dict[st
         )
 
     flow_nodes = [
-        {
-            "box_id": box["box_id"],
-            "box_type": box["box_type"],
-            "line_count": 2,
-            "max_line_chars": 36,
-            "rendered_height_pt": 86.0 if box["box_type"] == "main_step" else 60.0,
-                        "rendered_width_pt": 400.0 if box["box_type"] == "main_step" else 176.0,
-            "padding_pt": 9.0 if box["box_type"] == "main_step" else 7.0,
-        }
+        _flow_node(
+            box["box_id"],
+            box["box_type"],
+            2,
+            36,
+            86.0 if box["box_type"] == "main_step" else 60.0,
+            400.0 if box["box_type"] == "main_step" else 176.0,
+            9.0 if box["box_type"] == "main_step" else 7.0,
+        )
         for box in [*step_boxes, *exclusion_boxes]
     ]
     return {
@@ -397,33 +442,9 @@ def _minimal_layout_sidecar_for_template(
                     {"panel_id": "context", "layout_role": "right_bottom"},
                 ],
                 "flow_nodes": [
-                    {
-                        "box_id": "step_screened",
-                        "box_type": "main_step",
-                        "line_count": 3,
-                        "max_line_chars": 24,
-                        "rendered_height_pt": 92.0,
-                        "rendered_width_pt": 218.0,
-                        "padding_pt": 9.0,
-                    },
-                    {
-                        "box_id": "step_included",
-                        "box_type": "main_step",
-                        "line_count": 3,
-                        "max_line_chars": 26,
-                        "rendered_height_pt": 92.0,
-                        "rendered_width_pt": 218.0,
-                        "padding_pt": 9.0,
-                    },
-                    {
-                        "box_id": "exclusion_repeat",
-                        "box_type": "exclusion_box",
-                        "line_count": 2,
-                        "max_line_chars": 20,
-                        "rendered_height_pt": 62.0,
-                        "rendered_width_pt": 176.0,
-                        "padding_pt": 8.0,
-                    },
+                    _flow_node("step_screened", "main_step", 3, 24, 92.0, 218.0, 9.0),
+                    _flow_node("step_included", "main_step", 3, 26, 92.0, 218.0, 9.0),
+                    _flow_node("exclusion_repeat", "exclusion_box", 2, 20, 62.0, 176.0, 8.0),
                 ],
             },
         }
@@ -639,44 +660,20 @@ def _minimal_layout_sidecar_for_template(
         "clinical_impact_curve_binary",
         "time_dependent_roc_horizon",
     }:
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
-            ],
-            "guide_boxes": [
-                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
-            ],
-            "metrics": {
+        return _basic_xy_plot_sidecar(
+            template_id,
+            {
                 "series": [{"label": "Model", "x": [0.0, 0.5, 1.0], "y": [0.0, 0.7, 1.0]}],
                 "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
             },
-        }
+        )
     if template_short_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
-            ],
-            "guide_boxes": [
-                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
-            ],
-            "metrics": {
+        return _basic_xy_plot_sidecar(
+            template_id,
+            {
                 "groups": [{"label": "Low risk", "times": [0.0, 12.0], "values": [1.0, 0.78]}],
             },
-        }
+        )
     if template_short_id == "time_to_event_risk_group_summary":
         return {
             "template_id": template_id,
@@ -799,62 +796,28 @@ def _minimal_layout_sidecar_for_template(
         "tsne_scatter_grouped",
         "diffusion_map_scatter_grouped",
     }:
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
-            ],
-            "guide_boxes": [
-                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
-            ],
-            "metrics": {
+        return _basic_xy_plot_sidecar(
+            template_id,
+            {
                 "points": [
                     {"x": 0.22, "y": 0.32, "group": "A"},
                     {"x": 0.44, "y": 0.54, "group": "B"},
                 ]
             },
-        }
+        )
     if template_short_id in {"heatmap_group_comparison", "performance_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.28, "y0": 0.92, "x1": 0.60, "y1": 0.97},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel", "box_type": "heatmap_tile_region", "x0": 0.12, "y0": 0.16, "x1": 0.72, "y1": 0.84},
-            ],
-            "guide_boxes": [
-                {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
-            ],
-            "metrics": (
+        return _heatmap_sidecar(
+            template_id,
+            (
                 {"metric_name": "AUC", "matrix_cells": [{"x": "All participants", "y": "Integrated model", "value": 0.83}]}
                 if template_short_id == "performance_heatmap"
                 else {"score_method": "GSVA"} if template_short_id == "gsva_ssgsea_heatmap" else {}
             ),
-        }
+        )
     if template_short_id == "correlation_heatmap":
-        return {
-            "template_id": template_id,
-            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.28, "y0": 0.92, "x1": 0.60, "y1": 0.97},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
-            ],
-            "panel_boxes": [
-                {"box_id": "panel", "box_type": "heatmap_tile_region", "x0": 0.12, "y0": 0.16, "x1": 0.72, "y1": 0.84},
-            ],
-            "guide_boxes": [
-                {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
-            ],
-            "metrics": {
+        return _heatmap_sidecar(
+            template_id,
+            {
                 "matrix_cells": [
                     {"x": "A", "y": "A", "value": 1.0},
                     {"x": "A", "y": "B", "value": 0.42},
@@ -862,7 +825,7 @@ def _minimal_layout_sidecar_for_template(
                     {"x": "B", "y": "B", "value": 1.0},
                 ]
             },
-        }
+        )
     if template_short_id in {"forest_effect_main", "subgroup_forest", "multivariable_forest"}:
         return {
             "template_id": template_id,
