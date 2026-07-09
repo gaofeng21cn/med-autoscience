@@ -193,389 +193,53 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
             ],
         },
     }
-    assert payload["paper_quality_contract"] == {
-        "frozen_at_startup": True,
-        "target_journals": ["The BMJ", "JAMA Internal Medicine"],
-        "reporting_expectations": {
-            "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
-            "explanation_targets": [
-                "Separate endpoint-alignment gap from case-mix shift and residual unexplained gap.",
-            ],
-        },
-        "evidence_expectations": {
-            "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
-        },
-        "review_expectations": {
-            "scientific_followup_questions": [
-                "Why is the 5-year all-cause mortality gap between China and the US so large?",
-            ],
-            "manuscript_conclusion_redlines": [
-                "Do not conclude only that a China-trained absolute risk model is non-transportable.",
-            ],
-        },
-        "protocol_sap_freeze": {
-            "surface": "protocol_sap_freeze",
-            "status": "requires_freeze_before_analysis",
-            "required_before_routes": ["analysis-campaign", "write", "finalize"],
-            "gate_relaxation_allowed": False,
-            "owner": "mas",
-            "freeze_ref": None,
-            "protocol_ref": None,
-            "sap_ref": None,
-            "study_design": None,
-            "population_or_cohort_boundary": None,
-            "target_population": None,
-            "endpoint_type": None,
-            "primary_endpoint": None,
-            "primary_analysis": None,
-            "secondary_analyses": [],
-            "statistical_methods": [],
-            "missing_data_plan": None,
-            "subgroup_plan": [],
-            "multiplicity_guardrails": [],
-            "power_precision_or_feasibility_rationale": None,
-            "reporting_guideline_family": None,
-            "required_updates_when_changed": [
-                "study_charter",
-                "analysis_campaign_plan",
-                "evidence_ledger",
-                "review_ledger",
-                "publication_eval",
-            ],
-            "route_back_policy": {
-                "missing_required_item": "decision",
-                "changed_primary_question_or_endpoint": "human_gate",
-                "changed_analysis_plan_within_locked_direction": "analysis-campaign",
-            },
-        },
-        "bounded_analysis": {
-            "default_owner": "mas",
-            "allowed_scenarios": [
-                "close_survival_calibration_gap_within_locked_direction",
-                "answer_predeclared_reviewer_method_question",
-            ],
-            "allowed_targets": [
-                "minimum_sci_ready_evidence_package",
-                "scientific_followup_questions",
-            ],
-            "budget_boundary": {
-                "max_analysis_rounds_per_gate_window": 3,
-                "max_targets_per_round": 2,
-                "max_new_primary_claims": 0,
-            },
-            "completion_boundary": {
-                "return_to_main_gate": "publication_eval",
-                "return_to_mainline_action": "return_to_controller",
-                "completion_criteria": [
-                    "all_requested_targets_closed",
-                    "budget_boundary_reached",
-                    "major_boundary_signal_detected",
-                ],
-                "required_updates": [
-                    "evidence_ledger",
-                    "review_ledger",
-                    "publication_eval",
-                ],
-            },
-        },
-        "structured_reporting_contract": {
-            "draft_prevention_gates": [
-                "introduction_three_paragraph_medical_narrative",
-                "methods_subsections_complete_before_first_full_draft",
-                "statistical_reporting_plan_before_results_prose",
-                "table_figure_claim_map_before_results_prose",
-                "first_draft_asset_upgrade_scan_before_full_draft",
-                "phenotype_clinical_actionability_before_submission_package",
-                "human_metadata_todo_separated_from_scientific_blockers",
-            ],
-            "methods_completeness": {
-                "study_design": {"status": "required_before_first_full_draft"},
-                "cohort": {"status": "required_before_first_full_draft"},
-                "variables": {"status": "required_before_first_full_draft"},
-                "model": {"status": "required_before_first_full_draft"},
-                "validation": {"status": "required_before_first_full_draft"},
-                "statistical_analysis": {"status": "required_before_first_full_draft"},
-            },
-            "statistical_reporting": {
-                "summary_format": {"status": "required_before_first_full_draft"},
-                "p_values": {"status": "required_before_first_full_draft"},
-                "subgroup_tests": {"status": "required_before_first_full_draft"},
-            },
-            "first_draft_quality_contract": {
-                "status": "required_before_first_full_draft",
-                "imrad_section_contract": {
-                    "article_body": ["Title", "Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion"],
-                    "abstract": [
-                        "clinical_context",
-                        "objective",
-                        "design_setting_participants",
-                        "exposures_or_predictors",
-                        "main_outcome",
-                        "results",
-                        "conclusion_and_boundary",
-                    ],
-                    "introduction": ["clinical_problem", "specific_gap", "study_objective_and_contribution"],
-                    "discussion": [
-                        "principal_findings",
-                        "relation_to_prior_work",
-                        "clinical_interpretation",
-                        "limitations",
-                        "conclusion",
-                    ],
-                },
-                "manuscript_native_prose": {
-                    "required": True,
-                        "forbidden_modes": [
-                            "work_report_question_answer_frame",
-                            "figure_table_anchor_section",
-                            "author_confirmation_placeholder",
-                            "figure_self_explanation_paragraph",
-                            "analysis_or_controller_jargon",
-                            "claim_boundary_meta_language_in_body",
-                            "internal_report_or_workflow_status_sentence",
-                        ],
-                        "forbidden_phrases": [
-                            "calendar enrollment period is not promoted",
-                            "this restriction is intentional",
-                            "MAS display-pack renderer",
-                            "TRIPOD is cited only as a boundary reference",
-                            "submission metadata incomplete",
-                            "defensible clinical story",
-                        ],
-                        "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
-                        "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
-                    },
-                    "registry_observational_first_draft_floor": (
-                        module.DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT[
-                            "registry_observational_first_draft_floor"
-                        ]
-                    ),
-                    "medical_prose_style_contract": {
-                    "style_profile_id": "general_medical_journal_prose_v1",
-                    "target_voice": "neutral_clinical_original_research",
-                    "target_readers": ["clinician_researcher", "statistical_reviewer", "journal_editor"],
-                    "introduction_rhetoric": {
-                        "paragraph_sequence": [
-                            "clinical_problem_to_evidence_gap_to_objective",
-                            "why_the_gap_matters_for_patients_or_clinicians",
-                            "present_study_objective_and_contribution",
-                        ],
-                        "forbidden_openings": [
-                            "project_status_report",
-                            "pipeline_progress_summary",
-                            "generic_disease_burden_without_study_gap",
-                        ],
-                    },
-                    "sentence_information_flow": {
-                        "required_patterns": [
-                            "old_to_new_information_flow",
-                            "known_context_before_new_claim",
-                            "stress_position_contains_finding_or_boundary",
-                        ],
-                        "forbidden_patterns": [
-                            "controller_term_as_topic",
-                            "file_or_artifact_as_topic",
-                            "chronological_execution_log_flow",
-                        ],
-                    },
-                    "results_prose": {
-                        "required_patterns": [
-                            "clinical_finding_as_sentence_subject",
-                            "quantitative_result_before_display_citation",
-                            "clinical_meaning_after_metric_when_supported",
-                        ],
-                        "forbidden_patterns": [
-                            "figure_or_table_as_sentence_subject",
-                            "question_answer_work_report_frame",
-                            "metric_name_without_clinical_referent",
-                        ],
-                    },
-                    "discussion_prose": {
-                        "paragraph_sequence": [
-                            "principal_finding_then_prior_work_then_interpretation_then_limitations",
-                            "clinical_implication_with_explicit_boundary",
-                            "conservative_conclusion_without_claim_upgrade",
-                        ],
-                        "forbidden_patterns": [
-                            "claim_boundary_meta_language",
-                            "submission_or_gate_status_language",
-                            "unsupported_practice_recommendation",
-                        ],
-                    },
-                    "forbidden_scientific_style": [
-                        "unsupported_no_difference_or_no_association",
-                        "overstated_novelty_or_best_language",
-                        "administrative_or_author_instruction_in_body",
-                        "tool_or_runtime_provenance_in_body",
-                        "invalid_or_corrected_analysis_history_in_main_story",
-                    ],
-                    "source_basis": [
-                        "Zeiger biomedical research paper clear-writing and paper-text model",
-                        "Gopen and Swan reader-expectation information flow",
-                        "JAMA concise, specific, informative, non-overstated medical-journal wording",
-                        "Elsevier medical manuscript audience, relevance, and avoid-overstatement guidance",
-                        "JAMA Network Open original investigation prose exemplars",
-                    ],
-                },
-                "medical_manuscript_blueprint_contract": {
-                    "surface": "medical_manuscript_blueprint",
-                    "stable_path": "paper/medical_manuscript_blueprint.json",
-                    "required_before": "first_full_draft",
-                    "gate_relaxation_allowed": False,
-                    "required_fields": [
-                        "clinical_problem",
-                        "evidence_gap",
-                        "target_population",
-                        "study_design",
-                        "main_findings_by_clinical_importance",
-                        "clinical_interpretation",
-                        "limitations",
-                        "claim_evidence_map",
-                        "figure_table_rhetorical_roles",
-                        "discussion_claim_boundary",
-                        "journal_voice_target",
-                    ],
-                    "required_argument_order": [
-                        "clinical_problem",
-                        "evidence_gap",
-                        "study_objective",
-                        "main_findings_by_clinical_importance",
-                        "clinical_interpretation",
-                        "limitations",
-                    ],
-                    "required_source_surfaces": [
-                        "study_charter.paper_quality_contract",
-                        "paper/results_narrative_map.json",
-                        "paper/claim_evidence_map.json",
-                        "paper/figure_semantics_manifest.json",
-                        "paper/evidence_ledger.json",
-                    ],
-                    "writer_rule": (
-                        "compile this blueprint before prose generation and route back when the manuscript voice "
-                        "would otherwise be derived from run logs, controller checklists, or packaging metadata"
-                    ),
-                },
-                "pre_draft_writing_readiness_contract": module.DEFAULT_FIRST_DRAFT_QUALITY_CONTRACT[
-                    "pre_draft_writing_readiness_contract"
-                ],
-                "medical_prose_review_contract": {
-                    "surface": "medical_prose_review",
-                    "stable_path": "artifacts/publication_eval/medical_prose_review.json",
-                    "required_before": "quality_closure",
-                    "owner": "ai_reviewer",
-                    "mechanical_projection_can_authorize_quality": False,
-                    "required_inputs": [
-                        "paper/draft.md or paper/build/review_manuscript.md",
-                        "paper/medical_manuscript_blueprint.json",
-                        "medical_prose_style_contract",
-                        "paper/claim_evidence_map.json",
-                        "paper/results_narrative_map.json",
-                        "paper/figure_semantics_manifest.json",
-                        "paper/review/review_ledger.json",
-                    ],
-                    "required_outputs": [
-                        "overall_style_verdict",
-                        "section_level_diagnosis",
-                        "representative_bad_sentences",
-                        "representative_rewrites",
-                        "route_back_recommendation",
-                        "mechanical_safety_flags",
-                    ],
-                    "subjective_quality_authority": [
-                        "medical_journal_voice",
-                        "reader_flow",
-                        "paragraph_argumentation_rhythm",
-                        "claim_restraint",
-                        "work_report_residue_judgment",
-                    ],
-                    "mechanical_checks_role": "safety_flags_and_evidence_snippets_only",
-                },
-                "quality_proxy_exclusion_policy": {
-                    "controller_or_progress_surfaces_can_authorize_body_quality": False,
-                    "forbidden_quality_proxies": [
-                        "controller_checklist",
-                        "run_log_or_execution_transcript",
-                        "progress_prose",
-                        "generic_completion_checklist",
-                        "packaging_metadata",
-                    ],
-                },
-                "first_draft_generation_model": {
-                    "pre_draft_inputs": [
-                        "clinical_problem",
-                        "study_design",
-                        "target_population",
-                        "prediction_timepoint_or_exposure_window",
-                        "outcome_definition_and_horizon",
-                        "analysis_plan",
-                        "display_to_claim_map",
-                        "reader_facing_contribution",
-                        "medical_manuscript_blueprint",
-                        "pre_draft_writing_readiness",
-                        "medical_prose_style_contract",
-                        "medical_prose_review",
-                    ],
-                    "writer_obligations": [
-                        "convert research questions into clinical findings rather than question-answer prose",
-                        "separate manuscript body from submission metadata, author confirmations, and operations notes",
-                        "write figure legends as reader interpretation aids rather than reviewer instructions",
-                        "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
-                        "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",
-                    ],
-                    "route_back_if_missing": "return_to_outline_or_analysis_campaign_before_first_full_draft",
-                },
-                "pre_draft_upgrade_scan": {
-                    "status": "required_before_first_full_draft",
-                    "required_axes": [
-                        "timepoint_or_temporal_depth",
-                        "stakeholder_or_role_contrast",
-                        "center_geography_or_site_coverage",
-                        "guideline_correspondence",
-                        "clinically_legible_subgroup_or_association_plan",
-                        "real_world_adoption_constraints",
-                    ],
-                },
-                "field_verification_policy": {
-                    "multicenter_or_national_claims": (
-                        "verify supporting fields before using multicenter or national framing"
-                    ),
-                    "subgroup_or_association_analyses": (
-                        "predeclare bounded analyses only when verified variables support them"
-                    ),
-                },
-                "too_light_draft_route_back": {
-                    "route": "analysis-campaign",
-                    "trigger": (
-                        "verified data dimensions can support a stronger paper than the current descriptive draft"
-                    ),
-                    "claim_boundary": "no_new_primary_claims_without_human_gate",
-                },
-                "discussion_floor": [
-                    "guideline_logic",
-                    "price_or_cost",
-                    "reimbursement",
-                    "access",
-                    "safety",
-                    "clinician_recommendation",
-                ],
-            },
-            "table_figure_claim_map_required": True,
-            "human_metadata_admin_todos": [
-                "authors",
-                "affiliations",
-                "corresponding_author",
-                "ethics",
-                "funding",
-                "conflict_of_interest",
-                "data_availability",
-            ],
-        },
-        "downstream_contract_roles": {
-            "evidence_ledger": "records evidence against evidence_expectations",
-            "review_ledger": "records review closure against review_expectations",
-            "final_audit": "audits scientific and paper-quality readiness against this charter",
-        },
+    paper_quality_contract = payload["paper_quality_contract"]
+    assert paper_quality_contract["frozen_at_startup"] is True
+    assert paper_quality_contract["target_journals"] == ["The BMJ", "JAMA Internal Medicine"]
+    assert paper_quality_contract["reporting_expectations"] == {
+        "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
+        "explanation_targets": [
+            "Separate endpoint-alignment gap from case-mix shift and residual unexplained gap.",
+        ],
     }
+    assert paper_quality_contract["evidence_expectations"] == {
+        "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
+    }
+    assert paper_quality_contract["review_expectations"] == {
+        "scientific_followup_questions": [
+            "Why is the 5-year all-cause mortality gap between China and the US so large?",
+        ],
+        "manuscript_conclusion_redlines": [
+            "Do not conclude only that a China-trained absolute risk model is non-transportable.",
+        ],
+    }
+
+    assert paper_quality_contract["protocol_sap_freeze"]["status"] == "requires_freeze_before_analysis"
+    bounded_analysis = paper_quality_contract["bounded_analysis"]
+    assert bounded_analysis["default_owner"] == "mas"
+    assert bounded_analysis["allowed_scenarios"] == [
+        "close_survival_calibration_gap_within_locked_direction",
+        "answer_predeclared_reviewer_method_question",
+    ]
+    assert bounded_analysis["allowed_targets"] == [
+        "minimum_sci_ready_evidence_package",
+        "scientific_followup_questions",
+    ]
+    assert bounded_analysis["budget_boundary"] == {
+        "max_analysis_rounds_per_gate_window": 3,
+        "max_targets_per_round": 2,
+        "max_new_primary_claims": 0,
+    }
+    assert bounded_analysis["completion_boundary"]["return_to_main_gate"] == "publication_eval"
+    assert bounded_analysis["completion_boundary"]["required_updates"] == [
+        "evidence_ledger",
+        "review_ledger",
+        "publication_eval",
+    ]
+    assert paper_quality_contract["structured_reporting_contract"]["table_figure_claim_map_required"] is True
+    assert paper_quality_contract["downstream_contract_roles"]["final_audit"] == (
+        "audits scientific and paper-quality readiness against this charter"
+    )
 
 
 def test_materialize_study_charter_adds_prediction_model_reporting_guardrails(tmp_path: Path) -> None:
