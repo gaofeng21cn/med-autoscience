@@ -1,20 +1,13 @@
 from __future__ import annotations
+
 import importlib
-import json
 from pathlib import Path
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes_to_publication_gate(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
+def _dm003_context(monkeypatch, tmp_path: Path):
     scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -22,9 +15,110 @@ def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
     quest_root = profile.runtime_root / quest_id
+    return scan, profile, study_id, quest_id, study_root, quest_root
+
+
+def _route_for_action(
+    *,
+    study_id: str,
+    quest_id: str,
+    status: dict,
+    progress: dict,
+    action: dict,
+    blocked_reason: str,
+    next_owner: str,
+) -> dict:
+    owner_route = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    route, _actions = owner_route.route_and_decorate_actions(
+        study_id=study_id,
+        quest_id=quest_id,
+        status=status,
+        progress=progress,
+        actions=[action],
+        blocked_reason=blocked_reason,
+        next_owner=next_owner,
+        active_run_id=None,
+    )
+    return route
+
+
+def _submission_refresh_route(study_root: Path, publication_eval_payload: dict) -> dict:
+    current_truth_owner = importlib.import_module(
+        "med_autoscience.controllers.paper_mission_owner_surface.current_truth_owner"
+    )
+    route = current_truth_owner.current_gate_replay_submission_refresh_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    assert route is not None
+    return route
+
+
+def _current_package_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    status: dict,
+    progress: dict,
+    publication_eval_payload: dict,
+) -> dict:
+    artifact_freshness = importlib.import_module(
+        "med_autoscience.controllers.paper_mission_owner_surface.artifact_freshness"
+    )
+    action = artifact_freshness.action_payload(
+        reason=artifact_freshness.ACTION_TYPE,
+        controller_route=_submission_refresh_route(study_root, publication_eval_payload),
+    )
+    return _route_for_action(
+        study_id=study_id,
+        quest_id=quest_id,
+        status=status,
+        progress=progress,
+        action=action,
+        blocked_reason=artifact_freshness.ACTION_TYPE,
+        next_owner=artifact_freshness.OWNER,
+    )
+
+
+def _publication_gate_specificity_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    status: dict,
+    progress: dict,
+    publication_eval_payload: dict,
+) -> dict:
+    publication_gate_actions = importlib.import_module(
+        "med_autoscience.controllers.paper_mission_owner_surface.publication_gate_actions"
+    )
+    refresh_route = _submission_refresh_route(study_root, publication_eval_payload)
+    action = publication_gate_actions.action_payload(
+        gate_specificity={"required": True, "gate_owner": "publication_gate"}
+    )
+    action["controller_route"] = dict(refresh_route)
+    action["work_unit_fingerprint"] = refresh_route["work_unit_fingerprint"]
+    action["required_output_surface"] = "artifacts/publication_eval/latest.json#specificity_targets"
+    return _route_for_action(
+        study_id=study_id,
+        quest_id=quest_id,
+        status=status,
+        progress=progress,
+        action=action,
+        blocked_reason=publication_gate_actions.ACTION_TYPE,
+        next_owner="publication_gate",
+    )
+
+
+def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes_to_publication_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::post-submission-refresh-specificity"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "schema_version": 1,
@@ -37,7 +131,7 @@ def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes
             ],
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -120,35 +214,18 @@ def test_consumed_submission_refresh_gate_replay_without_specific_targets_routes
             },
         },
     }
-    consumed_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": "truth-epoch-dm003-post-submission-refresh",
-        "route_epoch": "truth-epoch-dm003-post-submission-refresh",
-        "runtime_health_epoch": "runtime-health-dm003-post-submission-refresh",
-        "work_unit_fingerprint": "gate-replay-route-back::finalize::publication-blockers::dm003-submission-refresh",
-        "source_fingerprint": "truth-source-dm003-post-submission-refresh",
-        "next_owner": "artifact_os",
-        "owner_reason": "current_package_freshness_required",
-        "allowed_actions": ["current_package_freshness_required"],
-        "source_refs": {
-            "study_truth_epoch": "truth-epoch-dm003-post-submission-refresh",
-            "runtime_health_epoch": "runtime-health-dm003-post-submission-refresh",
-            "work_unit_id": "submission_minimal_refresh",
-            "work_unit_fingerprint": (
-                "gate-replay-route-back::finalize::publication-blockers::dm003-submission-refresh"
-            ),
-            "blocked_reason": "current_package_freshness_required",
-            "publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-        },
-        "idempotency_key": "owner-route::dm003::post-submission-refresh",
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+    consumed_route = _current_package_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
@@ -200,16 +277,10 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::ai-reviewer-current"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "specificity-refresh.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "gate_kind": "publishability_control",
@@ -245,7 +316,7 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
             ],
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -351,43 +422,18 @@ def test_consumed_publication_gate_specificity_with_blocked_gate_routes_to_final
             }
         ],
     }
-    specificity_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": "truth-epoch-dm003-specificity-refresh",
-        "route_epoch": "truth-epoch-dm003-specificity-refresh",
-        "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-        "work_unit_fingerprint": "gate-replay-route-back::finalize::publication-blockers::submission-refresh",
-        "source_fingerprint": "truth-source-dm003-specificity-refresh",
-        "next_owner": "publication_gate",
-        "owner_reason": "publication_gate_specificity_required",
-        "allowed_actions": ["publication_gate_specificity_required"],
-        "source_refs": {
-            "study_truth_epoch": "truth-epoch-dm003-specificity-refresh",
-            "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-            "work_unit_id": "submission_minimal_refresh",
-            "work_unit_fingerprint": (
-                "gate-replay-route-back::finalize::publication-blockers::submission-refresh"
-            ),
-            "blocked_reason": "publication_gate_specificity_required",
-            "owner_route_currentness_basis": {
-                "truth_epoch": "truth-epoch-dm003-specificity-refresh",
-                "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-                "work_unit_id": "submission_minimal_refresh",
-                "work_unit_fingerprint": (
-                    "gate-replay-route-back::finalize::publication-blockers::submission-refresh"
-                ),
-                "owner_reason": "publication_gate_specificity_required",
-            },
-        },
-        "idempotency_key": "owner-route::dm003::publication-gate-specificity",
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+    specificity_route = _publication_gate_specificity_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
@@ -452,17 +498,11 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::ai-reviewer-current"
     work_unit_fingerprint = "gate-replay-route-back::finalize::publication-blockers::submission-refresh"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "specificity-refresh.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "gate_kind": "publishability_control",
@@ -478,7 +518,7 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
             "current_required_action": "complete_bundle_stage",
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -571,57 +611,26 @@ def test_specificity_followthrough_takes_precedence_over_older_package_freshness
             }
         ],
     }
-    package_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": "truth-epoch-dm003-specificity-refresh",
-        "route_epoch": "truth-epoch-dm003-specificity-refresh",
-        "runtime_health_epoch": "runtime-health-dm003-package-refresh",
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "source_fingerprint": "truth-source-dm003-specificity-refresh",
-        "next_owner": "artifact_os",
-        "owner_reason": "current_package_freshness_required",
-        "allowed_actions": ["current_package_freshness_required"],
-        "source_refs": {
-            "study_truth_epoch": "truth-epoch-dm003-specificity-refresh",
-            "runtime_health_epoch": "runtime-health-dm003-package-refresh",
-            "work_unit_id": "submission_minimal_refresh",
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "blocked_reason": "current_package_freshness_required",
-            "owner_route_currentness_basis": {
-                "truth_epoch": "truth-epoch-dm003-specificity-refresh",
-                "runtime_health_epoch": "runtime-health-dm003-package-refresh",
-                "work_unit_id": "submission_minimal_refresh",
-                "work_unit_fingerprint": work_unit_fingerprint,
-                "owner_reason": "current_package_freshness_required",
-            },
-        },
-        "idempotency_key": "owner-route::dm003::current-package-freshness",
-    }
-    specificity_route = {
-        **package_route,
-        "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-        "next_owner": "publication_gate",
-        "owner_reason": "publication_gate_specificity_required",
-        "allowed_actions": ["publication_gate_specificity_required"],
-        "source_refs": {
-            **package_route["source_refs"],
-            "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-            "blocked_reason": "publication_gate_specificity_required",
-            "owner_route_currentness_basis": {
-                **package_route["source_refs"]["owner_route_currentness_basis"],
-                "runtime_health_epoch": "runtime-health-dm003-specificity-refresh",
-                "owner_reason": "publication_gate_specificity_required",
-            },
-        },
-        "idempotency_key": "owner-route::dm003::publication-gate-specificity",
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+    package_route = _current_package_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    specificity_route = _publication_gate_specificity_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
@@ -692,18 +701,12 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::ai-reviewer-current"
     truth_epoch = "truth-epoch-dm003-package-freshness"
     work_unit_fingerprint = "gate-replay-route-back::finalize::publication-blockers::submission-refresh"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "specificity-refresh.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "gate_kind": "publishability_control",
@@ -719,7 +722,7 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
             "current_required_action": "complete_bundle_stage",
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -812,54 +815,26 @@ def test_current_package_freshness_receipt_takes_precedence_over_older_specifici
             }
         ],
     }
-    package_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": truth_epoch,
-        "route_epoch": truth_epoch,
-        "runtime_health_epoch": "runtime-health-dm003-package-freshness",
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "source_fingerprint": "truth-source-dm003-package-freshness",
-        "next_owner": "artifact_os",
-        "owner_reason": "current_package_freshness_required",
-        "allowed_actions": ["current_package_freshness_required"],
-        "source_refs": {
-            "study_truth_epoch": truth_epoch,
-            "runtime_health_epoch": "runtime-health-dm003-package-freshness",
-            "work_unit_id": "submission_minimal_refresh",
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "blocked_reason": "current_package_freshness_required",
-            "owner_route_currentness_basis": {
-                "truth_epoch": truth_epoch,
-                "runtime_health_epoch": "runtime-health-dm003-package-freshness",
-                "work_unit_id": "submission_minimal_refresh",
-                "work_unit_fingerprint": work_unit_fingerprint,
-                "owner_reason": "current_package_freshness_required",
-            },
-        },
-        "idempotency_key": "owner-route::dm003::current-package-freshness",
-    }
-    specificity_route = {
-        **package_route,
-        "next_owner": "publication_gate",
-        "owner_reason": "publication_gate_specificity_required",
-        "allowed_actions": ["publication_gate_specificity_required"],
-        "source_refs": {
-            **package_route["source_refs"],
-            "blocked_reason": "publication_gate_specificity_required",
-            "owner_route_currentness_basis": {
-                **package_route["source_refs"]["owner_route_currentness_basis"],
-                "owner_reason": "publication_gate_specificity_required",
-            },
-        },
-        "idempotency_key": "owner-route::dm003::publication-gate-specificity",
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+    package_route = _current_package_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    specificity_route = _publication_gate_specificity_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 2,

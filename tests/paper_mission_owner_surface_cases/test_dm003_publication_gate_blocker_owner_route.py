@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def test_scan_routes_publication_gate_blocker_to_gate_clearing_despite_external_supervisor_lifecycle(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
+def _dm003_context(monkeypatch, tmp_path: Path):
     scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -23,6 +15,14 @@ def test_scan_routes_publication_gate_blocker_to_gate_clearing_despite_external_
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
     quest_root = profile.runtime_root / quest_id
+    return scan, profile, study_id, quest_id, study_root, quest_root
+
+
+def test_scan_routes_publication_gate_blocker_to_gate_clearing_despite_external_supervisor_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::gate-recheck-only"
     status_payload = {
         "study_id": study_id,
@@ -133,13 +133,7 @@ def test_gate_recheck_only_ai_reviewer_readiness_preempts_stale_write_routeback(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::gate-recheck-only-with-stale-write-routeback"
     status_payload = {
         "study_id": study_id,
@@ -276,13 +270,7 @@ def test_gate_blocker_domain_transition_preempts_pending_ai_reviewer_request(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::ai-reviewer-current-manuscript"
     status_payload = {
         "study_id": study_id,
@@ -351,7 +339,7 @@ def test_gate_blocker_domain_transition_preempts_pending_ai_reviewer_request(
         },
     }
     ai_reviewer_request = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-    _write_json(
+    write_json(
         ai_reviewer_request,
         {
             "request_kind": "return_to_ai_reviewer_workflow",
@@ -402,16 +390,10 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::blocked-gate-replay-route-back-write"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "schema_version": 1,
@@ -437,7 +419,7 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
             ],
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -569,16 +551,10 @@ def test_executed_gate_replay_submission_refresh_preempts_stale_story_surface_bl
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::gate-replay-submission-refresh"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "schema_version": 1,
@@ -596,7 +572,7 @@ def test_executed_gate_replay_submission_refresh_preempts_stale_story_surface_bl
             "medical_publication_surface_status": "blocked",
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -622,7 +598,7 @@ def test_executed_gate_replay_submission_refresh_preempts_stale_story_surface_bl
             },
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -746,16 +722,10 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    scan, profile, study_id, quest_id, study_root, quest_root = _dm003_context(monkeypatch, tmp_path)
     eval_id = "publication-eval::dm003::blocked-gate-replay-route-back-write"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-    _write_json(
+    write_json(
         gate_report_path,
         {
             "schema_version": 1,
@@ -771,7 +741,7 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
             "medical_publication_surface_status": "blocked",
         },
     )
-    _write_json(
+    write_json(
         study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         {
             "schema_version": 1,
@@ -829,10 +799,10 @@ def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
         },
         "idempotency_key": "owner-route::dm003::gate-replay",
     }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+    write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,

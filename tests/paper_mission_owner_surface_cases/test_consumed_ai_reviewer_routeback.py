@@ -5,15 +5,21 @@ import json
 import hashlib
 from pathlib import Path
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import write_json
 from tests.reviewer_os_fixture_helpers import (
     current_manuscript_routeback_record,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+def _owner_surface_context(monkeypatch, tmp_path: Path, study_id: str):
+    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    return module, profile, quest_id, study_root, quest_root
 
 
 def _current_input_routeback_record(
@@ -109,13 +115,8 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    module, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     evidence_ref = (
         study_root
         / "artifacts"
@@ -123,7 +124,7 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
         / "analysis_harmonization"
         / "unit_harmonized_external_validation_rerun.json"
     )
-    _write_json(
+    write_json(
         evidence_ref,
         {
             "surface": "unit_harmonized_external_validation_rerun_evidence",
@@ -134,7 +135,7 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
         },
     )
     analysis_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
-    _write_json(
+    write_json(
         analysis_path,
         {
             "surface": "analysis_harmonization_owner_result",
@@ -299,13 +300,8 @@ def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_cleari
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    module, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     eval_id = "publication-eval::dm003::current-manuscript-finalize-gate-replay"
     publication_eval = {
         "schema_version": 1,
@@ -439,13 +435,8 @@ def test_consumed_ai_reviewer_receipt_routes_dpcc_publication_gate_lane_to_gate_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    module, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     eval_id = "publication-eval::dm003::current-ai-reviewer-record"
     completion_receipt_consumption = {
         "status": "consumed",
@@ -560,13 +551,8 @@ def test_consumed_ai_reviewer_receipt_clears_stale_analysis_reviewer_lifecycle_i
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    module, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     publication_eval = {
         "schema_version": 1,
         "eval_id": "publication-eval::dm002::post-harmonization-observe-route",
@@ -674,13 +660,8 @@ def test_consumed_current_record_production_receipt_returns_to_write_without_rev
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    module, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     manuscript_path = study_root / "paper" / "draft.md"
     manuscript_text = "# Draft\n\nCurrent DM003 manuscript after AI-reviewer record production.\n"
     manuscript_path.parent.mkdir(parents=True, exist_ok=True)
@@ -808,12 +789,8 @@ def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
     canonical_inputs = importlib.import_module(
         "med_autoscience.controllers.paper_mission_owner_surface.canonical_inputs"
     )
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    quest_id = study_id
-    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
+    _, profile, quest_id, study_root, quest_root = _owner_surface_context(monkeypatch, tmp_path, study_id)
     manuscript_path = study_root / "paper" / "draft.md"
     evidence_path = study_root / "paper" / "evidence_ledger.json"
     claim_map_path = study_root / "paper" / "claim_evidence_map.json"
@@ -822,8 +799,8 @@ def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
     manuscript_path.write_text(manuscript_text, encoding="utf-8")
     evidence_payload = {"schema_version": 1, "status": "current-input-evidence"}
     claim_map_payload = {"schema_version": 1, "status": "current-input-claims"}
-    _write_json(evidence_path, evidence_payload)
-    _write_json(claim_map_path, claim_map_payload)
+    write_json(evidence_path, evidence_payload)
+    write_json(claim_map_path, claim_map_payload)
     evidence_digest = "sha256:" + hashlib.sha256(
         (json.dumps(evidence_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     ).hexdigest()
@@ -840,7 +817,7 @@ def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
         emitted_at="2026-05-28T23:10:58+00:00",
     )
     latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    _write_json(latest_path, old_eval)
+    write_json(latest_path, old_eval)
     eval_id = "publication-eval::002-dm-china-us-mortality-attribution::ai-reviewer-current-inputs::20260531T192047Z"
     record_path = (
         study_root
@@ -861,8 +838,8 @@ def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
         quest_id=quest_id,
         eval_id=eval_id,
     )
-    _write_json(record_path, current_record)
-    _write_json(
+    write_json(record_path, current_record)
+    write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
             "surface": "domain_action_request",

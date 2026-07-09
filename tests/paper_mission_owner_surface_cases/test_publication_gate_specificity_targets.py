@@ -1,9 +1,30 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
+from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _publication_eval_record(study_root: Path) -> dict:
+    return json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+
+
+def _write_charter(
+    study_root: Path,
+    *,
+    charter_id: str = "charter-dm",
+    publication_objective: str = "Test publication objective.",
+) -> None:
+    write_json(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        {
+            "charter_id": charter_id,
+            "publication_objective": publication_objective,
+        },
+    )
 
 
 def _complete_specificity_targets() -> list[dict[str, str]]:
@@ -39,6 +60,57 @@ def _complete_specificity_targets() -> list[dict[str, str]]:
             "blocking_reason": "External validation source path is missing from the gate blocker.",
         },
     ]
+
+
+def _write_ai_reviewer_eval(
+    eval_path: Path,
+    *,
+    study_root: Path,
+    quest_root: Path,
+    eval_id: str,
+    summary: str,
+    include_specificity_targets: bool = False,
+    evidence_refs: list[Path] | None = None,
+) -> None:
+    action = {
+        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
+        "action_type": "return_to_controller",
+        "priority": "now",
+        "reason": summary,
+        "evidence_refs": [
+            str(ref)
+            for ref in (
+                evidence_refs
+                or [quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"]
+            )
+        ],
+        "requires_controller_decision": True,
+        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
+    }
+    if include_specificity_targets:
+        action["specificity_targets"] = _complete_specificity_targets()
+    write_json(
+        eval_path,
+        {
+            "eval_id": eval_id,
+            "study_id": study_root.name,
+            "quest_id": "quest-dm",
+            "emitted_at": "2026-05-05T08:00:00+00:00",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": summary,
+                }
+            },
+            "delivery_context_refs": {"paper_root_ref": str(study_root / "paper")},
+            "recommended_actions": [action],
+        },
+    )
 
 
 def test_scan_domain_routes_stops_requeueing_specificity_when_gate_names_concrete_targets(
@@ -81,20 +153,25 @@ def test_scan_domain_routes_stops_requeueing_specificity_when_gate_names_concret
     )
     monkeypatch.setattr(
         module,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": "001-dm-cvd-mortality-risk",
-            "current_stage": "publication_supervision",
-            "paper_stage": "publishability_gate_blocked",
-            "quality_review_loop": {"closure_state": "open"},
-            "authority_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
-            "ai_repair_lifecycle": {
-                "state": "external_supervisor_required",
-                "blocked_reason": "publication_gate_specificity_required",
-                "external_supervisor_required": True,
-                "projection_only": True,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            module.domain_status_projection.progress_projection(),
+            {
+                "study_id": "001-dm-cvd-mortality-risk",
+                "current_stage": "publication_supervision",
+                "paper_stage": "publishability_gate_blocked",
+                "quality_review_loop": {"closure_state": "open"},
+                "authority_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
+                "ai_repair_lifecycle": {
+                    "state": "external_supervisor_required",
+                    "blocked_reason": "publication_gate_specificity_required",
+                    "external_supervisor_required": True,
+                    "projection_only": True,
+                },
             },
-        },
+            "quest-dm",
+            publication_eval,
+        ),
     )
 
     result = module.scan_domain_routes(
@@ -161,13 +238,18 @@ def test_scan_domain_routes_keeps_specificity_queued_when_targets_lack_source_pa
     )
     monkeypatch.setattr(
         module,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": "001-dm-cvd-mortality-risk",
-            "current_stage": "publication_supervision",
-            "paper_stage": "bundle_stage_blocked",
-            "quality_review_loop": {"closure_state": "open"},
-        },
+        "_read_study_projection_inputs",
+        lambda **_: (
+            module.domain_status_projection.progress_projection(),
+            {
+                "study_id": "001-dm-cvd-mortality-risk",
+                "current_stage": "publication_supervision",
+                "paper_stage": "bundle_stage_blocked",
+                "quality_review_loop": {"closure_state": "open"},
+            },
+            "quest-dm",
+            publication_eval,
+        ),
     )
 
     result = module.scan_domain_routes(
@@ -189,17 +271,8 @@ def test_publication_gate_materialization_adds_concrete_specificity_targets(tmp_
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    (study_root / "artifacts" / "controller").mkdir(parents=True)
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
-        (
-            '{'
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            '}'
-        ),
-        encoding="utf-8",
-    )
+    _write_charter(study_root)
     report = {
         "gate_kind": "publishability_control",
         "generated_at": "2026-05-05T00:00:00+00:00",
@@ -243,8 +316,7 @@ def test_publication_gate_materialization_adds_concrete_specificity_targets(tmp_
     )
 
     assert result is not None
-    payload = (study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8")
-    record = __import__("json").loads(payload)
+    record = _publication_eval_record(study_root)
     targets = record["recommended_actions"][0]["specificity_targets"]
     assert [item["target_kind"] for item in targets] == [
         "claim",
@@ -262,17 +334,8 @@ def test_publication_gate_materialization_uses_default_metric_source_when_report
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    (study_root / "artifacts" / "controller").mkdir(parents=True)
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
-    )
+    _write_charter(study_root)
     report = {
         "gate_kind": "publishability_control",
         "generated_at": "2026-05-05T00:00:00+00:00",
@@ -318,8 +381,7 @@ def test_publication_gate_materialization_uses_default_metric_source_when_report
     )
 
     assert result is not None
-    payload = (study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8")
-    record = __import__("json").loads(payload)
+    record = _publication_eval_record(study_root)
     targets = record["recommended_actions"][0]["specificity_targets"]
     metric_targets = [item for item in targets if item["target_kind"] == "metric"]
     assert metric_targets == [
@@ -338,59 +400,15 @@ def test_publication_gate_materialization_refreshes_blocked_bundle_targets_over_
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    charter_path.parent.mkdir(parents=True)
-    charter_path.write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
-    )
-    eval_path.parent.mkdir(parents=True)
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
-                "eval_id": "publication-eval::old-ai-reviewer",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "quest_id": "quest-dm",
-                "emitted_at": "2026-05-05T08:00:00+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "ready",
-                        "summary": "Earlier AI reviewer prose assessment.",
-                    }
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                },
-                "recommended_actions": [
-                    {
-                        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "AI reviewer evaluated the same blocked bundle gate fingerprint.",
-                        "evidence_refs": [
-                            str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
-                        ],
-                        "requires_controller_decision": True,
-                        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
-                    }
-                ],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    _write_charter(study_root)
+    _write_ai_reviewer_eval(
+        eval_path,
+        study_root=study_root,
+        quest_root=quest_root,
+        eval_id="publication-eval::old-ai-reviewer",
+        summary="AI reviewer evaluated the same blocked bundle gate fingerprint.",
     )
     report = {
         "gate_kind": "publishability_control",
@@ -423,7 +441,7 @@ def test_publication_gate_materialization_refreshes_blocked_bundle_targets_over_
 
     assert result is not None
     assert result["eval_id"] != "publication-eval::old-ai-reviewer"
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "mechanical_projection"
     assert record["assessment_provenance"]["ai_reviewer_required"] is True
     assert [item["target_kind"] for item in record["recommended_actions"][0]["specificity_targets"]] == [
@@ -442,89 +460,36 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
     study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    (study_root / "artifacts" / "controller").mkdir(parents=True)
-    eval_path.parent.mkdir(parents=True)
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm002",'
-            '"publication_objective":"Rebuild clean migrated paper authority."'
-            "}"
-        ),
-        encoding="utf-8",
+    _write_charter(
+        study_root,
+        charter_id="charter-dm002",
+        publication_objective="Rebuild clean migrated paper authority.",
     )
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
-                "schema_version": 1,
-                "eval_id": "publication-eval::clean-cutover-ai-reviewer",
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "quest_id": "002-dm-china-us-mortality-attribution",
-                "emitted_at": "2026-05-17T12:00:00+00:00",
-                "evaluation_scope": "publication",
-                "charter_context_ref": {
-                    "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                    "charter_id": "charter-dm002",
-                    "publication_objective": "Rebuild clean migrated paper authority.",
-                },
-                "runtime_context_refs": {
-                    "runtime_escalation_ref": str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"),
-                    "main_result_ref": str(study_root / "paper" / "evidence_ledger.json"),
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                    "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-                },
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "source_kind": "publication_eval_ai_reviewer",
-                    "policy_id": "medical_publication_critique_v1",
-                    "source_refs": [str(study_root / "paper" / "draft.md")],
-                    "ai_reviewer_required": False,
-                },
-                "verdict": {
-                    "overall_verdict": "blocked",
-                    "primary_claim_status": "partial",
-                    "summary": "Clean migration requires new MAS owner rebuild before delivery.",
-                    "stop_loss_pressure": "watch",
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "underdefined",
-                        "summary": "Fresh AI reviewer prose review is required.",
-                        "evidence_refs": [str(study_root / "paper" / "draft.md")],
-                    }
-                },
-                "gaps": [
-                    {
-                        "gap_id": "paper-authority-clean-migration",
-                        "gap_type": "delivery",
-                        "severity": "must_fix",
-                        "summary": "New MAS owner must rebuild delivery authority.",
-                        "evidence_refs": [
-                            str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json")
-                        ],
-                    }
-                ],
-                "recommended_actions": [
-                    {
-                        "action_id": "paper-authority-clean-migration-rebuild",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
-                        "evidence_refs": [
-                            str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json")
-                        ],
-                        "requires_controller_decision": True,
-                    }
-                ],
+    write_json(
+        eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::clean-cutover-ai-reviewer",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "emitted_at": "2026-05-17T12:00:00+00:00",
+            "evaluation_scope": "publication",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
             },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+            "verdict": {"overall_verdict": "blocked"},
+            "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+            "recommended_actions": [
+                {
+                    "action_id": "paper-authority-clean-migration-rebuild",
+                    "action_type": "return_to_controller",
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
     )
     report = {
         "gate_kind": "publishability_control",
@@ -551,11 +516,8 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
         publication_gate_report=report,
     )
 
-    assert result == {
-        "eval_id": "publication-eval::clean-cutover-ai-reviewer",
-        "artifact_path": str(eval_path),
-    }
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert result["eval_id"] == "publication-eval::clean-cutover-ai-reviewer"
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "ai_reviewer"
     assert record["verdict"]["overall_verdict"] == "blocked"
 
@@ -566,60 +528,16 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    charter_path.parent.mkdir(parents=True)
-    charter_path.write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
-    )
-    eval_path.parent.mkdir(parents=True)
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
-                "eval_id": "publication-eval::new-ai-reviewer",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "quest_id": "quest-dm",
-                "emitted_at": "2026-05-05T08:00:00+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "underdefined",
-                        "summary": "AI reviewer evaluated the current blocked bundle gate.",
-                    }
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                },
-                "recommended_actions": [
-                    {
-                        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "AI reviewer evaluated the same blocked bundle gate fingerprint.",
-                        "evidence_refs": [
-                            str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
-                        ],
-                        "requires_controller_decision": True,
-                        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
-                        "specificity_targets": _complete_specificity_targets(),
-                    }
-                ],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    _write_charter(study_root)
+    _write_ai_reviewer_eval(
+        eval_path,
+        study_root=study_root,
+        quest_root=quest_root,
+        eval_id="publication-eval::new-ai-reviewer",
+        summary="AI reviewer evaluated the same blocked bundle gate fingerprint.",
+        include_specificity_targets=True,
     )
     report = {
         "gate_kind": "publishability_control",
@@ -650,8 +568,8 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
         publication_gate_report=report,
     )
 
-    assert result == {"eval_id": "publication-eval::new-ai-reviewer", "artifact_path": str(eval_path)}
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert result["eval_id"] == "publication-eval::new-ai-reviewer"
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "ai_reviewer"
     assert record["eval_id"] == "publication-eval::new-ai-reviewer"
 
@@ -662,60 +580,16 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    charter_path.parent.mkdir(parents=True)
-    charter_path.write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
-    )
-    eval_path.parent.mkdir(parents=True)
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
-                "eval_id": "publication-eval::dm002-ai-reviewer-current",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "quest_id": "quest-dm",
-                "emitted_at": "2026-05-05T08:00:00+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "underdefined",
-                        "summary": "AI reviewer evaluated the current publishability gate work unit.",
-                    }
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                },
-                "recommended_actions": [
-                    {
-                        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "AI reviewer evaluated the same publishability gate work-unit fingerprint.",
-                        "evidence_refs": [
-                            str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
-                        ],
-                        "requires_controller_decision": True,
-                        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
-                        "specificity_targets": _complete_specificity_targets(),
-                    }
-                ],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    _write_charter(study_root)
+    _write_ai_reviewer_eval(
+        eval_path,
+        study_root=study_root,
+        quest_root=quest_root,
+        eval_id="publication-eval::dm002-ai-reviewer-current",
+        summary="AI reviewer evaluated the same publishability gate work-unit fingerprint.",
+        include_specificity_targets=True,
     )
     report = {
         "gate_kind": "publishability_control",
@@ -747,8 +621,8 @@ def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_ove
         publication_gate_report=report,
     )
 
-    assert result == {"eval_id": "publication-eval::dm002-ai-reviewer-current", "artifact_path": str(eval_path)}
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert result["eval_id"] == "publication-eval::dm002-ai-reviewer-current"
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "ai_reviewer"
     assert record["eval_id"] == "publication-eval::dm002-ai-reviewer-current"
 
@@ -759,59 +633,15 @@ def test_publication_gate_materialization_force_refreshes_specificity_targets_ov
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    charter_path.parent.mkdir(parents=True)
-    charter_path.write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
-    )
-    eval_path.parent.mkdir(parents=True)
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
-                "eval_id": "publication-eval::current-ai-reviewer",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "quest_id": "quest-dm",
-                "emitted_at": "2026-05-05T08:00:00+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "underdefined",
-                        "summary": "AI reviewer evaluated the current blocked bundle gate.",
-                    }
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                },
-                "recommended_actions": [
-                    {
-                        "action_id": "publication-eval-action::return_to_controller::publication-blockers::9ca1d64e0d39136a",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "AI reviewer evaluated the same blocked bundle gate fingerprint.",
-                        "evidence_refs": [
-                            str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
-                        ],
-                        "requires_controller_decision": True,
-                        "work_unit_fingerprint": "publication-blockers::9ca1d64e0d39136a",
-                    }
-                ],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    _write_charter(study_root)
+    _write_ai_reviewer_eval(
+        eval_path,
+        study_root=study_root,
+        quest_root=quest_root,
+        eval_id="publication-eval::current-ai-reviewer",
+        summary="AI reviewer evaluated the same blocked bundle gate fingerprint.",
     )
     report = {
         "gate_kind": "publishability_control",
@@ -845,7 +675,7 @@ def test_publication_gate_materialization_force_refreshes_specificity_targets_ov
 
     assert result is not None
     assert result["eval_id"] != "publication-eval::current-ai-reviewer"
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "mechanical_projection"
     assert [item["target_kind"] for item in record["recommended_actions"][0]["specificity_targets"]] == [
         "claim",
@@ -862,79 +692,31 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_ev
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision.publication_and_submission")
     study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
-    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
-    charter_path.parent.mkdir(parents=True)
-    charter_path.write_text(
-        (
-            "{"
-            '"charter_id":"charter-dm",'
-            '"publication_objective":"Test publication objective."'
-            "}"
-        ),
-        encoding="utf-8",
+    _write_charter(study_root)
+    _write_ai_reviewer_eval(
+        eval_path,
+        study_root=study_root,
+        quest_root=quest_root,
+        eval_id="publication-eval::current-clean-cutover-ai-reviewer",
+        summary="Rerun publication gate and delivery sync after clean migration.",
+        evidence_refs=[receipt_path],
     )
-    eval_path.parent.mkdir(parents=True)
-    eval_path.write_text(
-        __import__("json").dumps(
-            {
+    write_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "new_mas_authority_established",
+            "study_id": "001-dm-cvd-mortality-risk",
+            "new_mas_authority": {
+                "owner": "ai_reviewer",
+                "publication_eval_ref": str(eval_path),
                 "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "quest_id": "quest-dm",
-                "emitted_at": "2026-05-17T08:00:00+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "source_kind": "publication_eval_ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {
-                        "status": "underdefined",
-                        "summary": "Clean migration requires reviewer-owned write/gate rebuild.",
-                    }
-                },
-                "delivery_context_refs": {
-                    "paper_root_ref": str(study_root / "paper"),
-                },
-                "recommended_actions": [
-                    {
-                        "action_id": "publication-eval-action::return_to_controller::clean-cutover",
-                        "action_type": "return_to_controller",
-                        "priority": "now",
-                        "reason": "Rerun publication gate and delivery sync after clean migration.",
-                        "evidence_refs": [str(receipt_path)],
-                        "requires_controller_decision": True,
-                    }
-                ],
             },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    receipt_path.parent.mkdir(parents=True)
-    receipt_path.write_text(
-        __import__("json").dumps(
-            {
-                "schema_version": 1,
-                "surface_kind": "paper_authority_clean_migration",
-                "status": "new_mas_authority_established",
-                "study_id": "001-dm-cvd-mortality-risk",
-                "new_mas_authority": {
-                    "owner": "ai_reviewer",
-                    "publication_eval_ref": str(eval_path),
-                    "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
-                    "established_at": "2026-05-17T08:00:00+00:00",
-                },
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+        },
     )
     report = {
         "gate_kind": "publishability_control",
@@ -966,10 +748,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_ev
         publication_gate_report=report,
     )
 
-    assert result == {
-        "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
-        "artifact_path": str(eval_path),
-    }
-    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert result["eval_id"] == "publication-eval::current-clean-cutover-ai-reviewer"
+    record = _publication_eval_record(study_root)
     assert record["assessment_provenance"]["owner"] == "ai_reviewer"
     assert record["eval_id"] == "publication-eval::current-clean-cutover-ai-reviewer"
