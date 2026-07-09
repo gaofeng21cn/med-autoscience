@@ -204,6 +204,45 @@ def _write_valid_numeric_trace(paper_root: Path, *, claim_id: str, trace_id: str
     )
 
 
+def _write_reporting_contract(paper_root: Path, **overrides: object) -> None:
+    payload = {
+        "reporting_guideline_family": "STROBE",
+        "display_registry_required": False,
+        "cohort_flow_required": False,
+        "baseline_characteristics_required": False,
+        "display_shell_plan": [],
+    }
+    payload.update(overrides)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def _write_reporting_guideline_checklist(paper_root: Path) -> None:
+    (paper_root / "reporting_guideline_checklist.json").write_text(
+        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def _write_handoff_ready_submission_checklist(paper_root: Path) -> None:
+    review_root = paper_root / "review"
+    review_root.mkdir(parents=True, exist_ok=True)
+    (review_root / "submission_checklist.json").write_text(
+        json.dumps(
+            {
+                "overall_status": "submission_minimal_materialized_handoff_ready",
+                "handoff_ready": True,
+                "blocking_items": [],
+                "package_status": "submission_minimal_ready",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -226,33 +265,23 @@ def test_medical_reporting_audit_blocks_structured_publication_reporting_gaps(tm
     quest_root = tmp_path / "runtime" / "quests" / "003-dpcc-phenotypes"
     paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-                "paper_archetype": "phenotype_real_world",
-                "methods_completeness": {
-                    "study_design": True,
-                    "cohort": True,
-                    "variables": True,
-                    "model": True,
-                },
-                "statistical_reporting": {
-                    "summary_format": True,
-                    "p_values": True,
-                },
-                "table_figure_claim_map": [],
-                "clinical_actionability": {
-                    "treatment_gap": True,
-                },
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
+    _write_reporting_contract(
+        paper_root,
+        paper_archetype="phenotype_real_world",
+        methods_completeness={
+            "study_design": True,
+            "cohort": True,
+            "variables": True,
+            "model": True,
+        },
+        statistical_reporting={
+            "summary_format": True,
+            "p_values": True,
+        },
+        table_figure_claim_map=[],
+        clinical_actionability={
+            "treatment_gap": True,
+        },
     )
     (paper_root / "reporting_guideline_checklist.json").write_text("{}", encoding="utf-8")
 
@@ -460,23 +489,8 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-story"
     paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-                {
-                    "reporting_guideline_family": "STROBE",
-                    "display_registry_required": False,
-                    "cohort_flow_required": False,
-                    "baseline_characteristics_required": False,
-                    "display_shell_plan": [],
-                },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (paper_root / "reporting_guideline_checklist.json").write_text(
-        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    _write_reporting_contract(paper_root)
+    _write_reporting_guideline_checklist(paper_root)
 
     report = module.run_controller(quest_root=quest_root, apply=True)
 
@@ -495,23 +509,8 @@ def test_medical_reporting_audit_reports_figure_semantics_missing_pdf_export(tmp
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
     paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (paper_root / "reporting_guideline_checklist.json").write_text(
-        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    _write_reporting_contract(paper_root)
+    _write_reporting_guideline_checklist(paper_root)
     _write_valid_medical_story_contracts(paper_root, figure_required_exports=["png", "svg"])
 
     report = module.run_controller(quest_root=quest_root, apply=False)
@@ -531,33 +530,8 @@ def test_medical_reporting_audit_accepts_keyed_figure_semantics_manifest(tmp_pat
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
     paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-                "quality_gate_expectation": {"gate_relaxation_allowed": True},
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (paper_root / "review").mkdir(parents=True, exist_ok=True)
-    (paper_root / "review" / "submission_checklist.json").write_text(
-        json.dumps(
-            {
-                "overall_status": "submission_minimal_materialized_handoff_ready",
-                "handoff_ready": True,
-                "blocking_items": [],
-                "package_status": "submission_minimal_ready",
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+    _write_reporting_contract(paper_root, quality_gate_expectation={"gate_relaxation_allowed": True})
+    _write_handoff_ready_submission_checklist(paper_root)
     _write_keyed_medical_story_contracts(paper_root)
 
     report = module.run_controller(quest_root=quest_root, apply=False)
@@ -573,23 +547,8 @@ def test_medical_reporting_audit_blocks_keyed_figure_semantics_missing_message(t
     quest_root = tmp_path / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
     paper_root = quest_root / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (paper_root / "reporting_guideline_checklist.json").write_text(
-        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    _write_reporting_contract(paper_root)
+    _write_reporting_guideline_checklist(paper_root)
     _write_keyed_medical_story_contracts(paper_root)
     payload = json.loads((paper_root / "figure_semantics_manifest.json").read_text(encoding="utf-8"))
     del payload["figures"]["F1"]["direct_message"]
@@ -611,34 +570,10 @@ def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklis
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-handoff-ready"
     paper_root = quest_root / "paper"
-    review_root = paper_root / "review"
-    review_root.mkdir(parents=True, exist_ok=True)
+    paper_root.mkdir(parents=True, exist_ok=True)
     (paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (review_root / "submission_checklist.json").write_text(
-        json.dumps(
-            {
-                "overall_status": "submission_minimal_materialized_handoff_ready",
-                "handoff_ready": True,
-                "blocking_items": [],
-                "package_status": "submission_minimal_ready",
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+    _write_reporting_contract(paper_root)
+    _write_handoff_ready_submission_checklist(paper_root)
     monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
     report = module.run_controller(quest_root=quest_root, apply=False)
@@ -655,39 +590,17 @@ def test_medical_reporting_audit_keeps_guideline_checklist_blocking_when_quality
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk-strict-gate"
     paper_root = quest_root / "paper"
-    review_root = paper_root / "review"
-    review_root.mkdir(parents=True, exist_ok=True)
+    paper_root.mkdir(parents=True, exist_ok=True)
     (paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps(
-            {
-                "reporting_guideline_family": "STROBE",
-                "display_registry_required": False,
-                "cohort_flow_required": False,
-                "baseline_characteristics_required": False,
-                "display_shell_plan": [],
-                "quality_gate_expectation": {
-                    "guideline_family": "STROBE",
-                    "gate_relaxation_allowed": False,
-                    "required_before_accelerated_handoff": True,
-                },
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
+    _write_reporting_contract(
+        paper_root,
+        quality_gate_expectation={
+            "guideline_family": "STROBE",
+            "gate_relaxation_allowed": False,
+            "required_before_accelerated_handoff": True,
+        },
     )
-    (review_root / "submission_checklist.json").write_text(
-        json.dumps(
-            {
-                "overall_status": "submission_minimal_materialized_handoff_ready",
-                "handoff_ready": True,
-                "blocking_items": [],
-                "package_status": "submission_minimal_ready",
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+    _write_handoff_ready_submission_checklist(paper_root)
     monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
     report = module.run_controller(quest_root=quest_root, apply=True)

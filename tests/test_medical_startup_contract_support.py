@@ -46,11 +46,45 @@ def write_study(studies_root: Path, study_id: str, payload: dict[str, object]) -
     return study_root
 
 
-def test_analysis_contract_for_study_marks_missing_endpoint_type_as_unsupported(tmp_path: Path) -> None:
+def _study_payload(study_root: Path) -> dict[str, object]:
+    return yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8"))
+
+
+def _resolve_analysis_contract(
+    tmp_path: Path,
+    study_id: str,
+    study_payload: dict[str, object],
+    **profile_overrides,
+) -> dict[str, object]:
     module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.studies_root,
+    profile = make_profile(tmp_path, **profile_overrides)
+    study_root = write_study(profile.studies_root, study_id, study_payload)
+    return module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=_study_payload(study_root),
+        profile=profile,
+    )
+
+
+def _resolve_reporting_contract(
+    tmp_path: Path,
+    study_id: str,
+    study_payload: dict[str, object],
+    **profile_overrides,
+) -> dict[str, object]:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(tmp_path, **profile_overrides)
+    study_root = write_study(profile.studies_root, study_id, study_payload)
+    return module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=_study_payload(study_root),
+        profile=profile,
+    )
+
+
+def test_analysis_contract_for_study_marks_missing_endpoint_type_as_unsupported(tmp_path: Path) -> None:
+    result = _resolve_analysis_contract(
+        tmp_path,
         "001-risk",
         {
             "study_id": "001-risk",
@@ -58,20 +92,19 @@ def test_analysis_contract_for_study_marks_missing_endpoint_type_as_unsupported(
         },
     )
 
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
-    )
-
     assert result["status"] == "unsupported"
     assert result["reason_code"] == "missing_endpoint_type"
 
 
 def test_analysis_contract_for_study_uses_primary_submission_target_contract(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(
+    result = _resolve_analysis_contract(
         tmp_path,
+        "001-risk",
+        {
+            "study_id": "001-risk",
+            "preferred_study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+        },
         default_submission_targets=(
             {
                 "exporter_profile": "frontiers_family_harvard",
@@ -81,21 +114,6 @@ def test_analysis_contract_for_study_uses_primary_submission_target_contract(tmp
             },
         ),
     )
-    study_root = write_study(
-        profile.studies_root,
-        "001-risk",
-        {
-            "study_id": "001-risk",
-            "preferred_study_archetype": "clinical_classifier",
-            "endpoint_type": "binary",
-        },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
-    )
 
     assert result["status"] == "resolved"
     assert result["publication_profile"] == "frontiers_family_harvard"
@@ -103,9 +121,14 @@ def test_analysis_contract_for_study_uses_primary_submission_target_contract(tmp
 
 
 def test_analysis_contract_for_study_accepts_jacs_submission_profile(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(
+    result = _resolve_analysis_contract(
         tmp_path,
+        "001-chemistry",
+        {
+            "study_id": "001-chemistry",
+            "preferred_study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+        },
         default_publication_profile="jacs",
         default_citation_style="ACS",
         default_submission_targets=(
@@ -117,21 +140,6 @@ def test_analysis_contract_for_study_accepts_jacs_submission_profile(tmp_path: P
             },
         ),
     )
-    study_root = write_study(
-        profile.studies_root,
-        "001-chemistry",
-        {
-            "study_id": "001-chemistry",
-            "preferred_study_archetype": "clinical_classifier",
-            "endpoint_type": "binary",
-        },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
-    )
 
     assert result["status"] == "resolved"
     assert result["publication_profile"] == "jacs"
@@ -139,9 +147,14 @@ def test_analysis_contract_for_study_accepts_jacs_submission_profile(tmp_path: P
 
 
 def test_analysis_contract_for_study_rejects_unresolved_primary_publication_profile(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(
+    result = _resolve_analysis_contract(
         tmp_path,
+        "001-risk",
+        {
+            "study_id": "001-risk",
+            "preferred_study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+        },
         default_submission_targets=(
             {
                 "exporter_profile": "unsupported_profile",
@@ -150,21 +163,6 @@ def test_analysis_contract_for_study_rejects_unresolved_primary_publication_prof
                 "story_surface": "general_medical_journal",
             },
         ),
-    )
-    study_root = write_study(
-        profile.studies_root,
-        "001-risk",
-        {
-            "study_id": "001-risk",
-            "preferred_study_archetype": "clinical_classifier",
-            "endpoint_type": "binary",
-        },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
     )
 
     assert result["status"] == "unsupported"
@@ -191,10 +189,8 @@ def test_resolve_study_archetype_prioritizes_study_payload_study_archetype(tmp_p
 def test_analysis_contract_for_study_uses_study_level_metadata_priority_and_survival_contract(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
-    study_root = write_study(
-        profile.studies_root,
+    result = _resolve_analysis_contract(
+        tmp_path,
         "001-survival-risk",
         {
             "study_id": "001-survival-risk",
@@ -203,12 +199,7 @@ def test_analysis_contract_for_study_uses_study_level_metadata_priority_and_surv
             "endpoint_type": "time_to_event",
             "manuscript_family": "prediction_model",
         },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"),
     )
 
     assert result["status"] == "resolved"
@@ -230,22 +221,15 @@ def test_analysis_contract_for_study_uses_study_level_metadata_priority_and_surv
 def test_analysis_contract_rejects_ambiguous_profile_fallback_without_explicit_study_archetype(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
-    study_root = write_study(
-        profile.studies_root,
+    result = _resolve_analysis_contract(
+        tmp_path,
         "001-ambiguous-risk",
         {
             "study_id": "001-ambiguous-risk",
             "endpoint_type": "time_to_event",
             "manuscript_family": "prediction_model",
         },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"),
     )
 
     assert result["status"] == "unsupported"
@@ -253,10 +237,8 @@ def test_analysis_contract_rejects_ambiguous_profile_fallback_without_explicit_s
 
 
 def test_analysis_contract_for_study_supports_survey_trend_analysis(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
-    study_root = write_study(
-        profile.studies_root,
+    result = _resolve_analysis_contract(
+        tmp_path,
         "001-survey-trend",
         {
             "study_id": "001-survey-trend",
@@ -264,12 +246,7 @@ def test_analysis_contract_for_study_supports_survey_trend_analysis(tmp_path: Pa
             "endpoint_type": "descriptive",
             "manuscript_family": "clinical_observation",
         },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"),
     )
 
     assert result["status"] == "resolved"
@@ -291,13 +268,8 @@ def test_analysis_contract_for_study_supports_survey_trend_analysis(tmp_path: Pa
 
 
 def test_analysis_contract_for_study_supports_clinical_subtype_reconstruction(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
-    profile = make_profile(
+    result = _resolve_analysis_contract(
         tmp_path,
-        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
-    )
-    study_root = write_study(
-        profile.studies_root,
         "001-clinical-subtype",
         {
             "study_id": "001-clinical-subtype",
@@ -305,12 +277,7 @@ def test_analysis_contract_for_study_supports_clinical_subtype_reconstruction(tm
             "endpoint_type": "descriptive",
             "manuscript_family": "clinical_observation",
         },
-    )
-
-    result = module.resolve_medical_analysis_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
     )
 
     assert result["status"] == "resolved"
@@ -334,10 +301,8 @@ def test_analysis_contract_for_study_supports_clinical_subtype_reconstruction(tm
 
 
 def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
-    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
-    study_root = write_study(
-        profile.studies_root,
+    result = _resolve_reporting_contract(
+        tmp_path,
         "001-survival-reporting",
         {
             "study_id": "001-survival-reporting",
@@ -345,12 +310,7 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
             "endpoint_type": "time_to_event",
             "manuscript_family": "prediction_model",
         },
-    )
-
-    result = module.resolve_medical_reporting_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"),
     )
 
     assert result["status"] == "resolved"
@@ -442,10 +402,8 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
 
 
 def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
-    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
-    study_root = write_study(
-        profile.studies_root,
+    result = _resolve_reporting_contract(
+        tmp_path,
         "001-survey-trend-reporting",
         {
             "study_id": "001-survey-trend-reporting",
@@ -453,12 +411,7 @@ def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> No
             "endpoint_type": "descriptive",
             "manuscript_family": "clinical_observation",
         },
-    )
-
-    result = module.resolve_medical_reporting_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"),
     )
 
     assert result["status"] == "resolved"
@@ -515,13 +468,8 @@ def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> No
 
 
 def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
-    profile = make_profile(
+    result = _resolve_reporting_contract(
         tmp_path,
-        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
-    )
-    study_root = write_study(
-        profile.studies_root,
         "001-clinical-subtype-reporting",
         {
             "study_id": "001-clinical-subtype-reporting",
@@ -529,12 +477,7 @@ def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: P
             "endpoint_type": "descriptive",
             "manuscript_family": "clinical_observation",
         },
-    )
-
-    result = module.resolve_medical_reporting_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
     )
 
     assert result["status"] == "resolved"
@@ -629,13 +572,8 @@ def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: P
 
 
 def test_reporting_contract_supports_primary_care_gap_manuscript_family(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
-    profile = make_profile(
+    result = _resolve_reporting_contract(
         tmp_path,
-        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
-    )
-    study_root = write_study(
-        profile.studies_root,
         "003-dpcc-primary-care-phenotype-treatment-gap",
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -644,12 +582,7 @@ def test_reporting_contract_supports_primary_care_gap_manuscript_family(tmp_path
             "manuscript_family": "primary_care_gap",
             "paper_framing_summary": "DPCC primary-care phenotype and recorded treatment-gap atlas.",
         },
-    )
-
-    result = module.resolve_medical_reporting_contract_for_study(
-        study_root=study_root,
-        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
-        profile=profile,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
     )
 
     assert result["status"] == "resolved"
