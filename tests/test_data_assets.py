@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import importlib
 import json
 import sqlite3
 from pathlib import Path
+
+from med_autoscience.controllers import data_assets
 
 
 def write_dataset_manifest(path: Path, *, dataset_id: str, relative_path: str) -> None:
@@ -52,7 +53,6 @@ def write_private_release_manifest(
 
 
 def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
     (workspace_root / "data" / "datasets" / "master" / "v2026-03-28" / "nfpitnet_analysis_deidentified.csv").write_text(
@@ -60,7 +60,7 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
         encoding="utf-8",
     )
 
-    result = module.init_data_assets(workspace_root=workspace_root)
+    result = data_assets.init_data_assets(workspace_root=workspace_root)
 
     assert result["private"]["release_count"] == 1
     assert result["public"]["dataset_count"] == 0
@@ -117,14 +117,13 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
 
 
 def test_data_assets_status_exposes_v2_plane_boundaries_and_retention_exclusion(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "restricted_raw" / "v2026-06-01"
     version_root.mkdir(parents=True, exist_ok=True)
     (version_root / "raw.csv").write_text("id\n1\n", encoding="utf-8")
 
-    module.init_data_assets(workspace_root=workspace_root)
-    result = module.data_assets_status(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
+    result = data_assets.data_assets_status(workspace_root=workspace_root)
 
     assert result["layout_contract"]["body_plane"]["root"] == "data/datasets"
     assert result["layout_validation"]["is_valid"] is True
@@ -147,13 +146,12 @@ def test_data_assets_status_exposes_v2_plane_boundaries_and_retention_exclusion(
 
 
 def test_init_data_assets_reports_unsupported_dataset_layer_as_contract_error(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "legacy_layer" / "v2026-06-01"
     version_root.mkdir(parents=True, exist_ok=True)
     (version_root / "legacy.csv").write_text("id\n1\n", encoding="utf-8")
 
-    result = module.init_data_assets(workspace_root=workspace_root)
+    result = data_assets.init_data_assets(workspace_root=workspace_root)
 
     assert result["layout_validation"]["is_valid"] is False
     assert result["layout_validation"]["invalid_layers"] == ["legacy_layer"]
@@ -166,7 +164,6 @@ def test_init_data_assets_reports_unsupported_dataset_layer_as_contract_error(tm
 
 
 def test_write_json_does_not_open_final_path_for_truncating_write(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     target = tmp_path / "state" / "registry.json"
     target.parent.mkdir(parents=True)
     target.write_text('{"existing": true}\n', encoding="utf-8")
@@ -180,14 +177,13 @@ def test_write_json_does_not_open_final_path_for_truncating_write(monkeypatch, t
 
     monkeypatch.setattr(Path, "write_text", tracking_write_text)
 
-    module._write_json(target, {"existing": False})
+    data_assets._write_json(target, {"existing": False})
 
     assert direct_final_writes == []
     assert json.loads(target.read_text(encoding="utf-8")) == {"existing": False}
 
 
 def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_public_support(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
     (workspace_root / "data" / "datasets" / "master" / "v2026-04-10").mkdir(parents=True, exist_ok=True)
@@ -196,7 +192,7 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
         dataset_id="nfpitnet_master",
         relative_path="../../../datasets/master/v2026-03-28/nfpitnet_analysis_deidentified.csv",
     )
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
 
     public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.write_text(
@@ -223,7 +219,7 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
 
     assert result["study_count"] == 1
     study = result["studies"][0]
@@ -239,7 +235,6 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
 
 
 def test_assess_data_asset_impact_is_read_only_by_default(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True)
@@ -262,14 +257,13 @@ def test_assess_data_asset_impact_is_read_only_by_default(tmp_path: Path) -> Non
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     assert result["study_count"] == 1
     assert not (workspace_root / "memory" / "portfolio" / "data_assets").exists()
 
 
 def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -287,7 +281,7 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
         dataset_id="nfpitnet_master",
         relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
     )
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
 
     public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.write_text(
@@ -320,7 +314,7 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     assert result["study_count"] == 1
     study = result["studies"][0]
@@ -331,7 +325,6 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
 
 
 def test_validate_public_registry_normalizes_discovery_metadata_defaults(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -340,7 +333,7 @@ def test_validate_public_registry_normalizes_discovery_metadata_defaults(tmp_pat
         encoding="utf-8",
     )
 
-    result = module.validate_public_registry(workspace_root=workspace_root)
+    result = data_assets.validate_public_registry(workspace_root=workspace_root)
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
 
     assert result["schema_version"] == 2
@@ -350,7 +343,6 @@ def test_validate_public_registry_normalizes_discovery_metadata_defaults(tmp_pat
 
 
 def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
     manifest_path = workspace_root / "studies" / "001-lineage-pfs" / "data_input" / "dataset_manifest.yaml"
@@ -369,7 +361,7 @@ def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     assert result["study_count"] == 1
     assert result["studies"][0]["dataset_inputs"][0]["dataset_id"] == "nfpitnet_master"
@@ -377,7 +369,6 @@ def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path
 
 
 def test_assess_data_asset_impact_marks_directory_scan_release_as_unresolved_contract(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -388,7 +379,7 @@ def test_assess_data_asset_impact_marks_directory_scan_release_as_unresolved_con
         relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     assert result["study_count"] == 1
     study = result["studies"][0]
@@ -399,7 +390,6 @@ def test_assess_data_asset_impact_marks_directory_scan_release_as_unresolved_con
 
 
 def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -419,7 +409,7 @@ def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_
     )
     (version_root / "nfpitnet_analysis.csv").write_text("id\n1\n", encoding="utf-8")
 
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
 
     private_registry = json.loads(
         (workspace_root / "memory" / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
@@ -436,7 +426,6 @@ def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_
 
 
 def test_init_data_assets_extracts_data_dictionary_and_cohort_flow_readiness(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-04"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -469,7 +458,7 @@ def test_init_data_assets_extracts_data_dictionary_and_cohort_flow_readiness(tmp
     (version_root / "cohort").mkdir()
     (version_root / "cohort" / "cohort_flow.json").write_text('{"source_n": 120, "analysis_n": 98}\n', encoding="utf-8")
 
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
 
     private_registry = json.loads(
         (workspace_root / "memory" / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
@@ -487,7 +476,6 @@ def test_init_data_assets_extracts_data_dictionary_and_cohort_flow_readiness(tmp
 
 
 def test_assess_data_asset_impact_projects_semantic_readiness_to_study_inputs(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-04"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -518,7 +506,7 @@ def test_assess_data_asset_impact_projects_semantic_readiness_to_study_inputs(tm
         relative_path="../../../datasets/master/v2026-05-04/analysis.csv",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     dataset = result["studies"][0]["dataset_inputs"][0]
     assert dataset["semantic_readiness"]["required"] is True
@@ -528,7 +516,6 @@ def test_assess_data_asset_impact_projects_semantic_readiness_to_study_inputs(tm
 
 
 def test_assess_data_asset_impact_projects_data_availability_and_fair_contract(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-10"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -571,7 +558,7 @@ def test_assess_data_asset_impact_projects_data_availability_and_fair_contract(t
         relative_path="../../../datasets/master/v2026-05-10/analysis.csv",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     availability = result["studies"][0]["dataset_inputs"][0]["data_availability"]
     assert availability["authority_scope"] == "submission_compliance_reviewer_input"
@@ -593,7 +580,6 @@ def test_assess_data_asset_impact_projects_data_availability_and_fair_contract(t
 
 
 def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     from_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     to_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
@@ -628,7 +614,7 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
         relative_path="../../datasets/master/v2026-03-28/analysis.csv",
     )
 
-    result = module.build_private_release_diff(
+    result = data_assets.build_private_release_diff(
         workspace_root=workspace_root,
         family_id="master",
         from_version="v2026-03-28",
@@ -648,7 +634,6 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
 
 
 def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     from_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     to_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
@@ -678,7 +663,7 @@ def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release
         relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     dataset = result["studies"][0]["dataset_inputs"][0]
     assert dataset["private_version_status"] == "older_than_latest"
@@ -687,7 +672,6 @@ def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release
 
 
 def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparator(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     baseline_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     current_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
@@ -727,7 +711,7 @@ def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparat
         encoding="utf-8",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     study = result["studies"][0]
     assert study["status"] == "clear"
@@ -739,7 +723,6 @@ def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparat
 
 
 def test_assess_data_asset_impact_respects_declared_superseded_private_release(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     row_release_root = workspace_root / "data" / "datasets" / "deidentified_longitudinal" / "v2026-04-27-visits-site-corrected"
     episode_release_root = workspace_root / "data" / "datasets" / "deidentified_longitudinal" / "v2026-04-27-visit-episodes-7d-site-corrected"
@@ -770,7 +753,7 @@ def test_assess_data_asset_impact_respects_declared_superseded_private_release(t
         relative_path="../../../datasets/deidentified_longitudinal/v2026-04-27-visit-episodes-7d-site-corrected/analysis.csv",
     )
 
-    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
 
     dataset = result["studies"][0]["dataset_inputs"][0]
     assert dataset["latest_private_version"] == "v2026-04-27-visit-episodes-7d-site-corrected"
@@ -778,7 +761,6 @@ def test_assess_data_asset_impact_respects_declared_superseded_private_release(t
 
 
 def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -806,7 +788,7 @@ def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) 
         encoding="utf-8",
     )
 
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
 
     public_registry = json.loads(public_registry_path.read_text(encoding="utf-8"))
     assert public_registry["schema_version"] == 2
@@ -818,7 +800,6 @@ def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) 
 
 
 def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -845,7 +826,7 @@ def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> Non
         encoding="utf-8",
     )
 
-    result = module.validate_public_registry(workspace_root=workspace_root)
+    result = data_assets.validate_public_registry(workspace_root=workspace_root)
 
     assert result["schema_version"] == 2
     assert result["dataset_count"] == 1
@@ -856,7 +837,6 @@ def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> Non
 
 
 def test_rebuild_manifest_refs_recreates_projection_without_dataset_body(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-06-01"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -873,11 +853,11 @@ def test_rebuild_manifest_refs_recreates_projection_without_dataset_body(tmp_pat
         },
     )
     (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
-    module.init_data_assets(workspace_root=workspace_root)
+    data_assets.init_data_assets(workspace_root=workspace_root)
     projection_path = workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json"
     projection_path.unlink()
 
-    result = module.rebuild_manifest_refs(workspace_root=workspace_root)
+    result = data_assets.rebuild_manifest_refs(workspace_root=workspace_root)
     payload = json.loads(projection_path.read_text(encoding="utf-8"))
 
     assert result["status"] == "rebuilt"
@@ -892,7 +872,6 @@ def test_rebuild_manifest_refs_recreates_projection_without_dataset_body(tmp_pat
 
 
 def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     version_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-06-01"
     version_root.mkdir(parents=True, exist_ok=True)
@@ -911,7 +890,7 @@ def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp
         relative_path="../../data/datasets/standardized_longitudinal/v2026-06-01/analysis.csv",
     )
 
-    blocked = module.data_asset_retention_plan(
+    blocked = data_assets.data_asset_retention_plan(
         workspace_root=workspace_root,
         family_id="standardized_longitudinal",
         version_id="v2026-06-01",
@@ -930,7 +909,7 @@ def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp
     }
     assert not Path(blocked["receipt_path"]).exists()
 
-    recorded = module.data_asset_retention_plan(
+    recorded = data_assets.data_asset_retention_plan(
         workspace_root=workspace_root,
         family_id="standardized_longitudinal",
         version_id="v2026-06-01",
@@ -948,7 +927,6 @@ def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp
 
 
 def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     db_path = workspace_root / "data" / "datasets" / "master" / "v1" / "release.sqlite"
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -956,7 +934,7 @@ def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Pat
         conn.execute("CREATE TABLE release_rows (id INTEGER PRIMARY KEY)")
         conn.execute("INSERT INTO release_rows (id) VALUES (1)")
 
-    result = module.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
 
     assert result["status"] == "blocked"
     assert result["under_dataset_body"] is True
@@ -970,7 +948,6 @@ def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Pat
 
 
 def test_data_asset_sqlite_compact_plan_allows_non_dataset_runtime_sqlite_after_integrity(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
     db_path = workspace_root / "runtime" / "artifacts" / "runtime_lifecycle.sqlite"
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -978,7 +955,7 @@ def test_data_asset_sqlite_compact_plan_allows_non_dataset_runtime_sqlite_after_
         conn.execute("CREATE TABLE refs (id INTEGER PRIMARY KEY)")
         conn.execute("INSERT INTO refs (id) VALUES (1)")
 
-    result = module.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
 
     assert result["status"] == "blocked_runtime_sqlite_compact_cli_retired"
     assert result["under_dataset_body"] is False
