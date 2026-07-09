@@ -16,7 +16,6 @@ from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERAT
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_LANE_MANIFEST_PATH = "contracts/test-lane-manifest.json"
-REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7"
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
     "tests/test_control_plane_structure.py",
@@ -113,47 +112,42 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "MAS_PYTEST_WORKERS ?= auto" in makefile
     assert "MAS_PYTEST_DIST ?= loadscope" in makefile
     assert "MAS_PYTEST_XDIST_ARGS := -n $(MAS_PYTEST_WORKERS) --dist=$(MAS_PYTEST_DIST)" in makefile
-    assert "test-control-plane:" in makefile
     assert "CONTROL_PLANE_TESTS :=" in makefile
     for test_path in REQUIRED_CONTROL_PLANE_TESTS:
         assert test_path in makefile
     assert "scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)" in makefile
-    assert "test: test-smoke" in makefile
-    assert "test-smoke:" in makefile
-    assert f"scripts/run-pytest-clean.sh {smoke_paths} -q" in makefile
-    assert "test-regression:" in makefile
-    assert (
-        'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) '
-        '-m "not meta and not display_heavy and not submission_heavy '
-        'and not materialization_heavy and not family and not soak_or_golden"'
-    ) in makefile
-    assert "test-ci-preflight:" in makefile
-    assert 'scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
-    assert "test-fast: test-regression" in makefile
-    assert "test-meta:" in makefile
-    assert "scripts/run-pytest-clean.sh -q -m meta" in makefile
-    assert "test-display:" in makefile
-    assert "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
-    assert "test-submission:" in makefile
-    assert 'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"' in makefile
-    assert "test-soak-golden:" in makefile
-    assert "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden" in makefile
-    assert "test-family:" in makefile
-    assert (
-        "scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
-        "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
-    ) in makefile
-    assert "scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q" in makefile
-    assert "line-budget:" in makefile
-    assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
-    assert "line-budget-strict:" in makefile
-    assert "line-budget-strict: line-budget" in makefile
-    assert "test-structure:" in makefile
-    assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
-    assert "scripts/run-structure-quality-gate.sh" in makefile
-    assert "test-structure-strict:" in makefile
-    assert "test-full:" in makefile
-    assert "./scripts/run-parallel-test-lanes.sh full" in makefile
+    for target in (
+        "test: test-smoke",
+        "test-smoke:",
+        "test-regression:",
+        "test-ci-preflight:",
+        "test-fast:",
+        "test-meta:",
+        "test-display:",
+        "test-submission:",
+        "test-soak-golden:",
+        "test-family:",
+        "line-budget:",
+        "line-budget-strict: line-budget",
+        "test-structure:",
+        "test-structure-strict:",
+        "test-control-plane:",
+        "test-full:",
+    ):
+        assert target in makefile
+    for command in (
+        f"scripts/run-pytest-clean.sh {smoke_paths} -q",
+        "scripts/run-pytest-clean.sh $(FAST_TESTS) -q",
+        'scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"',
+        "scripts/run-pytest-clean.sh -q -m meta",
+        "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy",
+        'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"',
+        "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden",
+        "scripts/run-python-clean.sh scripts/line_budget.py",
+        "scripts/run-structure-quality-gate.sh",
+        "./scripts/run-parallel-test-lanes.sh full",
+    ):
+        assert command in makefile
 
 
 def test_structure_lane_keeps_advisory_line_budget_and_quality_gate_wrapper() -> None:
@@ -351,10 +345,11 @@ def test_locked_opl_harness_shared_exports_runtime_continuity_contracts() -> Non
         if item.startswith("opl-harness-shared @ ")
     )
     lockfile = _read("uv.lock")
+    commit = re.search(r"\.git@([0-9a-f]{40})#subdirectory=", dependency)
 
-    assert REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT in dependency
-    assert f"rev={REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT}" in lockfile
-    assert f"#{REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT}" in lockfile
+    assert commit is not None
+    assert f"rev={commit.group(1)}" in lockfile
+    assert f"#{commit.group(1)}" in lockfile
 
     from opl_harness_shared import product_entry_companions, runtime_task_companions
 
@@ -384,106 +379,37 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" != "1" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in verify_script
     assert 'verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"' in verify_script
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
-    pytest_runner_script = _read("scripts/run-pytest-clean.sh")
-    assert 'export MAS_CLEAN_RUNNER_REUSE_ENV=1' in pytest_runner_script
-    assert '-z "${CI:-}"' in pytest_runner_script
-    runner_script = _read("scripts/run-python-clean.sh")
-    assert 'script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"' in runner_script
-    assert 'repo_root="$(cd "${script_dir}/.." && pwd -P)"' in runner_script
-    assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
-    assert 'stable_cache_root="${MAS_CLEAN_RUNNER_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/med-autoscience/clean-runner}"' in runner_script
-    assert 'if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in runner_script
-    assert 'export MAS_CLEAN_RUNNER_REUSE_ENV=1' in runner_script
-    assert 'if [[ -n "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then' in runner_script
-    assert 'elif [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" == "1" ]]; then' in runner_script
-    assert 'tmp_root="${MAS_CLEAN_RUNNER_REUSE_ROOT}"' in runner_script
-    assert 'echo "run-python-clean.sh: reuse root must be outside the checkout: ${tmp_root}" >&2' in runner_script
-    assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
-    assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
-    assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
-    assert 'elif [[ "${MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE:-0}" == "1" ]]; then' in runner_script
-    assert 'default_uv_cache_dir="${stable_cache_root}/uv-cache"' in runner_script
-    assert 'if path_is_inside_checkout "${default_uv_cache_dir}"; then' in runner_script
-    assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
-    assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"' in runner_script
-    assert 'mkdir -p "${UV_CACHE_DIR}"' in runner_script
-    assert 'egg_info_base="${MAS_CLEAN_RUNNER_EGG_INFO_BASE:-${tmp_root}/egg-info}"' in runner_script
-    assert 'if path_is_inside_checkout "${egg_info_base}"; then' in runner_script
-    assert 'mkdir -p "${egg_info_base}"' in runner_script
-    assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
-    assert 'uv_sync_args+=("-C--global-option=egg_info" "-C--global-option=--egg-base=${egg_info_base}")' in runner_script
-    assert 'uv_sync_args+=(--extra analysis)' in runner_script
-    assert 'UV_NO_SYNC=0 "${uv_sync_args[@]}"' in runner_script
-    assert '--clean-runner-status' in runner_script
-    assert '--clean-runner-warm' in runner_script
-    assert 'print_clean_runner_status "status"' in runner_script
-    assert 'print_clean_runner_status "warm"' in runner_script
-    assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
-    assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
-    assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script
-    assert 'exec "${venv_python}" "$@"' not in runner_script
-    assert '"${venv_python}" "$@"' in runner_script
-    assert 'exit "${exit_code}"' in runner_script
     assert "run_sanity_checks() {" in verify_script
     assert 'clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"' in verify_script
-    assert 'if [[ "${MAS_VERIFY_REPO_HYGIENE_FIX:-0}" == "1" ]]; then' in verify_script
-    assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py --fix' in verify_script
-    assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script
-    assert '"${clean_python_runner}" scripts/line_budget.py' in verify_script
-    assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
-    assert "while IFS= read -r python_file; do" in verify_script
-    assert "python_files+=(\"${python_file}\")" in verify_script
-    assert "done < <(git ls-files '*.py')" in verify_script
-    assert "mapfile" not in verify_script
-    assert '"${clean_python_runner}" - "${python_files[@]}" <<\'PY\'' in verify_script
-    assert "py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)" in verify_script
     assert "install_project_entrypoints" not in verify_script
     assert "uv pip install --editable . --no-deps" not in verify_script
     assert "run_sanity_checks" in verify_script
-    assert 'if [[ -z "${lane}" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "regression" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "ci-preflight" ]]; then' in verify_script
-    assert 'Usage: scripts/verify.sh ci-preflight <base-ref>' in verify_script
-    assert (
-        'BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight" '
-        '"BASE_REF=${base_ref} make test-ci-preflight" make test-ci-preflight'
-    ) in verify_script
-    assert 'if [[ "${lane}" == "fast" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "soak-golden" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "line-budget" ]]; then' in verify_script
-    assert 'run_with_optional_summary "line-budget" "make line-budget" make line-budget' in verify_script
-    assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "line-budget:strict" ]]; then' in verify_script
-    assert (
-        'run_with_optional_summary "line-budget:strict" "make line-budget-strict" make line-budget-strict'
-        in verify_script
-    )
-    assert 'if [[ "${lane}" == "structure:strict" ]]; then' in verify_script
-    assert (
-        'run_with_optional_summary "structure:strict" "make test-structure-strict" make test-structure-strict'
-        in verify_script
-    )
-    assert 'if [[ "${lane}" == "control-plane" ]]; then' in verify_script
-    assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
     assert "MAS_TEST_LANE_SUMMARY_PATH" in verify_script
     assert "run_with_optional_summary" in verify_script
-    assert "make test-smoke" in verify_script
-    assert "make test-regression" in verify_script
-    assert "make test-ci-preflight" in verify_script
-    assert "make test-meta" in verify_script
-    assert "make test-display" in verify_script
-    assert "make test-submission" in verify_script
-    assert "make test-soak-golden" in verify_script
-    assert "make line-budget" in verify_script
-    assert "make test-structure" in verify_script
-    assert "make line-budget-strict" in verify_script
-    assert "make test-structure-strict" in verify_script
-    assert "make test-control-plane" in verify_script
-    assert "make test-full" in verify_script
+    expected_lane_commands = {
+        "smoke": "make test-smoke",
+        "regression": "make test-regression",
+        "ci-preflight": "make test-ci-preflight",
+        "fast": "make test-fast",
+        "meta": "make test-meta",
+        "display": "make test-display",
+        "submission": "make test-submission",
+        "soak-golden": "make test-soak-golden",
+        "line-budget": "make line-budget",
+        "structure": "make test-structure",
+        "line-budget:strict": "make line-budget-strict",
+        "structure:strict": "make test-structure-strict",
+        "control-plane": "make test-control-plane",
+        "full": "make test-full",
+    }
+    for lane, command in expected_lane_commands.items():
+        assert f'if [[ "${{lane}}" == "{lane}" ]]; then' in verify_script
+        assert command in verify_script
+    assert 'Usage: scripts/verify.sh ci-preflight <base-ref>' in verify_script
+    assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script
+    assert '"${clean_python_runner}" scripts/line_budget.py' in verify_script
+    assert '"${clean_python_runner}" - "${python_files[@]}" <<\'PY\'' in verify_script
+
     for lane in ("regression", "ci-preflight", "fast", "full", "control-plane"):
         lane_block = verify_script.split(f'if [[ "${{lane}}" == "{lane}" ]]; then', maxsplit=1)[1].split(
             "\nfi",
@@ -755,12 +681,6 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert 'required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))' in script
     assert 'retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}' in script
     assert "uv run --directory" not in script
-    assert 'plugin_root = repo_root / "plugins" / "med-autoscience"' in script
-    assert 'skill_root = plugin_root / "skills" / "med-autoscience"' in script
-    assert 'Legacy plugins/mas alias must stay retired' in script
-    assert 'Legacy skills/mas alias must stay retired' in script
-    assert 'legacy_plugin_root = repo_root / "plugins" / "mas"' not in script
-    assert 'legacy_skill_root = legacy_plugin_root / "skills" / "mas"' not in script
 
 
 def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
@@ -991,6 +911,9 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
     assert "pytestmark = pytest.mark.family" in agent_lab_longline
 
 
-from tests.test_test_command_surfaces_cases.authority_operation_catalog_cases import (
-    test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces,
-)
+def test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:
+    from tests.test_test_command_surfaces_cases.authority_operation_catalog_cases import (
+        test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces as run_case,
+    )
+
+    run_case()

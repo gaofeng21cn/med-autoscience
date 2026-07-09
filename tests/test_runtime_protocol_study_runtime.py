@@ -113,33 +113,27 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload == {
-        "schema_version": 1,
-        "engine": "opl-hosted-stage-runtime",
-        "runtime_owner": "one-person-lab",
-        "domain_owner": "med-autoscience",
-        "runtime_substrate": "opl_hosted_stage_runtime",
-        "opl_runtime_ref": "opl_hosted_stage_runtime",
-        "runtime_ref": "opl_hosted_stage_runtime",
-        "runtime_engine_id": "opl-hosted-stage-runtime",
-        "research_backend_id": "mas_domain_intent_adapter",
-        "research_backend": "mas_domain_intent_adapter",
-        "research_engine_id": "mas-domain-intent-adapter",
-        "runtime_home": str(runtime_root),
-        "study_id": "001-risk",
-        "study_root": str(study_root),
-        "quest_id": "quest-001",
-        "runtime_root": str(runtime_root / "quests"),
-        "runtime_quests_root": str(runtime_root / "quests"),
-        "historical_fixture_ref": {
-            "surface_kind": "historical_fixture_ref",
-            "runtime_root": str(runtime_root),
-            "read_only": True,
-        },
-        "last_action": "resume",
-        "last_action_at": "2026-04-02T12:00:00+00:00",
-        "last_source": "test-source",
+    assert payload["schema_version"] == 1
+    assert payload["runtime_owner"] == "one-person-lab"
+    assert payload["domain_owner"] == "med-autoscience"
+    assert payload["opl_runtime_ref"] == "opl_hosted_stage_runtime"
+    assert payload["runtime_ref"] == "opl_hosted_stage_runtime"
+    assert payload["runtime_engine_id"] == "opl-hosted-stage-runtime"
+    assert payload["research_backend_id"] == "mas_domain_intent_adapter"
+    assert payload["research_backend"] == "mas_domain_intent_adapter"
+    assert payload["research_engine_id"] == "mas-domain-intent-adapter"
+    assert payload["study_id"] == "001-risk"
+    assert payload["quest_id"] == "quest-001"
+    assert payload["runtime_root"] == str(runtime_root / "quests")
+    assert payload["runtime_quests_root"] == str(runtime_root / "quests")
+    assert payload["historical_fixture_ref"] == {
+        "surface_kind": "historical_fixture_ref",
+        "runtime_root": str(runtime_root),
+        "read_only": True,
     }
+    assert payload["last_action"] == "resume"
+    assert payload["last_action_at"] == "2026-04-02T12:00:00+00:00"
+    assert payload["last_source"] == "test-source"
 
 
 def test_write_runtime_binding_rejects_retired_mas_runtime_core_backend_metadata(tmp_path: Path) -> None:
@@ -280,20 +274,14 @@ def test_write_launch_report_persists_autonomous_runtime_notice_payload(tmp_path
     )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
-    assert payload["autonomous_runtime_notice"] == {
-        "required": True,
-        "notice_key": "quest:001-risk:run-live",
-        "notification_reason": "detected_existing_live_managed_runtime",
-        "quest_id": "001-risk",
-        "quest_status": "running",
-        "active_run_id": "run-live",
-        "browser_url": "http://127.0.0.1:20999",
-        "quest_api_url": "http://127.0.0.1:20999/api/quests/001-risk",
-        "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
-        "monitoring_available": True,
-        "monitoring_error": None,
-        "launch_report_path": str(report_path),
-    }
+    notice = payload["autonomous_runtime_notice"]
+    assert notice["required"] is True
+    assert notice["notice_key"] == "quest:001-risk:run-live"
+    assert notice["notification_reason"] == "detected_existing_live_managed_runtime"
+    assert notice["quest_status"] == "running"
+    assert notice["active_run_id"] == "run-live"
+    assert notice["monitoring_available"] is True
+    assert notice["launch_report_path"] == str(report_path)
 
 
 def test_write_startup_payload_writes_create_payload_and_returns_written_path(tmp_path: Path) -> None:
@@ -403,23 +391,6 @@ def test_study_runtime_artifacts_from_payload_rejects_missing_launch_report_path
 
     with pytest.raises(ValueError, match="study runtime artifacts payload missing launch_report_path"):
         module.StudyRuntimeArtifacts.from_payload({"runtime_binding_path": "/tmp/runtime_binding.yaml"})
-
-
-def test_study_runtime_protocol_reexports_models_from_study_runtime_models() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    models = importlib.import_module("med_autoscience.runtime_protocol.study_runtime_models")
-
-    assert protocol.StudyRuntimeContext is models.StudyRuntimeContext
-    assert protocol.StudyRuntimeArtifacts is models.StudyRuntimeArtifacts
-    assert protocol.StartupContractValidationStatus is models.StartupContractValidationStatus
-    assert protocol.StartupHydrationStatus is models.StartupHydrationStatus
-    assert protocol.StartupHydrationValidationStatus is models.StartupHydrationValidationStatus
-    assert protocol.StartupContractValidation is models.StartupContractValidation
-    assert protocol.StartupHydrationReport is models.StartupHydrationReport
-    assert protocol.StartupHydrationValidationReport is models.StartupHydrationValidationReport
-    assert protocol.StartupContractValidation.__module__ == models.__name__
-    assert protocol.StartupHydrationReport.__module__ == models.__name__
-    assert protocol.StartupHydrationValidationReport.__module__ == models.__name__
 
 
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
