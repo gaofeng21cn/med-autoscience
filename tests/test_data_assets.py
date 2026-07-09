@@ -115,34 +115,25 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
         "datasets": [],
     }
 
-
-def test_data_assets_status_exposes_v2_plane_boundaries_and_retention_exclusion(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    version_root = workspace_root / "data" / "datasets" / "restricted_raw" / "v2026-06-01"
-    version_root.mkdir(parents=True, exist_ok=True)
-    (version_root / "raw.csv").write_text("id\n1\n", encoding="utf-8")
-
-    data_assets.init_data_assets(workspace_root=workspace_root)
-    result = data_assets.data_assets_status(workspace_root=workspace_root)
-
-    assert result["layout_contract"]["body_plane"]["root"] == "data/datasets"
-    assert result["layout_validation"]["is_valid"] is True
-    assert result["retention"] == {
+    status = data_assets.data_assets_status(workspace_root=workspace_root)
+    assert status["layout_contract"]["body_plane"]["root"] == "data/datasets"
+    assert status["layout_validation"]["is_valid"] is True
+    assert status["retention"] == {
         "dataset_body_plane_ref": "data/datasets",
         "dataset_body_is_runtime_residue": False,
         "excluded_from_runtime_residue_cleanup": True,
     }
-    assert result["read_model"] == {
+    assert status["read_model"] == {
         "sqlite_role": "refs_only_rebuildable",
         "stores_artifact_or_dataset_body": False,
         "authority": "projection_only",
     }
-    assert result["study_binding"] == {
+    assert status["study_binding"] == {
         "plane": "studies/<study-id>/study.yaml",
         "binding_policy": "asset_refs_only",
         "body_storage_allowed": False,
     }
-    assert result["lineage"]["rebuildable_projection"] is True
+    assert status["lineage"]["rebuildable_projection"] is True
 
 
 def test_init_data_assets_reports_unsupported_dataset_layer_as_contract_error(tmp_path: Path) -> None:
@@ -181,57 +172,6 @@ def test_write_json_does_not_open_final_path_for_truncating_write(monkeypatch, t
 
     assert direct_final_writes == []
     assert json.loads(target.read_text(encoding="utf-8")) == {"existing": False}
-
-
-def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_public_support(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
-    (workspace_root / "data" / "datasets" / "master" / "v2026-04-10").mkdir(parents=True, exist_ok=True)
-    write_dataset_manifest(
-        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
-        dataset_id="nfpitnet_master",
-        relative_path="../../../datasets/master/v2026-03-28/nfpitnet_analysis_deidentified.csv",
-    )
-    data_assets.init_data_assets(workspace_root=workspace_root)
-
-    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
-    public_registry_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "datasets": [
-                    {
-                        "dataset_id": "geo-gse000001",
-                        "source_type": "GEO",
-                        "accession": "GSE000001",
-                        "roles": ["external_validation"],
-                        "target_families": ["master"],
-                        "target_dataset_ids": ["nfpitnet_master"],
-                        "status": "candidate",
-                        "rationale": "Can be used for external validation.",
-                    }
-                ],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
-
-    assert result["study_count"] == 1
-    study = result["studies"][0]
-    assert study["study_id"] == "002-early-risk"
-    assert study["status"] == "review_needed"
-    dataset = study["dataset_inputs"][0]
-    assert dataset["private_version_status"] == "older_than_latest"
-    assert dataset["latest_private_version"] == "v2026-04-10"
-    assert dataset["public_support_count"] == 1
-
-    report_path = workspace_root / "memory" / "portfolio" / "data_assets" / "impact" / "latest_impact_report.json"
-    assert report_path.exists()
 
 
 def test_assess_data_asset_impact_is_read_only_by_default(tmp_path: Path) -> None:
@@ -324,24 +264,6 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
     assert dataset["public_support_dataset_ids"] == []
 
 
-def test_validate_public_registry_normalizes_discovery_metadata_defaults(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
-    registry_path.parent.mkdir(parents=True, exist_ok=True)
-    registry_path.write_text(
-        json.dumps({"schema_version": 2, "datasets": []}, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-    result = data_assets.validate_public_registry(workspace_root=workspace_root)
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
-
-    assert result["schema_version"] == 2
-    assert registry["discovery"]["status"] == "not_started"
-    assert registry["discovery"]["scope"] == "route_selection"
-    assert registry["datasets"] == []
-
-
 def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
@@ -423,6 +345,19 @@ def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_
     assert release["declared_release_contract"]["qc_status"] == "locked"
     assert release["inventory_summary"]["file_count"] == 2
     assert release["inventory_summary"]["declared_outputs_present"] == {"analysis_csv": True}
+
+    projection_path = workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json"
+    projection_path.unlink()
+    rebuilt = data_assets.rebuild_manifest_refs(workspace_root=workspace_root)
+    payload = json.loads(projection_path.read_text(encoding="utf-8"))
+
+    assert rebuilt["status"] == "rebuilt"
+    assert rebuilt["manifest_ref_count"] == 1
+    assert rebuilt["refs_only"] is True
+    assert rebuilt["contains_dataset_body"] is False
+    assert payload["rebuildable_projection"] is True
+    assert payload["entries"][0]["manifest_ref"] == "data/datasets/master/v2026-03-28/dataset_manifest.yaml"
+    assert payload["entries"][0]["contains_dataset_body"] is False
 
 
 def test_init_data_assets_extracts_data_dictionary_and_cohort_flow_readiness(tmp_path: Path) -> None:
@@ -613,6 +548,31 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
         dataset_id="nfpitnet_master",
         relative_path="../../datasets/master/v2026-03-28/analysis.csv",
     )
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.parent.mkdir(parents=True, exist_ok=True)
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "datasets": [
+                    {
+                        "dataset_id": "geo-gse000001",
+                        "source_type": "GEO",
+                        "accession": "GSE000001",
+                        "roles": ["external_validation"],
+                        "target_families": ["master"],
+                        "target_dataset_ids": ["nfpitnet_master"],
+                        "status": "candidate",
+                        "rationale": "Can be used for external validation.",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     result = data_assets.build_private_release_diff(
         workspace_root=workspace_root,
@@ -632,43 +592,19 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
     assert result["summary"]["study_impact"]["affected_studies"] == ["003-followup-risk"]
     assert result["summary"]["study_impact"]["affected_dataset_ids"] == ["nfpitnet_master"]
 
+    impact = data_assets.assess_data_asset_impact(workspace_root=workspace_root, persist_report=True)
 
-def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    from_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
-    to_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
-    from_root.mkdir(parents=True, exist_ok=True)
-    to_root.mkdir(parents=True, exist_ok=True)
-    write_private_release_manifest(
-        from_root / "dataset_manifest.yaml",
-        dataset_id="nfpitnet_master",
-        version="v2026-03-28",
-        raw_snapshot="baseline",
-        generated_by="pipeline/v1.py",
-        main_outputs={"analysis_csv": "analysis.csv"},
-    )
-    write_private_release_manifest(
-        to_root / "dataset_manifest.yaml",
-        dataset_id="nfpitnet_master",
-        version="v2026-04-10",
-        raw_snapshot="followup",
-        generated_by="pipeline/v2.py",
-        main_outputs={"analysis_csv": "analysis.csv"},
-    )
-    (from_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
-    (to_root / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
-    write_dataset_manifest(
-        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
-        dataset_id="nfpitnet_master",
-        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
-    )
-
-    result = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
-
-    dataset = result["studies"][0]["dataset_inputs"][0]
+    assert impact["study_count"] == 1
+    study = impact["studies"][0]
+    assert study["study_id"] == "003-followup-risk"
+    assert study["status"] == "review_needed"
+    dataset = study["dataset_inputs"][0]
     assert dataset["private_version_status"] == "older_than_latest"
+    assert dataset["latest_private_version"] == "v2026-04-10"
+    assert dataset["public_support_count"] == 1
     assert dataset["upgrade_diff_report_exists"] is True
     assert dataset["upgrade_diff_report_path"].endswith("master/v2026-03-28__v2026-04-10.json")
+    assert (workspace_root / "memory" / "portfolio" / "data_assets" / "impact" / "latest_impact_report.json").exists()
 
 
 def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparator(tmp_path: Path) -> None:
@@ -827,6 +763,7 @@ def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> Non
     )
 
     result = data_assets.validate_public_registry(workspace_root=workspace_root)
+    public_registry = json.loads(public_registry_path.read_text(encoding="utf-8"))
 
     assert result["schema_version"] == 2
     assert result["dataset_count"] == 1
@@ -834,41 +771,8 @@ def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> Non
     assert result["datasets"][0]["validation"]["is_valid"] is False
     assert "missing_roles" in result["datasets"][0]["validation"]["errors"]
     assert "missing_target_scope" in result["datasets"][0]["validation"]["errors"]
-
-
-def test_rebuild_manifest_refs_recreates_projection_without_dataset_body(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    version_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-06-01"
-    version_root.mkdir(parents=True, exist_ok=True)
-    write_private_release_manifest(
-        version_root / "dataset_manifest.yaml",
-        dataset_id="dpcc_standardized",
-        version="v2026-06-01",
-        raw_snapshot="deidentified_episode_release",
-        generated_by="pipelines/standardize_dpcc.py",
-        main_outputs={"analysis_csv": "analysis.csv"},
-        release_contract={
-            "semantic_readiness_required": True,
-            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
-        },
-    )
-    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
-    data_assets.init_data_assets(workspace_root=workspace_root)
-    projection_path = workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json"
-    projection_path.unlink()
-
-    result = data_assets.rebuild_manifest_refs(workspace_root=workspace_root)
-    payload = json.loads(projection_path.read_text(encoding="utf-8"))
-
-    assert result["status"] == "rebuilt"
-    assert result["manifest_ref_count"] == 1
-    assert result["refs_only"] is True
-    assert result["contains_dataset_body"] is False
-    assert payload["rebuildable_projection"] is True
-    assert payload["entries"][0]["manifest_ref"] == (
-        "data/datasets/standardized_longitudinal/v2026-06-01/dataset_manifest.yaml"
-    )
-    assert payload["entries"][0]["contains_dataset_body"] is False
+    assert public_registry["discovery"]["status"] == "not_started"
+    assert public_registry["discovery"]["scope"] == "route_selection"
 
 
 def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp_path: Path) -> None:
@@ -926,15 +830,15 @@ def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp
     assert (version_root / "analysis.csv").exists()
 
 
-def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Path) -> None:
+def test_data_asset_sqlite_compact_plan_respects_dataset_body_boundary(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
-    db_path = workspace_root / "data" / "datasets" / "master" / "v1" / "release.sqlite"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(db_path) as conn:
+    dataset_db_path = workspace_root / "data" / "datasets" / "master" / "v1" / "release.sqlite"
+    dataset_db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(dataset_db_path) as conn:
         conn.execute("CREATE TABLE release_rows (id INTEGER PRIMARY KEY)")
         conn.execute("INSERT INTO release_rows (id) VALUES (1)")
 
-    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=dataset_db_path)
 
     assert result["status"] == "blocked"
     assert result["under_dataset_body"] is True
@@ -946,16 +850,13 @@ def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Pat
     }
     assert result["recommended_command"] is None
 
-
-def test_data_asset_sqlite_compact_plan_allows_non_dataset_runtime_sqlite_after_integrity(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    db_path = workspace_root / "runtime" / "artifacts" / "runtime_lifecycle.sqlite"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(db_path) as conn:
+    runtime_db_path = workspace_root / "runtime" / "artifacts" / "runtime_lifecycle.sqlite"
+    runtime_db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(runtime_db_path) as conn:
         conn.execute("CREATE TABLE refs (id INTEGER PRIMARY KEY)")
         conn.execute("INSERT INTO refs (id) VALUES (1)")
 
-    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+    result = data_assets.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=runtime_db_path)
 
     assert result["status"] == "blocked_runtime_sqlite_compact_cli_retired"
     assert result["under_dataset_body"] is False
