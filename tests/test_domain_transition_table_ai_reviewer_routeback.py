@@ -20,6 +20,52 @@ from tests.reviewer_os_fixture_helpers import (
 )
 
 
+ANALYSIS_ROUTEBACK_WORK_UNIT_ID = "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+
+
+def _publication_eval_path(study_root: Path) -> Path:
+    return study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH
+
+
+def _controller_decision_path(study_root: Path) -> Path:
+    return study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH
+
+
+def _task_intake_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+
+
+def _ai_reviewer_response_path(study_root: Path, filename: str) -> Path:
+    return study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses" / filename
+
+
+def _write_publication_eval(study_root: Path, payload: dict) -> None:
+    _write_json(_publication_eval_path(study_root), payload)
+
+
+def _write_controller_decision(study_root: Path, payload: dict) -> None:
+    _write_json(_controller_decision_path(study_root), payload)
+
+
+def _write_task_intake(study_root: Path, payload: dict) -> None:
+    _write_json(_task_intake_path(study_root), payload)
+
+
+def _project_transition(
+    study_root: Path,
+    *,
+    study_id: str = "dm002",
+    active_run_id: str | None = None,
+) -> dict[str, object]:
+    return study_domain_transition_table.project_domain_transition(
+        study_id=study_id,
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=active_run_id,
+    )
+
+
 def _assert_write_routeback_transition(
     transition: dict[str, object],
     *,
@@ -31,16 +77,73 @@ def _assert_write_routeback_transition(
     assert transition["next_work_unit"]["unit_id"] == work_unit_id
 
 
+def _assert_write_next_action(
+    transition: dict[str, object],
+    *,
+    work_unit_id: str = "manuscript_story_repair",
+) -> None:
+    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
+    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
+    assert transition["next_action"]["owner"] == "write"
+    assert transition["next_action"]["work_unit_id"] == work_unit_id
+
+
+def _assert_ai_reviewer_next_action(
+    transition: dict[str, object],
+    *,
+    work_unit_id: str,
+) -> None:
+    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
+    assert transition["next_action"]["action_kind"] == "owner_review"
+    assert transition["next_action"]["owner"] == "ai_reviewer"
+    assert transition["next_action"]["work_unit_id"] == work_unit_id
+    assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
+        "ai_reviewer_publication_eval"
+    )
+
+
+def _analysis_campaign_routeback_eval(
+    study_root: Path,
+    *,
+    action_type: str = "bounded_analysis",
+    prose_route_target: str = "analysis",
+    medical_status: str | None = "partial",
+    action_id: str = "route-back-analysis-validation-uncertainty-20260520",
+    summary: str = "Add uncertainty intervals and grouped calibration evidence.",
+) -> dict:
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    if medical_status is not None:
+        publication_eval["quality_assessment"]["medical_journal_prose_quality"][
+            "status"
+        ] = medical_status
+    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"][
+        "medical_prose_review"
+    ]
+    prose_check["route_target"] = prose_route_target
+    publication_eval["recommended_actions"] = [
+        {
+            "action_id": action_id,
+            "action_type": action_type,
+            "requires_controller_decision": True,
+            "route_target": "analysis-campaign",
+            "work_unit_fingerprint": ANALYSIS_ROUTEBACK_WORK_UNIT_ID,
+            "next_work_unit": {
+                "unit_id": ANALYSIS_ROUTEBACK_WORK_UNIT_ID,
+                "lane": "analysis-campaign",
+                "summary": summary,
+            },
+        }
+    ]
+    return publication_eval
+
+
 def test_current_ai_reviewer_write_routeback_does_not_project_reviewer_redrive_for_live_run(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        _current_ai_reviewer_route_back_eval(study_root),
-    )
-    _write_json(
-        study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+    _write_publication_eval(study_root, _current_ai_reviewer_route_back_eval(study_root))
+    _write_controller_decision(
+        study_root,
         {
             "decision_type": "continue_same_line",
             "route_target": "review",
@@ -48,13 +151,7 @@ def test_current_ai_reviewer_write_routeback_does_not_project_reviewer_redrive_f
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id="mas-run-dm002",
-    )
+    transition = _project_transition(study_root, active_run_id="mas-run-dm002")
 
     assert transition["decision_type"] == "active_runtime_readback"
     assert transition["owner"] == "med-autoscience"
@@ -65,24 +162,12 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        _current_ai_reviewer_route_back_eval(study_root),
-    )
+    _write_publication_eval(study_root, _current_ai_reviewer_route_back_eval(study_root))
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     _assert_write_routeback_transition(transition)
-    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
-    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
-    assert transition["next_action"]["owner"] == "write"
-    assert transition["next_action"]["work_unit_id"] == "manuscript_story_repair"
+    _assert_write_next_action(transition)
 
 
 def test_newer_mas_owner_repair_receipt_supersedes_stale_ai_reviewer_routeback(
@@ -92,7 +177,7 @@ def test_newer_mas_owner_repair_receipt_supersedes_stale_ai_reviewer_routeback(
     manuscript = study_root / "paper" / "draft.md"
     manuscript.parent.mkdir(parents=True)
     manuscript.write_text("# repaired\n", encoding="utf-8")
-    publication_eval_path = study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH
+    publication_eval_path = _publication_eval_path(study_root)
     receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
     evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
     story_ref = {"path": str(manuscript), "artifact_role": "canonical_manuscript_story_surface"}
@@ -127,13 +212,7 @@ def test_newer_mas_owner_repair_receipt_supersedes_stale_ai_reviewer_routeback(
     os.utime(receipt_path, (2, 2))
     os.utime(evidence_path, (2, 2))
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "owner_apply_receipt_consumed"
     assert transition["controller_action"] == "paper_autonomy_guarded_apply"
@@ -146,12 +225,9 @@ def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeba
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        _current_ai_reviewer_route_back_eval(study_root),
-    )
-    _write_json(
-        study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+    _write_publication_eval(study_root, _current_ai_reviewer_route_back_eval(study_root))
+    _write_controller_decision(
+        study_root,
         {
             "decision_type": "continue_same_line",
             "requires_human_confirmation": False,
@@ -174,19 +250,10 @@ def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeba
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     _assert_write_routeback_transition(transition)
-    assert transition["next_action"]["surface_kind"] == "mas_next_action_envelope"
-    assert transition["next_action"]["action_family"] == "paper.write.prose_repair"
-    assert transition["next_action"]["owner"] == "write"
-    assert transition["next_action"]["work_unit_id"] == "manuscript_story_repair"
+    _assert_write_next_action(transition)
 
 
 def test_current_ai_reviewer_write_routeback_owner_route_has_explicit_target_surface(
@@ -195,10 +262,7 @@ def test_current_ai_reviewer_write_routeback_owner_route_has_explicit_target_sur
     from med_autoscience.runtime_control import owner_route as owner_route_part
 
     study_root = tmp_path / "study"
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        _current_ai_reviewer_route_back_eval(study_root),
-    )
+    _write_publication_eval(study_root, _current_ai_reviewer_route_back_eval(study_root))
 
     action = domain_transition_recommended_action(
         study_id="dm002",
@@ -267,18 +331,9 @@ def test_gate_recheck_only_readiness_preempts_stale_write_routeback(tmp_path: Pa
         "missing_required_fields": ["owner_authorized_publication_gate_recheck"],
     }
 
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
-    )
+    _write_publication_eval(study_root, publication_eval)
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm003",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root, study_id="dm003")
 
     assert transition["decision_type"] == "publication_gate_blocker"
     assert transition["route_target"] == "review"
@@ -293,17 +348,11 @@ def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeba
     study_root = tmp_path / "study"
     publication_eval = _current_ai_reviewer_route_back_eval(study_root)
     manuscript_path = study_root / "paper" / "draft.md"
-    stale_record_path = (
-        study_root
-        / "artifacts"
-        / "publication_eval"
-        / "ai_reviewer_responses"
-        / "20260521T213722Z_publication_eval_record.json"
+    stale_record_path = _ai_reviewer_response_path(
+        study_root,
+        "20260521T213722Z_publication_eval_record.json",
     )
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
-    )
+    _write_publication_eval(study_root, publication_eval)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
@@ -319,13 +368,7 @@ def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeba
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "ai_reviewer_re_eval"
     assert transition["route_target"] == "review"
@@ -336,14 +379,9 @@ def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeba
     )
     assert transition["typed_blocker"] is None
     assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
-    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
-    assert transition["next_action"]["action_kind"] == "owner_review"
-    assert transition["next_action"]["owner"] == "ai_reviewer"
-    assert transition["next_action"]["work_unit_id"] == (
-        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-    )
-    assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
-        "ai_reviewer_publication_eval"
+    _assert_ai_reviewer_next_action(
+        transition,
+        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
     )
     assert str(stale_record_path) in transition["source_refs"]
 
@@ -362,13 +400,10 @@ def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_ro
     _write_json(claim_map_path, {"updated": "current"})
     old_eval = _current_ai_reviewer_route_back_eval(study_root)
     old_eval["eval_id"] = "publication-eval::dm002::old-inputs::2026-05-31T10:00:00+00:00"
-    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
-    current_record_path = (
-        study_root
-        / "artifacts"
-        / "publication_eval"
-        / "ai_reviewer_responses"
-        / "20260601T131804Z_publication_eval_record.json"
+    _write_publication_eval(study_root, old_eval)
+    current_record_path = _ai_reviewer_response_path(
+        study_root,
+        "20260601T131804Z_publication_eval_record.json",
     )
     current_record = current_manuscript_routeback_record(
         study_root=study_root,
@@ -425,11 +460,10 @@ def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_ro
                 "state": "requested",
                 "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
                 "stale_record_ref": str(
-                    study_root
-                    / "artifacts"
-                    / "publication_eval"
-                    / "ai_reviewer_responses"
-                    / "20260601T121132Z_publication_eval_record.json"
+                    _ai_reviewer_response_path(
+                        study_root,
+                        "20260601T121132Z_publication_eval_record.json",
+                    )
                 ),
                 "required_currentness_refs": [
                     str(evidence_path.resolve()),
@@ -439,13 +473,7 @@ def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_ro
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "route_back_same_line"
     assert transition["route_target"] == "write"
@@ -465,9 +493,9 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
     old_eval = _current_ai_reviewer_route_back_eval(study_root)
     old_eval["emitted_at"] = "2026-07-01T01:00:00+00:00"
     old_eval["recommended_actions"] = []
-    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
-    _write_json(
-        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    _write_publication_eval(study_root, old_eval)
+    _write_task_intake(
+        study_root,
         {
             "schema_version": 1,
             "task_id": "study-task::dm002::20260702T002000Z",
@@ -478,22 +506,16 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "ai_reviewer_re_eval"
     assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
     assert transition["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
     assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
-    assert transition["next_action"]["action_family"] == "paper.review.ai_reviewer"
-    assert transition["next_action"]["action_kind"] == "owner_review"
-    assert transition["next_action"]["owner"] == "ai_reviewer"
-    assert transition["next_action"]["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    _assert_ai_reviewer_next_action(
+        transition,
+        work_unit_id="ai_reviewer_medical_prose_quality_review",
+    )
     first_fingerprint = transition["next_action"]["work_unit_fingerprint"]
     assert first_fingerprint.startswith(
         "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review::source::"
@@ -503,13 +525,10 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
         "ai_reviewer_medical_prose_quality_review"
     )
     assert transition["next_action"]["idempotency_key"]
-    assert transition["next_action"]["expected_output_contract"]["output_kind"] == (
-        "ai_reviewer_publication_eval"
-    )
-    assert str(study_root / "artifacts" / "controller" / "task_intake" / "latest.json") in transition["source_refs"]
+    assert str(_task_intake_path(study_root)) in transition["source_refs"]
 
-    _write_json(
-        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    _write_task_intake(
+        study_root,
         {
             "schema_version": 1,
             "task_id": "study-task::dm002::20260704T042118Z",
@@ -520,13 +539,7 @@ def test_reviewer_revision_stale_eval_projects_ai_reviewer_next_action(
         },
     )
 
-    next_transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    next_transition = _project_transition(study_root)
 
     assert next_transition["next_action"]["work_unit_id"] == transition["next_action"]["work_unit_id"]
     assert next_transition["next_action"]["work_unit_fingerprint"] != first_fingerprint
@@ -550,9 +563,9 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
             "summary": "Repair DM003 manuscript prose around bounded evidence and service-review claims.",
         },
     }
-    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, current_eval)
-    _write_json(
-        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    _write_publication_eval(study_root, current_eval)
+    _write_task_intake(
+        study_root,
         {
             "schema_version": 1,
             "task_id": "study-task::dm003::20260704T050334Z",
@@ -563,13 +576,7 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm003",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root, study_id="dm003")
 
     _assert_write_routeback_transition(transition, work_unit_id="medical_prose_write_repair")
     assert transition["controller_action"] == "request_opl_stage_attempt"
@@ -585,8 +592,8 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
     )
     assert transition["next_action"]["idempotency_key"]
 
-    _write_json(
-        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    _write_task_intake(
+        study_root,
         {
             "schema_version": 1,
             "task_id": "study-task::dm003::20260705T064542Z",
@@ -597,13 +604,7 @@ def test_current_routeback_action_preempts_stale_reviewer_revision_intake(
         },
     )
 
-    next_transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm003",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    next_transition = _project_transition(study_root, study_id="dm003")
 
     assert next_transition["next_action"]["work_unit_id"] == transition["next_action"]["work_unit_id"]
     assert next_transition["next_action"]["work_unit_fingerprint"] != first_fingerprint
@@ -616,9 +617,9 @@ def test_stale_reviewer_revision_write_routeback_yields_to_analysis_campaign_mar
     study_root = tmp_path / "study"
     current_eval = _current_ai_reviewer_route_back_eval(study_root)
     current_eval["emitted_at"] = "2026-07-01T01:00:00+00:00"
-    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, current_eval)
-    _write_json(
-        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    _write_publication_eval(study_root, current_eval)
+    _write_task_intake(
+        study_root,
         {
             "schema_version": 1,
             "task_id": "study-task::dm002::20260705T073000Z",
@@ -639,13 +640,7 @@ def test_stale_reviewer_revision_write_routeback_yields_to_analysis_campaign_mar
         },
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "route_back_same_line"
     assert transition["route_target"] == "analysis-campaign"
@@ -667,18 +662,9 @@ def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_targ
         "recommended_action": "route_back_same_line",
         "rationale": "The current AI reviewer action routes same-line paper repair to write.",
     }
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
-    )
+    _write_publication_eval(study_root, publication_eval)
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     _assert_write_routeback_transition(transition)
 
@@ -687,81 +673,41 @@ def test_current_ai_reviewer_analysis_routeback_projects_analysis_campaign_hando
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
-    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-    prose_check["route_target"] = "analysis-campaign"
-    publication_eval["recommended_actions"] = [
-        {
-            "action_id": "ai-reviewer-action::return-to-analysis-campaign",
-            "action_type": "route_back_same_line",
-            "requires_controller_decision": True,
-            "route_target": "analysis-campaign",
-            "work_unit_fingerprint": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-            "next_work_unit": {
-                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                "lane": "analysis-campaign",
-                "summary": "Close uncertainty intervals and grouped calibration for the unit-harmonized validation.",
-            },
-        }
-    ]
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
+    _write_publication_eval(
+        study_root,
+        _analysis_campaign_routeback_eval(
+            study_root,
+            action_type="route_back_same_line",
+            prose_route_target="analysis-campaign",
+            medical_status=None,
+            action_id="ai-reviewer-action::return-to-analysis-campaign",
+            summary="Close uncertainty intervals and grouped calibration for the unit-harmonized validation.",
+        ),
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "route_back_same_line"
     assert transition["route_target"] == "analysis-campaign"
     assert transition["owner"] == "analysis-campaign"
-    assert transition["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert transition["next_work_unit"]["unit_id"] == ANALYSIS_ROUTEBACK_WORK_UNIT_ID
 
 
 def test_current_ai_reviewer_bounded_analysis_routeback_accepts_analysis_alias_when_not_live(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
-    publication_eval["quality_assessment"]["medical_journal_prose_quality"]["status"] = "partial"
-    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-    prose_check["route_target"] = "analysis"
-    publication_eval["recommended_actions"] = [
-        {
-            "action_id": "route-back-analysis-validation-uncertainty-20260520",
-            "action_type": "bounded_analysis",
-            "requires_controller_decision": True,
-            "route_target": "analysis-campaign",
-            "work_unit_fingerprint": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-            "next_work_unit": {
-                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                "lane": "analysis-campaign",
-                "summary": "Add uncertainty intervals and grouped calibration evidence.",
-            },
-        }
-    ]
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
+    _write_publication_eval(
+        study_root,
+        _analysis_campaign_routeback_eval(study_root),
     )
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     assert transition["decision_type"] == "route_back_same_line"
     assert transition["route_target"] == "analysis-campaign"
     assert transition["owner"] == "analysis-campaign"
-    assert transition["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert transition["next_work_unit"]["unit_id"] == ANALYSIS_ROUTEBACK_WORK_UNIT_ID
 
 
 def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_path: Path) -> None:
@@ -773,13 +719,10 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
     old_eval = _current_ai_reviewer_route_back_eval(study_root)
     old_eval["eval_id"] = "publication-eval::dm002::old::2026-05-22T20:30:41+00:00::ai-reviewer"
     old_eval["emitted_at"] = "2026-05-22T20:30:41+00:00"
-    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
-    current_record_path = (
-        study_root
-        / "artifacts"
-        / "publication_eval"
-        / "ai_reviewer_responses"
-        / "20260524T175827Z_publication_eval_record.json"
+    _write_publication_eval(study_root, old_eval)
+    current_record_path = _ai_reviewer_response_path(
+        study_root,
+        "20260524T175827Z_publication_eval_record.json",
     )
     current_record = _current_ai_reviewer_route_back_eval(study_root)
     current_record.update(
@@ -832,13 +775,7 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
     current_record["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer"
     _write_json(current_record_path, current_record)
 
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id="dm002",
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
+    transition = _project_transition(study_root)
 
     json.dumps(transition, ensure_ascii=False, sort_keys=True)
     assert str(current_record_path.resolve()) in transition["source_refs"]
@@ -862,28 +799,7 @@ def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
-    publication_eval["quality_assessment"]["medical_journal_prose_quality"]["status"] = "partial"
-    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-    prose_check["route_target"] = "analysis"
-    publication_eval["recommended_actions"] = [
-        {
-            "action_id": "route-back-analysis-validation-uncertainty-20260520",
-            "action_type": "bounded_analysis",
-            "requires_controller_decision": True,
-            "route_target": "analysis-campaign",
-            "work_unit_fingerprint": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-            "next_work_unit": {
-                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                "lane": "analysis-campaign",
-                "summary": "Add uncertainty intervals and grouped calibration evidence.",
-            },
-        }
-    ]
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
-    )
+    _write_publication_eval(study_root, _analysis_campaign_routeback_eval(study_root))
 
     action = domain_transition_recommended_action(
         study_id="dm002",
@@ -898,40 +814,20 @@ def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action
     assert action["route_target"] == "analysis-campaign"
     assert (
         action["work_unit_fingerprint"]
-        == "domain-transition::route_back_same_line::unit_harmonized_validation_uncertainty_and_grouped_calibration"
+        == f"domain-transition::route_back_same_line::{ANALYSIS_ROUTEBACK_WORK_UNIT_ID}"
     )
-    assert action["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert action["next_work_unit"]["unit_id"] == ANALYSIS_ROUTEBACK_WORK_UNIT_ID
 
 
 def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transition_fingerprint(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
-    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
-    publication_eval["quality_assessment"]["medical_journal_prose_quality"]["status"] = "partial"
-    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-    prose_check["route_target"] = "analysis"
-    publication_eval["recommended_actions"] = [
-        {
-            "action_id": "route-back-analysis-validation-uncertainty-20260520",
-            "action_type": "bounded_analysis",
-            "requires_controller_decision": True,
-            "route_target": "analysis-campaign",
-            "work_unit_fingerprint": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-            "next_work_unit": {
-                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                "lane": "analysis-campaign",
-                "summary": "Add uncertainty intervals and grouped calibration evidence.",
-            },
-        }
-    ]
-    _write_json(
-        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
-        publication_eval,
-    )
-    decision_path = study_root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH
-    _write_json(
-        decision_path,
+    publication_eval = _analysis_campaign_routeback_eval(study_root)
+    _write_publication_eval(study_root, publication_eval)
+    decision_path = _controller_decision_path(study_root)
+    _write_controller_decision(
+        study_root,
         {
             "decision_id": "study-decision::dm002::route-back",
             "decision_type": "route_back_same_line",
@@ -940,10 +836,10 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
             "controller_actions": [{"action_type": "run_quality_repair_batch", "payload_ref": str(decision_path)}],
             "work_unit_fingerprint": (
                 "domain-transition::route_back_same_line::"
-                "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+                f"{ANALYSIS_ROUTEBACK_WORK_UNIT_ID}"
             ),
             "next_work_unit": {
-                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                "unit_id": ANALYSIS_ROUTEBACK_WORK_UNIT_ID,
                 "lane": "analysis-campaign",
                 "summary": "Add uncertainty intervals and grouped calibration evidence.",
             },
@@ -957,7 +853,7 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
 
     assert route is not None
     assert route["route_target"] == "analysis-campaign"
-    assert route["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert route["work_unit_id"] == ANALYSIS_ROUTEBACK_WORK_UNIT_ID
 
 
 from tests.test_domain_transition_table_ai_reviewer_routeback_cases.materialized_controller_story_recheck import (
