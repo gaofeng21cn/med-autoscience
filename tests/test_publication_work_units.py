@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 
-from .test_publication_work_units_cases.delivery_specificity_cases import (
+from tests.test_publication_work_units_cases.delivery_specificity_cases import (
     test_delivery_specificity_targets_do_not_route_to_analysis_repair,
     test_delivery_specificity_targets_do_not_close_generic_publication_surface_specificity,
     test_current_delivery_reporting_checklist_blockers_route_to_write_repair,
