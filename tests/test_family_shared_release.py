@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience import family_shared_release as module
+from opl_harness_shared import family_shared_release as module
 
 
 OWNER_COMMIT = "bc20e23c7fd9088a33db31c87d1e3075dac3144b"
@@ -75,7 +75,8 @@ def test_current_checkout_family_shared_pins_align_with_opl_release_contract(tmp
     _write_consumer_pin_files(repo_root=repo_root)
 
     inspection = module.inspect_current_repo_family_shared_alignment(
-        repo_root_override=repo_root,
+        repo_root=repo_root,
+        consumer_repo_id="medautoscience",
         owner_repo_root=owner_repo_root,
     )
 
@@ -88,7 +89,7 @@ def test_current_checkout_family_shared_pins_align_with_opl_release_contract(tmp
 
 def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None:
     contract = json.loads(
-        (module.repo_root() / "contracts" / "foundry_agent_series.json").read_text(
+        (Path(__file__).resolve().parents[1] / "contracts" / "foundry_agent_series.json").read_text(
             encoding="utf-8"
         )
     )
@@ -129,9 +130,11 @@ def test_family_shared_alignment_uses_repo_root_by_default(monkeypatch, tmp_path
     owner_repo_root = tmp_path / "one-person-lab"
     _write_owner_release_contract(owner_repo_root=owner_repo_root)
     _write_consumer_pin_files(repo_root=repo_root)
-    monkeypatch.setattr(module, "repo_root", lambda: repo_root)
-
-    inspection = module.inspect_current_repo_family_shared_alignment()
+    inspection = module.inspect_current_repo_family_shared_alignment(
+        repo_root=repo_root,
+        consumer_repo_id="medautoscience",
+        owner_repo_root=owner_repo_root,
+    )
 
     assert inspection["repo_id"] == "medautoscience"
     assert Path(inspection["repo_root"]) == repo_root

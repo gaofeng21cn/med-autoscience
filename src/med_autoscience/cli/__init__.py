@@ -61,10 +61,6 @@ def _load_adapter(module_name: str) -> Any:
     return _load_module(f"med_autoscience.adapters.{module_name}")
 
 
-def _load_analysis_bundle_controller() -> Any:
-    return _load_module("med_autoscience.study_runtime_analysis_bundle")
-
-
 def _load_workspace_python_environment_controller() -> Any:
     return _load_module("med_autoscience.workspace_python_environment")
 
@@ -151,7 +147,6 @@ time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time
 tooluniverse_adapter = _LazyModuleProxy(lambda: _load_adapter("tooluniverse"))
 workspace_literature_controller = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
 workspace_init_controller = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
-analysis_bundle_controller = _LazyModuleProxy(_load_analysis_bundle_controller)
 workspace_python_environment_controller = _LazyModuleProxy(_load_workspace_python_environment_controller)
 overlay_installer = _LazyModuleProxy(_load_overlay_installer)
 
@@ -704,11 +699,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "ensure-analysis-bundle":
-        result = analysis_bundle_controller.ensure_analysis_bundle()
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     workspace_data_result = handle_workspace_data_command(
         args,
         data_asset_gate=data_asset_gate,
@@ -723,7 +713,6 @@ def main(argv: list[str] | None = None) -> int:
         load_profile=load_profile,
         load_doctor_module=_load_doctor_module,
         load_overlay_installer=_load_overlay_installer,
-        analysis_bundle_controller=analysis_bundle_controller,
         workspace_python_environment_controller=workspace_python_environment_controller,
         overlay_request_from_args=_overlay_request_from_args,
         load_json_payload_from_args=_load_json_payload_from_args,

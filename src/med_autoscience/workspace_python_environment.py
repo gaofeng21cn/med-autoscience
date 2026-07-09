@@ -1,47 +1,30 @@
 from __future__ import annotations
 
 import json
-import shutil
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
 
 
-def ensure_workspace_python_environment(*, workspace_root: Path) -> dict[str, Any]:
+def inspect_workspace_python_environment(*, workspace_root: Path) -> dict[str, Any]:
     root = Path(workspace_root).expanduser().resolve()
     python_path = root / ".venv" / "bin" / "python3"
-    uv_path = shutil.which("uv")
-    if uv_path is None:
-        return {
-            "status": "uv_missing",
-            "workspace_root": str(root),
-            "python_path": str(python_path),
-            "ready": python_path.is_file() and python_path.stat().st_mode & 0o111 != 0,
-            "exit_code": None,
-            "stdout": "",
-            "stderr": "uv executable not found on PATH",
-        }
-    sync_command = [uv_path, "sync", "--directory", str(root), "--inexact"]
-    sync = subprocess.run(
-        sync_command,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    ready = python_path.is_file() and python_path.stat().st_mode & 0o111 != 0
+    ready = python_path.is_file() and os.access(python_path, os.X_OK)
     analysis_bundle = _inspect_analysis_bundle_with_workspace_python(python_path) if ready else None
     return {
-        "status": "ready" if ready and sync.returncode == 0 else "failed",
+        "status": "ready" if ready else "workspace_python_missing",
         "workspace_root": str(root),
         "python_path": str(python_path),
-        "ready": ready and sync.returncode == 0,
-        "sync": {
-            "command": sync_command,
-            "exit_code": sync.returncode,
-            "stdout": sync.stdout,
-            "stderr": sync.stderr,
-        },
+        "ready": ready,
         "analysis_bundle": analysis_bundle,
+        "provisioning": {
+            "owner": "uv",
+            "owner_surface": "uv sync",
+            "requirement_profile": "med-autoscience[analysis]",
+            "effect": "read_only",
+            "mas_provisioning_allowed": False,
+        },
     }
 
 
@@ -74,4 +57,4 @@ def _inspect_analysis_bundle_with_workspace_python(python_path: Path) -> dict[st
     }
 
 
-__all__ = ["ensure_workspace_python_environment"]
+__all__ = ["inspect_workspace_python_environment"]

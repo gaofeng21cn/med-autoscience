@@ -79,7 +79,7 @@ Compatibility note:
 
 - 仓库内状态：plugin source 由 `plugins/med-autoscience/.codex-plugin/plugin.json` 和 `plugins/med-autoscience/skills/med-autoscience/SKILL.md` 维护；`plugins/med-autoscience/bin/medautosci-mcp` 只保留为 direct / proof lane launcher，不写入 Codex plugin manifest 的 `mcpServers`。
 - 退役状态：repo-local `.agents/plugins/marketplace.json` 是 retired local-state surface；MAS 仓库不再跟踪、生成或写回它。
-- 全局状态：`scripts/install-codex-plugin.sh` 只安装 `~/.local/bin/medautosci` 和 `~/.local/bin/medautosci-mcp` clean-runner wrappers；不安装 `mas` shell wrapper，不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。`mas` 是 plugin / series agent id，不是本机 PATH readiness 证据；macOS 上 `mas` 常是 Mac App Store CLI。
+- CLI 安装：仓库不再维护专用 installer 或 home-local wrapper；`medautosci` 与 `medautosci-mcp` 由 `pyproject.toml` 的标准 console scripts 声明，独立 CLI 安装使用 `uv tool install --force .`。`mas` 是 plugin / series agent id，不是本机 PATH readiness 证据；macOS 上 `mas` 常是 Mac App Store CLI。
 - Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。修改 `plugins/med-autoscience/**` 后，通过 OPL-owned plugin sync surface 重新物化 med-autoscience marketplace；Codex plugin cache 仍旧时需要刷新/重启 Codex App。
 - 发布状态：Codex plugin 是薄入口，不是新的运行核心，也不是 MAS standalone GitHub Release / installer 通道。
 
@@ -87,20 +87,27 @@ Compatibility note:
 
 ## 在另一台电脑上使用
 
-最稳妥的路径是：
+标准路径是：
 
 1. clone 本仓库
-2. 运行：
+2. 安装 Python CLI：
 
    ```bash
-   bash scripts/install-codex-plugin.sh
+   uv tool install --force .
    ```
 
-3. 在本仓库工作目录中重启 Codex，让 repo-tracked skill 和 plugin source 重新加载
+3. 通过 OPL 物化 Codex carrier，并刷新 plugin cache：
+
+   ```bash
+   opl connect sync-skills --domain mas
+   opl system startup-maintenance
+   ```
+
+4. 重启 Codex App，让更新后的 plugin cache 重新加载
 
 然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录，也不要在 MAS 仓库恢复 `.agents/plugins/marketplace.json` 或 `plugins/mas`；需要 Codex marketplace 注册时，通过 OPL-owned wrapper 处理。需要研究运行时，应通过仓库内 `plugins/med-autoscience/` 与当前 workspace 初始化面发现。
 
-这里仍然只安装 `MedAutoScience` 的 plugin / skill / MCP 入口，不会顺带安装 `MedDeepScientist` runtime。
+这些入口只安装 `MedAutoScience` 的 CLI 与 plugin / skill / MCP carrier，不会顺带安装 `MedDeepScientist` runtime。研究 workspace 的 Python 依赖由 workspace `pyproject.toml` 中的 `med-autoscience[analysis]` 与 `uv sync` 管理；R/Python runtime profile 的长期 provisioning owner 是 OPL `env prepare`，MAS 只保留依赖声明与 readback。
 
 ## 作用边界
 

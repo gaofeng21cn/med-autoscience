@@ -1,579 +1,70 @@
 from __future__ import annotations
 
-import importlib
-import importlib.util
+import json
+import subprocess
 import sys
-import types
+import tomllib
 from pathlib import Path
 
-import pytest
 
-from med_autoscience import editable_shared_bootstrap as module
-
-pytestmark = pytest.mark.family
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _write_required_program_companion_contract(package_root: Path) -> None:
-    (package_root / "__init__.py").write_text("", encoding="utf-8")
-    (package_root / "contracts").mkdir(parents=True, exist_ok=True)
-    (package_root / "contracts" / "managed-runtime-three-layer-contract.json").write_text(
-        "{\n"
-        '  "contract_ref": "contracts/opl-framework/managed-runtime-three-layer-contract.json",\n'
-        '  "contract_id": "opl_managed_runtime_three_layer_contract",\n'
-        '  "required_owner_fields": ["runtime_owner", "domain_owner", "executor_owner"],\n'
-        '  "required_surface_locator_fields": ["surface_kind", "owner"],\n'
-        '  "canonical_fail_closed_rules": ["missing_owner_blocks"]\n'
-        "}\n",
-        encoding="utf-8",
+def test_shared_dependency_uses_standard_locked_packaging() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    dependency = next(
+        item for item in pyproject["project"]["dependencies"] if item.startswith("opl-harness-shared ")
     )
-    (package_root / "editable_consumer_bootstrap.py").write_text(
-        "def ensure_consumer_editable_dependency_paths(**kwargs):\n"
-        "    return ()\n",
-        encoding="utf-8",
+    lock_text = (REPO_ROOT / "uv.lock").read_text(encoding="utf-8")
+
+    assert "git+https://github.com/gaofeng21cn/one-person-lab.git@" in dependency
+    assert "#subdirectory=python/opl-harness-shared" in dependency
+    assert 'name = "opl-harness-shared"' in lock_text
+    assert "subdirectory=python%2Fopl-harness-shared&rev=" in lock_text
+
+
+def test_package_import_does_not_mutate_import_paths_or_preload_shared_modules() -> None:
+    script = """
+import json
+import sys
+
+before_path = list(sys.path)
+before_shared = sorted(name for name in sys.modules if name == "opl_harness_shared" or name.startswith("opl_harness_shared."))
+import med_autoscience
+after_shared = sorted(name for name in sys.modules if name == "opl_harness_shared" or name.startswith("opl_harness_shared."))
+print(json.dumps({
+    "path_unchanged": sys.path == before_path,
+    "shared_before": before_shared,
+    "shared_after": after_shared,
+    "package_path": list(med_autoscience.__path__),
+}))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
     )
-    (package_root / "family_entry_contracts.py").write_text(
-        "def build_family_domain_entry_contract(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
-    (package_root / "family_shared_release.py").write_text(
-        "def load_shared_owner_release_contract(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
-    (package_root / "managed_runtime.py").write_text(
-        "def read_bundled_managed_runtime_three_layer_contract():\n"
-        "    return {'contract_id': 'opl_managed_runtime_three_layer_contract'}\n",
-        encoding="utf-8",
-    )
-    (package_root / "product_entry_companions.py").write_text(
-        "def build_family_product_entry_manifest(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
-    (package_root / "product_entry_program_companions.py").write_text(
-        "def build_clearance_lane(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
+    payload = json.loads(completed.stdout)
+
+    assert payload["path_unchanged"] is True
+    assert payload["shared_after"] == payload["shared_before"]
+    assert payload["package_path"] == [str(REPO_ROOT / "src" / "med_autoscience")]
 
 
-def test_bootstrap_adds_repo_venv_site_packages_when_shared_helper_imports_from_site_packages(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_site_packages = tmp_path / ".venv" / "lib" / "python3.12" / "site-packages"
-    fake_site_packages.mkdir(parents=True)
-    fake_site_packages_str = str(fake_site_packages)
-    original_sys_path = list(sys.path)
-    sys.path[:] = [item for item in sys.path if item != fake_site_packages_str]
-    imported_module_names: list[str] = []
-    helper_module = types.SimpleNamespace(
-        ensure_repo_editable_dependency_paths=lambda **_: (),
-    )
+def test_runtime_bootstrap_modules_are_physically_retired() -> None:
+    package_root = REPO_ROOT / "src" / "med_autoscience"
 
-    def fake_module_spec(module_name: str):
-        if module_name != "opl_harness_shared.editable_consumer_launcher":
-            return importlib.util.find_spec(module_name)
-        if fake_site_packages_str not in sys.path:
-            return None
-        return object()
+    assert not (package_root / "editable_shared_bootstrap.py").exists()
+    assert not (package_root / "family_shared_release.py").exists()
 
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
-    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", fake_module_spec)
-    monkeypatch.setattr(
-        module.importlib,
-        "import_module",
-        lambda module_name: imported_module_names.append(module_name) or helper_module,
-    )
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
-
-    assert added == (fake_site_packages,)
-    assert imported_module_names == ["opl_harness_shared.editable_consumer_launcher"]
-
-
-def test_bootstrap_delegates_to_shared_helper_when_sibling_owner_is_present(monkeypatch, tmp_path: Path) -> None:
-    fake_repo_root = tmp_path / "med-autoscience"
-    fake_repo_root.mkdir()
-    helper_path = (
-        tmp_path
-        / "one-person-lab"
-        / "python"
-        / "opl-harness-shared"
-        / "src"
-        / "opl_harness_shared"
-        / "editable_consumer_launcher.py"
-    )
-    helper_path.parent.mkdir(parents=True)
-    _write_required_program_companion_contract(helper_path.parent)
-    helper_path.write_text(
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    marker = Path(repo_root) / 'shared-helper-called.txt'\n"
-        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
-        "    return (Path(repo_root) / 'delegated-src',)\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
-
-    added = module.ensure_editable_dependency_paths()
-
-    assert added == (fake_repo_root / "delegated-src",)
-    assert (fake_repo_root / "shared-helper-called.txt").read_text(encoding="utf-8") == "opl_harness_shared"
-
-
-def test_bootstrap_delegates_to_importable_shared_helper_without_touching_sys_path(monkeypatch) -> None:
-    original_sys_path = list(sys.path)
-    imported_module_names: list[str] = []
-    helper_module = types.SimpleNamespace(
-        ensure_repo_editable_dependency_paths=lambda **_: (),
-    )
-    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
-    monkeypatch.setattr(
-        module,
-        "_module_spec",
-        lambda module_name: object() if module_name == "opl_harness_shared.editable_consumer_launcher" else None,
-    )
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(
-        module.importlib,
-        "import_module",
-        lambda module_name: imported_module_names.append(module_name) or helper_module,
-    )
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
-
-    assert added == ()
-    assert sys.path == original_sys_path
-    assert imported_module_names == ["opl_harness_shared.editable_consumer_launcher"]
-
-
-def test_bootstrap_prefers_importable_clean_env_helper_over_repo_venv_when_sibling_is_unready(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience"
-    fake_repo_root.mkdir()
-    stale_site_packages = fake_repo_root / ".venv" / "lib" / "python3.12" / "site-packages"
-    stale_site_packages.mkdir(parents=True)
-    stale_site_packages_str = str(stale_site_packages)
-    original_sys_path = list(sys.path)
-    sys.path[:] = [item for item in sys.path if item != stale_site_packages_str]
-    imported_module_names: list[str] = []
-    helper_module = types.SimpleNamespace(
-        ensure_repo_editable_dependency_paths=lambda **_: (),
-    )
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (stale_site_packages,))
-    monkeypatch.setattr(
-        module,
-        "_module_spec",
-        lambda module_name: object() if module_name == "opl_harness_shared.editable_consumer_launcher" else None,
-    )
-    monkeypatch.setattr(
-        module.importlib,
-        "import_module",
-        lambda module_name: imported_module_names.append(module_name) or helper_module,
-    )
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
-
-    assert added == ()
-    assert stale_site_packages_str not in sys.path
-    assert imported_module_names == ["opl_harness_shared.editable_consumer_launcher"]
-
-
-def test_bootstrap_prefers_sibling_owner_helper_over_importable_site_packages(monkeypatch, tmp_path: Path) -> None:
-    fake_repo_root = tmp_path / "med-autoscience"
-    fake_repo_root.mkdir()
-    helper_path = (
-        tmp_path
-        / "one-person-lab"
-        / "python"
-        / "opl-harness-shared"
-        / "src"
-        / "opl_harness_shared"
-        / "editable_consumer_launcher.py"
-    )
-    helper_path.parent.mkdir(parents=True)
-    _write_required_program_companion_contract(helper_path.parent)
-    helper_path.write_text(
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    marker = Path(repo_root) / 'preferred-sibling-helper.txt'\n"
-        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
-        "    return ()\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(
-        module,
-        "_module_spec",
-        lambda module_name: object() if module_name == "opl_harness_shared.editable_consumer_launcher" else None,
-    )
-
-    added = module.ensure_editable_dependency_paths()
-
-    assert added == (helper_path.parent.parent,)
-    assert (fake_repo_root / "preferred-sibling-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
-
-
-def test_bootstrap_ignores_sibling_owner_when_required_shared_contract_is_missing(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience"
-    fake_repo_root.mkdir()
-    sibling_src = tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src"
-    sibling_package = sibling_src / "opl_harness_shared"
-    sibling_package.mkdir(parents=True)
-    (sibling_package / "__init__.py").write_text("", encoding="utf-8")
-    (sibling_package / "editable_consumer_launcher.py").write_text(
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    marker = Path(repo_root) / 'stale-sibling-helper-called.txt'\n"
-        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
-        "    return ()\n",
-        encoding="utf-8",
-    )
-    (sibling_package / "product_entry_program_companions.py").write_text(
-        "def build_clearance_lane(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
-    fake_site_packages = fake_repo_root / ".venv" / "lib" / "python3.12" / "site-packages"
-    site_package = fake_site_packages / "opl_harness_shared"
-    site_package.mkdir(parents=True)
-    (site_package / "__init__.py").write_text("", encoding="utf-8")
-    (site_package / "editable_consumer_launcher.py").write_text(
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    marker = Path(repo_root) / 'site-helper-called.txt'\n"
-        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
-        "    return ()\n",
-        encoding="utf-8",
-    )
-    (site_package / "product_entry_program_companions.py").write_text(
-        "def build_clearance_lane(**kwargs):\n"
-        "    return dict(kwargs)\n"
-        "def build_backend_deconstruction_lane(**kwargs):\n"
-        "    return dict(kwargs)\n",
-        encoding="utf-8",
-    )
-    original_sys_path = list(sys.path)
-    original_modules = {
-        name: sys.modules.pop(name, None)
-        for name in (
-            "opl_harness_shared",
-            "opl_harness_shared.editable_consumer_launcher",
-            "opl_harness_shared.product_entry_program_companions",
-        )
-    }
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(
-        module,
-        "_candidate_shared_helper_module_paths",
-        lambda: (sibling_package / "editable_consumer_launcher.py",),
-    )
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-        imported = importlib.import_module("opl_harness_shared.product_entry_program_companions")
-        imported_path = Path(imported.__file__).resolve()
-    finally:
-        sys.path[:] = original_sys_path
-        for module_name, original_module in original_modules.items():
-            if original_module is None:
-                sys.modules.pop(module_name, None)
-            else:
-                sys.modules[module_name] = original_module
-
-    assert added == (fake_site_packages,)
-    assert not (fake_repo_root / "stale-sibling-helper-called.txt").exists()
-    assert (fake_repo_root / "site-helper-called.txt").read_text(encoding="utf-8") == "opl_harness_shared"
-    assert imported_path == (site_package / "product_entry_program_companions.py").resolve()
-
-
-def test_bootstrap_detects_workspace_sibling_owner_from_nested_worktree_layout(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "codex" / "family-release-pre-shape-mas"
-    fake_repo_root.mkdir(parents=True)
-    helper_path = (
-        tmp_path
-        / "one-person-lab"
-        / "python"
-        / "opl-harness-shared"
-        / "src"
-        / "opl_harness_shared"
-        / "editable_consumer_launcher.py"
-    )
-    helper_path.parent.mkdir(parents=True)
-    _write_required_program_companion_contract(helper_path.parent)
-    helper_path.write_text(
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    marker = Path(repo_root) / 'nested-worktree-helper.txt'\n"
-        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
-        "    return (Path(repo_root).parents[3] / 'one-person-lab' / 'python' / 'opl-harness-shared' / 'src',)\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
-
-    added = module.ensure_editable_dependency_paths()
-
-    assert added == (tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src",)
-    assert (fake_repo_root / "nested-worktree-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
-
-
-def test_bootstrap_considers_main_checkout_venv_from_nested_worktree_layout(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "mas-stage-provider-soak"
-    fake_repo_root.mkdir(parents=True)
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    roots = module._candidate_repo_site_packages_roots()
-
-    assert (
-        fake_repo_root / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
-    ) in roots
-    assert (
-        tmp_path / "med-autoscience" / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
-    ) in roots
-
-
-def test_worktree_venv_site_packages_stays_ahead_of_main_checkout_venv(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "mas-consumer-migration"
-    fake_repo_root.mkdir(parents=True)
-    worktree_site_packages = (
-        fake_repo_root
-        / ".venv"
-        / "lib"
-        / f"python{sys.version_info.major}.{sys.version_info.minor}"
-        / "site-packages"
-    )
-    main_site_packages = (
-        tmp_path
-        / "med-autoscience"
-        / ".venv"
-        / "lib"
-        / f"python{sys.version_info.major}.{sys.version_info.minor}"
-        / "site-packages"
-    )
-    worktree_site_packages.mkdir(parents=True)
-    main_site_packages.mkdir(parents=True)
-    original_sys_path = list(sys.path)
-    worktree_site_packages_str = str(worktree_site_packages)
-    main_site_packages_str = str(main_site_packages)
-    sys.path[:] = [
-        item
-        for item in sys.path
-        if item not in {worktree_site_packages_str, main_site_packages_str}
-    ]
-    helper_module = types.SimpleNamespace(
-        ensure_repo_editable_dependency_paths=lambda **_: (),
-    )
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
-    monkeypatch.setattr(
-        module,
-        "_candidate_repo_site_packages_roots",
-        lambda: (worktree_site_packages, main_site_packages),
-    )
-    module_specs_seen: list[str] = []
-    sys_path_during_import: list[str] = []
-
-    def fake_module_spec(module_name: str):
-        module_specs_seen.append(module_name)
-        if module_name != "opl_harness_shared.editable_consumer_launcher":
-            return None
-        return object() if worktree_site_packages_str in sys.path else None
-
-    monkeypatch.setattr(module, "_module_spec", fake_module_spec)
-
-    def fake_import_module(_: str):
-        sys_path_during_import[:] = list(sys.path)
-        return helper_module
-
-    monkeypatch.setattr(module.importlib, "import_module", fake_import_module)
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
-
-    assert added == (worktree_site_packages,)
-    assert worktree_site_packages_str in sys_path_during_import
-    assert main_site_packages_str not in sys_path_during_import
-    assert module_specs_seen == [
-        "opl_harness_shared.editable_consumer_launcher",
-        "opl_harness_shared.editable_consumer_launcher",
-    ]
-
-
-def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_owner(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_repo_root = tmp_path / "med-autoscience"
-    fake_repo_root.mkdir()
-    shared_src = tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src"
-    package_root = shared_src / "opl_harness_shared"
-    package_root.mkdir(parents=True)
-    (package_root / "__init__.py").write_text("", encoding="utf-8")
-    (package_root / "editable_consumer_launcher.py").write_text(
-        "import importlib\n"
-        "import sys\n"
-        "from pathlib import Path\n"
-        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    candidate = Path(repo_root).parent / 'one-person-lab' / 'python' / 'opl-harness-shared' / 'src'\n"
-        "    candidate_str = str(candidate)\n"
-        "    if candidate_str not in sys.path:\n"
-        "        sys.path.insert(0, candidate_str)\n"
-        "        importlib.invalidate_caches()\n"
-        "    bootstrap = importlib.import_module(f'{shared_package_name}.editable_consumer_bootstrap')\n"
-        "    return bootstrap.ensure_consumer_editable_dependency_paths(repo_root=repo_root, shared_package_name=shared_package_name)\n",
-        encoding="utf-8",
-    )
-    (package_root / "editable_consumer_bootstrap.py").write_text(
-        "import importlib\n"
-        "import sys\n"
-        "from pathlib import Path\n"
-        "def ensure_consumer_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
-        "    candidate = Path(repo_root).parent / 'one-person-lab' / 'python' / 'opl-harness-shared' / 'src'\n"
-        "    candidate_str = str(candidate)\n"
-        "    if candidate_str not in sys.path:\n"
-        "        sys.path.insert(0, candidate_str)\n"
-        "        importlib.invalidate_caches()\n"
-        "    return (candidate,)\n",
-        encoding="utf-8",
-    )
-    (package_root / "family_entry_contracts.py").write_text(
-        "SOURCE = 'family_entry_contracts'\n",
-        encoding="utf-8",
-    )
-    (package_root / "family_shared_release.py").write_text(
-        "SOURCE = 'family_shared_release'\n",
-        encoding="utf-8",
-    )
-    (package_root / "product_entry_companions.py").write_text(
-        "SOURCE = 'product_entry_companions'\n",
-        encoding="utf-8",
-    )
-    _write_required_program_companion_contract(package_root)
-    original_sys_path = list(sys.path)
-    original_modules = {
-        name: sys.modules.pop(name, None)
-        for name in (
-            "opl_harness_shared",
-            "opl_harness_shared.editable_consumer_launcher",
-            "opl_harness_shared.editable_consumer_bootstrap",
-            "opl_harness_shared.family_entry_contracts",
-            "opl_harness_shared.family_shared_release",
-            "opl_harness_shared.product_entry_companions",
-        )
-    }
-
-    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-        imported_paths = {
-            module_name: Path(importlib.import_module(module_name).__file__).resolve()
-            for module_name in (
-                "opl_harness_shared.editable_consumer_launcher",
-                "opl_harness_shared.editable_consumer_bootstrap",
-                "opl_harness_shared.family_entry_contracts",
-                "opl_harness_shared.family_shared_release",
-                "opl_harness_shared.product_entry_companions",
-            )
-        }
-    finally:
-        sys.path[:] = original_sys_path
-        for module_name, original_module in original_modules.items():
-            if original_module is None:
-                sys.modules.pop(module_name, None)
-            else:
-                sys.modules[module_name] = original_module
-
-    assert added == (shared_src,)
-    assert imported_paths["opl_harness_shared.editable_consumer_launcher"] == (
-        package_root / "editable_consumer_launcher.py"
-    ).resolve()
-    assert imported_paths["opl_harness_shared.editable_consumer_bootstrap"] == (
-        package_root / "editable_consumer_bootstrap.py"
-    ).resolve()
-    assert imported_paths["opl_harness_shared.family_entry_contracts"] == (
-        package_root / "family_entry_contracts.py"
-    ).resolve()
-    assert imported_paths["opl_harness_shared.family_shared_release"] == (
-        package_root / "family_shared_release.py"
-    ).resolve()
-    assert imported_paths["opl_harness_shared.product_entry_companions"] == (
-        package_root / "product_entry_companions.py"
-    ).resolve()
-
-
-def test_required_shared_entrypoints_are_resolvable_from_current_checkout() -> None:
-    original_sys_path = list(sys.path)
-    try:
-        module.ensure_editable_dependency_paths()
-        required_modules = (
-            "opl_harness_shared.editable_consumer_bootstrap",
-            "opl_harness_shared.family_entry_contracts",
-            "opl_harness_shared.family_shared_release",
-            "opl_harness_shared.product_entry_companions",
-        )
-        for module_name in required_modules:
-            assert importlib.util.find_spec(module_name) is not None
-            imported = importlib.import_module(module_name)
-            assert getattr(imported, "__file__", None)
-    finally:
-        sys.path[:] = original_sys_path
-
-
-def test_bootstrap_returns_added_site_packages_when_shared_helper_remains_unavailable(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    fake_site_packages = tmp_path / ".venv" / "lib" / "python3.12" / "site-packages"
-    fake_site_packages.mkdir(parents=True)
-    fake_site_packages_str = str(fake_site_packages)
-    original_sys_path = list(sys.path)
-    sys.path[:] = [item for item in sys.path if item != fake_site_packages_str]
-
-    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
-    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
-
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
-
-    assert added == (fake_site_packages,)
+    for relative_path in (
+        "src/med_autoscience/__init__.py",
+        "src/med_autoscience/action_catalog.py",
+        "src/med_autoscience/domain_entry_contract.py",
+    ):
+        source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "editable_shared_bootstrap" not in source
+        assert "sys.path" not in source
+        assert "sys.modules" not in source

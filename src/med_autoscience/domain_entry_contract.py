@@ -3,10 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from med_autoscience import editable_shared_bootstrap as _editable_shared_bootstrap
-
-_editable_shared_bootstrap.ensure_editable_dependency_paths()
-
 from opl_harness_shared.family_entry_contracts import (
     build_domain_agent_entry_spec as _build_shared_domain_agent_entry_spec,
     build_domain_entry_command_catalog as _build_shared_domain_entry_command_catalog,

@@ -264,7 +264,7 @@ def test_run_preflight_executes_family_shared_lane(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["src/med_autoscience/editable_shared_bootstrap.py"],
+        changed_files=["tests/test_editable_shared_bootstrap.py"],
         repo_root=tmp_path,
     )
 

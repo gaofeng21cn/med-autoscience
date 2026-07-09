@@ -25,7 +25,6 @@ def handle_workspace_data_command(
     load_profile: Any,
     load_doctor_module: Any,
     load_overlay_installer: Any,
-    analysis_bundle_controller: Any,
     workspace_python_environment_controller: Any,
     overlay_request_from_args: Any,
     load_json_payload_from_args: Any,
@@ -248,10 +247,10 @@ def handle_workspace_data_command(
         overlay_install = None
         overlay_status = None
         overlay_bootstrap = None
-        workspace_python_environment = workspace_python_environment_controller.ensure_workspace_python_environment(
+        workspace_python_environment = workspace_python_environment_controller.inspect_workspace_python_environment(
             workspace_root=profile.workspace_root,
         )
-        analysis_bundle = analysis_bundle_controller.ensure_analysis_bundle()
+        analysis_bundle = workspace_python_environment.get("analysis_bundle")
         if profile.enable_medical_overlay:
             overlay_installer = load_overlay_installer()
             overlay_request = doctor.overlay_request_from_profile(profile)

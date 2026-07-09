@@ -94,6 +94,13 @@ def test_removed_grouped_ensure_runtime_command_is_removed(tmp_path: Path) -> No
         cli.main(["study", "ensure-runtime", "--profile", str(profile_path), "--study-id", "001-risk"])
 
 
+def test_removed_analysis_bundle_provisioning_command_is_removed() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `runtime`\.$"):
+        cli.main(["runtime", "ensure-analysis-bundle"])
+
+
 def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     launch_surface = importlib.import_module(

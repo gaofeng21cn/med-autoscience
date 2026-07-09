@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience import editable_shared_bootstrap as _editable_shared_bootstrap
 from med_autoscience.authority_operation_command_catalog import (
     build_authority_product_entry_mode_schema,
     product_entry_description_modes_text,
@@ -14,9 +13,7 @@ from med_autoscience.research_integrity.action_catalog_specs import (
     research_integrity_action_specs,
 )
 
-_editable_shared_bootstrap.ensure_editable_dependency_paths()
-
-from opl_harness_shared.family_action_catalog import (  # noqa: E402
+from opl_harness_shared.family_action_catalog import (
     build_family_action,
     build_family_action_catalog,
     project_family_action_catalog,

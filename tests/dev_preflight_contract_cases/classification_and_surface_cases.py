@@ -121,7 +121,6 @@ def test_classify_changed_files_routes_mcp_plugin_config_to_codex_plugin_surface
     result = module.classify_changed_files(
         [
             "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-            "scripts/install-codex-plugin.sh",
         ]
     )
 
@@ -489,10 +488,8 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
             "uv.lock",
             "Makefile",
             "scripts/verify.sh",
-            "src/med_autoscience/editable_shared_bootstrap.py",
             "src/med_autoscience/dev_preflight.py",
             "src/med_autoscience/dev_preflight_contract.py",
-            "src/med_autoscience/family_shared_release.py",
             "tests/test_editable_shared_bootstrap.py",
             "tests/test_dev_preflight.py",
             "tests/test_dev_preflight_contract.py",
