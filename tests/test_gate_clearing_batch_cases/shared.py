@@ -20,6 +20,21 @@ def _write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _make_gate_clearing_study(tmp_path: Path) -> tuple[Any, Path, Path, Path]:
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    return profile, study_root, quest_root, paper_root
+
+
 def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[str, Any]:
     payload = {
         "schema_version": 1,
@@ -125,6 +140,22 @@ def _write_bundle_stage_publication_eval(study_root: Path, *, quest_id: str) -> 
     return payload
 
 
+def _write_followup_bundle_stage_publication_eval(
+    study_root: Path,
+    *,
+    quest_id: str,
+    next_work_unit: dict[str, object] | None = None,
+) -> dict[str, Any]:
+    payload = _write_bundle_stage_publication_eval(study_root, quest_id=quest_id)
+    payload["eval_id"] = (
+        f"publication-eval::{study_root.name}::{quest_id}::2026-04-22T12:42:39+00:00"
+    )
+    if next_work_unit is not None:
+        payload["recommended_actions"][0]["next_work_unit"] = next_work_unit
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    return payload
+
+
 def _write_submission_minimal_fingerprint_inputs(paper_root: Path) -> None:
     _write_text(paper_root / "build" / "compiled_manuscript.md", "# Results\n\nStable content.\n")
     _write_text(paper_root / "build" / "compiled_paper.pdf", "%PDF-1.4\n")
@@ -150,7 +181,6 @@ def _write_submission_minimal_fingerprint_inputs(paper_root: Path) -> None:
             "pdf_path": "paper/build/compiled_paper.pdf",
         },
     )
-
 
 
 

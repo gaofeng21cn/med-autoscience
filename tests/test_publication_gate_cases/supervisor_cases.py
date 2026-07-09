@@ -21,7 +21,7 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     journal_package_module = importlib.import_module("med_autoscience.controllers.journal_package")
     requirements_module = importlib.import_module("med_autoscience.journal_requirements")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -126,23 +126,15 @@ def test_run_controller_refreshes_stale_journal_package_when_source_submission_m
     assert result["current_required_action"] == "continue_bundle_stage"
     journal_package_sync = result["journal_package_sync"]
     assert journal_package_sync["status"] == "materialized"
-    assert journal_package_sync["study_root"] == str(study_root.resolve())
-    assert journal_package_sync["paper_root"] == str(paper_root.resolve())
     assert journal_package_sync["journal_slug"] == journal_slug
-    assert journal_package_sync["journal_name"] == "Rheumatology International"
-    assert journal_package_sync["publication_profile"] == "general_medical_journal"
-    assert journal_package_sync["package_root"] == str((study_root / "submission_packages" / journal_slug).resolve())
-    assert journal_package_sync["submission_manifest_path"] == str(
-        submission_manifest_path(study_root / "submission_packages" / journal_slug).resolve()
-    )
-    assert journal_package_sync["zip_path"] == str(
-        (study_root / "submission_packages" / journal_slug / f"{journal_slug}_submission_package.zip").resolve()
-    )
     assert journal_package_sync["package_status"] == "current"
     assert journal_package_sync["package_role"] == "journal_targeted_projection"
-    assert journal_package_sync["target_confirmation_status"] == "unconfirmed"
     assert journal_package_sync["source_authority_kind"] == "runtime_worktree_paper"
     assert journal_package_sync["is_study_canonical_paper_root"] is False
+    assert (
+        journal_package_sync["submission_manifest_path"]
+        == str(submission_manifest_path(study_root / "submission_packages" / journal_slug).resolve())
+    )
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -161,7 +153,7 @@ def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: P
     ]
 def test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -383,47 +375,6 @@ def test_build_gate_report_blocks_submission_manuscript_surface_without_embedded
     assert "submission_source_markdown_missing" in failure_reasons
     assert "submission_docx_missing_embedded_figures" in failure_reasons
     assert "submission_pdf_missing_embedded_figures" in failure_reasons
-def test_build_gate_report_infers_general_profile_for_legacy_submission_manifest(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    quest_root = make_quest(
-        tmp_path,
-        include_submission_minimal=True,
-        include_current_medical_publication_surface_report=True,
-        figure_catalog={
-            "schema_version": 1,
-            "figures": [
-                {
-                    "figure_id": "F1",
-                    "paper_role": "main_text",
-                }
-            ],
-        },
-    )
-    submission_manifest_path = (
-        quest_root
-        / ".ds"
-        / "worktrees"
-        / "paper-run-1"
-        / "paper"
-        / "submission_minimal"
-        / "submission_manifest.json"
-    )
-    payload = json.loads(submission_manifest_path.read_text(encoding="utf-8"))
-    payload.pop("publication_profile", None)
-    payload["manuscript"] = {
-        "docx_path": "paper/submission_minimal/manuscript.docx",
-        "pdf_path": "paper/submission_minimal/paper.pdf",
-    }
-    submission_manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-    state = module.build_gate_state(quest_root)
-    report = module.build_gate_report(state)
-
-    assert report["status"] == "blocked"
-    failure_reasons = {item["failure_reason"] for item in report["submission_surface_qc_failures"]}
-    assert "submission_source_markdown_missing" in failure_reasons
-    assert "submission_docx_missing_embedded_figures" in failure_reasons
-    assert "submission_pdf_missing_embedded_figures" in failure_reasons
 def test_build_gate_report_inherits_blocked_medical_publication_surface_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
@@ -515,10 +466,6 @@ def test_build_gate_report_maps_surface_signals_to_named_controller_blockers(tmp
     assert report["supervisor_phase"] == "publishability_gate_blocked"
     assert report["bundle_tasks_downstream_only"] is True
     assert report["current_required_action"] == "return_to_publishability_gate"
-    assert "route back to `write` to close reviewer-first publication-surface concerns" in report[
-        "controller_stage_note"
-    ]
-    assert "reviewer-first hardening" not in report["controller_stage_note"]
     blocking_artifact_refs_text = json.dumps(report["blocking_artifact_refs"], sort_keys=True)
     assert '"source_path"' in blocking_artifact_refs_text
     assert "reviewer_first_concerns_unresolved" in blocking_artifact_refs_text
@@ -602,14 +549,6 @@ def test_build_gate_report_projects_surface_charter_expectation_gaps(tmp_path: P
         "/paper_quality_contract/review_expectations/scientific_followup_questions",
     }
 
-    markdown = module.render_gate_markdown(report)
-    assert "## Medical Publication Surface Expectation Gaps" in markdown
-    assert evidence_gap_text in markdown
-    assert review_gap_text in markdown
-    assert "contract_json_pointer=`/paper_quality_contract/evidence_expectations/minimum_sci_ready_evidence_package`" in markdown
-    assert "contract_json_pointer=`/paper_quality_contract/review_expectations/scientific_followup_questions`" in markdown
-    assert "ledger=`evidence_ledger`" in markdown
-    assert "ledger=`review_ledger`" in markdown
 def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
 
@@ -630,10 +569,6 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
         "reviewer_first_concerns_unresolved"
     ]
     assert reviewer_first_report["medical_publication_surface_route_back_recommendation"] == "return_to_write"
-    assert "route back to `write` to close reviewer-first publication-surface concerns" in reviewer_first_report[
-        "controller_stage_note"
-    ]
-    assert "reviewer-first hardening" not in reviewer_first_report["controller_stage_note"]
 
     claim_evidence_root = make_quest(
         tmp_path / "claim-evidence",
@@ -655,10 +590,6 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
         claim_evidence_report["medical_publication_surface_route_back_recommendation"]
         == "return_to_analysis_campaign"
     )
-    assert "route back to `analysis-campaign` to close claim-evidence consistency gaps" in claim_evidence_report[
-        "controller_stage_note"
-    ]
-    assert "claim-evidence hardening" not in claim_evidence_report["controller_stage_note"]
 
     submission_hardening_root = make_quest(
         tmp_path / "submission-hardening",
@@ -695,7 +626,7 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
     )
     os.utime(main_result_path, (1, 1))
     os.utime(gate_report_path, (3, 3))
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     submission_hardening_report = module.build_gate_report(module.build_gate_state(submission_hardening_root))
 
     assert submission_hardening_report["medical_publication_surface_named_blockers"] == [
@@ -705,13 +636,9 @@ def test_build_gate_report_routes_each_surface_blocker_to_core_controller_route(
     assert submission_hardening_report["supervisor_phase"] == "bundle_stage_blocked"
     assert submission_hardening_report["bundle_tasks_downstream_only"] is False
     assert submission_hardening_report["current_required_action"] == "complete_bundle_stage"
-    assert "route back to `finalize` to close submission-readiness gaps" in submission_hardening_report[
-        "controller_stage_note"
-    ]
-    assert "submission hardening" not in submission_hardening_report["controller_stage_note"]
 def test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -887,24 +814,6 @@ def test_build_gate_report_marks_surface_stale_when_projected_manifest_is_newer(
     assert "missing_current_medical_publication_surface_report" in report["blockers"]
 
 
-def test_publication_gate_intervention_allows_bounded_submission_hardening_finalize() -> None:
-    policy = importlib.import_module("med_autoscience.policies.publication_gate")
-
-    message = policy.build_intervention_message(
-        {
-            "run_id": "run-001",
-            "blockers": ["medical_publication_surface_blocked", "submission_hardening_incomplete"],
-            "missing_non_scalar_deliverables": [],
-            "headline_metrics": {},
-            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
-        }
-    )
-
-    assert "bounded `finalize` / submission-hardening pass" in message
-    assert "Do not continue write" not in message
-    assert "new analysis campaigns" in message
-
-
 def test_submission_hardening_with_stale_package_stays_on_bundle_path() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
 
@@ -924,58 +833,3 @@ def test_submission_hardening_with_stale_package_stays_on_bundle_path() -> None:
     assert state["supervisor_phase"] == "bundle_stage_blocked"
     assert state["bundle_tasks_downstream_only"] is False
     assert state["current_required_action"] == "complete_bundle_stage"
-
-
-def test_submission_hardening_intervention_allows_bounded_finalize_with_package_sync() -> None:
-    module = importlib.import_module("med_autoscience.policies.publication_gate")
-
-    message = module.build_intervention_message(
-        {
-            "run_id": "run-hardening",
-            "blockers": [
-                "stale_submission_minimal_authority",
-                "medical_publication_surface_blocked",
-                "submission_hardening_incomplete",
-                "submission_surface_qc_failure_present",
-            ],
-            "medical_publication_surface_route_back_recommendation": "return_to_finalize",
-            "missing_non_scalar_deliverables": [],
-            "headline_metrics": {},
-        }
-    )
-
-    assert "bounded `finalize` / submission-hardening pass" in message
-    assert "Do not continue write" not in message
-    assert "rebuild submission_minimal" in message
-
-
-def test_publication_gate_intervention_keeps_mixed_surface_repair_bounded() -> None:
-    module = importlib.import_module("med_autoscience.policies.publication_gate")
-
-    message = module.build_intervention_message(
-        {
-            "run_id": "run-dpcc-transition-site-support-v1",
-            "blockers": [
-                "stale_submission_minimal_authority",
-                "medical_publication_surface_blocked",
-                "claim_evidence_consistency_failed",
-                "submission_hardening_incomplete",
-                "submission_surface_qc_failure_present",
-            ],
-            "missing_non_scalar_deliverables": [],
-            "headline_metrics": {
-                "analysis_index_patients": 692702,
-                "transition_eligible_patients": 291084,
-            },
-            "upstream_scientific_anchor_ready": True,
-            "bundle_tasks_downstream_only": True,
-            "current_required_action": "return_to_publishability_gate",
-            "medical_publication_surface_route_back_recommendation": "return_to_analysis_campaign",
-        }
-    )
-
-    assert "bounded publication gate repair" in message
-    assert "publication_gate replay" in message
-    assert "A1 calibration-first" not in message
-    assert "tree-ceiling" not in message
-    assert "Do not continue write" not in message

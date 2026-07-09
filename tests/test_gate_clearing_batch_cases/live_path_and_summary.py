@@ -13,17 +13,7 @@ def test_run_gate_clearing_batch_executes_delivery_refresh_fast_lane_for_stale_p
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     monkeypatch.setattr(
@@ -124,17 +114,7 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     latest_record_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
     _write_json(
         latest_record_path,
@@ -266,17 +246,7 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
     latest_record_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
     matching_gate_report = {
@@ -307,9 +277,7 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
             },
         },
     )
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -378,17 +346,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_previous_matchin
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
     gate_report = {
         "status": "blocked",
@@ -418,9 +376,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_previous_matchin
             },
         },
     )
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -464,17 +420,7 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
     gate_report = {
         "status": "blocked",
@@ -521,15 +467,16 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
             },
         },
     )
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
-        "unit_id": "submission_delivery_sync_closure",
-        "lane": "controller",
-        "summary": "Refresh the study delivery mirror from the current package, then replay the publication gate.",
-        "control_surface": "gate_clearing_batch",
-    }
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(
+        study_root,
+        quest_id="quest-004",
+        next_work_unit={
+            "unit_id": "submission_delivery_sync_closure",
+            "lane": "controller",
+            "summary": "Refresh the study delivery mirror from the current package, then replay the publication gate.",
+            "control_surface": "gate_clearing_batch",
+        },
+    )
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -584,17 +531,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_quality_inputs_c
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
     gate_report = {
         "status": "blocked",
@@ -625,9 +562,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_quality_inputs_c
         },
     )
     _write_text(paper_root / "build" / "compiled_manuscript.md", "# Results\n\nUpdated content changes the submission package.\n")
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -669,17 +604,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_submission_outpu
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
     _write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx placeholder")
     _write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
@@ -723,9 +648,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_submission_outpu
     )
     (paper_root / "submission_minimal" / "paper.pdf").unlink()
     (paper_root / "submission_minimal" / "submission_manifest.json").unlink()
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     monkeypatch.setattr(
         module.publication_gate,
@@ -767,21 +690,9 @@ def test_run_gate_clearing_batch_rebuilds_submission_minimal_when_delivery_surfa
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["eval_id"] = "publication-eval::004-invasive-architecture::quest-004::2026-04-22T12:42:39+00:00"
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(study_root, quest_id="quest-004")
 
     gate_report = {
         "status": "blocked",
@@ -839,25 +750,17 @@ def test_run_gate_clearing_batch_authorizes_submission_refresh_from_selected_wor
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "004-invasive-architecture",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="observational_study",
-    )
-    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
-    paper_root.mkdir(parents=True, exist_ok=True)
+    profile, study_root, quest_root, paper_root = _make_gate_clearing_study(tmp_path)
     _write_submission_minimal_fingerprint_inputs(paper_root)
-    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
-    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
-        "unit_id": "submission_minimal_refresh",
-        "lane": "finalize",
-        "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
-    }
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_followup_bundle_stage_publication_eval(
+        study_root,
+        quest_id="quest-004",
+        next_work_unit={
+            "unit_id": "submission_minimal_refresh",
+            "lane": "finalize",
+            "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+        },
+    )
     gate_report = {
         "status": "blocked",
         "blockers": [

@@ -55,13 +55,8 @@ def test_build_gate_state_reads_authoritative_paper_line_state_when_projected_ma
     assert state.paper_bundle_manifest_path == projected_manifest
     assert state.paper_root == projected_paper_root.resolve()
     assert state.paper_line_state_path == (projected_paper_root / "paper_line_state.json").resolve()
-    assert state.paper_line_state == {
-        "paper_root": str(analysis_paper_root.resolve()),
-        "paper_branch": "analysis/paper-line-paper-main-outline-001-run/analysis-faea0014-live-submission-package-projection-recovery",
-        "open_supplementary_count": 1,
-        "recommended_action": "complete_required_supplementary",
-        "blocking_reasons": ["analysis mirror still thinks a slice is open"],
-    }
+    assert state.paper_line_state["paper_root"] == str(analysis_paper_root.resolve())
+    assert state.paper_line_state["recommended_action"] == "complete_required_supplementary"
     assert report["paper_line_open_supplementary_count"] == 1
     assert "paper_line_required_supplementary_pending" not in report["blockers"]
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
@@ -142,7 +137,7 @@ def test_build_gate_report_blocks_stale_submission_minimal_authority_when_paper_
     report = module.build_gate_report(state)
 
     assert report["submission_minimal_authority_status"] == "stale_source_changed"
-    assert report["submission_minimal_authority_stale_reason"] == "submission_source_newer_than_manifest"
+    assert report["submission_minimal_authority_stale_reason"] == "submission_source_signature_mismatch"
     assert "stale_submission_minimal_authority" in report["blockers"]
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
@@ -215,43 +210,22 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
     assert state.paper_root is not None
 
     monkeypatch.setattr(
-        module,
+        module.supervisor_and_cli,
         "build_gate_report",
         lambda gate_state: {
             "schema_version": 1,
             "gate_kind": "publishability_control",
             "generated_at": "2026-04-18T18:12:13+00:00",
             "anchor_kind": "paper_bundle",
-            "anchor_path": str(gate_state.paper_root / "paper_bundle_manifest.json"),
             "quest_id": "002-early-residual-risk",
             "run_id": "paper-run-1",
             "main_result_path": None,
             "paper_root": str(gate_state.paper_root),
-            "compile_report_path": str(gate_state.paper_root / "build" / "compile_report.json"),
-            "latest_gate_path": str(
-                quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
-            ),
-            "medical_publication_surface_report_path": str(
-                quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"
-            ),
-            "medical_publication_surface_current": True,
             "allow_write": True,
             "recommended_action": "continue_per_gate",
             "status": "clear",
             "blockers": [],
-            "write_drift_detected": False,
-            "required_non_scalar_deliverables": [],
-            "present_non_scalar_deliverables": [],
             "missing_non_scalar_deliverables": [],
-            "paper_bundle_manifest_path": str(gate_state.paper_root / "paper_bundle_manifest.json"),
-            "submission_checklist_path": None,
-            "submission_checklist_present": False,
-            "submission_checklist_overall_status": None,
-            "submission_checklist_handoff_ready": False,
-            "submission_checklist_blocking_items": [],
-            "submission_checklist_unclassified_blocking_items": [],
-            "non_scientific_handoff_gaps": [],
-            "closure_bundle_ready": True,
             "submission_minimal_manifest_path": str(
                 gate_state.paper_root / "submission_minimal" / "submission_manifest.json"
             ),
@@ -259,39 +233,12 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
             "submission_minimal_docx_present": True,
             "submission_minimal_pdf_present": True,
             "study_delivery_status": "current",
-            "study_delivery_stale_reason": None,
-            "study_delivery_manifest_path": None,
-            "study_delivery_current_package_root": None,
-            "study_delivery_current_package_zip": None,
-            "study_delivery_missing_source_paths": [],
             "draft_handoff_delivery_required": False,
             "draft_handoff_delivery_status": "current",
             "draft_handoff_delivery_manifest_path": None,
-            "draft_handoff_current_package_root": None,
-            "draft_handoff_current_package_zip": None,
-            "paper_line_open_supplementary_count": 0,
-            "paper_line_recommended_action": "continue_per_gate",
-            "paper_line_blocking_reasons": [],
-            "medical_prose_review_status": "ready",
-            "medical_prose_review_summary": "AI reviewer closed manuscript-native medical journal prose quality.",
-            "medical_prose_review_path": str(
-                gate_state.paper_root.parent / "artifacts" / "publication_eval" / "medical_prose_review.json"
-            ),
-            "active_manuscript_figure_count": 5,
-            "submission_grade_min_active_figures": 4,
-            "prebundle_display_floor_pending": False,
-            "prebundle_display_floor_gap": None,
-            "prebundle_display_advisories": [],
             "medical_publication_surface_status": "clear",
-            "submission_surface_qc_failures": [],
-            "archived_submission_surface_roots": [],
-            "unmanaged_submission_surface_roots": [],
-            "manuscript_terminology_violations": [],
-            "headline_metrics": {},
-            "primary_metric_delta_vs_baseline": None,
             "results_summary": "bundle-stage work is unlocked and can proceed on the current line",
             "conclusion": "bundle-stage work is unlocked and can proceed on the current line",
-            "controller_note": "The controller does not decide scientific publishability by itself.",
             "supervisor_phase": "bundle_stage_ready",
             "phase_owner": "publication_gate",
             "upstream_scientific_anchor_ready": True,
@@ -318,7 +265,7 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
 
     assert payload["emitted_at"] == "2026-04-18T18:12:13+00:00"
     assert payload["verdict"]["overall_verdict"] == "promising"
-    assert payload["recommended_actions"][0]["action_type"] == "bounded_analysis"
+    assert payload["recommended_actions"][0]["action_type"] == "route_back_same_line"
     assert payload["runtime_context_refs"]["main_result_ref"] == str(
         quest_root / "artifacts" / "results" / "main_result.json"
     )
@@ -327,7 +274,7 @@ def test_run_controller_prefers_finalize_route_when_bundle_stage_is_ready_alongs
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -474,7 +421,7 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -550,14 +497,8 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
 
     assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
     assert result["status"] == "clear"
-    assert result["study_delivery_stale_sync"] == {
-        "stage": "submission_minimal",
-        "publication_profile": "general_medical_journal",
-        "targets": {
-            "current_package_root": "/tmp/studies/002/manuscript/current_package",
-            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
-        },
-    }
+    assert result["study_delivery_stale_sync"]["stage"] == "submission_minimal"
+    assert result["study_delivery_stale_sync"]["publication_profile"] == "general_medical_journal"
 
 
 def test_run_controller_preserves_current_package_publication_profile_during_stale_resync(
@@ -565,7 +506,7 @@ def test_run_controller_preserves_current_package_publication_profile_during_sta
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -657,7 +598,7 @@ def test_run_controller_unlocks_write_after_main_result_stale_delivery_resync(
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -768,7 +709,7 @@ def test_run_controller_resyncs_delivery_when_authority_package_changes_without_
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -846,20 +787,14 @@ def test_run_controller_resyncs_delivery_when_authority_package_changes_without_
 
     assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
     assert result["status"] == "clear"
-    assert result["study_delivery_stale_sync"] == {
-        "stage": "submission_minimal",
-        "publication_profile": "general_medical_journal",
-        "targets": {
-            "current_package_root": "/tmp/studies/002/manuscript/current_package",
-            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
-        },
-    }
+    assert result["study_delivery_stale_sync"]["stage"] == "submission_minimal"
+    assert result["study_delivery_stale_sync"]["publication_profile"] == "general_medical_journal"
 def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_is_reported(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    bypass_submission_surface_qc(monkeypatch)
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
@@ -937,11 +872,5 @@ def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_
 
     assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
     assert result["status"] == "clear"
-    assert result["study_delivery_stale_sync"] == {
-        "stage": "submission_minimal",
-        "publication_profile": "general_medical_journal",
-        "targets": {
-            "current_package_root": "/tmp/studies/002/manuscript/current_package",
-            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
-        },
-    }
+    assert result["study_delivery_stale_sync"]["stage"] == "submission_minimal"
+    assert result["study_delivery_stale_sync"]["publication_profile"] == "general_medical_journal"

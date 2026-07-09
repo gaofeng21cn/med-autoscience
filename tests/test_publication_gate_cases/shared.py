@@ -38,6 +38,41 @@ def write_text(path: Path, text: str) -> None:
     _mirror_legacy_paper_write_to_projected_surface(path)
 
 
+def bypass_submission_surface_qc(monkeypatch) -> None:
+    state_resolvers = importlib.import_module(
+        "med_autoscience.controllers.publication_gate.state_resolvers"
+    )
+    monkeypatch.setattr(state_resolvers, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+
+
+def mark_study_submission_authority_current(*, study_root: Path, paper_root: Path) -> None:
+    source_root = paper_root / "submission_minimal"
+    source_manifest_path = source_root / "submission_manifest.json"
+    if not source_manifest_path.exists():
+        return
+    target_root = study_root / "submission"
+    for source in sorted(source_root.rglob("*")):
+        if not source.is_file():
+            continue
+        target = target_root / source.relative_to(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            target.unlink()
+        _shutil.copy2(source, target)
+
+    authority = importlib.import_module(
+        "med_autoscience.controllers.submission_minimal.authority"
+    ).describe_submission_minimal_authority(paper_root=paper_root)
+    source_signature = authority.get("source_signature")
+    if not source_signature:
+        return
+    manifest_path = target_root / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source_signature"] = source_signature
+    manifest["source_contract"] = {"source_signature": source_signature}
+    dump_json(manifest_path, manifest)
+
+
 def make_quest(
     tmp_path: Path,
     *,
@@ -226,6 +261,11 @@ def make_quest(
             target.write_text(body, encoding="utf-8")
             _mirror_legacy_paper_write_to_projected_surface(target)
     _write_projected_paper_surface(quest_root=quest_root, worktree_root=worktree_root)
+    if include_submission_minimal and include_submission_authority_inputs:
+        mark_study_submission_authority_current(
+            study_root=study_root,
+            paper_root=quest_root / "paper",
+        )
     return quest_root
 
 
@@ -382,9 +422,6 @@ def write_journal_requirements_snapshot(study_root: Path) -> None:
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
         "# Requirements\n",
     )
-
-
-
 
 
 
