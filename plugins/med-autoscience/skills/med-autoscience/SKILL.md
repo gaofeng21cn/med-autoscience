@@ -59,6 +59,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 
 `ScholarSkills` 的 active 模块只有 `display`、`tables`、`stats`、`lit`、`write`、`review`、`submit` 和 `data` 八个，它们是 OPL-managed academic capability pack，不是 MAS 私有执行器。`intake` 不是 active ScholarSkills 模块：OPL `domain_intake` 原则在 MAS 侧映射到 `contracts/mas-paper-study-stage-pack.json` 的 `01-study_intake` 和 `src/med_autoscience/study_task_intake*.py` surfaces。`omics` 在 MAS 有稳定真实组学专业 workflow 前只作为 deferred/reference，不作为 active ScholarSkills 模块。MAS 直接调用入口不变：先通过 MAS owner surface 读取 `study progress`、current owner delta、publication supervisor state 和 authority boundary，再用 `scientific_capability_registry` 做能力发现、resolve、refs-only invocation projection 或 owner-consumption evidence。
 
+能力治理先按逻辑模块审计，再决定物理暴露方式。写作、审稿、文献、统计、表图、数据治理和投稿可以是多个独立逻辑能力，但不必一一对应独立物理 skill；默认吸收到既有 ScholarSkills professional skill。只有复用边界、版本边界、安装/发现边界或 metadata 隔离收益明确时，才新增或拆分 physical skill。MAS 本仓保留 owner/runtime/contract authority；弹性判断保留在专业 skill；generated descriptors、contracts 和 runtime projection 只负责 locator、receipt、allowed-write、sync/install/readback 等轻量边界。
+
 当前 optional professional skill 降噪规则是：`medical-evidence-integrity-reviewer` 覆盖 evidence-gap triage mode，`medical-publication-routeback-reviewer` 覆盖 methodology routeback 和 owner-gate handoff modes，`medical-research-portfolio-memory-curator` 覆盖 publication strategy memory mode。旧 `medical-evidence-gap-triage-reviewer`、`medical-methodology-routeback-reviewer`、`medical-owner-gate-handoff-reviewer` 和 `medical-publication-strategy-memory-curator` 只作为 redirect-only provenance 读取，不再作为本地 Codex skill path、helper path 或默认/optional install target 暴露。
 
 执行可用性来自 OPL Connect 同步到 workspace 或 quest 的本地 skill，而不是 MAS 仓内 plugin mirror：
@@ -69,19 +71,6 @@ opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest
 ```
 
 ScholarSkills 产物默认只是 refs-only candidate、materialized package refs 或 execution receipt candidate。只有 MAS owner receipt、typed blocker、reviewer receipt、route-back evidence、publication gate 或 controller decision 接受后，才可计入 study truth、paper progress、artifact authority、current package freshness 或 publication readiness。
-
-### 专业能力升级归位
-
-当 MAS 任务暴露出新的能力缺口时，先判断它属于哪个现有能力模块，再选择暴露方式。不要把每个判断点拆成一个新的物理 Skill。
-
-- reviewer concern recall、critique-as-repair-hint、revision coverage、claim/evidence warning、journal-family pack、final prose polish：优先回折到 `medical-manuscript-review`、`medical-manuscript-writing` 和 MAS `reviewer_revision` / quality gate route。
-- source/citation support、opportunistic knowledge prefetch、PubMed / Crossref / OpenAlex fallback：优先走 `medical-research-lit` + OPL Connect scientific connector refs。
-- figure/table claim drift、annotation-to-source regeneration、visual QA、wide table routing：优先走 `medical-figure-design`、`medical-figure-style`、`medical-figure-composer`、`medical-table-design` 和 Display / table owner gate。
-- data lineage、project-local ledger pointer/hash、source warning、rerun-to-reproduce receipt consumption：优先走 `medical-data-governance`、`medical-statistical-review`、OPL Ledger / Runway refs。
-- omics、single-cell、structural biology、protein design、scientific compute 等专科需求：先用 `medical-advanced-biomed-router` 或 OPL `external-skills search -> inspect -> sync` 按 workspace / quest 同步一个选中的 optional Skill；不要默认安装整库。
-- OMA / Agent Lab / FeedbackOps 暴露的可复用失败经验：MAS 只输出 refs-only suite、target skill ref 和 forbidden surfaces；具体 skill/prompt/stage-policy 修订归 `opl-meta-agent` developer work order。
-
-新增独立 professional Skill 只有在稳定 workflow、独立依赖或 fixture / gallery / receipt、跨 agent 复用、独立发布节奏、refs-only output 和按需同步策略都成立时才进入评估。缺这些条件时，更新现有 Skill 正文或 stage policy；不要通过 MAS contract、helper、脚本或 plugin mirror 复制专业 playbook。
 
 ## OPL terminal attempt / next work unit 快速入口
 
