@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import importlib
 import json
+import sys
 from pathlib import Path
+
+import pytest
 
 from med_autoscience.controllers.runtime_health_kernel import event_log as runtime_health_event_log
 
@@ -72,6 +75,26 @@ def _write_runtime_health_fixture_event(
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
     return event
+
+
+def _write_recover_attempts(
+    module,
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    payload: dict[str, object],
+) -> None:
+    for sequence in range(1, 4):
+        _write_runtime_health_fixture_event(
+            module,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            event_type="recover_attempt",
+            payload=_opl_lifecycle_payload(sequence, payload),
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
 
 
 def _runtime_health_fixture_payload_with_authority_boundary(
@@ -188,6 +211,8 @@ def _assert_attempt_ledger_authority_boundary(boundary: dict[str, object]) -> No
     assert boundary["transient_lifecycle_observations_are_attempt_ledger"] is False
     assert boundary["suppressed_transient_lifecycle_events_can_advance_attempt_ledger"] is False
 
+
+sys.modules.setdefault("tests.test_runtime_health_kernel", sys.modules[__name__])
 
 from tests.test_runtime_health_kernel_cases.projection_reconcile import (
     test_runtime_health_reconcile_publishes_projection_without_persisting_liveness_events,
@@ -531,18 +556,13 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
         },
         recorded_at="2026-05-01T00:00:00+00:00",
     )
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="002-dm-cvd",
-            quest_id="002-dm-cvd",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {"attempt_state": "failed", "failure_reason": "no_live_session"},
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
+    _write_recover_attempts(
+        module,
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        payload={"attempt_state": "failed", "failure_reason": "no_live_session"},
+    )
 
     snapshot = module.rebuild_runtime_health_snapshot(
         study_root=study_root,
@@ -559,21 +579,16 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
 def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="002-dm-cvd",
-            quest_id="002-dm-cvd",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "failed",
-                    "failure_reason": "quest_marked_running_but_no_live_session",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
+    _write_recover_attempts(
+        module,
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        payload={
+            "attempt_state": "failed",
+            "failure_reason": "quest_marked_running_but_no_live_session",
+        },
+    )
     status_payload = {
         "study_id": "002-dm-cvd",
         "study_root": str(study_root),
@@ -611,21 +626,16 @@ def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_p
 def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_budget(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="001-dm-cvd",
-            quest_id="001-dm-cvd-reentry",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "failed",
-                    "failure_reason": "quest_marked_running_but_no_live_session",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
+    _write_recover_attempts(
+        module,
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd-reentry",
+        payload={
+            "attempt_state": "failed",
+            "failure_reason": "quest_marked_running_but_no_live_session",
+        },
+    )
     _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="001-dm-cvd",
@@ -656,22 +666,17 @@ def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_bud
 def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_failed_attempts(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dpcc"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="003-dpcc",
-            quest_id="003-dpcc",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "requested",
-                    "decision": "resume",
-                    "reason": "quest_marked_running_but_no_live_session",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
+    _write_recover_attempts(
+        module,
+        study_root=study_root,
+        study_id="003-dpcc",
+        quest_id="003-dpcc",
+        payload={
+            "attempt_state": "requested",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+        },
+    )
     _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="003-dpcc",
@@ -699,85 +704,60 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
-def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("proof_ref", "provider_ready_payload"),
+    [
+        pytest.param(
+            "opl-stage-attempt://runtime-health-test-provider-ready",
+            {
+                "supervisor_tick_audit": {
+                    "status": "fresh",
+                    "provider_ready": True,
+                    "worker_ready": True,
+                    "managed_worker_source_current": True,
+                },
+            },
+            id="supervisor_tick",
+        ),
+        pytest.param(
+            "opl-stage-attempt://runtime-health-test-provider-handoff",
+            {
+                "supervisor_tick_audit": {
+                    "status": "fresh",
+                    "latest_report_path": "/tmp/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+                },
+                "opl_current_control_state_handoff": {
+                    "surface_kind": "opl_current_control_state_handoff",
+                    "provider_readiness": {
+                        "provider_ready": True,
+                        "worker_ready": True,
+                        "managed_worker_source_current": True,
+                        "source": "opl_family_runtime_status",
+                    },
+                },
+            },
+            id="handoff",
+        ),
+    ],
+)
+def test_runtime_health_provider_ready_starts_new_recovery_budget_epoch(
+    tmp_path: Path,
+    proof_ref: str,
+    provider_ready_payload: dict[str, object],
+) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "002-dm-cvd"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="002-dm-cvd",
-            quest_id="002-dm-cvd",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "failed",
-                    "decision": "resume",
-                    "reason": "quest_marked_running_but_no_live_session",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
-    status_payload = {
-        "study_id": "002-dm-cvd",
-        "study_root": str(study_root),
-        "quest_id": "002-dm-cvd",
-        "quest_status": "active",
-        "decision": "resume",
-        "reason": "quest_marked_running_but_no_live_session",
-        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-test-provider-ready",
-        "runtime_liveness_audit": {
-            "status": "none",
-            "runtime_audit": {
-                "worker_running": False,
-                "worker_pending": False,
-                "stop_requested": False,
-            },
-        },
-        "supervisor_tick_audit": {
-            "status": "fresh",
-            "provider_ready": True,
-            "worker_ready": True,
-            "managed_worker_source_current": True,
-        },
-    }
-
-    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+    _write_recover_attempts(
+        module,
         study_root=study_root,
         study_id="002-dm-cvd",
         quest_id="002-dm-cvd",
-        status_payload=status_payload,
-        recorded_at="2026-05-01T00:04:00+00:00",
+        payload={
+            "attempt_state": "failed",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+        },
     )
-
-    assert snapshot["worker_liveness_state"]["state"] == "missing_live_session"
-    assert snapshot["attempt_state"] == "recovering"
-    assert snapshot["canonical_runtime_action"] == "recover_runtime"
-    assert snapshot["retry_budget_remaining"] == 2
-    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
-    assert "recover_runtime" in snapshot["allowed_controller_action_hints"]
-    assert "recover_runtime" not in snapshot["allowed_controller_actions"]
-
-
-def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
-    module = _kernel()
-    study_root = tmp_path / "studies" / "002-dm-cvd"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="002-dm-cvd",
-            quest_id="002-dm-cvd",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "failed",
-                    "decision": "resume",
-                    "reason": "quest_marked_running_but_no_live_session",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
     status_payload = {
         "study_id": "002-dm-cvd",
         "study_root": str(study_root),
@@ -785,7 +765,7 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
         "quest_status": "active",
         "decision": "resume",
         "reason": "quest_marked_running_but_no_live_session",
-        "opl_lifecycle_proof_ref": "opl-stage-attempt://runtime-health-test-provider-handoff",
+        "opl_lifecycle_proof_ref": proof_ref,
         "runtime_liveness_audit": {
             "status": "none",
             "runtime_audit": {
@@ -794,19 +774,7 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
                 "stop_requested": False,
             },
         },
-        "supervisor_tick_audit": {
-            "status": "fresh",
-            "latest_report_path": "/tmp/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
-        },
-        "opl_current_control_state_handoff": {
-            "surface_kind": "opl_current_control_state_handoff",
-            "provider_readiness": {
-                "provider_ready": True,
-                "worker_ready": True,
-                "managed_worker_source_current": True,
-                "source": "opl_family_runtime_status",
-            },
-        },
+        **provider_ready_payload,
     }
 
     snapshot = module.derive_runtime_health_snapshot_from_status_payload(
@@ -829,22 +797,17 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
 def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_recovery_path(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
-    for sequence in range(1, 4):
-        _write_runtime_health_fixture_event(module,
-            study_root=study_root,
-            study_id="001-dm-cvd",
-            quest_id="001-dm-cvd",
-            event_type="recover_attempt",
-            payload=_opl_lifecycle_payload(
-                sequence,
-                {
-                    "attempt_state": "requested",
-                    "decision": "resume",
-                    "reason": "quest_stopped_by_controller_guard",
-                },
-            ),
-            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
-        )
+    _write_recover_attempts(
+        module,
+        study_root=study_root,
+        study_id="001-dm-cvd",
+        quest_id="001-dm-cvd",
+        payload={
+            "attempt_state": "requested",
+            "decision": "resume",
+            "reason": "quest_stopped_by_controller_guard",
+        },
+    )
     _write_runtime_health_fixture_event(module,
         study_root=study_root,
         study_id="001-dm-cvd",
