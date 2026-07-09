@@ -1,1 +1,1 @@
-# Kept as an import-star compatibility module for the arbiter aggregator.
+from __future__ import annotations
