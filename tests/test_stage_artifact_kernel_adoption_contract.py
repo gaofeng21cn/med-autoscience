@@ -116,13 +116,11 @@ def test_state_index_kernel_adoption_forbids_domain_body_and_verdict_payloads() 
     assert boundary["sqlite_record_counts_as_stage_complete"] is False
 
 
-def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runtime() -> None:
-    policy = _contract()["state_index_kernel_adoption"]["legacy_mas_sqlite_policy"]
+def test_mas_state_index_source_adapter_has_no_local_persistence_role() -> None:
+    policy = _contract()["state_index_kernel_adoption"]["mas_source_adapter_policy"]
 
-    assert policy["domain_authority_refs_sqlite_role"] == "refs_only_domain_authority_index_adapter"
-    assert policy["runtime_lifecycle_sqlite_role"] == (
-        "retired_or_domain_authority_refs_provenance_not_generic_lifecycle_owner"
-    )
+    assert policy["domain_authority_refs_role"] == "body_free_state_index_source_adapter"
+    assert policy["runtime_lifecycle_local_persistence_role"] == "retired"
     assert policy["paper_progress_transition_refs_role"] == (
         "domain_work_unit_identity_and_policy_request_refs_only"
     )
@@ -132,97 +130,41 @@ def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runt
     assert policy["mas_can_claim_generic_read_model_owner"] is False
 
 
-def test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in() -> None:
-    pilot = _contract()["state_index_kernel_adoption"]["mas_refs_only_pilot"]
+def test_mas_state_index_source_adapter_is_body_free_and_non_authoritative() -> None:
+    adapter = _contract()["state_index_kernel_adoption"]["mas_refs_source_adapter"]
 
-    assert pilot["surface_kind"] == "mas_runtime_refs_only_state_index_pilot"
-    assert pilot["implementation_ref"] == "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py"
-    assert pilot["maintenance_entry_refs"] == []
-    assert pilot["maintenance_entry_status"] == "mas_runtime_storage_cli_retired"
-    assert pilot["sqlite_ref"] == "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite"
-    assert pilot["indexed_ref_families"] == [
-        "cursor",
-        "index",
-        "lifecycle",
-        "legacy_lifecycle",
-        "paper_progress_transition_ref",
-        "receipt_ref",
+    assert adapter["surface_kind"] == "mas_opl_state_index_source_adapter"
+    assert adapter["implementation_ref"] == (
+        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py"
+    )
+    assert adapter["manifest_ref"] == (
+        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+    )
+    assert adapter["source_families"] == [
+        "authority_ref_metadata",
+        "archive_refs",
+        "owner_route_receipts",
+        "dispatch_receipts",
+        "paper_progress_transition_refs",
+        "stage_artifact_delta_refs",
     ]
-    assert pilot["private_control_plane_boundary"] == {
-        "surface_role": "temporary_refs_projection",
-        "opt_in_only": True,
-        "default_runtime_path": False,
-        "legacy_backend_result_authority": False,
-        "can_change_storage_maintenance_outcome": False,
-        "can_start_worker": False,
-        "can_create_attempt": False,
-        "can_create_outbox_record": False,
-        "can_generate_provider_admission": False,
-        "can_generate_next_action": False,
-        "can_claim_runtime_currentness": False,
-        "can_claim_stage_progress": False,
-        "replacement_owner_surface": "one-person-lab StateIndexKernel",
-    }
-    assert pilot["body_included"] is False
-    assert pilot["derived_index_rebuildable"] is True
-    assert pilot["sqlite_record_counts_as_stage_complete"] is False
-    assert pilot["state_index_owner"] == "one-person-lab"
-    assert pilot["mas_state_index_authority"] is False
-    assert pilot["refs_projection_only"] is True
-    assert pilot["body_free"] is True
-    assert pilot["can_drive_lifecycle"] is False
-    assert pilot["can_select_next_action"] is False
-    assert pilot["can_authorize_currentness"] is False
-    assert pilot["generic_state_index_owner"] == "one-person-lab"
-    assert pilot["opl_state_index_kernel_readback_requirement"] == {
-        "surface_kind": "opl_state_index_kernel_readback_requirement",
-        "required_owner_surface": "one-person-lab StateIndexKernel",
-        "mas_surface_role": "temporary_refs_projection",
-        "mas_can_satisfy_readback": False,
-        "required_readback_identity_fields": [
-            "domain_id",
-            "program_id",
-            "stage_id",
-            "attempt_id",
-            "surface_id",
-            "source_ref",
-            "receipt_ref",
-            "content_hash",
-            "observed_at",
-            "indexed_at",
-            "index_version",
-            "rebuild_epoch",
-        ],
-        "required_authority_boundary": {
-            "state_index_owner": "one-person-lab",
-            "mas_state_index_authority": False,
-            "refs_projection_only": True,
-            "body_free": True,
-            "can_drive_lifecycle": False,
-            "can_select_next_action": False,
-            "can_authorize_currentness": False,
-            "can_authorize_provider_admission": False,
-        },
-        "mas_projection_cannot_replace": [
-            "opl_state_index_kernel_readback",
-            "opl_lifecycle_index",
-            "opl_operator_read_model",
-            "opl_artifact_index",
-            "opl_queue_index",
-        ],
-    }
-    assert {
-        "study_truth_body",
-        "publication_eval_body",
-        "controller_decision_body",
-        "manuscript_body",
-        "paper_package_body",
-        "evidence_ledger_body",
-        "review_ledger_body",
-        "memory_body",
-        "artifact_body",
-        "owner_receipt_authority",
-    } <= set(pilot["forbidden_payload_roles"])
+    assert adapter["local_persistence"] == "absent"
+    assert adapter["body_included"] is False
+    assert adapter["derived_index_rebuildable"] is True
+    assert adapter["state_index_owner"] == "one-person-lab"
+    assert adapter["mas_state_index_authority"] is False
+    assert adapter["refs_projection_only"] is True
+    assert adapter["body_free"] is True
+    assert adapter["can_drive_lifecycle"] is False
+    assert adapter["can_select_next_action"] is False
+    assert adapter["can_authorize_currentness"] is False
+    assert adapter["can_authorize_provider_admission"] is False
+    assert adapter["replacement_owner_surface"] == "one-person-lab StateIndexKernel"
+    assert adapter["opl_state_index_contract_active"] is True
+    assert adapter["retired_pilot_tombstone"] == (
+        "runtime:mas-refs-only-state-index-pilot-retired"
+    )
+    assert adapter["physical_delete_projection_owner_decision_required"] is True
 
 
 def test_operating_layer_landed_surfaces_are_read_only_and_projected() -> None:

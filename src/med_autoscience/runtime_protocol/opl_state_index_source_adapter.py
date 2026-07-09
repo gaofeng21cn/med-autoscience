@@ -116,26 +116,18 @@ def source_adapter_contract() -> dict[str, Any]:
         "status": "active_caller_adapter",
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
         "mas_role": SOURCE_ADAPTER_ROLE,
-        "legacy_sqlite_helper": (
-            "med_autoscience.runtime_protocol.domain_authority_refs_index"
-        ),
-        "sqlite_persistence_allowed": False,
-        "sqlite_persistence_parameter_exposed": False,
-        "domain_authority_refs_index_persist_sqlite_allowed_use": (
-            "explicit_history_replay_or_local_refs_inspection_only"
-        ),
+        "source_families": list(domain_authority_refs_index.AUTHORITY_REF_FAMILIES),
+        "local_persistence": "absent",
         "active_caller_status": "repo_active_callers_migrated_to_opl_state_index_source_adapter",
-        "active_caller_effect": "opl_state_index_source_adapter_emitted_no_sqlite_persistence",
+        "active_caller_effect": "body_free_state_index_source_adapter_emitted",
         "active_caller_retains_surface": False,
         "active_caller_retains_authority": False,
         "active_caller_retains_runtime_authority": False,
         "source_adapter_manifest_ref": STATE_INDEX_SOURCE_ADAPTER_REF,
-        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
-        "live_takeover_required_before_physical_delete": True,
+        "opl_state_index_contract_active": True,
+        "physical_delete_projection_owner_decision_required": True,
+        "physical_delete_allowed": False,
         "runtime_active_private_state_index_caller_scan": _runtime_active_private_state_index_caller_scan(),
-        "legacy_domain_authority_refs_index_role": (
-            "explicit_history_replay_or_local_refs_inspection_only"
-        ),
         "authority_boundary": _authority_boundary(),
     }
 
@@ -149,16 +141,12 @@ def source_adapter_manifest() -> dict[str, Any]:
         "manifest_ref": STATE_INDEX_SOURCE_ADAPTER_REF,
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
         "source_adapter_role": SOURCE_ADAPTER_ROLE,
-        "source_tables": list(domain_authority_refs_index.AUTHORITY_REF_TABLES),
-        "forbidden_legacy_tables": list(domain_authority_refs_index.LEGACY_TABLE_POLICY),
-        "legacy_sqlite_helper": contract["legacy_sqlite_helper"],
-        "legacy_sqlite_helper_role": contract["legacy_domain_authority_refs_index_role"],
-        "sqlite_persistence_allowed": False,
-        "sqlite_persistence_parameter_exposed": False,
-        "sqlite_payload_read": False,
-        "sqlite_inspection_read": False,
-        "completion_claim_requires_live_opl_readback_or_no_active_caller": True,
-        "live_takeover_required_before_physical_delete": True,
+        "source_families": list(domain_authority_refs_index.AUTHORITY_REF_FAMILIES),
+        "source_tables": list(domain_authority_refs_index.AUTHORITY_REF_FAMILIES),
+        "local_persistence": "absent",
+        "opl_state_index_contract_active": contract["opl_state_index_contract_active"],
+        "physical_delete_projection_owner_decision_required": True,
+        "physical_delete_allowed": False,
         "runtime_active_private_state_index_caller_scan": (
             _runtime_active_private_state_index_caller_scan()
         ),
@@ -169,14 +157,12 @@ def source_adapter_manifest() -> dict[str, Any]:
 def _source_result(result: Mapping[str, Any]) -> dict[str, Any]:
     emitted = dict(result)
     emitted["surface_kind"] = SURFACE_KIND
-    emitted["legacy_domain_authority_refs_surface_kind"] = result.get("surface_kind")
+    emitted["domain_authority_ref_source_kind"] = result.get("surface_kind")
     emitted["status"] = SOURCE_ADAPTER_STATUS
     emitted["source_adapter_role"] = SOURCE_ADAPTER_ROLE
     emitted["replacement_owner_surface"] = REPLACEMENT_OWNER_SURFACE
     emitted["opl_state_index_kernel_required"] = True
-    emitted["sqlite_persisted"] = False
-    emitted["sqlite_persistence_allowed"] = False
-    emitted["sqlite_persistence_parameter_exposed"] = False
+    emitted["local_persistence"] = "absent"
     emitted["authority_boundary"] = _authority_boundary()
     return emitted
 
@@ -213,11 +199,14 @@ def _runtime_active_private_state_index_caller_scan() -> dict[str, Any]:
         "current_runtime_caller_route": (
             "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
         ),
-        "legacy_helper_status": "history_replay_or_local_inspection_only_tail_open",
+        "retired_private_surfaces": [
+            "refs_only_state_index_pilot",
+            "domain_authority_refs_local_persistence",
+            "domain_authority_refs_local_inspection",
+        ],
         "physical_delete_allowed": False,
         "forbidden_completion_claims": [
             "runtime_active_no_private_caller_as_physical_delete",
-            "history_replay_opt_in_as_runtime_active_caller",
             "source_adapter_manifest_as_live_opl_state_index_readback",
         ],
     }

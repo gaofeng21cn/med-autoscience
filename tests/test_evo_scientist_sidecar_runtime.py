@@ -293,35 +293,3 @@ def test_evo_scientist_sidecar_cli_observe_and_read_latest(tmp_path: Path, capsy
     assert exit_code == 0
     assert latest["status"] == "available"
     assert latest["observation"]["event_id"] == payload["event_id"]
-
-
-def test_evo_scientist_sidecar_refs_enter_refs_only_state_index(tmp_path: Path) -> None:
-    sidecar = importlib.import_module("med_autoscience.runtime_protocol.evo_scientist_sidecar_refs")
-    state_index = importlib.import_module("med_autoscience.runtime_protocol.refs_only_state_index_pilot")
-    workspace_root = tmp_path / "workspace"
-    study_root = workspace_root / "studies" / "001-risk"
-    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
-    study_root.mkdir(parents=True)
-    quest_root.mkdir(parents=True)
-    (quest_root / "artifacts" / "runtime" / "state").mkdir(parents=True)
-    (quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json").write_text(
-        json.dumps({"quest_id": "quest-001", "status": "running"}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    sidecar.write_evo_scientist_sidecar_observation(
-        study_root=study_root,
-        event={
-            "event_kind": "current_owner_delta_materialized",
-            "current_owner_delta_ref": "control/projection/current_owner_delta.json",
-        },
-        apply=True,
-    )
-
-    result = state_index.rebuild_refs_only_state_index(
-        workspace_root=workspace_root,
-        study_root=study_root,
-        quest_root=quest_root,
-    )
-
-    assert result["family_counts"]["evo_scientist_sidecar_ref"] == 2
-    assert result["authority_boundary"]["body_included"] is False

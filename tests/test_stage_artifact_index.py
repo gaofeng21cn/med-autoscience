@@ -600,11 +600,10 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     )
 
     assert result["stages"][0]["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"
-    assert result["stages"][0]["domain_authority_ref_index"]["sqlite_persisted"] is False
+    assert result["stages"][0]["domain_authority_ref_index"]["local_persistence"] == "absent"
     assert result["stages"][0]["domain_authority_ref_index"]["opl_state_index_kernel_required"] is True
-    sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
-    inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
-    assert inspection["status"] == "missing"
+    source_adapter_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
+    assert not source_adapter_path.exists()
 
 
 def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_open(

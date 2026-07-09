@@ -53,15 +53,14 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         receipt=owner_receipt,
         receipt_path=owner_receipt_path,
         db_path=db_path,
-        persist_sqlite=True,
     )
     refs_index.record_dispatch_receipt(
         quest_root=quest_root,
         receipt=dispatch_receipt,
         receipt_path=dispatch_receipt_path,
         db_path=db_path,
-        persist_sqlite=True,
     )
+    assert not db_path.exists()
 
     surface = adoption_module.build_opl_family_adoption_surface(
         workspace_root=workspace_root,
@@ -88,8 +87,8 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         "sqlite_inspection_read": False,
     }
     assert surface["refs"]["legacy_sqlite_refs_index"] == {
-        "surface_kind": "mas_domain_authority_refs_index",
-        "workspace_relative_path": "runtime/artifacts/domain_authority_refs.sqlite",
+        "surface_kind": "mas_domain_authority_refs_source",
+        "workspace_relative_path": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
         "db_path": str(db_path.resolve()),
         "status": "explicit_history_replay_or_local_refs_inspection_only",
         "current_adoption_projection": False,
@@ -118,58 +117,6 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
     assert "publication_eval/latest.json" not in json.dumps(surface["payload"], ensure_ascii=False)
 
 
-def test_legacy_authority_refs_payload_helper_is_history_replay_only(tmp_path: Path) -> None:
-    refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
-    payload_module = importlib.import_module("med_autoscience.opl_domain_pack.adoption_ref_payload")
-    workspace_root = tmp_path / "workspace"
-    study_root = workspace_root / "studies" / "001-risk"
-    db_path = refs_index.workspace_authority_refs_index_path(workspace_root)
-    owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
-    owner_receipt = {
-        "surface": "domain_route_owner_route",
-        "study_id": "001-risk",
-        "quest_id": "quest-001",
-        "idempotency_key": "route-001",
-        "route_epoch": "truth-epoch-001",
-        "current_owner": "runtime",
-        "next_owner": "mas_controller",
-        "owner_reason": "runtime_controller_redrive_required",
-        "allowed_actions": ["runtime-redrive"],
-        "source_refs": {},
-    }
-    owner_receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    owner_receipt_path.write_text(
-        json.dumps(owner_receipt, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    refs_index.record_owner_route_receipt(
-        study_root=study_root,
-        receipt=owner_receipt,
-        receipt_path=owner_receipt_path,
-        db_path=db_path,
-        persist_sqlite=True,
-    )
-    inspection = refs_index.inspect_authority_refs_index(db_path)
-
-    import sqlite3
-
-    with sqlite3.connect(db_path) as conn:
-        payload = payload_module.legacy_payload_from_authority_refs(
-            conn,
-            inspection=inspection,
-        )
-
-    assert payload["persistence"]["legacy_sqlite_helper_role"] == (
-        "explicit_history_replay_or_local_refs_inspection_only"
-    )
-    assert payload["persistence"]["current_adoption_projection"] is False
-    assert payload["persistence"]["sqlite_payload_read"] is True
-    assert payload["authority_boundary"][
-        "legacy_sqlite_payload_can_satisfy_state_index_takeover"
-    ] is False
-    assert payload["owner_route"]["current_ticket"]["idempotency_key"] == "route-001"
-
-
 def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry.manifest_surfaces")
     profile = make_profile(tmp_path)
@@ -189,7 +136,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["refs"]["state_index_source_adapter"]["sqlite_payload_read"] is False
     assert adoption["refs"]["state_index_source_adapter"]["sqlite_inspection_read"] is False
     assert adoption["refs"]["legacy_sqlite_refs_index"]["workspace_relative_path"] == (
-        "runtime/artifacts/domain_authority_refs.sqlite"
+        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
     )
     assert adoption["refs"]["legacy_sqlite_refs_index"]["current_adoption_projection"] is False
     assert adoption["payload"]["persistence"]["source_tables"] == [
