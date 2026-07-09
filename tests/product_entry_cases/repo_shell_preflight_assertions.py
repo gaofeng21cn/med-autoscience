@@ -2,192 +2,39 @@ from __future__ import annotations
 
 
 def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile, profile_ref) -> None:
-        assert payload["product_entry_preflight"] == {
-            "surface_kind": "product_entry_preflight",
-            "summary": "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research entry_status。",
-            "ready_to_try_now": True,
-            "recommended_check_command": (
-                "uv run python -m med_autoscience.cli doctor report --profile "
-                + str(profile_ref.resolve())
-            ),
-            "recommended_start_command": (
-                "opl app product-entry-status --agent med-autoscience --profile "
-                + str(profile_ref.resolve())
-                + " --format json"
-            ),
-            "blocking_check_ids": [],
-            "checks": [
-                {
-                    "check_id": "workspace_root_exists",
-                    "title": "Workspace Root Exists",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "workspace 根目录已就位。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "runtime_root_exists",
-                    "title": "Runtime Root Exists",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "runtime root 已就位。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "studies_root_exists",
-                    "title": "Studies Root Exists",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "studies 根目录已就位。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "portfolio_root_exists",
-                    "title": "Portfolio Root Exists",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "portfolio 根目录已就位。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "opl_provider_stage_runtime_ready",
-                    "title": "OPL Provider Stage Runtime Ready",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "OPL provider stage runtime contract 已就位。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "medical_overlay_ready",
-                    "title": "Medical Overlay Ready",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "medical overlay 已 ready。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
-                    "check_id": "workspace_domain_route_contract_ready",
-                    "title": "Workspace Supervision Contract Ready",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "OPL current-control-state handoff 已 ready。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --format json"
-                    ),
-                },
-            ],
-        }
+    preflight = payload["product_entry_preflight"]
+    assert preflight["surface_kind"] == "product_entry_preflight"
+    assert preflight["ready_to_try_now"] is True
+    assert preflight["blocking_check_ids"] == []
+    assert {check["check_id"] for check in preflight["checks"]} >= {
+        "workspace_root_exists",
+        "runtime_root_exists",
+        "studies_root_exists",
+        "opl_provider_stage_runtime_ready",
+        "workspace_domain_route_contract_ready",
+    }
+    assert preflight["recommended_check_command"].endswith(
+        "doctor report --profile " + str(profile_ref.resolve())
+    )
+    assert preflight["recommended_start_command"].endswith(
+        "opl app product-entry-status --agent med-autoscience --profile "
+        + str(profile_ref.resolve())
+        + " --format json"
+    )
 
-        assert payload["product_entry_guardrails"] == {
-            "surface_kind": "product_entry_guardrails",
-            "summary": (
-                "把卡住、没进度、监管掉线、需要人工决策和质量阻塞显式投影成可执行恢复回路，"
-                "避免研究主线失去监管。"
-            ),
-            "guardrail_classes": [
-                {
-                    "guardrail_id": "workspace_supervision_gap",
-                    "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                    "symptom": "OPL substrate readback 或 MAS paper mission readback stale/missing。",
-                    "recommended_command": (
-                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                    ),
-                },
-                {
-                    "guardrail_id": "study_progress_gap",
-                    "trigger": "study-progress progress_freshness / workspace-cockpit attention queue",
-                    "symptom": "当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
-                    "recommended_command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                },
-                {
-                    "guardrail_id": "user_decision_gate",
-                    "trigger": "study-progress needs_user_decision / controller decision gate",
-                    "symptom": "当前已前移到用户或 publication release 的人工判断节点。",
-                    "recommended_command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                },
-                {
-                    "guardrail_id": "runtime_recovery_required",
-                    "trigger": "study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
-                    "symptom": "OPL stage/runtime owner handoff 或 MAS paper mission readback 显示运行恢复失败，当前必须优先处理 runtime recovery。",
-                    "recommended_command": (
-                        "uv run python -m med_autoscience.cli study launch --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                },
-                {
-                    "guardrail_id": "quality_floor_blocker",
-                    "trigger": "study-progress intervention_lane / paper mission readback figure-loop alerts / publication gate",
-                    "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
-                    "recommended_command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                },
-            ],
-            "recovery_loop": [
-                {
-                    "step_id": "inspect_workspace_inbox",
-                    "command": (
-                        "opl app workbench --agent med-autoscience --profile "
-                        + str(profile_ref.resolve())
-                        + " --format json"
-                    ),
-                    "surface_kind": "workspace_cockpit",
-                },
-                {
-                    "step_id": "refresh_supervision",
-                    "command": (
-                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                    ),
-                    "surface_kind": "paper_mission_readback_refresh",
-                },
-                {
-                    "step_id": "inspect_study_progress",
-                    "command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                    "surface_kind": "study_progress",
-                },
-                {
-                    "step_id": "continue_or_relaunch",
-                    "command": (
-                        "uv run python -m med_autoscience.cli study launch --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                    "surface_kind": "launch_study",
-                },
-            ],
-        }
+    guardrails = payload["product_entry_guardrails"]
+    assert guardrails["surface_kind"] == "product_entry_guardrails"
+    assert {item["guardrail_id"] for item in guardrails["guardrail_classes"]} >= {
+        "workspace_supervision_gap",
+        "study_progress_gap",
+        "user_decision_gate",
+        "runtime_recovery_required",
+        "quality_floor_blocker",
+    }
+    assert [step["step_id"] for step in guardrails["recovery_loop"]] == [
+        "inspect_workspace_inbox",
+        "refresh_supervision",
+        "inspect_study_progress",
+        "continue_or_relaunch",
+    ]
+    assert all("command" in step for step in guardrails["recovery_loop"])

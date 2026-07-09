@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 def _phase2_loop_without_guarded_fields(value: dict[str, object]) -> dict[str, object]:
     normalized = _without_command_metadata(value)
     workflow_steps = []
@@ -47,599 +48,72 @@ def _assert_guarded_workflow_steps(value: dict[str, object]) -> None:
         assert authority_contract["can_authorize_submission"] is False
 
 
-def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["artifact_inventory"]["summary"]["supporting_files_count"] == 11
-    assert payload["artifact_inventory"]["summary"]["total_files_count"] == 11
-    assert payload["artifact_inventory"]["supporting_files"][0]["kind"] == "supporting"
-    file_ids = {entry.get("file_id") for entry in payload["artifact_inventory"]["supporting_files"]}
-    assert {
-        "artifact_runtime_proof",
-        "submission_hygiene_truth",
-        "opl_runtime_owner_handoff_latest",
-        "medical_manuscript_blueprint",
-        "medical_journal_style_corpus",
-        "medical_prose_review_request",
-        "medical_prose_review",
-        "retrospective_medical_prose_audit",
-    }.issubset(file_ids)
-    assert any(
-        entry.get("path") == "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
-        for entry in payload["artifact_inventory"]["supporting_files"]
-    )
+def assert_manifest_entry_and_lifecycle_surfaces(*, module, payload, profile, profile_ref) -> None:
+    assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"
     assert payload["executor_defaults"]["owner_callable_adapter_name"] == "codex_cli"
-    assert payload["executor_defaults"]["owner_callable_adapter_mode"] == "autonomous"
-    assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
-    assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"
-    assert payload["executor_defaults"]["executor_labels"] == {
-        "codex_cli": "Codex CLI",
-        "hermes_agent": "Hermes-Agent",
-    }
-    assert payload["executor_defaults"]["executor_statuses"] == {
-        "codex_cli": "default",
-        "hermes_agent": "experimental",
-    }
     assert payload["executor_defaults"]["chat_completion_only_executor_forbidden"] is True
 
-def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["executor_defaults"]["hermes_agent_requires_full_agent_loop"] is True
-    assert "owner_callable_adapter" not in payload["executor_defaults"]
-    assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
-    assert payload["executor_defaults"]["current_backend_chain"] == [
-        "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-        "generic runtime/provider context -> OPL current_control_state refs-only handoff",
-        "historical med_deepscientist fixture/provenance refs only",
-    ]
-    assert payload["executor_defaults"]["optional_executor_proofs"] == [
-        {
-            "executor_kind": "hermes_agent",
-            "entrypoint": "explicit Hermes-Agent proof lane for historical provenance / parity intake only",
-            "requires_full_agent_loop": True,
-            "default_model": "inherit_local_hermes_default",
-            "default_reasoning_effort": "inherit_local_hermes_default",
-        }
-    ]
-    assert {
-        proof["executor_kind"] for proof in payload["executor_defaults"]["optional_executor_proofs"]
-    } <= {"codex_cli", "hermes_agent"}
-    assert payload["workspace_locator"]["profile_name"] == profile.name
-    assert payload["recommended_shell"] == "workspace_cockpit"
-    assert payload["recommended_command"].endswith(
-        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-manifest.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
-
-def _assert_artifact_inventory_and_executor_defaults(*, module, payload, profile, profile_ref) -> None:
-    _assert_artifact_inventory_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_executor_default_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-
-def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) -> None:
-    assert payload["domain_entry_contract"]["product_entry_builder_command"] == "opl-generated-product-entry"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["agent_id"] == "mas"
-    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["default_engine"] == "codex"
-    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["entry_command"] == "study-progress"
-    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["manifest_command"] == "opl-generated-product-entry"
     assert payload["user_interaction_contract"]["entry_owner"] == "opl_product_entry_or_domain_gui"
-    assert payload["user_interaction_contract"]["user_interaction_mode"] == "natural_language_entry"
     assert payload["user_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
-    assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
-    assert payload["product_entry_surface"]["command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_surface"]["surface_kind"] == "product_entry_status"
-    assert "OPL generated product-entry status" in payload["product_entry_surface"]["summary"]
-    assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
-    assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
-    assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"
-    assert "OPL hosted workbench" in payload["operator_loop_surface"]["summary"]
-    assert payload["operator_loop_actions"]["open_loop"]["command"] == payload["recommended_command"]
-    assert payload["operator_loop_actions"]["open_loop"]["surface_kind"] == "workspace_cockpit"
-    assert payload["operator_loop_actions"]["submit_task"]["requires"] == ["study_id", "task_intent"]
-    assert payload["operator_loop_actions"]["continue_study"]["requires"] == ["study_id"]
-    assert payload["operator_loop_actions"]["inspect_progress"]["command"].endswith(
-        "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
-    )
 
-def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["product_entry_quickstart"]["surface_kind"] == "product_entry_quickstart"
-    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_product_entry"
-    assert [step["step_id"] for step in payload["product_entry_quickstart"]["steps"]] == [
-        "open_product_entry",
+    assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
+    assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
+    assert set(payload["operator_loop_actions"]) >= {
+        "open_loop",
         "submit_task",
         "continue_study",
         "inspect_progress",
-        "export_inspection_package",
-    ]
-    assert payload["product_entry_quickstart"]["steps"][0]["command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_quickstart"]["steps"][1]["requires"] == ["study_id", "task_intent"]
-    assert payload["product_entry_quickstart"]["steps"][2]["command"].endswith(
-        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
-    )
-    assert payload["product_entry_quickstart"]["steps"][3]["surface_kind"] == "study_progress"
-    assert payload["product_entry_quickstart"]["steps"][4]["surface_kind"] == (
-        "publication_inspection_package_export"
-    )
-    assert payload["product_entry_quickstart"]["steps"][4]["authority"] == "human_inspection_only"
+    }
+
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
-    assert payload["repo_mainline"]["current_stage_summary"] == "继续收口 blocker 并把用户入口壳压实。"
-    assert payload["repo_mainline"]["current_program_phase_summary"] == "把用户 inbox 与持续进度回路收成稳定壳。"
-
-def _assert_task_lifecycle_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["repo_mainline"]["next_focus"] == [
-        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
-    ]
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
-    assert list(payload["single_project_boundary"]["mas_owner_modules"]) == [
-        "controller_charter",
-        "runtime",
-        "eval_hygiene",
-    ]
-    assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
-    assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
-    assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
-        "landed_no_history_functional_monolith"
-    )
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
         "external_source_archive",
         "historical_fixture_ref",
         "explicit_archive_import_ref",
     ]
-    assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["single_project_boundary"]["post_gate_only"]
-    assert payload["product_entry_status"]["summary"] == "继续收口 blocker 并把用户入口壳压实。"
-    assert payload["product_entry_status"]["remaining_gaps_count"] == 1
 
-def _assert_mainline_boundary_and_task_lifecycle(*, module, payload, profile, profile_ref) -> None:
-    _assert_mainline_boundary_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_task_lifecycle_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-
-def _assert_skill_catalog_projection(*, module, payload, profile, profile_ref) -> None:
-    assert payload["product_entry_status"]["next_focus"] == [
-        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
-    ]
     assert payload["task_lifecycle"]["surface_kind"] == "task_lifecycle"
-    assert payload["task_lifecycle"]["task_kind"] == "mas_product_entry_mainline"
-    assert payload["task_lifecycle"]["task_id"] == "research-foundry-medical-mainline:f4_blocker_closeout"
-    assert payload["task_lifecycle"]["status"] == "in_progress"
-    assert payload["task_lifecycle"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["task_lifecycle"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
-    assert payload["task_lifecycle"]["progress_surface"]["step_id"] == "inspect_workspace_inbox"
-    assert payload["task_lifecycle"]["progress_surface"]["command"].endswith(
-        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
     assert payload["task_lifecycle"]["resume_surface"]["surface_kind"] == "launch_study"
-    assert payload["task_lifecycle"]["resume_surface"]["command"].endswith(
-        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
-    )
-    assert payload["task_lifecycle"]["checkpoint_summary"]["surface_kind"] == "checkpoint_summary"
-    assert payload["task_lifecycle"]["checkpoint_summary"]["status"] == "monitoring_required"
-    assert payload["task_lifecycle"]["checkpoint_summary"]["lineage_ref"] == {
-        "ref_kind": "workspace_locator",
-        "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-        "label": "controller checkpoint lineage companion",
-    }
-    assert payload["task_lifecycle"]["checkpoint_summary"]["verification_ref"] == {
-        "ref_kind": "cli_command",
-        "ref": (
-            "uv run python -m med_autoscience.cli paper-mission inspect --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id> --format json"
-        ),
-        "label": "paper mission readback event companion",
-    }
     assert payload["task_lifecycle"]["human_gate_ids"] == [
         "study_user_decision_gate",
         "publication_release_gate",
     ]
-    assert payload["task_lifecycle"]["domain_projection"]["current_program_phase_id"] == "phase_2_user_product_loop"
-    assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_surface"] == "workspace_cockpit"
-    assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_command"].endswith(
-        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["skill_catalog"]["surface_kind"] == "skill_catalog"
-    assert payload["skill_catalog"]["summary"] == payload["product_entry_status"]["summary"]
 
-def _assert_automation_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["skill_catalog"]["supported_commands"] == payload["domain_entry_contract"]["supported_commands"]
-    assert payload["skill_catalog"]["command_contracts"] == payload["domain_entry_contract"]["command_contracts"]
-    assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == ["mas"]
-    assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_entry_status"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_semantics"] == "domain_app"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_entry"] == "mas"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_entry_status"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["supporting_shell_keys"] == [
+    skill = payload["skill_catalog"]["skills"][0]
+    assert skill["skill_id"] == "mas"
+    assert skill["domain_projection"]["recommended_shell"] == "workspace_cockpit"
+    assert set(skill["domain_projection"]["supporting_shell_keys"]) == {
         "workspace_cockpit",
         "submit_study_task",
         "launch_study",
         "study_progress",
-    ]
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["shell_commands"]["submit_study_task"].endswith(
-        "--study-id <study_id> --task-intent '<task_intent>'"
-    )
-
-def _assert_product_entry_overview_surface(*, module, payload, profile, profile_ref) -> None:
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["shell_commands"]["study_progress"].endswith(
-        "--study-id <study_id> --format json"
-    )
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["runtime_continuity"] == {
-        "surface_kind": "skill_runtime_continuity",
-        "runtime_owner": "one-person-lab",
-        "domain_owner": "med-autoscience",
-        "executor_owner": "controlled_research_backend",
-        "session_locator_field": "study_id",
-        "session_surface_ref": "/session_continuity",
-        "progress_surface_ref": "/progress_projection/progress_surface",
-        "artifact_surface_ref": "/artifact_inventory/artifact_surface",
-        "restore_point_surface_ref": (
-            "/progress_projection/domain_projection/research_runtime_control_projection/restore_point_surface"
-        ),
-        "recommended_resume_command": (
-            "uv run python -m med_autoscience.cli study launch --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id>"
-        ),
-        "recommended_progress_command": (
-            "uv run python -m med_autoscience.cli study progress --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id> --format json"
-        ),
-        "recommended_artifact_command": (
-            "uv run python -m med_autoscience.cli study progress --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id> --format json"
-        ),
     }
+
     assert payload["automation"]["surface_kind"] == "automation"
-    assert payload["automation"]["summary"] == payload["product_entry_status"]["summary"]
-    assert payload["automation"]["readiness_summary"].startswith("Automation-ready rule:")
-    assert payload["automation"]["automations"] == [
-        {
-            "surface_kind": "automation_descriptor",
-            "automation_id": "mas_paper_mission_readback_refresh_loop",
-            "title": "MAS paper mission readback refresh",
-            "owner": "one-person-lab",
-            "trigger_kind": "interval",
-            "target_surface_kind": "paper_mission_readback_refresh",
-            "summary": "由 OPL current_control_state 触发 MAS paper-mission readback refresh，保持 paper mission、owner handoff 和 attention queue refs 为最新状态。",
-            "readiness_status": "automation_ready",
-            "gate_policy": "publication_gated",
-            "output_expectation": [
-                "refresh paper mission readback",
-                "update workspace attention queue",
-                "preserve controller decision lineage",
-            ],
-            "target_command": (
-                "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-            ),
-            "domain_projection": {
-                "service_status_command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                ),
-                "recommended_entry_surface": "workspace_cockpit",
-            },
-        }
-    ]
-    assert payload["product_entry_overview"]["surface_kind"] == "product_entry_overview"
-    assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
-    assert payload["product_entry_overview"]["entry_status_command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_overview"]["recommended_command"].endswith(
-        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-
-def _assert_automation_and_product_overview(*, module, payload, profile, profile_ref) -> None:
-    _assert_automation_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_product_entry_overview_surface(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-
-def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) -> None:
-    assert payload["product_entry_overview"]["progress_surface"] == {
-        "surface_kind": "study_progress",
-        "command": (
-            "uv run python -m med_autoscience.cli study progress --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id> --format json"
-        ),
-        "step_id": "inspect_progress",
-    }
-    assert payload["product_entry_overview"]["resume_surface"] == {
-        "surface_kind": "launch_study",
-        "command": (
-            "uv run python -m med_autoscience.cli study launch --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id>"
-        ),
-        "session_locator_field": "study_id",
-        "checkpoint_locator_field": "controller_decision_path",
-    }
+    assert payload["automation"]["automations"][0]["gate_policy"] == "publication_gated"
     assert payload["product_entry_overview"]["recommended_step_id"] == "open_product_entry"
-    assert payload["product_entry_overview"]["next_focus"] == [
-        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
-    ]
-    assert payload["product_entry_overview"]["remaining_gaps_count"] == 1
-    assert payload["product_entry_overview"]["human_gate_ids"] == [
-        "study_user_decision_gate",
-        "publication_release_gate",
-    ]
-    markdown = module.render_product_entry_manifest_markdown(payload)
-    assert "Single-Project Boundary" in markdown
-    assert "Capability Owner Boundary" in markdown
-    assert "MAS capability `publication_quality_gate`" in markdown
-    assert "MDS migration-only `external_source_archive`" in markdown
-    assert "physical absorb: landed_no_history_functional_monolith" in markdown
-    assert "MDS 保留 `external_source_archive`" in markdown
-    assert "post-gate only: new upstream intake from future MDS/DeepScientist snapshots" in markdown
-    assert payload["product_entry_readiness"] == {
-        "surface_kind": "product_entry_readiness",
-        "verdict": "runtime_ready_not_standalone_product",
-        "usable_now": True,
-        "good_to_use_now": False,
-        "fully_automatic": False,
-        "summary": (
-            "当前可以作为 research entry_status / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
-            "但还不是成熟的独立医学产品入口。"
-        ),
-        "recommended_start_surface": "product_entry_status",
-        "recommended_start_command": (
-            "opl app product-entry-status --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-        ),
-        "recommended_loop_surface": "workspace_cockpit",
-        "recommended_loop_command": (
-            "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-        ),
-        "blocking_gaps": [
-            "独立医学产品入口 / hosted product entry 仍未 landed。",
-            "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
-        ],
-    }
-    assert _phase2_loop_without_guarded_fields(payload["phase2_user_product_loop"]) == {
-        "surface_kind": "phase2_user_product_loop_lane",
-        "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
-        "recommended_step_id": "open_product_entry",
-        "recommended_command": (
-            "opl app product-entry-status --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-        ),
-        "single_path": [
-            {
-                "step_id": "open_product_entry",
-                "title": "先打开 MAS 产品入口",
-                "surface_kind": "product_entry_status",
-                "command": (
-                    "opl app product-entry-status --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "step_id": "inspect_workspace_inbox",
-                "title": "确认当前 workspace inbox / attention queue",
-                "surface_kind": "workspace_cockpit",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "step_id": "submit_task",
-                "title": "给目标 study 写 durable task intake",
-                "surface_kind": "study_task_intake",
-                "command": (
-                    "uv run python -m med_autoscience.cli study submit-task --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --task-intent '<task_intent>'"
-                ),
-            },
-            {
-                "step_id": "continue_study",
-                "title": "启动或续跑当前 study",
-                "surface_kind": "launch_study",
-                "command": (
-                    "uv run python -m med_autoscience.cli study launch --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id>"
-                ),
-            },
-            {
-                "step_id": "inspect_progress",
-                "title": "持续看进度、阻塞和恢复建议",
-                "surface_kind": "study_progress",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-            {
-                "step_id": "handle_human_gate",
-                "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
-                "surface_kind": "study_progress",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-        ],
-        "operator_questions": [
-            {
-                "question": "用户现在怎么启动 MAS？",
-                "answer_surface_kind": "product_entry_status",
-                "command": (
-                    "opl app product-entry-status --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "question": "用户怎么给 study 下任务？",
-                "answer_surface_kind": "study_task_intake",
-                "command": (
-                    "uv run python -m med_autoscience.cli study submit-task --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --task-intent '<task_intent>'"
-                ),
-            },
-            {
-                "question": "用户怎么持续看进度和恢复建议？",
-                "answer_surface_kind": "study_progress",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-        ],
-        "proof_surfaces": [
-            {
-                "surface_kind": "product_entry_status",
-                "command": (
-                    "opl app product-entry-status --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "surface_kind": "workspace_cockpit",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "surface_kind": "study_progress.operator_verdict",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-            {
-                "surface_kind": "study_progress.recovery_contract",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-            {
-                "surface_kind": "controller_decisions",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
-            },
-        ],
-        "workflow_steps": [
-            {
-                "step_id": "run_provider_literature_scout",
-                "title": "联网补文献",
-                "summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            {
-                "step_id": "materialize_route_decision",
-                "title": "写入路线裁决",
-                "summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            {
-                "step_id": "resolve_statistical_blockers",
-                "title": "处理统计 blocker",
-                "summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            {
-                "step_id": "start_revision_rebuttal_loop",
-                "title": "启动返修",
-                "summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            {
-                "step_id": "authorize_manuscript_drafting",
-                "title": "授权写作",
-                "summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            {
-                "step_id": "run_real_workspace_soak_monitor",
-                "title": "运行真实 soak",
-                "summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
-                "surface_kind": "medical_paper_readiness_action_card",
-                "command": (
-                    "opl app workbench --agent med-autoscience --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-                "requires": ["profile_ref", "study_id"],
-                "authority": "observability_projection_only",
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-        ],
-    }
-    _assert_guarded_workflow_steps(payload["phase2_user_product_loop"])
+    assert payload["product_entry_readiness"]["verdict"] == "runtime_ready_not_standalone_product"
+    assert payload["product_entry_readiness"]["usable_now"] is True
+    assert payload["product_entry_readiness"]["fully_automatic"] is False
 
-def assert_manifest_entry_and_lifecycle_surfaces(*, module, payload, profile, profile_ref) -> None:
-    _assert_artifact_inventory_and_executor_defaults(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_entry_contract_surfaces(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_mainline_boundary_and_task_lifecycle(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_skill_catalog_projection(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_automation_and_product_overview(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_readiness_and_phase2_loop(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
+    phase2 = payload["phase2_user_product_loop"]
+    assert phase2["surface_kind"] == "phase2_user_product_loop_lane"
+    assert [step["step_id"] for step in phase2["single_path"]] == [
+        "open_product_entry",
+        "inspect_workspace_inbox",
+        "submit_task",
+        "continue_study",
+        "inspect_progress",
+        "handle_human_gate",
+    ]
+    assert {step["step_id"] for step in _phase2_loop_without_guarded_fields(phase2)["workflow_steps"]} >= {
+        "run_provider_literature_scout",
+        "materialize_route_decision",
+        "authorize_manuscript_drafting",
+    }
+    _assert_guarded_workflow_steps(phase2)

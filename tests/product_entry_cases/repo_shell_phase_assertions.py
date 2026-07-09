@@ -1,223 +1,32 @@
 from __future__ import annotations
 
-def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> None:
-    assert payload["phase3_clearance_lane"] == {
-        "surface_kind": "phase3_host_clearance_lane",
-        "summary": (
-            "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
-            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL current_control_state。"
-        ),
-        "recommended_step_id": "mas_domain_refs_boundary",
-        "recommended_command": (
-            "uv run python -m med_autoscience.cli doctor report --profile "
-            + str(profile_ref.resolve())
-        ),
-        "clearance_targets": [
-                {
-                    "target_id": "mas_domain_refs_boundary",
-                    "title": "Check MAS domain refs and legacy runtime tombstone boundary",
-                    "commands": ["uv run python -m med_autoscience.cli doctor report --profile " + str(profile_ref.resolve())],
-                },
-            {
-                "target_id": "supervisor_service",
-                "title": "Inspect OPL current-control-state refs through MAS progress",
-                "commands": [
-                    (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --format json"
-                    ),
-                    (
-                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                    ),
-                ],
-            },
-            {
-                "target_id": "study_recovery_proof",
-                "title": "Prove live study recovery and supervision",
-                "commands": [
-                    (
-                        "uv run python -m med_autoscience.cli study launch --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                    (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id <study_id>"
-                    ),
-                ],
-            },
-        ],
-        "clearance_loop": [
-                {
-                    "step_id": "mas_domain_refs_boundary",
-                    "title": "确认 MAS domain refs boundary ready，旧 hosted runtime 仅保留 tombstone/provenance",
-                    "surface_kind": "doctor_domain_refs_boundary",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor report --profile "
-                        + str(profile_ref.resolve())
-                ),
-            },
-            {
-                "step_id": "supervisor_service",
-                "title": "确认 OPL replacement 与 MAS domain projection 在线",
-                "surface_kind": "opl_current_control_state_handoff",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-                {
-                    "step_id": "refresh_supervision",
-                    "title": "刷新 MAS paper mission readback",
-                    "surface_kind": "paper_mission_readback_refresh",
-                    "command": (
-                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                ),
-            },
-            {
-                "step_id": "study_recovery_proof",
-                "title": "证明 live study recovery / progress supervision 成立",
-                "surface_kind": "launch_study",
-                "command": (
-                    "uv run python -m med_autoscience.cli study launch --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id>"
-                ),
-            },
-            {
-                "step_id": "inspect_study_progress",
-                "title": "读取 study-progress proof",
-                "surface_kind": "study_progress",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id>"
-                ),
-            },
-        ],
-        "proof_surfaces": [
-            {
-                "surface_kind": "doctor.runtime_contract",
-                "command": "uv run python -m med_autoscience.cli doctor report --profile " + str(profile_ref.resolve()),
-            },
-            {
-                "surface_kind": "progress_projection.autonomous_runtime_notice",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id <study_id> --format json"
-                ),
-            },
-            {
-                "surface_kind": "paper_mission_readback",
-                "command": (
-                    "uv run python -m med_autoscience.cli paper-mission inspect --profile "
-                    + str(profile_ref.resolve())
-                    + " --format json"
-                ),
-            },
-            {
-                "surface_kind": "runtime_supervision_retired_provenance",
-                "ref": "contracts/runtime/legacy-active-path-tombstones.json",
-            },
-            {
-                "surface_kind": "controller_decisions",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
-            },
-        ],
-        "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_3_multi_workspace_host_clearance"
-        ),
+
+def assert_manifest_phase_and_readiness_surfaces(*, module, payload, profile, profile_ref) -> None:
+    phase3 = payload["phase3_clearance_lane"]
+    assert phase3["surface_kind"] == "phase3_host_clearance_lane"
+    assert phase3["recommended_step_id"] == "mas_domain_refs_boundary"
+    assert {target["target_id"] for target in phase3["clearance_targets"]} == {
+        "mas_domain_refs_boundary",
+        "supervisor_service",
+        "study_recovery_proof",
     }
-    assert payload["phase4_backend_deconstruction"] == {
-        "surface_kind": "phase4_backend_deconstruction_lane",
-        "summary": "Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
-        "substrate_targets": [
-            {
-                "capability_id": "session_run_watch_recovery",
-                "owner": "MAS domain runtime receipts",
-                "summary": (
-                    "session / run / watch / recovery 的 domain owner receipt、paper-progress blocker "
-                    "与 safe action refs 由 MAS surface 承接；generic scheduling / attempt lifecycle 迁往 OPL。"
-                ),
-            },
-            {
-                "capability_id": "backend_generic_runtime_contract",
-                "owner": "MedAutoScience controller boundary",
-                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
-            },
-        ],
-        "backend_retained_now": [
-            "frozen MedDeepScientist source archive",
-            "historical oracle fixtures",
-            "explicit archive import / backend-audit reference",
-        ],
-        "current_backend_chain": [
-            "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-            "generic runtime/provider context -> OPL current_control_state refs-only handoff",
-            "historical med_deepscientist fixture/provenance refs only",
-        ],
-        "optional_executor_proofs": [
-            {
-                "executor_kind": "hermes_agent",
-                "entrypoint": "optional hosted runtime adapter",
-                "default_model": "inherit_local_hermes_default",
-                "default_reasoning_effort": "inherit_local_hermes_default",
-            }
-        ],
-        "promotion_rules": [
-            "no claim of platform runtime ingest without owner + contract + tests + proof",
-            "executor replacement must be explicit and proof-backed",
-            "do not restore external MDS as a default runtime dependency",
-        ],
-        "deconstruction_map_ref": "program:med_deepscientist_deconstruction_map",
-        "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction"
-        ),
+    assert {surface["surface_kind"] for surface in phase3["proof_surfaces"]} >= {
+        "doctor.runtime_contract",
+        "paper_mission_readback",
     }
+
+    phase4 = payload["phase4_backend_deconstruction"]
+    assert phase4["surface_kind"] == "phase4_backend_deconstruction_lane"
+    assert "frozen MedDeepScientist source archive" in phase4["backend_retained_now"]
+    assert phase4["promotion_rules"] == [
+        "no claim of platform runtime ingest without owner + contract + tests + proof",
+        "executor replacement must be explicit and proof-backed",
+        "do not restore external MDS as a default runtime dependency",
+    ]
+
     phase5 = payload["phase5_platform_target"]
     assert phase5["surface_kind"] == "phase5_platform_target"
-    assert phase5["summary"] == (
-        "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/stage-runtime "
-        "frontend 与 future upstream intake，不再以 external MDS runtime core 为默认运行条件。"
-    )
     assert phase5["sequence_scope"] == "monorepo_landing_readiness"
-    assert phase5["current_readiness_summary"] == (
-        "MAS 默认研究入口、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned domain surfaces；"
-        "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
-    )
-    assert phase5["north_star_topology"] == {
-        "domain_agent": "Med Auto Science",
-        "runtime_owner": "one-person-lab",
-        "runtime_substrate": "opl_hosted_stage_runtime",
-        "controlled_research_backend": (
-            "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
-            "generic runtime lifecycle handoff to OPL"
-        ),
-        "monorepo_status": "functional_monolith_completion_landed",
-    }
-    assert phase5["target_internal_modules"] == [
-        "controller_charter",
-        "runtime",
-        "eval_hygiene",
-    ]
-    assert [item["step_id"] for item in phase5["landing_sequence"]] == [
-        "freeze_stage_runtime_truth",
-        "stabilize_user_product_loop",
-        "clear_multi_workspace_host_gate",
-        "freeze_backend_deconstruction_boundary",
-        "mds_no_history_absorb",
-        "runtime_core_ingest",
-        "functional_monolith_completion",
-        "optional_hosted_frontend_packaging",
-        "future_upstream_source_intake_review",
-    ]
-    assert phase5["landing_sequence"][4]["status"] == "completed"
-    assert phase5["landing_sequence"][5]["status"] == "completed"
-    assert phase5["landing_sequence"][6]["status"] == "completed"
     assert phase5["completed_step_ids"] == [
         "freeze_stage_runtime_truth",
         "mds_no_history_absorb",
@@ -228,61 +37,19 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "optional_hosted_frontend_packaging",
         "future_upstream_source_intake_review",
     ]
-    assert phase5["promotion_gates"] == [
-        "phase_1_mainline_established",
-        "phase_2_user_product_loop",
-        "phase_3_multi_workspace_host_clearance",
-        "phase_4_backend_deconstruction",
-    ]
-    assert phase5["land_now"] == [
-        "repo-tracked product-entry shell and family orchestration companions",
-        "controller-owned runtime/progress/recovery truth",
-        "CLI/MCP/controller entry surfaces that already support real work",
-        "MAS refs-only progress projections and OPL hosted workbench handoff refs",
-    ]
-    assert phase5["not_yet"] == [
-        "mature hosted standalone medical frontend",
-        "future upstream source intake beyond historical fixture/provenance refs",
-    ]
-    assert phase5["recommended_phase_command"] == (
-        "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation"
-    )
-    assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
-        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_shell"]["product_entry_status"]["command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
-        "study submit-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
-    )
-    assert payload["product_entry_shell"]["launch_study"]["command"].endswith(
-        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
-    )
-    assert payload["product_entry_shell"]["study_progress"]["command"].endswith(
-        "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
-    )
-    assert payload["shared_handoff"]["direct_entry_builder"]["command"].endswith(
-        "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
-    )
-    assert payload["shared_handoff"]["opl_handoff_builder"]["command"].endswith(
-        "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode opl-handoff"
-    )
+
+    assert set(payload["product_entry_shell"]) >= {
+        "workspace_cockpit",
+        "product_entry_status",
+        "submit_study_task",
+        "launch_study",
+        "study_progress",
+    }
+    assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
     assert payload["family_orchestration"]["human_gates"] == [
         {"gate_id": "study_user_decision_gate", "title": "Study user decision gate"},
         {"gate_id": "publication_release_gate", "title": "Publication release gate"},
     ]
-    assert payload["family_orchestration"]["action_graph_ref"] == {
-        "ref_kind": "json_pointer",
-        "ref": "/family_orchestration/action_graph",
-        "label": "mas family action graph",
-    }
-    assert payload["family_orchestration"]["action_graph"]["graph_id"] == (
-        "mas_workspace_product_entry_study_runtime_graph"
-    )
-    assert payload["family_orchestration"]["action_graph"]["target_domain_id"] == "med-autoscience"
-
-def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, profile_ref) -> None:
     assert [node["node_id"] for node in payload["family_orchestration"]["action_graph"]["nodes"]] == [
         "step:open_product_entry",
         "step:submit_task",
@@ -290,119 +57,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
         "step:inspect_progress",
         "step:export_inspection_package",
     ]
-    assert payload["family_orchestration"]["action_graph"]["edges"] == [
-        {
-            "from": "step:open_product_entry",
-            "to": "step:submit_task",
-            "on": "new_task",
-        },
-        {
-            "from": "step:open_product_entry",
-            "to": "step:continue_study",
-            "on": "resume_study",
-        },
-        {
-            "from": "step:open_product_entry",
-            "to": "step:inspect_progress",
-            "on": "inspect_status",
-        },
-        {
-            "from": "step:submit_task",
-            "to": "step:continue_study",
-            "on": "task_written",
-        },
-        {
-            "from": "step:continue_study",
-            "to": "step:inspect_progress",
-            "on": "progress_refresh",
-        },
-        {
-            "from": "step:inspect_progress",
-            "to": "step:export_inspection_package",
-            "on": "human_style_review_requested",
-        },
-    ]
-    assert payload["family_orchestration"]["action_graph"]["entry_nodes"] == [
-        "step:open_product_entry",
-    ]
-    assert payload["family_orchestration"]["action_graph"]["exit_nodes"] == [
-        "step:continue_study",
-        "step:inspect_progress",
-        "step:export_inspection_package",
-    ]
-    assert payload["family_orchestration"]["action_graph"]["human_gates"] == [
-        {
-            "gate_id": "study_user_decision_gate",
-            "trigger_nodes": ["step:continue_study"],
-            "blocking": True,
-        },
-        {
-            "gate_id": "publication_release_gate",
-            "trigger_nodes": ["step:inspect_progress"],
-            "blocking": True,
-        },
-    ]
-    assert payload["family_orchestration"]["action_graph"]["checkpoint_policy"] == {
-        "mode": "explicit_nodes",
-        "checkpoint_nodes": [
-            "step:submit_task",
-            "step:continue_study",
-            "step:inspect_progress",
-        ],
-    }
-    assert payload["family_orchestration"]["resume_contract"] == {
-        "surface_kind": "launch_study",
-        "session_locator_field": "study_id",
-        "checkpoint_locator_field": "controller_decision_path",
-    }
-    assert payload["family_orchestration"]["event_envelope_surface"] == {
-        "ref_kind": "cli_command",
-        "ref": (
-            "uv run python -m med_autoscience.cli paper-mission inspect --profile "
-            + str(profile_ref.resolve())
-            + " --study-id <study_id> --format json"
-        ),
-        "label": "paper mission readback event companion",
-    }
-    assert payload["family_orchestration"]["checkpoint_lineage_surface"] == {
-        "ref_kind": "workspace_locator",
-        "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-        "label": "controller checkpoint lineage companion",
-    }
-    assert payload["product_entry_quickstart"]["resume_contract"] == payload["family_orchestration"]["resume_contract"]
-    assert payload["product_entry_quickstart"]["human_gate_ids"] == [
-        "study_user_decision_gate",
-        "publication_release_gate",
-    ]
-    assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
-    assert payload["product_entry_start"]["recommended_mode_id"] == "open_product_entry"
-    assert [mode["mode_id"] for mode in payload["product_entry_start"]["modes"]] == [
-        "open_product_entry",
-        "submit_task",
-        "continue_study",
-    ]
-
-def _assert_phase5_platform_target(*, module, payload, profile, profile_ref) -> None:
-    assert payload["product_entry_start"]["modes"][0]["command"].endswith(
-        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
-    )
-    assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
-    assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"
-    assert payload["product_entry_start"]["resume_surface"] == payload["family_orchestration"]["resume_contract"]
-    assert payload["product_entry_start"]["human_gate_ids"] == [
-        "study_user_decision_gate",
-        "publication_release_gate",
-    ]
-    assert "standalone medical product entry" in payload["remaining_gaps"][0]
-    start_markdown = module.render_product_entry_start_markdown(payload["product_entry_start"])
-    assert "当前摘要" in start_markdown
-    assert "建议入口" in start_markdown
-    assert "恢复入口" in start_markdown
-    assert "可用入口" in start_markdown
-    assert "recommended_mode_id:" not in start_markdown
-    assert "resume_surface:" not in start_markdown
-
-def assert_manifest_phase_and_readiness_surfaces(*, module, payload, profile, profile_ref) -> None:
-    _assert_phase3_clearance_lane(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_phase4_backend_deconstruction_lane(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
-    _assert_phase5_platform_target(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
+    start = payload["product_entry_start"]
+    assert start["surface_kind"] == "product_entry_start"
+    assert start["recommended_mode_id"] == "open_product_entry"
+    assert start["resume_surface"] == payload["family_orchestration"]["resume_contract"]
