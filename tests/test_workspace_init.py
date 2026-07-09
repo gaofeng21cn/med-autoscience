@@ -1,40 +1,6 @@
 from __future__ import annotations
 
-from tests.test_workspace_init_cases.workspace_creation import (
-    test_init_workspace_dry_run_reports_plan_without_writing_files,
-    test_init_workspace_creates_minimal_workspace_and_entry_files,
-    test_generated_study_progress_accepts_study_id_without_extra_args,
-    test_generated_paper_mission_inserts_profile_after_subcommand,
-    test_generated_paper_mission_preserves_top_level_options,
-    test_generated_study_progress_preserves_json_format_arg,
-    test_generated_profile_optional_wrapper_accepts_no_args_under_bash_nounset,
-    test_init_workspace_records_detected_github_username_in_profile,
-    test_init_workspace_merges_profile_root_keys_before_existing_tables,
-    test_bootstrap_repairs_table_misnested_developer_profile_keys,
-    test_init_workspace_is_idempotent_and_force_overwrites_files,
-    test_init_workspace_does_not_report_current_generated_guidance_as_upgraded,
-)
-from tests.test_workspace_init_cases.legacy_entry_upgrades import (
-    test_init_workspace_removes_legacy_runtime_entry_scripts_without_force,
-    test_init_workspace_upgrades_generated_workspace_wrappers_when_templates_change,
-    test_init_workspace_upgrades_generated_workspace_pyproject_analysis_extra,
-    test_init_workspace_upgrades_generated_shared_when_workspace_python_gate_moves_into_runner,
-    test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags_are_present,
-    test_init_workspace_upgrades_generated_guidance_and_removes_private_control_wrappers,
-)
-from tests.test_workspace_init_cases.managed_script_bindings import (
-    test_init_workspace_upgrades_current_managed_scripts_when_rscript_binding_is_missing,
-    test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_missing,
-    test_init_workspace_upgrades_medautoscience_config_with_detected_node_binding,
-    test_init_workspace_repairs_placeholder_medautoscience_config_without_clobbering_profile,
-    test_init_workspace_upgrades_configured_active_profile_with_explicit_hermes_binding,
-)
-from tests.test_workspace_init_cases.opl_current_control_state_handoff import (
-    test_init_workspace_omits_retired_local_runtime_control_wrappers,
-    test_init_workspace_does_not_render_workspace_local_scheduler_templates,
-    test_init_workspace_dry_run_reports_retired_service_wrapper_without_deleting,
-    test_init_workspace_removes_retired_service_wrapper_family,
-    test_init_workspace_removes_empty_retired_supervisor_directories,
-    test_init_workspace_retains_non_empty_retired_supervisor_directory,
-    test_init_workspace_retains_same_name_custom_service_file_without_retired_markers,
-)
+from tests.test_workspace_init_cases.workspace_creation import *  # noqa: F403
+from tests.test_workspace_init_cases.legacy_entry_upgrades import *  # noqa: F403
+from tests.test_workspace_init_cases.managed_script_bindings import *  # noqa: F403
+from tests.test_workspace_init_cases.opl_current_control_state_handoff import *  # noqa: F403

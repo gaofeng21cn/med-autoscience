@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .test_study_outer_loop_cases import shared as _shared
+from tests.test_study_outer_loop_cases import shared as _shared
 
 globals().update({
     name: value
@@ -8,82 +8,16 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_study_outer_loop_cases.controller_transition_matrix_cases import (
-    test_publication_gate_report_to_work_unit_transition_matrix,
-    test_domain_diagnostic_report_outer_loop_controller_transition_matrix,
-    test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap,
-)
-from .test_study_outer_loop_cases.controller_and_manifest_cases import (
-    test_study_outer_loop_tick_writes_decision_record_and_executes_next_controller_action,
-    test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_escalation_ref_and_quest_root,
-    test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_contract,
-    test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_ref_is_missing,
-    test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mismatches_status,
-    test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_is_not_fresh,
-    test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_latest_surface,
-    test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_latest_artifact,
-    test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mismatches_status_ref,
-    test_study_outer_loop_tick_reexports_from_router,
-    test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_required,
-    test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_decision,
-)
-from .test_study_outer_loop_cases.controller_work_unit_cases import (
-    test_study_outer_loop_tick_persists_controller_work_unit_context,
-)
-from .test_study_outer_loop_cases.delivered_package_parking_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_stops_live_delivered_package_before_ai_reviewer_redrive,
-)
-from .test_study_outer_loop_cases.fast_lane_closeout_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_stops_live_runtime_after_fast_lane_closeout,
-    test_build_runtime_readback_outer_loop_tick_request_does_not_stop_when_fast_lane_closeout_has_blocked_gate,
-)
-from .test_study_outer_loop_cases.runtime_resume_cases import (
-    test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action,
-    test_build_runtime_readback_outer_loop_tick_request_materializes_bounded_analysis,
-    test_domain_diagnostic_report_outer_loop_prefers_active_task_intake_analysis_over_gate_clearing,
-    test_domain_diagnostic_report_outer_loop_promotes_task_intake_generic_gate_specificity_to_controller,
-    test_domain_diagnostic_report_outer_loop_routes_deterministic_closeout_before_stale_task_intake,
-    test_build_runtime_readback_outer_loop_tick_request_materializes_route_back_same_line,
-    test_build_runtime_readback_outer_loop_tick_request_falls_back_to_quest_runtime_escalation_ref,
-    test_build_runtime_readback_outer_loop_tick_request_autoparks_ready_submission_milestone,
-)
-from .test_study_outer_loop_cases.owner_priority_cases import (
-    test_domain_diagnostic_report_outer_loop_routes_startup_freshness_gate_before_stale_task_intake,
-    test_domain_diagnostic_report_outer_loop_routes_startup_freshness_gate_before_publication_eval_work_unit,
-    test_domain_diagnostic_report_outer_loop_routes_bundle_stage_ready_before_stale_task_intake,
-    test_domain_diagnostic_report_outer_loop_routes_bundle_ready_eval_review_unit_to_finalize_work_unit,
-    test_domain_diagnostic_report_outer_loop_routes_bundle_blocked_eval_review_unit_to_finalize_work_unit,
-    test_domain_diagnostic_report_outer_loop_keeps_current_write_task_intake_before_clear_bundle_gate,
-)
-from .test_study_outer_loop_cases.publication_gate_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_ignores_stale_task_intake_after_bundle_only_closeout,
-    test_build_runtime_readback_outer_loop_tick_request_autoparks_without_runtime_escalation_ref,
-    test_build_runtime_readback_outer_loop_tick_request_routes_active_write_task_intake_before_autopark,
-    test_refresh_parked_submission_milestone_controller_decision_writes_parked_finalize_record,
-    test_build_runtime_readback_outer_loop_tick_request_skips_autonomous_dispatch_for_parked_submission_milestone,
-    test_build_runtime_readback_outer_loop_tick_request_prefers_quality_review_loop_re_review,
-    test_build_runtime_readback_outer_loop_tick_request_handles_gate_clearing_batch_profile_resolution,
-    test_study_outer_loop_tick_dispatches_pause_runtime_action,
-)
-from .test_study_outer_loop_cases.publication_gate_recheck_lifecycle_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_honors_closed_publication_work_unit_lifecycle,
-    test_build_runtime_readback_outer_loop_tick_request_ignores_stale_publication_gate_recheck_lifecycle,
-)
-from .test_study_outer_loop_cases.quality_repair_priority_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_routes_quality_repair_batch_before_task_intake,
-    test_ai_reviewer_currentness_preempts_stale_methodology_intake_and_repair_batch,
-    test_current_ai_reviewer_route_back_preempts_gate_and_quality_batch,
-    test_quality_repair_batch_preserves_ai_reviewer_methodology_analysis_work_unit,
-    test_study_outer_loop_tick_records_authority_route_blocked_quality_repair,
-)
-from .test_study_outer_loop_cases.submission_milestone_parking_regression_cases import (
-    test_refresh_parked_submission_milestone_allows_admin_metadata_handoff_gap,
-    test_refresh_parked_submission_milestone_rejects_important_scientific_gap,
-)
-from .test_study_outer_loop_cases.stopped_submission_milestone_cases import (
-    test_build_runtime_readback_outer_loop_tick_request_keeps_stopped_submission_milestone_parked,
-)
-from .test_study_outer_loop_cases.user_gate_cases import (
-    test_study_outer_loop_tick_dispatches_stop_runtime_action,
-    test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_runtime,
-)
+from tests.test_study_outer_loop_cases.controller_transition_matrix_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.controller_and_manifest_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.controller_work_unit_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.delivered_package_parking_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.fast_lane_closeout_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.runtime_resume_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.owner_priority_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.publication_gate_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.publication_gate_recheck_lifecycle_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.quality_repair_priority_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.submission_milestone_parking_regression_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.stopped_submission_milestone_cases import *  # noqa: F403
+from tests.test_study_outer_loop_cases.user_gate_cases import *  # noqa: F403

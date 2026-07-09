@@ -6,28 +6,6 @@ from tests.display_deg_golden_regression_cases.shared import (
     json,
     _dump_json,
 )
-from tests.display_deg_golden_regression_cases.deg_omics_and_genomic_golden import (
-    test_celltype_signature_heatmap_preserves_deg_composite_contract,
-    test_single_cell_atlas_overview_panel_preserves_deg_atlas_contract,
-    test_pathway_enrichment_dotplot_panel_preserves_eg_omics_contract,
-    test_celltype_marker_dotplot_panel_preserves_deg_marker_contract,
-    test_omics_volcano_panel_preserves_g_omics_contract,
-    test_oncoplot_mutation_landscape_panel_preserves_g_omics_contract,
-    test_cnv_recurrence_summary_panel_preserves_g_omics_contract,
-    test_genomic_alteration_landscape_panel_preserves_g_omics_contract,
-    test_genomic_alteration_consequence_panel_preserves_g_omics_contract,
-)
-from tests.display_deg_golden_regression_cases.multiomic_spatial_and_trajectory_golden import (
-    test_genomic_alteration_multiomic_consequence_panel_preserves_g_multiomic_contract,
-    test_genomic_alteration_pathway_integrated_composite_panel_preserves_g_pathway_integrated_contract,
-    test_genomic_program_governance_summary_panel_preserves_g_governance_contract,
-    test_spatial_niche_map_panel_preserves_deg_spatial_contract,
-    test_trajectory_progression_panel_preserves_deg_trajectory_contract,
-    test_atlas_spatial_bridge_panel_preserves_deg_bridge_contract,
-)
-from tests.display_deg_golden_regression_cases.atlas_spatial_trajectory_golden import (
-    test_atlas_spatial_trajectory_storyboard_panel_preserves_deg_storyboard_contract,
-    test_atlas_spatial_trajectory_density_coverage_panel_preserves_deg_density_contract,
-    test_atlas_spatial_trajectory_context_support_panel_preserves_deg_multiview_contract,
-    test_atlas_spatial_trajectory_multimanifold_context_support_panel_preserves_deg_multimanifold_contract,
-)
+from tests.display_deg_golden_regression_cases.deg_omics_and_genomic_golden import *  # noqa: F403
+from tests.display_deg_golden_regression_cases.multiomic_spatial_and_trajectory_golden import *  # noqa: F403
+from tests.display_deg_golden_regression_cases.atlas_spatial_trajectory_golden import *  # noqa: F403

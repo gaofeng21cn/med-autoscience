@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .test_publication_gate_cases import shared as _shared
+from tests.test_publication_gate_cases import shared as _shared
 
 globals().update({
     name: value
@@ -8,106 +8,11 @@ globals().update({
     if not name.startswith('__')
 })
 
-from .test_publication_gate_cases.drift_and_state_cases import (
-    test_build_gate_report_exposes_submission_minimal_status_when_present,
-    test_build_gate_report_hides_stale_draft_handoff_when_submission_minimal_exists,
-    test_build_gate_report_exposes_authority_handshake_signatures_and_gate_fingerprint,
-    test_build_gate_report_includes_blocking_artifact_refs_for_stale_authority,
-    test_build_gate_report_uses_authoritative_source_markdown_path_for_submission_surface_qc,
-    test_build_gate_report_marks_submission_minimal_missing_when_absent,
-    test_build_gate_report_reports_missing_journal_requirements_for_primary_target,
-    test_build_gate_report_reports_missing_journal_package_when_requirements_exist,
-    test_build_gate_state_uses_latest_parseable_gate_report_when_newer_report_is_malformed,
-    test_build_gate_report_supports_finalize_only_paper_bundle_without_main_result,
-    test_build_gate_report_clears_stale_paper_line_blockers_when_bundle_stage_reopens,
-    test_build_gate_report_blocks_finalize_only_bundle_without_current_surface_report,
-    test_build_gate_report_allows_handoff_ready_bundle_with_non_scientific_pageproof_gap,
-    test_build_gate_report_keeps_handoff_ready_bundle_blocked_for_unknown_submission_gap,
-    test_build_gate_report_marks_draft_handoff_sync_missing_when_bundle_is_handoff_ready,
-    test_run_controller_syncs_draft_handoff_surface_when_missing,
-    test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_stale,
-    test_build_gate_report_ignores_stale_blocked_surface_status,
-    test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_missing,
-    test_build_gate_report_blocks_bundle_when_paper_line_requires_supplementary_completion,
-    test_build_gate_report_blocks_bundle_when_active_figure_floor_is_unmet,
-    test_build_gate_report_surfaces_prebundle_figure_floor_pending_from_main_result,
-    test_build_gate_report_unlocks_write_stage_when_latest_clear_gate_is_current,
-    test_build_gate_state_uses_projected_paper_root_when_bundle_manifest_is_projected,
-    test_build_gate_state_uses_newer_bound_study_paper_authority,
-    test_build_gate_state_uses_projected_paper_root_when_no_main_result_exists,
-    test_build_gate_state_uses_projected_paper_root_over_run_worktree_paper,
-    test_build_gate_state_uses_projected_bundle_when_projected_line_state_switches_to_analysis_slice,
-)
-from .test_publication_gate_cases.blocker_payload_cases import (
-    test_build_gate_report_canonicalizes_malformed_surface_blockers_without_crashing,
-)
-from .test_publication_gate_cases.submission_manifest_paths import (
-    test_build_gate_report_resolves_v2_submission_manifest_source_markdown_root,
-)
-from .test_publication_gate_cases.journal_and_anchor_cases import (
-    test_build_gate_state_reads_authoritative_paper_line_state_when_projected_manifest_is_selected,
-    test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears,
-    test_build_gate_report_blocks_stale_submission_minimal_authority_when_paper_inputs_change,
-    test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing,
-    test_build_gate_report_marks_bundle_tasks_downstream_when_post_main_gate_is_missing,
-    test_run_controller_handles_finalize_only_bundle_blockers_without_main_metrics,
-    test_run_controller_materializes_stable_publication_eval_when_apply_clear,
-    test_run_controller_prefers_finalize_route_when_bundle_stage_is_ready_alongside_main_result,
-    test_run_controller_materializes_stale_study_delivery_notice_when_apply_enabled,
-    test_run_controller_resyncs_delivery_when_only_current_package_projection_is_missing,
-    test_run_controller_preserves_current_package_publication_profile_during_stale_resync,
-    test_run_controller_unlocks_write_after_main_result_stale_delivery_resync,
-    test_run_controller_resyncs_delivery_when_authority_package_changes_without_root_change,
-    test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_is_reported,
-)
-from .test_publication_gate_cases.supervisor_cases import (
-    test_run_controller_refreshes_stale_journal_package_when_source_submission_manifest_advances,
-    test_build_gate_report_blocks_unmanaged_submission_surface_roots,
-    test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface,
-    test_build_gate_report_blocks_archived_reference_only_surface_when_target_manifest_is_outside_current_paper,
-    test_build_gate_report_blocks_forbidden_manuscript_terminology,
-    test_build_gate_report_blocks_submission_surface_qc_failures,
-    test_build_gate_report_blocks_submission_manuscript_surface_without_embedded_figures,
-    test_build_gate_report_infers_general_profile_for_legacy_submission_manifest,
-    test_build_gate_report_inherits_blocked_medical_publication_surface_status,
-    test_build_gate_report_blocks_when_study_charter_is_missing,
-    test_build_gate_report_blocks_when_study_charter_is_invalid,
-    test_build_gate_report_maps_surface_signals_to_named_controller_blockers,
-    test_build_gate_report_projects_surface_charter_expectation_gaps,
-    test_build_gate_report_routes_each_surface_blocker_to_core_controller_route,
-    test_build_gate_report_keeps_named_surface_blockers_clear_when_surface_is_clear,
-    test_build_gate_report_ignores_newer_surface_report_from_other_paper_line,
-    test_build_gate_report_falls_back_to_same_study_surface_report_when_paper_root_drifted,
-    test_build_gate_report_marks_surface_stale_when_projected_manifest_is_newer,
-    test_publication_gate_intervention_allows_bounded_submission_hardening_finalize,
-    test_submission_hardening_with_stale_package_stays_on_bundle_path,
-    test_submission_hardening_intervention_allows_bounded_finalize_with_package_sync,
-    test_publication_gate_intervention_keeps_mixed_surface_repair_bounded,
-)
-from .test_publication_gate_cases.render_and_cli_cases import (
-    test_build_gate_report_uses_projected_paper_surface_over_legacy_runtime_worktree,
-    test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels,
-    test_run_controller_enqueues_message_when_blocked,
-    test_run_controller_dry_run_does_not_write_gate_files,
-    test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch,
-    test_build_gate_report_ignores_live_agent_write_drift_when_active_run_differs_from_main_result,
-    test_detect_write_drift_ignores_write_drift_gate_path_noise,
-    test_detect_write_drift_ignores_stop_messages_about_write_stage,
-    test_detect_write_drift_ignores_agent_messages_that_quote_examples,
-    test_detect_write_drift_ignores_non_artifact_tool_output_examples,
-    test_detect_write_drift_accepts_structured_next_anchor_signal,
-    test_write_gate_files_uses_runtime_protocol_report_store,
-)
-from .test_publication_gate_cases.deterministic_quality_gate_cases import (
-    test_deterministic_quality_gates_project_five_gate_classes_without_authorizing_quality,
-    test_deterministic_quality_gates_keep_clear_projection_separate_from_ai_review,
-    test_deterministic_quality_gates_include_medical_literature_hygiene_evidence,
-    test_literature_hygiene_blocker_keeps_publication_gate_blocked,
-)
-from .test_publication_gate_cases.paper_root_authority_cases import (
-    test_build_gate_state_prefers_complete_bound_study_canonical_paper_when_branch_differs,
-    test_build_gate_state_falls_back_to_stage_native_body_authority_without_projected_bundle,
-    test_build_gate_state_prefers_stage_native_body_authority_for_direct_study_root,
-    test_build_gate_state_uses_stage_native_manifest_and_publication_surface_for_direct_study_root,
-    test_build_gate_state_ignores_recursive_compile_report_path_in_bound_study_manifest,
-)
+from tests.test_publication_gate_cases.drift_and_state_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.blocker_payload_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.submission_manifest_paths import *  # noqa: F403
+from tests.test_publication_gate_cases.journal_and_anchor_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.supervisor_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.render_and_cli_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.deterministic_quality_gate_cases import *  # noqa: F403
+from tests.test_publication_gate_cases.paper_root_authority_cases import *  # noqa: F403
