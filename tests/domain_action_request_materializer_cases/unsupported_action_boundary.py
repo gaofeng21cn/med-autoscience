@@ -1,65 +1,18 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
 import pytest
 
+from tests.domain_action_request_materializer_cases.shared import owner_route as _owner_route
+from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 @pytest.fixture(autouse=True)
 def _isolated_opl_state_dir(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _owner_route(
-    *,
-    study_id: str,
-    quest_id: str,
-    next_owner: str,
-    owner_reason: str,
-    allowed_actions: list[str],
-) -> dict[str, object]:
-    source_fingerprint = f"truth-source::{study_id}::{owner_reason}"
-    truth_epoch = f"truth-epoch::{study_id}"
-    runtime_health_epoch = f"runtime-health::{study_id}::{owner_reason}"
-    return {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "truth_epoch": truth_epoch,
-        "route_epoch": truth_epoch,
-        "runtime_health_epoch": runtime_health_epoch,
-        "work_unit_fingerprint": source_fingerprint,
-        "source_fingerprint": source_fingerprint,
-        "current_owner": "mas_controller",
-        "next_owner": next_owner,
-        "owner_reason": owner_reason,
-        "active_run_id": None,
-        "allowed_actions": allowed_actions,
-        "blocked_actions": [],
-        "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
-        "source_refs": {
-            "study_truth_epoch": truth_epoch,
-            "runtime_health_epoch": runtime_health_epoch,
-            "work_unit_id": owner_reason,
-            "work_unit_fingerprint": source_fingerprint,
-            "owner_route_currentness_basis": {
-                "runtime_health_epoch": runtime_health_epoch,
-                "truth_epoch": truth_epoch,
-                "work_unit_fingerprint": source_fingerprint,
-                "work_unit_id": owner_reason,
-            },
-        },
-    }
 
 
 def _unsupported_domain_action(study_id: str, quest_id: str) -> dict[str, object]:

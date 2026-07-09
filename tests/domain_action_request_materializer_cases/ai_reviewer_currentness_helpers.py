@@ -2,13 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import importlib
-import json
-from pathlib import Path
 
-
-def write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+from tests.domain_action_request_materializer_cases.shared import write_json
 
 
 def sha256_text(text: str) -> str:

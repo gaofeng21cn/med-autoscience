@@ -47,6 +47,30 @@ _STALE_OPL_HANDOFF_REASONS = [
 ]
 
 
+def _controller_route_context(
+    *,
+    control_surface: str = "gate_clearing_batch",
+    controller_action_type: str = "run_gate_clearing_batch",
+    work_unit_id: str = "publication_gate_replay",
+    requires_human_confirmation: bool = False,
+    source_eval_id: str | None = "publication-eval::003::latest",
+    work_unit_fingerprint: str | None = None,
+    **overrides: object,
+) -> dict[str, object]:
+    context: dict[str, object] = {
+        "control_surface": control_surface,
+        "controller_action_type": controller_action_type,
+        "work_unit_id": work_unit_id,
+        "requires_human_confirmation": requires_human_confirmation,
+    }
+    if source_eval_id is not None:
+        context["source_eval_id"] = source_eval_id
+    if work_unit_fingerprint is not None:
+        context["work_unit_fingerprint"] = work_unit_fingerprint
+    context.update(overrides)
+    return context
+
+
 def test_route_gate_fails_closed_without_snapshot() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 
@@ -163,13 +187,12 @@ def test_controller_owned_delivery_sync_route_can_override_runtime_only_supervis
                 ],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "submission_delivery_sync_closure",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::001::latest",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="submission_delivery_sync_closure",
+                source_eval_id="publication-eval::001::latest",
+            ),
         },
     )
 
@@ -191,13 +214,12 @@ def test_controller_owned_delivery_sync_route_does_not_override_downstream_only_
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "submission_delivery_sync_closure",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::001::latest",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="submission_delivery_sync_closure",
+                source_eval_id="publication-eval::001::latest",
+            ),
         },
     )
 
@@ -223,14 +245,10 @@ def test_controller_owned_submission_materialize_route_can_override_runtime_only
                 paper_write_allowed=False,
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "submission_minimal_refresh",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": "submission-minimal::003",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id="submission_minimal_refresh",
+                work_unit_fingerprint="submission-minimal::003",
+            ),
         },
     )
 
@@ -247,14 +265,13 @@ def test_controller_owned_delivery_sync_route_allows_open_snapshot_with_repair_a
         "delivery_sync",
         {
             "authority_snapshot": _snapshot(),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "submission_delivery_sync_closure",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::001::latest",
-                "gate_fingerprint": "publication-gate::001",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="submission_delivery_sync_closure",
+                source_eval_id="publication-eval::001::latest",
+                gate_fingerprint="publication-gate::001",
+            ),
         },
     )
 
@@ -272,14 +289,9 @@ def test_publication_gate_replay_route_authorizes_delivery_sync() -> None:
         "delivery_sync",
         {
             "authority_snapshot": _snapshot(),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "publication_gate_replay",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": "publication-blockers::003",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_fingerprint="publication-blockers::003",
+            ),
         },
     )
 
@@ -305,14 +317,10 @@ def test_publication_gate_replay_route_authorizes_submission_materialize_under_r
                 paper_write_allowed=False,
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "publication_gate_replay",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": "publication-blockers::002",
-            },
+            "controller_route_context": _controller_route_context(
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint="publication-blockers::002",
+            ),
         },
     )
 
@@ -339,17 +347,14 @@ def test_publication_gate_replay_route_authorizes_submission_materialize_under_d
                 bundle_build_allowed=False,
                 runtime_recovery_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "dm003_publication_gate_replay_after_current_ai_reviewer_record",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003-dpcc::latest",
-                "work_unit_fingerprint": (
+            "controller_route_context": _controller_route_context(
+                work_unit_id="dm003_publication_gate_replay_after_current_ai_reviewer_record",
+                source_eval_id="publication-eval::003-dpcc::latest",
+                work_unit_fingerprint=(
                     "domain-transition::publication-gate-replay::"
                     "dm003_publication_gate_replay_after_current_ai_reviewer_record"
                 ),
-            },
+            ),
         },
     )
 
@@ -367,14 +372,9 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     gate = module.authorize_authority_route(
         "delivery_sync",
         {
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "publication_gate_replay",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": "publication-blockers::003",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_fingerprint="publication-blockers::003",
+            ),
         },
     )
 
@@ -401,27 +401,19 @@ def test_publication_gate_replay_work_unit_family_authorizes_submission_refresh_
     submission_gate = module.authorize_authority_route(
         "submission_materialize",
         {
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=f"publication-blockers::{work_unit_id}",
+            ),
         },
     )
     delivery_gate = module.authorize_authority_route(
         "delivery_sync",
         {
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=f"publication-blockers::{work_unit_id}",
+            ),
         },
     )
 
@@ -452,17 +444,14 @@ def test_publication_gate_replay_work_unit_family_authorizes_flat_progress_first
 
     gate = module.authorize_authority_route(
         action,
-        {
-            "control_surface": "gate_clearing_batch",
-            "controller_action_type": "run_gate_clearing_batch",
-            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-            "requires_human_confirmation": False,
-            "source_eval_id": "publication-eval::003-dpcc::latest",
-            "work_unit_fingerprint": (
+        _controller_route_context(
+            work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            source_eval_id="publication-eval::003-dpcc::latest",
+            work_unit_fingerprint=(
                 "domain-transition::publication-gate-replay::"
                 "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
             ),
-        },
+        ),
     )
 
     assert gate["authorized"] is True
@@ -479,14 +468,10 @@ def test_submission_authority_sync_closure_route_authorizes_submission_and_deliv
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
     context = {
         "authority_snapshot": _snapshot(),
-        "controller_route_context": {
-            "control_surface": "gate_clearing_batch",
-            "controller_action_type": "run_gate_clearing_batch",
-            "work_unit_id": "submission_authority_sync_closure",
-            "requires_human_confirmation": False,
-            "source_eval_id": "publication-eval::003::latest",
-            "work_unit_fingerprint": "submission-authority::003",
-        },
+        "controller_route_context": _controller_route_context(
+            work_unit_id="submission_authority_sync_closure",
+            work_unit_fingerprint="submission-authority::003",
+        ),
     }
 
     submission_gate = module.authorize_authority_route("submission_materialize", context)
@@ -511,14 +496,12 @@ def test_analysis_claim_evidence_route_authorizes_paper_repair_under_downstream_
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "analysis_claim_evidence_repair",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": "publication-blockers::analysis",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="analysis_claim_evidence_repair",
+                work_unit_fingerprint="publication-blockers::analysis",
+            ),
         },
     )
 
@@ -541,14 +524,13 @@ def test_ai_reviewer_current_analysis_harmonization_record_route_authorizes_unde
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "ai_reviewer_workflow",
-                "controller_action_type": "return_to_ai_reviewer_workflow",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="ai_reviewer_workflow",
+                controller_action_type="return_to_ai_reviewer_workflow",
+                work_unit_id=work_unit_id,
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint=f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            ),
         },
     )
 
@@ -572,14 +554,13 @@ def test_ai_reviewer_current_inputs_route_still_requires_paper_write_authority_u
                 paper_write_allowed=False,
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "ai_reviewer_workflow",
-                "controller_action_type": "return_to_ai_reviewer_workflow",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="ai_reviewer_workflow",
+                controller_action_type="return_to_ai_reviewer_workflow",
+                work_unit_id=work_unit_id,
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint=f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            ),
         },
     )
 
@@ -610,14 +591,10 @@ def test_stale_opl_handoff_reasons_do_not_bypass_managed_publication_routes(
                 paper_write_allowed=True,
                 bundle_build_allowed=True,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=f"publication-blockers::{work_unit_id}",
+            ),
         },
     )
 
@@ -639,15 +616,12 @@ def test_submission_materialize_can_refresh_source_package_under_stale_opl_hando
                 paper_write_allowed=True,
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "submission_minimal_refresh",
-                "action_family": "paper.package.submission_minimal",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": "publication-blockers::submission_minimal_refresh",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id="submission_minimal_refresh",
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint="publication-blockers::submission_minimal_refresh",
+                action_family="paper.package.submission_minimal",
+            ),
         },
     )
 
@@ -667,14 +641,13 @@ def test_stale_opl_handoff_reasons_do_not_bypass_unsupported_ai_reviewer_work_un
                 gate_state="blocked",
                 gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
             ),
-            "controller_route_context": {
-                "control_surface": "ai_reviewer_workflow",
-                "controller_action_type": "return_to_ai_reviewer_workflow",
-                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::current-manuscript",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="ai_reviewer_workflow",
+                controller_action_type="return_to_ai_reviewer_workflow",
+                work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint="domain-transition::ai_reviewer_re_eval::current-manuscript",
+            ),
         },
     )
 
@@ -695,14 +668,14 @@ def test_stale_opl_handoff_reasons_do_not_bypass_human_confirmation_ai_reviewer_
                 gate_state="blocked",
                 gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
             ),
-            "controller_route_context": {
-                "control_surface": "ai_reviewer_workflow",
-                "controller_action_type": "return_to_ai_reviewer_workflow",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": True,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="ai_reviewer_workflow",
+                controller_action_type="return_to_ai_reviewer_workflow",
+                work_unit_id=work_unit_id,
+                requires_human_confirmation=True,
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint=f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            ),
         },
     )
 
@@ -723,16 +696,15 @@ def test_medical_prose_methodology_route_authorizes_analysis_repair_under_downst
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "medical_prose_quality_analysis_source_documentation_repair",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::002::latest",
-                "work_unit_fingerprint": (
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="medical_prose_quality_analysis_source_documentation_repair",
+                source_eval_id="publication-eval::002::latest",
+                work_unit_fingerprint=(
                     "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
                 ),
-            },
+            ),
         },
     )
 
@@ -765,14 +737,13 @@ def test_medical_prose_write_repair_route_authorizes_paper_write_under_downstrea
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": work_unit_id,
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003-dpcc::latest",
-                "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id=work_unit_id,
+                source_eval_id="publication-eval::003-dpcc::latest",
+                work_unit_fingerprint=f"domain-transition::route_back_same_line::{work_unit_id}",
+            ),
         },
     )
 
@@ -795,14 +766,13 @@ def test_dm002_after_quality_medical_prose_repair_routes_to_paper_write_not_subm
             ],
             bundle_build_allowed=False,
         ),
-        "controller_route_context": {
-            "control_surface": "quality_repair_batch",
-            "controller_action_type": "run_quality_repair_batch",
-            "work_unit_id": "dm002_medical_prose_write_repair_after_quality_batch",
-            "requires_human_confirmation": False,
-            "source_eval_id": "publication-eval::002::after-quality",
-            "work_unit_fingerprint": "publication-blockers::dm002-after-quality",
-        },
+        "controller_route_context": _controller_route_context(
+            control_surface="quality_repair_batch",
+            controller_action_type="run_quality_repair_batch",
+            work_unit_id="dm002_medical_prose_write_repair_after_quality_batch",
+            source_eval_id="publication-eval::002::after-quality",
+            work_unit_fingerprint="publication-blockers::dm002-after-quality",
+        ),
     }
 
     paper_write_gate = module.authorize_authority_route("paper_write", route_context)
@@ -828,13 +798,11 @@ def test_analysis_claim_evidence_route_does_not_authorize_bundle_build_under_dow
                 gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "quality_repair_batch",
-                "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "analysis_claim_evidence_repair",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-            },
+            "controller_route_context": _controller_route_context(
+                control_surface="quality_repair_batch",
+                controller_action_type="run_quality_repair_batch",
+                work_unit_id="analysis_claim_evidence_repair",
+            ),
         },
     )
 
@@ -855,14 +823,10 @@ def test_controller_owned_submission_refresh_route_can_proceed_when_only_runtime
                 gate_blocking_reasons=["runtime_recovery_retry_budget_exhausted"],
                 runtime_recovery_allowed=False,
             ),
-            "controller_route_context": {
-                "control_surface": "gate_clearing_batch",
-                "controller_action_type": "run_gate_clearing_batch",
-                "work_unit_id": "submission_minimal_refresh",
-                "requires_human_confirmation": False,
-                "source_eval_id": "publication-eval::003::latest",
-                "work_unit_fingerprint": "submission-minimal::003",
-            },
+            "controller_route_context": _controller_route_context(
+                work_unit_id="submission_minimal_refresh",
+                work_unit_fingerprint="submission-minimal::003",
+            ),
         },
     )
 
@@ -879,12 +843,12 @@ def test_controller_owned_route_does_not_authorize_unsupported_cleanup_action() 
             "cleanup_apply",
             {
                 "authority_snapshot": _snapshot(gate_state="blocked"),
-                "controller_route_context": {
-                    "control_surface": "quality_repair_batch",
-                    "controller_action_type": "run_quality_repair_batch",
-                    "work_unit_id": "submission_delivery_sync_closure",
-                    "requires_human_confirmation": False,
-                },
+                "controller_route_context": _controller_route_context(
+                    control_surface="quality_repair_batch",
+                    controller_action_type="run_quality_repair_batch",
+                    work_unit_id="submission_delivery_sync_closure",
+                    source_eval_id=None,
+                ),
             },
         )
 

@@ -2,19 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import importlib
-import json
 from pathlib import Path
 
 from tests.domain_action_request_materializer_cases.shared import legacy_request_task_refs as _legacy_request_task_refs
 from tests.domain_action_request_materializer_cases.shared import next_action_envelope as _next_action_envelope
+from tests.domain_action_request_materializer_cases.shared import write_json as _write_json
 
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
-
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _sha256_file(path: Path) -> str:
