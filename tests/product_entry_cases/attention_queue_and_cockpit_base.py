@@ -32,6 +32,141 @@ def _assert_diagnostic_refresh_policy(policy: dict, command: str) -> None:
     assert policy["default_paper_mission_entry"] is False
 
 
+def _doctor_report() -> SimpleNamespace:
+    return SimpleNamespace(
+        workspace_exists=True, runtime_exists=True, studies_exists=True, portfolio_exists=True,
+        med_deepscientist_runtime_exists=True, medical_overlay_ready=True,
+        external_runtime_contract={"ready": True},
+        workspace_domain_route_contract={
+            "status": "loaded", "loaded": True,
+            "summary": "OPL current_control_state refs-only handoff 已在线。", "drift_reasons": [],
+        },
+    )
+
+
+def _workspace_supervision(*, loaded: bool, summary: str) -> dict[str, object]:
+    return {
+        "manager": "launchd", "status": "loaded" if loaded else "not_loaded",
+        "loaded": loaded, "job_exists": True, "summary": summary, "drift_reasons": [],
+    }
+
+
+def _mainline_status(
+    *,
+    stage_id: str = "phase-x",
+    stage_summary: str = "current stage",
+    phase_id: str = "phase-y",
+    phase_summary: str = "current phase",
+    next_focus: list[str] | None = None,
+    explicitly_not_now: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "program_id": "research-foundry-medical-mainline",
+        "current_stage": {"id": stage_id, "status": "in_progress", "summary": stage_summary},
+        "current_program_phase": {"id": phase_id, "status": "in_progress", "summary": phase_summary},
+        "next_focus": next_focus or [],
+        "explicitly_not_now": explicitly_not_now or [],
+    }
+
+
+def _stub_workspace_cockpit_basics(
+    monkeypatch,
+    *,
+    supervision_loaded: bool,
+    supervision_summary: str,
+    mainline_payload: dict[str, object],
+) -> None:
+    monkeypatch.setattr(
+        product_entry_cockpit_payload_module(),
+        "build_doctor_report",
+        lambda profile: _doctor_report(),
+    )
+    monkeypatch.setattr(
+        product_entry_cockpit_payload_module(),
+        "_inspect_workspace_supervision",
+        lambda profile: _workspace_supervision(
+            loaded=supervision_loaded,
+            summary=supervision_summary,
+        ),
+    )
+    monkeypatch.setattr(mainline_status, "read_mainline_status", lambda: mainline_payload)
+
+
+def _study_progress_payload(
+    *, study_id: str, profile_ref, current_stage_summary: str, next_system_action: str,
+    current_blockers: list[str] | None = None,
+    top_current_stage: str = "publication_supervision",
+    writer_state: str = "queued",
+    user_next: str = "watch",
+    reason: str = "runtime",
+    package_delivered: bool = False,
+    actual_write_active: bool = False,
+    user_action_required: bool = False,
+    state_label: str = "系统排队处理中",
+    state_summary: str | None = None,
+    projection_current_stage: str = "queued",
+    browser_url: str | None = None, quest_session_api_url: str | None = None, active_run_id: str | None = None,
+    health_status: str = "live",
+    supervisor_tick_status: str = "fresh",
+    recommended_command: str | None = None,
+    **overrides: object,
+) -> dict[str, object]:
+    blockers = current_blockers or []
+    command = recommended_command or (
+        "uv run python -m med_autoscience.cli study progress --profile " + str(profile_ref.resolve()) + " --study-id " + study_id
+    )
+    details: dict[str, object] = {"package_delivered": package_delivered}
+    if active_run_id:
+        details["active_run_id"] = active_run_id
+    payload: dict[str, object] = {
+        "study_id": study_id,
+        "current_stage": top_current_stage,
+        "current_stage_summary": current_stage_summary,
+        "current_blockers": blockers,
+        "next_system_action": next_system_action,
+        "study_macro_state": {
+            "surface": "study_macro_state", "schema_version": 1, "study_id": study_id,
+            "writer_state": writer_state, "user_next": user_next, "reason": reason,
+            "details": details, "conditions": [],
+        },
+        "user_visible_projection": {
+            "surface": "study_progress_user_visible_projection",
+            "schema_version": 2,
+            "authority": "truth_projection",
+            "projection_only": True,
+            "study_id": study_id,
+            "state": f"{writer_state}/{user_next}/{reason}",
+            "writer_state": writer_state,
+            "user_next": user_next,
+            "reason": reason,
+            "package_delivered": package_delivered,
+            "actual_write_active": actual_write_active,
+            "user_action_required": user_action_required,
+            "state_label": state_label,
+            "state_summary": state_summary or current_stage_summary,
+            "current_stage": projection_current_stage,
+            "current_stage_summary": current_stage_summary,
+            "current_blockers": blockers,
+            "next_system_action": next_system_action,
+            "evidence": {"latest_events": [], "refs": {}},
+            "conditions": [],
+        },
+        "recommended_command": command,
+        "recommended_commands": [],
+        "recovery_contract": {},
+        "needs_physician_decision": False,
+        "supervision": {
+            "browser_url": browser_url, "quest_session_api_url": quest_session_api_url,
+            "active_run_id": active_run_id, "health_status": health_status,
+            "supervisor_tick_status": supervisor_tick_status,
+        },
+        "task_intake": {},
+        "progress_freshness": {"status": "fresh", "summary": "fresh"},
+    }
+    payload.update(overrides)
+    return payload
+
+
 def test_workspace_cockpit_marks_domain_diagnostic_commands_as_diagnostic_only(tmp_path) -> None:
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -340,59 +475,20 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     write_study(profile.workspace_root, "001-risk")
     write_study(profile.workspace_root, "002-risk")
 
-    monkeypatch.setattr(
-        product_entry_cockpit_payload_module(),
-        "build_doctor_report",
-        lambda profile: SimpleNamespace(
-            workspace_exists=True,
-            runtime_exists=True,
-            studies_exists=True,
-            portfolio_exists=True,
-            med_deepscientist_runtime_exists=True,
-            medical_overlay_ready=True,
-            external_runtime_contract={"ready": True},
-            workspace_domain_route_contract={
-                "status": "loaded",
-                "loaded": True,
-                "summary": "OPL current_control_state refs-only handoff 已在线。",
-                "drift_reasons": [],
-            },
-        ),
-    )
-
-    monkeypatch.setattr(
-        product_entry_cockpit_payload_module(),
-        "_inspect_workspace_supervision",
-        lambda profile: {
-            "manager": "launchd",
-            "status": "not_loaded",
-            "loaded": False,
-            "job_exists": True,
-            "summary": "OPL current_control_state refs-only handoff 未就绪。",
-        },
-    )
-    monkeypatch.setattr(
-        mainline_status,
-        "read_mainline_status",
-        lambda: {
-            "program_id": "research-foundry-medical-mainline",
-            "current_stage": {
-                "id": "f4_blocker_closeout",
-                "status": "in_progress",
-                "summary": "当前主线仍在 blocker 收口与 product-entry hardening。",
-            },
-            "current_program_phase": {
-                "id": "phase_1_mainline_established",
-                "status": "in_progress",
-                "summary": "当前仍在第一阶段尾声。",
-            },
-            "next_focus": [
+    _stub_workspace_cockpit_basics(
+        monkeypatch,
+        supervision_loaded=False,
+        supervision_summary="OPL current_control_state refs-only handoff 未就绪。",
+        mainline_payload=_mainline_status(
+            stage_id="f4_blocker_closeout",
+            stage_summary="当前主线仍在 blocker 收口与 product-entry hardening。",
+            phase_id="phase_1_mainline_established",
+            phase_summary="当前仍在第一阶段尾声。",
+            next_focus=[
                 "continue hardening user-visible product-entry surfaces so task, progress, supervision, and stuck-state truth stay visible",
             ],
-            "explicitly_not_now": [
-                "physical migration or cross-repo rewrite",
-            ],
-        },
+            explicitly_not_now=["physical migration or cross-repo rewrite"],
+        ),
     )
 
     def fake_progress(
@@ -405,52 +501,31 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     ) -> dict:
         resolved_study_id = study_id or Path(study_root).name
         if resolved_study_id == "001-risk":
-            return {
-                "study_id": resolved_study_id,
-                "current_stage": "managed_opl_runtime_owner_handoff_gap",
-                "current_stage_summary": "OPL runtime manager 托管监管存在缺口。",
-                "current_blockers": ["OPL runtime manager 托管监管存在缺口。"],
-                "next_system_action": "先刷新 domain route tick，再继续托管推进。",
-                "study_macro_state": {
-                    "surface": "study_macro_state",
-                    "schema_version": 1,
-                    "study_id": "001-risk",
-                    "writer_state": "queued",
-                    "user_next": "repair",
-                    "reason": "runtime",
-                    "details": {"package_delivered": False},
-                    "conditions": [],
-                },
-                "user_visible_projection": {
-                    "surface": "study_progress_user_visible_projection",
-                    "schema_version": 2,
-                    "authority": "truth_projection",
-                    "projection_only": True,
-                    "study_id": "001-risk",
-                    "state": "queued/repair/runtime",
-                    "writer_state": "queued",
-                    "user_next": "repair",
-                    "reason": "runtime",
-                    "package_delivered": False,
-                    "actual_write_active": False,
-                    "user_action_required": False,
-                    "state_label": "质量修复/复审中",
-                    "state_summary": "OPL runtime manager 托管监管存在缺口。",
-                    "current_stage": "queued",
-                    "current_stage_summary": "OPL runtime manager 托管监管存在缺口。",
-                    "current_blockers": ["OPL runtime manager 托管监管存在缺口。"],
-                    "next_system_action": "先刷新 domain route tick，再继续托管推进。",
-                    "evidence": {"latest_events": [], "refs": {}},
-                    "conditions": [],
-                },
-                "intervention_lane": {
+            refresh_command = (
+                "uv run python -m med_autoscience.cli paper-mission inspect --profile "
+                + str(profile_ref.resolve())
+                + " --format json"
+            )
+            return _study_progress_payload(
+                study_id=resolved_study_id,
+                profile_ref=profile_ref,
+                top_current_stage="managed_opl_runtime_owner_handoff_gap",
+                current_stage_summary="OPL runtime manager 托管监管存在缺口。",
+                current_blockers=["OPL runtime manager 托管监管存在缺口。"],
+                next_system_action="先刷新 domain route tick，再继续托管推进。",
+                user_next="repair",
+                state_label="质量修复/复审中",
+                health_status="unknown",
+                supervisor_tick_status="stale",
+                recommended_command=refresh_command,
+                intervention_lane={
                     "lane_id": "workspace_supervision_gap",
                     "title": "优先刷新 OPL runtime manager 托管监管",
                     "severity": "critical",
                     "summary": "OPL runtime manager 托管监管存在缺口。",
                     "recommended_action_id": "refresh_supervision",
                 },
-                "operator_verdict": {
+                operator_verdict={
                     "surface_kind": "study_operator_verdict",
                     "verdict_id": "study_operator_verdict::001-risk::workspace_supervision_gap",
                     "study_id": "001-risk",
@@ -463,24 +538,17 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "reason_summary": "OPL current_control_state refs-only handoff 未就绪。",
                     "primary_step_id": "refresh_supervision",
                     "primary_surface_kind": "paper_mission_readback_refresh",
-                    "primary_command": (
-                        "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                    ),
+                    "primary_command": refresh_command,
                 },
-                "recommended_command": (
-                    "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                ),
-                "recommended_commands": [
+                recommended_commands=[
                     {
                         "step_id": "refresh_supervision",
                         "title": "刷新 OPL current_control_state refs-only handoff",
                         "surface_kind": "paper_mission_readback_refresh",
-                        "command": (
-                            "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                        ),
+                        "command": refresh_command,
                     }
                 ],
-                "recovery_contract": {
+                recovery_contract={
                     "contract_kind": "study_recovery_contract",
                     "lane_id": "workspace_supervision_gap",
                     "action_mode": "refresh_supervision",
@@ -491,75 +559,46 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                             "step_id": "refresh_supervision",
                             "title": "刷新 OPL current_control_state refs-only handoff",
                             "surface_kind": "paper_mission_readback_refresh",
-                            "command": (
-                                "uv run python -m med_autoscience.cli paper-mission inspect --profile " + str(profile_ref.resolve()) + " --format json"
-                            ),
+                            "command": refresh_command,
                         }
                     ],
                 },
-                "needs_physician_decision": False,
-                "supervision": {
-                    "browser_url": None,
-                    "quest_session_api_url": None,
-                    "active_run_id": None,
-                    "health_status": "unknown",
-                    "supervisor_tick_status": "stale",
-                },
-                "task_intake": {
+                task_intake={
                     "task_intent": "先恢复自动监管与持续进度，再决定是否继续推进论文主线。",
                     "journal_target": "BMC Medicine",
                 },
-                "progress_freshness": {
+                progress_freshness={
                     "status": "stale",
                     "summary": "距离上一次明确研究推进已经超过 12 小时，当前要重点排查是否卡住或空转。",
                 },
-            }
-        return {
-            "study_id": resolved_study_id,
-            "current_stage": "publication_supervision",
-                "current_stage_summary": "论文可发表性监管。",
-                "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
-                "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
-                "study_macro_state": {
-                    "surface": "study_macro_state",
-                    "schema_version": 1,
-                    "study_id": "002-risk",
-                    "writer_state": "live",
-                    "user_next": "watch",
-                    "reason": "runtime",
-                    "details": {"active_run_id": "run-002", "package_delivered": False},
-                    "conditions": [],
-                },
-                "user_visible_projection": {
-                    "surface": "study_progress_user_visible_projection",
-                    "schema_version": 2,
-                    "authority": "truth_projection",
-                    "projection_only": True,
-                    "study_id": "002-risk",
-                    "state": "live/watch/runtime",
-                    "writer_state": "live",
-                    "user_next": "watch",
-                    "reason": "runtime",
-                    "package_delivered": False,
-                    "actual_write_active": True,
-                    "user_action_required": False,
-                    "state_label": "自动运行中",
-                    "state_summary": "论文可发表性监管。",
-                    "current_stage": "live",
-                    "current_stage_summary": "论文可发表性监管。",
-                    "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
-                    "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
-                    "evidence": {"latest_events": [], "refs": {}},
-                    "conditions": [],
-                },
-            "intervention_lane": {
+            )
+        progress_command = (
+            "uv run python -m med_autoscience.cli study progress --profile "
+            + str(profile_ref.resolve())
+            + " --study-id 002-risk"
+        )
+        return _study_progress_payload(
+            study_id=resolved_study_id,
+            profile_ref=profile_ref,
+            current_stage_summary="论文可发表性监管。",
+            current_blockers=["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
+            next_system_action="先停止当前 figure-polish loop，再回到主线。",
+            writer_state="live",
+            actual_write_active=True,
+            state_label="自动运行中",
+            projection_current_stage="live",
+            browser_url="http://127.0.0.1:20999",
+            quest_session_api_url="http://127.0.0.1:20999/api/quests/002-risk/session",
+            active_run_id="run-002",
+            recommended_command=progress_command,
+            intervention_lane={
                 "lane_id": "quality_floor_blocker",
                 "title": "优先收口质量硬阻塞",
                 "severity": "critical",
                 "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
                 "recommended_action_id": "inspect_progress",
             },
-            "operator_verdict": {
+            operator_verdict={
                 "surface_kind": "study_operator_verdict",
                 "verdict_id": "study_operator_verdict::002-risk::monitor_only",
                 "study_id": "002-risk",
@@ -572,30 +611,17 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "reason_summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
                 "primary_step_id": "inspect_study_progress",
                 "primary_surface_kind": "study_progress",
-                "primary_command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id 002-risk"
-                ),
+                "primary_command": progress_command,
             },
-            "recommended_command": (
-                "uv run python -m med_autoscience.cli study progress --profile "
-                + str(profile_ref.resolve())
-                + " --study-id 002-risk"
-            ),
-            "recommended_commands": [
+            recommended_commands=[
                 {
                     "step_id": "inspect_study_progress",
                     "title": "读取当前研究进度",
                     "surface_kind": "study_progress",
-                    "command": (
-                        "uv run python -m med_autoscience.cli study progress --profile "
-                        + str(profile_ref.resolve())
-                        + " --study-id 002-risk"
-                    ),
+                    "command": progress_command,
                 }
             ],
-            "recovery_contract": {
+            recovery_contract={
                 "contract_kind": "study_recovery_contract",
                 "lane_id": "quality_floor_blocker",
                 "action_mode": "inspect_progress",
@@ -603,34 +629,22 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "recommended_step_id": "inspect_study_progress",
                 "steps": [
                     {
-                        "step_id": "inspect_study_progress",
-                        "title": "读取当前研究进度",
-                        "surface_kind": "study_progress",
-                        "command": (
-                            "uv run python -m med_autoscience.cli study progress --profile "
-                            + str(profile_ref.resolve())
-                            + " --study-id 002-risk"
-                        ),
-                    }
-                ],
-            },
-            "needs_physician_decision": False,
-            "supervision": {
-                "browser_url": "http://127.0.0.1:20999",
-                "quest_session_api_url": "http://127.0.0.1:20999/api/quests/002-risk/session",
-                "active_run_id": "run-002",
-                "health_status": "live",
-                "supervisor_tick_status": "fresh",
-            },
-            "task_intake": {
+                            "step_id": "inspect_study_progress",
+                            "title": "读取当前研究进度",
+                            "surface_kind": "study_progress",
+                            "command": progress_command,
+                        }
+                    ],
+                },
+            task_intake={
                 "task_intent": "把当前研究收口到 SCI-ready 投稿标准，并优先补齐证据链。",
                 "journal_target": "The Lancet Digital Health",
             },
-            "progress_freshness": {
+            progress_freshness={
                 "status": "fresh",
                 "summary": "最近 12 小时内仍有明确研究推进记录。",
             },
-        }
+        )
 
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),
@@ -751,47 +765,11 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
     write_study(profile.workspace_root, "001-risk")
     write_study(profile.workspace_root, "002-risk")
 
-    monkeypatch.setattr(
-        product_entry_cockpit_payload_module(),
-        "build_doctor_report",
-        lambda profile: SimpleNamespace(
-            workspace_exists=True,
-            runtime_exists=True,
-            studies_exists=True,
-            portfolio_exists=True,
-            med_deepscientist_runtime_exists=True,
-            medical_overlay_ready=True,
-            external_runtime_contract={"ready": True},
-            workspace_domain_route_contract={
-                "status": "loaded",
-                "loaded": True,
-                "summary": "OPL current_control_state refs-only handoff 已在线。",
-                "drift_reasons": [],
-            },
-        ),
-    )
-    monkeypatch.setattr(
-        product_entry_cockpit_payload_module(),
-        "_inspect_workspace_supervision",
-        lambda profile: {
-            "manager": "launchd",
-            "status": "loaded",
-            "loaded": True,
-            "job_exists": True,
-            "summary": "OPL current_control_state refs-only handoff 已在线。",
-            "drift_reasons": [],
-        },
-    )
-    monkeypatch.setattr(
-        mainline_status,
-        "read_mainline_status",
-        lambda: {
-            "program_id": "research-foundry-medical-mainline",
-            "current_stage": {"id": "phase-x", "status": "in_progress", "summary": "current stage"},
-            "current_program_phase": {"id": "phase-y", "status": "in_progress", "summary": "current phase"},
-            "next_focus": [],
-            "explicitly_not_now": [],
-        },
+    _stub_workspace_cockpit_basics(
+        monkeypatch,
+        supervision_loaded=True,
+        supervision_summary="OPL current_control_state refs-only handoff 已在线。",
+        mainline_payload=_mainline_status(),
     )
 
     second_started = threading.Event()
@@ -809,63 +787,12 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             assert second_started.wait(0.5), "workspace cockpit should fan out study progress reads in parallel"
         else:
             second_started.set()
-        return {
-            "study_id": resolved_study_id,
-            "current_stage": "publication_supervision",
-            "current_stage_summary": f"{resolved_study_id} stage",
-            "current_blockers": [],
-            "next_system_action": f"{resolved_study_id} next",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": resolved_study_id,
-                "writer_state": "queued",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"package_delivered": False},
-                "conditions": [],
-            },
-            "user_visible_projection": {
-                "surface": "study_progress_user_visible_projection",
-                "schema_version": 2,
-                "authority": "truth_projection",
-                "projection_only": True,
-                "study_id": resolved_study_id,
-                "state": "queued/watch/runtime",
-                "writer_state": "queued",
-                "user_next": "watch",
-                "reason": "runtime",
-                "package_delivered": False,
-                "actual_write_active": False,
-                "user_action_required": False,
-                "state_label": "系统排队处理中",
-                "state_summary": f"{resolved_study_id} stage",
-                "current_stage": "queued",
-                "current_stage_summary": f"{resolved_study_id} stage",
-                "current_blockers": [],
-                "next_system_action": f"{resolved_study_id} next",
-                "evidence": {"latest_events": [], "refs": {}},
-                "conditions": [],
-            },
-            "recommended_command": (
-                "uv run python -m med_autoscience.cli study progress --profile "
-                + str(profile_ref.resolve())
-                + " --study-id "
-                + resolved_study_id
-            ),
-            "recommended_commands": [],
-            "recovery_contract": {},
-            "needs_physician_decision": False,
-            "supervision": {
-                "browser_url": None,
-                "quest_session_api_url": None,
-                "active_run_id": None,
-                "health_status": "live",
-                "supervisor_tick_status": "fresh",
-            },
-            "task_intake": {},
-            "progress_freshness": {"status": "fresh", "summary": "fresh"},
-        }
+        return _study_progress_payload(
+            study_id=resolved_study_id,
+            profile_ref=profile_ref,
+            current_stage_summary=f"{resolved_study_id} stage",
+            next_system_action=f"{resolved_study_id} next",
+        )
 
     monkeypatch.setattr(
         _shared.product_entry_cockpit_payload_module(),

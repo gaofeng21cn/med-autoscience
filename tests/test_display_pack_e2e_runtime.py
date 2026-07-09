@@ -30,132 +30,18 @@ version = "0.3.0"
     )
 
 
-def _write_renderable_pack(repo_root: Path) -> None:
-    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
-    template_root = pack_root / "templates" / "roc_curve_binary"
-    template_root.mkdir(parents=True)
-    (pack_root / "display_pack.toml").write_text(
-        "\n".join(
-            (
-                'pack_id = "fenggaolab.org.medical-display-core"',
-                'version = "0.3.0"',
-                'display_api_version = "1"',
-                'default_execution_mode = "subprocess"',
-                'summary = "E2E renderable test pack"',
-                'maintainer = "MAS tests"',
-                'license = "MIT"',
-            )
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    (template_root / "template.toml").write_text(
-        "\n".join(
-            (
-                'template_id = "roc_curve_binary"',
-                'full_template_id = "fenggaolab.org.medical-display-core::roc_curve_binary"',
-                'kind = "evidence_figure"',
-                'display_name = "ROC Curve"',
-                'paper_family_ids = ["A"]',
-                'audit_family = "Prediction Performance"',
-                'renderer_family = "r_ggplot2"',
-                'input_schema_ref = "binary_prediction_curve_inputs_v1"',
-                'qc_profile_ref = "publication_evidence_curve"',
-                'style_profile_ref = "paper_neutral_clinical_v1"',
-                'required_exports = ["png", "pdf"]',
-                'execution_mode = "subprocess"',
-                f'entrypoint = "{sys.executable} render_subprocess.py --request {{request_json}}"',
-                "paper_proven = true",
-            )
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    (template_root / "render_subprocess.py").write_text(
-        """
-from __future__ import annotations
-
-import argparse
-import json
-from pathlib import Path
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--request", required=True)
-    args = parser.parse_args()
-    request = json.loads(Path(args.request).read_text(encoding="utf-8"))
-    panel_ids = [str(item.get("panel_id") or "").strip() for item in request["display_payload"].get("panels", [])]
-    panel_ids = [item for item in panel_ids if item]
-    rendered_panel_ids = panel_ids if len(panel_ids) == 1 else []
-    output_png_path = Path(request["output_png_path"])
-    output_pdf_path = Path(request["output_pdf_path"])
-    layout_sidecar_path = Path(request["layout_sidecar_path"])
-    output_png_path.parent.mkdir(parents=True, exist_ok=True)
-    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    output_png_path.write_text("PNG:" + request["template_id"], encoding="utf-8")
-    output_pdf_path.write_text("%PDF:" + request["template_id"], encoding="utf-8")
-    layout_sidecar_path.write_text(
-        json.dumps(
-            {
-                "template_id": "roc_curve_binary",
-                "device": {"width": 10.0, "height": 8.0},
-                "layout_boxes": [
-                    {"box_id": "title", "box_type": "title", "x0": 1.0, "y0": 0.1, "x1": 8.8, "y1": 0.55},
-                    {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.2, "y0": 2.0, "x1": 0.7, "y1": 6.0},
-                    {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 3.0, "y0": 7.2, "x1": 7.0, "y1": 7.7},
-                ],
-                "panel_boxes": [
-                    {
-                        "box_id": "panel",
-                        "box_type": "panel",
-                        "panel_id": rendered_panel_ids[0] if rendered_panel_ids else "",
-                        "x0": 1.2,
-                        "y0": 1.0,
-                        "x1": 8.0,
-                        "y1": 6.7,
-                    }
-                ],
-                "guide_boxes": [
-                    {"box_id": "legend", "box_type": "legend", "x0": 8.2, "y0": 1.0, "x1": 9.7, "y1": 2.0}
-                ],
-                "metrics": {
-                    "series": [{"x": [0.0, 0.4, 1.0], "y": [0.0, 0.82, 1.0]}],
-                    "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
-                    "panel_ids": rendered_panel_ids,
-                },
-                "render_context": request["display_payload"]["render_context"],
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\\n",
-        encoding="utf-8",
-    )
-    print(json.dumps({"renderer": "subprocess", "figure_id": request["figure_id"]}))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-
-
-def _write_subprocess_renderable_template(repo_root: Path) -> None:
-    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
-    template_root = pack_root / "templates" / "roc_curve_binary_ggplot2"
+def _write_roc_template_fixture(
+    pack_root: Path, *, template_id: str, display_name: str, png_prefix: str, pdf_prefix: str
+) -> None:
+    template_root = pack_root / "templates" / template_id
     template_root.mkdir(parents=True)
     (template_root / "template.toml").write_text(
         "\n".join(
             (
-                'template_id = "roc_curve_binary_ggplot2"',
-                'full_template_id = "fenggaolab.org.medical-display-core::roc_curve_binary_ggplot2"',
+                f'template_id = "{template_id}"',
+                f'full_template_id = "fenggaolab.org.medical-display-core::{template_id}"',
                 'kind = "evidence_figure"',
-                'display_name = "ROC Curve (R/ggplot2 subprocess)"',
+                f'display_name = "{display_name}"',
                 'paper_family_ids = ["A"]',
                 'audit_family = "Prediction Performance"',
                 'renderer_family = "r_ggplot2"',
@@ -193,29 +79,23 @@ def main() -> int:
     layout_sidecar_path = Path(request["layout_sidecar_path"])
     for path in (output_png_path, output_pdf_path, layout_sidecar_path):
         path.parent.mkdir(parents=True, exist_ok=True)
-    output_png_path.write_text("PNG:subprocess:" + request["template_id"], encoding="utf-8")
-    output_pdf_path.write_text("%PDF:subprocess:" + request["template_id"], encoding="utf-8")
+    output_png_path.write_text("__PNG_PREFIX__" + request["template_id"], encoding="utf-8")
+    output_pdf_path.write_text("__PDF_PREFIX__" + request["template_id"], encoding="utf-8")
     layout_sidecar_path.write_text(
         json.dumps(
             {
-                "template_id": "roc_curve_binary_ggplot2",
+                "template_id": "__TEMPLATE_ID__",
                 "device": {"width": 10.0, "height": 8.0},
                 "layout_boxes": [
                     {"box_id": "title", "box_type": "title", "x0": 1.0, "y0": 0.1, "x1": 8.8, "y1": 0.55},
                     {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.2, "y0": 2.0, "x1": 0.7, "y1": 6.0},
                     {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 3.0, "y0": 7.2, "x1": 7.0, "y1": 7.7},
                 ],
-                "panel_boxes": [
-                    {
-                        "box_id": "panel",
-                        "box_type": "panel",
-                        "panel_id": rendered_panel_ids[0] if rendered_panel_ids else "",
-                        "x0": 1.2,
-                        "y0": 1.0,
-                        "x1": 8.0,
-                        "y1": 6.7,
-                    }
-                ],
+                "panel_boxes": [{
+                    "box_id": "panel", "box_type": "panel",
+                    "panel_id": rendered_panel_ids[0] if rendered_panel_ids else "",
+                    "x0": 1.2, "y0": 1.0, "x1": 8.0, "y1": 6.7,
+                }],
                 "guide_boxes": [
                     {"box_id": "legend", "box_type": "legend", "x0": 8.2, "y0": 1.0, "x1": 9.7, "y1": 2.0}
                 ],
@@ -239,8 +119,40 @@ def main() -> int:
 if __name__ == "__main__":
     raise SystemExit(main())
 """.strip()
+        .replace("__TEMPLATE_ID__", template_id)
+        .replace("__PNG_PREFIX__", png_prefix)
+        .replace("__PDF_PREFIX__", pdf_prefix)
         + "\n",
         encoding="utf-8",
+    )
+
+
+def _write_renderable_pack(repo_root: Path) -> None:
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    pack_root.mkdir(parents=True)
+    (pack_root / "display_pack.toml").write_text(
+        "\n".join(
+            (
+                'pack_id = "fenggaolab.org.medical-display-core"',
+                'version = "0.3.0"',
+                'display_api_version = "1"',
+                'default_execution_mode = "subprocess"',
+                'summary = "E2E renderable test pack"',
+                'maintainer = "MAS tests"',
+                'license = "MIT"',
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_roc_template_fixture(pack_root, template_id="roc_curve_binary", display_name="ROC Curve", png_prefix="PNG:", pdf_prefix="%PDF:")
+
+
+def _write_subprocess_renderable_template(repo_root: Path) -> None:
+    pack_root = repo_root / "external" / "display-packs" / "medical-display-core"
+    _write_roc_template_fixture(
+        pack_root, template_id="roc_curve_binary_ggplot2", display_name="ROC Curve (R/ggplot2 subprocess)",
+        png_prefix="PNG:subprocess:", pdf_prefix="%PDF:subprocess:",
     )
 
 
