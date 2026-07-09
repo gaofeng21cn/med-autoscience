@@ -1,290 +1,44 @@
 from __future__ import annotations
 
-from tests.study_progress_cases.runtime_projection_basics import (
-    test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary,
-    test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetry,
-    test_study_progress_records_stage_actions_when_runner_telemetry_is_missing,
-    test_study_progress_marks_work_unit_lifecycle_span_as_elapsed_window,
-    test_study_progress_reads_stage_token_usage_from_closeout_refs_when_runner_telemetry_is_missing,
-    test_study_progress_reads_provider_token_usage_from_closeout_top_level,
-    test_study_progress_builds_physician_friendly_projection,
-    test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalation_record_is_missing,
-    test_render_study_progress_markdown_uses_physician_friendly_sections,
-)
-from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import (
-    test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint_lineage,
-    test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_when_runtime_is_escalated,
-    test_study_progress_projects_stale_progress_signal_for_active_runtime,
-)
-from tests.study_progress_cases.shared_base import (
-    test_publishability_gate_report_path_prefers_fresher_latest_gate_over_runtime_readback_pointer,
-    test_study_progress_import_does_not_require_submission_pdf_dependency,
-)
-from tests.study_progress_cases.runtime_efficiency_operator_projection import (
-    test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_efficiency,
-    test_study_progress_projects_autonomy_slo_ai_doctor_state,
-    test_study_progress_materializes_autonomy_slo_when_surface_is_missing,
-    test_study_progress_projects_completed_parked_auto_continue_without_live_run,
-    test_study_progress_prioritizes_no_live_recovery_over_closeout_continuation,
-    test_study_progress_merges_autonomy_slo_refs_into_existing_projection,
-    test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_signal,
-    test_study_progress_freshness_separates_supervisor_tick_from_artifact_delta,
-    test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity_timeout,
-    test_study_progress_gives_new_live_run_grace_before_activity_timeout,
-)
-from tests.study_progress_cases.ai_repair_lifecycle_projection import (
-    test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection,
-    test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_evidence_adoption,
-    test_study_progress_suppresses_opl_handoff_lifecycle_after_newer_owner_truth,
-    test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_action,
-)
-from tests.study_progress_cases.autonomy_quality_and_route_projection import (
-    test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch,
-    test_study_progress_projects_quality_closure_truth_and_basis,
-    test_study_progress_normalizes_legacy_non_mapping_quality_execution_lane_from_existing_projection,
-    test_study_progress_normalizes_legacy_runtime_control_projection_from_existing_projection,
-    test_study_progress_suppresses_same_line_route_when_publication_supervisor_blocks_bundle_tasks,
-    test_study_progress_does_not_project_resume_arbitration_as_physician_decision,
-    test_study_progress_does_not_project_autonomous_controller_gate_as_physician_decision,
-    test_study_progress_labels_bounded_analysis_as_autonomous_next_step,
-    test_study_progress_surfaces_same_line_route_back_quality_focus,
-)
-from tests.study_progress_cases.operator_status_and_eval_refresh import (
-    test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_gate,
-    test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_decision,
-    test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runtime_parked,
-    test_study_progress_domain_routeback_supersedes_auditable_metadata_parking,
-    test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery_stage,
-    test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_progress,
-    test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_gap,
-    test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint,
-)
-from tests.study_progress_cases.operator_status_activity_timeout import (
-    test_activity_timeout_takes_priority_over_paper_surface_refresh_gap,
-    test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_projection,
-    test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_ticks,
-)
-from tests.study_progress_cases.abnormal_stopped_runtime_projection import (
-    test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_package_handoff,
-)
-from tests.study_progress_cases.gate_specificity_projection import (
-    test_study_progress_projects_gate_specificity_as_controller_lane,
-    test_gate_specificity_supersedes_older_task_intake_route_override,
-    test_gate_specificity_takes_priority_over_live_activity_timeout,
-    test_study_progress_reads_gate_specificity_request_surface,
-    test_study_progress_suppresses_stale_gate_specificity_request_after_targets_resolve,
-)
-from tests.study_progress_cases.milestone_parking_projection import (
-    test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_recovery,
-    test_parked_operator_verdicts_keep_mds_out_of_current_owner_text,
-)
-from tests.study_progress_cases.supervision_blockers_and_task_reopen import (
-    test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime,
-    test_study_progress_projects_explicit_runtime_blocker_before_publication_supervision,
-    test_study_progress_projects_manual_finishing_contract_before_runtime_blocker,
-    test_study_progress_projects_manual_finishing_fast_lane_intake,
-    test_study_progress_projects_bundle_only_submission_ready_parking_before_runtime_blocker,
-    test_study_progress_reopened_task_intake_overrides_bundle_only_parking,
-    test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeout,
-)
-from tests.study_progress_cases.completion_evidence_projection import (
-    test_study_progress_does_not_project_study_completed_when_completion_contract_is_not_ready,
-)
-from tests.study_progress_cases.runtime_liveness_convergence import (
-    test_study_progress_projects_active_quest_without_live_run_as_recovery,
-    test_study_progress_projects_output_blocker_impact_from_runtime_continuity,
-    test_study_progress_ignores_retired_runtime_supervision_currentness,
-    test_study_progress_treats_opl_runtime_owner_handoff_as_refs_only,
-)
-from tests.study_progress_cases.control_surface_progress_projection import (
-    test_study_progress_freshness_does_not_treat_control_surface_as_artifact_delta,
-    test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta,
-    test_study_progress_invalidates_live_run_after_no_selected_dispatch_closeout,
-    test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta,
-)
-from tests.study_progress_cases.reviewer_handoff_quality_closure import (
-    test_study_progress_verified_reviewer_handoff_surfaces_ai_reviewer_quality_closure,
-)
-from tests.study_progress_cases.markdown_and_followthrough_projection import (
-    test_study_progress_suppresses_task_intake_route_inside_eval_surface_when_gate_blocked,
-    test_render_study_progress_markdown_humanizes_decision_continuation_reason,
-    test_render_study_progress_markdown_humanizes_latest_user_requirement_continuation_reason,
-    test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual_finishing,
-    test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_blockers,
-    test_render_study_progress_markdown_prefers_shared_human_status_narration,
-    test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_readback,
-    test_study_progress_suppresses_conflicting_bundle_ready_runtime_events,
-    test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_blocker,
-    test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker_after_write_unlock,
-    test_study_progress_blockers_override_bundle_stage_next_action,
-)
-from tests.study_progress_cases.quality_followthrough_projection import (
-    test_gate_clearing_batch_followthrough_accepts_current_publication_blocker_fingerprint_after_eval_refresh,
-    test_gate_clearing_batch_followthrough_accepts_domain_transition_eval_basis,
-    test_gate_clearing_batch_followthrough_keeps_actionable_route_back_after_mechanical_eval,
-    test_gate_clearing_batch_followthrough_reads_cutover_source_publication_eval,
-    test_quality_repair_batch_followthrough_survives_gate_replay_eval_refresh,
-    test_quality_review_followthrough_projects_auto_re_review_pending_when_runtime_recovery_requested,
-    test_render_study_progress_markdown_surfaces_gate_clearing_batch_followthrough,
-    test_render_study_progress_markdown_surfaces_quality_repair_batch_followthrough,
-    test_render_study_progress_markdown_surfaces_quality_review_followthrough,
-    test_study_progress_projects_gate_clearing_batch_followthrough,
-    test_study_progress_projects_quality_repair_batch_followthrough,
-)
-from tests.study_progress_cases.ai_first_default_entry_projection import (
-    test_study_progress_projects_artifact_proof_and_submission_hygiene_truth,
-    test_study_progress_projects_ai_first_action_dispatch_lifecycle,
-    test_study_progress_projects_ai_reviewer_request_lifecycle,
-    test_study_progress_projects_paper_orchestra_operator_read_model_without_new_runtime_truth,
-    test_study_progress_operator_projection_integrates_landed_paper_orchestra_surfaces,
-)
-from tests.study_progress_cases.ai_first_read_only_ledgers import (
-    test_study_progress_projects_ai_first_default_entry_state_fail_closed,
-    test_study_progress_default_read_does_not_materialize_ai_first_ledgers,
-)
-from tests.study_progress_cases.medical_readiness_v2_projection import (
-    test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details,
-    test_mcp_progress_projection_uses_canonical_user_visible_projection,
-    test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_authority_refs,
-    test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics,
-    test_study_progress_markdown_renders_v2_readiness_action_semantics,
-)
-from tests.study_progress_cases.medical_paper_ops_health_projection import (
-    test_compact_mcp_progress_projection_preserves_v5_ops_health,
-    test_mcp_and_study_progress_markdown_render_v5_ops_health,
-)
-from tests.study_progress_cases.open_auto_research_projection import (
-    test_study_progress_projects_open_auto_research_capabilities_without_authority_takeover,
-    test_open_auto_research_projection_does_not_export_materializer,
-    test_open_auto_research_projection_status_matrix_for_missing_and_review_surfaces,
-    test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and_keeps_read_entry_non_materializing,
-    test_workspace_open_auto_research_projection_aggregates_multiple_studies,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection import (
-    test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker,
-    test_provider_admission_readback_supersedes_stale_typed_blocker_stop_projection,
-    test_provider_admission_readback_supersedes_matching_stale_selector_closeout,
-    test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markdown,
-    test_accepted_typed_closeout_consumes_matching_handoff_action_queue,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import (
-    test_provider_readback_not_consumed_by_prior_request_wrapper_domain_closeout,
-    test_same_identity_provider_readback_supersedes_request_only_current_surface,
-    test_study_handoff_preserves_current_control_current_work_unit,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.owner_receipt_closeout import (
-    test_owner_receipt_closeout_consumes_stale_opl_provider_admission_candidate,
-    test_owner_receipt_closeout_consumes_stale_transition_request_candidate,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.running_attempt_identity import (
-    test_opl_current_control_state_handoff_preserves_running_attempt_identity,
-    test_provider_admission_handoff_without_active_attempt_ids_is_not_running,
-    test_running_handoff_without_opl_readback_does_not_consume_current_execution,
-    test_study_progress_keeps_unbound_live_attempt_as_observability_only,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.stage_progress_log_delta import (
-    test_stage_progress_log_alone_does_not_trigger_platform_repair_delta,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.supervisor_tick_audit import (
-    test_supervisor_tick_audit_uses_workspace_opl_current_control_state,
-)
-from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.terminal_closeout_cases import (
-    test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projection,
-    test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handoff,
-)
-from tests.study_progress_cases.opl_current_control_state_live_liveness_projection import (
-    test_progress_projection_uses_opl_current_control_state_as_live_liveness_projection,
-    test_opl_current_control_state_handoff_reader_reuses_unchanged_large_payload,
-    test_read_study_progress_passes_live_provider_probe_policy,
-    test_progress_projection_uses_opl_live_attempt_when_runtime_state_waiting_for_user,
-    test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale,
-    test_progress_projection_uses_live_opl_attempt_when_fresh_handoff_is_non_running_blocker,
-    test_progress_projection_uses_live_opl_attempt_when_quest_state_is_paused,
-    test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_unhealthy,
-)
-from tests.study_progress_cases.opl_current_control_state_live_queue_projection import (
-    test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lacks_study,
-)
-from tests.study_progress_cases.runtime_medical_publication_surface_projection import (
-    test_study_progress_projects_newer_runtime_medical_publication_surface_when_study_shadow_is_ready,
-    test_runtime_medical_publication_surface_projects_structured_and_invalid_blockers,
-)
-from tests.study_progress_cases.delivery_inspection_visibility import (
-    test_study_progress_projects_delivery_inspector_summary_without_authority_changes,
-    test_delivery_inspection_attach_refreshes_stale_user_visible_package_state,
-    test_delivery_visibility_projection_keeps_stale_visible_for_layout_migration,
-)
-from tests.study_progress_cases.user_visible_projection import (
-    test_study_progress_emits_canonical_user_visible_projection,
-    test_user_visible_projection_uses_macro_state_as_single_user_status,
-    test_user_visible_projection_does_not_promote_legacy_action_as_next_step,
-    test_user_visible_projection_carries_decision_trace_refs_without_ledger_body,
-    test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_with_macro_state,
-    test_user_visible_projection_fails_closed_without_macro_state,
-    test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state,
-    test_user_visible_projection_does_not_call_live_worker_active_without_artifact_delta,
-    test_user_visible_projection_exposes_paper_progress_slo_fields,
-    test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_delta,
-    test_user_visible_projection_ignores_body_authority_stage_output_mirror_delta,
-    test_user_visible_projection_uses_interaction_arbitration_owner_and_reason,
-    test_user_visible_projection_uses_current_delivery_read_model_for_package_delivered,
-    test_user_visible_projection_does_not_auto_park_reactivated_same_line_delivery,
-    test_terminal_delivery_correction_suppresses_stale_top_level_blockers,
-    test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_override,
-    test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner,
-    test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write,
-    test_user_visible_projection_labels_all_macro_state_classes,
-)
-from tests.study_progress_cases.domain_routeback_currentness_projection import (
-    test_study_progress_current_write_routeback_supersedes_stale_runtime_recovery_and_metadata_action,
-    test_current_opl_stage_attempt_surfaces_without_claiming_strict_live,
-    test_existing_progress_projection_refreshes_top_level_routeback_action,
-)
-from tests.study_progress_cases.repair_progress_projection import (
-    test_repair_progress_projection_carries_recheck_and_gate_done_flags,
-    test_repair_progress_projection_uses_accepted_receipt_identity_over_evidence_unit,
-    test_repair_progress_projection_accepts_executed_quality_batch_owner_result,
-    test_repair_progress_projection_rejects_quality_batch_without_current_eval_identity,
-    test_existing_progress_projection_refreshes_stable_repair_delta_over_old_stage_packet_blocker,
-)
-from tests.study_progress_cases.publication_eval_ai_reviewer_currentness_projection import (
-    test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gate_projection,
-    test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechanical_projection,
-    test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_escalation_record,
-    test_blocked_gate_projection_does_not_overwrite_current_ai_reviewer_eval,
-)
-from tests.study_progress_cases.publication_eval_currentness_projection import (
-    test_study_progress_drops_stale_submission_authority_blocker_after_controller_closure,
-    test_study_progress_filters_cached_projection_after_controller_closure,
-    test_study_progress_refreshes_publication_eval_from_newer_gate_report,
-    test_study_progress_refreshes_semantically_stale_publication_eval_even_when_eval_is_newer,
-)
-from tests.study_progress_cases.progress_first_projection import (
-    test_next_forced_delta_marks_next_forced_target_surface_as_precise,
-    test_next_forced_delta_uses_domain_transition_required_owner_surface,
-    test_next_forced_delta_prefers_domain_transition_when_handoff_route_lacks_target_surface,
-    test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_transition,
-    test_next_forced_delta_ignores_stale_provider_admission_action_queue_when_transition_routes_write,
-    test_next_forced_delta_does_not_redrive_readiness_queue_after_paper_delta_with_current_transition,
-    test_next_forced_delta_drops_readiness_queue_after_paper_delta_without_current_route,
-    test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_surface,
-    test_next_forced_delta_maps_current_ai_reviewer_consumption_write_route_to_quality_repair_surface,
-    test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_repair_surface,
-    test_next_forced_delta_reads_current_execution_evidence_owner_route,
-    test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_route_lacks_precise_surface,
-)
-from tests.study_progress_cases.progress_first_paper_delta_cases import (
-    test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projection,
-    test_paper_delta_with_missing_runtime_token_usage_reports_unknown_token_total,
-    test_controller_stage_execution_record_alone_does_not_count_paper_delta_or_zero_fill_tokens,
-    test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delta,
-    test_repair_execution_evidence_counts_as_current_paper_delta_and_drops_stale_readiness_queue,
-    test_repair_progress_current_action_survives_runtime_recovery_typed_blocker,
-    test_repair_progress_gate_replay_survives_identity_different_terminal_handoff_closeout,
-    test_consumed_provider_completion_blocker_does_not_promote_domain_transition_successor,
-    test_gate_followthrough_action_does_not_survive_identity_mismatched_current_blocker,
-)
-from tests.study_progress_cases.evidence_gap_projection import (
-    test_evidence_gap_projection_hard_and_soft_accounting_do_not_collapse_to_generic_blocker,
-    test_evidence_gap_projection_does_not_infer_from_runtime_pending_counts,
-)
+from tests.study_progress_cases.abnormal_stopped_runtime_projection import *  # noqa: F403
+from tests.study_progress_cases.ai_first_default_entry_projection import *  # noqa: F403
+from tests.study_progress_cases.ai_first_read_only_ledgers import *  # noqa: F403
+from tests.study_progress_cases.ai_repair_lifecycle_projection import *  # noqa: F403
+from tests.study_progress_cases.autonomy_quality_and_route_projection import *  # noqa: F403
+from tests.study_progress_cases.completion_evidence_projection import *  # noqa: F403
+from tests.study_progress_cases.control_surface_progress_projection import *  # noqa: F403
+from tests.study_progress_cases.delivery_inspection_visibility import *  # noqa: F403
+from tests.study_progress_cases.domain_routeback_currentness_projection import *  # noqa: F403
+from tests.study_progress_cases.evidence_gap_projection import *  # noqa: F403
+from tests.study_progress_cases.gate_specificity_projection import *  # noqa: F403
+from tests.study_progress_cases.markdown_and_followthrough_projection import *  # noqa: F403
+from tests.study_progress_cases.medical_paper_ops_health_projection import *  # noqa: F403
+from tests.study_progress_cases.medical_readiness_v2_projection import *  # noqa: F403
+from tests.study_progress_cases.milestone_parking_projection import *  # noqa: F403
+from tests.study_progress_cases.open_auto_research_projection import *  # noqa: F403
+from tests.study_progress_cases.operator_status_activity_timeout import *  # noqa: F403
+from tests.study_progress_cases.operator_status_and_eval_refresh import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.owner_receipt_closeout import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.running_attempt_identity import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.stage_progress_log_delta import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.supervisor_tick_audit import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.terminal_closeout_cases import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_live_liveness_projection import *  # noqa: F403
+from tests.study_progress_cases.opl_current_control_state_live_queue_projection import *  # noqa: F403
+from tests.study_progress_cases.progress_first_paper_delta_cases import *  # noqa: F403
+from tests.study_progress_cases.progress_first_projection import *  # noqa: F403
+from tests.study_progress_cases.publication_eval_ai_reviewer_currentness_projection import *  # noqa: F403
+from tests.study_progress_cases.publication_eval_currentness_projection import *  # noqa: F403
+from tests.study_progress_cases.quality_followthrough_projection import *  # noqa: F403
+from tests.study_progress_cases.repair_progress_projection import *  # noqa: F403
+from tests.study_progress_cases.reviewer_handoff_quality_closure import *  # noqa: F403
+from tests.study_progress_cases.runtime_efficiency_operator_projection import *  # noqa: F403
+from tests.study_progress_cases.runtime_liveness_convergence import *  # noqa: F403
+from tests.study_progress_cases.runtime_medical_publication_surface_projection import *  # noqa: F403
+from tests.study_progress_cases.runtime_projection_basics import *  # noqa: F403
+from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import *  # noqa: F403
+from tests.study_progress_cases.shared_base import *  # noqa: F403
+from tests.study_progress_cases.supervision_blockers_and_task_reopen import *  # noqa: F403
+from tests.study_progress_cases.user_visible_projection import *  # noqa: F403
