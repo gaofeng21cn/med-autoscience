@@ -27,6 +27,23 @@ from tests.stage_artifact_index_cases.shared import (
 )
 
 
+def _write_study_intake_refs(study_root: Path) -> None:
+    for ref in STUDY_INTAKE_REFS:
+        if ref.endswith(".json"):
+            _write_json(study_root / ref, {"status": "ready"})
+        else:
+            _write_text(study_root / ref)
+
+
+def _write_study_intake_contract(study_root: Path) -> None:
+    _write_study_intake_refs(study_root)
+    _write_stage_native_contract(
+        study_root,
+        stage_id="01-study_intake",
+        refs=STUDY_INTAKE_REFS,
+    )
+
+
 def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tmp_path: Path) -> None:
     study_root = tmp_path / "studies" / "001-risk"
     study_root.mkdir(parents=True)
@@ -470,16 +487,7 @@ def test_stage_artifact_index_counts_manifest_receipt_and_required_outputs_as_cu
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "studies" / "001-risk"
-    for ref in STUDY_INTAKE_REFS:
-        if ref.endswith(".json"):
-            _write_json(study_root / ref, {"status": "ready"})
-        else:
-            _write_text(study_root / ref)
-    _write_stage_native_contract(
-        study_root,
-        stage_id="01-study_intake",
-        refs=STUDY_INTAKE_REFS,
-    )
+    _write_study_intake_contract(study_root)
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
 
@@ -756,16 +764,7 @@ def test_stage_artifact_index_projects_opl_artifact_operating_contract_fields(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "studies" / "001-risk"
-    for ref in STUDY_INTAKE_REFS:
-        if ref.endswith(".json"):
-            _write_json(study_root / ref, {"status": "ready"})
-        else:
-            _write_text(study_root / ref)
-    _write_stage_native_contract(
-        study_root,
-        stage_id="01-study_intake",
-        refs=STUDY_INTAKE_REFS,
-    )
+    _write_study_intake_contract(study_root)
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
 
@@ -817,11 +816,7 @@ def test_stage_artifact_index_does_not_promote_current_pointer_from_manifest_val
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "studies" / "001-risk"
-    for ref in STUDY_INTAKE_REFS:
-        if ref.endswith(".json"):
-            _write_json(study_root / ref, {"status": "ready"})
-        else:
-            _write_text(study_root / ref)
+    _write_study_intake_refs(study_root)
     base = study_root / "artifacts" / "stage_outputs" / "01-study_intake"
     _write_json(
         base / "stage_manifest.json",
@@ -861,18 +856,9 @@ def test_stage_artifact_index_classifies_uncontracted_stage_file_as_orphan(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "studies" / "001-risk"
-    for ref in STUDY_INTAKE_REFS:
-        if ref.endswith(".json"):
-            _write_json(study_root / ref, {"status": "ready"})
-        else:
-            _write_text(study_root / ref)
+    _write_study_intake_contract(study_root)
     _write_text(
         study_root / "artifacts" / "stage_outputs" / "01-study_intake" / "scratch.md"
-    )
-    _write_stage_native_contract(
-        study_root,
-        stage_id="01-study_intake",
-        refs=STUDY_INTAKE_REFS,
     )
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
