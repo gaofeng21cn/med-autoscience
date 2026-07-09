@@ -7,7 +7,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 这份 contract 学习 `DeepScientist` 的 baseline overwrite refresh flow，但在 `MAS` 中固定为医学 comparator / baseline 的显式刷新语义。
 
-当前 machine 承接面是 `baseline` stage route、`medical-research-baseline.block.md` 的 stage policy、stage knowledge / memory closeout obligations 和 publication / route decision refs；它不是一个独立 public CLI、controller apply command 或 artifact mutation authority。若后续实现 materializer，也只能签发 refresh record / blocker / route-decision refs，不能静默覆盖 comparator、Table 1、display pack、publication eval 或 submission package。
+当前 machine 承接面是 `baseline` stage route、`agent/stages/baseline_and_evidence_setup.policy.md`、stage knowledge / memory closeout obligations 和 publication / route decision refs；它不是一个独立 public CLI、controller apply command 或 artifact mutation authority。若后续实现 materializer，也只能签发 refresh record / blocker / route-decision refs，不能静默覆盖 comparator、Table 1、display pack、publication eval 或 submission package。
 
 ## 目标
 

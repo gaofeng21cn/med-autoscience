@@ -17,7 +17,7 @@ For the absorbed baseline program that established first-baseline coverage acros
 
 For the strict engineering truth of what is already audited today, see [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md).
 
-For the generated inventory of registered templates, renderers, schemas, and QC profiles, see [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md).
+For the inventory of registered templates, renderers, schemas, and QC profiles, see [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md) and the ScholarSkills source pack canonical catalog.
 
 ## Why This Roadmap Exists
 
@@ -643,7 +643,7 @@ The platform should report progress on three separate axes:
 ### 3. Inventory progress
 
 - How many audited templates, shells, and tables are registered today?
-- Current strict audited inventory is read from generated surfaces: ScholarSkills compact gallery review package, [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md), and [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). This roadmap does not hand-maintain counts.
+- Current strict audited inventory is read from ScholarSkills canonical catalog and compact gallery review package plus [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md). This roadmap does not hand-maintain counts.
 
 No single count should be used as a substitute for all three.
 
@@ -674,6 +674,6 @@ If these docs appear to disagree:
 
 1. this roadmap defines the **top-level platform target**;
 2. ScholarSkills compact gallery review package and [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md) define the compact current user-facing inventory;
-3. [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md) defines the full generated descriptor inventory.
+3. The ScholarSkills source pack `canonical_template_catalog.json` defines the full descriptor inventory; Markdown snapshots are generated on demand.
 
 That division of responsibility is intentional and should be preserved.

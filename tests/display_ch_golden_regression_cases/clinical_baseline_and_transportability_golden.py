@@ -1,4 +1,4 @@
-from .shared import (
+from tests.display_shared_golden_regression_helpers import (
     Path,
     importlib,
     json,

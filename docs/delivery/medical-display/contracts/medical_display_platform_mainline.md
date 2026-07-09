@@ -22,7 +22,7 @@ For the current Display Pack v2 landing status, E2E path, MAS/OPL boundary, AI/V
 
 For the strict audited engineering truth, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
-For the generated template inventory, see [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md).
+For the source template inventory and on-demand generation boundary, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
 For the paper-facing visual review discipline above deterministic contracts, see [medical_display_visual_audit_protocol.md](./medical_display_visual_audit_protocol.md).
 
@@ -421,6 +421,6 @@ When display work advances, the following should be kept coherent:
 - [medical_display_active_board.md](../board/medical_display_active_board.md);
 - [medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md);
 - [medical_display_audit_guide.md](./medical_display_audit_guide.md);
-- [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
+- the ScholarSkills source pack `canonical_template_catalog.json`;
 - the tracked current-round execution notes;
 - the active owner worktree itself.

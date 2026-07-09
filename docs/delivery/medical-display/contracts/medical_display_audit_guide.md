@@ -14,7 +14,7 @@ A display counts as current implemented inventory only when it is present in the
 Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
 - current counts and human visual Gallery: ScholarSkills compact review package at `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`;
-- full descriptor inventory: [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md);
+- full descriptor inventory: `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`;
 - compact capability index: [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md).
 
 Python evidence templates are absent from current inventory, hidden defaults, explicit-request inventory, Gallery comparison cards, and runtime fallback templates unless a future current audited template proves advantage over R/ggplot2.
@@ -30,7 +30,7 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 - `src/med_autoscience/display_layout_qc/`
 - ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
 
-The generated catalog is [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md). The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
+The Markdown catalog is an on-demand local snapshot produced by `./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs`; it is not tracked inventory truth. The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
 ## Code, Assets, And Dependency Boundary
 

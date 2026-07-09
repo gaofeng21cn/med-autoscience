@@ -12,7 +12,7 @@ Machine boundary: 本文是当前人读能力索引。机器真相继续归 `dis
 动态数量和逐项 truth 按以下 owner 读取：
 
 - current canonical template、Gallery evidence / reporting-flow / design / table-preview figure、retired alias、Python evidence、render/package 状态和 analysis responsibility 计数：生成的 ScholarSkills compact gallery review package 与 Gallery manifest；
-- 完整 descriptor inventory、每个模板的 renderer family、input schema、QC profile 和 analysis responsibility：生成的 [medical_display_template_catalog.md](./medical_display_template_catalog.md)；
+- 完整 descriptor inventory、每个模板的 renderer family、input schema、QC profile 和 analysis responsibility：ScholarSkills source pack 的 `canonical_template_catalog.json`；需要 Markdown 快照时按 `medical_display_audit_guide.md` 的命令本地生成；
 - Display Pack v2 current landed status、E2E path、MAS/OPL handoff 和 forbidden-authority boundary：[display_pack_v2_landing_status.md](../contracts/display_pack_v2_landing_status.md)；
 - 人读 Gallery 和可视示例：生成的 ScholarSkills compact gallery review package。
 

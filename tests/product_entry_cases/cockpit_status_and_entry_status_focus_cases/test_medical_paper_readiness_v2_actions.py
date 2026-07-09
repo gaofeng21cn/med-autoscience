@@ -5,7 +5,7 @@ import json
 from med_autoscience.controllers import mainline_status, medical_paper_operator_actions
 from med_autoscience.controllers.product_entry import manifest_surfaces, workspace_surfaces
 from tests.product_entry_cases import shared as _shared
-from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
+from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_product_entry_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
     _ready_mainline_status,

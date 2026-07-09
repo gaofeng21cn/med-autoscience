@@ -1,4 +1,4 @@
-"""Shared runtime-control contracts and ports."""
+"""Shared runtime-control contracts."""
 
 from .owner_callable_registry import (
     OwnerCallable,

@@ -14,7 +14,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 | [portfolio](./portfolio/) | Portfolio map 和长期 roadmap。 |
 | [board](./board/) | 当前 active board 和下一轮可执行 display round。 |
 | [contracts](./contracts/) | 平台主线、审计指南、视觉审计协议和 route contract。 |
-| [catalogs](./catalogs/) | 模板目录、arsenal、backlog 和 route cookbook。Catalog 可以很长；它们是 inventory，不是叙事入口。 |
+| [catalogs](./catalogs/) | Arsenal、backlog 和 route cookbook。完整模板 inventory 从 ScholarSkills source 按需生成，不在本仓提交快照。 |
 | [examples](./examples/) | MAS 论文局部示例和 E2E 字段关系说明；通用 gallery review package 已外迁到 ScholarSkills。 |
 | [plans](./plans/) | Template-pack active support design。已完成实施计划进入 history/provenance，不作为当前执行队列。 |
 | [provenance](./provenance/) | 真实论文审计和能力 provenance。 |
@@ -29,7 +29,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 - [Display Pack renderer migration assessment](./plans/display_pack_renderer_migration_assessment.md)
 - [Platform mainline](./contracts/medical_display_platform_mainline.md)
 - [Audit guide](./contracts/medical_display_audit_guide.md)
-- [Template catalog](./catalogs/medical_display_template_catalog.md)
+- [Template inventory and generation boundary](./contracts/medical_display_audit_guide.md)
 - [ScholarSkills Display gallery](/Users/gaofeng/workspace/mas-scholar-skills/docs/gallery/display-gallery.md)
 - [SciPilot figure-skill learning intake](../../references/mainline/scipilot_figure_skill_learning_intake.md)
 - [MAS examples boundary](./examples/README.md)

@@ -11,7 +11,7 @@ from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
+        if not name.startswith(("__", "test_")) and name != "_module_reexport":
             globals()[name] = value
 
 

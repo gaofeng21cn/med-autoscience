@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tests.display_ch_golden_regression_cases.shared import (
+from tests.display_shared_golden_regression_helpers import (
     Path,
     importlib,
     json,

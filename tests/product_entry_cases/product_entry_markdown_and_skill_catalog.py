@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from med_autoscience.controllers.product_entry.manifest_surfaces import build_skill_catalog
+from tests.study_runtime_test_helpers import make_profile, write_study, write_text
+
 from .product_entry_preflight_and_task_submission import (
     annotations,
     test_build_product_entry_status_projects_product_entry_over_current_workspace_loop,

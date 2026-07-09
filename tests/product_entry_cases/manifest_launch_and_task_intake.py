@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from .manifest_launch_and_task_intake_cases import launch_study_surfaces as _launch_study_surfaces
 
 def _module_reexport(module) -> None:
@@ -12,7 +11,6 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_launch_study_surfaces)
 
 def product_entry_manifest_rendering_module():

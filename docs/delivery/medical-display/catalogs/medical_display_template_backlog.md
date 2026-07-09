@@ -15,12 +15,12 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 外部 exemplar intake 只作为只读候选证据保留，不自动进入 active backlog。当前 PaperPlotHub gallery 全量枚举见 [paperplothub_exemplar_intake.md](../../../history/capabilities/medical-display/paperplothub_exemplar_intake.md)，第二轮学习穷尽账本见 [paperplothub_exemplar_exhaustion_ledger.md](../../../history/capabilities/medical-display/paperplothub_exemplar_exhaustion_ledger.md)。
 
-本文记录的是 current candidate pool 和已出队 provenance。它不保存当前 round 执行流水、commit 指令或吸收状态；已落地模板是否属于当前 audited inventory，以 audit guide、template catalog、registry/source 和 focused tests 为准。
+本文记录的是 current candidate pool 和已出队 provenance。它不保存当前 round 执行流水、commit 指令或吸收状态；已落地模板是否属于当前 audited inventory，以 audit guide、ScholarSkills canonical catalog、registry/source 和 focused tests 为准。
 
 当前完成态真相优先看：
 
 - `../contracts/medical_display_audit_guide.md`
-- `./medical_display_template_catalog.md`
+- ScholarSkills source pack `canonical_template_catalog.json`
 - `../provenance/medical_display_anchor_paper_audit.md`
 - `../board/medical_display_active_board.md`
 

@@ -28,7 +28,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 论文家族路线图：[medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md)
 - 当前军火库总账：[medical_display_arsenal.md](../catalogs/medical_display_arsenal.md)
 - 军火库扩充历史：[medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md)
-- 当前模板目录：[medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md)
+- 当前模板目录：ScholarSkills source pack `canonical_template_catalog.json`（Markdown 快照按需生成）
 - 当前工程审计面：[medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md)
 - Display Pack v2 总合同：[`contracts/display-pack-contract.v2.json`](../../../../contracts/display-pack-contract.v2.json)
 - Phase 1-2 实施 provenance：[medical_display_template_pack_implementation_plan_2026_04.md](../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md)
@@ -618,9 +618,9 @@ Machine boundary: Human-readable implementation support only; active execution t
 - [medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md)
   - 记录扩库历史；
   - 应追加“新增了哪个包 / 提升了哪个包版本 / 学自哪篇论文”。
-- [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md)
-  - 以后改为“当前装载模板包后生成的活动模板目录”；
-  - 不再暗示所有模板都必须内嵌在主仓库注册表里。
+- 按需生成的 Markdown template catalog
+  - 只作为“当前装载模板包后生成的活动模板目录”本地快照；
+  - 不提交到本仓，也不暗示所有模板都必须内嵌在主仓库注册表里。
 
 ## 一次性迁移原则
 
@@ -743,7 +743,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 3. 新建内置核心包 `fenggaolab.org.medical-display-core`；
 4. 把当前内置模板库全量迁到核心包；
 5. 一次性把现有模板标识切到完整包名；
-6. 让 `medical_display_template_catalog.md` 从活动模板包重新生成；
+6. 从活动模板包按需生成 Markdown template catalog，不提交生成快照；
 7. 用 `001/003` 做首轮强验收，确认 materialize / submission / publication 相关链路重新跑通；
 8. 再补 Git 包与 Python 包接入；
 9. 最后再把论文级 lock 与 provenance 收严。

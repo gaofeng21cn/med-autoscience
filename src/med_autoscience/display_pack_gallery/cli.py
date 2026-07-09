@@ -57,7 +57,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--publish-docs",
         action="store_true",
-        help="Publish the generated template catalog into docs. Gallery review artifacts are owned by ScholarSkills.",
+        help="Write an on-demand template catalog snapshot into docs. Gallery review artifacts are owned by ScholarSkills.",
     )
     parser.add_argument(
         "--force-render",

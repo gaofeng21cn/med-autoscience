@@ -80,7 +80,7 @@ upstream `baseline` skill 已经明确：
 
 `MAS` 里对应吸收：
 
-- `src/med_autoscience/overlay/templates/medical-research-baseline.block.md`
+- `agent/stages/baseline_and_evidence_setup.policy.md`
 - `src/med_autoscience/policies/controller_first.py`
 
 来源判断：
@@ -105,7 +105,7 @@ upstream 已经把 follow-up evidence work 收紧成单独的 `analysis-campaign
 
 `MAS` 里对应吸收：
 
-- `src/med_autoscience/overlay/templates/medical-research-analysis-campaign.block.md`
+- `agent/stages/bounded_analysis_campaign.policy.md`
 - `src/med_autoscience/study_charter.py` 里的 `bounded_analysis`
 - `d3d7f77` `Route bounded analysis through MAS outer loop`
 - `3058e13` `Add bounded analysis charter contract`

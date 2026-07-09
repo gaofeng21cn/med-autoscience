@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from tests.product_entry_cases import shared as _shared
-from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
+from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_product_entry_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
     _ready_mainline_status,

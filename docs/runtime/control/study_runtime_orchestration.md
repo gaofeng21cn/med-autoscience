@@ -163,8 +163,8 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 - `domain_status_projection.progress_projection(...)`
   - 只读，返回序列化后的 `ProgressProjectionStatus`，不得写 OPL runtime truth
-- `runtime_control.ports.request_opl_stage_attempt(...)` / injected domain-diagnostic-report `request_opl_stage_attempt` port
-  - 读 `progress_projection` status payload，输出 OPL stage-attempt admission request、controller authorization refs、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
+- `StageOutcome -> NextActionEnvelope` 中的 `request_opl_stage_attempt` action request
+  - 消费同源 status / transition refs，输出 OPL stage-attempt admission request、controller authorization refs、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
 
 `progress_projection(...)` 接受：
 
@@ -179,16 +179,9 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 managed research runtime status，同时把 OPL admission / owner-route handoff 作为返回 payload
 中的显式 policy，而不是让 runtime projection 误判入口不受管。
 
-stage-attempt request port 接受：
+仓内不再维护 `RuntimeControlPorts` 或 package-level stage-attempt wrapper。正式调用方应消费 canonical transition / owner-route envelope，而不是直接拼 transport payload、直接调用 managed runtime backend，或把历史 transport helper 当当前控制面。旧 `MedDeepScientist` runtime 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference 出现。
 
-- `ports: RuntimeControlPorts`
-- `profile: WorkspaceProfile`
-- `study_root`
-- `source`
-
-正式调用方应把这两个入口视为 MAS domain refs contract，而不是直接拼 transport payload、直接调用 managed runtime backend，或把历史 transport helper 当当前控制面。旧 `MedDeepScientist` runtime 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference 出现。
-
-2026-05-21 owner-route 边界补充：`request_opl_stage_attempt(...)` 仍是 MAS direct diagnostic / controller contract，但不能被新的 domain-route repair 当成 MAS 私有 provider resume、queue hydration、attempt retry 或 relaunch owner。stopped / failed / no-live / waiting-owner 这类通用运行恢复，现在由 MAS 写出 controller authorization、owner-route handoff、owner receipt 或 typed blocker，再交给 OPL runtime manager 承担 generic liveness、queue、attempt、retry/dead-letter 和 provider resume/relaunch；OPL dispatch 回 MAS 后，MAS 再执行 domain owner callable 或签收 blocker。
+2026-05-21 owner-route 边界补充：`request_opl_stage_attempt` action request 是 MAS diagnostic / controller contract，但不能被新的 domain-route repair 当成 MAS 私有 provider resume、queue hydration、attempt retry 或 relaunch owner。stopped / failed / no-live / waiting-owner 这类通用运行恢复，现在由 MAS 写出 controller authorization、owner-route handoff、owner receipt 或 typed blocker，再交给 OPL runtime manager 承担 generic liveness、queue、attempt、retry/dead-letter 和 provider resume/relaunch；OPL dispatch 回 MAS 后，MAS 再执行 domain owner callable 或签收 blocker。
 
 ## 控制面收薄合同
 
