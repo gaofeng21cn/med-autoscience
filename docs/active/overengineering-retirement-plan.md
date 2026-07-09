@@ -14,6 +14,47 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 - 功能/结构完成：active caller 已迁移、legacy facade / wrapper / root artifact / vendored build helper 已删除或退为 provenance，focused tests 与 repo-native verify 通过。
 - 后置证据：真实 paper-line owner receipt、publication-ready、domain-ready、provider long-soak、artifact mutation authority 另账验收。docs、focused tests、projection clean、contract pass 或 package build 不等于论文进展或 publication-ready。
 
+## 2026-07-10 approved whole-repo closeout program
+
+本轮经 owner 明确批准，目标是把 2026-07-10 read-only audit 的 12 个候选全部推进到各自合法终态：低风险项物理删除；已有 OPL/标准平台替代面的项迁移 active caller 后退役 MAS 私有实现；仍缺 replacement parity、live readback、public contract migration 或 no-active-caller proof 的项不得伪装完成，必须形成最小保留面、明确 blocker-to-owner map 和可执行关闭门。
+
+### Global constraints
+
+- 所有实现进入独立 worktree；共享根 checkout 只做计划固化、候选复核、吸收、整体验证、文档收口和 push。
+- 以 `main` / `origin/main` 当前提交、`agent/`、machine contracts、source、tests 和 fresh OPL readback 为 source of truth；历史 docs、focused tests、静态 projection 和旧 ledger 不能单独证明平台接管或 physical delete。
+- 不写真实 study / paper / runtime authority artifacts，不手写 owner receipt、typed blocker、human gate、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、runtime queue 或 provider attempt。
+- 保留 MAS minimal authority kernel：StageOutcome / NextActionEnvelope、medical truth、AI reviewer / auditor verdict、publication gate、artifact mutation authority、source readiness、owner receipt、typed blocker 和 publication-route memory accept/reject。
+- 删除优先于 wrapper；active caller 迁到 concrete owner 或 OPL primitive 后直接删旧面，不新增 compatibility shim、第二套 registry、第二套 read-model 或 future-facing abstraction。
+- 风险档为 L2-L4 混合，整体验证预算为 `full`。每个 lane 先跑 focused tests；触及 machine contract / CLI / MCP / runtime semantics 时补 `make test-meta`；吸收到 `main` 后运行 `scripts/verify.sh full`、public-surface drift audit、line-budget / collection hygiene 与 fresh OPL replacement readback。
+
+### Approved items and owner lanes
+
+| ID | 风险 | 目标终态 | Owner lane | 必要关闭门 |
+| --- | --- | --- | --- | --- |
+| OE-01 | low | 删除无 caller 的 `RuntimeControlPorts`、outer-loop policy、无效 package exports。 | `low-risk-and-tests` | source/test caller scan；focused imports。 |
+| OE-02 | low | 删除未消费 overlay blocks、generated display catalog 与同内容 golden helper facade。 | `low-risk-and-tests` | package/overlay/display docs smoke；无 active ref。 |
+| OE-03 | medium | 删除 refs-only StateIndex pilot 与 replay-only SQLite persistence，MAS 只留 body-free ref adapter。 | `state-index-and-retirement` | OPL StateIndex replacement ref；no `persist_sqlite` active caller；focused persistence tests。 |
+| OE-04 | medium | 删除 import-time editable dependency探测，依赖解析只走标准 packaging / pinned `uv` source。 | `bootstrap-and-provisioning` | root/worktree/installed-tool 三形态 import proof。 |
+| OE-05 | medium | 恢复 pytest 原生递归收集，删除 ignore -> wildcard aggregate -> re-export 校验链。 | `low-risk-and-tests` | collection/node-id/marker parity；focused suites。 |
+| OE-06 | medium-high | Python/R analysis bundle、workspace Python 和 Codex plugin 安装交还 OPL host、`uv` 与 plugin sync。 | `bootstrap-and-provisioning` | clean install/readback；不得以 checkout `.venv` 伪造 ready。 |
+| OE-07 | medium-high | `runtime_surface_retirement` 收成最小 schema/no-authority/no-resurrection guard，live work-order 归 OPL。 | `state-index-and-retirement` | remaining tail inventory、replacement refs、forbidden-authority regression。 |
+| OE-08 | high | repo-local workspace cockpit / Markdown workbench 上收到 OPL hosted App shell。 | `workbench-and-capability` | OPL workbench/action-transport parity；MAS body-free projection parity。 |
+| OE-09 | high | Tool Arsenal / Scientific Capability selector 与 invocation runtime 上收到 OPL；MAS 保留 declarative metadata。 | `workbench-and-capability` | hosted resolve/invoke parity；no forbidden writes；generated contract ownership。 |
+| OE-10 | high | 手写 CLI/MCP transport/parser/descriptor glue 由 OPL pack compiler generated surfaces 替代。 | `generated-cli-mcp` | public command/tool/schema/error parity；domain-handler targets retained。 |
+| OE-11 | high | RuntimeHealth、lifecycle/storage/retention/cold-store maintenance 上收到 OPL observability/lifecycle/state-index。 | `runtime-platform-tail` | same-identity live readback；destructive operation ownership；restore/retention parity。 |
+| OE-12 | very-high | 物理收掉 legacy provider-admission/current-work-unit/paper-recovery/materializer next-action producer/diagnostic tail。 | `legacy-control-plane` | every active caller consumes canonical StageOutcome -> NextActionEnvelope + OPL readback；public/tombstone drift classified。 |
+
+### Lane interfaces and absorption order
+
+- Wave 1：`low-risk-and-tests`、`bootstrap-and-provisioning`、`state-index-and-retirement` 并行；各自只改批准写集，提交后由 main session 独立复核、focused 验证并吸收。
+- Wave 2：从已吸收的 `main` 新建 `workbench-and-capability`、`generated-cli-mcp`、`runtime-platform-tail`、`legacy-control-plane`。跨 lane 的 CLI / contract caller 迁移统一在后依赖 lane 完成，不允许两个 worktree 同时写同一 parser、catalog 或 test aggregator。
+- 吸收顺序：低风险与 packaging -> StateIndex/retirement -> workbench/capability -> runtime platform tail -> legacy control plane -> generated CLI/MCP final projection cleanup。若 target `main` 移动，lane 必须先重放/重建 fresh evidence 再吸收。
+- 每个 lane 输出 commit、`base..HEAD` diff、focused verification、残余 active caller、public-surface分类和 exact follow-up。主会话拒绝 broad facade rewrite、未绑定 live parity 的 physical delete、只靠 docs/tests 关闭平台接管，以及通过新增 wrapper 保留旧面。
+
+### Program stop condition
+
+本 program 只有在 12 行逐项完成度审计后才能关闭。`done` 要求代码/合同/调用面已在 `main` 形成目标结构并有 fresh executable evidence；平台接管项还必须有对应 OPL readback 或 machine replacement proof。无法在本仓合法关闭的项标为 `blocked` 或 `partial`，写明 owner、入口、期望产物、验证命令和停止条件，不能以“测试绿”“queue empty”“projection clean”替代目标态。
+
 ## 模块定位
 
 | 模块 | 保留职责 | 收薄方向 | 禁止承担 |
