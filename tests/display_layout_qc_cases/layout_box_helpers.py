@@ -53,6 +53,23 @@ def run_layout_qc_case(case: dict[str, object]) -> None:
             for issue in result["issues"]
         )
 
+def run_layout_qc(
+    qc_profile: str,
+    layout_sidecar: dict[str, object],
+    *,
+    status: str | None = None,
+    rule_ids: tuple[str, ...] = (),
+    no_issues: bool = False,
+) -> None:
+    case: dict[str, object] = {"qc_profile": qc_profile, "layout_sidecar": layout_sidecar}
+    if status is not None:
+        case["status"] = status
+    if rule_ids:
+        case["rule_ids"] = rule_ids
+    if no_issues:
+        case["no_issues"] = True
+    run_layout_qc_case(case)
+
 def _make_shap_grouped_local_support_domain_layout_sidecar() -> dict[str, object]:
     return {
         "template_id": "shap_grouped_local_support_domain_panel",

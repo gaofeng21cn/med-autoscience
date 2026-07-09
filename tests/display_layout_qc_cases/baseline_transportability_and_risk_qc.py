@@ -1,19 +1,77 @@
 from __future__ import annotations
 
-from .shared import (
-    annotations,
-    _shared_base,
-    _layout_box_helpers,
-    importlib,
-    json,
-    Path,
-    pytest,
-    make_box,
-    make_device,
-    _make_shap_grouped_local_support_domain_layout_sidecar,
-    _make_shap_multigroup_decision_path_support_domain_layout_sidecar,
-    _make_shap_signed_importance_local_support_domain_layout_sidecar,
-)
+import importlib
+
+import pytest
+
+from .layout_box_helpers import make_box, make_device, run_layout_qc
+
+
+CENTER_TRANSPORTABILITY_PROFILE = "publication_center_transportability_governance_summary_panel"
+SURVIVAL_CURVE_PROFILE = "publication_survival_curve"
+
+
+def _embedding_scatter_sidecar(
+    *,
+    template_id: str,
+    panel_x1: float,
+    legend_box: tuple[float, float, float, float],
+) -> dict[str, object]:
+    legend_x0, legend_y0, legend_x1, legend_y1 = legend_box
+    return {
+        "template_id": template_id,
+        "device": make_device(),
+        "layout_boxes": [
+            make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
+            make_box("x_axis_title", "x_axis_title", x0=0.32, y0=0.92, x1=0.62, y1=0.97),
+            make_box("y_axis_title", "y_axis_title", x0=0.01, y0=0.25, x1=0.06, y1=0.70),
+        ],
+        "panel_boxes": [make_box("panel", "panel", x0=0.10, y0=0.16, x1=panel_x1, y1=0.88)],
+        "guide_boxes": [make_box("legend", "legend", x0=legend_x0, y0=legend_y0, x1=legend_x1, y1=legend_y1)],
+        "metrics": {"points": [{"x": 0.22, "y": 0.32, "group": "A"}, {"x": 0.44, "y": 0.54, "group": "B"}]},
+    }
+
+
+def _risk_group_layout_boxes() -> list[dict[str, object]]:
+    return [
+        make_box("x_axis_title", "x_axis_title", x0=0.18, y0=0.92, x1=0.34, y1=0.97),
+        make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+        make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.60, y0=0.92, x1=0.76, y1=0.97),
+        make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.50, y0=0.20, x1=0.54, y1=0.72),
+        make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.34, y1=0.15),
+        make_box("panel_right_title", "panel_title", x0=0.58, y0=0.11, x1=0.80, y1=0.15),
+        make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+        make_box("panel_label_B", "panel_label", x0=0.55, y0=0.80, x1=0.58, y1=0.85),
+    ]
+
+
+def _risk_group_panel_boxes() -> list[dict[str, object]]:
+    return [
+        make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+        make_box("panel_right", "panel", x0=0.54, y0=0.16, x1=0.88, y1=0.86),
+    ]
+
+
+def _risk_group_summary_sidecar(
+    risk_group_summaries: list[dict[str, object]],
+    *,
+    layout_boxes: list[dict[str, object]] | None = None,
+    panel_boxes: list[dict[str, object]] | None = None,
+    guide_boxes: list[dict[str, object]] | None = None,
+    extra_metrics: dict[str, object] | None = None,
+) -> dict[str, object]:
+    metrics: dict[str, object] = {"risk_group_summaries": risk_group_summaries}
+    if extra_metrics:
+        metrics.update(extra_metrics)
+    return {
+        "template_id": "time_to_event_risk_group_summary",
+        "device": make_device(),
+        "layout_boxes": layout_boxes or _risk_group_layout_boxes(),
+        "panel_boxes": panel_boxes or _risk_group_panel_boxes(),
+        "guide_boxes": guide_boxes or [],
+        "metrics": metrics,
+        "render_context": {"readability_override": {}},
+    }
 
 
 @pytest.mark.parametrize(
@@ -118,127 +176,77 @@ def _center_transportability_governance_sidecar(
 
 
 def test_run_display_layout_qc_passes_for_center_transportability_governance_summary_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_center_transportability_governance_summary_panel",
-        layout_sidecar=_center_transportability_governance_sidecar(),
+    run_layout_qc(
+        CENTER_TRANSPORTABILITY_PROFILE,
+        _center_transportability_governance_sidecar(),
+        status="pass",
+        no_issues=True,
     )
 
-    assert result["status"] == "pass"
-    assert result["issues"] == []
 
-
-def test_run_display_layout_qc_fails_without_calibration_governance_metrics() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_center_transportability_governance_summary_panel",
-        layout_sidecar=_center_transportability_governance_sidecar(missing_governance_metric=True),
+@pytest.mark.parametrize(
+    ("sidecar_kwargs", "rule_id"),
+    [
+        pytest.param(
+            {"missing_governance_metric": True},
+            "calibration_governance_metric_count_incomplete",
+            id="missing-governance-metrics",
+        ),
+        pytest.param({"legacy_card_only": True}, "retired_governance_text_cells_present", id="legacy-cards"),
+        pytest.param(
+            {"legacy_decision_cells_only": True},
+            "retired_governance_text_cells_present",
+            id="legacy-decision-cells",
+        ),
+        pytest.param(
+            {"governance_metric_outside_panel": True},
+            "calibration_governance_metric_outside_panel",
+            id="metric-outside-panel",
+        ),
+    ],
+)
+def test_run_display_layout_qc_rejects_invalid_center_transportability_governance_summary_panel(
+    sidecar_kwargs: dict[str, bool],
+    rule_id: str,
+) -> None:
+    run_layout_qc(
+        CENTER_TRANSPORTABILITY_PROFILE,
+        _center_transportability_governance_sidecar(**sidecar_kwargs),
+        status="fail",
+        rule_ids=(rule_id,),
     )
 
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "calibration_governance_metric_count_incomplete" for issue in result["issues"])
 
-
-def test_run_display_layout_qc_rejects_legacy_governance_cards_as_center_transportability_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_center_transportability_governance_summary_panel",
-        layout_sidecar=_center_transportability_governance_sidecar(legacy_card_only=True),
+@pytest.mark.parametrize(
+    ("template_id", "panel_x1", "legend_box", "status", "rule_ids", "no_issues"),
+    [
+        pytest.param(
+            "umap_scatter_grouped",
+            0.78,
+            (0.64, 0.64, 0.92, 0.86),
+            "fail",
+            ("legend_panel_overlap",),
+            False,
+            id="legend-overlap",
+        ),
+        pytest.param("pca_scatter_grouped", 0.74, (0.78, 0.28, 0.96, 0.46), "pass", (), True, id="valid"),
+    ],
+)
+def test_run_display_layout_qc_checks_embedding_scatter_layout(
+    template_id: str,
+    panel_x1: float,
+    legend_box: tuple[float, float, float, float],
+    status: str,
+    rule_ids: tuple[str, ...],
+    no_issues: bool,
+) -> None:
+    run_layout_qc(
+        "publication_embedding_scatter",
+        _embedding_scatter_sidecar(template_id=template_id, panel_x1=panel_x1, legend_box=legend_box),
+        status=status,
+        rule_ids=rule_ids,
+        no_issues=no_issues,
     )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "retired_governance_text_cells_present" for issue in result["issues"])
-
-
-def test_run_display_layout_qc_rejects_legacy_decision_cells_as_center_transportability_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_center_transportability_governance_summary_panel",
-        layout_sidecar=_center_transportability_governance_sidecar(legacy_decision_cells_only=True),
-    )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "retired_governance_text_cells_present" for issue in result["issues"])
-
-
-def test_run_display_layout_qc_fails_when_calibration_governance_metric_leaves_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_center_transportability_governance_summary_panel",
-        layout_sidecar=_center_transportability_governance_sidecar(governance_metric_outside_panel=True),
-    )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "calibration_governance_metric_outside_panel" for issue in result["issues"])
-
-
-def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_embedding_scatter",
-        layout_sidecar={
-            "template_id": "umap_scatter_grouped",
-            "device": make_device(),
-            "layout_boxes": [
-                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
-                make_box("x_axis_title", "x_axis_title", x0=0.32, y0=0.92, x1=0.62, y1=0.97),
-                make_box("y_axis_title", "y_axis_title", x0=0.01, y0=0.25, x1=0.06, y1=0.70),
-            ],
-            "panel_boxes": [
-                make_box("panel", "panel", x0=0.10, y0=0.16, x1=0.78, y1=0.88),
-            ],
-            "guide_boxes": [
-                make_box("legend", "legend", x0=0.64, y0=0.64, x1=0.92, y1=0.86),
-            ],
-            "metrics": {
-                "points": [
-                    {"x": 0.22, "y": 0.32, "group": "A"},
-                    {"x": 0.44, "y": 0.54, "group": "B"},
-                ]
-            },
-        },
-    )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "legend_panel_overlap" for issue in result["issues"])
-
-
-def test_run_display_layout_qc_passes_for_valid_embedding_scatter() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_embedding_scatter",
-        layout_sidecar={
-            "template_id": "pca_scatter_grouped",
-            "device": make_device(),
-            "layout_boxes": [
-                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
-                make_box("x_axis_title", "x_axis_title", x0=0.32, y0=0.92, x1=0.62, y1=0.97),
-                make_box("y_axis_title", "y_axis_title", x0=0.01, y0=0.25, x1=0.06, y1=0.70),
-            ],
-            "panel_boxes": [
-                make_box("panel", "panel", x0=0.10, y0=0.16, x1=0.74, y1=0.88),
-            ],
-            "guide_boxes": [
-                make_box("legend", "legend", x0=0.78, y0=0.28, x1=0.96, y1=0.46),
-            ],
-            "metrics": {
-                "points": [
-                    {"x": 0.22, "y": 0.32, "group": "A"},
-                    {"x": 0.44, "y": 0.54, "group": "B"},
-                ]
-            },
-        },
-    )
-
-    assert result["status"] == "pass"
-    assert result["issues"] == []
 
 
 def test_run_display_layout_qc_fails_when_curve_text_leaves_device() -> None:
