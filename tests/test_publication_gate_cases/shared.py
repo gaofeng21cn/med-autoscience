@@ -7,7 +7,6 @@ from pathlib import Path
 import shutil as _shutil
 from textwrap import dedent
 
-
 class _ShutilProxy:
     SameFileError = _shutil.SameFileError
 
@@ -22,28 +21,23 @@ class _ShutilProxy:
             pass
         return _shutil.copy2(src, dst, *args, **kwargs)
 
-
 shutil = _ShutilProxy()
-
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _mirror_legacy_paper_write_to_projected_surface(path)
 
-
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     _mirror_legacy_paper_write_to_projected_surface(path)
-
 
 def bypass_submission_surface_qc(monkeypatch) -> None:
     state_resolvers = importlib.import_module(
         "med_autoscience.controllers.publication_gate.state_resolvers"
     )
     monkeypatch.setattr(state_resolvers, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
-
 
 def mark_study_submission_authority_current(*, study_root: Path, paper_root: Path) -> None:
     source_root = paper_root / "submission_minimal"
@@ -71,7 +65,6 @@ def mark_study_submission_authority_current(*, study_root: Path, paper_root: Pat
     manifest["source_signature"] = source_signature
     manifest["source_contract"] = {"source_signature": source_signature}
     dump_json(manifest_path, manifest)
-
 
 def make_quest(
     tmp_path: Path,
@@ -268,7 +261,6 @@ def make_quest(
         )
     return quest_root
 
-
 def _legacy_paper_projected_path(path: Path) -> Path | None:
     parts = path.parts
     try:
@@ -280,7 +272,6 @@ def _legacy_paper_projected_path(path: Path) -> Path | None:
     quest_root = Path(*parts[:ds_index])
     relpath = Path(*parts[ds_index + 4 :])
     return quest_root / "paper" / relpath
-
 
 def _mirror_legacy_paper_write_to_projected_surface(path: Path) -> None:
     target = _legacy_paper_projected_path(path)
@@ -294,7 +285,6 @@ def _mirror_legacy_paper_write_to_projected_surface(path: Path) -> None:
         pass
     _shutil.copy2(path, target)
 
-
 def _write_projected_paper_surface(*, quest_root: Path, worktree_root: Path) -> None:
     projected_paper_root = quest_root / "paper"
     projected_paper_root.mkdir(parents=True, exist_ok=True)
@@ -307,7 +297,6 @@ def _write_projected_paper_surface(*, quest_root: Path, worktree_root: Path) -> 
             target.unlink()
         os.link(source, target)
 
-
 def _write_submission_authority_text_inputs(worktree_root: Path) -> None:
     write_text(
         worktree_root / "paper" / "build" / "review_manuscript.md",
@@ -317,7 +306,6 @@ def _write_submission_authority_text_inputs(worktree_root: Path) -> None:
         worktree_root / "paper" / "references.bib",
         "@article{ref1,title={Ref}}\n",
     )
-
 
 def _write_optional_paper_authority_inputs(
     *,
@@ -339,7 +327,6 @@ def _write_optional_paper_authority_inputs(
         include_submission_authority_inputs=include_submission_authority_inputs,
         table_catalog=table_catalog,
     )
-
 
 def _write_figure_catalog(
     *,
@@ -365,7 +352,6 @@ def _write_figure_catalog(
             },
         )
 
-
 def _write_table_catalog(
     *,
     worktree_root: Path,
@@ -382,7 +368,6 @@ def _write_table_catalog(
                 "tables": [],
             },
         )
-
 
 def write_primary_target(paper_root: Path) -> None:
     dump_json(
@@ -403,7 +388,6 @@ def write_primary_target(paper_root: Path) -> None:
         },
     )
 
-
 def write_journal_requirements_snapshot(study_root: Path) -> None:
     dump_json(
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.json",
@@ -422,118 +406,4 @@ def write_journal_requirements_snapshot(study_root: Path) -> None:
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
         "# Requirements\n",
     )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
