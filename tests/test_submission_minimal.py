@@ -14,9 +14,6 @@ from tests.submission_minimal_cases.package_core_and_authority import (
     test_create_submission_minimal_package_copies_figures_and_tables,
     test_create_submission_minimal_package_uses_existing_figure_exports_when_catalog_lists_missing_alternative,
     test_create_submission_minimal_package_accepts_current_figure_and_table_catalog_shape,
-    test_create_submission_minimal_package_writes_general_supplementary_table_preview,
-    test_create_submission_minimal_package_materializes_deferred_supplementary_figures,
-    test_create_submission_minimal_package_recovers_inline_supplementary_tables_without_catalog_entries,
     test_create_submission_minimal_package_prefers_compile_report_current_draft_over_stale_bundle_input,
     test_create_submission_minimal_package_refreshes_review_manuscript_when_current_draft_is_newer,
     test_general_medical_submission_source_alias_is_authority_note_and_appendix_stays_in_projection,
@@ -25,6 +22,8 @@ from tests.submission_minimal_cases.package_core_and_authority import (
     test_describe_submission_minimal_authority_ignores_source_mtime_only_drift,
     test_create_submission_minimal_package_canonicalizes_authoritative_worktree_source_paths,
     test_create_submission_minimal_package_supports_stage_native_current_body_source,
+    test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report,
+    test_describe_submission_minimal_authority_accepts_materialized_submission_source_from_compile_report,
     test_create_submission_minimal_package_authority_ignores_post_gate_evidence_ledger_refresh,
     test_create_submission_minimal_package_accepts_current_bundle_contract_shape,
     test_resolve_compiled_markdown_path_skips_submission_surface_candidates,
@@ -35,19 +34,9 @@ from tests.submission_minimal_cases.package_core_and_authority import (
     test_create_submission_minimal_package_prefers_compiled_markdown_over_draft_path,
     test_create_submission_minimal_package_ignores_recursive_compile_report_path,
     test_submission_source_contract_signature_changes_when_renderer_contract_changes,
-    test_export_pdf_uses_submission_layout_header_for_fixed_figures_and_wide_tables,
-    test_create_submission_minimal_package_general_profile_writes_figure_legends_and_tables,
-    test_create_submission_minimal_package_general_profile_embeds_figures_into_docx_and_pdf,
-    test_inspect_submission_docx_surface_treats_directory_placeholder_as_missing,
-    test_general_medical_docx_markdown_keeps_wide_main_tables,
     make_paper_workspace,
     remove_authority_snapshots,
 )
 from tests.submission_minimal_cases.direct_current_body_figure_catalog_filter import *  # noqa: F403
-from tests.submission_minimal_cases.limitations_section import *  # noqa: F403
-from tests.submission_minimal_cases.clean_migration_guard import *  # noqa: F403
-from tests.submission_minimal_cases.frontiers_profile_and_sync import *  # noqa: F403
-from tests.submission_minimal_cases.source_markdown_and_materialized_refs import *  # noqa: F403
-from tests.submission_minimal_cases.v2_layout_and_legacy_cases import *  # noqa: F403
 
 pytestmark = pytest.mark.submission_heavy

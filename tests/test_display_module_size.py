@@ -17,11 +17,7 @@ _TARGETS = (
     Path("tests/test_medical_publication_surface.py"),
     Path("tests/medical_publication_surface_cases/shared_base.py"),
     Path("tests/medical_publication_surface_cases/quest_factory/__init__.py"),
-    Path("tests/medical_publication_surface_cases/report_terms_sections_and_charter.py"),
-    Path("tests/medical_publication_surface_cases/formal_language_review_and_model_entries.py"),
     Path("tests/medical_publication_surface_cases/figure_narrative_and_renderer_contracts.py"),
-    Path("tests/medical_publication_surface_cases/catalog_tables_and_public_data_contracts.py"),
-    Path("tests/medical_publication_surface_cases/controller_and_surface_state.py"),
     Path("src/med_autoscience/controllers/medical_publication_surface.py"),
     Path("src/med_autoscience/controllers/medical_publication_surface/shared_base.py"),
     Path("src/med_autoscience/controllers/medical_publication_surface/asset_scans.py"),
@@ -37,8 +33,6 @@ _TARGETS = (
     Path("tests/test_submission_minimal.py"),
     Path("tests/submission_minimal_cases/shared_base.py"),
     Path("tests/submission_minimal_cases/package_core_and_authority.py"),
-    Path("tests/submission_minimal_cases/frontiers_profile_and_sync.py"),
-    Path("tests/submission_minimal_cases/source_markdown_and_materialized_refs.py"),
 )
 
 

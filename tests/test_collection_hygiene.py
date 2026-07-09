@@ -17,8 +17,6 @@ NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 TEST_LANE_MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 
 DEFAULT_COLLECTED_NESTED_CASE_GLOBS = {
-    "display_surface_materialization_cases/basic_displays_and_renderers_cases/test_*.py",
-    "display_surface_materialization_cases/cohort_flow_layout_materialization_cases/test_*.py",
     "domain_action_request_lifecycle_cases/ai_reviewer_request_currentness_cases/test_*.py",
     "study_progress_cases/current_owner_handoff_projection_cases/test_*.py",
     "test_cli_cases/owner_route_handoff_command/test_export_cases/test_*.py",

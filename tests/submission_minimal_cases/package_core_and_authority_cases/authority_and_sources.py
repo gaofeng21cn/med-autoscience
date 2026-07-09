@@ -324,6 +324,45 @@ def test_create_submission_minimal_package_supports_stage_native_current_body_so
     assert authority["status"] == "current"
 
 
+def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
+    tmp_path: Path,
+) -> None:
+    paper_root = make_materialized_submission_source_workspace(tmp_path)
+
+    manifest = create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "manuscript_source.md").exists()
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert 'title: "Materialized Submission Title"' in submission_markdown
+    assert "# Main Figures" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "Materialized figure caption." in submission_markdown
+    assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
+    assert manifest["manuscript"]["source_markdown_alias_role"] == "authority_note"
+
+
+def test_describe_submission_minimal_authority_accepts_materialized_submission_source_from_compile_report(
+    tmp_path: Path,
+) -> None:
+    paper_root = make_materialized_submission_source_workspace(tmp_path)
+
+    manifest = create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    authority = describe_submission_minimal_authority(paper_root=paper_root)
+
+    assert authority["status"] == "current"
+    assert authority["stale_reason"] is None
+    assert authority["recorded_source_signature"] == manifest["source_signature"]
+    assert authority["source_signature"] == manifest["source_signature"]
+
+
 def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_ledger_refresh(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
