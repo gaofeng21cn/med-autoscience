@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
+from tests.domain_action_request_materializer_cases.shared import write_json
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
 
@@ -224,42 +224,36 @@ def test_current_control_provider_admission_candidate_uses_opl_transition_reques
         / "owner_callable_adapters"
         / f"{action_type}.json"
     )
-    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
-    dispatch_path.write_text(
-        json.dumps(
-            {
-                "surface": "owner_callable_dispatch_request",
-                "study_id": study_id,
-                "quest_id": study_id,
-                "action_type": action_type,
-                "dispatch_status": "ready",
-                "dispatch_authority": "quality_repair_batch_writer_handoff",
-                "next_executable_owner": "write",
-                "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-                "action_fingerprint": fingerprint,
-                "work_unit_id": work_unit_id,
-                "work_unit_fingerprint": fingerprint,
-                "owner_route": {
-                    "next_owner": "write",
-                    "source_refs": {
+    write_json(
+        dispatch_path,
+        {
+            "surface": "owner_callable_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "next_executable_owner": "write",
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "action_fingerprint": fingerprint,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "owner_route": {
+                "next_owner": "write",
+                "source_refs": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "route_identity_key": local_handoff_key,
+                    "attempt_idempotency_key": local_handoff_key,
+                    "owner_route_currentness_basis": {
                         "work_unit_id": work_unit_id,
                         "work_unit_fingerprint": fingerprint,
-                        "route_identity_key": local_handoff_key,
-                        "attempt_idempotency_key": local_handoff_key,
-                        "owner_route_currentness_basis": {
-                            "work_unit_id": work_unit_id,
-                            "work_unit_fingerprint": fingerprint,
-                            "truth_epoch": "truth-event-000035",
-                            "runtime_health_epoch": "runtime-health-event-006980",
-                        },
+                        "truth_epoch": "truth-event-000035",
+                        "runtime_health_epoch": "runtime-health-event-006980",
                     },
                 },
             },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+        },
     )
     status_payload = {
         "study_id": study_id,
@@ -412,39 +406,33 @@ def test_provider_admission_candidate_rejects_action_queue_identity_over_prior_t
         / "owner_callable_adapters"
         / f"{action_type}.json"
     )
-    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
-    dispatch_path.write_text(
-        json.dumps(
-            {
-                "surface": "owner_callable_dispatch_request",
-                "study_id": study_id,
-                "quest_id": study_id,
-                "action_type": action_type,
-                "dispatch_status": "ready",
-                "dispatch_authority": "consumer_owner_callable_dispatch",
-                "next_executable_owner": "analysis-campaign",
-                "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
-                "action_fingerprint": fingerprint,
-                "owner_route": {
-                    "next_owner": "analysis-campaign",
-                    "source_refs": {
+    write_json(
+        dispatch_path,
+        {
+            "surface": "owner_callable_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_owner_callable_dispatch",
+            "next_executable_owner": "analysis-campaign",
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "action_fingerprint": fingerprint,
+            "owner_route": {
+                "next_owner": "analysis-campaign",
+                "source_refs": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "owner_route_currentness_basis": {
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-current",
                         "work_unit_id": work_unit_id,
                         "work_unit_fingerprint": fingerprint,
-                        "owner_route_currentness_basis": {
-                            "truth_epoch": "truth-event-current",
-                            "runtime_health_epoch": "runtime-health-current",
-                            "work_unit_id": work_unit_id,
-                            "work_unit_fingerprint": fingerprint,
-                        },
                     },
                 },
-                "refs": {"dispatch_path": str(dispatch_path)},
             },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
     )
     status_payload = {
         "study_id": study_id,

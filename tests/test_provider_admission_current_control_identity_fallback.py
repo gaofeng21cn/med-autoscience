@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
-
-def dump_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+from tests.domain_action_request_materializer_cases.shared import write_json as dump_json
 
 
 def test_current_control_provider_admission_rejects_action_self_identity_when_canonical_identity_missing_but_envelope_exists(
