@@ -1,20 +1,7 @@
 from tests.test_cli_cases.shared import (
-    annotations,
-    argparse,
-    builtins,
     importlib,
-    json,
     Path,
-    sys,
     pytest,
-    render_codex_entry_skill,
-    render_openclaw_entry_prompt,
-    render_public_yaml,
-    render_stage_route_contract_guide,
-    render_stage_route_contract_payload,
-    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
-    FIGURE_ROUTE_SCRIPT_FIX,
-    build_figure_route,
     write_profile,
 )
 
