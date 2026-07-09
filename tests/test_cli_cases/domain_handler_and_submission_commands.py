@@ -57,372 +57,340 @@ def test_removed_provider_specific_aris_sidecar_commands_are_rejected(capsys) ->
         assert command in captured.err
 
 
-def test_delivery_inspect_command_dispatches_read_only_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_inspect(**kwargs) -> dict:
-        called.update(kwargs)
-        return {
-            "surface": "delivery_inspector",
-            "mutation_policy": {"read_only": True, "writes_package": False},
-            "freshness": {"verdict": "current"},
-        }
-
-    monkeypatch.setattr(cli.delivery_inspector, "inspect_study_delivery", fake_inspect)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "delivery-inspect",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-risk",
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["study_id"] == "001-risk"
-    assert called["study_root"] is None
-    assert called["profile_ref"] == profile_path
-    payload = json.loads(captured.out)
-    assert payload["mutation_policy"]["read_only"] is True
-    assert payload["freshness"]["verdict"] == "current"
-def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_readiness(*, workspace_root: Path) -> dict:
-        called["workspace_root"] = workspace_root
-        return {"status": "clear", "study_summary": {"study_count": 2}}
-
-    monkeypatch.setattr(cli.startup_data_readiness_controller, "startup_data_readiness", fake_readiness)
-
-    exit_code = cli.main(["data", "startup-readiness", "--workspace-root", str(tmp_path / "workspace")])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["workspace_root"] == tmp_path / "workspace"
-    assert '"study_count": 2' in captured.out
-def test_data_asset_gate_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_run_controller(*, quest_root: Path, apply: bool) -> dict:
-        called["quest_root"] = quest_root
-        called["apply"] = apply
-        return {"status": "blocked", "blockers": ["outdated_private_release"], "report_json": "/tmp/data_gate.json"}
-
-    monkeypatch.setattr(cli.data_asset_gate, "run_controller", fake_run_controller)
-
-    exit_code = cli.main(["data", "asset-gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "q001"
-    assert called["apply"] is True
-    assert '"outdated_private_release"' in captured.out
-def test_tooluniverse_status_command_dispatches_adapter(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_detect(*, workspace_root: Path | None = None, tooluniverse_root: Path | None = None) -> dict:
-        called["workspace_root"] = workspace_root
-        called["tooluniverse_root"] = tooluniverse_root
-        return {"available": True, "roles": ["知识检索", "功能分析"]}
-
-    monkeypatch.setattr(cli.tooluniverse_adapter, "detect_tooluniverse", fake_detect)
-
-    exit_code = cli.main(
-        [
-            "data",
-            "tooluniverse-status",
-            "--workspace-root",
-            str(tmp_path / "workspace"),
-            "--tooluniverse-root",
-            str(tmp_path / "ToolUniverse"),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["workspace_root"] == tmp_path / "workspace"
-    assert called["tooluniverse_root"] == tmp_path / "ToolUniverse"
-    assert '"available": true' in captured.out
-def test_export_submission_minimal_command_dispatches_exporter(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_export(*, paper_root: Path, publication_profile: str, citation_style: str) -> dict:
-        called["paper_root"] = paper_root
-        called["publication_profile"] = publication_profile
-        called["citation_style"] = citation_style
-        return {"output_root": str(paper_root / "submission_minimal")}
-
-    monkeypatch.setattr(cli.submission_package_builder, "create_submission_minimal_package", fake_export)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "export-submission-minimal",
-            "--paper-root",
-            str(tmp_path / "paper"),
-            "--publication-profile",
-            "general_medical_journal",
-            "--citation-style",
-            "AMA",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["paper_root"] == tmp_path / "paper"
-    assert called["publication_profile"] == "general_medical_journal"
-    assert called["citation_style"] == "AMA"
-    assert "submission_minimal" in captured.out
-def test_resolve_submission_targets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_resolve(
-        *,
-        profile_path: Path | None = None,
-        study_root: Path | None = None,
-        quest_root: Path | None = None,
-    ) -> dict:
-        called["profile_path"] = profile_path
-        called["study_root"] = study_root
-        called["quest_root"] = quest_root
-        return {"status": "resolved", "targets": [{"target_key": "profile:frontiers_family_harvard"}]}
-
-    monkeypatch.setattr(cli.submission_targets_controller, "resolve_submission_targets", fake_resolve)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "resolve-targets",
-            "--profile",
-            str(profile_path),
-            "--study-root",
-            str(tmp_path / "studies" / "002-early-residual-risk"),
-            "--quest-root",
-            str(tmp_path / "quests" / "002-early-residual-risk"),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile_path"] == profile_path
-    assert called["study_root"] == tmp_path / "studies" / "002-early-residual-risk"
-    assert called["quest_root"] == tmp_path / "quests" / "002-early-residual-risk"
-    assert '"status": "resolved"' in captured.out
-def test_export_submission_targets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_export(
-        *,
-        paper_root: Path | None = None,
-        profile_path: Path | None = None,
-        study_root: Path | None = None,
-        quest_root: Path | None = None,
-    ) -> dict:
-        called["paper_root"] = paper_root
-        called["profile_path"] = profile_path
-        called["study_root"] = study_root
-        called["quest_root"] = quest_root
-        return {"status": "blocked", "blocked_target_count": 1}
-
-    monkeypatch.setattr(cli.submission_targets_controller, "export_submission_targets", fake_export)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "export-targets",
-            "--paper-root",
-            str(tmp_path / "paper"),
-            "--profile",
-            str(profile_path),
-            "--study-root",
-            str(tmp_path / "studies" / "002-early-residual-risk"),
-            "--quest-root",
-            str(tmp_path / "quests" / "002-early-residual-risk"),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["paper_root"] == tmp_path / "paper"
-    assert called["profile_path"] == profile_path
-    assert called["study_root"] == tmp_path / "studies" / "002-early-residual-risk"
-    assert called["quest_root"] == tmp_path / "quests" / "002-early-residual-risk"
-    assert '"blocked_target_count": 1' in captured.out
-def test_resolve_reference_papers_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_resolve(*, quest_root: Path) -> dict:
-        called["quest_root"] = quest_root
-        return {"status": "resolved", "paper_count": 2}
-
-    monkeypatch.setattr(cli.reference_papers_controller, "resolve_reference_papers", fake_resolve)
-
-    exit_code = cli.main(
-        [
-            "study",
-            "resolve-reference-papers",
-            "--quest-root",
-            str(tmp_path / "quests" / "002-early-residual-risk"),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "quests" / "002-early-residual-risk"
-    assert '"paper_count": 2' in captured.out
-def test_publication_gate_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_run_controller(*, quest_root: Path, apply: bool) -> dict:
-        called["quest_root"] = quest_root
-        called["apply"] = apply
-        return {"status": "blocked", "blockers": ["missing_post_main_publishability_gate"]}
-
-    monkeypatch.setattr(cli.publication_gate, "run_controller", fake_run_controller)
-
-    exit_code = cli.main(["publication", "gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "q001"
-    assert called["apply"] is True
-    assert '"status": "blocked"' in captured.out
-def test_materialize_journal_package_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_materialize(
-        *,
-        paper_root: Path,
-        study_root: Path,
-        journal_slug: str,
-        publication_profile: str | None = None,
-        confirmed_target: bool = False,
-    ) -> dict[str, object]:
-        called["paper_root"] = paper_root
-        called["study_root"] = study_root
-        called["journal_slug"] = journal_slug
-        called["publication_profile"] = publication_profile
-        called["confirmed_target"] = confirmed_target
-        return {"status": "materialized", "journal_slug": journal_slug}
-
-    monkeypatch.setattr(cli.journal_package_controller, "materialize_journal_package", fake_materialize)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "materialize-journal-package",
-            "--paper-root",
-            str(tmp_path / "paper"),
-            "--study-root",
-            str(tmp_path / "study"),
-            "--journal-slug",
-            "rheumatology-international",
-            "--publication-profile",
-            "general_medical_journal",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["paper_root"] == tmp_path / "paper"
-    assert called["study_root"] == tmp_path / "study"
-    assert called["journal_slug"] == "rheumatology-international"
-    assert called["publication_profile"] == "general_medical_journal"
-    assert called["confirmed_target"] is False
-    assert '"status": "materialized"' in captured.out
-
-
-def test_materialize_journal_package_command_accepts_confirmed_target_flag(
-    monkeypatch, tmp_path: Path, capsys
+def _run_cli_dispatch_case(
+    cli,
+    monkeypatch,
+    capsys,
+    *,
+    target_attr,
+    function_name,
+    args,
+    result,
+    expected_call,
+    output_contains,
+    ignore_call_keys=(),
+    default_call_values=None,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
+    calls: list[dict[str, object]] = []
 
-    def fake_materialize(
-        *,
-        paper_root: Path,
-        study_root: Path,
-        journal_slug: str,
-        publication_profile: str | None = None,
-        confirmed_target: bool = False,
-    ) -> dict[str, object]:
-        called["confirmed_target"] = confirmed_target
-        return {"status": "materialized", "journal_slug": journal_slug}
+    def fake_dispatch(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        return result
 
-    monkeypatch.setattr(cli.journal_package_controller, "materialize_journal_package", fake_materialize)
+    monkeypatch.setattr(getattr(cli, target_attr), function_name, fake_dispatch)
 
-    exit_code = cli.main(
-        [
-            "publication",
-            "materialize-journal-package",
-            "--paper-root",
-            str(tmp_path / "paper"),
-            "--study-root",
-            str(tmp_path / "study"),
-            "--journal-slug",
-            "rheumatology-international",
-            "--confirmed-target",
-        ]
-    )
+    exit_code = cli.main(args)
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["confirmed_target"] is True
-    assert '"status": "materialized"' in captured.out
+    assert len(calls) == 1
+    actual_call = {key: value for key, value in calls[0].items() if key not in ignore_call_keys}
+    if default_call_values:
+        actual_call = {**default_call_values, **actual_call}
+    assert actual_call == expected_call
+    for expected in output_contains:
+        assert expected in captured.out
 
 
-def test_medical_publication_surface_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_simple_cli_commands_dispatch_to_expected_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_run_controller(*, quest_root: Path, apply: bool, daemon_url: str | None = None) -> dict:
-        called["quest_root"] = quest_root
-        called["apply"] = apply
-        called["daemon_url"] = daemon_url
-        return {"status": "clear", "blockers": []}
-
-    monkeypatch.setattr(cli.medical_publication_controller, "run_controller", fake_run_controller)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "surface",
-            "--quest-root",
-            str(tmp_path / "q001"),
-            "--apply",
-            "--daemon-url",
-            "http://127.0.0.1:20999",
-        ]
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    cases = (
+        {
+            "target_attr": "delivery_inspector",
+            "function_name": "inspect_study_delivery",
+            "args": [
+                "publication",
+                "delivery-inspect",
+                "--profile",
+                str(profile_path),
+                "--study-id",
+                "001-risk",
+                "--format",
+                "json",
+            ],
+            "result": {
+                "surface": "delivery_inspector",
+                "mutation_policy": {"read_only": True, "writes_package": False},
+                "freshness": {"verdict": "current"},
+            },
+            "expected_call": {"study_id": "001-risk", "study_root": None, "profile_ref": profile_path},
+            "ignore_call_keys": ("profile", "publication_profile"),
+            "output_contains": ('"read_only": true', '"verdict": "current"'),
+        },
+        {
+            "target_attr": "startup_data_readiness_controller",
+            "function_name": "startup_data_readiness",
+            "args": ["data", "startup-readiness", "--workspace-root", str(tmp_path / "workspace")],
+            "result": {"status": "clear", "study_summary": {"study_count": 2}},
+            "expected_call": {"workspace_root": tmp_path / "workspace"},
+            "output_contains": ('"study_count": 2',),
+        },
+        {
+            "target_attr": "data_asset_gate",
+            "function_name": "run_controller",
+            "args": ["data", "asset-gate", "--quest-root", str(tmp_path / "q001"), "--apply"],
+            "result": {
+                "status": "blocked",
+                "blockers": ["outdated_private_release"],
+                "report_json": "/tmp/data_gate.json",
+            },
+            "expected_call": {"quest_root": tmp_path / "q001", "apply": True},
+            "output_contains": ('"outdated_private_release"',),
+        },
+        {
+            "target_attr": "tooluniverse_adapter",
+            "function_name": "detect_tooluniverse",
+            "args": [
+                "data",
+                "tooluniverse-status",
+                "--workspace-root",
+                str(tmp_path / "workspace"),
+                "--tooluniverse-root",
+                str(tmp_path / "ToolUniverse"),
+            ],
+            "result": {"available": True, "roles": ["知识检索", "功能分析"]},
+            "expected_call": {"workspace_root": tmp_path / "workspace", "tooluniverse_root": tmp_path / "ToolUniverse"},
+            "output_contains": ('"available": true',),
+        },
+        {
+            "target_attr": "submission_package_builder",
+            "function_name": "create_submission_minimal_package",
+            "args": [
+                "publication",
+                "export-submission-minimal",
+                "--paper-root",
+                str(tmp_path / "paper"),
+                "--publication-profile",
+                "general_medical_journal",
+                "--citation-style",
+                "AMA",
+            ],
+            "result": {"output_root": str(tmp_path / "paper" / "submission_minimal")},
+            "expected_call": {
+                "paper_root": tmp_path / "paper",
+                "publication_profile": "general_medical_journal",
+                "citation_style": "AMA",
+            },
+            "output_contains": ("submission_minimal",),
+        },
+        {
+            "target_attr": "submission_targets_controller",
+            "function_name": "resolve_submission_targets",
+            "args": [
+                "publication",
+                "resolve-targets",
+                "--profile",
+                str(profile_path),
+                "--study-root",
+                str(tmp_path / "studies" / "002-early-residual-risk"),
+                "--quest-root",
+                str(tmp_path / "quests" / "002-early-residual-risk"),
+            ],
+            "result": {"status": "resolved", "targets": [{"target_key": "profile:frontiers_family_harvard"}]},
+            "expected_call": {
+                "profile_path": profile_path,
+                "study_root": tmp_path / "studies" / "002-early-residual-risk",
+                "quest_root": tmp_path / "quests" / "002-early-residual-risk",
+            },
+            "output_contains": ('"status": "resolved"',),
+        },
+        {
+            "target_attr": "submission_targets_controller",
+            "function_name": "export_submission_targets",
+            "args": [
+                "publication",
+                "export-targets",
+                "--paper-root",
+                str(tmp_path / "paper"),
+                "--profile",
+                str(profile_path),
+                "--study-root",
+                str(tmp_path / "studies" / "002-early-residual-risk"),
+                "--quest-root",
+                str(tmp_path / "quests" / "002-early-residual-risk"),
+            ],
+            "result": {"status": "blocked", "blocked_target_count": 1},
+            "expected_call": {
+                "paper_root": tmp_path / "paper",
+                "profile_path": profile_path,
+                "study_root": tmp_path / "studies" / "002-early-residual-risk",
+                "quest_root": tmp_path / "quests" / "002-early-residual-risk",
+            },
+            "output_contains": ('"blocked_target_count": 1',),
+        },
+        {
+            "target_attr": "reference_papers_controller",
+            "function_name": "resolve_reference_papers",
+            "args": [
+                "study",
+                "resolve-reference-papers",
+                "--quest-root",
+                str(tmp_path / "quests" / "002-early-residual-risk"),
+            ],
+            "result": {"status": "resolved", "paper_count": 2},
+            "expected_call": {"quest_root": tmp_path / "quests" / "002-early-residual-risk"},
+            "output_contains": ('"paper_count": 2',),
+        },
+        {
+            "target_attr": "publication_gate",
+            "function_name": "run_controller",
+            "args": ["publication", "gate", "--quest-root", str(tmp_path / "q001"), "--apply"],
+            "result": {"status": "blocked", "blockers": ["missing_post_main_publishability_gate"]},
+            "expected_call": {"quest_root": tmp_path / "q001", "apply": True},
+            "output_contains": ('"status": "blocked"',),
+        },
+        {
+            "target_attr": "journal_package_controller",
+            "function_name": "materialize_journal_package",
+            "args": [
+                "publication",
+                "materialize-journal-package",
+                "--paper-root",
+                str(tmp_path / "paper"),
+                "--study-root",
+                str(tmp_path / "study"),
+                "--journal-slug",
+                "rheumatology-international",
+                "--publication-profile",
+                "general_medical_journal",
+            ],
+            "result": {"status": "materialized", "journal_slug": "rheumatology-international"},
+            "expected_call": {
+                "paper_root": tmp_path / "paper",
+                "study_root": tmp_path / "study",
+                "journal_slug": "rheumatology-international",
+                "publication_profile": "general_medical_journal",
+                "confirmed_target": False,
+            },
+            "output_contains": ('"status": "materialized"',),
+        },
+        {
+            "target_attr": "journal_package_controller",
+            "function_name": "materialize_journal_package",
+            "args": [
+                "publication",
+                "materialize-journal-package",
+                "--paper-root",
+                str(tmp_path / "paper"),
+                "--study-root",
+                str(tmp_path / "study"),
+                "--journal-slug",
+                "rheumatology-international",
+                "--confirmed-target",
+            ],
+            "result": {"status": "materialized", "journal_slug": "rheumatology-international"},
+            "expected_call": {
+                "paper_root": tmp_path / "paper",
+                "study_root": tmp_path / "study",
+                "journal_slug": "rheumatology-international",
+                "publication_profile": None,
+                "confirmed_target": True,
+            },
+            "output_contains": ('"status": "materialized"',),
+        },
+        {
+            "target_attr": "medical_publication_controller",
+            "function_name": "run_controller",
+            "args": [
+                "publication",
+                "surface",
+                "--quest-root",
+                str(tmp_path / "q001"),
+                "--apply",
+                "--daemon-url",
+                "http://127.0.0.1:20999",
+            ],
+            "result": {"status": "clear", "blockers": []},
+            "expected_call": {
+                "quest_root": tmp_path / "q001",
+                "apply": True,
+                "daemon_url": "http://127.0.0.1:20999",
+            },
+            "output_contains": ('"status": "clear"',),
+        },
+        {
+            "target_attr": "study_delivery_sync",
+            "function_name": "sync_study_delivery",
+            "args": ["study", "delivery-sync", "--paper-root", str(tmp_path / "paper"), "--stage", "finalize"],
+            "result": {
+                "stage": "finalize",
+                "publication_profile": "general_medical_journal",
+                "targets": {"manuscript_root": str(tmp_path / "study" / "manuscript")},
+            },
+            "expected_call": {
+                "paper_root": tmp_path / "paper",
+                "stage": "finalize",
+                "publication_profile": "general_medical_journal",
+                "promote_to_final": False,
+            },
+            "output_contains": ('"stage": "finalize"',),
+        },
+        {
+            "target_attr": "overlay_installer",
+            "function_name": "describe_medical_overlay",
+            "args": ["runtime", "overlay-status", "--quest-root", str(tmp_path / "runtime" / "quests" / "q001")],
+            "result": {
+                "scope": "quest",
+                "quest_root": str(tmp_path / "runtime" / "quests" / "q001"),
+                "targets": [{"skill_id": "write"}],
+            },
+            "expected_call": {"quest_root": tmp_path / "runtime" / "quests" / "q001", "skill_ids": None},
+            "output_contains": ('"skill_id": "write"',),
+        },
+        {
+            "target_attr": "overlay_installer",
+            "function_name": "install_medical_overlay",
+            "args": ["runtime", "install-overlay"],
+            "result": {"installed_count": 2, "targets": [{"skill_id": "write", "action": "installed"}]},
+            "expected_call": {"quest_root": None, "skill_ids": None},
+            "output_contains": ('"installed_count": 2',),
+        },
+        {
+            "target_attr": "overlay_installer",
+            "function_name": "reapply_medical_overlay",
+            "args": ["runtime", "reapply-overlay", "--quest-root", str(tmp_path / "q001")],
+            "result": {"installed_count": 2, "targets": [{"skill_id": "finalize", "action": "reapplied"}]},
+            "expected_call": {"quest_root": tmp_path / "q001", "skill_ids": None},
+            "output_contains": ('"action": "reapplied"',),
+        },
+        {
+            "target_attr": "overlay_installer",
+            "function_name": "describe_medical_overlay",
+            "args": ["runtime", "overlay-status", "--profile", str(profile_path)],
+            "result": {"targets": [{"skill_id": "scout"}], "scope": "global"},
+            "expected_call": {
+                "quest_root": Path("/Users/gaofeng/workspace/Yang/NF-PitNET"),
+                "med_deepscientist_repo_root": None,
+                "skill_ids": ("scout", "idea", "decision", "write", "finalize"),
+                "policy_id": "high_plasticity_medical",
+                "archetype_ids": (
+                    "clinical_classifier",
+                    "clinical_subtype_reconstruction",
+                    "external_validation_model_update",
+                    "gray_zone_triage",
+                    "llm_agent_clinical_task",
+                    "mechanistic_sidecar_extension",
+                ),
+                "default_submission_targets": (
+                    {
+                        "exporter_profile": "frontiers_family_harvard",
+                        "primary": True,
+                        "package_required": True,
+                        "story_surface": "general_medical_journal",
+                    },
+                ),
+                "default_publication_profile": "general_medical_journal",
+                "default_citation_style": "AMA",
+            },
+            "default_call_values": {"med_deepscientist_repo_root": None},
+            "output_contains": ('"skill_id": "scout"',),
+        },
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "q001"
-    assert called["apply"] is True
-    assert called["daemon_url"] == "http://127.0.0.1:20999"
-    assert '"status": "clear"' in captured.out
+    for case in cases:
+        _run_cli_dispatch_case(cli, monkeypatch, capsys, **case)
 
 
 def test_materialize_ai_medical_prose_review_command_uses_validator_surface(
@@ -579,157 +547,8 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
     assert called["min_reference_count"] == 12
     assert called["recent_window"] == 120
     assert '"figure_loop_budget_exceeded"' in captured.out
-def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
 
-    def fake_sync(
-        *,
-        paper_root: Path,
-        stage: str,
-        publication_profile: str = "general_medical_journal",
-        promote_to_final: bool = False,
-    ) -> dict:
-        called["paper_root"] = paper_root
-        called["stage"] = stage
-        called["publication_profile"] = publication_profile
-        called["promote_to_final"] = promote_to_final
-        return {
-            "stage": stage,
-            "publication_profile": publication_profile,
-            "targets": {"manuscript_root": str(tmp_path / "study" / "manuscript")},
-        }
 
-    monkeypatch.setattr(cli.study_delivery_sync, "sync_study_delivery", fake_sync)
-
-    exit_code = cli.main(
-        [
-            "study",
-            "delivery-sync",
-            "--paper-root",
-            str(tmp_path / "paper"),
-            "--stage",
-            "finalize",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["paper_root"] == tmp_path / "paper"
-    assert called["stage"] == "finalize"
-    assert called["publication_profile"] == "general_medical_journal"
-    assert called["promote_to_final"] is False
-    assert '"stage": "finalize"' in captured.out
-def test_overlay_status_command_dispatches_installer(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_status(*, quest_root: Path | None = None, skill_ids: tuple[str, ...] | None = None) -> dict:
-        called["quest_root"] = quest_root
-        called["skill_ids"] = skill_ids
-        return {"scope": "quest", "quest_root": str(quest_root), "targets": [{"skill_id": "write"}]}
-
-    monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
-
-    exit_code = cli.main(["runtime", "overlay-status", "--quest-root", str(tmp_path / "runtime" / "quests" / "q001")])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "runtime" / "quests" / "q001"
-    assert called["skill_ids"] is None
-    assert '"skill_id": "write"' in captured.out
-def test_install_medical_overlay_command_dispatches_installer(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_install(*, quest_root: Path | None = None, skill_ids: tuple[str, ...] | None = None) -> dict:
-        called["quest_root"] = quest_root
-        called["skill_ids"] = skill_ids
-        return {"installed_count": 2, "targets": [{"skill_id": "write", "action": "installed"}]}
-
-    monkeypatch.setattr(cli.overlay_installer, "install_medical_overlay", fake_install)
-
-    exit_code = cli.main(["runtime", "install-overlay"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] is None
-    assert called["skill_ids"] is None
-    assert '"installed_count": 2' in captured.out
-def test_reapply_medical_overlay_command_dispatches_installer(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_reapply(*, quest_root: Path | None = None, skill_ids: tuple[str, ...] | None = None) -> dict:
-        called["quest_root"] = quest_root
-        called["skill_ids"] = skill_ids
-        return {"installed_count": 2, "targets": [{"skill_id": "finalize", "action": "reapplied"}]}
-
-    monkeypatch.setattr(cli.overlay_installer, "reapply_medical_overlay", fake_reapply)
-
-    exit_code = cli.main(["runtime", "reapply-overlay", "--quest-root", str(tmp_path / "q001")])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == tmp_path / "q001"
-    assert called["skill_ids"] is None
-    assert '"action": "reapplied"' in captured.out
-def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_status(
-        *,
-        quest_root: Path | None = None,
-        med_deepscientist_repo_root: Path | None = None,
-        skill_ids: tuple[str, ...] | None = None,
-        policy_id: str | None = None,
-        archetype_ids: tuple[str, ...] | None = None,
-        default_submission_targets: tuple[dict[str, object], ...] | None = None,
-        default_publication_profile: str | None = None,
-        default_citation_style: str | None = None,
-    ) -> dict:
-        called["quest_root"] = quest_root
-        called["med_deepscientist_repo_root"] = med_deepscientist_repo_root
-        called["skill_ids"] = skill_ids
-        called["policy_id"] = policy_id
-        called["archetype_ids"] = archetype_ids
-        called["default_submission_targets"] = default_submission_targets
-        called["default_publication_profile"] = default_publication_profile
-        called["default_citation_style"] = default_citation_style
-        return {"targets": [{"skill_id": "scout"}], "scope": "global"}
-
-    monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
-
-    exit_code = cli.main(["runtime", "overlay-status", "--profile", str(profile_path)])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
-    assert called["med_deepscientist_repo_root"] is None
-    assert called["skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
-    assert called["policy_id"] == "high_plasticity_medical"
-    assert called["archetype_ids"] == (
-        "clinical_classifier",
-        "clinical_subtype_reconstruction",
-        "external_validation_model_update",
-        "gray_zone_triage",
-        "llm_agent_clinical_task",
-        "mechanistic_sidecar_extension",
-    )
-    assert called["default_submission_targets"] == (
-        {
-            "exporter_profile": "frontiers_family_harvard",
-            "primary": True,
-            "package_required": True,
-            "story_surface": "general_medical_journal",
-        },
-    )
-    assert called["default_publication_profile"] == "general_medical_journal"
-    assert called["default_citation_style"] == "AMA"
-    assert '"skill_id": "scout"' in captured.out
 def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
