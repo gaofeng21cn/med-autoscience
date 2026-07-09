@@ -31,7 +31,6 @@ from ..agent_pack_refs import (
     AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF,
     AGENT_STAGE_POLICY_REFS,
 )
-from ..adoption_ref_payload import empty_payload
 from .. import hypothesis_portfolio_pack
 from .stage_descriptor import (
     STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
@@ -44,9 +43,7 @@ from ..family_stage_artifact_index_projection import (
     stage_artifact_index_projection_descriptor,
 )
 from ..family_stage_pack import FAMILY_STAGE_PACK
-from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol import opl_state_index_source_adapter
-from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_domain_authority_refs_adoption"
@@ -425,32 +422,9 @@ def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]
 def build_opl_family_adoption_surface(
     *,
     workspace_root: Path,
-    db_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    legacy_db_path = Path(
-        db_path
-        or domain_authority_refs_index.workspace_authority_refs_index_path(
-            resolved_workspace_root
-        )
-    ).expanduser().resolve()
     source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
-    inspection = {
-        "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-        "schema_version": domain_authority_refs_index.SCHEMA_VERSION,
-        "db_path": str(legacy_db_path),
-        "status": "not_read_current_adoption_uses_source_adapter_manifest",
-        "tables": {},
-    }
-    payload = empty_payload(inspection=inspection)
-    payload["persistence"].update(
-        {
-            "source_adapter_ref": "/refs/state_index_source_adapter",
-            "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
-            "sqlite_payload_read": False,
-            "sqlite_inspection_read": False,
-        }
-    )
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
         "schema_version": 1,
@@ -458,23 +432,35 @@ def build_opl_family_adoption_surface(
         "refs": {
             "source_contract": SOURCE_CONTRACT_REF,
             "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
-            "state_index_source_adapter": {
-                "surface_kind": source_adapter["surface_kind"],
-                "manifest_ref": source_adapter["manifest_ref"],
-                "workspace_relative_path": source_adapter["manifest_ref"],
-                "status": source_adapter["status"],
-                "replacement_owner_surface": source_adapter["replacement_owner_surface"],
-                "source_tables": list(source_adapter["source_tables"]),
-                "sqlite_payload_read": False,
-                "sqlite_inspection_read": False,
+            "state_index_source_adapter": _state_index_source_ref(source_adapter),
+            "authority_boundary": {
+                "domain_truth_owner": "MedAutoScience",
+                "opl_role": "OPL stage-runtime discovery and indexing only",
+                "allowed_operation": "refs_payload_projection_only",
+                "forbidden_opl_authority_surfaces": list(FORBIDDEN_OPL_AUTHORITY_SURFACES),
             },
-            "legacy_sqlite_refs_index": {
-                "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": _workspace_relative(legacy_db_path, resolved_workspace_root),
-                "db_path": str(legacy_db_path),
-                "status": "explicit_history_replay_or_local_refs_inspection_only",
-                "current_adoption_projection": False,
-            },
+        },
+        "payload": _body_free_adoption_payload(source_adapter),
+    }
+
+
+def build_product_entry_adoption_projection(
+    *,
+    workspace_root: Path,
+) -> dict[str, Any]:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
+    stage_control_plane_descriptor = build_family_stage_control_plane_descriptor()
+    payload = _body_free_adoption_payload(source_adapter)
+    payload["family_stage_control_plane_descriptor"] = stage_control_plane_descriptor
+    return {
+        "surface_kind": ADOPTION_SURFACE_KIND,
+        "schema_version": 1,
+        "workspace_root": str(resolved_workspace_root),
+        "refs": {
+            "source_contract": SOURCE_CONTRACT_REF,
+            "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
+            "state_index_source_adapter": _state_index_source_ref(source_adapter),
             "authority_boundary": {
                 "domain_truth_owner": "MedAutoScience",
                 "opl_role": "OPL stage-runtime discovery and indexing only",
@@ -486,86 +472,51 @@ def build_opl_family_adoption_surface(
     }
 
 
-def _workspace_relative(path: Path, workspace_root: Path) -> str:
-    try:
-        return path.relative_to(workspace_root).as_posix()
-    except ValueError:
-        return str(path)
-
-
-def build_product_entry_adoption_projection(
-    *,
-    workspace_root: Path,
-    db_path: Path | None = None,
-) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    legacy_db_path = Path(
-        db_path
-        or domain_authority_refs_index.workspace_authority_refs_index_path(
-            resolved_workspace_root
-        )
-    ).resolve()
-    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
-    stage_control_plane_descriptor = build_family_stage_control_plane_descriptor()
+def _state_index_source_ref(source_adapter: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "surface_kind": ADOPTION_SURFACE_KIND,
-        "schema_version": 1,
-        "workspace_root": str(resolved_workspace_root),
-        "refs": {
-            "source_contract": SOURCE_CONTRACT_REF,
-            "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
-            "state_index_source_adapter": {
-                "surface_kind": source_adapter["surface_kind"],
-                "manifest_ref": source_adapter["manifest_ref"],
-                "workspace_relative_path": source_adapter["manifest_ref"],
-                "status": source_adapter["status"],
-                "replacement_owner_surface": source_adapter["replacement_owner_surface"],
-                "source_tables": list(source_adapter["source_tables"]),
-                "sqlite_payload_read": False,
-                "sqlite_inspection_read": False,
-            },
-            "legacy_sqlite_refs_index": {
-                "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": _workspace_relative(legacy_db_path, resolved_workspace_root),
-                "db_path": str(legacy_db_path),
-                "status": "explicit_history_replay_or_local_refs_inspection_only",
-                "current_adoption_projection": False,
-            },
-            "authority_boundary": {
-                "domain_truth_owner": "MedAutoScience",
-                "opl_role": "OPL stage-runtime discovery and indexing only",
-                "allowed_operation": "refs_payload_projection_only",
-                "forbidden_opl_authority_surfaces": list(FORBIDDEN_OPL_AUTHORITY_SURFACES),
-            },
+        "surface_kind": source_adapter["surface_kind"],
+        "manifest_ref": source_adapter["manifest_ref"],
+        "workspace_relative_path": source_adapter["manifest_ref"],
+        "status": source_adapter["status"],
+        "replacement_owner_surface": source_adapter["replacement_owner_surface"],
+        "source_families": list(source_adapter["source_families"]),
+        "local_persistence": "absent",
+        "body_included": False,
+    }
+
+
+def _body_free_adoption_payload(
+    source_adapter: Mapping[str, Any],
+) -> dict[str, Any]:
+    source_families = list(source_adapter["source_families"])
+    return {
+        "persistence": {
+            "maps_to_opl_contract": "opl_family_persistence_contract.v1",
+            "state_index_source_adapter_ref": "/refs/state_index_source_adapter",
+            "source_families": source_families,
+            "local_persistence": "absent",
+            "body_included": False,
         },
-        "payload": {
-            "persistence": {
-                "maps_to_opl_contract": "opl_family_persistence_contract.v1",
-                "state_index_source_adapter_ref": "/refs/state_index_source_adapter",
-                "legacy_sqlite_refs_index_ref": "/refs/legacy_sqlite_refs_index",
-                "sqlite_payload_read": False,
-                "sqlite_inspection_read": False,
-                "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
-            },
-            "lifecycle": {
-                "maps_to_opl_contract": "opl_family_lifecycle_contract.v1",
-                "source_tables": [
-                    "dispatch_receipts",
-                    "archive_refs",
-                ],
-            },
-            "owner_route": {
-                "maps_to_opl_contract": "opl_family_owner_route_contract.v1",
-                "source_table": "owner_route_receipts",
-                "route_ticket_shape": ["idempotency_key", "route_epoch", "current_owner", "next_owner", "allowed_actions"],
-            },
-            "authority_boundary": {
-                "publication_eval_owner": "MedAutoScience",
-                "ai_reviewer_owner": "MedAutoScience",
-                "paper_package_owner": "MedAutoScience",
-                "opl_authority": "discovery_and_indexing_only",
-            },
-            "family_stage_control_plane_descriptor": stage_control_plane_descriptor,
+        "lifecycle": {
+            "maps_to_opl_contract": "opl_family_lifecycle_contract.v1",
+            "source_families": ["dispatch_receipts", "archive_refs"],
+        },
+        "owner_route": {
+            "maps_to_opl_contract": "opl_family_owner_route_contract.v1",
+            "source_family": "owner_route_receipts",
+            "route_ticket_shape": [
+                "idempotency_key",
+                "route_epoch",
+                "current_owner",
+                "next_owner",
+                "allowed_actions",
+            ],
+        },
+        "authority_boundary": {
+            "publication_eval_owner": "MedAutoScience",
+            "ai_reviewer_owner": "MedAutoScience",
+            "paper_package_owner": "MedAutoScience",
+            "opl_authority": "discovery_and_indexing_only",
         },
     }
 

@@ -64,7 +64,6 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
 
     surface = adoption_module.build_opl_family_adoption_surface(
         workspace_root=workspace_root,
-        db_path=db_path,
     )
 
     assert surface["surface_kind"] == "mas_opl_family_domain_authority_refs_adoption"
@@ -75,7 +74,7 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         "workspace_relative_path": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
         "status": "source_adapter_manifest_projected",
         "replacement_owner_surface": "one-person-lab StateIndexKernel",
-        "source_tables": [
+        "source_families": [
             "authority_ref_metadata",
             "archive_refs",
             "owner_route_receipts",
@@ -83,16 +82,10 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
             "paper_progress_transition_refs",
             "stage_artifact_delta_refs",
         ],
-        "sqlite_payload_read": False,
-        "sqlite_inspection_read": False,
+        "local_persistence": "absent",
+        "body_included": False,
     }
-    assert surface["refs"]["legacy_sqlite_refs_index"] == {
-        "surface_kind": "mas_domain_authority_refs_source",
-        "workspace_relative_path": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-        "db_path": str(db_path.resolve()),
-        "status": "explicit_history_replay_or_local_refs_inspection_only",
-        "current_adoption_projection": False,
-    }
+    assert "legacy_sqlite_refs_index" not in surface["refs"]
     assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert surface["refs"]["domain_authority_refs_contract"] == (
         "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
@@ -106,14 +99,16 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         "paper/manuscript/current_package",
         "current_package.zip",
     ]
-    assert surface["payload"]["persistence"]["source_adapter_ref"] == "/refs/state_index_source_adapter"
-    assert surface["payload"]["persistence"]["sqlite_payload_read"] is False
-    assert surface["payload"]["persistence"]["sqlite_inspection_read"] is False
-    assert surface["payload"]["persistence"]["sqlite_tables"]["owner_route_receipts"] == 0
-    assert surface["payload"]["persistence"]["sqlite_tables"]["dispatch_receipts"] == 0
-    assert surface["payload"]["owner_route"]["current_ticket"] == {}
-    assert surface["payload"]["owner_route"]["allowed_actions"] == []
-    assert surface["payload"]["lifecycle"]["dispatch_receipts"] == []
+    assert surface["payload"]["persistence"]["state_index_source_adapter_ref"] == (
+        "/refs/state_index_source_adapter"
+    )
+    assert surface["payload"]["persistence"]["local_persistence"] == "absent"
+    assert surface["payload"]["persistence"]["body_included"] is False
+    assert surface["payload"]["owner_route"]["source_family"] == "owner_route_receipts"
+    assert surface["payload"]["lifecycle"]["source_families"] == [
+        "dispatch_receipts",
+        "archive_refs",
+    ]
     assert "publication_eval/latest.json" not in json.dumps(surface["payload"], ensure_ascii=False)
 
 
@@ -133,13 +128,10 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["refs"]["state_index_source_adapter"]["workspace_relative_path"] == (
         "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
     )
-    assert adoption["refs"]["state_index_source_adapter"]["sqlite_payload_read"] is False
-    assert adoption["refs"]["state_index_source_adapter"]["sqlite_inspection_read"] is False
-    assert adoption["refs"]["legacy_sqlite_refs_index"]["workspace_relative_path"] == (
-        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
-    )
-    assert adoption["refs"]["legacy_sqlite_refs_index"]["current_adoption_projection"] is False
-    assert adoption["payload"]["persistence"]["source_tables"] == [
+    assert adoption["refs"]["state_index_source_adapter"]["local_persistence"] == "absent"
+    assert adoption["refs"]["state_index_source_adapter"]["body_included"] is False
+    assert "legacy_sqlite_refs_index" not in adoption["refs"]
+    assert adoption["payload"]["persistence"]["source_families"] == [
         "authority_ref_metadata",
         "archive_refs",
         "owner_route_receipts",
@@ -150,14 +142,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["payload"]["persistence"]["state_index_source_adapter_ref"] == (
         "/refs/state_index_source_adapter"
     )
-    assert adoption["payload"]["persistence"]["legacy_sqlite_refs_index_ref"] == (
-        "/refs/legacy_sqlite_refs_index"
-    )
-    assert adoption["payload"]["persistence"]["sqlite_payload_read"] is False
-    assert adoption["payload"]["persistence"]["sqlite_inspection_read"] is False
+    assert adoption["payload"]["persistence"]["local_persistence"] == "absent"
+    assert adoption["payload"]["persistence"]["body_included"] is False
     assert adoption["payload"]["authority_boundary"]["publication_eval_owner"] == "MedAutoScience"
     assert adoption["payload"]["authority_boundary"]["ai_reviewer_owner"] == "MedAutoScience"
-    assert adoption["payload"]["owner_route"]["source_table"] == "owner_route_receipts"
+    assert adoption["payload"]["owner_route"]["source_family"] == "owner_route_receipts"
     assert payload["persistence_policy"]["surface_kind"] == "family_persistence_policy"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["surface_role"] == (

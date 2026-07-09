@@ -905,7 +905,7 @@
         "Legacy owner_callable_dispatch_request now has a machine-readable OPL DomainProgressTransitionRuntime intake-only and StageRun ABI/provenance-only no-authority boundary; runtime_surface_retirement rejects provider-admission, provider-running, and MAS-created StageRun regressions.",
         "Legacy owner-callable stage closeout packets emitted through owner_callable_receipt_candidates now carry explicit OPL StageRun closeout provenance and identity-recovery flags with provider_admission_authority=false, execution_authority=false, attempt_lifecycle_authority=false, and queue_authority=false.",
         "Legacy owner_callable_adapter_receipt/latest.json now has a unified retirement_gate tied to the StageRun ABI active-caller scan; runtime_surface_retirement keeps no_active_stage_run_abi_caller_proven=false and physical_delete_allowed=false while active closeout consumers remain, and rejects tests or provenance-only scans as physical delete evidence.",
-        "domain_authority_refs_index active callers now route through opl_state_index_source_adapter and emit OPL StateIndex source-adapter proofs by default; db_path no longer implies MAS SQLite persistence, active callers do not receive a persist_sqlite parameter, and legacy SQLite writes require explicit opt-in for replay/local inspection.",
+        "domain_authority_refs_index active callers route through opl_state_index_source_adapter and emit body-free OPL StateIndex source refs; MAS-local persistence, inspection, and replay readers are absent.",
         "domain_authority_refs_index legacy helper active-caller scan now proves no active replay/local-inspection consumers remain after the paper_progress_transition_refs opt-in removal, records the retired transition-ref SQLite opt-in only as provenance, and keeps physical_delete_allowed=false until live OPL StateIndexKernel takeover plus physical-delete/tombstone evidence exists.",
         "domain_authority_refs_index OPL family adoption and product-entry persistence projections now read state_index_source_adapter manifests; legacy domain_authority_refs.sqlite inspection/payload helpers are history replay or local inspection only and cannot satisfy StateIndexKernel takeover.",
         "domain_action_request_materializer no longer emits top-level request_tasks; request task refs are nested under legacy_request_task_diagnostics.legacy_request_task_refs with diagnostic_ref_only/body_authority=false and tests assert the alias is absent.",
@@ -1494,14 +1494,7 @@
         "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
-        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
-        "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
-        "domain_diagnostic_obligation_actuator live-tail work order evidence required",
-        "stage_outcome_authority live-tail work order evidence required",
-        "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
-        "runtime_health_kernel live-tail work order evidence required",
-        "runtime_lifecycle_payload_retention live-tail work order evidence required",
-        "runtime_storage_maintenance live-tail work order evidence required"
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
       ],
       "false_completion_boundary": [
         "active_caller_exists_as_retention_reason",
@@ -1586,14 +1579,7 @@
         "domain diagnostic apply exactly-one live outcome when explicitly delegated",
         "fresh DM002/DM003 same-identity OPL provider-admission live readback instead of replay fixture readback",
         "fresh live OPL event/outbox/StageRun consumption readback reaches provider admission arbiter for current DM002/DM003 transition identity",
-        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption",
-        "agent_tool_arsenal_scientific_capability_registry live-tail work order evidence required",
-        "domain_diagnostic_obligation_actuator live-tail work order evidence required",
-        "stage_outcome_authority live-tail work order evidence required",
-        "progress_portal_study_workbench_overview_action_projection live-tail work order evidence required",
-        "runtime_health_kernel live-tail work order evidence required",
-        "runtime_lifecycle_payload_retention live-tail work order evidence required",
-        "runtime_storage_maintenance live-tail work order evidence required"
+        "fresh DM002/DM003 paper-line accepted outcome after provider-admission readback consumption"
       ],
       "repo_source_retirement_completion_claim_allowed": true,
       "repo_source_retirement_evidence_refs": [
@@ -1602,27 +1588,13 @@
         "runtime_surface_retirement_audit:violation_count=0@8de3658e",
         "commit:8de3658ea Tighten owner dispatch OPL tail guards"
       ],
-      "live_runtime_work_order_refs": [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
-      ],
-      "live_runtime_work_order_surface_ids": [
-        "agent_tool_arsenal_scientific_capability_registry",
-        "domain_diagnostic_obligation_actuator",
-        "stage_outcome_authority",
-        "progress_portal_study_workbench_overview_action_projection",
-        "runtime_health_kernel",
-        "runtime_lifecycle_payload_retention",
-        "runtime_storage_maintenance"
-      ],
-      "live_tail_evidence_intake_refs": [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema"
-      ],
-      "live_runtime_gap_work_order_refs": [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
-      ],
-      "live_runtime_gap_evidence_intake_refs": [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema"
-      ]
+      "live_runtime_work_order_refs": [],
+      "live_runtime_work_order_surface_ids": [],
+      "live_tail_evidence_intake_refs": [],
+      "live_runtime_gap_work_order_refs": [],
+      "live_runtime_gap_evidence_intake_refs": [],
+      "runtime_evidence_readback_redirect_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+      "opl_runtime_evidence_readback_ref": "opl:runtime-evidence-readback"
     },
     {
       "gate_id": "lane_5_live_paper_line_acceptance",

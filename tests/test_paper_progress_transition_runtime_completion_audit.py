@@ -14,12 +14,6 @@ REPLAY_STATUS_PATH = REPO_ROOT / "contracts" / "paper_progress_replay_live_evide
 RETIREMENT_INVENTORY_PATH = (
     REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
 )
-LIVE_TAIL_WORK_ORDERS_PATH = (
-    REPO_ROOT / "contracts" / "runtime" / "mas-runtime-live-tail-work-orders.json"
-)
-LIVE_RUNTIME_GAP_WORK_ORDERS_PATH = (
-    REPO_ROOT / "contracts" / "runtime" / "mas-live-runtime-gap-work-orders.json"
-)
 
 
 def _audit() -> dict[str, object]:
@@ -32,14 +26,6 @@ def _replay_status() -> dict[str, object]:
 
 def _retirement_inventory() -> dict[str, object]:
     return json.loads(RETIREMENT_INVENTORY_PATH.read_text(encoding="utf-8"))
-
-
-def _live_tail_work_orders() -> dict[str, object]:
-    return json.loads(LIVE_TAIL_WORK_ORDERS_PATH.read_text(encoding="utf-8"))
-
-
-def _live_runtime_gap_work_orders() -> dict[str, object]:
-    return json.loads(LIVE_RUNTIME_GAP_WORK_ORDERS_PATH.read_text(encoding="utf-8"))
 
 
 def test_transition_runtime_completion_audit_declares_non_completion_boundary() -> None:
@@ -203,56 +189,24 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert live_runtime["completion_claim_allowed"] is False
     assert live_runtime["blocks_repo_source_retirement"] is False
     assert live_runtime["blocks_final_runtime_paper_acceptance"] is True
-    live_tail_work_orders = _live_tail_work_orders()
-    live_tail_surface_ids = [
-        order["surface_id"] for order in live_tail_work_orders["work_orders"]
-    ]
-    live_runtime_gap_work_orders = _live_runtime_gap_work_orders()
-    live_runtime_gap_ids = [
-        order["gap_id"] for order in live_runtime_gap_work_orders["work_orders"]
-    ]
-    assert live_runtime["live_tail_work_order_refs"] == [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
-    ]
-    assert live_runtime["live_tail_evidence_intake_refs"][:1] == [
-        (
-            "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
-            "completion_claim_boundary/evidence_record_schema"
-        )
-    ]
-    assert (
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
-        "completion_claim_boundary/evidence_record_schema/"
-        "transition_identity_ref_required_for_families"
-    ) in live_runtime["live_tail_evidence_intake_refs"]
-    assert live_runtime["open_live_runtime_work_order_surface_ids"] == live_tail_surface_ids
-    assert live_runtime["live_runtime_gap_work_order_refs"] == [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
-    ]
-    assert live_runtime["live_runtime_gap_evidence_intake_refs"][:1] == [
-        (
-            "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
-            "completion_claim_boundary/evidence_record_schema"
-        )
-    ]
-    assert (
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
-        "completion_claim_boundary/evidence_record_schema/"
-        "transition_identity_ref_required_for_families"
-    ) in live_runtime["live_runtime_gap_evidence_intake_refs"]
-    assert live_runtime["open_live_runtime_gap_work_order_ids"] == live_runtime_gap_ids
-    assert live_runtime["live_runtime_evidence_rollup_refs"] == [
+    assert live_runtime["live_tail_work_order_refs"] == []
+    assert live_runtime["live_tail_evidence_intake_refs"] == []
+    assert live_runtime["open_live_runtime_work_order_surface_ids"] == []
+    assert live_runtime["live_runtime_gap_work_order_refs"] == []
+    assert live_runtime["live_runtime_gap_evidence_intake_refs"] == []
+    assert live_runtime["open_live_runtime_gap_work_order_ids"] == []
+    assert live_runtime["runtime_evidence_readback_redirect_refs"] == [
         "contracts/runtime/mas-live-runtime-evidence-rollup.json"
     ]
-    assert (
-        live_runtime["live_runtime_evidence_rollup_intake_ref"]
-        == "contracts/runtime/mas-live-runtime-evidence-rollup.json#/completion_claim_boundary"
+    assert live_runtime["opl_runtime_evidence_readback_ref"] == (
+        "opl:runtime-evidence-readback"
     )
-    assert live_runtime["live_runtime_evidence_rollup_required_for_completion_claim"] is True
-    assert live_runtime["live_runtime_evidence_rollup_claim_boundary"] == {
+    assert live_runtime["mas_live_runtime_evidence_rollup_required_for_completion_claim"] is False
+    assert live_runtime["opl_runtime_evidence_readback_required_for_completion_claim"] is True
+    assert live_runtime["runtime_evidence_readback_claim_boundary"] == {
         "repo_source_retirement_blocked_by_missing_live_evidence": False,
-        "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": True,
-        "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": False,
+        "mas_redirect_can_claim_live_runtime_readiness": False,
+        "docs_tests_inventory_or_queue_empty_can_satisfy_readback": False,
     }
     assert {
         "same-transition OPL command/event/outbox/StageRun identity readback",
@@ -311,25 +265,17 @@ def test_transition_runtime_completion_audit_splits_repo_source_and_live_runtime
     assert physical_gate["live_runtime_readiness_status"] == live_runtime["status"]
     assert physical_gate["live_runtime_evidence_blocks_repo_source_retirement"] is False
     assert physical_gate["repo_source_missing_evidence_tails"] == []
-    assert physical_gate["live_runtime_work_order_refs"] == [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
-    ]
-    assert physical_gate["live_runtime_gap_work_order_refs"] == [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
-    ]
-    assert physical_gate["live_runtime_gap_evidence_intake_refs"] == [
-        (
-            "contracts/runtime/mas-live-runtime-gap-work-orders.json#/"
-            "completion_claim_boundary/evidence_record_schema"
-        )
-    ]
-    assert physical_gate["live_tail_evidence_intake_refs"] == [
-        (
-            "contracts/runtime/mas-runtime-live-tail-work-orders.json#/"
-            "completion_claim_boundary/evidence_record_schema"
-        )
-    ]
-    assert physical_gate["live_runtime_work_order_surface_ids"] == live_tail_surface_ids
+    assert physical_gate["live_runtime_work_order_refs"] == []
+    assert physical_gate["live_runtime_gap_work_order_refs"] == []
+    assert physical_gate["live_runtime_gap_evidence_intake_refs"] == []
+    assert physical_gate["live_tail_evidence_intake_refs"] == []
+    assert physical_gate["live_runtime_work_order_surface_ids"] == []
+    assert physical_gate["runtime_evidence_readback_redirect_ref"] == (
+        "contracts/runtime/mas-live-runtime-evidence-rollup.json"
+    )
+    assert physical_gate["opl_runtime_evidence_readback_ref"] == (
+        "opl:runtime-evidence-readback"
+    )
     assert set(physical_gate["missing_evidence_tails"]) == set(
         physical_gate["live_runtime_readiness_missing_evidence_tails"]
     )
@@ -439,124 +385,46 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
         gate["gate_id"]: gate for gate in audit["gate_evidence_status"]
     }["lane_4_projection_demotion_and_physical_retirement"]
 
-    assert surfaces["runtime_health_kernel"]["current_disposition"] == "read_only_diagnostic_publisher"
-    assert surfaces["runtime_health_kernel"]["mas_local_event_append_api_retired"] is True
-    assert surfaces["stage_outcome_authority"]["current_disposition"] == (
-        "opl_authorized_owner_callable_adapter"
+    expected_retained = {
+        "stage_outcome_authority",
+        "runtime_health_kernel",
+        "progress_portal_study_workbench_overview_action_projection",
+        "agent_tool_arsenal_scientific_capability_registry",
+        "runtime_lifecycle_payload_retention",
+        "runtime_storage_maintenance",
+    }
+    retained = {
+        surface_id
+        for surface_id, surface in surfaces.items()
+        if surface["disposition"] != "physically_retired"
+    }
+
+    assert inventory["version"] == "mas-runtime-surface-retirement-inventory.v2"
+    assert inventory["schema_ref"] == (
+        "contracts/runtime/mas-runtime-surface-retirement.schema.json"
     )
-    assert surfaces["domain_diagnostic_obligation_actuator"]["current_disposition"] == (
-        "obligation_readback_projection_consumer"
+    assert "domain_diagnostic_obligation_actuator" not in surfaces
+    assert retained == expected_retained
+    assert all(surface["mas_runtime_authority"] is False for surface in surfaces.values())
+    assert all(
+        surface["replacement_ref"].startswith("opl:")
+        for surface in surfaces.values()
     )
-    assert surfaces["domain_diagnostic_obligation_actuator"][
-        "fail_closed_typed_blocker_surface"
-    ] == "mas_domain_typed_blocker"
-    assert surfaces["domain_diagnostic_obligation_actuator"][
-        "obligation_readback_boundary"
-    ]["mas_domain_authority_readback_requires_authority_boundary"] is True
-    assert surfaces["domain_diagnostic_obligation_actuator"][
-        "obligation_readback_boundary"
-    ]["read_model_evidence_refs_can_satisfy_success"] is False
-    assert surfaces["domain_authority_refs_index"]["current_disposition"] == "physically_retired"
-    assert surfaces["domain_authority_refs_index"]["retained_mas_role"] == (
-        "none_physically_retired_no_alias"
+    assert all(
+        surface["tombstone_ref"]
+        for surface in surfaces.values()
+        if surface["disposition"] == "physically_retired"
     )
-    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
-        "active_caller_effect"
-    ] == "opl_state_index_source_adapter_emitted_no_sqlite_persistence"
-    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
-        "active_caller_retains_surface"
-    ] is False
-    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
-        "default_sqlite_persistence"
-    ] is False
-    assert surfaces["domain_authority_refs_index"]["active_caller_boundary"][
-        "sqlite_persistence_requires_explicit_opt_in"
-    ] is True
-    assert surfaces["domain_authority_refs_index"]["active_caller_migrated"] is True
-    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
-        "replacement_parity_proven"
-    ] is True
-    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
-        "repo_source_physical_retirement_authorized"
-    ] is True
-    assert surfaces["domain_authority_refs_index"]["retirement_gate"][
-        "live_runtime_readiness_required_for_repo_source_delete"
-    ] is False
-    assert surfaces["domain_authority_refs_index"]["physical_delete_completion_basis"][
-        "live_runtime_evidence_blocks_repo_source_delete"
-    ] is False
-    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
-        "active_caller_effect"
-    ] == "opl_domain_progress_transition_runtime_intake_only"
-    assert surfaces["owner_callable_dispatch_request"]["current_disposition"] == (
-        "physically_retired"
-    )
-    assert surfaces["owner_callable_dispatch_request"]["retained_mas_role"] == (
-        "none_physically_retired_no_alias"
-    )
-    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
-        "provider_admission_pending"
-    ] is False
-    assert surfaces["owner_callable_dispatch_request"]["active_caller_boundary"][
-        "active_caller_retains_surface"
-    ] is False
-    assert surfaces["owner_callable_dispatch_request"][
-        "legacy_stage_run_abi_provenance_boundary"
-    ]["mas_can_create_stage_run"] is False
-    assert surfaces["owner_callable_dispatch_request"][
-        "legacy_stage_run_abi_provenance_boundary"
-    ]["requires_opl_domain_progress_transition_runtime_intake"] is True
-    assert surfaces["owner_callable_dispatch_request"][
-        "opl_owner_callable_adapter_carrier_tail_readback"
-    ]["tail_readback_proven"] is False
-    assert surfaces["owner_callable_dispatch_request"][
-        "opl_owner_callable_adapter_carrier_tail_readback"
-    ]["transition_request_pending_can_satisfy_readback"] is False
-    assert surfaces["owner_callable_dispatch_request"][
-        "opl_owner_callable_adapter_carrier_tail_readback"
-    ]["request_only_carrier_can_authorize_provider_admission"] is False
-    assert surfaces["owner_callable_dispatch_request"]["retirement_gate"][
-        "repo_source_physical_retirement_authorized"
-    ] is True
-    assert surfaces["owner_callable_dispatch_request"]["retirement_gate"][
-        "live_runtime_readiness_required_for_repo_source_delete"
-    ] is False
-    assert surfaces["owner_callable_dispatch_request"]["physical_delete_completion_basis"][
-        "live_runtime_evidence_blocks_repo_source_delete"
-    ] is False
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "current_disposition"
-    ] == "physically_retired"
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "retained_mas_role"
-    ] == "none_physically_retired_no_alias"
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "legacy_stage_run_abi_boundary"
-    ]["abi_role"] == "opl_stagerun_closeout_provenance_identity_recovery_only"
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "legacy_stage_run_abi_boundary"
-    ]["stage_closeout_packets_can_authorize_provider_admission"] is False
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "legacy_stage_run_abi_boundary"
-    ]["stage_closeout_packets_can_authorize_execution"] is False
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "retirement_gate"
-    ]["repo_source_physical_retirement_authorized"] is True
-    assert surfaces["owner_callable_adapter_receipt_latest_wire_projection"][
-        "physical_delete_completion_basis"
-    ]["live_runtime_evidence_blocks_repo_source_delete"] is False
-    assert surfaces["runtime_lifecycle_payload_retention"]["current_disposition"] == (
-        "opl_authorized_maintenance_callable_adapter_live_takeover_tail_open"
-    )
-    assert surfaces["runtime_lifecycle_payload_retention"]["apply_gate"][
-        "required_authorization_surface"
-    ] == "opl_runtime_lifecycle_maintenance_authorization"
-    assert surfaces["runtime_storage_maintenance"]["current_disposition"] == (
-        "opl_authorized_storage_maintenance_callable_adapter_live_takeover_tail_open"
-    )
-    assert surfaces["runtime_storage_maintenance"]["apply_gate"][
-        "required_authorization_surface"
-    ] == "opl_runtime_storage_maintenance_authorization"
+    assert surfaces["domain_authority_refs_index"] == {
+        "surface_id": "domain_authority_refs_index",
+        "disposition": "physically_retired",
+        "replacement_ref": "opl:state-index-kernel",
+        "tombstone_ref": (
+            "human_doc:mas-private-surface-retirement#domain_authority_refs_index"
+        ),
+        "retained_mas_role": "none",
+        "mas_runtime_authority": False,
+    }
 
     assert physical_gate["repo_source_retirement_status"] == "done"
     assert physical_gate["repo_source_retirement_completion_percent"] == 100
@@ -564,163 +432,13 @@ def test_transition_runtime_completion_audit_tracks_retirement_inventory_tails()
     assert set(physical_gate["missing_evidence_tails"]) == set(
         physical_gate["live_runtime_readiness_missing_evidence_tails"]
     )
-    assert {
-        "OPL outbox and StageRun identity live readback for the same transition request",
-        "domain diagnostic apply exactly-one live outcome when explicitly delegated",
-        (
-            "fresh live OPL event/outbox/StageRun consumption readback reaches provider "
-            "admission arbiter for current DM002/DM003 transition identity"
-        ),
-    } <= set(physical_gate["live_runtime_readiness_missing_evidence_tails"])
-    assert {
-        "domain_authority_refs_index_live_state_index_takeover_or_no_active_replay_local_inspection_caller_physical_delete_ref",
-        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
-        "stage_outcome_authority_live_every_active_caller_soak_or_no_active_caller_ref",
-        "owner_callable_dispatch_request_opl_owner_callable_adapter_carrier_tail_readback_ref",
-        "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref",
-    }.isdisjoint(set(physical_gate["missing_evidence_tails"]))
-    assert (
-        "legacy_owner_callable_adapter_carrier_opl_stagerun_abi_or_no_active_caller_physical_delete_ref"
-        not in physical_gate["missing_evidence_tails"]
-    )
-    assert (
-        "tests/test_adapter_retirement_boundary.py::"
-        "test_owner_callable_adapter_stage_closeout_candidates_are_opl_stagerun_abi_provenance_only"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "owner_callable_adapter_receipt_latest_wire_projection#"
-        "legacy_stage_run_abi_boundary.active_stage_run_abi_caller_scan"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary.py::"
-        "test_legacy_stage_run_abi_active_caller_scan_keeps_physical_delete_tail_open"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "legacy_stage_run_abi_provenance_without_no_active_caller_physical_delete"
-        in physical_gate["false_completion_boundary"]
-    )
-    assert (
-        "active_stage_run_abi_caller_scan_as_physical_delete"
-        in physical_gate["false_completion_boundary"]
-    )
-    assert (
-        "runtime_lifecycle_payload_retention_live_opl_cleanup_policy_takeover_or_no_active_caller_physical_delete_ref"
-        not in physical_gate["missing_evidence_tails"]
-    )
-    assert (
-        "runtime_storage_maintenance_live_opl_storage_policy_takeover_or_no_active_caller_physical_delete_ref"
-        not in physical_gate["missing_evidence_tails"]
-    )
-    assert (
-        "tests/domain_action_request_materializer_cases/test_canonical_request_surface.py::"
-        "test_canonical_transition_request_projection_carries_dispatcher_boundary_fields"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_opl_state_index_kernel.py::"
-        "test_state_index_kernel_rows_are_refs_only_and_rebuildable"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "audit_runtime_surface_retirement_inventory"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
-        "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_opl_transition_readback_contract.py::"
-        "test_provider_admission_readback_must_match_current_transition_identity"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_provider_admission_current_control_arbiter.py::"
-        "test_provider_admission_consumes_bound_opl_transition_readback"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_provider_admission_current_control.py::"
-        "test_non_advancing_apply_readback_stays_typed_blocker_projection"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py::"
-        "test_runtime_report_preserves_human_gate_authority_payload"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_paper_recovery_state_cases/owner_gate_projection_cases.py::"
-        "test_runtime_report_preserves_human_gate_authority_payload"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "owner_callable_dispatch_request#legacy_stage_run_abi_provenance_boundary"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "owner_callable_dispatch_request#opl_owner_callable_adapter_carrier_tail_readback"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/"
-        "owner_callable_adapter_receipt_latest_wire_projection#legacy_stage_run_abi_boundary"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "src/med_autoscience/controllers/study_transition_receipt_consumption/"
-        "owner_callable_candidates.py::_execution_from_stage_closeout#"
-        "legacy_stage_run_abi_provenance_only"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "_validate_legacy_owner_callable_adapter_carrier"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "_validate_owner_callable_adapter_carrier_tail_readback"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "src/med_autoscience/runtime_protocol/runtime_surface_retirement.py::"
-        "_validate_legacy_stage_run_abi"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary.py::"
-        "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#"
-        "legacy_owner_callable_adapter_carrier_stage_run_abi_boundary"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary.py::"
-        "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory#"
-        "owner_callable_adapter_carrier_tail_readback"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
-        "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
-        "legacy_owner_callable_adapter_carrier_authority_regression"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py::"
-        "test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression#"
-        "owner_callable_adapter_carrier_tail_false_completion_guard"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::"
-        "test_runtime_lifecycle_payload_retention_requires_bound_opl_authorization"
-    ) in physical_gate["observed_refs"]
-    assert (
-        "tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py::"
-        "test_runtime_storage_maintenance_requires_opl_authorized_physical_apply"
-    ) in physical_gate["observed_refs"]
     assert "inventory_entry_updated" in physical_gate["false_completion_boundary"]
-    assert "active_caller_exists_as_retention_reason" in physical_gate["false_completion_boundary"]
-    assert "read_only_projection_as_execution_authority" in physical_gate["false_completion_boundary"]
-    assert (
-        "legacy_carrier_provenance_as_owner_callable_adapter_carrier_tail_readback"
-        in physical_gate["false_completion_boundary"]
-    )
-    assert (
-        "transition_request_pending_as_opl_live_readback"
-        in physical_gate["false_completion_boundary"]
-    )
-    assert (
-        "request_only_carrier_as_provider_admission"
-        in physical_gate["false_completion_boundary"]
-    )
-    assert "storage_authorization_gate_as_live_opl_takeover" in physical_gate["false_completion_boundary"]
+    assert "active_caller_exists_as_retention_reason" in physical_gate[
+        "false_completion_boundary"
+    ]
+    assert "read_only_projection_as_execution_authority" in physical_gate[
+        "false_completion_boundary"
+    ]
 
 
 def test_transition_runtime_completion_audit_records_provider_admission_repo_consumption_without_live_claim() -> None:
