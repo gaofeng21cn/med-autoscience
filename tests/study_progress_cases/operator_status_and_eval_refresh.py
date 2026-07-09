@@ -2,23 +2,63 @@ from __future__ import annotations
 
 from med_autoscience.controllers.study_progress.markdown_projection_rendering import render_study_progress_markdown
 
-from . import shared as _shared
-from . import runtime_projection_basics as _runtime_projection_basics
-from . import autonomy_quality_and_route_projection as _autonomy_quality_and_route_projection
-from . import publication_eval_currentness_projection as _publication_eval_currentness_projection
+from .shared import *  # noqa: F403
+from .runtime_projection_basics import *  # noqa: F403
+from .autonomy_quality_and_route_projection import *  # noqa: F403
+from .publication_eval_currentness_projection import *  # noqa: F403
 
-def _module_reexport(module) -> None:
-    names = getattr(module, "__all__", None)
-    if names is None:
-        names = [name for name in vars(module) if not name.startswith("__")]
-    for name in names:
-        if name != "_module_reexport":
-            globals()[name] = getattr(module, name)
 
-_module_reexport(_shared)
-_module_reexport(_runtime_projection_basics)
-_module_reexport(_autonomy_quality_and_route_projection)
-_module_reexport(_publication_eval_currentness_projection)
+def _submission_metadata_interaction(
+    quest_root: Path,
+    *,
+    options_count: int,
+    include_metadata: bool,
+) -> dict[str, object]:
+    properties = {"choice": {"type": "string"}}
+    if include_metadata:
+        properties["metadata"] = {"type": "object"}
+    source_path = str(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
+    )
+    return {
+        "interaction_id": "progress-finalize-001",
+        "kind": "progress",
+        "waiting_interaction_id": "progress-finalize-001",
+        "default_reply_interaction_id": "progress-finalize-001",
+        "pending_decisions": ["progress-finalize-001"],
+        "blocking": True,
+        "reply_mode": "blocking",
+        "expects_reply": True,
+        "allow_free_text": True,
+        "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
+        "summary": "请确认最终作者顺序、单位映射与声明文案。",
+        "reply_schema": {"type": "object", "properties": properties, "required": ["choice"]},
+        "decision_type": None,
+        "options_count": options_count,
+        "guidance_requires_user_decision": True,
+        "source_artifact_path": source_path,
+        "relay_required": True,
+    }
+
+
+def _routeback_domain_transition(study_id: str) -> dict[str, object]:
+    work_unit = "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    return {
+        "study_id": study_id,
+        "decision_type": "route_back_same_line",
+        "route_target": "analysis-campaign",
+        "next_work_unit": {
+            "unit_id": work_unit,
+            "lane": "analysis-campaign",
+            "summary": (
+                "Add uncertainty intervals, grouped calibration evidence, and reproducibility "
+                "details to the unit-harmonized external validation."
+            ),
+        },
+        "controller_action": "request_opl_stage_attempt",
+        "owner": "analysis-campaign",
+        "typed_blocker": None,
+    }
 
 def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_gate(
     monkeypatch,
@@ -26,13 +66,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile)
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(
         study_root,
@@ -63,36 +97,15 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"engine": "med-deepscientist", "quest_id": "quest-001", "auto_resume": True},
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "publishability_gate_blocked",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-            },
-            "pending_user_interaction": {},
-            "interaction_arbitration": None,
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "监管心跳新鲜。",
-            },
-        },
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            execution=managed_runtime_execution(auto_entry=False),
+            reason="publishability_gate_blocked",
+            pending_user_interaction={},
+            interaction_arbitration=None,
+            supervisor_tick_audit=fresh_supervisor_tick_audit(),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -112,13 +125,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile)
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
@@ -136,64 +143,24 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": "quest-001",
-                "auto_resume": True,
-            },
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "active",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_parked_on_unchanged_finalize_state",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": "paper bundle exists, but the active blockers still belong to the publishability surface; bundle suggestions stay downstream-only until the gate clears",
-            },
-            "pending_user_interaction": {
-                "interaction_id": "progress-finalize-001",
-                "kind": "progress",
-                "waiting_interaction_id": "progress-finalize-001",
-                "default_reply_interaction_id": "progress-finalize-001",
-                "pending_decisions": ["progress-finalize-001"],
-                "blocking": True,
-                "reply_mode": "blocking",
-                "expects_reply": True,
-                "allow_free_text": True,
-                "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
-                "summary": "请确认最终作者顺序、单位映射与声明文案。",
-                "reply_schema": {
-                    "type": "object",
-                    "properties": {
-                        "choice": {"type": "string"},
-                        "metadata": {"type": "object"},
-                    },
-                    "required": ["choice"],
-                },
-                "decision_type": None,
-                "options_count": 3,
-                "guidance_requires_user_decision": True,
-                "source_artifact_path": str(
-                    quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            quest_status="active",
+            reason="quest_parked_on_unchanged_finalize_state",
+            supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=[],
+                controller_stage_note=(
+                    "paper bundle exists, but the active blockers still belong to the publishability "
+                    "surface; bundle suggestions stay downstream-only until the gate clears"
                 ),
-                "relay_required": True,
-            },
-            "interaction_arbitration": {
+            ),
+            pending_user_interaction=_submission_metadata_interaction(
+                quest_root,
+                options_count=3,
+                include_metadata=True,
+            ),
+            interaction_arbitration={
                 "classification": "invalid_blocking",
                 "action": "resume",
                 "reason_code": "blocking_requires_structured_decision_request",
@@ -209,7 +176,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
                     "runtime blocking is rejected unless it is a valid structured decision request."
                 ),
             },
-            "continuation_state": {
+            continuation_state={
                 "quest_status": "active",
                 "active_run_id": None,
                 "continuation_policy": "wait_for_user_or_resume",
@@ -217,18 +184,16 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
                 "continuation_reason": "unchanged_finalize_state",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
-                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
-            },
-            "runtime_supervision": {
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                next_action_summary="继续按周期 supervisor tick 监管当前托管运行。",
+            ),
+            runtime_supervision={
                 "health_status": "recovering",
                 "summary": "系统正在自动启动或恢复托管运行。",
                 "next_action_summary": "等待下一次巡检确认 worker 已重新上线并恢复 live。",
             },
-        },
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -248,13 +213,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile)
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     write_submission_metadata_only_bundle(
         quest_root,
@@ -290,63 +249,25 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": "quest-001",
-                "auto_resume": True,
-            },
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "waiting_for_user",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "blocked",
-            "reason": "quest_waiting_for_submission_metadata",
-            "publication_supervisor_state": {
-                "supervisor_phase": "bundle_stage_ready",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": False,
-                "current_required_action": "continue_bundle_stage",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
-            },
-            "pending_user_interaction": {
-                "interaction_id": "progress-finalize-001",
-                "kind": "progress",
-                "waiting_interaction_id": "progress-finalize-001",
-                "default_reply_interaction_id": "progress-finalize-001",
-                "pending_decisions": ["progress-finalize-001"],
-                "blocking": True,
-                "reply_mode": "blocking",
-                "expects_reply": True,
-                "allow_free_text": True,
-                "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
-                "summary": "请确认最终作者顺序、单位映射与声明文案。",
-                "reply_schema": {
-                    "type": "object",
-                    "properties": {
-                        "choice": {"type": "string"},
-                    },
-                    "required": ["choice"],
-                },
-                "decision_type": None,
-                "options_count": 2,
-                "guidance_requires_user_decision": True,
-                "source_artifact_path": str(
-                    quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
-                ),
-                "relay_required": True,
-            },
-            "interaction_arbitration": {
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            quest_status="waiting_for_user",
+            decision="blocked",
+            reason="quest_waiting_for_submission_metadata",
+            supervisor_state=publication_gate_supervisor_state(
+                supervisor_phase="bundle_stage_ready",
+                bundle_tasks_downstream_only=False,
+                current_required_action="continue_bundle_stage",
+                deferred_downstream_actions=[],
+                controller_stage_note="bundle-stage work is unlocked and can proceed on the critical path",
+            ),
+            pending_user_interaction=_submission_metadata_interaction(
+                quest_root,
+                options_count=2,
+                include_metadata=False,
+            ),
+            interaction_arbitration={
                 "classification": "submission_metadata_only",
                 "action": "block",
                 "reason_code": "submission_metadata_only",
@@ -357,7 +278,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
                 "source_artifact_path": None,
                 "controller_stage_note": "The auditable current package is already delivered.",
             },
-            "continuation_state": {
+            continuation_state={
                 "quest_status": "waiting_for_user",
                 "active_run_id": None,
                 "continuation_policy": "wait_for_user_or_resume",
@@ -365,13 +286,11 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
                 "continuation_reason": "paper_bundle_submitted",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
-                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                next_action_summary="继续按周期 supervisor tick 监管当前托管运行。",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -395,13 +314,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(
-        profile.workspace_root,
-        study_id,
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, study_id)
     quest_root = profile.managed_runtime_home / "quests" / study_id
     write_submission_metadata_only_bundle(
         quest_root,
@@ -416,55 +329,23 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": study_id,
-                "auto_resume": True,
-            },
-            "quest_id": study_id,
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "failed",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "blocked",
-            "reason": "quest_waiting_for_submission_metadata",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": (
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            study_id=study_id,
+            quest_id=study_id,
+            quest_status="failed",
+            decision="blocked",
+            reason="quest_waiting_for_submission_metadata",
+            supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=[],
+                controller_stage_note=(
                     "AI reviewer route-back requires harmonized validation uncertainty and grouped calibration."
                 ),
-            },
-            "domain_transition": {
-                "study_id": study_id,
-                "decision_type": "route_back_same_line",
-                "route_target": "analysis-campaign",
-                "next_work_unit": {
-                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                    "lane": "analysis-campaign",
-                    "summary": (
-                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility "
-                        "details to the unit-harmonized external validation."
-                    ),
-                },
-                "controller_action": "request_opl_stage_attempt",
-                "owner": "analysis-campaign",
-                "typed_blocker": None,
-            },
-            "interaction_arbitration": None,
-            "continuation_state": {
+            ),
+            domain_transition=_routeback_domain_transition(study_id),
+            interaction_arbitration=None,
+            continuation_state={
                 "quest_status": "failed",
                 "active_run_id": None,
                 "continuation_policy": "auto",
@@ -472,13 +353,11 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
                 "continuation_reason": "opl_runtime_owner_route_redrive",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
-                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                next_action_summary="继续按周期 supervisor tick 监管当前托管运行。",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
@@ -512,13 +391,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(
-        profile.workspace_root,
-        study_id,
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, study_id)
     quest_root = profile.managed_runtime_home / "quests" / study_id
     _write_publication_eval(study_root, quest_root)
     _write_json(
@@ -538,55 +411,23 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {
-                "engine": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
-                "quest_id": study_id,
-                "auto_resume": True,
-            },
-            "quest_id": study_id,
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "failed",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "study_completion_contract": {},
-            "decision": "blocked",
-            "reason": "quest_waiting_for_submission_metadata",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "deferred_downstream_actions": [],
-                "controller_stage_note": (
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            study_id=study_id,
+            quest_id=study_id,
+            quest_status="failed",
+            decision="blocked",
+            reason="quest_waiting_for_submission_metadata",
+            supervisor_state=publication_gate_supervisor_state(
+                deferred_downstream_actions=[],
+                controller_stage_note=(
                     "AI reviewer route-back requires harmonized validation uncertainty and grouped calibration."
                 ),
-            },
-            "domain_transition": {
-                "study_id": study_id,
-                "decision_type": "route_back_same_line",
-                "route_target": "analysis-campaign",
-                "next_work_unit": {
-                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-                    "lane": "analysis-campaign",
-                    "summary": (
-                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility "
-                        "details to the unit-harmonized external validation."
-                    ),
-                },
-                "controller_action": "request_opl_stage_attempt",
-                "owner": "analysis-campaign",
-                "typed_blocker": None,
-            },
-            "interaction_arbitration": None,
-            "continuation_state": {
+            ),
+            domain_transition=_routeback_domain_transition(study_id),
+            interaction_arbitration=None,
+            continuation_state={
                 "quest_status": "failed",
                 "active_run_id": None,
                 "continuation_policy": "auto",
@@ -594,13 +435,11 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
                 "continuation_reason": "opl_runtime_owner_route_redrive",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
-                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                next_action_summary="继续按周期 supervisor tick 监管当前托管运行。",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
@@ -621,13 +460,7 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile)
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_json(
@@ -647,30 +480,17 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_marked_running_but_no_live_session",
-            "runtime_liveness_status": "none",
-            "active_run_id": None,
-            "worker_running": False,
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "controller_stage_note": "论文还在论文门控阶段，投稿包仍在后续件。",
-            },
-            "autonomous_runtime_notice": {
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            reason="quest_marked_running_but_no_live_session",
+            runtime_liveness_status="none",
+            active_run_id=None,
+            worker_running=False,
+            supervisor_state=publication_gate_supervisor_state(
+                controller_stage_note="论文还在论文门控阶段，投稿包仍在后续件。",
+            ),
+            autonomous_runtime_notice={
                 "required": True,
                 "quest_id": "quest-001",
                 "quest_status": "running",
@@ -678,19 +498,17 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
                 "browser_url": "http://127.0.0.1:21999/quests/quest-001",
                 "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
             },
-            "execution_owner_guard": {
+            execution_owner_guard={
                 "owner": "managed_runtime",
                 "supervisor_only": True,
                 "current_required_action": "supervise_runtime_only",
                 "publication_gate_allows_direct_write": False,
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MAS 外环监管心跳新鲜。",
-                "latest_recorded_at": "2026-04-12T10:01:00+00:00",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MAS 外环监管心跳新鲜。",
+                latest_recorded_at="2026-04-12T10:01:00+00:00",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -708,13 +526,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile)
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
@@ -748,27 +560,14 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "quest_id": "quest-001",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "running",
-            "study_completion_contract": {},
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "publication_supervisor_state": {
-                "supervisor_phase": "publishability_gate_blocked",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": True,
-                "current_required_action": "return_to_publishability_gate",
-                "controller_stage_note": "科学真相还在推进，给人看的投稿包需要同步刷新。",
-            },
-            "autonomous_runtime_notice": {
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            decision="noop",
+            supervisor_state=publication_gate_supervisor_state(
+                controller_stage_note="科学真相还在推进，给人看的投稿包需要同步刷新。",
+            ),
+            autonomous_runtime_notice={
                 "required": True,
                 "quest_id": "quest-001",
                 "quest_status": "running",
@@ -776,20 +575,18 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
                 "browser_url": "http://127.0.0.1:21999/quests/quest-001",
                 "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
             },
-            "execution_owner_guard": {
+            execution_owner_guard={
                 "owner": "managed_runtime",
                 "supervisor_only": True,
                 "active_run_id": "run-001",
                 "current_required_action": "supervise_runtime_only",
                 "publication_gate_allows_direct_write": False,
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MAS 外环监管心跳新鲜。",
-                "latest_recorded_at": "2026-04-12T09:59:00+00:00",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MAS 外环监管心跳新鲜。",
+                latest_recorded_at="2026-04-12T09:59:00+00:00",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -811,13 +608,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "002-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
+    study_root = write_prediction_study(profile, "002-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
@@ -855,28 +646,21 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda **_: {
-            "schema_version": 1,
-            "study_id": "002-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "quest_id": "quest-002",
-            "quest_root": str(quest_root),
-            "quest_exists": True,
-            "quest_status": "active",
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_stale_decision_after_write_stage_ready",
-            "runtime_liveness_status": "live",
-            "publication_supervisor_state": {
-                "supervisor_phase": "bundle_stage_ready",
-                "phase_owner": "publication_gate",
-                "upstream_scientific_anchor_ready": True,
-                "bundle_tasks_downstream_only": False,
-                "current_required_action": "continue_bundle_stage",
-                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
-            },
-            "autonomous_runtime_notice": {
+        lambda **_: managed_research_progress_payload(
+            study_root,
+            quest_root,
+            study_id="002-risk",
+            quest_id="quest-002",
+            quest_status="active",
+            reason="quest_stale_decision_after_write_stage_ready",
+            runtime_liveness_status="live",
+            supervisor_state=publication_gate_supervisor_state(
+                supervisor_phase="bundle_stage_ready",
+                bundle_tasks_downstream_only=False,
+                current_required_action="continue_bundle_stage",
+                controller_stage_note="bundle-stage work is unlocked and can proceed on the critical path",
+            ),
+            autonomous_runtime_notice={
                 "required": True,
                 "notice_key": "notice-live-002",
                 "notification_reason": "detected_existing_live_managed_runtime",
@@ -886,7 +670,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
                 "browser_url": "http://127.0.0.1:21999/quests/quest-002",
                 "quest_session_api_url": "http://127.0.0.1:21999/api/quests/quest-002/session",
             },
-            "execution_owner_guard": {
+            execution_owner_guard={
                 "owner": "managed_runtime",
                 "supervisor_only": True,
                 "guard_reason": "live_managed_runtime",
@@ -894,18 +678,16 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
                 "current_required_action": "supervise_managed_runtime",
                 "publication_gate_allows_direct_write": True,
             },
-            "continuation_state": {
+            continuation_state={
                 "quest_status": "running",
                 "active_run_id": "run-live-002",
                 "continuation_policy": "auto",
             },
-            "supervisor_tick_audit": {
-                "required": True,
-                "status": "fresh",
-                "summary": "MAS 外环监管心跳新鲜。",
-                "latest_recorded_at": "2026-04-12T10:16:47+00:00",
-            },
-        },
+            supervisor_tick_audit=fresh_supervisor_tick_audit(
+                summary="MAS 外环监管心跳新鲜。",
+                latest_recorded_at="2026-04-12T10:16:47+00:00",
+            ),
+        ),
     )
 
     result = module.read_study_progress(profile=profile, study_id="002-risk")

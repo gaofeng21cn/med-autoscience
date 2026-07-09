@@ -34,6 +34,30 @@ def managed_runtime_execution(
     return payload
 
 
+def study_macro_state(
+    *,
+    study_id: str = "001-risk",
+    writer_state: str = "parked",
+    user_next: str = "inspect",
+    reason: str = "unknown",
+    details: dict[str, object] | None = None,
+    conditions: list[dict[str, object]] | None = None,
+    **overrides: object,
+) -> dict[str, object]:
+    payload = {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": study_id,
+        "writer_state": writer_state,
+        "user_next": user_next,
+        "reason": reason,
+        "details": details or {},
+        "conditions": conditions or [],
+    }
+    payload.update(overrides)
+    return payload
+
+
 def publication_gate_supervisor_state(
     *,
     supervisor_phase: str = "publishability_gate_blocked",
@@ -53,6 +77,20 @@ def publication_gate_supervisor_state(
     return payload
 
 
+def fresh_supervisor_tick_audit(
+    *,
+    summary: str = "监管心跳新鲜。",
+    next_action_summary: str | None = None,
+    latest_recorded_at: str | None = None,
+) -> dict[str, object]:
+    payload = {"required": True, "status": "fresh", "summary": summary}
+    if next_action_summary is not None:
+        payload["next_action_summary"] = next_action_summary
+    if latest_recorded_at is not None:
+        payload["latest_recorded_at"] = latest_recorded_at
+    return payload
+
+
 def progress_projection_payload(
     study_root: Path,
     quest_root: Path | None = None,
@@ -69,6 +107,39 @@ def progress_projection_payload(
     }
     if quest_root is not None:
         payload["quest_root"] = str(quest_root)
+    payload.update(overrides)
+    return payload
+
+
+def managed_research_progress_payload(
+    study_root: Path,
+    quest_root: Path,
+    *,
+    study_id: str = "001-risk",
+    quest_id: str = "quest-001",
+    quest_status: str = "running",
+    decision: str = "resume",
+    reason: str = "quest_already_running",
+    supervisor_state: dict[str, object] | None = None,
+    execution: dict[str, object] | None = None,
+    **overrides: object,
+) -> dict[str, object]:
+    payload = progress_projection_payload(
+        study_root,
+        quest_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        entry_mode="full_research",
+        execution=execution if execution is not None else managed_runtime_execution(quest_id),
+        quest_exists=True,
+        quest_status=quest_status,
+        runtime_binding_path=str(study_root / "runtime_binding.yaml"),
+        runtime_binding_exists=True,
+        study_completion_contract={},
+        decision=decision,
+        reason=reason,
+        publication_supervisor_state=supervisor_state or publication_gate_supervisor_state(),
+    )
     payload.update(overrides)
     return payload
 

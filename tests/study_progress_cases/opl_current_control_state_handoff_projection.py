@@ -2,16 +2,60 @@ from __future__ import annotations
 
 from tests.provider_admission_current_control_helpers import opl_transition_readback
 
-from . import shared as _shared
+from .shared import *  # noqa: F403
 
 
-def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
+DPCC_STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
+QUALITY_WORK_UNIT = "medical_prose_write_repair"
+QUALITY_FINGERPRINT = "publication-blockers::0915410f804b3697"
 
 
-_module_reexport(_shared)
+def _current_control_handoff_path(profile) -> Path:
+    return profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+
+
+def _quality_stage_packet_ref(study_id: str = DPCC_STUDY_ID) -> str:
+    return (
+        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
+        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    )
+
+
+def _provider_admission_candidate(
+    *,
+    study_id: str,
+    quest_id: str,
+    route_key: str,
+    work_unit: str = QUALITY_WORK_UNIT,
+    fingerprint: str = QUALITY_FINGERPRINT,
+    stage_packet_ref: str | None = None,
+    runtime_readback: dict[str, object] | None = None,
+) -> dict[str, object]:
+    stage_packet_ref = stage_packet_ref or _quality_stage_packet_ref(study_id)
+    runtime_readback = runtime_readback or opl_transition_readback(
+        study_id,
+        action_fingerprint=fingerprint,
+        work_unit_id=work_unit,
+        route_identity_key=route_key,
+        attempt_idempotency_key=route_key,
+        request_idempotency_key=route_key,
+    )
+    return {
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "route_identity_key": route_key,
+        "attempt_idempotency_key": route_key,
+        "stage_packet_ref": stage_packet_ref,
+        "stage_packet_refs": [stage_packet_ref],
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "opl_domain_progress_transition_runtime_live_readback": runtime_readback,
+    }
 
 
 def _non_advancing_opl_transition_readback(
@@ -45,30 +89,20 @@ def test_non_advancing_apply_readback_demotes_current_control_to_typed_blocker(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_id = DPCC_STUDY_ID
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    work_unit = "medical_prose_write_repair"
-    fingerprint = "publication-blockers::0915410f804b3697"
+    work_unit = QUALITY_WORK_UNIT
+    fingerprint = QUALITY_FINGERPRINT
     route_key = f"provider-admission::{study_id}::{fingerprint}"
-    stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
-        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
-    )
+    stage_packet_ref = _quality_stage_packet_ref(study_id)
     runtime_readback = _non_advancing_opl_transition_readback(
         study_id=study_id,
         work_unit_id=work_unit,
         fingerprint=fingerprint,
         route_key=route_key,
     )
-    handoff_path = (
-        profile.workspace_root
-        / "runtime"
-        / "artifacts"
-        / "supervision"
-        / "opl_current_control_state"
-        / "latest.json"
-    )
+    handoff_path = _current_control_handoff_path(profile)
     non_advancing_readback = {
         "surface_kind": "opl_current_control_transition_non_advancing_apply_readback",
         "status": "transition_non_advancing_apply_recorded",
@@ -240,48 +274,20 @@ def test_provider_admission_readback_supersedes_stale_typed_blocker_stop_project
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_id = DPCC_STUDY_ID
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    work_unit = "medical_prose_write_repair"
-    fingerprint = "publication-blockers::0915410f804b3697"
+    work_unit = QUALITY_WORK_UNIT
+    fingerprint = QUALITY_FINGERPRINT
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
-    stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
-        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    candidate = _provider_admission_candidate(
+        study_id=study_id,
+        quest_id=quest_id,
+        route_key=route_key,
+        work_unit=work_unit,
+        fingerprint=fingerprint,
     )
-    runtime_readback = opl_transition_readback(
-        study_id,
-        action_fingerprint=fingerprint,
-        work_unit_id=work_unit,
-        route_identity_key=route_key,
-        attempt_idempotency_key=route_key,
-        request_idempotency_key=route_key,
-    )
-    candidate = {
-        "status": "provider_admission_pending",
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "action_type": "run_quality_repair_batch",
-        "work_unit_id": work_unit,
-        "work_unit_fingerprint": fingerprint,
-        "action_fingerprint": fingerprint,
-        "route_identity_key": route_key,
-        "attempt_idempotency_key": route_key,
-        "stage_packet_ref": stage_packet_ref,
-        "stage_packet_refs": [stage_packet_ref],
-        "provider_attempt_or_lease_required": True,
-        "provider_completion_is_domain_completion": False,
-        "opl_domain_progress_transition_runtime_live_readback": runtime_readback,
-    }
-    handoff_path = (
-        profile.workspace_root
-        / "runtime"
-        / "artifacts"
-        / "supervision"
-        / "opl_current_control_state"
-        / "latest.json"
-    )
+    handoff_path = _current_control_handoff_path(profile)
     _write_json(
         handoff_path,
         {
@@ -406,48 +412,24 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
         "med_autoscience.controllers.study_progress.opl_current_control_state_handoff"
     )
     profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_id = DPCC_STUDY_ID
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    work_unit = "medical_prose_write_repair"
-    fingerprint = "publication-blockers::0915410f804b3697"
+    work_unit = QUALITY_WORK_UNIT
+    fingerprint = QUALITY_FINGERPRINT
     route_key = "paper-policy-request:1a379264039c75d0e9cfd8f5"
     stage_attempt_id = "sat-stale-no-selected-dispatch"
-    stage_packet_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapters/"
-        "immutable/run_quality_repair_batch/33abc53e0c18295f5fa03738.json"
+    stage_packet_ref = _quality_stage_packet_ref(study_id)
+    candidate = _provider_admission_candidate(
+        study_id=study_id,
+        quest_id=quest_id,
+        route_key=route_key,
+        work_unit=work_unit,
+        fingerprint=fingerprint,
+        stage_packet_ref=stage_packet_ref,
     )
-    runtime_readback = opl_transition_readback(
-        study_id,
-        action_fingerprint=fingerprint,
-        work_unit_id=work_unit,
-        route_identity_key=route_key,
-        attempt_idempotency_key=route_key,
-        request_idempotency_key=route_key,
-    )
-    candidate = {
-        "status": "provider_admission_pending",
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "action_type": "run_quality_repair_batch",
-        "work_unit_id": work_unit,
-        "work_unit_fingerprint": fingerprint,
-        "action_fingerprint": fingerprint,
-        "route_identity_key": route_key,
-        "attempt_idempotency_key": route_key,
-        "stage_packet_ref": stage_packet_ref,
-        "stage_packet_refs": [stage_packet_ref],
-        "provider_attempt_or_lease_required": True,
-        "provider_completion_is_domain_completion": False,
-        "opl_domain_progress_transition_runtime_live_readback": runtime_readback,
-    }
     _write_json(
-        profile.workspace_root
-        / "runtime"
-        / "artifacts"
-        / "supervision"
-        / "opl_current_control_state"
-        / "latest.json",
+        _current_control_handoff_path(profile),
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -498,8 +480,6 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
             "study_id": study_id,
             "quest_id": quest_id,
             "stage_attempt_id": stage_attempt_id,
-            "stage_id": "stage_outcome/opl-handoff",
-            "generated_at": "2026-06-19T14:58:00Z",
             "status": "blocked",
             "execution_status": "typed_blocker",
             "action_type": "run_quality_repair_batch",
@@ -513,29 +493,12 @@ def test_provider_admission_readback_supersedes_matching_stale_selector_closeout
             ),
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
-                "schema_version": 1,
-                "status": "available",
-                "stage_name": "run_quality_repair_batch",
-                "stage_work_done": ["Recorded a stale selector typed blocker."],
-                "paper_work_done": [
-                    "No paper, manuscript, current package, or publication gate surface was edited."
-                ],
-                "changed_stage_surfaces": [
-                    f"studies/{study_id}/artifacts/supervision/consumer/owner_callable_adapter_receipt/"
-                    f"{stage_attempt_id}.closeout.json"
-                ],
-                "changed_paper_surfaces": [],
                 "outcome": "typed_blocker",
-                "remaining_blockers": ["no_selected_dispatch_for_authorized_stage_packet"],
                 "progress_delta_classification": "typed_blocker",
+                "remaining_blockers": ["no_selected_dispatch_for_authorized_stage_packet"],
                 "next_forced_delta": {
                     "required_delta_kind": "typed_blocker_consumption_or_owner_route_selector_reconcile",
                     "work_unit_id": work_unit,
-                    "owner_action": {
-                        "next_owner": "one-person-lab",
-                        "action_type": "run_quality_repair_batch",
-                        "work_unit_id": work_unit,
-                    },
                 },
             },
         },

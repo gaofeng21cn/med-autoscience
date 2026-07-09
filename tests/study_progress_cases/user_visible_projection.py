@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-from . import shared as _shared
+from .shared import *  # noqa: F403
 
 
-def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
-        if not name.startswith("__") and name != "_module_reexport":
-            globals()[name] = value
-
-
-_module_reexport(_shared)
+def _user_visible_projection_module():
+    return importlib.import_module("med_autoscience.controllers.study_progress.user_visible_projection")
 
 
 def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp_path: Path) -> None:
@@ -98,7 +93,7 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
 
 
 def test_user_visible_projection_uses_macro_state_as_single_user_status() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     payload = {
         "study_id": "001-risk",
@@ -107,26 +102,23 @@ def test_user_visible_projection_uses_macro_state_as_single_user_status() -> Non
         "current_stage_summary": "Legacy top-level stage should not drive the user visible state.",
         "current_blockers": ["legacy blocker"],
         "next_system_action": "legacy next action",
-        "study_macro_state": {
-            "surface": "study_macro_state",
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "writer_state": "parked",
-            "user_next": "submit_info",
-            "reason": "external_info",
-            "details": {
+        "study_macro_state": study_macro_state(
+            writer_state="parked",
+            user_next="submit_info",
+            reason="external_info",
+            details={
                 "package_delivered": True,
                 "missing_external_info": ["authors", "ethics"],
                 "active_run_id": None,
             },
-            "conditions": [
+            conditions=[
                 {
                     "type": "ExternalInfoPending",
                     "status": "true",
                     "summary": "submission package waits for external metadata",
                 }
             ],
-        },
+        ),
         "refs": {"publication_eval_path": "/tmp/publication_eval/latest.json"},
     }
 
@@ -146,21 +138,17 @@ def test_user_visible_projection_uses_macro_state_as_single_user_status() -> Non
 
 
 def test_user_visible_projection_does_not_promote_legacy_action_as_next_step() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "003-dpcc",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "003-dpcc",
-                "writer_state": "queued",
-                "user_next": "repair",
-                "reason": "quality",
-                "details": {},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="003-dpcc",
+                writer_state="queued",
+                user_next="repair",
+                reason="quality",
+            ),
             "current_executable_owner_action": {
                 "surface_kind": "current_executable_owner_action",
                 "status": "ready",
@@ -180,22 +168,19 @@ def test_user_visible_projection_does_not_promote_legacy_action_as_next_step() -
 
 
 def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
             "quest_id": "quest-dm002",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "queued",
-                "user_next": "repair",
-                "reason": "quality",
-                "details": {"package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="queued",
+                user_next="repair",
+                reason="quality",
+                details={"package_delivered": False},
+            ),
             "owner_route": {
                 "next_owner": "decision",
                 "decision_trace": {
@@ -235,23 +220,19 @@ def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body
 
 
 def test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_with_macro_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "active_run_id": "run-legacy",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "001-risk",
-                "writer_state": "parked",
-                "user_next": "submit_info",
-                "reason": "external_info",
-                "details": {"package_delivered": True},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                writer_state="parked",
+                user_next="submit_info",
+                reason="external_info",
+                details={"package_delivered": True},
+            ),
         }
     )
 
@@ -265,7 +246,7 @@ def test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_wi
 
 
 def test_user_visible_projection_fails_closed_without_macro_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
@@ -296,16 +277,12 @@ def test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state() 
             "awaiting_explicit_wakeup": True,
             "auto_execution_complete": True,
         },
-        "study_macro_state": {
-            "surface": "study_macro_state",
-            "schema_version": 1,
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "writer_state": "parked",
-            "user_next": "resume",
-            "reason": "external_info",
-            "details": {},
-            "conditions": [],
-        },
+        "study_macro_state": study_macro_state(
+            study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+            writer_state="parked",
+            user_next="resume",
+            reason="external_info",
+        ),
         "user_visible_projection": {
             "surface": "study_progress_user_visible_projection",
             "schema_version": 2,
@@ -337,22 +314,19 @@ def test_paper_recovery_visibility_keeps_user_projection_bound_to_macro_state() 
 
 
 def test_user_visible_projection_does_not_call_live_worker_active_without_artifact_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
             "active_run_id": "run-live-control-only",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "live",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"active_run_id": "run-live-control-only"},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="live",
+                user_next="watch",
+                reason="runtime",
+                details={"active_run_id": "run-live-control-only"},
+            ),
             "progress_freshness": {
                 "status": "stale",
                 "meaningful_artifact_delta_freshness": {
@@ -379,22 +353,19 @@ def test_user_visible_projection_does_not_call_live_worker_active_without_artifa
 
 
 def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
             "active_run_id": "run-live-no-paper-delta",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "live",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"active_run_id": "run-live-no-paper-delta", "package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="live",
+                user_next="watch",
+                reason="runtime",
+                details={"active_run_id": "run-live-no-paper-delta", "package_delivered": False},
+            ),
             "progress_freshness": {
                 "status": "stale",
                 "meaningful_artifact_delta_freshness": {
@@ -428,21 +399,18 @@ def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
 
 
 def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "live",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"active_run_id": "run-dm002", "package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="live",
+                user_next="watch",
+                reason="runtime",
+                details={"active_run_id": "run-dm002", "package_delivered": False},
+            ),
             "runtime_liveness_audit": {
                 "active_stage_attempt_id": "sat-dm002",
                 "running_provider_attempt": True,
@@ -469,21 +437,18 @@ def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_de
 
 
 def test_user_visible_projection_ignores_body_authority_stage_output_mirror_delta() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "queued",
-                "user_next": "runtime_handoff",
-                "reason": "runtime",
-                "details": {"package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="queued",
+                user_next="runtime_handoff",
+                reason="runtime",
+                details={"package_delivered": False},
+            ),
             "progress_freshness": {
                 "meaningful_artifact_delta_freshness": {
                     "status": "fresh",
@@ -519,21 +484,15 @@ def test_user_visible_projection_ignores_body_authority_stage_output_mirror_delt
 
 
 def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "003-dpcc",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "003-dpcc",
-                "writer_state": "parked",
-                "user_next": "inspect",
-                "reason": "unknown",
-                "details": {"package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="003-dpcc",
+                details={"package_delivered": False},
+            ),
             "interaction_arbitration": {
                 "classification": "blocked_closeout_owner_redrive",
                 "action": "resume",
@@ -561,21 +520,15 @@ def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason()
 
 
 def test_user_visible_projection_uses_current_delivery_read_model_for_package_delivered() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "003-dpcc",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "003-dpcc",
-                "writer_state": "parked",
-                "user_next": "inspect",
-                "reason": "unknown",
-                "details": {"package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="003-dpcc",
+                details={"package_delivered": False},
+            ),
             "delivery_inspection": {
                 "freshness": {
                     "verdict": "current",
@@ -596,21 +549,15 @@ def test_user_visible_projection_uses_current_delivery_read_model_for_package_de
 
 
 def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delivery() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm-china-us-mortality-attribution",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "writer_state": "parked",
-                "user_next": "inspect",
-                "reason": "unknown",
-                "details": {"paper_stage": "analysis-campaign"},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm-china-us-mortality-attribution",
+                details={"paper_stage": "analysis-campaign"},
+            ),
             "delivery_inspection": {
                 "status": "current",
                 "freshness": {
@@ -820,22 +767,19 @@ def test_paper_recovery_human_gate_suppresses_typed_blocker_user_visible_overrid
 
 
 def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "obesity",
             "active_run_id": "run-obesity",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "obesity",
-                "writer_state": "live",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"active_run_id": "run-obesity", "package_delivered": False},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="obesity",
+                writer_state="live",
+                user_next="watch",
+                reason="runtime",
+                details={"active_run_id": "run-obesity", "package_delivered": False},
+            ),
             "progress_freshness": {
                 "meaningful_artifact_delta_freshness": {
                     "status": "fresh",
@@ -864,22 +808,19 @@ def test_user_visible_projection_projects_supervisor_only_live_quality_repair_ow
 
 
 def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
 
     projection = module.build_user_visible_projection(
         {
             "study_id": "002-dm",
             "active_run_id": "run-live-recovering",
-            "study_macro_state": {
-                "surface": "study_macro_state",
-                "schema_version": 1,
-                "study_id": "002-dm",
-                "writer_state": "live",
-                "user_next": "watch",
-                "reason": "runtime",
-                "details": {"active_run_id": "run-live-recovering"},
-                "conditions": [],
-            },
+            "study_macro_state": study_macro_state(
+                study_id="002-dm",
+                writer_state="live",
+                user_next="watch",
+                reason="runtime",
+                details={"active_run_id": "run-live-recovering"},
+            ),
             "runtime_health_snapshot": {
                 "canonical_runtime_action": "recover_runtime",
                 "attempt_state": "recovering",
@@ -916,7 +857,7 @@ def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_wr
 
 
 def test_user_visible_projection_labels_all_macro_state_classes() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    module = _user_visible_projection_module()
     cases = [
         (
             {"writer_state": "live", "user_next": "watch", "reason": "runtime", "details": {"active_run_id": "run-1"}},
@@ -978,13 +919,7 @@ def test_user_visible_projection_labels_all_macro_state_classes() -> None:
         projection = module.build_user_visible_projection(
             {
                 "study_id": "001-risk",
-                "study_macro_state": {
-                    "surface": "study_macro_state",
-                    "schema_version": 1,
-                    "study_id": "001-risk",
-                    "conditions": [],
-                    **macro_fields,
-                },
+                "study_macro_state": study_macro_state(**macro_fields),
             }
         )
 
