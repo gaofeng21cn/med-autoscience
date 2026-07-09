@@ -30,8 +30,109 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _cli():
+    return importlib.import_module("med_autoscience.cli")
+
+
+def _run_json_cli(cli, capsys, argv: list[str]) -> tuple[dict[str, object], str]:
+    exit_code = cli.main(argv)
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    return json.loads(captured.out), captured.out
+
+
+def _apply_seed(cli, capsys, workspace_root: Path) -> dict[str, object]:
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ],
+    )
+    return payload
+
+
+def _memory_pack_path(workspace_root: Path) -> Path:
+    return (
+        workspace_root
+        / "memory"
+        / "portfolio"
+        / "research_memory"
+        / "publication_route_memory"
+        / "memory_pack.json"
+    )
+
+
+def _stage_knowledge_packet_payload(
+    cli,
+    capsys,
+    workspace_root: Path,
+    study_root: Path,
+    *,
+    stage: str,
+) -> dict[str, object]:
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
+        [
+            "stage-knowledge-packet",
+            "--study-id",
+            "S1",
+            "--stage",
+            stage,
+            "--study-root",
+            str(study_root),
+            "--workspace-root",
+            str(workspace_root),
+        ],
+    )
+    return payload
+
+
+def _stage_memory_closeout_route_payload(
+    cli,
+    capsys,
+    workspace_root: Path,
+    study_root: Path,
+    closeout_payload: Path,
+    *,
+    study_id: str = "S1",
+    stage: str = "decision",
+) -> dict[str, object]:
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
+        [
+            "stage-memory-closeout-route",
+            "--study-id",
+            study_id,
+            "--stage",
+            stage,
+            "--study-root",
+            str(study_root),
+            "--workspace-root",
+            str(workspace_root),
+            "--closeout-payload",
+            str(closeout_payload),
+            "--materialize-closeout-packet",
+            "--apply",
+        ],
+    )
+    return payload
+
+
+def _assert_payload_path_exists(payload: dict[str, object], key: str, *, file: bool = False) -> None:
+    path = Path(str(payload[key]))
+    assert path.is_file() if file else path.exists()
+
+
 def test_publication_route_memory_apply_seed_cli_requires_explicit_apply_or_dry_run(tmp_path: Path) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
 
     with pytest.raises(SystemExit) as exc:
         cli.main(
@@ -48,37 +149,26 @@ def test_publication_route_memory_apply_seed_cli_requires_explicit_apply_or_dry_
 
 
 def test_publication_route_memory_apply_seed_cli_dispatches_controller(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
 
-    exit_code = cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    payload = json.loads(captured.out)
+    payload = _apply_seed(cli, capsys, workspace_root)
     assert payload["surface"] == "publication_route_memory_apply_receipt"
     assert payload["status"] == "applied"
     assert len(payload["accepted_memory_ids"]) >= 9
     assert "publication_route_memory_seed__clinical_classifier" in payload["accepted_memory_ids"]
     assert "publication_route_memory_seed__external_validation_rescue" in payload["accepted_memory_ids"]
     assert "publication_route_memory_seed__negative_result_stoploss" in payload["accepted_memory_ids"]
-    assert Path(payload["memory_pack_ref"]).exists()
+    _assert_payload_path_exists(payload, "memory_pack_ref")
 
 
 def test_publication_route_memory_apply_seed_cli_accepts_markdown_library(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
 
-    exit_code = cli.main(
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-route-memory-apply-seed",
             "--workspace-root",
@@ -86,57 +176,29 @@ def test_publication_route_memory_apply_seed_cli_accepts_markdown_library(tmp_pa
             "--seed-library",
             str(SEED_LIBRARY),
             "--apply",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "publication_route_memory_apply_receipt"
     assert payload["status"] == "applied"
     assert payload["canonical_body_ref"].endswith("publication_route_memory_library.md")
     assert "publication_route_memory_seed__clinical_classifier" in payload["accepted_memory_ids"]
-    assert Path(payload["memory_pack_ref"]).exists()
+    _assert_payload_path_exists(payload, "memory_pack_ref")
 
 
 def test_stage_knowledge_packet_cli_materializes_strategy_memory_prompt_policy(
     tmp_path: Path,
     capsys,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
     (study_root / "artifacts" / "reference_context").mkdir(parents=True)
     _write_json(study_root / "artifacts" / "reference_context" / "latest.json", {"status": "present"})
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    exit_code = cli.main(
-        [
-            "stage-knowledge-packet",
-            "--study-id",
-            "S1",
-            "--stage",
-            "idea",
-            "--study-root",
-            str(study_root),
-            "--workspace-root",
-            str(workspace_root),
-        ]
-    )
-    captured = capsys.readouterr()
+    payload = _stage_knowledge_packet_payload(cli, capsys, workspace_root, study_root, stage="idea")
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "stage_knowledge_packet"
     assert payload["publication_strategy_memory_refs"] == payload["publication_route_memory_refs"]
     assert payload["publication_strategy_memory_use_policy"]["stage_packet_role"] == (
@@ -149,37 +211,26 @@ def test_stage_knowledge_packet_cli_materializes_strategy_memory_prompt_policy(
     assert "publication_route_memory_seed__clinical_classifier" in payload[
         "publication_strategy_memory_prompt_block"
     ]
-    assert Path(payload["artifact_path"]).is_file()
+    _assert_payload_path_exists(payload, "artifact_path", file=True)
 
 
 def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_default(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    exit_code = cli.main(
+    payload, output = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-route-memory-inventory",
             "--workspace-root",
             str(workspace_root),
             "--stage",
             "decision",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "publication_route_memory_inventory"
     assert payload["status"] == "ready"
     assert payload["read_only"] is True
@@ -247,29 +298,19 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
         },
     ]
     assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
-    assert "Negative or unstable main analysis should trigger" in captured.out
-    assert "When a bounded analysis campaign returns" not in captured.out
+    assert "Negative or unstable main analysis should trigger" in output
+    assert "When a bounded analysis campaign returns" not in output
 
 
 def test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance_surface(
     tmp_path: Path,
     capsys,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    pack_path = workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    pack_path = _memory_pack_path(workspace_root)
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack["cards"][0]["status"] = "stale_seed"
     _write_json(pack_path, pack)
@@ -287,7 +328,9 @@ def test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance
         encoding="utf-8",
     )
 
-    exit_code = cli.main(
+    payload, output = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication",
             "strategy-memory-workbench",
@@ -297,12 +340,9 @@ def test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance
             "decision",
             "--route-family",
             "clinical_classifier",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "publication_strategy_memory_workbench"
     assert payload["status"] == "ready"
     assert payload["maintenance_status"] == "needs_review"
@@ -350,27 +390,26 @@ def test_publication_strategy_memory_workbench_cli_projects_readonly_maintenance
     assert boundary["can_run_route_matching_engine"] is False
     assert boundary["can_enforce_evidence_gate"] is False
     assert boundary["can_control_programmatic_recipe"] is False
-    assert "When a bounded analysis campaign returns" not in captured.out
+    assert "When a bounded analysis campaign returns" not in output
 
 
 def test_publication_strategy_memory_workbench_cli_reports_missing_pack_queue(
     tmp_path: Path,
     capsys,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
 
-    exit_code = cli.main(
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-strategy-memory-workbench",
             "--workspace-root",
             str(workspace_root),
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "publication_strategy_memory_workbench"
     assert payload["status"] == "missing"
     assert payload["maintenance_status"] == "needs_review"
@@ -398,39 +437,28 @@ def test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_revi
     tmp_path: Path,
     capsys,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    pack_path = workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    pack_path = _memory_pack_path(workspace_root)
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack["cards"][0]["status"] = "stale_seed"
     pack["cards"][1]["status"] = "deprecated_seed"
     _write_json(pack_path, pack)
 
-    exit_code = cli.main(
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-route-memory-inventory",
             "--workspace-root",
             str(workspace_root),
             "--stage",
             "decision",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["review_summary"]["stale_count"] == 1
     assert payload["review_summary"]["deprecated_count"] == 1
     assert payload["review_summary"]["needs_review_count"] == 2
@@ -455,7 +483,7 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
     tmp_path: Path,
     capsys,
 ) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     first_study_root = workspace_root / "studies" / "S1"
     second_study_root = workspace_root / "studies" / "S2"
@@ -501,42 +529,31 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
         ("S1", "decision", first_study_root, first_closeout_payload),
         ("S2", "review", second_study_root, second_closeout_payload),
     ):
-        exit_code = cli.main(
-            [
-                "stage-memory-closeout-route",
-                "--study-id",
-                study_id,
-                "--stage",
-                stage,
-                "--study-root",
-                str(study_root),
-                "--workspace-root",
-                str(workspace_root),
-                "--closeout-payload",
-                str(closeout_payload),
-                "--materialize-closeout-packet",
-                "--apply",
-            ]
+        _stage_memory_closeout_route_payload(
+            cli,
+            capsys,
+            workspace_root,
+            study_root,
+            closeout_payload,
+            study_id=study_id,
+            stage=stage,
         )
-        assert exit_code == 0
-        capsys.readouterr()
 
-    exit_code = cli.main(
+    payload, output = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-route-memory-inventory",
             "--workspace-root",
             str(workspace_root),
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["body_included"] is False
     assert payload["card_count_total"] == 1
     assert "prose_summary" not in payload["cards"][0]
-    assert "Route back before rebuilding claims" not in captured.out
-    assert "Only this study can use" not in captured.out
+    assert "Route back before rebuilding claims" not in output
+    assert "Only this study can use" not in output
 
     receipt_inventory = payload["opl_aion_receipt_inventory"]
     assert receipt_inventory["body_included"] is False
@@ -615,21 +632,13 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
 
 
 def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    exit_code = cli.main(
+    payload, output = _run_json_cli(
+        cli,
+        capsys,
         [
             "publication-route-memory-inventory",
             "--workspace-root",
@@ -637,12 +646,9 @@ def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers
             "--route-family",
             "weak_or_negative_result_handling",
             "--include-card-body",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["body_included"] is True
     assert payload["card_count_filtered"] == 1
     assert payload["cards"][0]["route_family"] == "weak_or_negative_result_handling"
@@ -652,11 +658,11 @@ def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers
     assert "table_figure_pattern" in payload["cards"][0]
     assert "claim_boundary" in payload["cards"][0]
     assert "failure_modes" in payload["cards"][0]
-    assert "When a bounded analysis campaign returns" in captured.out
+    assert "When a bounded analysis campaign returns" in output
 
 
 def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
     _write_json(study_root / "artifacts" / "reference_context" / "latest.json", {"status": "present"})
@@ -664,39 +670,14 @@ def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) 
         workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json",
         {"status": "present"},
     )
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
 
-    exit_code = cli.main(
-        [
-            "stage-knowledge-packet",
-            "--study-id",
-            "S1",
-            "--stage",
-            "idea",
-            "--study-root",
-            str(study_root),
-            "--workspace-root",
-            str(workspace_root),
-        ]
-    )
-    captured = capsys.readouterr()
+    payload = _stage_knowledge_packet_payload(cli, capsys, workspace_root, study_root, stage="idea")
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "stage_knowledge_packet"
     assert payload["status"] == "ready"
     assert payload["artifact_path"].endswith("artifacts/stage_knowledge/idea/latest.json")
-    assert Path(payload["artifact_path"]).exists()
+    _assert_payload_path_exists(payload, "artifact_path")
     assert payload["publication_route_memory_refs"][0]["memory_id"] == (
         "publication_route_memory_seed__clinical_classifier"
     )
@@ -706,7 +687,7 @@ def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) 
 
 
 def test_stage_memory_closeout_route_cli_materializes_and_routes_typed_closeout(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
     closeout_payload = tmp_path / "closeout.json"
@@ -726,27 +707,14 @@ def test_stage_memory_closeout_route_cli_materializes_and_routes_typed_closeout(
         },
     )
 
-    closeout_exit = cli.main(
-        [
-            "stage-memory-closeout-route",
-            "--study-id",
-            "S1",
-            "--stage",
-            "decision",
-            "--study-root",
-            str(study_root),
-            "--workspace-root",
-            str(workspace_root),
-            "--closeout-payload",
-            str(closeout_payload),
-            "--materialize-closeout-packet",
-            "--apply",
-        ]
+    payload = _stage_memory_closeout_route_payload(
+        cli,
+        capsys,
+        workspace_root,
+        study_root,
+        closeout_payload,
     )
-    captured = capsys.readouterr()
 
-    assert closeout_exit == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "memory_write_router_receipt"
     assert payload["status"] == "applied"
     assert payload["closeout_packet_ref"].endswith(
@@ -755,8 +723,8 @@ def test_stage_memory_closeout_route_cli_materializes_and_routes_typed_closeout(
     assert payload["receipt_ref"].endswith(
         "artifacts/stage_knowledge/memory_write_router_receipts/closeout-cli.json"
     )
-    assert Path(payload["closeout_packet_ref"]).exists()
-    assert Path(payload["receipt_ref"]).exists()
+    _assert_payload_path_exists(payload, "closeout_packet_ref")
+    _assert_payload_path_exists(payload, "receipt_ref")
     assert [item["write_id"] for item in payload["accepted_writes"]] == [
         "route-memory-lesson",
         "route-failed-path",
@@ -764,7 +732,7 @@ def test_stage_memory_closeout_route_cli_materializes_and_routes_typed_closeout(
 
 
 def test_stage_memory_closeout_route_cli_can_route_existing_packet(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
     packet_path = study_root / "artifacts" / "stage_knowledge" / "decision" / "closeouts" / "existing.json"
@@ -787,7 +755,9 @@ def test_stage_memory_closeout_route_cli_can_route_existing_packet(tmp_path: Pat
         },
     )
 
-    exit_code = cli.main(
+    payload, _ = _run_json_cli(
+        cli,
+        capsys,
         [
             "stage-memory-closeout-route",
             "--study-root",
@@ -797,19 +767,16 @@ def test_stage_memory_closeout_route_cli_can_route_existing_packet(tmp_path: Pat
             "--closeout-packet",
             str(packet_path),
             "--apply",
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "memory_write_router_receipt"
     assert payload["status"] == "applied"
     assert payload["closeout_packet_ref"] == str(packet_path)
 
 
 def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
+    cli = _cli()
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
     domain_handler_receipt = workspace_root / "runtime" / "artifacts" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
@@ -839,49 +806,13 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
             "failed_paths": [{"write_id": "route-failed-path", "reason": "Endpoint evidence remained thin."}],
         },
     )
-    cli.main(
-        [
-            "publication-route-memory-apply-seed",
-            "--workspace-root",
-            str(workspace_root),
-            "--seed-fixture",
-            str(SEED_FIXTURE),
-            "--apply",
-        ]
-    )
-    cli.main(
-        [
-            "stage-knowledge-packet",
-            "--study-id",
-            "S1",
-            "--stage",
-            "decision",
-            "--study-root",
-            str(study_root),
-            "--workspace-root",
-            str(workspace_root),
-        ]
-    )
-    cli.main(
-        [
-            "stage-memory-closeout-route",
-            "--study-id",
-            "S1",
-            "--stage",
-            "decision",
-            "--study-root",
-            str(study_root),
-            "--workspace-root",
-            str(workspace_root),
-            "--closeout-payload",
-            str(closeout_payload),
-            "--materialize-closeout-packet",
-            "--apply",
-        ]
-    )
-    capsys.readouterr()
+    _apply_seed(cli, capsys, workspace_root)
+    _stage_knowledge_packet_payload(cli, capsys, workspace_root, study_root, stage="decision")
+    _stage_memory_closeout_route_payload(cli, capsys, workspace_root, study_root, closeout_payload)
 
-    exit_code = cli.main(
+    payload, output = _run_json_cli(
+        cli,
+        capsys,
         [
             "paper-soak-memory-proof",
             "--study-id",
@@ -892,12 +823,9 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
             str(study_root),
             "--workspace-root",
             str(workspace_root),
-        ]
+        ],
     )
-    captured = capsys.readouterr()
 
-    assert exit_code == 0
-    payload = json.loads(captured.out)
     assert payload["surface"] == "paper_soak_memory_apply_proof"
     assert payload["status"] == "ready"
     assert payload["missing_reasons"] == []
@@ -908,4 +836,4 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
     assert payload["read_only_display_policy"]["consumer_role"] == "OPL/Aion read-only display"
     assert payload["read_only_display_policy"]["can_write_memory_body"] is False
     assert all(ref["body_included"] is False for ref in payload["opl_aion_readonly_receipt_refs"])
-    assert "Stop-loss was appropriate" not in captured.out
+    assert "Stop-loss was appropriate" not in output
