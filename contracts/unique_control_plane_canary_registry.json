@@ -111,7 +111,7 @@
         "registry_must_not_recreate_duplicate_mas_runtime": true
       },
       "mas_fixture_refs": [
-        "tests/test_paper_repair_executor.py",
+        "tests/test_authority_write_route.py",
         "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
       ],
       "opl_transport_fixture_refs": [
@@ -119,7 +119,7 @@
         "contracts/generated_surface_handoff.json"
       ],
       "owner_route_regression_refs": [
-        "tests/test_paper_repair_executor.py",
+        "tests/test_authority_write_route_cases/test_dm003_route_context.py",
         "regression-suite:mas/owner-route/stale-dispatch"
       ],
       "no_forbidden_write_proof_refs": [
@@ -156,12 +156,12 @@
             "src/med_autoscience/controllers/stage_outcome_authority.py"
           ],
           "target_test_refs": [
-            "tests/test_paper_repair_executor.py",
+            "tests/test_authority_write_route_cases/test_dm003_route_context.py",
             "regression-suite:mas/owner-route/stale-dispatch",
             "tests/test_unique_control_plane_canary_registry.py"
           ],
           "mas_fixture_refs": [
-            "tests/test_paper_repair_executor.py",
+            "tests/test_authority_write_route.py",
             "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
           ],
           "opl_transport_fixture_refs": [
@@ -276,7 +276,7 @@
       },
       "mas_fixture_refs": [
         "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
-        "tests/test_domain_diagnostic_report_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+        "tests/test_current_control_executable_handoff_cases/provider_readback_cases.py"
       ],
       "opl_transport_fixture_refs": [
         "opl:agent-lab/transport/owner-route-precedence",
@@ -326,7 +326,7 @@
           ],
           "mas_fixture_refs": [
             "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
-            "tests/test_domain_diagnostic_report_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+            "tests/test_current_control_executable_handoff_cases/provider_readback_cases.py"
           ],
           "opl_transport_fixture_refs": [
             "opl:agent-lab/transport/owner-route-precedence",
@@ -358,8 +358,8 @@
         "registry_must_not_recreate_duplicate_mas_runtime": true
       },
       "mas_fixture_refs": [
-        "tests/test_paper_repair_execution_evidence.py",
-        "tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py"
+        "tests/test_paper_work_unit_lifecycle_contract.py",
+        "tests/test_progress_projection_evidence_adoption.py"
       ],
       "opl_transport_fixture_refs": [
         "opl:agent-lab/transport/typed-closeout-paper-delta",
@@ -408,8 +408,8 @@
             "tests/test_unique_control_plane_canary_registry.py"
           ],
           "mas_fixture_refs": [
-            "tests/test_paper_repair_execution_evidence.py",
-            "tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py"
+            "tests/test_paper_work_unit_lifecycle_contract.py",
+            "tests/test_progress_projection_evidence_adoption.py"
           ],
           "opl_transport_fixture_refs": [
             "opl:agent-lab/transport/typed-closeout-paper-delta",

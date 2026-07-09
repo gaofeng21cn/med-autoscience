@@ -118,7 +118,7 @@ REGISTRY: dict[str, Any] = {
             slug="dm002-stale-dispatch",
             target_studies=["DM002"],
             mas_fixture_refs=[
-                "tests/test_paper_repair_executor.py",
+                "tests/test_authority_write_route.py",
                 "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py",
             ],
             opl_transport_fixture_refs=[
@@ -126,7 +126,7 @@ REGISTRY: dict[str, Any] = {
                 "contracts/generated_surface_handoff.json",
             ],
             owner_route_regression_refs=[
-                "tests/test_stage_outcome_authority_cases/quality_repair_owner_route_cases.py",
+                "tests/test_authority_write_route_cases/test_dm003_route_context.py",
                 "regression-suite:mas/owner-route/stale-dispatch",
             ],
             no_forbidden_write_proof_refs=[
@@ -181,8 +181,8 @@ REGISTRY: dict[str, Any] = {
             slug="dm002-dm003-paper-delta-missing",
             target_studies=["DM002", "DM003"],
             mas_fixture_refs=[
-                "tests/test_paper_repair_execution_evidence.py",
-                "tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py",
+                "tests/test_paper_work_unit_lifecycle_contract.py",
+                "tests/test_progress_projection_evidence_adoption.py",
             ],
             opl_transport_fixture_refs=[
                 "opl:agent-lab/transport/typed-closeout-paper-delta",

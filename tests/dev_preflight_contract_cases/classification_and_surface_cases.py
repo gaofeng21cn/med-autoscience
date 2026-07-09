@@ -282,7 +282,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_autonomy_state_surface.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
-            "tests/test_workspace_authority_migration_audit.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
         ]
@@ -526,7 +525,7 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
             "tests/runtime/test_runtime_module_contract.py",
             "tests/test_opl_family_contract_adoption.py",
             "tests/test_opl_family_persistence_adapter.py",
-            "tests/test_test_command_surfaces.py",
+            "tests/test_test_lane_governance.py",
         ]
     )
 
@@ -634,7 +633,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
         ),
         "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
         "scripts/run-pytest-clean.sh tests/test_opl_family_persistence_adapter.py -q",
-        "scripts/run-pytest-clean.sh tests/test_test_command_surfaces.py -q",
+        "scripts/run-pytest-clean.sh tests/test_test_lane_governance.py -q",
         (
             "scripts/run-pytest-clean.sh "
             "tests/test_opl_family_contract_adoption.py "

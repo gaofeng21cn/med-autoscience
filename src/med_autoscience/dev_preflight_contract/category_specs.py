@@ -227,7 +227,7 @@ def build_category_specs(
             "tests/runtime/test_runtime_module_contract.py",
             "tests/test_opl_family_contract_adoption.py",
             "tests/test_opl_family_persistence_adapter.py",
-            "tests/test_test_command_surfaces.py",
+            "tests/test_test_lane_governance.py",
         ),
         prefix_paths=(
             "contracts/modules/",
@@ -244,7 +244,7 @@ def build_category_specs(
             ),
             f"{pytest_clean_runner} tests/test_opl_family_contract_adoption.py -q",
             f"{pytest_clean_runner} tests/test_opl_family_persistence_adapter.py -q",
-            f"{pytest_clean_runner} tests/test_test_command_surfaces.py -q",
+            f"{pytest_clean_runner} tests/test_test_lane_governance.py -q",
         ),
     ),
     spec_type(
@@ -460,7 +460,6 @@ def build_category_specs(
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
             "tests/test_cli_cases/public_entry_commands.py",
-            "tests/test_workspace_authority_migration_audit.py",
             "tests/test_mcp_server.py",
             "tests/test_runtime_protocol_paper_artifacts.py",
             "tests/test_cli_cases/owner_route_handoff_command/test_export.py",

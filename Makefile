@@ -17,7 +17,6 @@ CONTROL_PLANE_TESTS := \
 	tests/test_artifact_lifecycle_operations_report.py \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
-	tests/test_workspace_authority_migration_audit.py \
 	tests/test_delivery_authority_backfill_apply.py \
 	tests/test_cli_cases/public_entry_commands.py::test_workspace_authority_migration_audit_command_dispatches_read_only_controller \
 	tests/test_cli_cases/public_entry_commands.py::test_control_plane_cleanup_apply_is_not_public \
@@ -28,7 +27,6 @@ CONTROL_PLANE_TESTS := \
 	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_can_call_workspace_authority_migration_audit \
 	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_rejects_cleanup_apply_mode \
 	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options \
-	tests/test_test_command_surfaces.py::test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_group_commands \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary \

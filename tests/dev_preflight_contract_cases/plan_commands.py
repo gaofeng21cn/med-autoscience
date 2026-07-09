@@ -90,7 +90,7 @@ def test_plan_commands_for_root_governance_contract_surface_use_focused_contract
         ),
         "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
         "scripts/run-pytest-clean.sh tests/test_opl_family_persistence_adapter.py -q",
-        "scripts/run-pytest-clean.sh tests/test_test_command_surfaces.py -q",
+        "scripts/run-pytest-clean.sh tests/test_test_lane_governance.py -q",
     ]
 
 

@@ -62,20 +62,12 @@ MATERIALIZATION_HEAVY_FILES = {
     "tests/test_gate_clearing_batch.py",
     "tests/test_journal_package_controller.py",
     "tests/test_publication_gate.py",
-    "tests/test_quality_repair_batch.py",
     "tests/test_study_delivery_sync.py",
 }
 
 SOAK_OR_GOLDEN_FILES = {
     "tests/test_control_plane_generalization_cases/test_study_soak_replay_cases.py",
-    "tests/test_mas_mds_longitudinal_soak.py",
     "tests/test_medical_paper_v2_final_soak_proof.py",
-    "tests/test_multistudy_soak_proof.py",
-    "tests/test_open_auto_research_soak.py",
-    "tests/test_real_paper_ai_first_soak.py",
-    "tests/test_real_paper_autonomy_soak_inventory.py",
-    "tests/test_real_workspace_soak_monitor.py",
-    "tests/test_storage_governance_read_only_soak.py",
     "tests/test_study_truth_kernel_golden_fixtures.py",
 }
 
