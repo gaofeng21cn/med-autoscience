@@ -6,22 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience.runtime_protocol.runtime_surface_retirement.live_runtime_evidence_rollup import (
-    live_runtime_evidence_rollup_summary,
-)
-
-
 pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "standard_agent_completion_acceptance.json"
 LEDGER_PATH = REPO_ROOT / "contracts" / "standard_agent_completion_evidence_status.json"
-LIVE_TAIL_WORK_ORDERS_PATH = (
-    REPO_ROOT / "contracts" / "runtime" / "mas-runtime-live-tail-work-orders.json"
-)
-LIVE_RUNTIME_GAP_WORK_ORDERS_PATH = (
-    REPO_ROOT / "contracts" / "runtime" / "mas-live-runtime-gap-work-orders.json"
-)
 LIVE_RUNTIME_EVIDENCE_ROLLUP_PATH = (
     REPO_ROOT / "contracts" / "runtime" / "mas-live-runtime-evidence-rollup.json"
 )
@@ -61,11 +50,9 @@ def test_standard_agent_completion_acceptance_declares_non_completion_boundary()
     assert policy["classification_zero_can_claim_complete"] is False
     assert policy["docs_updated_can_claim_complete"] is False
     assert policy["contract_tests_green_can_claim_complete"] is False
-    assert policy["live_runtime_evidence_rollup_required_for_completion_claim"] is True
-    assert policy["live_runtime_evidence_rollup_required_result_status"] == (
-        "all_work_orders_satisfied"
-    )
-    assert policy["partial_or_typed_blocker_rollup_can_claim_complete"] is False
+    assert policy["mas_live_runtime_evidence_rollup_required_for_completion_claim"] is False
+    assert policy["opl_runtime_evidence_readback_required_for_completion_claim"] is True
+    assert policy["mas_redirect_can_claim_complete"] is False
     assert policy["required_final_claim"] == "all_acceptance_gates_satisfied_with_current_evidence"
 
 
@@ -162,7 +149,7 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
         "physical_retirement_owner_decision_ref",
         "no_forbidden_write_proof_ref",
         "cross_agent_standard_conformance_negative_test_ref",
-        "live_runtime_evidence_rollup_all_work_orders_satisfied_ref",
+        "opl_runtime_evidence_readback_ref",
     } <= set(contract["allowed_completion_evidence"])
 
     assert (
@@ -172,7 +159,7 @@ def test_standard_agent_completion_acceptance_false_completion_claims_are_explic
     assert {
         "physical source morphology scan beyond classification-zero",
         "OPL/OMA production generated-surface caller and long-soak negative conformance",
-        "live runtime evidence rollup all work orders satisfied",
+        "OPL runtime evidence readback for retained tails",
     } <= set(contract["current_open_evidence_tails"])
 
 
@@ -183,7 +170,7 @@ def test_standard_agent_completion_evidence_ledger_covers_every_acceptance_gate(
     assert ledger["surface_kind"] == "mas_standard_agent_completion_evidence_status"
     assert ledger["contract_ref"] == "contracts/standard_agent_completion_acceptance.json"
     assert (
-        ledger["live_runtime_evidence_rollup_ref"]
+        ledger["runtime_evidence_readback_redirect_ref"]
         == "contracts/runtime/mas-live-runtime-evidence-rollup.json"
     )
     assert ledger["state"] == "active_evidence_ledger"
@@ -208,60 +195,36 @@ def test_standard_agent_completion_evidence_ledger_covers_every_acceptance_gate(
         assert gate["false_completion_boundary"], gate["gate_id"]
 
 
-def test_standard_agent_completion_evidence_ledger_consumes_live_runtime_rollup_gate() -> None:
+def test_standard_agent_completion_evidence_ledger_routes_runtime_evidence_to_opl() -> None:
     contract = _contract()
     ledger = _ledger()
-    rollup_contract = _json(LIVE_RUNTIME_EVIDENCE_ROLLUP_PATH)
-    live_tail_contract = _json(LIVE_TAIL_WORK_ORDERS_PATH)
-    live_runtime_gap_contract = _json(LIVE_RUNTIME_GAP_WORK_ORDERS_PATH)
-    computed = live_runtime_evidence_rollup_summary(
-        live_tail_contract=live_tail_contract,
-        live_runtime_gap_contract=live_runtime_gap_contract,
-    )
+    redirect_contract = _json(LIVE_RUNTIME_EVIDENCE_ROLLUP_PATH)
 
     policy = ledger["completion_claim_policy"]
-    rollup_status = ledger["live_runtime_evidence_rollup_status"]
+    readback_status = ledger["runtime_evidence_readback_status"]
 
-    assert contract["live_runtime_evidence_rollup_ref"] == (
+    assert contract["runtime_evidence_readback_redirect_ref"] == (
         "contracts/runtime/mas-live-runtime-evidence-rollup.json"
     )
-    assert policy["live_runtime_evidence_rollup_required_for_completion_claim"] is True
-    assert policy["live_runtime_evidence_rollup_required_result_status"] == (
-        "all_work_orders_satisfied"
+    assert policy["mas_live_runtime_evidence_rollup_required_for_completion_claim"] is False
+    assert policy["opl_runtime_evidence_readback_required_for_completion_claim"] is True
+    assert policy["mas_redirect_can_claim_complete"] is False
+    assert redirect_contract["replacement_ref"] == "opl:runtime-evidence-readback"
+    assert redirect_contract["mas_live_work_order_generation"] == "retired"
+    assert redirect_contract["mas_live_evidence_intake"] == "retired"
+    assert readback_status["surface_kind"] == (
+        "mas_standard_agent_completion_runtime_evidence_redirect_status"
     )
-    assert policy["partial_or_typed_blocker_rollup_can_claim_complete"] is False
-
-    assert rollup_status["surface_kind"] == (
-        "mas_standard_agent_completion_live_runtime_rollup_status"
-    )
-    assert rollup_status["contract_ref"] == (
+    assert readback_status["redirect_contract_ref"] == (
         "contracts/runtime/mas-live-runtime-evidence-rollup.json"
     )
-    assert rollup_status["required_for_standard_agent_completion_claim"] is True
-    assert rollup_status["repo_source_retirement_blocked"] is False
-    assert rollup_status["completion_claim_allowed"] is False
-    assert rollup_status["live_runtime_readiness_claim_allowed"] is False
-    assert rollup_status["accepted_rollup_result_status"] == (
-        rollup_contract["completion_claim_boundary"]["accepted_rollup_result_status"]
-    )
-    assert rollup_status["current_rollup_result_status"] == computed[
-        "rollup_result_status"
+    assert readback_status["replacement_ref"] == "opl:runtime-evidence-readback"
+    assert readback_status["required_for_standard_agent_completion_claim"] is True
+    assert readback_status["completion_claim_allowed"] is False
+    assert readback_status["live_runtime_readiness_claim_allowed"] is False
+    assert "mas_runtime_evidence_redirect_as_live_readiness" in readback_status[
+        "false_completion_boundary"
     ]
-    assert rollup_status["total_work_order_count"] == computed["total_work_order_count"]
-    assert rollup_status["satisfied_count"] == computed["satisfied_count"]
-    assert rollup_status["typed_blocker_count"] == computed["typed_blocker_count"]
-    assert sorted(rollup_status["typed_blocker_surface_ids"]) == sorted(
-        computed["typed_blocker_surface_ids"]
-    )
-    assert sorted(rollup_status["typed_blocker_gap_ids"]) == sorted(
-        computed["typed_blocker_gap_ids"]
-    )
-    assert computed["rollup_result_status"] == "typed_blocker_required"
-    assert computed["live_runtime_readiness_claim_allowed"] is False
-    assert {
-        "partial_live_runtime_evidence_rollup",
-        "typed_blocker_required_live_runtime_evidence_rollup",
-    } <= set(rollup_status["false_completion_boundary"])
     assert (
         ledger["non_claims"][
             "live_runtime_evidence_rollup_typed_blocker_required_means_ready"
@@ -423,10 +386,9 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     assert morphology["status"] == "evidence_required"
     assert scan_ref in morphology["required_evidence_refs"]
     assert {scan_ref, scan_test_ref} <= set(morphology["observed_refs"])
-    assert (
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/"
-        "surfaces/domain_diagnostic_obligation_actuator"
-    ) in morphology["observed_refs"]
+    assert "runtime:domain-diagnostic-obligation-actuator-retired" in morphology[
+        "observed_refs"
+    ]
     assert (
         "tests/test_adapter_retirement_boundary.py::"
         "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory"
@@ -435,10 +397,9 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
         "physical_source_morphology_scan_beyond_classification_zero_ref"
         not in morphology["missing_evidence_tails"]
     )
-    assert {
-        "direct_or_hosted_generated_surface_production_consumption_ref",
-        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
-    } <= set(morphology["missing_evidence_tails"])
+    assert morphology["missing_evidence_tails"] == [
+        "direct_or_hosted_generated_surface_production_consumption_ref"
+    ]
     assert {
         "functional_structure_gap_count_zero",
         "descriptor_ready",
@@ -449,7 +410,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
     assert ledger["completion_claim_allowed"] is False
 
 
-def test_standard_agent_completion_evidence_ledger_names_precise_domain_diagnostic_actuator_physical_tail() -> None:
+def test_standard_agent_completion_evidence_ledger_records_domain_diagnostic_actuator_retirement() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
     morphology = gates["physical_source_morphology_standardized"]
@@ -462,35 +423,10 @@ def test_standard_agent_completion_evidence_ledger_names_precise_domain_diagnost
         ).read_text(encoding="utf-8")
     )
     surfaces = {surface["surface_id"]: surface for surface in inventory["surfaces"]}
-    actuator = surfaces["domain_diagnostic_obligation_actuator"]
-
-    assert actuator["active_caller_migrated"] is False
-    assert actuator["current_disposition"] == "obligation_readback_projection_consumer"
-    assert actuator["retention_reason"] == (
-        "temporary refs projection until OPL recovery-obligation readback is the active caller; "
-        "fail-closed blockers are MAS typed-blocker authority results, not actuator private writes"
-    )
-    assert actuator["request_projection_only_status"] == "transition_request_pending"
-    assert actuator["transition_request_pending_can_close_physical_tail"] is False
-    assert actuator["no_forbidden_write_proof_surface"] == (
-        "artifacts/mas_authority/typed_blockers/domain_diagnostic_report_obligation/latest.json"
-    )
-    assert actuator["can_write_fail_closed_typed_control_blocker"] is False
-    assert actuator["fail_closed_typed_blocker_surface"] == "mas_domain_typed_blocker"
-    assert actuator["actuator_can_write_private_blocker_surface"] is False
-    assert actuator["retirement_gate"] == {
-        "active_caller_alone_retains_surface": False,
-        "completion_claim_requires_live_owner_or_opl_readback": True,
-        "no_active_caller_required_before_physical_delete": True,
-        "no_forbidden_write_proof_required": True,
-        "owner_retirement_decision_required": True,
-        "replacement_parity_required": True,
-        "tombstone_or_provenance_required": True,
-    }
-
-    assert (
-        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
-    ) in morphology["missing_evidence_tails"]
+    assert "domain_diagnostic_obligation_actuator" not in surfaces
+    assert "runtime:domain-diagnostic-obligation-actuator-retired" in morphology[
+        "observed_refs"
+    ]
     assert "physical_retirement_owner_decision_ref" not in morphology["missing_evidence_tails"]
     assert morphology["status"] == "evidence_required"
     assert ledger["completion_claim_allowed"] is False
@@ -666,19 +602,14 @@ def test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected()
     )
     assert (
         ledger["completion_claim_policy"][
-            "live_runtime_evidence_rollup_required_for_completion_claim"
-        ]
-        is True
-    )
-    assert ledger["completion_claim_policy"][
-        "live_runtime_evidence_rollup_required_result_status"
-    ] == "all_work_orders_satisfied"
-    assert (
-        ledger["completion_claim_policy"][
-            "partial_or_typed_blocker_rollup_can_claim_complete"
+            "mas_live_runtime_evidence_rollup_required_for_completion_claim"
         ]
         is False
     )
+    assert ledger["completion_claim_policy"][
+        "opl_runtime_evidence_readback_required_for_completion_claim"
+    ] is True
+    assert ledger["completion_claim_policy"]["mas_redirect_can_claim_complete"] is False
     assert ledger["completion_claim_policy"]["completion_requires_all_gate_statuses"] == [
         "satisfied",
         "retired_with_owner_decision",

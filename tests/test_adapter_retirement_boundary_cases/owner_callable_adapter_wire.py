@@ -32,25 +32,14 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
     open_surfaces = [
         surface
         for surface in inventory["surfaces"]
-        if surface["current_disposition"] != "physically_retired"
+        if surface["disposition"] != "physically_retired"
     ]
 
     assert open_surfaces
     for surface in open_surfaces:
-        assert surface["compatibility_alias_allowed"] is False
-        assert surface["mas_owner_claim_allowed"] is False
-        assert "legacy_caller_exists" not in str(surface.get("retention_reason", ""))
-        if surface["surface_id"] in {
-            "domain_action_request_materializer_owner_callable_adapter_projection",
-            "stage_outcome_authority",
-        }:
-            gate = surface["retirement_gate"]
-            assert gate["active_caller_alone_retains_surface"] is False
-            assert gate["completion_claim_requires_live_owner_or_opl_readback"] is True
-            assert gate["no_active_caller_required_before_physical_delete"] is True
-            assert gate["no_forbidden_write_proof_required"] is True
-            assert gate["replacement_parity_required"] is True
-            assert gate["tombstone_or_provenance_required"] is True
+        assert surface["mas_runtime_authority"] is False
+        assert surface["replacement_ref"].startswith("opl:")
+        assert surface["retained_mas_role"] != "none"
 
 
 def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_path) -> None:
@@ -120,63 +109,34 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     surface = {
         item["surface_id"]: item for item in inventory["surfaces"]
     }["owner_callable_adapter_receipt_latest_wire_projection"]
-    scan = surface["legacy_stage_run_abi_boundary"]["active_stage_run_abi_caller_scan"]
 
-    assert surface["current_disposition"] == "physically_retired"
-    assert surface["retirement_gate"] == {
-        "active_caller_alone_retains_surface": False,
-        "live_runtime_readiness_required_for_repo_source_delete": False,
-        "no_forbidden_write_proof_proven": True,
-        "replacement_parity_proven": True,
-        "repo_source_physical_retirement_authorized": True,
-        "tombstone_or_provenance_proven": True,
-    }
-    assert surface["tombstone_or_provenance_ref"] == (
-        "docs/history/runtime/mas-private-surface-retirement.md#"
+    assert surface["disposition"] == "physically_retired"
+    assert surface["retained_mas_role"] == "none"
+    assert surface["mas_runtime_authority"] is False
+    assert surface["tombstone_ref"] == (
+        "human_doc:mas-private-surface-retirement#"
         "owner_callable_adapter_receipt_latest_wire_projection"
     )
-    assert scan["status"] == "active_callers_present_tail_open"
-    assert scan["no_active_stage_run_abi_caller_proven"] is False
-    assert scan["physical_delete_allowed"] is False
-    assert (
-        scan["required_before_physical_delete"]
-        == "legacy_owner_callable_adapter_carrier_no_active_stage_run_abi_caller_physical_delete_ref"
-    )
-    assert {
-        (
-            "study_transition_receipt_consumption.owner_callable_candidates."
-            "owner_callable_receipt_candidates::_stage_closeout_candidates"
-        ),
-        "study_transition_receipt_consumption.owner_callable_receipt_consumption",
-        "study_transition_receipt_consumption.owner_callable_receipt_nonconsumable_closeout",
-        "provider_admission.provider_admission_report_closeout_scan",
-        "study_progress.opl_current_control_state_terminal_logs",
-    } <= set(scan["active_callers"])
-    assert "terminal_closeout_consumption" in scan["allowed_consumption"]
-    assert "typed_blocker_consumption" in scan["allowed_consumption"]
-    assert "owner_route_currentness_identity_recovery" in scan["allowed_consumption"]
-    assert "stage_closeout_provenance_only_as_physical_delete" in scan[
-        "forbidden_completion_claims"
-    ]
 
     audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
-    assert "owner_callable_adapter_receipt_latest_wire_projection" not in audit["open_surface_ids"]
-    assert audit["repo_source_retirement_completion"]["completion_claim_allowed"] is True
-    assert audit["completion_claim_allowed"] is True
-    assert audit["live_runtime_readiness_completion"]["completion_claim_allowed"] is False
+    assert "owner_callable_adapter_receipt_latest_wire_projection" in audit[
+        "retired_surface_ids"
+    ]
+    assert audit["completion_claim_allowed"] is False
+    assert audit["live_runtime_readiness_claim_allowed"] is False
 
     bad_inventory = json.loads(json.dumps(inventory))
     bad_surface = {
         item["surface_id"]: item for item in bad_inventory["surfaces"]
     }["owner_callable_adapter_receipt_latest_wire_projection"]
-    del bad_surface["tombstone_or_provenance_ref"]
+    bad_surface["tombstone_ref"] = None
 
     violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
 
     assert {
         (
             "owner_callable_adapter_receipt_latest_wire_projection",
-            "physically_retired_missing_tombstone_or_provenance_ref",
+            "retired_surface_missing_tombstone",
         ),
     } <= {(item["surface_id"], item["reason"]) for item in violations}
 

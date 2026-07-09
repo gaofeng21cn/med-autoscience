@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/contracts/mas-runtime-surface-retirement.schema.json",
+  "title": "MAS runtime surface retirement inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "version",
+    "schema_ref",
+    "generic_runtime_owner",
+    "authority_boundary",
+    "surfaces"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_runtime_surface_retirement_inventory"
+    },
+    "version": {
+      "const": "mas-runtime-surface-retirement-inventory.v2"
+    },
+    "schema_ref": {
+      "const": "contracts/runtime/mas-runtime-surface-retirement.schema.json"
+    },
+    "generic_runtime_owner": {
+      "const": "one-person-lab"
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mas_retains", "opl_owns"],
+      "properties": {
+        "mas_retains": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "opl_owns": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/surface"}
+    }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_id",
+        "disposition",
+        "replacement_ref",
+        "tombstone_ref",
+        "retained_mas_role",
+        "mas_runtime_authority"
+      ],
+      "properties": {
+        "surface_id": {"type": "string", "minLength": 1},
+        "disposition": {
+          "enum": [
+            "physically_retired",
+            "retained_domain_authority_adapter",
+            "retained_read_only_projection",
+            "retained_opl_authorized_adapter"
+          ]
+        },
+        "replacement_ref": {
+          "type": ["string", "null"]
+        },
+        "tombstone_ref": {
+          "type": ["string", "null"]
+        },
+        "retained_mas_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mas_runtime_authority": {
+          "const": false
+        }
+      }
+    }
+  }
+}

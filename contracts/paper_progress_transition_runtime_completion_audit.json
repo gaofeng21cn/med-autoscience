@@ -141,45 +141,22 @@
         "legacy_next_action_tail_absorbed_as_live_acceptance",
         "repo_control_tail_refs_as_owner_receipt_or_human_gate"
       ],
-      "live_tail_work_order_refs": [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders"
-      ],
-      "open_live_runtime_work_order_surface_ids": [
-        "agent_tool_arsenal_scientific_capability_registry",
-        "domain_diagnostic_obligation_actuator",
-        "stage_outcome_authority",
-        "progress_portal_study_workbench_overview_action_projection",
-        "runtime_health_kernel",
-        "runtime_lifecycle_payload_retention",
-        "runtime_storage_maintenance"
-      ],
-      "live_tail_evidence_intake_refs": [
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema",
-        "contracts/runtime/mas-runtime-live-tail-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families"
-      ],
-      "live_runtime_gap_work_order_refs": [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders"
-      ],
-      "live_runtime_gap_evidence_intake_refs": [
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema",
-        "contracts/runtime/mas-live-runtime-gap-work-orders.json#/completion_claim_boundary/evidence_record_schema/transition_identity_ref_required_for_families"
-      ],
-      "open_live_runtime_gap_work_order_ids": [
-        "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request",
-        "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
-        "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
-        "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
-        "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption"
-      ],
-      "live_runtime_evidence_rollup_refs": [
+      "live_tail_work_order_refs": [],
+      "open_live_runtime_work_order_surface_ids": [],
+      "live_tail_evidence_intake_refs": [],
+      "live_runtime_gap_work_order_refs": [],
+      "live_runtime_gap_evidence_intake_refs": [],
+      "open_live_runtime_gap_work_order_ids": [],
+      "runtime_evidence_readback_redirect_refs": [
         "contracts/runtime/mas-live-runtime-evidence-rollup.json"
       ],
-      "live_runtime_evidence_rollup_intake_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json#/completion_claim_boundary",
-      "live_runtime_evidence_rollup_required_for_completion_claim": true,
-      "live_runtime_evidence_rollup_claim_boundary": {
+      "opl_runtime_evidence_readback_ref": "opl:runtime-evidence-readback",
+      "mas_live_runtime_evidence_rollup_required_for_completion_claim": false,
+      "opl_runtime_evidence_readback_required_for_completion_claim": true,
+      "runtime_evidence_readback_claim_boundary": {
         "repo_source_retirement_blocked_by_missing_live_evidence": false,
-        "live_runtime_readiness_claim_requires_all_tail_and_gap_work_orders_satisfied": true,
-        "docs_tests_inventory_or_queue_empty_can_satisfy_rollup": false
+        "mas_redirect_can_claim_live_runtime_readiness": false,
+        "docs_tests_inventory_or_queue_empty_can_satisfy_readback": false
       },
       "live_runtime_gap_evidence_transition_identity_required": true,
       "live_tail_readback_evidence_transition_identity_required": true,

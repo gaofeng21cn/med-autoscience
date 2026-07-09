@@ -2,7 +2,7 @@
   "surface_kind": "mas_standard_agent_completion_evidence_status",
   "version": "standard-agent-completion-evidence-status.v1",
   "contract_ref": "contracts/standard_agent_completion_acceptance.json",
-  "live_runtime_evidence_rollup_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+  "runtime_evidence_readback_redirect_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
   "owner": "MedAutoScience / One Person Lab",
   "state": "active_evidence_ledger",
   "purpose": "Machine-readable evidence ledger for MAS standard OPL Agent completion gates. It records current gate status, accepted evidence ref families, observed repo-native refs, missing evidence tails, and false-completion boundaries.",
@@ -12,9 +12,9 @@
   "completion_claim_policy": {
     "required_final_claim": "all_acceptance_gates_satisfied_with_current_evidence",
     "current_completion_status": "evidence_tail_open_not_complete",
-    "live_runtime_evidence_rollup_required_for_completion_claim": true,
-    "live_runtime_evidence_rollup_required_result_status": "all_work_orders_satisfied",
-    "partial_or_typed_blocker_rollup_can_claim_complete": false,
+    "mas_live_runtime_evidence_rollup_required_for_completion_claim": false,
+    "opl_runtime_evidence_readback_required_for_completion_claim": true,
+    "mas_redirect_can_claim_complete": false,
     "completion_requires_all_gate_statuses": [
       "satisfied",
       "retired_with_owner_decision",
@@ -77,14 +77,14 @@
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
         "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
-        "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator",
+        "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+        "runtime:domain-diagnostic-obligation-actuator-retired",
         "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
       ],
       "missing_evidence_tails": [
-        "direct_or_hosted_generated_surface_production_consumption_ref",
-        "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref"
+        "direct_or_hosted_generated_surface_production_consumption_ref"
       ],
       "false_completion_boundary": [
         "functional_structure_gap_count_zero",
@@ -270,36 +270,15 @@
     "partial_live_runtime_evidence_rollup",
     "typed_blocker_required_live_runtime_evidence_rollup"
   ],
-  "live_runtime_evidence_rollup_status": {
-    "surface_kind": "mas_standard_agent_completion_live_runtime_rollup_status",
-    "contract_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
-    "live_tail_work_order_ref": "contracts/runtime/mas-runtime-live-tail-work-orders.json#/work_orders",
-    "live_runtime_gap_work_order_ref": "contracts/runtime/mas-live-runtime-gap-work-orders.json#/work_orders",
+  "runtime_evidence_readback_status": {
+    "surface_kind": "mas_standard_agent_completion_runtime_evidence_redirect_status",
+    "redirect_contract_ref": "contracts/runtime/mas-live-runtime-evidence-rollup.json",
+    "replacement_ref": "opl:runtime-evidence-readback",
     "required_for_standard_agent_completion_claim": true,
-    "repo_source_retirement_blocked": false,
+    "mas_live_work_order_generation": "retired",
+    "mas_live_evidence_intake": "retired",
     "completion_claim_allowed": false,
     "live_runtime_readiness_claim_allowed": false,
-    "current_rollup_result_status": "typed_blocker_required",
-    "accepted_rollup_result_status": "all_work_orders_satisfied",
-    "total_work_order_count": 12,
-    "satisfied_count": 0,
-    "typed_blocker_count": 12,
-    "typed_blocker_surface_ids": [
-      "agent_tool_arsenal_scientific_capability_registry",
-      "domain_diagnostic_obligation_actuator",
-      "stage_outcome_authority",
-      "progress_portal_study_workbench_overview_action_projection",
-      "runtime_health_kernel",
-      "runtime_lifecycle_payload_retention",
-      "runtime_storage_maintenance"
-    ],
-    "typed_blocker_gap_ids": [
-      "domain_diagnostic_apply_exactly_one_live_outcome_when_explicitly_delegated",
-      "fresh_dm002_dm003_paper_line_accepted_outcome_after_provider_admission_readback_consumption",
-      "fresh_dm002_dm003_same_identity_opl_provider_admission_live_readback_instead_of_replay_fixture_r",
-      "fresh_live_opl_event_outbox_stagerun_consumption_readback_reaches_provider_admission_arbiter_for",
-      "opl_outbox_and_stagerun_identity_live_readback_for_the_same_transition_request"
-    ],
     "false_completion_boundary": [
       "representative_live_owner_closeout_only",
       "repo_source_retirement_complete",
@@ -308,8 +287,7 @@
       "provider_admission_pending_count_zero",
       "projection_clean",
       "domain_diagnostic_observe_only",
-      "partial_live_runtime_evidence_rollup",
-      "typed_blocker_required_live_runtime_evidence_rollup"
+      "mas_runtime_evidence_redirect_as_live_readiness"
     ]
   },
   "latest_live_owner_closeout_observations": [

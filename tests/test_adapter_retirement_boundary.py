@@ -26,6 +26,11 @@ from tests.test_adapter_retirement_boundary_cases.owner_callable_projection impo
 )
 from tests.test_adapter_retirement_boundary_cases.runtime_inventory_contract import (
     assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory as _assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory,
+    test_runtime_retirement_inventory_schema_is_closed_and_machine_readable,
+)
+from tests.test_adapter_retirement_boundary_cases.runtime_surface_no_authority_audit import (
+    test_runtime_surface_retirement_guard_rejects_resurrection_and_authority,
+    test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression,
 )
 
 
