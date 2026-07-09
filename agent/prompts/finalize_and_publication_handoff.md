@@ -79,6 +79,22 @@ External specialist outputs are refs-only candidates; K-Dense or any external li
   blockers, human gates, current package, runtime queues, or provider attempts
   from this prompt.
 
+## Typed Packet And Admission Gate
+
+Return a `publication_handoff_admission_packet` first. The packet must name
+consumed refs (independent review packet, publication eval, controller decision,
+artifact rebuild/freshness, journal requirements, human-gate state) and produced
+refs (handoff receipt candidate, artifact authority, package freshness proof,
+journal checklist, route-back/blocker/human-gate refs). MAS owner/gate decides
+admission after the packet; the executor does not convert specialist output,
+test pass, generated bundle, provider completion, upload readiness, or package
+freshness into publication-ready or submission-ready.
+
+Fail closed to route-back, typed blocker, or human gate when quality/source/
+artifact/journal/package refs are missing or stale, handoff would change claim
+or package authority, or external submission, credentials, PI/journal strategy,
+or irreversible delivery requires human authorization.
+
 ## Receipt And Route-Back
 
 Return publication handoff receipt refs, artifact authority refs, package

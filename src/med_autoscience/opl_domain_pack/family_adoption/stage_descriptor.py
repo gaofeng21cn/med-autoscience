@@ -55,6 +55,117 @@ STANDARD_STAGE_PACK_L5_EVIDENCE_REQUIRED = [
     "owner_acceptance",
     "direct_and_opl_hosted_parity_at_scale",
 ]
+STAGE_SUBPACKET_GATE_SOURCE_REF = (
+    "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py"
+    "::_stage_typed_cognitive_subpacket_gate"
+)
+STAGE_SUBPACKET_GATE_CONFIGS: dict[str, dict[str, Any]] = {
+    "manuscript_authoring": {
+        "packet_id": "manuscript_packet",
+        "packet_surface_kind": "mas_manuscript_authoring_packet",
+        "packet_role": "canonical_manuscript_handoff_candidate",
+        "admission_gate_id": "manuscript_packet_admission_gate",
+        "consumed_ref_families": [
+            "bounded_analysis_evidence_refs",
+            "claim_evidence_map_refs",
+            "source_grounding_refs",
+            "citation_source_refs",
+            "display_table_figure_refs",
+            "controller_decision_refs",
+        ],
+        "produced_ref_families": [
+            "canonical_manuscript_refs",
+            "manuscript_claim_trace_refs",
+            "citation_source_handoff_refs",
+            "display_table_figure_handoff_refs",
+            "route_back_or_owner_receipt_candidate_refs",
+        ],
+        "route_back_conditions": [
+            "missing_or_stale_evidence_source_citation_display_or_claim_boundary_refs",
+            "canonical_manuscript_source_not_current_against_claim_evidence_map",
+            "specialist_candidate_requires_owner_acceptance_before_handoff",
+        ],
+        "typed_blocker_conditions": [
+            "artifact_mutation_authority_missing",
+            "source_readiness_or_citation_authenticity_unresolved",
+            "canonical_manuscript_authority_path_missing",
+        ],
+        "human_gate_conditions": [
+            "journal_strategy_or_claim_expansion_requires_PI_decision",
+            "external_source_or_credential_authority_required",
+        ],
+    },
+    "review_and_quality_gate": {
+        "packet_id": "independent_review_packet",
+        "packet_surface_kind": "mas_independent_review_packet",
+        "packet_role": "independent_reviewer_auditor_gate_input",
+        "admission_gate_id": "independent_review_packet_admission_gate",
+        "consumed_ref_families": [
+            "manuscript_packet_refs",
+            "canonical_manuscript_refs",
+            "evidence_ledger_refs",
+            "claim_citation_support_refs",
+            "research_integrity_gate_input_refs",
+            "artifact_and_display_freshness_refs",
+        ],
+        "produced_ref_families": [
+            "independent_reviewer_auditor_record_refs",
+            "review_ledger_refs",
+            "publication_eval_candidate_refs",
+            "route_back_or_typed_blocker_refs",
+            "memory_accept_reject_handoff_refs",
+        ],
+        "route_back_conditions": [
+            "claim_source_citation_statistics_display_or_artifact_gap_remains",
+            "same_invocation_attempts_to_self_review_executor_output",
+            "research_integrity_gate_input_missing_or_unresolved",
+        ],
+        "typed_blocker_conditions": [
+            "publication_quality_blocker",
+            "ai_reviewer_quality_blocker",
+            "source_citation_statistics_display_data_or_package_blocker",
+        ],
+        "human_gate_conditions": [
+            "official_go_stop_reroute_or_publication_strategy_decision_required",
+            "external_release_or_submission_authorization_requested",
+        ],
+    },
+    "finalize_and_publication_handoff": {
+        "packet_id": "publication_handoff_admission_packet",
+        "packet_surface_kind": "mas_publication_handoff_admission_packet",
+        "packet_role": "publication_handoff_candidate_before_external_delivery",
+        "admission_gate_id": "publication_handoff_admission_gate",
+        "consumed_ref_families": [
+            "independent_review_packet_refs",
+            "publication_eval_refs",
+            "controller_decision_refs",
+            "artifact_rebuild_and_freshness_refs",
+            "journal_requirement_refs",
+            "human_gate_state_refs",
+        ],
+        "produced_ref_families": [
+            "publication_handoff_receipt_candidate_refs",
+            "artifact_authority_refs",
+            "package_freshness_proof_refs",
+            "journal_submission_checklist_refs",
+            "route_back_blocker_or_human_gate_refs",
+        ],
+        "route_back_conditions": [
+            "quality_source_artifact_journal_fit_package_or_memory_gap_remains",
+            "reviewer_or_artifact_freshness_stale_against_controller_decision",
+            "handoff_packet_would_change_claim_or_package_authority",
+        ],
+        "typed_blocker_conditions": [
+            "artifact_mutation_blocker",
+            "publication_quality_blocker",
+            "source_readiness_or_submission_package_blocker",
+        ],
+        "human_gate_conditions": [
+            "external_submission_PI_journal_strategy_or_portal_action_required",
+            "credential_or_irreversible_delivery_authorization_required",
+        ],
+    },
+}
 
 
 def plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -151,6 +262,7 @@ def build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str,
     independent_gate_receipt_required = bool(stage.get("independent_gate_receipt_required", False))
     mandatory_stage_hook_obligations = _mandatory_stage_hook_obligations(stage_id)
     mandatory_pre_gate_checks = _mandatory_stage_hook_pre_gate_checks(stage_id)
+    typed_subpacket_gate = _stage_typed_cognitive_subpacket_gate(stage_id)
     source_refs = [
         *plane_source_refs(descriptor),
         {
@@ -192,6 +304,8 @@ def build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str,
         stage_contract["late_stage_progress_sprint_contract"] = progress_sprint_contract
     if mandatory_pre_gate_checks:
         stage_contract["mandatory_pre_gate_checks"] = mandatory_pre_gate_checks
+    if typed_subpacket_gate:
+        stage_contract["typed_cognitive_subpacket_gate"] = typed_subpacket_gate
     trust_boundary = {
         "lane": stage.get("trust_lane", "domain_agent"),
         "static_check_eligible": False,
@@ -218,6 +332,8 @@ def build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str,
     )
     if mandatory_pre_gate_checks:
         codex_cli_launch_packet["mandatory_pre_gate_checks"] = mandatory_pre_gate_checks
+    if typed_subpacket_gate:
+        codex_cli_launch_packet["typed_cognitive_subpacket_gate"] = typed_subpacket_gate
     stage_descriptor = {
         "stage_id": stage["stage_id"],
         "stage_kind": stage["stage_kind"],
@@ -310,6 +426,8 @@ def build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str,
         stage_descriptor["selected_executor"] = selected_executor
     if mandatory_stage_hook_obligations:
         stage_descriptor["mandatory_stage_hook_obligations"] = mandatory_stage_hook_obligations
+    if typed_subpacket_gate:
+        stage_descriptor["typed_cognitive_subpacket_gate"] = typed_subpacket_gate
     return stage_descriptor
 
 
@@ -333,6 +451,70 @@ def _mandatory_stage_hook_pre_gate_checks(stage_id: str) -> list[dict[str, Any]]
     if stage_id not in RESEARCH_INTEGRITY_STAGE_HOOK_TARGET_STAGE_IDS:
         return []
     return [research_integrity_stage_launch_required_input(stage_id=stage_id)]
+
+
+def _stage_typed_cognitive_subpacket_gate(stage_id: str) -> dict[str, Any]:
+    config = STAGE_SUBPACKET_GATE_CONFIGS.get(stage_id)
+    if config is None:
+        return {}
+    return {
+        "surface_kind": "mas_typed_cognitive_subpacket_gate",
+        "version": "typed-cognitive-subpacket-gate.v1",
+        "stage_id": stage_id,
+        "contract_source_ref": STAGE_SUBPACKET_GATE_SOURCE_REF,
+        "packet_id": config["packet_id"],
+        "packet_surface_kind": config["packet_surface_kind"],
+        "packet_role": config["packet_role"],
+        "packet_required_before_stage_completion": True,
+        "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+        "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+        "consumed_ref_families": list(config["consumed_ref_families"]),
+        "produced_ref_families": list(config["produced_ref_families"]),
+        "route_back_conditions": list(config["route_back_conditions"]),
+        "typed_blocker_conditions": list(config["typed_blocker_conditions"]),
+        "human_gate_conditions": list(config["human_gate_conditions"]),
+        "admission_gate": {
+            "gate_id": config["admission_gate_id"],
+            "gate_owner": "MedAutoScience",
+            "gate_decision_outputs": [
+                "owner_receipt",
+                "route_back",
+                "typed_blocker",
+                "human_gate",
+            ],
+            "fail_closed": True,
+            "owner_receipt_or_typed_blocker_required": True,
+            "candidate_packet_can_close_stage": False,
+            "specialist_output_can_claim_ready": False,
+            "test_pass_can_claim_ready": False,
+            "package_freshness_can_claim_ready": False,
+            "ready_claim_requires": [
+                "MAS owner receipt accepting the packet",
+                "independent gate or reviewer receipt when stage policy requires it",
+                "fresh refs for the exact stage work unit",
+                "route-back, typed blocker, or human gate when any required ref is missing",
+            ],
+        },
+        "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready",
+        ],
+        "authority_boundary": {
+            "packet_is_refs_only_candidate": True,
+            "can_write_mas_study_truth": False,
+            "can_write_publication_eval_latest": False,
+            "can_write_controller_decisions": False,
+            "can_mutate_current_package": False,
+            "can_sign_owner_receipt": False,
+            "can_materialize_typed_blocker": False,
+            "can_materialize_human_gate": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+    }
 
 
 def _stage_expected_receipt_refs(stage_id: str) -> list[dict[str, str]]:

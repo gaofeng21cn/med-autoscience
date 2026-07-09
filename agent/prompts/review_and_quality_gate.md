@@ -76,6 +76,22 @@ External specialist outputs are refs-only candidates; K-Dense or any external li
   typed blockers, human gates, runtime queues, or submission status from this
   prompt.
 
+## Typed Packet And Admission Gate
+
+Return an `independent_review_packet` first. The packet must name consumed refs
+(manuscript packet, canonical manuscript, evidence ledger, claim/citation
+support, research-integrity gate input, artifact/display freshness) and produced
+refs (independent reviewer/auditor record, review ledger, publication-eval
+candidate, route-back or typed-blocker refs, memory accept/reject handoff).
+MAS owner/gate decides admission after the packet; the executor does not convert
+specialist output, test pass, provider completion, generated surface status, or
+package freshness into quality, publication, or submission readiness.
+
+Fail closed to route-back, typed blocker, or human gate when reviewed refs are
+missing/stale, the same invocation is trying to self-review, research-integrity
+input is unresolved, or an official go/stop/reroute/external-release decision is
+needed.
+
 ## Receipt And Route-Back
 
 Return independent reviewer/auditor record refs, review ledger refs, publication

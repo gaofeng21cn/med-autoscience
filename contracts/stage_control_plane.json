@@ -3618,6 +3618,88 @@
           "dispatch_boundary": "mas_guarded_actions_only",
           "owner_callable_adapter_kind": "codex_cli_default"
         },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "manuscript_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "bounded_analysis_evidence_refs",
+            "claim_evidence_map_refs",
+            "source_grounding_refs",
+            "citation_source_refs",
+            "display_table_figure_refs",
+            "controller_decision_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "journal_strategy_or_claim_expansion_requires_PI_decision",
+            "external_source_or_credential_authority_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "manuscript_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "canonical_manuscript_handoff_candidate",
+          "packet_surface_kind": "mas_manuscript_authoring_packet",
+          "produced_ref_families": [
+            "canonical_manuscript_refs",
+            "manuscript_claim_trace_refs",
+            "citation_source_handoff_refs",
+            "display_table_figure_handoff_refs",
+            "route_back_or_owner_receipt_candidate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "missing_or_stale_evidence_source_citation_display_or_claim_boundary_refs",
+            "canonical_manuscript_source_not_current_against_claim_evidence_map",
+            "specialist_candidate_requires_owner_acceptance_before_handoff"
+          ],
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_authority_missing",
+            "source_readiness_or_citation_authenticity_unresolved",
+            "canonical_manuscript_authority_path_missing"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
       "deliverable_index_ref": {
@@ -4354,6 +4436,88 @@
           "surface_kind": "family-stall-lineage.v1",
           "version": "family-stall-lineage.v1"
         },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "manuscript_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "bounded_analysis_evidence_refs",
+            "claim_evidence_map_refs",
+            "source_grounding_refs",
+            "citation_source_refs",
+            "display_table_figure_refs",
+            "controller_decision_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "journal_strategy_or_claim_expansion_requires_PI_decision",
+            "external_source_or_credential_authority_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "manuscript_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "canonical_manuscript_handoff_candidate",
+          "packet_surface_kind": "mas_manuscript_authoring_packet",
+          "produced_ref_families": [
+            "canonical_manuscript_refs",
+            "manuscript_claim_trace_refs",
+            "citation_source_handoff_refs",
+            "display_table_figure_handoff_refs",
+            "route_back_or_owner_receipt_candidate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "missing_or_stale_evidence_source_citation_display_or_claim_boundary_refs",
+            "canonical_manuscript_source_not_current_against_claim_evidence_map",
+            "specialist_candidate_requires_owner_acceptance_before_handoff"
+          ],
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_authority_missing",
+            "source_readiness_or_citation_authenticity_unresolved",
+            "canonical_manuscript_authority_path_missing"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -4606,6 +4770,88 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
+      },
+      "typed_cognitive_subpacket_gate": {
+        "admission_gate": {
+          "candidate_packet_can_close_stage": false,
+          "fail_closed": true,
+          "gate_decision_outputs": [
+            "owner_receipt",
+            "route_back",
+            "typed_blocker",
+            "human_gate"
+          ],
+          "gate_id": "manuscript_packet_admission_gate",
+          "gate_owner": "MedAutoScience",
+          "owner_receipt_or_typed_blocker_required": true,
+          "package_freshness_can_claim_ready": false,
+          "ready_claim_requires": [
+            "MAS owner receipt accepting the packet",
+            "independent gate or reviewer receipt when stage policy requires it",
+            "fresh refs for the exact stage work unit",
+            "route-back, typed blocker, or human gate when any required ref is missing"
+          ],
+          "specialist_output_can_claim_ready": false,
+          "test_pass_can_claim_ready": false
+        },
+        "authority_boundary": {
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_materialize_human_gate": false,
+          "can_materialize_typed_blocker": false,
+          "can_mutate_current_package": false,
+          "can_sign_owner_receipt": false,
+          "can_write_controller_decisions": false,
+          "can_write_mas_study_truth": false,
+          "can_write_publication_eval_latest": false,
+          "packet_is_refs_only_candidate": true
+        },
+        "consumed_ref_families": [
+          "bounded_analysis_evidence_refs",
+          "claim_evidence_map_refs",
+          "source_grounding_refs",
+          "citation_source_refs",
+          "display_table_figure_refs",
+          "controller_decision_refs"
+        ],
+        "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+        "forbidden_ready_claims": [
+          "specialist_output_as_ready",
+          "test_pass_as_ready",
+          "package_freshness_as_ready",
+          "provider_completion_as_ready",
+          "generated_surface_status_as_ready"
+        ],
+        "human_gate_conditions": [
+          "journal_strategy_or_claim_expansion_requires_PI_decision",
+          "external_source_or_credential_authority_required"
+        ],
+        "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+        "packet_id": "manuscript_packet",
+        "packet_required_before_stage_completion": true,
+        "packet_role": "canonical_manuscript_handoff_candidate",
+        "packet_surface_kind": "mas_manuscript_authoring_packet",
+        "produced_ref_families": [
+          "canonical_manuscript_refs",
+          "manuscript_claim_trace_refs",
+          "citation_source_handoff_refs",
+          "display_table_figure_handoff_refs",
+          "route_back_or_owner_receipt_candidate_refs"
+        ],
+        "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+        "route_back_conditions": [
+          "missing_or_stale_evidence_source_citation_display_or_claim_boundary_refs",
+          "canonical_manuscript_source_not_current_against_claim_evidence_map",
+          "specialist_candidate_requires_owner_acceptance_before_handoff"
+        ],
+        "stage_id": "manuscript_authoring",
+        "surface_kind": "mas_typed_cognitive_subpacket_gate",
+        "typed_blocker_conditions": [
+          "artifact_mutation_authority_missing",
+          "source_readiness_or_citation_authenticity_unresolved",
+          "canonical_manuscript_authority_path_missing"
+        ],
+        "version": "typed-cognitive-subpacket-gate.v1"
       }
     },
     {
@@ -4864,6 +5110,88 @@
           "can_write_mas_truth": false,
           "dispatch_boundary": "mas_guarded_actions_only",
           "owner_callable_adapter_kind": "codex_cli_default"
+        },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "independent_review_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "manuscript_packet_refs",
+            "canonical_manuscript_refs",
+            "evidence_ledger_refs",
+            "claim_citation_support_refs",
+            "research_integrity_gate_input_refs",
+            "artifact_and_display_freshness_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "official_go_stop_reroute_or_publication_strategy_decision_required",
+            "external_release_or_submission_authorization_requested"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "independent_review_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "independent_reviewer_auditor_gate_input",
+          "packet_surface_kind": "mas_independent_review_packet",
+          "produced_ref_families": [
+            "independent_reviewer_auditor_record_refs",
+            "review_ledger_refs",
+            "publication_eval_candidate_refs",
+            "route_back_or_typed_blocker_refs",
+            "memory_accept_reject_handoff_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "claim_source_citation_statistics_display_or_artifact_gap_remains",
+            "same_invocation_attempts_to_self_review_executor_output",
+            "research_integrity_gate_input_missing_or_unresolved"
+          ],
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "publication_quality_blocker",
+            "ai_reviewer_quality_blocker",
+            "source_citation_statistics_display_data_or_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -5876,6 +6204,88 @@
           "surface_kind": "family-stall-lineage.v1",
           "version": "family-stall-lineage.v1"
         },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "independent_review_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "manuscript_packet_refs",
+            "canonical_manuscript_refs",
+            "evidence_ledger_refs",
+            "claim_citation_support_refs",
+            "research_integrity_gate_input_refs",
+            "artifact_and_display_freshness_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "official_go_stop_reroute_or_publication_strategy_decision_required",
+            "external_release_or_submission_authorization_requested"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "independent_review_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "independent_reviewer_auditor_gate_input",
+          "packet_surface_kind": "mas_independent_review_packet",
+          "produced_ref_families": [
+            "independent_reviewer_auditor_record_refs",
+            "review_ledger_refs",
+            "publication_eval_candidate_refs",
+            "route_back_or_typed_blocker_refs",
+            "memory_accept_reject_handoff_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "claim_source_citation_statistics_display_or_artifact_gap_remains",
+            "same_invocation_attempts_to_self_review_executor_output",
+            "research_integrity_gate_input_missing_or_unresolved"
+          ],
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "publication_quality_blocker",
+            "ai_reviewer_quality_blocker",
+            "source_citation_statistics_display_data_or_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -6128,6 +6538,88 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
+      },
+      "typed_cognitive_subpacket_gate": {
+        "admission_gate": {
+          "candidate_packet_can_close_stage": false,
+          "fail_closed": true,
+          "gate_decision_outputs": [
+            "owner_receipt",
+            "route_back",
+            "typed_blocker",
+            "human_gate"
+          ],
+          "gate_id": "independent_review_packet_admission_gate",
+          "gate_owner": "MedAutoScience",
+          "owner_receipt_or_typed_blocker_required": true,
+          "package_freshness_can_claim_ready": false,
+          "ready_claim_requires": [
+            "MAS owner receipt accepting the packet",
+            "independent gate or reviewer receipt when stage policy requires it",
+            "fresh refs for the exact stage work unit",
+            "route-back, typed blocker, or human gate when any required ref is missing"
+          ],
+          "specialist_output_can_claim_ready": false,
+          "test_pass_can_claim_ready": false
+        },
+        "authority_boundary": {
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_materialize_human_gate": false,
+          "can_materialize_typed_blocker": false,
+          "can_mutate_current_package": false,
+          "can_sign_owner_receipt": false,
+          "can_write_controller_decisions": false,
+          "can_write_mas_study_truth": false,
+          "can_write_publication_eval_latest": false,
+          "packet_is_refs_only_candidate": true
+        },
+        "consumed_ref_families": [
+          "manuscript_packet_refs",
+          "canonical_manuscript_refs",
+          "evidence_ledger_refs",
+          "claim_citation_support_refs",
+          "research_integrity_gate_input_refs",
+          "artifact_and_display_freshness_refs"
+        ],
+        "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+        "forbidden_ready_claims": [
+          "specialist_output_as_ready",
+          "test_pass_as_ready",
+          "package_freshness_as_ready",
+          "provider_completion_as_ready",
+          "generated_surface_status_as_ready"
+        ],
+        "human_gate_conditions": [
+          "official_go_stop_reroute_or_publication_strategy_decision_required",
+          "external_release_or_submission_authorization_requested"
+        ],
+        "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+        "packet_id": "independent_review_packet",
+        "packet_required_before_stage_completion": true,
+        "packet_role": "independent_reviewer_auditor_gate_input",
+        "packet_surface_kind": "mas_independent_review_packet",
+        "produced_ref_families": [
+          "independent_reviewer_auditor_record_refs",
+          "review_ledger_refs",
+          "publication_eval_candidate_refs",
+          "route_back_or_typed_blocker_refs",
+          "memory_accept_reject_handoff_refs"
+        ],
+        "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+        "route_back_conditions": [
+          "claim_source_citation_statistics_display_or_artifact_gap_remains",
+          "same_invocation_attempts_to_self_review_executor_output",
+          "research_integrity_gate_input_missing_or_unresolved"
+        ],
+        "stage_id": "review_and_quality_gate",
+        "surface_kind": "mas_typed_cognitive_subpacket_gate",
+        "typed_blocker_conditions": [
+          "publication_quality_blocker",
+          "ai_reviewer_quality_blocker",
+          "source_citation_statistics_display_data_or_package_blocker"
+        ],
+        "version": "typed-cognitive-subpacket-gate.v1"
       }
     },
     {
@@ -6386,6 +6878,88 @@
           "can_write_mas_truth": false,
           "dispatch_boundary": "mas_guarded_actions_only",
           "owner_callable_adapter_kind": "codex_cli_default"
+        },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "publication_handoff_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "independent_review_packet_refs",
+            "publication_eval_refs",
+            "controller_decision_refs",
+            "artifact_rebuild_and_freshness_refs",
+            "journal_requirement_refs",
+            "human_gate_state_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "external_submission_PI_journal_strategy_or_portal_action_required",
+            "credential_or_irreversible_delivery_authorization_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "publication_handoff_admission_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "publication_handoff_candidate_before_external_delivery",
+          "packet_surface_kind": "mas_publication_handoff_admission_packet",
+          "produced_ref_families": [
+            "publication_handoff_receipt_candidate_refs",
+            "artifact_authority_refs",
+            "package_freshness_proof_refs",
+            "journal_submission_checklist_refs",
+            "route_back_blocker_or_human_gate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "quality_source_artifact_journal_fit_package_or_memory_gap_remains",
+            "reviewer_or_artifact_freshness_stale_against_controller_decision",
+            "handoff_packet_would_change_claim_or_package_authority"
+          ],
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_blocker",
+            "publication_quality_blocker",
+            "source_readiness_or_submission_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
         },
         "version": "mas-codex-cli-stage-launch-packet.v1"
       },
@@ -7402,6 +7976,88 @@
           "surface_kind": "family-stall-lineage.v1",
           "version": "family-stall-lineage.v1"
         },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "publication_handoff_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "independent_review_packet_refs",
+            "publication_eval_refs",
+            "controller_decision_refs",
+            "artifact_rebuild_and_freshness_refs",
+            "journal_requirement_refs",
+            "human_gate_state_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "external_submission_PI_journal_strategy_or_portal_action_required",
+            "credential_or_irreversible_delivery_authorization_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "publication_handoff_admission_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "publication_handoff_candidate_before_external_delivery",
+          "packet_surface_kind": "mas_publication_handoff_admission_packet",
+          "produced_ref_families": [
+            "publication_handoff_receipt_candidate_refs",
+            "artifact_authority_refs",
+            "package_freshness_proof_refs",
+            "journal_submission_checklist_refs",
+            "route_back_blocker_or_human_gate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "quality_source_artifact_journal_fit_package_or_memory_gap_remains",
+            "reviewer_or_artifact_freshness_stale_against_controller_decision",
+            "handoff_packet_would_change_claim_or_package_authority"
+          ],
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_blocker",
+            "publication_quality_blocker",
+            "source_readiness_or_submission_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -7654,6 +8310,88 @@
         ],
         "runtime_guard_required": true,
         "static_check_eligible": false
+      },
+      "typed_cognitive_subpacket_gate": {
+        "admission_gate": {
+          "candidate_packet_can_close_stage": false,
+          "fail_closed": true,
+          "gate_decision_outputs": [
+            "owner_receipt",
+            "route_back",
+            "typed_blocker",
+            "human_gate"
+          ],
+          "gate_id": "publication_handoff_admission_gate",
+          "gate_owner": "MedAutoScience",
+          "owner_receipt_or_typed_blocker_required": true,
+          "package_freshness_can_claim_ready": false,
+          "ready_claim_requires": [
+            "MAS owner receipt accepting the packet",
+            "independent gate or reviewer receipt when stage policy requires it",
+            "fresh refs for the exact stage work unit",
+            "route-back, typed blocker, or human gate when any required ref is missing"
+          ],
+          "specialist_output_can_claim_ready": false,
+          "test_pass_can_claim_ready": false
+        },
+        "authority_boundary": {
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_materialize_human_gate": false,
+          "can_materialize_typed_blocker": false,
+          "can_mutate_current_package": false,
+          "can_sign_owner_receipt": false,
+          "can_write_controller_decisions": false,
+          "can_write_mas_study_truth": false,
+          "can_write_publication_eval_latest": false,
+          "packet_is_refs_only_candidate": true
+        },
+        "consumed_ref_families": [
+          "independent_review_packet_refs",
+          "publication_eval_refs",
+          "controller_decision_refs",
+          "artifact_rebuild_and_freshness_refs",
+          "journal_requirement_refs",
+          "human_gate_state_refs"
+        ],
+        "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+        "forbidden_ready_claims": [
+          "specialist_output_as_ready",
+          "test_pass_as_ready",
+          "package_freshness_as_ready",
+          "provider_completion_as_ready",
+          "generated_surface_status_as_ready"
+        ],
+        "human_gate_conditions": [
+          "external_submission_PI_journal_strategy_or_portal_action_required",
+          "credential_or_irreversible_delivery_authorization_required"
+        ],
+        "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+        "packet_id": "publication_handoff_admission_packet",
+        "packet_required_before_stage_completion": true,
+        "packet_role": "publication_handoff_candidate_before_external_delivery",
+        "packet_surface_kind": "mas_publication_handoff_admission_packet",
+        "produced_ref_families": [
+          "publication_handoff_receipt_candidate_refs",
+          "artifact_authority_refs",
+          "package_freshness_proof_refs",
+          "journal_submission_checklist_refs",
+          "route_back_blocker_or_human_gate_refs"
+        ],
+        "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+        "route_back_conditions": [
+          "quality_source_artifact_journal_fit_package_or_memory_gap_remains",
+          "reviewer_or_artifact_freshness_stale_against_controller_decision",
+          "handoff_packet_would_change_claim_or_package_authority"
+        ],
+        "stage_id": "finalize_and_publication_handoff",
+        "surface_kind": "mas_typed_cognitive_subpacket_gate",
+        "typed_blocker_conditions": [
+          "artifact_mutation_blocker",
+          "publication_quality_blocker",
+          "source_readiness_or_submission_package_blocker"
+        ],
+        "version": "typed-cognitive-subpacket-gate.v1"
       }
     }
   ],

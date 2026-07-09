@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。2026-06-29 之后的默认 next-action 结论只从 `StageOutcome -> NextActionEnvelope` 读取；旧生产者、gate、transport 队列、StageAttempt 和 exact-id 表述均按本文件顶部 supersession 规则解释。
 
+## 2026-07-09：MAS 大 stage 保持 6-stage 主链，子判断必须 typed packet / fail-closed admission
+
+- 决策：`manuscript_authoring`、`review_and_quality_gate`、`finalize_and_publication_handoff` 不拆成新的 top-level stage。当前 6 个 MAS runtime-guard stage 仍是 OPL/MAS stage control plane 的主链。
+- 决策：这 3 个偏大的 stage 必须在 `contracts/stage_control_plane.json` 暴露 `typed_cognitive_subpacket_gate`，并同步到 `stage_contract` 与 `codex_cli_launch_packet`。对应 packet 固定为 `manuscript_packet`、`independent_review_packet`、`publication_handoff_admission_packet`，每个 packet 必须写清 consumed refs、produced refs、route-back 条件、typed blocker 条件和 human-gate 条件。
+- 决策：packet 只是 refs-only candidate / gate input。是否进入下一 stage、是否形成 owner receipt、typed blocker、human gate 或 route-back，必须由 MAS owner/gate admission 决定；specialist output、test pass、generated surface status、provider completion 或 package freshness 不能单独写成 ready、quality clear、publication-ready 或 submission-ready。
+- 理由：stage-size 审计结论不是“顶层拆 stage”，而是 late-stage 的独立认知判断需要 typed/fail-closed 边界。这样保留现有 6-stage runtime/readback 主链，同时让大 stage 内部判断可审计、可 route-back、可阻断错误 ready claim。
+- 影响：本决策只增强 stage control plane、prompt 和 focused tests 的结构边界；不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package、runtime queue 或 provider attempt，也不声明任何具体论文 progress、publication-ready 或 submission-ready。
+
 ## 2026-07-08：Research Frontier 只在被 stage closeout 采纳后进入可执行 route
 
 - 决策：`research_frontier_board` 继续只是 stage-local working board / research memory projection。它可以记录候选路线、负结果、`rollback_target_suggestions` 和 refs-only OPL 可视化输入，但不得直接成为 stage completion、next-action 或 OPL stage-route authority。

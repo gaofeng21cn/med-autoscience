@@ -80,6 +80,21 @@ External specialist outputs are refs-only candidates; K-Dense or any external li
   blockers, human gates, current package, runtime queues, or provider attempts
   from this prompt.
 
+## Typed Packet And Admission Gate
+
+Return a `manuscript_packet` first. The packet must name consumed refs
+(bounded-analysis evidence, claim-evidence map, source/citation, display/table/
+figure, controller decision) and produced refs (canonical manuscript, claim
+trace, citation/source handoff, display handoff, route-back or owner-receipt
+candidate). MAS owner/gate decides admission after the packet; the executor does
+not convert specialist output, test pass, generated surface status, provider
+completion, or package freshness into `manuscript_draft_reviewable`.
+
+Fail closed to route-back, typed blocker, or human gate when required refs are
+missing/stale, canonical manuscript authority is unclear, artifact mutation or
+source readiness is unresolved, or PI/journal/external-source authority is
+needed.
+
 ## Receipt And Route-Back
 
 Return canonical manuscript refs, claim-evidence refs, citation/source refs,
