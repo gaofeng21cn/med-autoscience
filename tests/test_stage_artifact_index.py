@@ -44,9 +44,26 @@ def _write_study_intake_contract(study_root: Path) -> None:
     )
 
 
-def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tmp_path: Path) -> None:
+def _read_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _empty_study_root(tmp_path: Path) -> Path:
     study_root = tmp_path / "studies" / "001-risk"
     study_root.mkdir(parents=True)
+    return study_root
+
+
+def _stage(stages, stage_id: str):
+    return next(stage for stage in stages if stage["stage_id"] == stage_id)
+
+
+def _role(refs, role: str):
+    return next(ref for ref in refs if ref["role"] == role)
+
+
+def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tmp_path: Path) -> None:
+    study_root = _empty_study_root(tmp_path)
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
 
@@ -117,11 +134,7 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
 def test_paper_study_stage_pack_defines_publication_handoff_done_gate() -> None:
     stage_pack_path = Path(__file__).resolve().parents[1] / PAPER_STUDY_STAGE_PACK_REF
     stage_pack = json.loads(stage_pack_path.read_text(encoding="utf-8"))
-    terminal_stage = next(
-        stage
-        for stage in stage_pack["stages"]
-        if stage["stage_id"] == "08-publication_package_handoff"
-    )
+    terminal_stage = _stage(stage_pack["stages"], "08-publication_package_handoff")
 
     assert stage_pack["machine_boundary"]["physical_study_file_migration_required"] is True
     assert stage_pack["machine_boundary"]["physical_study_file_migration_target"] == (
@@ -142,31 +155,20 @@ def test_paper_study_stage_pack_defines_publication_handoff_done_gate() -> None:
 def test_stage_artifact_index_marks_residual_reviewer_issues_as_human_inspection_only(
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "studies" / "001-risk"
-    study_root.mkdir(parents=True)
+    study_root = _empty_study_root(tmp_path)
     stage_pack_path = Path(__file__).resolve().parents[1] / PAPER_STUDY_STAGE_PACK_REF
     stage_pack = json.loads(stage_pack_path.read_text(encoding="utf-8"))
-    contract_review_stage = next(
-        stage
-        for stage in stage_pack["stages"]
-        if stage["stage_id"] == "07-independent_review_and_revision"
-    )
-    contract_residual_role = next(
-        ref
-        for ref in contract_review_stage["stable_artifact_roles"]
-        if ref["role"] == "residual_reviewer_issues_user_review"
+    contract_review_stage = _stage(stage_pack["stages"], "07-independent_review_and_revision")
+    contract_residual_role = _role(
+        contract_review_stage["stable_artifact_roles"],
+        "residual_reviewer_issues_user_review",
     )
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
-    review_stage = next(
-        stage
-        for stage in index["stages"]
-        if stage["stage_id"] == "07-independent_review_and_revision"
-    )
-    residual_role = next(
-        ref
-        for ref in review_stage["required_output_refs"]
-        if ref["role"] == "residual_reviewer_issues_user_review"
+    review_stage = _stage(index["stages"], "07-independent_review_and_revision")
+    residual_role = _role(
+        review_stage["required_output_refs"],
+        "residual_reviewer_issues_user_review",
     )
 
     assert residual_role["ref"] == "manuscript/inspection_package/residual_reviewer_issues.md"
@@ -190,8 +192,7 @@ def test_stage_artifact_index_consumes_opl_physical_stage_folder_kernel(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "studies" / "001-risk"
-    study_root.mkdir(parents=True)
+    study_root = _empty_study_root(tmp_path)
     physical = _write_opl_physical_stage_attempt(
         tmp_path / "opl-state",
         study_id="001-risk",
@@ -269,8 +270,7 @@ def test_stage_artifact_index_rejects_physical_stage_without_current_pointer_pro
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "studies" / "001-risk"
-    study_root.mkdir(parents=True)
+    study_root = _empty_study_root(tmp_path)
     physical = _write_opl_physical_stage_attempt(
         tmp_path / "opl-state",
         study_id="001-risk",
@@ -309,8 +309,7 @@ def test_stage_artifact_index_rejects_physical_stage_without_domain_receipt_or_r
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "studies" / "001-risk"
-    study_root.mkdir(parents=True)
+    study_root = _empty_study_root(tmp_path)
     physical = _write_opl_physical_stage_attempt(
         tmp_path / "opl-state",
         study_id="001-risk",
@@ -349,8 +348,7 @@ def test_stage_artifact_index_rejects_physical_stage_without_domain_receipt_or_r
 def test_stage_artifact_index_exposes_legacy_taxonomy_migration_without_dual_current_truth(
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "studies" / "001-risk"
-    study_root.mkdir(parents=True)
+    study_root = _empty_study_root(tmp_path)
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
 
@@ -565,24 +563,9 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     assert first_ref["source_refs"]
     assert all("content" not in item for item in first_ref["source_refs"])
 
-    manifest = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "stage_outputs"
-            / "01-study_intake"
-            / "stage_manifest.json"
-        ).read_text(encoding="utf-8")
-    )
-    receipt = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "stage_outputs"
-            / "01-study_intake"
-            / "receipts/owner_receipt.json"
-        ).read_text(encoding="utf-8")
-    )
+    stage_root = study_root / "artifacts" / "stage_outputs" / "01-study_intake"
+    manifest = json.loads((stage_root / "stage_manifest.json").read_text(encoding="utf-8"))
+    receipt = json.loads((stage_root / "receipts/owner_receipt.json").read_text(encoding="utf-8"))
     assert manifest["artifact_refs"] == STUDY_INTAKE_REFS
     assert manifest["source_artifact_refs_are_locators_only"] is True
     assert manifest["surface_kind"] == "stage_manifest"
@@ -713,13 +696,8 @@ def test_stage_artifact_materializer_nonterminal_stage_closeout_does_not_require
         apply=True,
     )
 
-    receipt_ref = (
-        study_root
-        / "artifacts"
-        / "stage_outputs"
-        / "01-study_intake"
-        / "receipts/owner_receipt.json"
-    )
+    stage_root = study_root / "artifacts" / "stage_outputs" / "01-study_intake"
+    receipt_ref = stage_root / "receipts/owner_receipt.json"
     receipt = json.loads(receipt_ref.read_text(encoding="utf-8"))
     assert result["stages"][0]["stage_closeout"] == {
         "minimum_durable_output_present": True,
@@ -751,11 +729,7 @@ def test_stage_artifact_materializer_bounds_directory_source_ref_sampling(tmp_pa
         apply=True,
     )
 
-    source_readiness = next(
-        bundle
-        for bundle in result["stages"][0]["role_bundles"]
-        if bundle["role"] == "source_readiness_assessment"
-    )
+    source_readiness = _role(result["stages"][0]["role_bundles"], "source_readiness_assessment")
     assert len(source_readiness["source_refs"]) == 20
     assert all(item["body_included"] is False for item in source_readiness["source_refs"])
 
@@ -896,9 +870,7 @@ def test_stage_artifact_index_marks_stale_platform_repair_without_counting_as_pr
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
 
-    manuscript_stage = next(
-        stage for stage in index["stages"] if stage["stage_id"] == "06-manuscript_authoring"
-    )
+    manuscript_stage = _stage(index["stages"], "06-manuscript_authoring")
     assert manuscript_stage["artifact_status"] == "missing_manifest_or_receipt"
     assert manuscript_stage["observed_artifact_refs"] == []
     assert manuscript_stage["legacy_observed_artifact_refs"][0]["ref"].endswith(
