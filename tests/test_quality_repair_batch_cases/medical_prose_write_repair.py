@@ -14,11 +14,6 @@ from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
     _write_json,
     _write_quality_summary,
 )
-from tests.test_quality_repair_batch_cases.medical_prose_write_repair_cases.test_reviewer_revision_refresh import (
-    test_dm003_reviewer_revision_forces_story_refresh_from_latest_intake,  # noqa: F401
-)
-
-
 def _fingerprint(path: Path) -> dict[str, Any]:
     data = path.read_bytes()
     return {"size": len(data), "content_sha256": hashlib.sha256(data).hexdigest()}

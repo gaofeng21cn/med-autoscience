@@ -10,11 +10,6 @@ globals().update({
 
 from tests.test_gate_clearing_batch_cases.planning_and_replay import *  # noqa: F403
 from tests.test_gate_clearing_batch_cases.outer_loop_controller_action import *  # noqa: F403
-from tests.test_gate_clearing_batch_cases.publication_work_unit_routing import *  # noqa: F403
 from tests.test_gate_clearing_batch_cases.startup_freshness_priority import *  # noqa: F403
-from tests.test_gate_clearing_batch_cases.current_package_freshness import *  # noqa: F403
-from tests.test_gate_clearing_batch_cases.direct_migration_display_refresh import *  # noqa: F403
-from tests.test_gate_clearing_batch_cases.direct_migration_display_refresh_cases.table1_and_transportability_cases import *  # noqa: F403
-from tests.test_gate_clearing_batch_cases.direct_migration_transportability_registry_sync import *  # noqa: F403
 from tests.test_gate_clearing_batch_cases.transport_sync_normalization import *  # noqa: F403
 from tests.test_gate_clearing_batch_cases.display_materialization_failures import *  # noqa: F403

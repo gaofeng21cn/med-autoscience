@@ -33,8 +33,6 @@ DEFAULT_COLLECTED_NESTED_CASE_GLOBS = {
     "test_cli_cases/paper_mission_commands_cases/stage_closure_terminalizer_cases/test_*.py",
     "test_gate_clearing_batch_cases/direct_migration_transportability_registry_sync_cases/test_*.py",
     "test_gate_clearing_batch_cases/publication_work_unit_routing_cases/test_*.py",
-    "test_quality_repair_batch_cases/dm002_writer_delta_preservation_cases/test_*.py",
-    "test_quality_repair_batch_cases/medical_prose_write_repair_cases/test_*.py",
 }
 
 AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
