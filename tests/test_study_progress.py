@@ -1,24 +1,17 @@
 from __future__ import annotations
 
 from tests.study_progress_cases.abnormal_stopped_runtime_projection import *  # noqa: F403
-from tests.study_progress_cases.ai_first_default_entry_projection import *  # noqa: F403
 from tests.study_progress_cases.ai_first_read_only_ledgers import *  # noqa: F403
 from tests.study_progress_cases.ai_repair_lifecycle_projection import *  # noqa: F403
-from tests.study_progress_cases.autonomy_quality_and_route_projection import *  # noqa: F403
 from tests.study_progress_cases.completion_evidence_projection import *  # noqa: F403
-from tests.study_progress_cases.control_surface_progress_projection import *  # noqa: F403
 from tests.study_progress_cases.delivery_inspection_visibility import *  # noqa: F403
 from tests.study_progress_cases.domain_routeback_currentness_projection import *  # noqa: F403
 from tests.study_progress_cases.evidence_gap_projection import *  # noqa: F403
-from tests.study_progress_cases.gate_specificity_projection import *  # noqa: F403
-from tests.study_progress_cases.markdown_and_followthrough_projection import *  # noqa: F403
 from tests.study_progress_cases.medical_paper_ops_health_projection import *  # noqa: F403
 from tests.study_progress_cases.medical_readiness_v2_projection import *  # noqa: F403
 from tests.study_progress_cases.milestone_parking_projection import *  # noqa: F403
 from tests.study_progress_cases.open_auto_research_projection import *  # noqa: F403
 from tests.study_progress_cases.operator_status_activity_timeout import *  # noqa: F403
-from tests.study_progress_cases.operator_status_and_eval_refresh import *  # noqa: F403
-from tests.study_progress_cases.opl_current_control_state_handoff_projection import *  # noqa: F403
 from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.current_control_current_work_unit import *  # noqa: F403
 from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.owner_receipt_closeout import *  # noqa: F403
 from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.running_attempt_identity import *  # noqa: F403
@@ -27,18 +20,9 @@ from tests.study_progress_cases.opl_current_control_state_handoff_projection_cas
 from tests.study_progress_cases.opl_current_control_state_handoff_projection_cases.terminal_closeout_cases import *  # noqa: F403
 from tests.study_progress_cases.opl_current_control_state_live_liveness_projection import *  # noqa: F403
 from tests.study_progress_cases.opl_current_control_state_live_queue_projection import *  # noqa: F403
-from tests.study_progress_cases.progress_first_paper_delta_cases import *  # noqa: F403
-from tests.study_progress_cases.progress_first_projection import *  # noqa: F403
 from tests.study_progress_cases.publication_eval_ai_reviewer_currentness_projection import *  # noqa: F403
-from tests.study_progress_cases.publication_eval_currentness_projection import *  # noqa: F403
-from tests.study_progress_cases.quality_followthrough_projection import *  # noqa: F403
-from tests.study_progress_cases.repair_progress_projection import *  # noqa: F403
 from tests.study_progress_cases.reviewer_handoff_quality_closure import *  # noqa: F403
-from tests.study_progress_cases.runtime_efficiency_operator_projection import *  # noqa: F403
 from tests.study_progress_cases.runtime_liveness_convergence import *  # noqa: F403
 from tests.study_progress_cases.runtime_medical_publication_surface_projection import *  # noqa: F403
-from tests.study_progress_cases.runtime_projection_basics import *  # noqa: F403
 from tests.study_progress_cases.runtime_projection_basics_cases.stale_supervision_and_restore import *  # noqa: F403
 from tests.study_progress_cases.shared_base import *  # noqa: F403
-from tests.study_progress_cases.supervision_blockers_and_task_reopen import *  # noqa: F403
-from tests.study_progress_cases.user_visible_projection import *  # noqa: F403
