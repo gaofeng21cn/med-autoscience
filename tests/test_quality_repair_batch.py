@@ -23,6 +23,9 @@ from .test_quality_repair_batch_cases.specificity_targets import (
     test_run_quality_repair_batch_replaces_stale_upstream_route_context_with_current_specificity_work_unit,
 )
 from .test_quality_repair_batch_cases.upstream_paper_owner_surface import (
+    _write_blocked_publication_eval,
+    _write_json,
+    _write_quality_summary,
     test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bundle_gate,
     test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summary,
     test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for_upstream_repair,
@@ -33,102 +36,31 @@ from .test_quality_repair_batch_cases.upstream_paper_owner_surface import (
 )
 
 
-def _write_json(path: Path, payload: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[str, Any]:
-    payload = {
-        "schema_version": 1,
-        "eval_id": f"publication-eval::{study_root.name}::{quest_id}::2026-04-22T08:00:00+00:00",
-        "study_id": study_root.name,
-        "quest_id": quest_id,
-        "emitted_at": "2026-04-22T08:00:00+00:00",
-        "evaluation_scope": "publication",
-        "charter_context_ref": {
-            "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "charter_id": f"charter::{study_root.name}::v1",
-            "publication_objective": "risk stratification external validation",
-        },
-        "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
-            "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
-        },
-        "delivery_context_refs": {
-            "paper_root_ref": str(study_root / "paper"),
-            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
-        },
-        "verdict": {
-            "overall_verdict": "blocked",
-            "primary_claim_status": "partial",
-            "summary": "Current paper needs deterministic quality repair before the gate can be trusted.",
-            "stop_loss_pressure": "watch",
-        },
-        "gaps": [
-            {
-                "gap_id": "gap-001",
-                "gap_type": "reporting",
-                "severity": "must_fix",
-                "summary": "claim_evidence_map_missing_or_incomplete",
-                "evidence_refs": [str(study_root / "paper")],
-            }
-        ],
-        "recommended_actions": [
-            {
-                "action_id": "publication-eval-action::quality-repair::2026-04-22T08:00:00+00:00",
-                "action_type": "route_back_same_line",
-                "priority": "now",
-                "reason": "Return to the same paper line for deterministic quality repair.",
-                "route_target": "review",
-                "route_key_question": "Which deterministic quality repair is still blocking publishability?",
-                "route_rationale": "Structured quality blockers remain before publishability gate replay.",
-                "evidence_refs": [str(study_root / "paper")],
-                "requires_controller_decision": True,
-            }
-        ],
-    }
-    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
-    return payload
-
-
-def _write_quality_summary(study_root: Path, *, relative_path: Path | None = None) -> dict[str, Any]:
-    payload = {
-        "schema_version": 1,
-        "summary_id": f"evaluation-summary::{study_root.name}::2026-04-22T08:01:00+00:00",
-        "study_id": study_root.name,
-        "quest_id": "quest-001",
-        "emitted_at": "2026-04-22T08:01:00+00:00",
-        "quality_closure_truth": {
-            "state": "quality_repair_required",
-            "summary": "Hard publication-quality blockers remain open.",
-            "current_required_action": "return_to_publishability_gate",
-            "route_target": "review",
-        },
-        "quality_execution_lane": {
-            "lane_id": "general_quality_repair",
-            "lane_label": "General quality repair",
-            "repair_mode": "deterministic_batch",
-            "route_target": "review",
-            "route_key_question": "Which deterministic claim-evidence/display repair is still blocking publishability?",
-            "summary": "Run deterministic repair units, then replay the publishability gate.",
-            "why_now": "The paper gate is blocked by structured quality surfaces.",
-        },
-    }
-    _write_json(study_root / (relative_path or Path("artifacts/evaluation_summary/latest.json")), payload)
-    return payload
-def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+def _write_quality_repair_study(
+    tmp_path: Path,
+    *,
+    study_id: str = "001-risk",
+    quest_id: str = "quest-001",
+    endpoint_type: str = "time_to_event",
+    manuscript_family: str = "prediction_model",
+    summary_relative_path: Path | None = None,
+) -> tuple[Any, Path, dict[str, Any], dict[str, Any]]:
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
-        "001-risk",
+        study_id,
         study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
+        endpoint_type=endpoint_type,
+        manuscript_family=manuscript_family,
     )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    _write_quality_summary(study_root)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    quality_summary = _write_quality_summary(study_root, relative_path=summary_relative_path)
+    return profile, study_root, publication_eval_payload, quality_summary
+
+
+def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(tmp_path)
     gate_report = {
         "status": "blocked",
         "blockers": ["medical_publication_surface_blocked", "claim_evidence_consistency_failed"],
@@ -160,18 +92,9 @@ def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_p
 
 def test_build_quality_repair_batch_action_reads_eval_hygiene_quality_summary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    _write_quality_summary(
-        study_root,
-        relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(
+        tmp_path,
+        summary_relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
     )
     gate_report = {
         "status": "blocked",
@@ -199,16 +122,7 @@ def test_build_quality_repair_batch_action_allows_upstream_quality_repair_when_b
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    _write_quality_summary(study_root)
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(tmp_path)
     gate_report = {
         "status": "blocked",
         "blockers": [
@@ -248,16 +162,13 @@ def test_build_quality_repair_batch_action_honors_analysis_owner_handoff_for_sam
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "003-dpcc",
-        study_archetype="clinical_classifier",
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(
+        tmp_path,
+        study_id="003-dpcc",
+        quest_id="quest-003",
         endpoint_type="binary",
         manuscript_family="primary_care_gap",
     )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-003")
-    _write_quality_summary(study_root)
     gate_report = {
         "status": "blocked",
         "blockers": [
@@ -328,16 +239,7 @@ def test_build_quality_repair_batch_action_does_not_promote_downstream_delivery_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    _write_quality_summary(study_root)
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(tmp_path)
     gate_report = {
         "status": "blocked",
         "blockers": ["stale_study_delivery_mirror"],
@@ -392,17 +294,14 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "003-dpcc",
-        study_archetype="clinical_classifier",
+    quest_id = "quest-003"
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(
+        tmp_path,
+        study_id="003-dpcc",
+        quest_id=quest_id,
         endpoint_type="binary",
         manuscript_family="primary_care_gap",
     )
-    quest_id = "quest-003"
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
-    _write_quality_summary(study_root)
     route_context = {
         "authority_snapshot": {
             "surface": "authority_snapshot",
@@ -507,16 +406,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
 
 def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    quality_summary = _write_quality_summary(study_root)
+    profile, study_root, publication_eval_payload, quality_summary = _write_quality_repair_study(tmp_path)
     gate_result = {
         "ok": True,
         "status": "executed",
@@ -641,20 +531,11 @@ def test_run_quality_repair_batch_builds_gate_state_from_managed_runtime_quest_r
 
 def test_run_quality_repair_batch_records_eval_hygiene_summary_path(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
+    profile, study_root, publication_eval_payload, quality_summary = _write_quality_repair_study(
+        tmp_path,
+        summary_relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
     )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
     quality_summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
-    quality_summary = _write_quality_summary(
-        study_root,
-        relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
-    )
     gate_result = {
         "ok": True,
         "status": "executed",
@@ -687,16 +568,11 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
     quest_id = "quest-001"
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(
+        tmp_path,
+        quest_id=quest_id,
+    )
     publication_eval_payload["recommended_actions"][0]["action_type"] = "return_to_controller"
     publication_eval_payload["recommended_actions"][0].pop("route_target", None)
     publication_eval_payload["recommended_actions"][0].pop("route_key_question", None)
@@ -740,7 +616,6 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
         },
     ]
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
-    _write_quality_summary(study_root)
     gate_report = {
         "status": "blocked",
         "current_required_action": "return_to_publishability_gate",
@@ -817,16 +692,7 @@ def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_ba
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
-    profile = make_profile(tmp_path)
-    study_root = write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="time_to_event",
-        manuscript_family="prediction_model",
-    )
-    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
-    _write_quality_summary(study_root)
+    profile, study_root, publication_eval_payload, _ = _write_quality_repair_study(tmp_path)
     _write_json(
         module.stable_quality_repair_batch_path(study_root=study_root),
         {
