@@ -41,7 +41,6 @@ DISPLAY_HEAVY_FILES = {
     "tests/test_display_abh_golden_regression.py",
     "tests/test_display_ch_golden_regression.py",
     "tests/test_display_deg_golden_regression.py",
-    "tests/test_display_f_golden_regression.py",
     "tests/test_display_layout_qc.py",
     "tests/test_display_surface_materialization.py",
     "tests/test_display_surface_materialization_cli.py",
