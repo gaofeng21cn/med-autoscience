@@ -478,13 +478,13 @@
         "receipt_consumed_without_next_owner"
       ],
       "prevention_layers": [
-        "current_work_unit_reducer",
-        "current_execution_envelope",
-        "stage_native_next_action_admission",
+        "stage_outcome_authority",
+        "next_action_envelope_currentness",
+        "owner_consumption_evidence_gate",
         "progress_first_operator_surface"
       ],
       "fail_policy": "fail_closed_to_currentness_or_owner_route_typed_blocker",
-      "ordinary_progress_policy": "read_models_rebuild_from_canonical_current_work_unit_and_do_not_create_next_action"
+      "ordinary_progress_policy": "read_models_rebuild_from_stage_outcome_next_action_envelope_and_owner_consumed_evidence_without_creating_next_action"
     },
     {
       "risk_id": "duplicate_receipt",
@@ -503,7 +503,7 @@
       "duplicate_receipt_must_become": [
         "ignored_evidence",
         "consumed_receipt_projection",
-        "superseded_by_current_work_unit",
+        "superseded_by_current_next_action_envelope_or_owner_consumed_evidence",
         "stable_typed_blocker_when_identity_cannot_be_reconciled"
       ],
       "prevention_layers": [

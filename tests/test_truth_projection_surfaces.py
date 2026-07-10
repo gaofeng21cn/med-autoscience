@@ -169,3 +169,62 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
     assert "当前包已经可直接交给用户审阅" not in payload["user_visible_projection"]["next_system_action"]
     assert payload["user_visible_projection"]["next_system_action"] == "等待质量修复/复审 owner 完成处理。"
 
+
+def test_legacy_current_work_unit_is_diagnostic_only_during_current_live_run() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress.user_visible_projection"
+    )
+    live_condition = {"type": "LiveWriter", "status": "true"}
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "study-live",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "current_stage": "managed_runtime_active",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "none",
+                "reason": "runtime_active",
+                "details": {"active_run_id": "opl-stage-attempt://sat-current"},
+                "conditions": [live_condition],
+            },
+            "supervision": {
+                "active_run_id": "opl-stage-attempt://sat-current",
+                "health_status": "healthy",
+                "supervisor_tick_status": "active",
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-07-10T00:00:00+00:00",
+                    "changed_refs": ["paper/draft.md"],
+                }
+            },
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "legacy-owner",
+                "state": {
+                    "typed_blocker": {
+                        "blocked_reason": "legacy_only_blocker",
+                        "owner": "legacy-owner",
+                    }
+                },
+            },
+        }
+    )
+
+    assert projection["writer_state"] == "live"
+    assert projection["next_owner"] is None
+    assert projection["actual_write_active"] is True
+    assert projection["why_not_progressing"] is None
+    assert projection["next_system_action"] == "观察自动运行推进。"
+    assert projection["paper_progress_state"]["actual_write_active"] is True
+    assert projection["paper_progress_state"]["next_owner"] is None
+    assert projection["supervision"]["active_run_id"] == "opl-stage-attempt://sat-current"
+    assert projection["supervision"]["health_status"] == "healthy"
+    assert "liveness_suppressed_by" not in projection["supervision"]
+    assert projection["study_macro_state"]["writer_state"] == "live"
+    assert projection["study_macro_state"]["details"]["active_run_id"] == (
+        "opl-stage-attempt://sat-current"
+    )
+    assert projection["study_macro_state"]["conditions"] == [live_condition]

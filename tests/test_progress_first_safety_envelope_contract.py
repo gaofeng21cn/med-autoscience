@@ -401,6 +401,16 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     assert "legacy_control_next_action_without_binding" in stale[
         "stale_sources_must_be_diagnostic_only"
     ]
+    assert stale["prevention_layers"] == [
+        "stage_outcome_authority",
+        "next_action_envelope_currentness",
+        "owner_consumption_evidence_gate",
+        "progress_first_operator_surface",
+    ]
+    assert stale["ordinary_progress_policy"] == (
+        "read_models_rebuild_from_stage_outcome_next_action_envelope_and_"
+        "owner_consumed_evidence_without_creating_next_action"
+    )
 
     duplicate = risks["duplicate_receipt"]
     assert {
@@ -413,6 +423,12 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     assert duplicate["fail_policy"] == (
         "do_not_redrive_same_work_unit_without_new_target_surface_or_typed_blocker"
     )
+    assert duplicate["duplicate_receipt_must_become"] == [
+        "ignored_evidence",
+        "consumed_receipt_projection",
+        "superseded_by_current_next_action_envelope_or_owner_consumed_evidence",
+        "stable_typed_blocker_when_identity_cannot_be_reconciled",
+    ]
 
     artifact = risks["artifact_authority_drift"]
     assert "owner_authorized_artifact_mutation_receipt" in artifact[
