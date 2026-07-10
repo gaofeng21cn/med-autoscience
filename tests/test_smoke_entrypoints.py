@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import json
-import tomllib
 from pathlib import Path
+import tomllib
 
 import pytest
 
 
 pytestmark = pytest.mark.meta
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,36 +15,22 @@ def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def _lane_manifest() -> dict[str, object]:
+def _manifest() -> dict[str, object]:
     return json.loads(_read("contracts/test-lane-manifest.json"))
 
 
-def test_smoke_lane_is_minimal_read_only_entry_contract() -> None:
-    makefile = _read("Makefile")
-    manifest = _lane_manifest()
+def test_smoke_lane_paths_match_its_make_recipe() -> None:
+    paths = _manifest()["lanes"]["smoke"]["paths"]
 
-    assert manifest["lanes"]["smoke"]["paths"] == [
-        "tests/test_smoke_entrypoints.py",
-        "tests/test_line_budget.py",
-    ]
-    assert "test-smoke:" in makefile
-    assert (
-        "\tscripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q"
-        in makefile
-    )
-    smoke_block = makefile.split("test-smoke:", maxsplit=1)[1].split(
-        "\ntest-regression:",
-        maxsplit=1,
-    )[0]
-    assert "test_test_command_surfaces.py" not in smoke_block
+    assert paths == ["tests/test_smoke_entrypoints.py", "tests/test_line_budget.py"]
+    expected_recipe = f"\tscripts/run-pytest-clean.sh {' '.join(paths)} -q"
+    smoke_recipe = _read("Makefile").split("test-smoke:\n", 1)[1].split("\n\n", 1)[0]
+    assert smoke_recipe == expected_recipe
 
 
 def test_test_lane_manifest_registers_pytest_markers() -> None:
-    manifest = _lane_manifest()
-    pyproject = tomllib.loads(_read("pyproject.toml"))
-    marker_lines = pyproject["tool"]["pytest"]["ini_options"]["markers"]
-    marker_names = {line.split(":", maxsplit=1)[0] for line in marker_lines}
+    manifest_markers = set(_manifest()["marker_registry"])
+    marker_lines = tomllib.loads(_read("pyproject.toml"))["tool"]["pytest"]["ini_options"]["markers"]
+    registered_markers = {line.split(":", maxsplit=1)[0] for line in marker_lines}
 
-    assert set(manifest["marker_registry"]) <= marker_names
-    for marker_name in ("contract", "integration", "materialization_heavy", "soak_or_golden"):
-        assert marker_name in manifest["marker_registry"]
+    assert manifest_markers == registered_markers
