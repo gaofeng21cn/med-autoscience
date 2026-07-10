@@ -185,16 +185,6 @@ def lightweight_submission_exports(request: pytest.FixtureRequest, monkeypatch: 
     monkeypatch.setattr(package_builder, "export_pdf", export_pdf)
 
 
-def write_docx(path: Path, text: str) -> None:
-    from docx import Document
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    document = Document()
-    document.add_paragraph(text)
-    document.sections[0].footer.paragraphs[0].text = f"{text} footer"
-    document.save(path)
-
-
 def make_paper_workspace(tmp_path: Path) -> Path:
     workspace_root = tmp_path / "workspace"
     paper_root = workspace_root / "paper"
@@ -378,117 +368,6 @@ Discussion paragraph.
 Conclusion paragraph.
 """,
         )
-    write_text(
-        paper_root / "references.bib",
-        """@article{ref1,
-  title={A primary source},
-  author={Author, A. and Author, B.},
-  journal={Journal},
-  year={2024}
-}
-""",
-    )
-    write_png(paper_root / "figures" / "F1_main.png")
-    write_text(paper_root / "figures" / "F1_main.pdf", "%PDF-1.4\n%main figure\n")
-    write_text(paper_root / "tables" / "T1_summary.md", "| Characteristic | Value |\n| --- | --- |\n| Age | 52 |\n")
-    write_text(paper_root / "paper.pdf", "%PDF-1.4\n%paper bundle\n")
-
-    dump_json(
-        paper_root / "build" / "compile_report.json",
-        {
-            "pdf_path": "paper/paper.pdf",
-        },
-    )
-    dump_json(
-        paper_root / "figures" / "figure_catalog.json",
-        {
-            "schema_version": 1,
-            "figures": [
-                {
-                    "figure_id": "F1",
-                    "paper_role": "main_text",
-                    "title": "Main figure",
-                    "planned_exports": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
-                }
-            ],
-        },
-    )
-    dump_json(
-        paper_root / "tables" / "table_catalog.json",
-        {
-            "schema_version": 1,
-            "tables": [
-                {
-                    "table_id": "T1",
-                    "paper_role": "main_text",
-                    "path": "paper/tables/T1_summary.md",
-                }
-            ],
-        },
-    )
-    dump_json(
-        paper_root / "paper_bundle_manifest.json",
-        {
-            "schema_version": 1,
-            "draft_path": "paper/draft.md",
-            "compile_report_path": "paper/build/compile_report.json",
-            "bundle_inputs": {
-                "compile_report_path": "paper/build/compile_report.json",
-                "figure_catalog_path": "paper/figures/figure_catalog.json",
-                "table_catalog_path": "paper/tables/table_catalog.json",
-            },
-            "included_assets": [
-                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
-            ],
-        },
-    )
-    write_open_authority_snapshots(workspace_root)
-    return paper_root
-
-
-def make_manuscript_shaped_draft_workspace(tmp_path: Path) -> Path:
-    workspace_root = tmp_path / "workspace"
-    paper_root = workspace_root / "paper"
-
-    write_text(
-        paper_root / "draft.md",
-        """# Manuscript-Shaped Draft Title
-
-## Abstract
-
-### Background
-
-Draft abstract background with evidence [@ref1].
-
-### Methods
-
-Draft abstract methods.
-
-### Results
-
-Draft abstract results.
-
-### Conclusions
-
-Draft abstract conclusions.
-
-## Introduction
-
-Intro paragraph with citation [@ref1].
-
-## Materials and Methods
-
-Study methods paragraph.
-
-## Results
-
-Results paragraph.
-
-## Discussion
-
-Discussion paragraph.
-""",
-    )
     write_text(
         paper_root / "references.bib",
         """@article{ref1,

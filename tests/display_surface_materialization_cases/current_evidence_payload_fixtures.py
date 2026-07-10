@@ -100,6 +100,172 @@ def _center_transportability_governance_display(display_id: str = "Figure15") ->
     }
 
 
+def _distribution_violin_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure16",
+        "template_id": _full("distribution_violin_box"),
+        "title": "Distribution by treatment group",
+        "caption": "Representative values preserve the audited group distribution.",
+        "y_label": "Observed value",
+        "group_order": [{"label": "Control"}, {"label": "Treatment"}],
+        "values": [
+            {"group": "Control", "value": 1.1},
+            {"group": "Control", "value": 1.4},
+            {"group": "Treatment", "value": 1.8},
+            {"group": "Treatment", "value": 2.0},
+        ],
+    }
+
+
+def _composition_stacked_bar_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure17",
+        "template_id": _full("composition_stacked_bar"),
+        "title": "Phenotype composition by cohort",
+        "caption": "Category composition is compared across prespecified cohorts.",
+        "y_label": "Composition",
+        "group_order": [{"label": "Cohort A"}, {"label": "Cohort B"}],
+        "category_order": [{"label": "Type 1"}, {"label": "Type 2"}],
+        "segments": [
+            {"group": "Cohort A", "category": "Type 1", "value": 0.6},
+            {"group": "Cohort A", "category": "Type 2", "value": 0.4},
+            {"group": "Cohort B", "category": "Type 1", "value": 0.45},
+            {"group": "Cohort B", "category": "Type 2", "value": 0.55},
+        ],
+    }
+
+
+def _dpcc_phenotype_gap_structure_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure18",
+        "template_id": _full("phenotype_gap_structure_figure"),
+        "title": "Phenotype composition and treatment-gap structure",
+        "caption": "Phenotype shares and treatment gaps remain explicitly linked.",
+        "rows": [
+            {
+                "phenotype_label": "Lower-risk phenotype",
+                "share_of_index_patients": 0.58,
+                "severe_glycemia_low_intensity_gap_rate": 0.08,
+                "uncontrolled_glycemia_no_drug_gap_rate": 0.11,
+                "hypertension_no_antihypertensive_gap_rate": 0.09,
+                "dyslipidemia_no_lipid_lowering_gap_rate": 0.13,
+            },
+            {
+                "phenotype_label": "Higher-risk phenotype",
+                "share_of_index_patients": 0.42,
+                "severe_glycemia_low_intensity_gap_rate": 0.19,
+                "uncontrolled_glycemia_no_drug_gap_rate": 0.22,
+                "hypertension_no_antihypertensive_gap_rate": 0.17,
+                "dyslipidemia_no_lipid_lowering_gap_rate": 0.24,
+            },
+        ],
+    }
+
+
+def _correlation_scatter_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure19",
+        "template_id": _full("correlation_scatter"),
+        "title": "Correlation between paired measures",
+        "caption": "Paired observations retain their prespecified group context.",
+        "x_label": "Measure A",
+        "y_label": "Measure B",
+        "points": [
+            {"x": 1.0, "y": 1.2, "group": "All"},
+            {"x": 2.0, "y": 2.3, "group": "All"},
+            {"x": 3.0, "y": 2.8, "group": "All"},
+        ],
+    }
+
+
+def _alluvial_transition_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure20",
+        "template_id": _full("alluvial_transition"),
+        "title": "Phenotype transitions",
+        "caption": "Transition volume is preserved between baseline and follow-up states.",
+        "source_axis_label": "Baseline",
+        "target_axis_label": "Follow-up",
+        "flows": [
+            {"source": "State A", "target": "State A", "value": 42},
+            {"source": "State A", "target": "State B", "value": 11},
+            {"source": "State B", "target": "State B", "value": 35},
+        ],
+    }
+
+
+def _dpcc_transition_site_support_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure21",
+        "template_id": _full("site_held_out_stability_figure"),
+        "title": "Transition stability and site-held-out support",
+        "caption": "Transition shares and site support remain auditable without count labels in cells.",
+        "transition_rows": [
+            {
+                "source_phenotype_label": "State A",
+                "target_phenotype_label": "State B",
+                "patient_count": 24,
+                "share_of_transition_patients": 0.12,
+            }
+        ],
+        "site_fold_rows": [
+            {"fold_id": "Site 1", "index_patients": 120, "share_of_index_patients": 0.48},
+            {"fold_id": "Site 2", "index_patients": 130, "share_of_index_patients": 0.52},
+        ],
+        "visit_coverage": 0.91,
+        "eligible_site_count": 2,
+    }
+
+
+def _radar_profile_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure22",
+        "template_id": _full("radar_profile"),
+        "title": "Multidomain phenotype profile",
+        "caption": "Profiles share a common three-axis scale.",
+        "axes": [{"label": "Metabolic"}, {"label": "Vascular"}, {"label": "Behavioral"}],
+        "profiles": [
+            {"label": "Phenotype A", "values": [0.72, 0.44, 0.63]},
+            {"label": "Phenotype B", "values": [0.38, 0.77, 0.51]},
+        ],
+    }
+
+
+def _waterfall_response_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure23",
+        "template_id": _full("waterfall_response"),
+        "title": "Individual response distribution",
+        "caption": "Patient-level change is ordered with response class retained.",
+        "y_label": "Change from baseline (%)",
+        "bars": [
+            {"sample": "P01", "value": -32.0, "response": "Response"},
+            {"sample": "P02", "value": -12.0, "response": "Stable"},
+            {"sample": "P03", "value": 18.0, "response": "Progression"},
+        ],
+        "thresholds": [{"label": "Response threshold", "value": -30.0}],
+    }
+
+
+def _dpcc_treatment_gap_alignment_display() -> dict[str, Any]:
+    return {
+        "display_id": "Figure24",
+        "template_id": _full("treatment_gap_alignment_figure"),
+        "title": "Guideline-linked treatment-gap alignment",
+        "caption": "Actual patient counts remain linked to each treatment-gap definition.",
+        "rows": [
+            {
+                "phenotype_label": "Higher-risk phenotype",
+                "index_patients": 100,
+                "severe_glycemia_low_intensity_gap_patients": 18,
+                "uncontrolled_glycemia_no_drug_gap_patients": 21,
+                "hypertension_no_antihypertensive_gap_patients": 16,
+                "dyslipidemia_no_lipid_lowering_gap_patients": 23,
+            }
+        ],
+    }
+
+
 def _binary_prediction_curve_displays() -> list[dict[str, Any]]:
     return [
         {
@@ -402,7 +568,7 @@ def _model_complexity_display() -> dict[str, Any]:
 
 
 def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
-    return {
+    envelopes = {
         "binary_prediction_curve_inputs.json": {"schema_version": 1, "input_schema_id": "binary_prediction_curve_inputs_v1", "displays": _binary_prediction_curve_displays()},
         "time_to_event_grouped_inputs.json": {"schema_version": 1, "input_schema_id": "time_to_event_grouped_inputs_v1", "displays": _survival_grouped_displays()},
         "time_to_event_multihorizon_calibration_inputs.json": {"schema_version": 1, "input_schema_id": "time_to_event_multihorizon_calibration_inputs_v1", "displays": [_time_to_event_multihorizon_display()]},
@@ -412,6 +578,15 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
         "coefficient_path_panel_inputs.json": {"schema_version": 1, "input_schema_id": "coefficient_path_panel_inputs_v1", "displays": [_coefficient_path_display()]},
         "generalizability_subgroup_composite_inputs.json": {"schema_version": 1, "input_schema_id": "generalizability_subgroup_composite_inputs_v1", "displays": [_make_generalizability_subgroup_composite_panel_display()]},
         "center_transportability_governance_summary_panel_inputs.json": {"schema_version": 1, "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1", "displays": [_center_transportability_governance_display()]},
+        "distribution_violin_box_inputs.json": {"schema_version": 1, "input_schema_id": "distribution_violin_box_inputs_v1", "displays": [_distribution_violin_display()]},
+        "composition_stacked_bar_inputs.json": {"schema_version": 1, "input_schema_id": "composition_stacked_bar_inputs_v1", "displays": [_composition_stacked_bar_display()]},
+        "dpcc_phenotype_gap_structure.json": {"schema_version": 1, "input_schema_id": "dpcc_phenotype_gap_structure_v1", "displays": [_dpcc_phenotype_gap_structure_display()]},
+        "correlation_scatter_inputs.json": {"schema_version": 1, "input_schema_id": "correlation_scatter_inputs_v1", "displays": [_correlation_scatter_display()]},
+        "alluvial_transition_inputs.json": {"schema_version": 1, "input_schema_id": "alluvial_transition_inputs_v1", "displays": [_alluvial_transition_display()]},
+        "dpcc_transition_site_support.json": {"schema_version": 1, "input_schema_id": "dpcc_transition_site_support_v1", "displays": [_dpcc_transition_site_support_display()]},
+        "radar_profile_inputs.json": {"schema_version": 1, "input_schema_id": "radar_profile_inputs_v1", "displays": [_radar_profile_display()]},
+        "waterfall_response_inputs.json": {"schema_version": 1, "input_schema_id": "waterfall_response_inputs_v1", "displays": [_waterfall_response_display()]},
+        "dpcc_treatment_gap_alignment.json": {"schema_version": 1, "input_schema_id": "dpcc_treatment_gap_alignment_v1", "displays": [_dpcc_treatment_gap_alignment_display()]},
         "dimensionality_reduction_inputs.json": {"schema_version": 1, "input_schema_id": "dimensionality_reduction_inputs_v1", "displays": _embedding_displays()},
         "heatmap_group_comparison_inputs.json": {"schema_version": 1, "input_schema_id": "heatmap_group_comparison_inputs_v1", "displays": [_heatmap_display()]},
         "confusion_matrix_heatmap_binary_inputs.json": {"schema_version": 1, "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1", "displays": [_confusion_matrix_display()]},
@@ -426,6 +601,22 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
         "shap_waterfall_local_explanation_panel_inputs.json": {"schema_version": 1, "input_schema_id": "shap_waterfall_local_explanation_panel_inputs_v1", "displays": [_shap_waterfall_display()]},
         "model_complexity_audit_panel_inputs.json": {"schema_version": 1, "input_schema_id": "model_complexity_audit_panel_inputs_v1", "displays": [_model_complexity_display()]},
     }
+    display_id_by_template_id = {
+        template_id: f"Figure{index}"
+        for index, template_id in enumerate(display_registry._EVIDENCE_TEMPLATE_ORDER, start=2)
+    }
+    observed_template_ids: set[str] = set()
+    for envelope in envelopes.values():
+        for display in envelope["displays"]:
+            template_id = str(display["template_id"])
+            if template_id not in display_id_by_template_id:
+                continue
+            display["display_id"] = display_id_by_template_id[template_id]
+            observed_template_ids.add(template_id)
+    missing_template_ids = set(display_id_by_template_id) - observed_template_ids
+    if missing_template_ids:
+        raise AssertionError(f"base evidence payload fixtures are missing: {sorted(missing_template_ids)}")
+    return envelopes
 
 
 __all__ = [

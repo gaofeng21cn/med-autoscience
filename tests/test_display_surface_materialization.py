@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import importlib
 import json
+from pathlib import Path
 
 import pytest
+
+from med_autoscience import display_registry
+from med_autoscience.display_pack_resolver import get_template_short_id
 
 from tests.display_surface_materialization_cases.layout_sidecar_fixtures import (
     _minimal_layout_sidecar_for_template,
@@ -11,10 +15,14 @@ from tests.display_surface_materialization_cases.layout_sidecar_fixtures import 
 from tests.display_surface_materialization_cases.registry_id_helpers import (
     _ensure_output_parents,
 )
+from tests.display_surface_materialization_cases.shared import (
+    use_current_scholarskills_display_pack,
+)
 
 
 @pytest.fixture(autouse=True)
 def _fake_subprocess_display_renderer(monkeypatch):
+    use_current_scholarskills_display_pack(monkeypatch)
     materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
 
     def fake_subprocess_renderer(
@@ -55,37 +63,17 @@ def _fake_subprocess_display_renderer(monkeypatch):
         }
 
     monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
+    yield
+    display_registry._active_template_manifests.cache_clear()
+    display_registry._active_registry_state.cache_clear()
 
 
-from tests.display_surface_materialization_cases.shared import (
-    annotations,
-    _shared_base,
-    _registry_id_helpers,
-    _workspace_surface_fixtures,
-    _layout_sidecar_fixtures,
-    _illustration_payload_fixtures,
-    _current_evidence_payload_fixtures,
-    importlib,
-    json,
-    Path,
-    re,
-    sys,
-    Any,
-    plt,
-    pytest,
-    display_registry,
-    get_template_short_id,
-    full_id,
+from tests.display_surface_materialization_cases.registry_id_helpers import (
     dump_json,
-    extract_svg_font_size,
     write_default_publication_display_contracts,
-    restrict_display_registry_to_display_ids,
+)
+from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
     build_display_surface_workspace,
-    minimal_current_layout_sidecar,
-    minimal_tail_layout_sidecar,
-    _center_transportability_governance_display,
-    _current_evidence_input_envelopes,
-    _make_generalizability_subgroup_composite_panel_display,
 )
 from tests.display_surface_materialization_cases.contract_backed_registry_materialization import (
     test_materialize_display_surface_restores_contract_backed_and_shell_mapped_figures,
