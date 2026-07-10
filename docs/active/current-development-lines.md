@@ -1,72 +1,53 @@
 # MAS 当前开发线路
 
-Status: `active content-level development map`
-Last reviewed: `2026-06-12`
 Owner: `MedAutoScience`
-Purpose: 在 MAS standard OPL Agent 目标态下，给出当前内容级开发线路图。
-State: `active_plan_index`
-Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtime/controller/artifact surfaces、OPL provider/framework contracts、product-entry manifest、domain-handler receipt、测试和真实 workspace evidence。
+Purpose: `active_line_index`
+State: `active_support_index`
+Machine boundary: 本文是人读索引。唯一结构完成度入口是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。
 
-## 当前结论
+## 当前主线
 
-`docs/active/` 现在按 single Active Truth plan 阅读。[MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 持有当前 `/goal` 范围和结构/证据差距；本文只保留内容线索引，避免再形成平行总计划。
+MAS repo 当前只维护两类工作：
 
-当前执行优先级是 framework-first：MAS 收敛为 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions + refs-only domain projections`；OPL 承担 generated / hosted runtime、entry、projection 与 App/workbench surface。MAS 只保留医学 study truth、stage semantics、AI reviewer / auditor quality gate、publication route、artifact authority、Publication Strategy Memory accept/reject、owner receipt 和 typed blocker。
+1. `Declarative Medical Research Pack`
+   - stages、prompts、knowledge、quality gates；
+   - 22-action catalog、schemas 与 domain route/profile；
+   - runtime environment requirement profile；
+   - primary skill 与 plugin carrier currentness。
 
-默认运行口径已经收敛为 OPL/Temporal hosted autonomous runtime：MAS hosted path 启动后，持久在线调度、唤醒、retry、resume、attempt ledger 和 worker residency 由 OPL/Temporal 承担；Codex App 只作为 direct entry / 人机操作面，不作为外围持续 driver；`Codex CLI` 是 stage 内默认 concrete executor；MAS 不拥有 generic daemon、scheduler 或 attempt loop。
+2. `Minimal Medical Authority Functions`
+   - study/source truth；
+   - AI reviewer/publication quality；
+   - artifact/memory authority；
+   - owner receipt、typed blocker、human gate、route-back。
 
-历史 MAS-local scheduler、Hermes/MDS、runtime lifecycle/SQLite、workspace-local wrapper 与旧 alias 仅作为 `docs/history/**` provenance、explicit archive/import reference 或 parity oracle 读取；当前默认面是 OPL/Temporal hosted runtime + MAS domain authority refs、owner receipts、typed blockers 和 minimal authority functions。
+CLI、MCP、product-entry、status、workbench、runtime lifecycle、StateIndex、storage/health 和环境 provisioning 归 OPL generated/hosted surfaces，不再是 MAS 开发线。
 
-## 当前内容线
+## Active lines
 
-| MAS line | owner doc | gate class | current status | 当前动作 | 证据/测试门槛 |
-| --- | --- | --- | --- | --- | --- |
-| `opl_framework_foundation` | OPL master docs + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | `production_evidence_gate` | `provider_residency_projected_domain_activity_soak_pending` | 保持 MAS domain-handler receipt 与 OPL provider attempt/history/retry/dead-letter 串联；MAS 不复制 provider runtime。 | 真实 Temporal/provider 下的 Codex/domain activity long soak、domain activity closeout、owner receipt scaleout 和 no-forbidden-write proof 持续通过。 |
-| `mas_framework_migration` | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | `landed_foundation_with_live_apply_gate` | `owner_receipt_envelope_landed_live_apply_chain_pending` | 保持 direct skill path 与 OPL-hosted path 同用 MAS owner receipt；OPL 只持 attempt / refs / typed blocker。 | 更多真实 live apply owner chain、artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 blocker。 |
-| `dm002_anti_stall_owner_route` | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) + [当前状态](../status.md) | `landed_foundation_with_opl_receipt_gate` | `next_action_envelope_landed_owner_consumption_pending` | 维护 `StageOutcome -> NextActionEnvelope` 单一下一步、AI reviewer currentness consumption、owner-route/read-model/liveness 诊断边界和 bounded manifest/read-model refresh；当前 DM002 不再读成 stale reviewer 或 stale live-run 等待，剩余 live evidence tail 是 OPL TransitionReceipt / StageRun readback 与 MAS owner consumption。 | 非终局 study 必须投影到唯一 NextActionEnvelope、owner receipt、typed blocker、human gate 或 stop-loss；manifest/status/workbench refresh 只复用 bounded current snapshot，不写 study truth、publication eval、controller decision、artifact/package authority 或 `current_package`。 |
-| `progress_first_stage_throughput` | [Stage / Route / Handoff 标准](../runtime/stage_route_handoff_standard.md) + [历史吞吐审计](../history/program/progress_first_stage_throughput_audit_2026_06_01.md) | `throughput_read_model_gate` | `read_model_landed_real_delta_tail_pending` | 维护 6 个 runtime-guard Stage、10 个 domain route、minimum forward delta、next forced delta、owner pickup、closeout semantics、no-op budget 和 telemetry 完整性的当前 read-model gate；历史审计只作 provenance。 | 每个 Stage attempt 必须留下 deliverable delta、typed blocker、human gate 或 stop-loss；平台修复不计 deliverable progress；真实 paper-line owner receipt / stable blocker / no-forbidden-write proof 仍是 production evidence tail。 |
-| `state_contract_thinning` | [MAS 状态与 Contract 收薄历史记录](../history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | `folded_control_plane_guard` | `closed_folded_behavior_contract` | 稳定控制面已收敛为 `macro_state + owner_route + receipt_or_blocker + evidence_refs`；长 runtime/status reason、supersession reason、publication supervisor phase 和 operator/workbench 文案只保留为 diagnostic/read-model detail。 | macro-state focused tests、runtime contract docs、owner-route consumer focused tests 证明执行授权只来自唯一 current owner ticket、receipt/blocker、evidence refs、no-forbidden-write proof 和独立 reviewer/auditor evidence refs，不来自 projection-local long reason。 |
-| `publication_route_memory_management` | [Markdown-first Publication Strategy Memory Policy](../policies/study-workflow/publication_route_memory_policy.md) + [Study Workflow](../policies/study-workflow/README.md) | `functional_follow_through_gate` | `strategy_memory_workbench_landing_pending_receipt_scaleout_pending` | 保持 Markdown-first strategy body、stage packet reference-only prompt block、workspace init seed apply、body-free descriptor、router/writeback refs 和 maintainer review discipline；把 `medautosci publication strategy-memory-workbench --workspace-root <workspace>` 作为维护者 body-free 读面落地/对齐，用于查看 card metadata、receipt summary、stale/deprecated review、workspace/pack coverage 和 writeback refs；`publication_route_memory` 只作为兼容实现族名；OPL 只消费 locator/index/projection/receipt，不读取正文、不裁决或控制路线。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> workbench/inventory/export` proof，覆盖 accepted、rejected、route-back lessons、grouping 和 review summary；proof 只证明 refs/receipt 链，不把 memory 升级为 evidence gate、route scorer、matching engine、programmatic recipe controller 或 controller decision source。 |
-| `domain_transition_table_hardening` | [MAS 理想目标态](../references/positioning/mas_ideal_state.md) + OPL master docs | `functional_follow_through_gate` | `domain_transition_read_model_landed_opl_runner_consumption_landed` | 维护 MAS-owned transition spec/table、receipt consumption context 和 owner guard；OPL 只执行 MAS spec、不产生 publication-ready verdict。 | 更多真实 paper-line owner surfaces、focused reducer tests 和 live receipt coverage。 |
-| `stage_surface_standardization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) + [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) | `landed_foundation_with_live_apply_gate` | `stage_surfaces_landed_live_apply_followthrough_pending; coscientist_runtime_spec_landed_execution_pending` | 维护 skill-change guard、standard skeleton slot discipline；新增 stage/prompt/skill 必须继续消费 machine-derived refs。下一 `/goal` 将按 Co-Scientist-inspired runtime design 把 Stage 合同、Route supervisor、Portfolio OS、advisory ranking/proximity 边界、独立 reviewer/auditor gate 和 OPL refs-only projection 落到 `agent/`、contracts、source/read-model、focused tests 和 runtime/docs。 | 真实 live review/index follow-through 和 live paper apply，不提前宣称 production closure；文档存在不算完成，ranking/proximity/platform repair/provider completion 不得升级为 MAS authority。 |
-| `ai_first_quality_gate_alignment` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | `functional_follow_through_gate` | `contract_and_validator_landed_paper_line_reviewer_record_scaleout_pending` | `review`、`write`、`finalize`、`journal-resolution`、`source-intake/scout` stage 产生 AI-first quality record，MAS code 只做 validator / receipt / guard；executor 与 reviewer/auditor 必须独立 invocation。 | focused tests 防止 self-review、mechanical projection、regex、archive import diagnostic、file presence、queue completion、test pass 或普通脚本替代 quality judgment；真实 paper-line 仍需 reviewer/auditor record scaleout。 |
-| `app_runtime_workbench` | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `functional_follow_through_gate` | `mas_reference_projection_available_opl_app_drilldown_pending` | OPL App 只读消费 MAS workbench projection、stage review/index、memory refs、provider refs 和 owner-route handoff refs。 | App / Workbench 用真实 refs、freshness、blocker 和 owner 验证 drilldown，action 只返回 domain-handler / OPL owner-route handoff refs。 |
-| `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `production_evidence_gate` | `guarded_apply_surface_landed_live_provider_apply_pending` | 多条真实 paper line 经 provider-hosted guarded apply 进入同一 MAS owner chain。 | artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker；provider completion 只是支撑证据。 |
-| `standard_agent_purity_projection` | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md), [Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md) | `landed_foundation_with_evidence_gate` | `standard_agent_purity_source_shape_landed` | current product-entry / domain-handler / read-model 默认只暴露 `standard_agent_purity`、domain authority refs、owner receipts、typed blockers 和 refs-only blockers；停驻、manual hold、runtime parking 与 OPL handoff 等当前用户可见文案只写 MAS / OPL runtime owner；retired runtime action 与 MDS 名称只保留 tombstone/provenance、旧输入测试、parity oracle 或 purity guard。 | generated/hosted parity、MAS receipt parity、focused boundary tests、no-forbidden-write proof 和 current-surface stale scan 通过；真实 paper-line evidence tail 继续另行推进。 |
-| `domain_authority_refs_boundary` | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) + OPL lifecycle/index/artifact docs | `landed_foundation_with_evidence_gate` | `body_free_state_index_source_adapter_active` | MAS-local `domain_authority_refs_index` / SQLite pilot 已退役；当前 `opl_state_index_source_adapter`、paper outbox、storage maintenance、Publication Strategy Memory locator 和 artifact lifecycle audit 只允许 body-free refs / locator / receipt / blocker exporter；通用 lifecycle/index/workbench/artifact/terminal transport 逻辑归 OPL primitive。 | refs payload 不含 body / verdict / artifact blob，source adapter 不做本地 persistence；OPL primitive 消费 refs 后仍不能写 MAS truth；focused tests 覆盖 no body、no authority、no archive-import diagnostic owner 和 retired-surface no-resurrection。 |
-| `standard_skeleton_physicalization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) + [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md) | `functional_follow_through_gate` | `repo_source_anchors_landed` | 新增 repo-source surface 默认按 standard slots 落位；破坏性目录迁移只在 parity/provenance/no-forbidden-write proof 后做。 | 新增 surface 按 skeleton slot 落位，现有路径保持明确 repo mapping 或 locator/provenance。 |
-| `foundation_guard` | [MAS/MDS Owner Boundary Contract](../policies/runtime-governance/mas_mds_owner_boundary_contract.md) + [Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md) + [MDS absorb guard history](../history/program/mas_single_project_mds_absorb_guard_2026_06_07.md) | `landed_foundation` | `maintenance_only_no_default_mds_dependency` | 只处理新 drift、restore diagnostic、explicit archive import、MDS provenance / upstream intake 分类。 | 不新增默认 MDS dependency、不恢复 Git lifecycle、不制造第二套 study/runtime truth。 |
+| Line | Owner | 当前工作 |
+| --- | --- | --- |
+| Pack currentness | MAS | action/schema/stage/skill declarations 与 OPL compiler input 同步 |
+| Medical authority | MAS | 最小 authority function、forbidden-write guard、owner receipts |
+| Generated interfaces | OPL | 从 catalog 生成 CLI/MCP/Skill/product/status/workbench |
+| Runtime platform | OPL | StageRun、StateIndex、queue/attempt、lifecycle/storage、observability |
+| Live evidence | MAS + OPL owners | fresh runtime/paper/quality/publication receipts；独立后置 |
 
-规划完成的含义是：每条 MAS 内容线都有唯一入口、owner doc、gate class、下一实施单元和验收证据。它不表示真实 paper live apply、真实 memory writeback、App UI drilldown 或 provider long-soak 已完成；这些继续按上表的 gate 推进。
+## 已关闭结构线
 
-## OPL Production Functional Closure 对齐
+OE-01 至 OE-12 已全部完成 repo/source/control-plane 落地。旧 bootstrap、pytest aggregation、StateIndex pilot、installer、retirement subsystem、workbench、Tool Arsenal、CLI/MCP glue、runtime health/lifecycle 和 legacy next-action producer 不再作为 active line。
 
-OPL 层面的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.md`；当前 production/framework closure owner 是 `/Users/gaofeng/workspace/one-person-lab/docs/active/production-framework-closure-gap-matrix.md`。MAS 这里不维护平行 production/framework closure 大计划；MAS 的下一批可立即工程落地工作应作为 OPL 当前 closure matrix 下的 MAS implementation lane 并行推进。
+## 维护规则
 
-这意味着：
+- 新需求先判断是 domain declaration/authority，还是 OPL platform responsibility。
+- Platform requirement 写成 OPL-owned contract/ref，不在 MAS 新建 wrapper。
+- Live evidence 不用 docs、tests、dry-run 或 projection 替代。
+- 历史过程读 Git 与 `docs/history/`，不回填到 active docs。
 
-- OPL plan 持有跨仓总目标、吸收顺序、provider/operator/workbench/cross-repo gate；
-- MAS 文档只持有 MAS-owned domain receipt、memory、stage review、skeleton、standard Agent projection 和 domain-handler/product-entry projection；
-- stage surface standardization 是 MAS implementation lane 的基础依赖之一，不是 production functional closure 的总目标；
-- 真实 paper-line provider-hosted live apply 仍是 production evidence gate，不阻塞功能性闭环先落地。
+## 导航
 
-## 当前完成信号与未闭合门槛
-
-本文不再维护第二张完成度表。当前功能/结构完成度、证据尾项、禁止误写口径和下一轮 agent baton 回到 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 与 [当前状态](../status.md)；具体机器完成度和 no-authority boundary 由 contracts、source、tests、runtime/controller readback 与 owner receipts 证明。
-
-按内容线阅读时，本页只说明“这条线由哪个 owner doc 持有、属于哪类 gate、默认下一步看哪里”。如果需要判断某条线是否 still open，应从对应 owner doc 和 live evidence tail 读取，而不是从本索引推断。历史 closeout、receipt/worklist 数字、focused-test pass、branch/SHA 或 dated live sample 不再追加到本页；必要时读 [history/program](../history/program/README.md)、相关 runtime/support 文档或 git history。
-
-## 验证
-
-Docs-only 维护：
-
-- `git diff --check`；
-- 用 `rg` spot-check inbound links 和 stale references；
-- 不新增断言 prose wording 的测试。
-
-Contract/runtime/product 变更：
-
-- 跑触及线路的 focused owner-surface tests；
-- 修改 machine-readable contract、action metadata、schema 或 runtime semantics 时跑 `make test-meta`；
-- 常规代码变更跑 `scripts/verify.sh`；
-- guarded apply 前先有真实 workspace read-only evidence。
+- [Active truth plan](./mas-ideal-state-gap-plan.md)
+- [Project](../project.md)
+- [Architecture](../architecture.md)
+- [Status](../status.md)
+- [Runtime boundary](../runtime/contracts/runtime_boundary.md)

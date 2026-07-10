@@ -1,278 +1,81 @@
-# Bootstrap
+# MAS Bootstrap
 
-Owner: `MedAutoScience Workspace Bootstrap`
-Purpose: `workspace_bootstrap_operator_guide`
-State: `active_support`
-Machine boundary: 本文是人读 bootstrap / workspace 接入指南；机器真相继续归 profile template、CLI/MCP/controller 行为、workspace contracts、runtime durable surfaces、owner receipts 和 typed blockers。本文不授权 runtime owner、study truth、publication readiness、artifact authority、source readiness 或 production readiness。
+Owner: `MedAutoScience`
+Purpose: `bootstrap_boundary`
+State: `current_reference`
+Machine boundary: 本文解释 package/environment handoff。可执行真相归 OPL installer/environment substrate、MAS contracts 与 generated interfaces。
 
-这份说明主要写给 Codex 或其他 AI 执行者。
+## 结论
 
-目标是让一台新电脑尽快具备运行 `MedAutoScience` 的基本条件，而不是在界面里手动点来点去。
+MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder 或 Codex plugin installer。
 
-`MedAutoScience` 默认按 `Agent-first, human-auditable` 设计：
+当前 bootstrap 是两部分：
 
-- Agent 调用 CLI / controller 作为稳定执行面
-- 人类主要提供任务、数据和审阅反馈
-- 底层状态更新应优先通过结构化 payload 驱动，而不是直接手改 registry
+1. MAS 声明 domain pack、actions、schemas 与环境 requirements。
+2. OPL 发现 package，生成 interfaces，并准备 hosted runtime/environment。
 
-因此，这里的 bootstrap 说明主要是给 Agent 看“如何接入并接管一个医学 workspace”，不是要求医生自己维护运行细节。
+## Package discovery
 
-## 先建立正确心智模型
+OPL 读取：
 
-这里的默认单位是“病种级 workspace”，不是“单篇论文目录”。
+- `contracts/domain_descriptor.json`
+- `contracts/pack_compiler_input.json`
+- `contracts/action_catalog.json`
+- `contracts/generated_surface_handoff.json`
+- `agent/`
 
-- 一个 workspace 负责管理同一病种的一批私有/公开数据资产
-- 一个 workspace 可以并行推进多个 `study`
-- `bootstrap` 发生在 workspace 级，不是某个单独 study 级
-- `study` 消费 workspace 已登记的数据版本，并收敛出自己的稿件与交付物
+canonical domain id 是 `mas`。`med-autoscience` 仅作为 repo/package/plugin locator。
 
-## 预期前提
+## Python packaging
 
-- 仓库已 clone 到本机任意工作目录
-- Python：`>= 3.12`
-- 本机已具备可用的 `Codex` 环境；旧 workspace 维护或 backend audit 仍可能需要外部共享的 `MedDeepScientist`（仓库名 `med-deepscientist`）
-- 已存在一个病种级医学研究 workspace，里面至少有：
-  - `datasets/`
-  - `contracts/`
-  - `studies/`
-  - `portfolio/`
-  - `ops/medautoscience/`
-  - `runtime/`
-  - `artifacts/runtime/`
-  - 旧 workspace 维护场景可额外保留 `ops/med-deepscientist/runtime/` 作为 diagnostic / restore reference
-  - 若要启用 finalize 的浅路径正式交付 contract，还需要 `ops/medautoscience/bin/sync-delivery`
+依赖通过标准 packaging/`uv sync` 或 OPL workspace override 安装。MAS import 不改写 `sys.path`、package `__path__` 或 `sys.modules`，也不尝试在 import 时发现 sibling checkout。
 
-新 workspace 默认 no root Git / no quest Git。Agent 接入 workspace 后，查状态和做 runtime lifecycle 操作时优先读取文件 authority、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index`；不要把 Git history、Git diff、Git log 或 worktree list 当作默认状态面。
+## Runtime environment
 
-## 新病种 workspace 的最小骨架
+MAS 的环境声明在 `contracts/runtime_environment_requirements.json`。当前 `analysis-display` profile 包含 R 与 Bioconductor requirement；环境 owner 是 OPL Framework。
 
-如果你是新建一个疾病项目，推荐最小骨架如下：
-
-```text
-<workspace>/
-├── datasets/
-├── contracts/
-├── studies/
-├── portfolio/
-│   └── data_assets/
-├── refs/
-├── artifacts/
-│   └── runtime/
-├── runtime/
-│   ├── quests/
-│   ├── archives/
-│   └── restore_index/
-└── ops/
-    ├── mas/
-    └── medautoscience/
-        ├── bin/
-        ├── profiles/
-        ├── config.env
-        └── README.md
-```
-
-这里需要注意：
-
-- 这是病种级顶层目录，不是某一篇论文自己的目录
-- 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
-- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；旧 `med-deepscientist` 只作为外部共享 backend / oracle / diagnostic reference
-- `init-workspace` / MCP 默认 no root Git / no quest Git；current workspaces 的 root Git 已完成 restore-proof full retirement。未来接入外部或旧 workspace 时如发现 root `.git`，只走显式 inventory / archive / remove / verify diagnostic，不作为 bootstrap 成功条件，也不重新初始化
-
-现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
-
-如果 Agent 已经接入 `medautosci-mcp`，更推荐直接调用 MCP tool `init_workspace`。
-
-如果当前环境还没有接 MCP，再用 CLI：
+标准 handoff：
 
 ```bash
-cd med-autoscience
-uv run python -m med_autoscience.cli init-workspace \
-  --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
-  --workspace-name my-disease
+opl env prepare \
+  --domain mas \
+  --profile analysis-display \
+  --platform <platform> \
+  --requirement-profile contracts/runtime_environment_requirements.json \
+  --artifact-root <artifact_root> \
+  --apply \
+  --json
+
+opl env run \
+  --domain mas \
+  --profile analysis-display \
+  --artifact-root <artifact_root> \
+  -- <command>
 ```
 
-如果想先让 Agent 审核将要写入的内容，再决定是否落盘，可以先加 `--dry-run`。
+Requirement profile 或 prepare success 不等于 MAS domain ready、paper progress、visual quality 或 production ready。
 
-## 最小部署步骤
+## Generated interfaces
 
-### 1. clone 仓库
+CLI、MCP、Skill、product-entry、status 与 workbench 由 OPL 从 action catalog/schema 生成或托管。MAS 不提供第二套 installer、parser、JSON-RPC transport 或 hosted shell。
 
-```bash
-git clone <repo-url> med-autoscience
-```
+Direct Codex 使用 repo-tracked primary skill；plugin 分发使用受控 carrier mirror。两者 currentness 由 capability map/carrier projection contract 约束，不由 bootstrap 脚本复制。
 
-### 2. 进入仓库并检查 Python
+## Workspace boundary
 
-```bash
-cd med-autoscience
-python3 --version
-```
+Study workspace lifecycle、locator、StateIndex、retention/restore 与 hosted workbench 归 OPL。MAS domain handlers 可以读取受权 refs并写 MAS-owned truth/receipt surface，但不得创建通用 workspace/platform authority。
 
-### 3. 准备 workspace profile
+## 验收
 
-复制模板并新建一个本地 `profiles/*.local.toml` 文件，至少填写：
+- OPL 能解析 descriptor、pack、22-action catalog 与 schemas；
+- OPL 能解析 runtime requirement profile；
+- MAS import 不依赖 checkout path mutation；
+- generated interfaces 不依赖 repo-local installer/workspace initializer；
+- runtime/paper/readiness claim 仍由 fresh live/readback/owner evidence 证明。
 
-- `name`
-- `workspace_root`
-- `runtime_root`
-- `studies_root`
-- `portfolio_root`
-- `[source_provenance]`：记录 frozen source archive / historical fixture 的来源角色
-- `[historical_fixture_ref]`：新 workspace 默认指向 MAS runtime home；旧 `ops/med-deepscientist` 路径只作为显式历史 fixture 读取
-- `[explicit_archive_import_ref]`：可为空；只在需要 controlled backend audit / parity oracle 时配置
-- `default_publication_profile`
-- `default_citation_style`
-- `enable_medical_overlay`
-- `medical_overlay_skills`
+## 相关入口
 
-建议做法：
-
-```bash
-cd med-autoscience
-cp profiles/workspace.profile.template.toml profiles/my-disease.local.toml
-```
-
-然后编辑：
-
-- [workspace.profile.template.toml](../profiles/workspace.profile.template.toml)
-
-注意：
-
-- `profiles/*.local.toml` 是本机私有配置，不应提交到公开仓库
-- 仓库本身只保留模板，不保留真实路径
-- 这个 profile 描述的是病种级 workspace，而不是单篇论文
-
-### 4. 运行 doctor
-
-```bash
-cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-disease.local.toml
-```
-
-期望看到：
-
-- `workspace_exists: true`
-- `runtime_exists: true`
-- `studies_exists: true`
-- `portfolio_exists: true`
-- `historical_fixture_runtime_exists: true`
-
-如果同时配置了 `[explicit_archive_import_ref].controlled_backend_repo_root`，`doctor` 和 `show-profile` 会把它显示为 `controlled_backend_audit_repo_root`，方便 Agent 在 backend-audit 前核对源码仓库位置。新 workspace 默认不要求配置这个路径。
-
-### 5. 显示 profile
-
-```bash
-cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli show-profile --profile profiles/my-disease.local.toml
-```
-
-### 6. 执行 bootstrap
-
-```bash
-cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-disease.local.toml
-```
-
-这一步当前会做三件事：
-
-- 检查 profile 指向的 workspace / runtime 是否可见
-- 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
-- 通过 controller 统一刷新并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
-
-哪里做什么：
-
-- workspace truth：`contracts/`、`studies/`、`portfolio/` 和 canonical paper/artifact files。
-- runtime lifecycle：`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration`、`runtime/quests`、`runtime/archives`、`runtime/restore_index`。
-- Agent entry：`ops/medautoscience/bin/*`、CLI、MCP、controller。
-- explicit archive import reference：旧 `ops/med-deepscientist/runtime/*`、legacy archive restore/import；只读诊断，不作为新研究入口。
-
-### live managed runtime 边界
-
-一旦 `ensure-study-runtime` 或 `study-runtime-status` 检测到 live managed runtime，前台 Agent 必须立即切换到 `supervisor-only` 监管态。
-
-此时必须显式通知用户自动驾驶已在运行，并提供可监督入口，至少包括浏览器监控入口。
-
-当 `execution_owner_guard.supervisor_only = true` 时，不得直接写入 runtime-owned 的 study、quest、paper 等正式 surface；如需人工接管，必须先显式暂停 runtime。
-
-当 `publication_supervisor_state.bundle_tasks_downstream_only = true` 时，不得把 bundle、build、proofing 作为当前主执行路径。
-
-bootstrap 的目标是把 workspace 接入受管运行面，而不是绕过这些运行边界。
-
-这里的数据资产刷新是 workspace 级的：
-
-- private release 与 public registry 都是 workspace 级登记面
-- `study impact` 是“这些数据资产会影响哪些 study”
-- 同一个已登记的数据版本，可以被多个 study 复用
-
-如果想单独重跑数据资产层，也可以继续显式执行：
-
-```bash
-cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli validate-public-registry --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli startup-data-readiness --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli apply-data-asset-update --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --payload-file /tmp/data_update.json
-PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --family-id master --from-version v2026-03-28 --to-version v2026-04-10
-PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/runtime/quests/<quest-id>
-```
-
-如果只想单独检查或重覆写 overlay，也可以直接运行：
-
-```bash
-cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-disease.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli install-medical-overlay --profile profiles/my-disease.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile profiles/my-disease.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile profiles/my-disease.local.toml --refresh
-```
-
-`backend-audit` 的目的不是替 Agent 直接升级 `MedDeepScientist`，而是在真正引入外部 source/provenance 前先回答几件事：
-
-- profile 是否已经显式绑定本机 `MedDeepScientist` 源码仓库
-- 当前 checkout 是否是干净的 Git 工作树
-- 当前 branch 是否仍然适合作为运行时主线
-- 当前受控 fork 相对 `DeepScientist upstream` 是否已经有新提交
-- 医学 overlay 当前是否仍处于 `overlay_applied` 状态，还是已经被 upstream 覆写或漂移
-
-这一步的输出是机器可读 JSON，适合给 Agent 作为“现在该不该升级”的前置门控，而不是靠人工目测仓库状态。
-
-## 新病种项目的首次启动顺序
-
-如果你是在一台新电脑上，或第一次接入一个新病种项目，推荐顺序如下：
-
-1. 运行 `init-workspace` 创建病种级 workspace 骨架
-   如果 Agent 已经接入 MCP，优先用 `init_workspace`
-2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
-3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍需 backend diagnostic，再维护 `ops/med-deepscientist/config.env`
-4. 检查生成的 `profiles/*.local.toml`
-5. 运行 `ops/medautoscience/bin/show-profile`
-6. 运行 `ops/medautoscience/bin/bootstrap`
-7. 再在 `studies/` 下创建首个 `study-id`，并开始 intake / scout / startup brief
-
-也就是说，workspace 级接入和数据资产登记应先完成，再开始某一条具体研究线。
-
-## 当前范围
-
-现在的 bootstrap 还不是“一键安装全部依赖”的最终版。
-
-当前它能保证的是：
-
-- 仓库结构已经独立
-- profile 机制已经可用
-- AI 可以先确认目标 workspace 是否接入正确
-- AI 可以按 profile 自动接管医学 stage overlays（通常以 workspace 作用域部署，因此 overlay 只影响当前研究，不污染全局）
-- AI 可以初始化并检查 `portfolio/data_assets/` 下的数据资产层，并在启动时直接生成 `startup_data_readiness` 摘要
-- AI 可以在 runtime 中区分 data hard block 与 public-data advisory，避免因为扩展机会本身中断主实验
-- AI 可以通过 CLI 调用关键 controller 与 `sync-study-delivery`，并且当 finalized paper bundle 已经形成 `submission_minimal` 时，finalize stage 的 overlay skill 会自动调度 `study_delivery_sync(stage="finalize")`，把论文交付、总结与 proofing 材料同步到 `studies/<study-id>/…/final`，使正式交付流程完全在平台内闭环
-
-需要明确的是，当前 Phase 1 只完成 state contract（runtime contract）、launcher contract 与 behavior equivalence gate 的审计；`[explicit_archive_import_ref].controlled_backend_repo_root` 仅在 `backend-audit` 的 `repo_check` 中用作 controlled backend audit 路径，默认可为空。实际执行仍可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。为了控制何时可以把执行移动到外部 repo，新 workspace 的 gate artifact 位于 `ops/mas/behavior_equivalence_gate.yaml`；旧 workspace 的 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 explicit archive import reference 读取。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready`（布尔）与 `critical_overrides`（记录 site-packages/launcher 补丁）。只要 `phase_25_ready=false`，`backend-audit` 就会返回 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，在 `repo_check` 和 `overlay_check` 里直接跳过后续检查，因此不能据此宣称已经完成外部执行切换；`critical_overrides` 之所以存在，是为了让 site-packages overlay 级别的补丁有明确的迁移或替换步骤，再经过 Phase 2/2.5 逐步清理。
-
-后续会继续补：
-
-- 一键 bootstrap 脚本
-- workspace-local thin entry layer 的模板化与自动生成
-- 新课题启动/选题的统一入口
-- 更高层的 Agent 调用适配，使自然语言任务更容易落到结构化 controller payload
+- [Project](../docs/project.md)
+- [Architecture](../docs/architecture.md)
+- [Contracts](../contracts/README.md)
+- [Runtime boundary](../docs/runtime/contracts/runtime_boundary.md)

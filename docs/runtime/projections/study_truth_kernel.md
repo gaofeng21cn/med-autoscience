@@ -1,62 +1,65 @@
-# Study Truth Kernel Contract
+# Study Truth Kernel
 
 Owner: `MedAutoScience`
-Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+Purpose: `study_truth_projection_boundary`
 State: `active_runtime_support`
-Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+Machine boundary: 本文解释 reducer/read-model 语义。机器真相归 MAS study artifacts、controller records、source、contracts 与 owner receipts。
 
-## 目标
+## 定位
 
-`StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `progress_projection`、`study_progress`、`domain_diagnostic_report`、workspace cockpit、product entry status 和 MCP compact projection 消费。
+`StudyTruthKernel` 是 MAS 的 domain reducer，不是 runtime platform。它从 MAS-owned task intake、publication/quality decision、artifact authority、human gate与 owner receipts 派生 study truth snapshot。
 
-`StudyTruthKernel` 只负责 reducer / snapshot 重建。默认 next action
-authority 继续来自 `StageOutcome -> NextActionEnvelope`；truth reducer 不编译、
-选择或补全默认 owner/action，也不能用 delivery mirror、queue/attempt、
-diagnostic report 或 legacy projection 替代 canonical envelope。
+它不拥有：
 
-该合同采用三条工程原则：
+- OPL command/event/outbox/StageRun；
+- queue、attempt、retry/dead-letter；
+- StateIndex、storage/lifecycle、runtime health；
+- CLI/MCP/status/workbench transport；
+- 默认 next-action selection。
 
-- Kubernetes controller/reconcile：controller 只围绕同一个期望状态与当前状态收敛。
-- Temporal durable history/replay：workflow state 由事件历史可重建，不能依赖临时投影文字。
-- CQRS/Event Sourcing：写模型持有 authority，read model 只是可重建 projection。
+## Authority
 
-## 稳定表面
+Study truth snapshot 是 MAS domain projection。默认 next action 仍只来自：
 
-- append-only event log：`studies/<study_id>/artifacts/truth/events.jsonl`
-- materialized snapshot：`studies/<study_id>/artifacts/truth/latest.json`
-- read-model embedding：`progress_projection.study_truth_snapshot`
-- user projection embedding：`study_progress.truth_epoch` 与 `study_progress.study_truth_snapshot`
+`StageOutcome -> NextActionEnvelope`
 
-普通 status/progress read 只生成 shadow snapshot，不写 `latest.json`。只有显式 reconcile、controller tick 或调用 `materialize_truth_snapshot(...)` 才能刷新 materialized snapshot。
+Reducer 不从 delivery mirror、queue/attempt、provider、旧 current work unit、PaperRecovery 或 diagnostic projection补全 owner/action。
 
-显式 reconcile 入口：
+## Inputs
 
-```bash
-uv run python -m med_autoscience.cli study reconcile-truth --profile <profile> --study-id <study_id>
-```
+- study/task/reviewer-revision intake；
+- MAS controller/owner decision；
+- AI reviewer/publication gate record；
+- canonical paper/evidence/artifact refs；
+- memory/artifact authority decision；
+- human gate/resume input；
+- same-identity OPL StageRun/transport refs。
 
-该入口先读取当前 `progress_projection`，再把 status payload 归一化为 truth events 并刷新 `artifacts/truth/latest.json`。普通 `study progress` 仍保持 pure read 语义。
+OPL refs 只证明 transport/currentness，不替代 MAS domain verdict。
 
-## Dominance Rules
+## Outputs
 
-- `stop_loss` 强于 publication/package/finalize/readiness projection。
-- `final_line_decision` 是 stop-loss 后的显式终局输入，只有用户或 owner-authorized surface 明确 `decision=abandon/final_abandon/close` 且 `reopen_allowed=false`，才能把 study line 解释为不可重开终局。机械 retention plan 不得反向推断终局放弃。
-- 同一 study line 的新 `task_intake` / `reviewer_revision` 强于旧 stopped/finalize/submission-ready 投影。
-- `explicit_resume` 是显式用户唤醒事件；当它晚于旧 `task_intake` / methodology rebuild intake 时，read-model shadow snapshot 也必须保持该事件为 dominant authority，不能因为 status 读取重新注入旧 task intake 而倒退到旧 route。
-- `execution_owner_guard.supervisor_only=true` 时，前台只允许监督和用户沟通类动作。
-- `publication_supervisor_state.bundle_tasks_downstream_only=true` 时，bundle/build/proofing 类动作阻塞。
-- 缺少 `assessment_provenance.owner=ai_reviewer` 的 publication eval 不能宣布 reviewer-ready、finalize-ready 或 submission-ready。
-- live writer lock 存在时，package authority 只能是 `provisionally_current_for_epoch`；writer lock 释放后才能成为稳定 current。
-- `current_package` 与 `submission_minimal` 是可重建投影，不是 study authority。
+Kernel 只输出可重建的 domain snapshot与 body-free refs，供 OPL generated status/workbench 和 MAS owner surfaces消费。Hosted surface 不得写回 truth、publication eval、controller decision、artifact body 或 memory body。
 
-## MDS 边界
+## Dominance
 
-MDS 只能向 MAS 提供 runtime/native/review 事件或受控后端证据。MAS 持有 study truth reducer、publication gate 解释、package authority 解释和用户可见 next action。任何 MDS 输出如果要影响用户可见动作，必须先进入 truth event，再由 reducer 产生 snapshot。
+- explicit stop-loss/final-line decision 强于旧 ready/finalize projection；
+- 新 task/reviewer revision 强于旧 stopped/submission projection；
+- fresh human resume 强于旧 wait state；
+- current AI reviewer/publication owner record 强于 stale quality projection；
+- live writer/artifact lock 限制 package authority；
+- current package/submission mirror 不是 study authority。
 
-## 事故治理
+## Rebuild 与 currentness
 
-后续 truth/gate/status 事故不能只补局部判断。每次事故必须同时留下三类可验证资产：
+Projection 可以重建，authority inputs不可由 projection 反推。Snapshot 缺 identity、current owner result 或 evidence refs 时 fail closed；修复 projection本身只算 platform/read-model repair，不算 paper progress。
 
-- reducer rule：把新的 dominance/invalidations 规则写进 `StudyTruthKernel`。
-- fixture test：把真实冲突脱敏成 golden fixture，证明只产出一个 `canonical_next_action`。
-- runbook entry：在 runtime/status 文档里记录事故模式、权威来源和禁止旁路。
+## Evidence boundary
+
+Reducer test、snapshot materialization、status visible 与 projection clean 不证明 live paper progress、quality ready、publication ready 或 production ready。对应 claim 需要 fresh owner receipt、reviewer/auditor receipt、human gate 或 canonical artifact semantic delta。
+
+## 相关入口
+
+- [Runtime boundary](../contracts/runtime_boundary.md)
+- [Controllers](../control/controllers.md)
+- [Stage outcome](../control/progress_first_stage_outcome.md)

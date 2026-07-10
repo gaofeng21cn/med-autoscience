@@ -10,7 +10,7 @@
 Owner: MedAutoScience
 Purpose: public repository entry
 State: current_public_entry
-Machine boundary: Human-readable public entry only. Machine truth remains in agent/, contracts, source, CLI/MCP/API behavior, product-entry manifests, domain-handler receipts, runtime/controller durable surfaces, study workspace artifacts, and owner receipts.
+Machine boundary: Human-readable public entry only. Machine truth remains in agent/, contracts, MAS domain-handler/authority results, OPL generated/readback surfaces, study workspace artifacts, and owner receipts.
 -->
 
 <h1 align="center">Med Auto Science</h1>
@@ -133,7 +133,7 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 - `Med Auto Science` is a medical research domain agent and Foundry Agent. It can be called directly by Codex, and it can also be discovered and hosted as an OPL-compatible package under `OPL Framework`.
 - MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, runtime-facing owner receipts/projections, artifact authority, and manuscript-facing delivery.
 - `OPL Framework` is the upper stage-led framework. It owns the generic runtime platform: stage attempts, queues, wakeups, recovery, approvals, receipts, state-machine execution, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, domain transition semantics, artifact authority, and submission-facing judgment.
-- Legacy MAS-local schedulers, runners, session stores, status shells, and workbench wrappers are migration input, diagnostic projection, or provenance only. New MAS-local program surfaces must justify a medical authority role and return owner receipts, typed blockers, domain refs, or safe action refs.
+- MAS-local schedulers, runners, session stores, status shells, installers, and workbench wrappers are retired or tombstone/provenance only. New MAS program surfaces must justify a medical authority role and return owner receipts, typed blockers, domain refs, or safe action refs.
 - In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. An Agent executor is the minimum execution unit inside a stage; `Codex CLI` is the current first-class executor.
 - A MAS stage pack gives the executor a goal, context, authority boundary, available affordances, knowledge refs, and quality gate. During the attempt, the executor decides what to read first, which tools to call, whether to run in parallel, whether to generate multiple candidates, and when to route back or request a reviewer; OPL route orchestration does not pre-script that reasoning.
 - Candidate generation, reflection, review, and meta-review are Stage-internal execution strategies and evidence refs. They can guide exploration and review pressure, but they do not become a hardcoded workflow and cannot close a Stage without a MAS owner receipt, stable typed blocker, or independent reviewer/auditor receipt where quality is at stake.
@@ -154,17 +154,14 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 <details>
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
-- No. Cloning this repo does not auto-install OPL Framework or the production runtime. To make MAS usable, first make the current `one-person-lab` checkout or release bundle available, then use `medautosci product skill-catalog --profile <profile> --format json` to inspect the skill. The default paper-facing entry is `medautosci paper-mission inspect|start|resume|consume-candidate`, backed by `PaperMissionRun`; `medautosci domain-handler export --profile <profile> --format json` exposes the same default intent to OPL or Codex as `paper_mission/start_or_resume`.
-- Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
-- If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
-- Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked human-readable truth set before changing runtime or docs.
-- Current next action authority is the MAS stage terminal outcome materialized as `NextActionEnvelope`. `OPL TransitionReceipt` is transport receipt-only evidence; OPL queue / attempt / provider readiness cannot select MAS owner, prove paper progress, or replace MAS owner receipt / typed blocker / human gate.
-- The current operator entry surfaces are discoverable as `CLI`, `MCP`, `product-entry`, and `controller`, but their generic descriptors and hosted shells are owned by OPL generated/hosted surfaces. The repo-root `agent/` pack is the generated-interface semantic source for OPL; local entry code only serves MAS domain handler targets, medical authority functions, owner receipt / typed blocker producers, or refs-only projections. Product-entry `medical_paper_product_entry.default_action_intent` is `paper_mission/start_or_resume`.
-- MAS can be invoked directly through its Codex app skill or through OPL. Both routes use the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL/Temporal is the default hosted autonomous runtime for durable scheduling, wakeup, retry, resume, and projection.
-- MAS tracks its canonical plugin source under `plugins/med-autoscience/`; legacy `plugins/mas` has been physically retired, repo-local `.agents/plugins/marketplace.json` is retired local state, and Codex marketplace registration is owned by the OPL wrapper/startup maintenance surface.
-- New disease workspaces are no-root-Git / no-quest-Git by default. OPL owns runtime lifecycle, provider attempts, wakeup, retry, and resume state; MAS only exposes domain refs, restore/provenance locators, artifact authority, owner receipts, typed blockers, and human gates.
-- When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and body-free artifact / authority refs for OPL or direct Codex execution. The ordinary user path should then inspect or start a `PaperMissionRun`, not revive old DHD / default-executor / PaperRecovery as the paper mainline.
-- For OPL Full online handoff, `medautosci domain-handler export --profile <profile> --format json` exposes body-free refs and a no-write `paper_mission/start_or_resume` default task; `medautosci domain-handler dispatch --task <task.json> --format json` records MAS domain-handler receipts. OPL owns stage graph hydration, queue, attempt ledger, retry/dead-letter, and provider readiness; MAS owner surfaces only return receipts, typed blockers, human gates, or domain refs. Any legacy `domain_owner/default-executor-dispatch` task in the export is `migration_diagnostic_only`, not the default paper mission route.
+- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles the 22-action catalog, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
+- The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
+- The repo-root `agent/` pack and action schemas are the interface source. Local code is limited to domain-handler targets, medical authority functions, owner receipts, typed blockers, human gates, and body-free refs.
+- Runtime environments are prepared by OPL from `contracts/runtime_environment_requirements.json`; MAS does not install Python/R packages or plugins from its import path or workspace bootstrap.
+- Current next-action authority is `StageOutcome -> NextActionEnvelope`. Queue, attempt, provider, status, or workbench state cannot select a MAS owner or prove paper progress.
+- MAS may be used through its Codex skill or an OPL-hosted interface. Both routes return to the same MAS medical truth, quality, publication, and artifact authority surfaces.
+- Repo/source/control-plane cleanup is complete. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
+- Read [Bootstrap](./bootstrap/README.md), [Architecture](./docs/architecture.md), and [Status](./docs/status.md) before changing package or runtime boundaries.
 
 </details>
 

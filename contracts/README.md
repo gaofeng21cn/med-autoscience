@@ -1,86 +1,58 @@
-# Contracts Root
+# Contracts
 
-Owner: `MedAutoScience Contract Surface`
+Owner: `MedAutoScience`
 Purpose: `machine_contract_index`
-State: `active_support`
-Machine boundary: This README is a human index for the `contracts/` root. Machine truth stays in the structured contract payloads, schemas, source, tests, generated descriptors, CLI/product-entry behavior, owner receipts, typed blockers, and runtime/controller durable surfaces. This README must not become a second source of truth for contract fields, readiness claims, quality verdicts, artifact authority, publication authority, or runtime ownership.
+State: `current_index`
+Machine boundary: 本目录是 machine-readable contracts。本文只做索引，不复制 contract 字段为第二真相源。
 
-`contracts/` is the repo root for machine-readable governance contracts.
+## 标准 OPL Agent 输入
 
-Keep structured payloads here when other agents, CLIs, tests, or runtime entry
-surfaces must consume the contract directly. Narrative design notes belong under
-`docs/`; retired runtime explanations belong under `docs/history/`.
+| Contract | 用途 |
+| --- | --- |
+| `domain_descriptor.json` | canonical id、package role、generated surface owner 与 authority boundary |
+| `pack_compiler_input.json` | OPL pack compiler 输入与 MAS runtime role |
+| `action_catalog.json` | 22-action catalog、handler targets、schema refs |
+| `schemas/v1/mas-action.input.schema.json` | action input schemas |
+| `schemas/v1/mas-action.output.schema.json` | action output schemas |
+| `generated_surface_handoff.json` | CLI/MCP/Skill/product/status/workbench/environment owner handoff |
+| `runtime_environment_requirements.json` | MAS environment requirement profile |
+| `domain_route_profile.json` | domain route identity、task kind 与 handler mapping |
+| `domain_projection_profile.json` | OPL-consumable refs-only projection |
 
-MAS is published as a medical research Foundry Agent and an OPL-compatible
-package built on OPL Framework. Machine-readable product positioning lives in
-the product-entry manifest, while this directory keeps the contract families
-that let OPL discover, index, and validate MAS package metadata without owning
-MAS medical research truth, quality verdicts, runtime owner surfaces, artifact
-authority, or publication authority.
+## Authority contracts
 
-AI-first quality contracts assume separate agent tasks for execution and
-review/audit. Executor receipts and reviewer/auditor receipts must come from
-independent invocations with separate task/context records; self-review by the
-same execution agent is not valid quality-gate evidence.
+| Contract | 用途 |
+| --- | --- |
+| `authority_kernel_inventory.json` | retained minimal authority function inventory |
+| `private_functional_surface_policy.json` | private surface forbidden/allowed boundary |
+| `functional_privatization_audit.json` | generated/hosted handoff 与 no-private-platform guard |
+| `next_action_envelope_contract.json` | canonical next-action shape |
+| `stage_control_plane.json` | stage policy、owner outcome 与 handoff contract |
+| `paper_progress_transition_runtime_completion_audit.json` | repo/source/control-plane 与 live evidence 分账 |
 
-Current contract families:
+## Contract 规则
 
-- `contracts/domain_descriptor.json`, `contracts/pack_compiler_input.json`, `contracts/generated_surface_handoff.json`, `contracts/action_catalog.json`, `contracts/agent_tool_arsenal.json`, `contracts/stage_control_plane.json`, `contracts/golden_path_profile.json`, `contracts/stage_artifact_kernel_adoption.json`, `contracts/stage_run_kernel_profile.json`, `contracts/paper_recovery_kernel_contract.json`, `contracts/stage_route_reconcile_contract.json`, `contracts/progress_first_safety_envelope.json`, `contracts/memory_descriptor.json`, `contracts/artifact_locator_contract.json`, `contracts/owner_receipt_contract.json`, `contracts/functional_privatization_audit.json`, and `contracts/private_functional_surface_policy.json`: OPL standard domain-agent pack inputs. OPL compiles these into generated interface descriptors; MAS local domain handler targets, owner receipts, controller authority functions, and necessary durable workspace diagnostics stay as domain targets and authority functions. `functional_privatization_audit.json` and `private_functional_surface_policy.json` also carry the private-surface retirement disposition / gate policy: old MAS surfaces must move to OPL primitive, temporary refs projection, retained minimal authority function, or tombstone-only, and physical retirement / `100%` completion requires no-active-caller, replacement parity, no-forbidden-write, tombstone/provenance, and fresh owner-answer or OPL StageRun readback evidence. `agent_tool_arsenal.json` indexes ToolArsenalIndex, ToolUseCard, CapabilityInvocationPlan, ToolResultEnvelope, and ToolAuditTrail metadata for OPL-generated tool discovery and invocation; it carries invocation metadata, refs, risk annotations, allowed/forbidden authority flags, and result envelope shapes, not MAS study truth, quality verdicts, owner receipt bodies, artifact authority, publication authority, or production-ready claims. `golden_path_profile.json` declares the single ordinary OPL default path and hidden-variant policy without claiming medical/domain readiness; `stage_artifact_kernel_adoption.json` is the root machine-readable declaration that MAS consumes the OPL Stage Folder + Manifest + Receipt + current pointer kernel while retaining MAS medical authority; `stage_run_kernel_profile.json` defines the minimal StageRun state shell and forbids provider completion, file presence, `latest.json`, read-model, or active run id from becoming transition authority; `paper_recovery_kernel_contract.json` fixes MAS-owned PaperRecovery recovery-obligation truth, diagnostic projection invariants, replay acceptance, stop-loss successor / human-gate requirement, terminal closeout consume/reject rule, and manual foreground adoption boundary; it is not default next-action authority and cannot generate or replace `NextActionEnvelope`. `stage_route_reconcile_contract.json` consumes that PaperRecovery diagnostic obligation for legacy MAS/OPL route reconcile as `current_owner_delta -> provider_admission_identity -> OPL StageRun attempt -> terminal closeout -> MAS closeout consumption -> next current_owner_delta`; that chain is diagnostic/provenance only, including currentness precedence, strong identity, closeout consumption, no-progress budget, OPL follow-through gaps, owner split, Codex executor entry, and DM002/DM003 recovery acceptance without claiming paper progress or next-action authority; `progress_first_safety_envelope.json` fixes false-completion, pseudo-evidence, stale read-model, duplicate receipt, artifact-authority drift, external-learning adoption closure status, Light/Co-Scientist/Evo advisory sidecar boundaries, and the lightweight executor receipt L0/L1 default plus explicit L3 proof-lane boundary without adding live-path preflight friction.
-- `contracts/standard-agent-principles-adoption.json`: MAS adoption of OPL Standard Agent AI-first principles. It records the OPL 9-principle projection, keeps MAS study truth / publication quality / artifact authority / owner receipt / typed blocker authority in MAS, and maps OPL `domain_intake` to MAS `01-study_intake` plus `src/med_autoscience/study_task_intake*.py` surfaces without creating an independent intake Skill.
-- `contracts/paper_progress_transition_runtime_completion_audit.json`: compact MAS / OPL progress-runtime completion audit. `#/blueprint_l0_l7_functional_acceptance` closes only the repo/source/control-plane slice; `#/overall` remains `partial`, and `#/live_runtime_readiness` remains `evidence_required`. The contract fixes the StageOutcome / owner-receipt / typed-blocker authority boundary and rejects docs, focused tests, source-adapter manifests, queue-empty, clean projections, request-only carriers, or cross-identity readback as runtime, paper, publication, domain, or production readiness evidence.
-- `contracts/research-integrity-layer.json`: Research Integrity Layer contract for OPL/provider lookup, reference authenticity, claim-citation support v2, manuscript consistency / meta review, and the aggregated `research_integrity_gate_input_bundle`. Review / publication gate stage hooks request Crossref / PubMed / OpenAlex / Semantic Scholar / Crossmark / publisher-style provider evidence from the OPL connector substrate, with a MAS thin provider client allowed only as a first-slice fetcher. The layer is not an independent professional skill. It defines provider crosscheck payloads, MAS/OPL owner split, hard-gate candidate conditions, callable MAS domain-entry consumption, action-catalog descriptor exposure, and forbidden authority claims. Each reference must have at least one provider-verified crosscheck or be explicitly marked unresolved, needs_review, contradicted, or retracted. The layer outputs evidence / gate input / blocker candidates only; it cannot write MAS truth, `publication_eval/latest.json`, `controller_decisions/latest.json`, `current_package`, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication readiness, or submission readiness.
-- `src/med_autoscience/lightweight_executor_receipts.py`: source-defined lightweight executor receipt contract. It records executor evidence refs for Codex / `uv` clean runner / process-workspace attempts; Docker, OpenHands, Docker-in-Docker, and Docker socket usage are never default authority and require an explicit L3 proof lane. The contract does not execute commands, write MAS truth, sign owner receipts, emit typed blockers, close stages, or authorize publication/artifact readiness.
-- Source-defined contract builders under `src/med_autoscience/` may expose MAS-native intake surfaces such as reviewer issue/progress ledgers, display artifact manifests, and source/citation authority packs. They are machine contract sources only when covered by focused tests and linked from current docs; external projects such as ARK remain clean-room pattern sources, not runtime dependencies or authority surfaces.
-- `contracts/display-pack-contract.v2.json`: Display Pack v2 descriptor and MAS/OPL Pack OS boundary contract. The validator in `src/med_autoscience/display_pack_v2_contract.py` enforces the required pack/template descriptor fields, authority boundaries, the OPL repo `mas-display-smoke` consumer evidence, external OPL Pack OS substrate refs, and the rule that generic OPL Pack OS is not MAS-owned.
-- `docs/delivery/medical-display/contracts/display_pack_agent_os_target.md`: human-readable target architecture for the Agent-native Scientific Display System handoff. MAS now exposes a landed `display_pack_agent.orchestrate` agent surface for compiling figure intent from `current_owner_delta` plus claim/data refs and returning plan/preflight/quality-floor/typed-route hints; the full `medical figure spec -> template resolver -> OPL pack lock -> render -> QC -> visual audit -> typed repair router -> publication manifest` OS remains target architecture. This document is not a machine contract and does not change `contracts/display-pack-contract.v2.json`.
-- `mas-scholar-skills:packs/medical-display-core/renderer_dependency_profile.json`: MAS Display Pack dependency requirement profile consumed through the configured external ScholarSkills display pack source. It declares renderer dependency intent only and points to the OPL main repository canonical `contracts/opl-framework/runtime-environment-substrate-contract.json`; MAS does not maintain a second substrate contract, installer, cache manager, or resolver contract.
-- `docs/runtime/designs/opl_dependency_environment_substrate_target.md`: human-readable consumer design for how MAS display consumes the OPL runtime environment substrate. The canonical substrate contract and executable readback live in the OPL main repository.
-- `contracts/publication_figure_quality_contract.json`: paper-level Display Pack v2 figure-quality surface index. The source-defined validators in `src/med_autoscience/publication_figure_quality_contract.py` enforce `figure_intent.json`, single-figure `figure_spec.json`, batch `figure_specs.json`, `figure_style_reference_bundle.json`, `figure_visual_audit_receipt.json`, and `ai_illustration_receipt.json`; `display_pack_lock.json` and submission manifests preserve refs, status, and hashes without turning visual audit into publication authority.
-- `contracts/medical_figure_spec_contract.json`: declarative medical figure grammar surface. The validator in `src/med_autoscience/medical_figure_spec_contract.py` enforces `paper/figure_spec.json` and `paper/figure_specs.json` fields that bind `figure_intent`, Display Template, figure kind, medical semantics, and optional panel roles; it is not a Vega-Lite runtime, publication verdict, renderer, or data/statistics mutation surface.
-- `contracts/figure_polish_lifecycle_contract.json`: paper-level AI/VLM polish lifecycle surface. The source-defined validator in `src/med_autoscience/figure_polish_lifecycle_contract.py` enforces the ordered state prefix from `draft_rendered` through `publication_manifested`, binds events to `figure_visual_audit_receipt` and `display_pack_lock.publication_figure_quality_refs`, and forbids AI/VLM quality-loop evidence from mutating data/statistics/evidence marks or carrying publication verdicts.
-- `contracts/production_acceptance/`: production-acceptance and evidence-tail snapshots. These payloads may record body-free owner receipt refs, typed blocker refs, no-forbidden-write refs, and provenance hashes; they do not carry paper bodies, memory bodies, artifact bodies, quality verdict bodies, or production-ready claims.
-- `contracts/modules/`: module boundary contracts for controller, runtime, and eval hygiene ownership.
-- `contracts/opl-framework/`: OPL Framework projection, compatible-package, and helper-consumption contracts.
-- `contracts/schemas/`: JSON schemas for stable product-entry surfaces.
+- 普通 interface 从 action metadata/schema 生成；不在 contracts 中复制 CLI/MCP/workbench implementation。
+- MAS contract 只声明 domain requirement、authority、handler target、refs 与 forbidden writes。
+- OPL-owned runtime、StateIndex、environment、lifecycle、observability 和 hosted surface通过 stable handoff/ref 引用，不在 MAS 复制实现合同。
+- Tombstone/no-resurrection contract 可以保留旧 identity，不得让旧 path 重新成为 current caller。
+- 叙述性 docs 不是机器接口；机器消费者不得解析 Markdown 文案或章节。
 
-This README is the index exception for humans and agents. It must not become a
-second source of truth for contract fields.
+## Ready 边界
 
-## 中文
+Contract/schema valid、descriptor ready、action count 与 generated interface resolution 只证明 repo structural currentness。它们不证明 provider running、paper progress、quality/publication ready、artifact mutation authorization 或 production ready。
 
-`contracts/` 是仓库根部的机器可读 governance contract 入口。
+## 维护方式
 
-需要被 agent、CLI、测试或 runtime 入口直接消费的结构化 payload 放在这里。叙述性设计说明进入
-`docs/`；已退休的 runtime 边界说明进入 `docs/history/`。
+1. 新增/修改 action：改 catalog、input/output schema 与 domain handler target。
+2. 新增 environment requirement：改 requirement profile，由 OPL substrate 实现 prepare/run。
+3. 新增 retained authority function：更新 authority inventory 与 forbidden-write boundary。
+4. 通用 platform capability：改 OPL contract/implementation，MAS 只保留消费 ref。
+5. 已退役 surface：删除 active caller，保留最小 tombstone/no-resurrection evidence。
 
-MAS 对外发布为医学研究 Foundry Agent，也是 built on OPL Framework 的
-OPL-compatible package。机器可读产品定位由 product-entry manifest 持有；本目录只保存
-OPL 发现、索引和验证 MAS package metadata 所需的 contract 家族，不让 OPL 持有 MAS 的
-medical research truth、quality verdict、runtime owner surface、artifact authority 或
-publication authority。
+## 人读入口
 
-AI-first quality contract 默认要求执行与审阅/审计是独立 agent task。executor receipt 与
-reviewer/auditor receipt 必须来自独立 invocation，并有分开的 task/context record；同一个
-执行 agent 的自审不能作为关闭 quality gate 的证据。
-
-当前 contract 家族：
-
-- `contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`、`contracts/generated_surface_handoff.json`、`contracts/action_catalog.json`、`contracts/agent_tool_arsenal.json`、`contracts/stage_control_plane.json`、`contracts/golden_path_profile.json`、`contracts/stage_artifact_kernel_adoption.json`、`contracts/stage_run_kernel_profile.json`、`contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、`contracts/progress_first_safety_envelope.json`、`contracts/memory_descriptor.json`、`contracts/artifact_locator_contract.json`、`contracts/owner_receipt_contract.json`、`contracts/functional_privatization_audit.json`、`contracts/private_functional_surface_policy.json`：OPL standard domain-agent pack 输入。OPL 用它们生成统一接口 descriptor；MAS 本地 domain handler target、owner receipt、controller authority function 与必要 durable workspace diagnostic 继续作为 domain target 与 authority function。`functional_privatization_audit.json` 与 `private_functional_surface_policy.json` 也承载 private-surface retirement disposition / gate policy：旧 MAS 面必须迁移为 OPL primitive、temporary refs projection、retained minimal authority function 或 tombstone-only；物理退役和 `100%` 完成必须有 no-active-caller、replacement parity、no-forbidden-write、tombstone/provenance，以及 fresh owner-answer 或 OPL StageRun readback 证据。`agent_tool_arsenal.json` 索引 ToolArsenalIndex、ToolUseCard、CapabilityInvocationPlan、ToolResultEnvelope 和 ToolAuditTrail metadata，供 OPL generated tool discovery / invocation 消费；它只承载调用 metadata、refs、risk annotations、allowed/forbidden authority flags 和 result envelope shape，不承载 MAS study truth、quality verdict、owner receipt body、artifact authority、publication authority 或 production-ready claim。`golden_path_profile.json` 声明单一 OPL ordinary default path 与 hidden-variant policy，不声明医学/domain readiness；`stage_artifact_kernel_adoption.json` 是根层机器声明：MAS 接入 OPL Stage Folder + Manifest + Receipt + current pointer kernel，但 MAS medical authority 仍归 MAS；`stage_run_kernel_profile.json` 定义最小 StageRun 状态壳，并禁止 provider completion、file presence、`latest.json`、read-model 或 active run id 成为 transition authority；`paper_recovery_kernel_contract.json` 固定 MAS-owned PaperRecovery recovery-obligation truth、diagnostic projection invariants、replay acceptance、stop-loss successor / human gate、terminal closeout consume/reject 与 manual foreground adoption 边界；它不是默认 next-action authority，也不能生成或替代 `NextActionEnvelope`。`stage_route_reconcile_contract.json` 从 PaperRecovery diagnostic obligation 消费 legacy MAS/OPL route reconcile，把 `current_owner_delta -> provider_admission_identity -> OPL StageRun attempt -> terminal closeout -> MAS closeout consumption -> next current_owner_delta` 作为 diagnostic/provenance-only 链路，并记录 currentness precedence、strong identity、closeout consumption、no-progress budget、OPL follow-through gaps、owner split、Codex executor entry、DM002/DM003 recovery acceptance；它不声明论文进展，也不声明 next-action authority；`progress_first_safety_envelope.json` 固定错误完成、伪证据、旧 read-model、重复 receipt、artifact authority 漂移、external-learning adoption closure status、Light/Co-Scientist/Evo advisory sidecar 边界，以及 lightweight executor receipt 的 L0/L1 默认层级和显式 L3 proof-lane 边界，同时不增加 live path preflight 摩擦。
-- `contracts/standard-agent-principles-adoption.json`：MAS 对 OPL Standard Agent AI-first 原则的采纳合同。它记录 OPL 9 原则在 MAS 的投影，明确 MAS study truth / publication quality / artifact authority / owner receipt / typed blocker authority 不外移，并把 OPL `domain_intake` 映射到 MAS `01-study_intake` 与 `src/med_autoscience/study_task_intake*.py` surfaces，不新增独立 intake Skill。
-- `contracts/paper_progress_transition_runtime_completion_audit.json`：精简后的 MAS / OPL progress-runtime 完成度审计。`#/blueprint_l0_l7_functional_acceptance` 只关闭 repo/source/control-plane 切片；`#/overall` 仍为 `partial`，`#/live_runtime_readiness` 仍为 `evidence_required`。合同固定 StageOutcome / owner receipt / typed blocker 权威边界，并禁止把 docs、focused tests、source-adapter manifest、queue empty、projection clean、request-only carrier 或跨 identity readback 当成 runtime、paper、publication、domain 或 production readiness 证据。
-- `contracts/research-integrity-layer.json`：Research Integrity Layer 机器合同，覆盖 OPL/provider lookup、Reference Authenticity Gate、Claim-Citation Support v2、Manuscript Consistency / Meta Review 与聚合 `research_integrity_gate_input_bundle`。review / publication gate stage hook 从 OPL connector substrate 请求 Crossref / PubMed / OpenAlex / Semantic Scholar / Crossmark / publisher-style provider evidence；MAS thin provider client 只可作为 first slice fetcher，该层不是独立 professional skill。它固定 provider crosscheck payload、MAS/OPL owner split、hard-gate candidate 条件、MAS domain-entry 可调用消费面、action-catalog descriptor 暴露和禁止越权声明。每条 reference 必须至少一个 provider verified，或明确标成 unresolved、needs_review、contradicted、retracted。该层只输出 evidence / gate input / blocker candidate，不能写 MAS truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、owner receipt、typed blocker、human gate、runtime queue、provider attempt、publication readiness 或 submission readiness。
-- `src/med_autoscience/lightweight_executor_receipts.py`：source-defined lightweight executor receipt contract。它只记录 Codex / `uv` clean runner / process-workspace attempt 的 executor evidence refs；Docker、OpenHands、Docker-in-Docker 与 Docker socket 都不是默认 authority，必须有显式 L3 proof lane。该合同不执行命令、不写 MAS truth、不签 owner receipt、不产出 typed blocker、不关闭 stage，也不授权 publication / artifact readiness。
-- `src/med_autoscience/` 下的 source-defined contract builder 可以暴露 MAS-native intake surface，例如 reviewer issue/progress ledger、display artifact manifest 和 source/citation authority pack。只有在 focused tests 覆盖并由当前 docs 索引后，它们才作为机器 contract source 读取；ARK 这类外部项目始终只是 clean-room pattern source，不是 runtime dependency 或 authority surface。
-- `contracts/display-pack-contract.v2.json`：Display Pack v2 descriptor 与 MAS/OPL Pack OS 边界合同。`src/med_autoscience/display_pack_v2_contract.py` 中的 validator 校验 pack/template descriptor 必备字段、authority boundary、OPL repo `mas-display-smoke` consumer evidence、外部 OPL Pack OS substrate refs，以及 generic OPL Pack OS 不是 MAS-owned 通用基座。
-- `docs/delivery/medical-display/contracts/display_pack_agent_os_target.md`：Agent-native Scientific Display System handoff 的人读目标架构。MAS 现在已有 `display_pack_agent.orchestrate` agent surface，可从 `current_owner_delta` 加 claim/data refs 编译 figure intent，并返回 plan、preflight、quality floor 和 typed route hints；完整 `medical figure spec -> template resolver -> OPL pack lock -> render -> QC -> visual audit -> typed repair router -> publication manifest` OS 仍是目标架构。该文档不是机器合同，也不修改 `contracts/display-pack-contract.v2.json`。
-- `mas-scholar-skills:packs/medical-display-core/renderer_dependency_profile.json`：MAS 通过配置的外部 ScholarSkills display pack source 消费的 Display Pack dependency requirement profile。它只声明 renderer dependency intent，并指向 OPL 主仓 canonical `contracts/opl-framework/runtime-environment-substrate-contract.json`；MAS 不维护第二套 substrate contract、installer、cache manager 或 resolver contract。
-- `docs/runtime/designs/opl_dependency_environment_substrate_target.md`：MAS display 如何消费 OPL runtime environment substrate 的人读设计；canonical substrate contract 和可执行 readback 位于 OPL 主仓。
-- `contracts/publication_figure_quality_contract.json`：paper-level Display Pack v2 图质量 surface 索引。`src/med_autoscience/publication_figure_quality_contract.py` 中的 source-defined validator 强制校验 `figure_intent.json`、单图 `figure_spec.json`、批量 `figure_specs.json`、`figure_style_reference_bundle.json`、`figure_visual_audit_receipt.json` 和 `ai_illustration_receipt.json`；`display_pack_lock.json` 与 submission manifest 只保留 refs、status 和 hash，不把视觉审计变成 publication authority。
-- `contracts/medical_figure_spec_contract.json`：声明式医学 figure grammar surface。`src/med_autoscience/medical_figure_spec_contract.py` 中的 validator 强制校验 `paper/figure_spec.json` 和 `paper/figure_specs.json`，用于绑定 `figure_intent`、Display Template、figure kind、医学语义与可选 panel role；它不是 Vega-Lite runtime、publication verdict、renderer 或数据/统计改写面。
-- `contracts/figure_polish_lifecycle_contract.json`：paper-level AI/VLM polish lifecycle surface。`src/med_autoscience/figure_polish_lifecycle_contract.py` 中的 source-defined validator 强制校验从 `draft_rendered` 到 `publication_manifested` 的有序状态前缀，把 event 绑定到 `figure_visual_audit_receipt` 与 `display_pack_lock.publication_figure_quality_refs`，并禁止 AI/VLM 质量循环证据改动 data/statistics/evidence mark 或携带 publication verdict。
-- `contracts/production_acceptance/`：production acceptance 与 evidence tail snapshot。这里可以记录 body-free owner receipt refs、typed blocker refs、no-forbidden-write refs 和 provenance hash；不承载 paper body、memory body、artifact body、quality verdict body 或 production-ready claim。
-- `contracts/modules/`：controller、runtime、eval hygiene ownership 的模块边界 contract。
-- `contracts/opl-framework/`：OPL Framework projection、compatible-package 与 helper-consumption contract。
-- `contracts/schemas/`：稳定 product-entry surface 的 JSON schema。
-
-本 README 只是给人和 agent 的索引例外，不承载 contract 字段真相。
+- [Project](../docs/project.md)
+- [Architecture](../docs/architecture.md)
+- [Invariants](../docs/invariants.md)
+- [Active plan](../docs/active/mas-ideal-state-gap-plan.md)

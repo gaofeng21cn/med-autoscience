@@ -1,147 +1,54 @@
-# Medical Display 能力族
+# MAS Medical Display
 
 Owner: `MedAutoScience`
-Purpose: `medical_display_delivery_index`
-State: `active_delivery_support`
-Machine boundary: 人读能力族索引。机器真相继续归 renderer contracts、template/schema source、layout QC、generated display artifacts、delivery manifests、runtime/controller receipt 和真实 workspace artifact refs。
+Purpose: `medical_display_entry`
+State: `active_current_truth`
+Machine boundary: 本文是人读入口。机器真相归 display actions/schemas、MAS figure quality/artifact authority 与 OPL pack/runtime refs。
 
-这是医学展示能力族的活跃入口。
+## Owner split
 
-读法：本文只做 medical-display 能力族导航和 claim boundary。Portfolio lifecycle / roadmap 归 `portfolio/medical_display_portfolio_consolidation.md`；当前唯一 owner round 归 `board/medical_display_active_board.md`；当前落地状态和 E2E 路径归 `contracts/display_pack_v2_landing_status.md`；模板 / Gallery / quality inventory 的动态数量归 generated status、catalogs、manifests、source 和 tests。不要把 README、board、Gallery 或 exemplar history 读成 publication-ready、artifact authority、submission-ready、current-package freshness 或 active backlog 的第二真相。
+Medical display 遵循标准 OPL Agent 边界：
 
-| 目录 | 角色 |
-| --- | --- |
-| [portfolio](./portfolio/) | Portfolio map 和长期 roadmap。 |
-| [board](./board/) | 当前 active board 和下一轮可执行 display round。 |
-| [contracts](./contracts/) | 平台主线、审计指南、视觉审计协议和 route contract。 |
-| [catalogs](./catalogs/) | Arsenal、backlog 和 route cookbook。完整模板 inventory 从 ScholarSkills source 按需生成，不在本仓提交快照。 |
-| [examples](./examples/) | MAS 论文局部示例和 E2E 字段关系说明；通用 gallery review package 已外迁到 ScholarSkills。 |
-| [plans](./plans/) | Template-pack active support design。已完成实施计划进入 history/provenance，不作为当前执行队列。 |
-| [provenance](./provenance/) | 真实论文审计和能力 provenance。 |
-| [history](../../history/capabilities/medical-display/README.md) | 退役 owner brief、baseline program、exemplar intake 和 exhausted exploration record。 |
+- MAS 持有医学 figure intent、claim/data refs、quality gate、visual audit与 artifact/publication authority。
+- OPL 持有通用 pack install/registry/cache/lock、renderer transport、generated interfaces、StageRun与 hosted workbench。
+- ScholarSkills/display pack source提供通用模板与专业能力；不得写 MAS claim/data/statistics truth。
 
-## 主要入口
+MAS 不维护 repo-local display CLI、catalog generator、installer或 workbench shell。
 
-- [Portfolio consolidation](./portfolio/medical_display_portfolio_consolidation.md)
-- [Active board](./board/medical_display_active_board.md)
-- [医学图型家族体系指南](./medical_figure_family_system.md)
-- [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md)
-- [Display Pack renderer migration assessment](./plans/display_pack_renderer_migration_assessment.md)
-- [Platform mainline](./contracts/medical_display_platform_mainline.md)
-- [Audit guide](./contracts/medical_display_audit_guide.md)
-- [Template inventory and generation boundary](./contracts/medical_display_audit_guide.md)
-- [ScholarSkills Display gallery](/Users/gaofeng/workspace/mas-scholar-skills/docs/gallery/display-gallery.md)
-- [SciPilot figure-skill learning intake](../../references/mainline/scipilot_figure_skill_learning_intake.md)
-- [MAS examples boundary](./examples/README.md)
-- [Display Pack v2 E2E skeleton](./examples/display_pack_v2_e2e_skeleton.md)
+## Action surface
 
-历史 exemplar 和退役 brief 只保留 provenance；除非真实 MAS 论文需求通过 active board 重开，否则不作为当前 backlog。
+Display 由 action catalog 中五个标准 action表达：
 
-`board/medical_display_active_board.md` 只维护当前唯一 active round 与下一轮 reroute 边界。已吸收 round 的 owner note、完整命令流水、exemplar intake 细节和历史 capability ledger 进入 history/provenance，不继续堆在 board 中。
+- `display_pack_capability_discover`
+- `display_pack_figure_plan`
+- `display_pack_orchestrate`
+- `display_pack_preflight`
+- `display_pack_render`
 
-## Delivery Authority 边界
+OPL 从 catalog/schema 生成 CLI/MCP/Skill/product surface；MAS domain handlers只处理 figure intent、quality/authority boundary与结果 refs。
 
-Medical Display 文档和 template pack 可以定义 renderer family、input schema、layout QC、template catalog、route cookbook、display-to-claim 审计输入和生成型 display artifacts。它们不授权 source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness proof、delivery sync、paper closure、domain ready 或 production ready。
+## Current flow
 
-## MAS / ScholarSkills 分工
-
-`mas-scholar-skills/packs/medical-display-core/` 是当前通用医学绘图模板、R/ggplot2 renderer、共享 helper、dependency profile 和 template catalog 的外部 source pack。MAS 默认只消费该外部 pack；仓内 `external/display-packs/medical-display-core/` 不再是默认解析、lock、agent preflight 或 repo-default test 的 hidden fallback。薄消费面的验收口径是 `config/display_packs.toml` 默认解析到 ScholarSkills source，`display_pack_lock.json` 保留 source/ref/role/authority provenance，且不会在外部 source 缺失时合成 MAS bundled fallback。
-
-`external/display-packs/medical-display-core/` legacy tracked asset 已物理退役：`MANIFEST.in` 不再 graft `external/display-packs`，renderer-structure / R-style focused tests 通过当前 resolved ScholarSkills pack root 读取 R helper，`git ls-files 'external/display-packs/**'` 应无输出。仓内残留的 `external/display-packs` 字面引用只可作为显式 tmp fixture、paper-local override、历史文档或路径分类语境读取，不能恢复成 MAS bundled fallback。
-
-MAS package build 不再通过 `setup.py` 或 `MANIFEST.in` 把 `external/display-packs/**` 复制进发行包。安装态若要消费 Display Pack，必须通过显式 repo / paper config、ScholarSkills source 或后续 OPL Pack OS refs；wheel/sdist 里的隐藏资源库存不能作为 active pack source 或 publication-ready 证据。
-
-必须留在 MAS 内的是 paper-local authority：figure purpose 的 owner 接受、claim/data/statistics refs、medical figure grammar、visual-audit consumption、publication gate、owner receipt、typed blocker、human gate、submission manifest refs preservation 和 current package 验收。`figure` stage 主提示词由 MAS 单源维护；`medical-figure-design` orchestrator、dedicated `medical-figure-style` / `medical-figure-composer` 子 Skill 和 Display source pack 由 `mas-scholar-skills` 单源维护并通过 OPL Connect 同步。`medical-figure-style` 只产出风格参考、style coherence / style-QA candidate refs；`medical-figure-composer` 只产出 panel plan、multi-panel composition / layout-QA candidate refs；`medical-figure-design` 负责把这些子能力路由回 display workflow。它们可以指导 Codex 设计和打磨图件候选，但不能代写 MAS publication truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate、current package 或 submission-ready verdict。ScholarSkills/OPL Display 可以生产或运输模板/renderer/generic visual-QA refs，最终采纳仍由 MAS owner gate 决定。
-
-Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md) 读取；当前模板数量、Gallery 数量、retired alias 数量、Python evidence 数量和 quality-audit 结论按 ScholarSkills compact gallery review package 与 pack descriptor 读取。MAS 域内已落地 pack/template descriptor、paper-level figure quality refs、article-level `paper/publication_style_profile.json` style-token lock、single/batch medical figure grammar、R/ggplot2-first subprocess runtime protocol、Python evidence 清理边界、AI/VLM polish lifecycle、template discovery/describe CLI、agent-facing orchestrate/discovery/plan/preflight/render receipt surface、one-shot scaffold render、golden refresh/check lower-bound surface、deterministic E2E render/QC/publication manifest、display lock 和 submission refs preservation；OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces。OPL surfaces 只消费和运输 refs，不表示 MAS 已拥有 generic Pack OS substrate。`publication_style_profile`、`display_pack_lock.json`、golden match、visual-audit clear、polish lifecycle、agent orchestration/render receipt、comparison receipt 或 OPL smoke receipt 都不能代签 publication readiness、artifact authority 或 owner receipt。
-
-## Quality Floor 与重构边界
-
-通用科研做图策略按 ScholarSkills gallery quality-audit refs 读取。模板库提供质量下限和可审阅起点，不锁死图型、布局、panel hierarchy、后端或候选数量；AI executor 应从 figure brief、reference/style brief、preserve list、candidate generation、critic review 和 owner gate 反推图件，而不是复用单个模板来声明完成。
-
-`scipilot-figure-skill` 的可学习点只作为前置 advisor discipline 和 refs-only sidecar/tool-shape：先看数据形态、样本量、分布、分组结构、缺失/异常和论证目标，再决定图型；主动拦截均值柱掩盖分布、双 Y 轴、饼图/3D、Y 轴误导截断、rainbow 色图、分类折线、一图多论点、中文/符号缺字、裁切和子图标签错位。`figure_advisor_probe` 映射 data profile / plot selection / warnings；`figure_export_lint` 映射 DPI、最终尺寸、字体、JPEG、SVG 位图嵌入、CJK 和负号检查。这个折回只增强 figure brief、专业 skill critique、visual audit 语言和 export-QA refs，不导入 SciPilot 的 Python runtime、脚本、依赖或默认 skill source，也不新增阻塞 gate。它固定从属于 `PaperMission -> submission authority -> owner gate / typed blocker` 主线：缺少 SciPilot advisory / lint 不阻断已有 MAS current owner action；只有当前 route-required claim/data/source/export refs 缺失时，才可形成 route-back hint 或 typed blocker candidate。
-
-“彻底重构”的边界按图件角色区分：design shell、graphical abstract 和 reporting-flow 图可以在 brief 与 owner gate 支持下重构到更强视觉系统；R/ggplot2 证据图主要通过统一 theme、尺寸、QC、critic gate、参考驱动和 source/data/statistics refs preservation 提升，不默认全部手工重画。任何 Gallery、模板、参考风格或质量审计都不得 claim publication ready。
-
-## Agent 调用路径
-
-Display Pack 是 MAS agent 使用的能力包，不要求用户理解每个模板。主路径是：
-
-1. agent 从 `contracts/agent_tool_arsenal.json` 或 MCP `agent_tool_arsenal mode=resolve` 发现 `display_pack_*` candidates；缺 `paper_root` / `claim_ref` / `data_ref` 只进入 `missing_refs` 和 `next_safe_actions`，不把 Display Pack 候选过滤掉；
-2. agent 先把 `intent` 写成 figure-purpose brief：该图要支持哪条 claim、核心比较或 evidence boundary 是什么、哪些指标必须成为图元、哪些文字只应进入 caption/legend。缺这个 brief 时不能直接按模板名闭眼出图；
-3. agent 调 MCP `display_pack_agent`，用 `mode=orchestrate` 和 `current_owner_delta` / claim refs / data refs / intent 编译 `figure_intent`、结构化 `figure_request`、推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable；
-4. 选择模板时先按 purpose 和 panel semantics 判断图型，再按 renderer family、schema、layout/QC 选择布局。若模板只能把关键证据画成说明卡片、装饰 panel 或不可审计文字块，必须走 semantic repair / template repair，而不是靠缩小文字或后处理；
-5. agent 只在需要诊断或分步执行时调 `mode=plan` / `mode=preflight`；`adaptable_baseline_not_exact_contract` 只表示可作为 quality-floor baseline，不表示 publication readiness、artifact authority、owner receipt 或 visual-audit replacement；
-6. agent 调 MCP `display_pack_agent` 的 `mode=render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock、publication manifest refs 和每图 provenance bundle；
-7. visual audit finding、owner receipt、publication gate 继续由 MAS authority 决定，不由 Display Pack 自签。paper-facing PDF 必须用实际渲染页复核 figure 顺序、表格/文字重叠、图内标题重复和图元语义；`current_package` freshness 或 renderer catalog 不能替代 PDF 实物验收。
-
-初稿 / 投稿包出图的最小完成门：
-
-- 每张图都有可读的 purpose：它服务哪条 claim、比较、决策或描述性问题；
-- 每张图的 layout sidecar 或 display lock 证明 `renderer_family`、`source_renderer`、`figure_purpose` 和 `rendered_title_policy` 与当前 Display Pack 路径一致；
-- `cohort_flow_figure` / Figure 1 类 reporting-flow 图必须服务 participant accounting / STROBE-CONSORT flow。图体内只保留短节点、计数和必要连接，不画整体标题、summary panel、context note、prose card、fake-axis prose panel 或长解释；endpoint、design boundary 和 interpretation caveat 进入 caption、legend、manifest 或正文。若新版 participant-flow 只有两个主节点、没有纳排分支、也没有任何实质性研究设计边界说明，应视为 low-information Figure 1，而不是因为 `uses_ggconsort=true` 或 `renderer_family=r_ggplot2` 放行；
-- 外部验证、迁移验证和多来源 cohort 图不应把模型、score 或解释性结论伪装成 participant-flow 主节点。若 Figure 1 的目的主要是 source/cohort accounting，应优先使用 source-layer/accounting layout，把数据来源、denominator、analysis coverage 和 endpoint boundary 作为图元或 caption/manifest 消费；
-- Figure 1 的 step detail 必须在图内完整换行呈现；若 renderer 用 `...` 截断关键纳排、denominator、validation-boundary 或 support-set 说明，应视为 visual-audit failure，而不是合格压缩；
-- current package 中的 figure 文件与 `paper/submission_minimal/figures` 对应文件一致，除非打包步骤明确记录了格式转换；
-- PDF 实物的 CreationDate / mtime 是本轮导出后的时间，并且渲染页目检确认图序、表格、文字和 panel 语义没有明显问题；
-- References 不是 PDF 渲染装饰项。若 `references.bib` 存在但 PDF 无 References，优先分类为 citation-chain / submission markdown consumption defect，必须确认正文 citation 或 `nocite` policy 被 `paper/submission_minimal/manuscript_submission.md` 和 Pandoc citeproc 消费；
-- catalog 已声明的长表、横表或 measure-value 表策略必须进入 submission source 和最终 PDF，不能只停留在 catalog / manifest。
-
-稳定机器入口：
-
-```bash
-MCP tool: agent_tool_arsenal mode=index|card|resolve|plan|result_envelope_schema
-MCP tool: display_pack_agent mode=discover|orchestrate|plan|preflight|render
-medautosci domain-handler export --profile <profile> --format json
-medautosci domain-handler dispatch --task <task.json> --format json
+```text
+current owner delta + claim/data refs
+  -> figure intent / plan
+  -> OPL pack resolve + environment prepare
+  -> render attempt
+  -> layout/visual/claim QC
+  -> MAS visual audit and artifact authority
+  -> publication-facing refs
 ```
 
-Domain entry commands：
+R/Bioconductor requirement由 `contracts/runtime_environment_requirements.json` 声明，环境准备归 OPL `env prepare/run`。
 
-```json
-{
-  "command": "display-pack-orchestrate",
-  "repo_root": "<mas_repo>",
-  "paper_root": "<paper_root>",
-  "current_owner_delta": {
-    "stage_id": "paper_autonomy/display",
-    "work_unit_id": "figure-2-roc"
-  },
-  "claim_ref": "claim:primary-discrimination",
-  "data_ref": "analysis:roc-input-v1",
-  "paper_target": "jama",
-  "intent": "Create a primary ROC curve evidence figure for the mortality risk model.",
-  "figure_request": {
-    "preferred_renderer_family": "r_ggplot2"
-  }
-}
-```
+## Ready boundary
 
-CLI 是 agent/debug/资产管理面，不是让用户手工选模板的主路径：
+Template resolved、render success、golden match、layout QC、workbench visible或 visual-audit scaffold都不单独等于 publication ready、submission ready、scientific claim authority或 artifact mutation authorization。最终结论必须回到 MAS owner receipt、quality/publication gate与 canonical artifact refs。
 
-```bash
-medautosci publication display-pack-agent-discover --repo-root <mas_repo>
-medautosci publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>' --claim-ref <claim_ref> --data-ref <data_ref> --paper-target <journal_or_profile> --intent '<display_intent>'
-medautosci publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'
-medautosci publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'
-medautosci publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'
-medautosci publication display-pack-provenance-bundles --repo-root <mas_repo> --paper-root <paper_root>
-medautosci publication display-pack-templates --repo-root <mas_repo> --kind evidence_figure --renderer-family r_ggplot2
-medautosci publication display-pack-template --repo-root <mas_repo> --template-id roc_curve_binary
-medautosci publication display-pack-scaffold-render --repo-root <mas_repo> --paper-root <paper_root> --template-id roc_curve_binary --data-payload-file <payload.json>
-medautosci publication display-pack-golden refresh --repo-root <mas_repo> --paper-root <paper_root> --template-id roc_curve_binary --data-payload-file <payload.json> --golden-root <golden_root>
-medautosci publication display-pack-golden check --repo-root <mas_repo> --paper-root <paper_root> --template-id roc_curve_binary --data-payload-file <payload.json> --golden-root <golden_root>
-```
+## 导航
 
-`display-pack-agent-*` 是 MAS agent 的结构化能力面；`display-pack-templates` / `display-pack-template` 是只读资产发现面；`display-pack-scaffold-render` 和 `display-pack-golden` 会物化试跑用 paper scaffold 并走正式 E2E render/QC/audit receipt/lifecycle/lock/manifest。每次正式 E2E render 会同时生成 `paper/build/provenance/figures/<figure_id>/bundle.json` 和 `paper/build/provenance/figure_provenance_index.json`；每图目录还必须物理包含 `README.md`、`ro-crate-metadata.json`、`code_refs.json`、`inputs/manifest.json`、`outputs/manifest.json`、`environment/manifest.json`、`agent_trace/manifest.json`、`reviews/manifest.json` 和 `replay/manifest.json`。`display-pack-provenance-bundles` 只复用已有 receipt、manifest、render request/log 和 generated figure files 重新物化 bundle，不重跑图、不写 owner receipt、不签 publication readiness。若运行方已把完整 agent message history 或 transcript 写成文件，可通过 `paper/build/provenance/agent_trace_refs.json` 声明 refs，bundle 会把这些 refs 纳入 `refs.agent_trace`、hash 与 missing/restricted 审计；MAS 不抓取 Codex 私有会话库，也不把消息正文塞进 OPL Ledger。缺失 source surface 进入 bundle 的 `missing_refs`，外部或不可暴露 locator 进入 `restricted_refs` / restricted agent trace；bundle 和 index 同时记录 `typed_issues` / `typed_issue_codes`，至少区分 missing agent trace、missing review、missing replay command/request、missing output/ref 和 restricted ref。`replay/manifest.json` 是 refs-only dry-run readback：只检查 argv/cwd/request_ref/expected output refs/hash 是否存在或匹配，不重画图。publication manifest 与 `figure_render_receipt.json` 的每图 entry 只反向挂 `provenance_bundle_ref`、`provenance_bundle_hash` 和 `provenance_readback_ref`，不伪造质量裁决或 owner verdict。它们方便模板开发与资产验收，但不替代真实 paper intent authoring、独立 visual audit、MAS owner receipt 或 publication gate。
-
-证据型图修复必须保留 frozen data / script / statistics refs 与 MAS artifact authority refs 的直接关系。说明性图可以走程序化 illustration route，但不能承载结果证据、修改 claim、替换 source truth 或绕过 MAS owner receipt / typed blocker。OPL generated / hosted surfaces 只能展示或运输 display locator refs、owner receipt refs、typed blocker refs、pack/version refs 和 audit refs。
-
-## Memory 边界
-
-医学展示有两层复用内容：
-
-- 已审计模板、input schema、renderer family、layout QC profile、shell contract、生成型 catalog 和 packaging manifest 是强 display contract；
-- 论文为什么选某类图、视觉审计中反复出现的可读性失败、文章级风格取舍、图表路线选择 caveat，适合作为自然语言经验记忆。
-
-第一层归属本能力树和 source/contract surface。第二层可以被 MAS stage knowledge packet 和 publication route memory 引用，但不能替代实际渲染图审阅、模板合同或 QC 合同。
+- [Display Pack v2 status](./contracts/display_pack_v2_landing_status.md)
+- [Display Agent OS target](./contracts/display_pack_agent_os_target.md)
+- [Visual audit protocol](./contracts/medical_display_visual_audit_protocol.md)
+- [Architecture](../../architecture.md)
+- [Runtime boundary](../../runtime/contracts/runtime_boundary.md)

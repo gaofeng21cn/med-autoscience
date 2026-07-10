@@ -3,66 +3,65 @@
 Owner: `MedAutoScience`
 Purpose: `docs_entrypoint`
 State: `active_index`
-Machine boundary: 本文是人读文档导航。机器真相继续归 `agent/`、`contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact 与 owner receipts。
+Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/`、MAS domain-handler/authority results、OPL generated/readback surfaces、workspace artifacts 与 owner receipts。
 
-这个目录是 `Med Auto Science` 的技术阅读层。仓库首页继续作为医生、PI 和医学研究团队的默认入口。
-
-## 先读这里
+## 核心五件套
 
 | 需求 | 入口 |
 | --- | --- |
-| 产品角色与边界 | [项目概览](./project.md) |
-| 默认论文任务入口 | [Product 文档](./product/README.md)、[MAS executor-first 重构目标与迁移计划](./active/mas_executor_first_rearchitecture_program.md) |
-| Next action authority | [Next Action Control Plane](./runtime/control/next_action_control_plane.md) |
-| 当前运行真相 | [当前状态](./status.md) |
-| Active Truth / 当前差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) |
-| MAS / OPL progress runtime 蓝图完成度 | [MAS / OPL 进度运行时理想蓝图](./runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md)、`contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance` |
-| 当前内容线索引 | [MAS 当前开发线路](./active/current-development-lines.md) |
-| 架构与 owner 边界 | [架构](./architecture.md) |
+| 项目角色 | [项目概览](./project.md) |
+| 架构与 owner split | [架构](./architecture.md) |
 | 不可变约束 | [不可变约束](./invariants.md) |
-| 持久决策 | [关键决策](./decisions.md) |
-| 文档生命周期规则 | [文档组合治理](./docs_portfolio_consolidation.md) |
-| 外部科研 agent 吸收 | [Co-Scientist Hypothesis Portfolio Intake](./references/mainline/co_scientist_hypothesis_portfolio_intake.md)、[ARK Research Workflow Intake](./references/mainline/ark_learning_intake.md) |
+| 当前有效决策 | [关键决策](./decisions.md) |
+| 当前状态 | [当前状态](./status.md) |
+
+## 当前计划
+
+[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。OE-01 至 OE-12 已全部完成 repo/source/control-plane 落地；Live evidence 独立后置。
+
+[MAS 当前开发线路](./active/current-development-lines.md) 只做内容线索引，不维护第二 backlog。
+
+## 当前架构入口
+
+- [Product surfaces](./product/README.md)：OPL generated/hosted interface 与 MAS authority boundary。
+- [Runtime boundary](./runtime/contracts/runtime_boundary.md)：OPL runtime 与 MAS domain owner split。
+- [Controllers](./runtime/control/controllers.md)：MAS controller 只处理医学 policy/authority。
+- [Stage outcome](./runtime/control/progress_first_stage_outcome.md)：`StageOutcome -> NextActionEnvelope`。
+- [Study Truth Kernel](./runtime/projections/study_truth_kernel.md)：domain reducer/read-model 边界。
+- [Medical Display](./delivery/medical-display/README.md)：display action、OPL pack/runtime 与 MAS quality authority。
+- [External runtime gate](./policies/runtime-governance/external_runtime_dependency_gate.md)：非默认 executor/backend/provenance 边界。
 
 ## OPL 系列分层
 
-OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.md`。其中维护 OPL Framework 的全局目标、全局差距、通用能力上收边界、App/workbench 目标和跨仓开发顺序。
+MAS 的 canonical id 是 `mas`，长期形态是：
 
-MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/publication/artifact authority、direct MAS app skill path、OPL-hosted sidecar/projection/receipt 边界，以及哪些通用 runtime、memory、artifact lifecycle、workbench 和 observability primitive 应上收到 OPL。Big-Bang cutover 后，默认用户 / skill / product-entry 论文入口是 `paper-mission` / `PaperMissionRun` / `StageOutcome` on OPL hosted substrate：先读 `medical_paper_product_entry.default_action_intent=domain_route/start-or-resume`、`paper-mission inspect|start|resume|consume-candidate`、`artifact_first_mission_summary.paper_mission_run` 和 Stage terminal outcome refs。StageOutcome 之后的当前 next action 只从 `NextActionEnvelope` 读取；缺 envelope 时不得从 PaperRecovery、provider admission、OPL queue / attempt、current-work-unit 或 exact-id registry 补 next action。旧 domain diagnostic / owner-route / owner-callable dispatch / PaperRecovery / Portal / workbench 只能作为 import、provenance、runtime diagnostic、migration diagnostic 或 OPL-hosted read-only projection detail 读取。MAS 理想目标态读 [MAS 理想目标态](./references/positioning/mas_ideal_state.md)，single Active Truth plan 读 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)。该计划是当前唯一真相、目标态、已落地状态、功能/结构差距、测试/证据差距、近期完善计划和历史索引的唯一 owner；[MAS 当前开发线路](./active/current-development-lines.md) 只作为内容线索引。MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不在 MAS 文档中维护。
+> `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`
 
-Co-Scientist 论文启发的吸收方向读 [Co-Scientist Hypothesis Portfolio Intake](./references/mainline/co_scientist_hypothesis_portfolio_intake.md)：MAS 只吸收 hypothesis portfolio / evidence pack 的 contract-first 形状，保留 MAS 对医学 truth、quality、publication、artifact、human/expert gate 和 owner receipt 的 authority；OPL 只承接 runtime、projection、generated surfaces 和 refs-only 展示。Elo、ranking、proximity、novelty 或 source-coverage 分数都只能作为 advisory selection signal，不能关闭 quality gate、publication gate、human gate 或 artifact authority。
-
-## Workspace / file lifecycle 边界
-
-MAS 的 repo-source layout 按标准 domain agent 职责读取：`agent/` 持有医学研究 declarative pack，`contracts/` 持有机器合同和 schema/index，`runtime/authority_functions/` 只作为最小医学 authority function 的 runtime-facing descriptor/receipt-ref 边界，`src/` 持有 domain handler、authority adapter 与 native helper，`docs/` 持有人读治理说明。真实 study workspace state、runtime artifact、receipt instance、交付物、临时 build/cache/venv/pycache/pytest cache/install sync 副产物不进入开发 checkout；它们必须落到受控 study workspace/runtime artifact root 或用户级 runtime state。
-
-MAS repo source 只保存 locator、index、schema、receipt ref、restore/retention policy 和 no-forbidden-write 证据。医学 study truth、publication/quality verdict、artifact authority、publication-route memory body accept/reject 与 owner receipt 仍归 MAS owner chain；OPL 只上收通用 workspace/file lifecycle primitive、scheduler/runner/session/workbench shell 和 projection。
+`agent/` 持有 declarative pack，`contracts/` 持有 action/schema/authority/handoff contracts，`src/` 只保留 domain-handler targets 与 minimal authority helpers。CLI、MCP、Skill、product-entry、status、workbench、runtime lifecycle、StateIndex、storage/health 与环境 provisioning归 OPL。
 
 ## 目录地图
 
 | 目录 | 用途 |
 | --- | --- |
-| [active](./active/README.md) | 当前执行、当前计划、当前差距与 active baton；旧 `program/` 内容由这里维护。 |
-| [public](./public/README.md) | MAS 对外公开叙事和用户第一阅读层。 |
-| [whitepapers](./whitepapers/README.md) | MAS 公开白皮书源文档。 |
-| [product](./product/README.md) | MAS app skill、direct product entry、operator/workbench-facing 指南。 |
-| [site](./site/README.md) | 本地生成的 latest 用户可读公开文档输出边界。 |
-| [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
-| [delivery](./delivery/README.md) | manuscript、package、submission/export 与医学研究交付 authority。 |
-| [source](./source/README.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |
-| [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
-| [specs](./specs/README.md) | 当前仍有效的技术规格索引；旧 spec 需标清 active/history。 |
-| [references](./references/README.md) | 支撑参考、定位、集成说明和 parity 材料；dated verification ledger 归 history。 |
-| [history](./history/README.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
-
-这张表采用 OPL-family canonical docs taxonomy。旧 `program/` 与
-`capabilities/` 目录已物理退役；program-baton 内容进入 `active/`，
-medical-display 能力族进入 `delivery/medical-display/`。
-
-当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / legacy tick 已物理退役，只按 tombstone/provenance refs 理解，不写成 MAS 理想 runtime 常态。`Plan Completion Ledger`、real-study verification note、docs lifecycle audit、dated receipt/worklist proof 和 follow-through 这类过程证据已归 [history/program](./history/program/README.md)，不再由 `references` 或 active/core 入口承载。当前 docs lifecycle coverage 读 [MAS Docs Portfolio Coverage Ledger](./history/docs-portfolio-coverage-ledger/README.md) 与 [MAS broader docs portfolio SSOT closeout 2026-06-07](./history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)；05-20、06-03、06-05 等 closeout 只作为历史记录从 [history/program](./history/program/README.md) 追溯。
+| [active](./active/README.md) | 当前计划、owner gate 与 active support index |
+| [public](./public/README.md) | 对外叙事 |
+| [product](./product/README.md) | Product/inspection boundary |
+| [runtime](./runtime/README.md) | Runtime contracts、control、projections 与 active designs |
+| [delivery](./delivery/README.md) | Manuscript、display、package 与 submission support |
+| [source](./source/README.md) | Source readiness、workspace refs 与 external intake |
+| [policies](./policies/README.md) | 稳定治理规则 |
+| [specs](./specs/README.md) | 当前有效技术规格索引 |
+| [references](./references/README.md) | 背景、对照、provenance 与非 active 参考 |
+| [history](./history/README.md) | dated proof、旧计划、tombstone 与过程归档 |
 
 ## 阅读规则
 
-先读核心文档，再进入对应子目录索引。详细文件清单由各子目录 README 承担，本页只保留短导航。
+- 先读核心五件套，再进入 owner 子目录。
+- Active docs 只保留 current owner、state、machine boundary 与 open gate；dated proof/receipt/命令流水归 Git或 history。
+- `docs/**` 不是机器接口。代码和测试依赖 JSON/schema/source/semantic id，不解析 Markdown措辞。
+- History 中的 provider admission、current work unit、PaperRecovery、repo-local CLI/MCP/workbench/runtime 只能按 provenance/tombstone读取。
+- Runtime/paper/publication/production ready 必须 fresh live/readback/artifact/receipt evidence；docs、tests、descriptor和 projection 不替代。
 
-`docs/**` 是中文内部开发与维护参考。代码、测试、runtime status 和 contract 应依赖 schema、durable JSON、source path 或 `runtime:*`、`program:*`、`policy:*`、`human_doc:*` 等语义 ID，不应把 Markdown prose 文案钉成机器接口。
+## 文档治理
+
+新增、更新、归档或 tombstone 前读 [MAS 文档组合治理](./docs_portfolio_consolidation.md)。

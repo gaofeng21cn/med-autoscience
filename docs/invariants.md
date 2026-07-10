@@ -1,94 +1,61 @@
-# 不可变约束（Invariants）
+# 不可变约束
 
 Owner: `MedAutoScience`
-Purpose: `stable_invariants`
-State: `active_policy`
-Machine boundary: 本文是人读不可变约束。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
+Purpose: `project_invariants`
+State: `active_current_truth`
+Machine boundary: 本文是人读约束；机器事实以 contracts、source、runtime durable surfaces、artifact 与 owner receipts 为准。
 
-以下约束是仓库运行语义的最低不变集，任何变更都不得破坏。
+## 身份与 owner
 
-## 运行真相与默认入口
+- canonical id 是 `mas`；repo/package/plugin locator 不改变 domain identity。
+- MAS 是 `Declarative Medical Research Pack + minimal authority functions`；OPL 持有 generated/hosted platform surfaces。
+- OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
+- MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
 
-- repo-tracked contract、durable surface、stable runtime / controller surface 和 generated artifact 是当前权威；本地工具状态、历史 session、prompt、log 或 hook 只能归档到用户级状态，不得替代仓库真相。项目级 `.codex/` 与 `.omx/` 已退役。
-- formal-entry matrix 固定为 `CLI`（默认入口）/ `MCP`（协议层）/ `controller`（控制面）；能力表达遵循 `policy -> controller -> overlay -> adapter` 主链路，避免旁路。
-- `MedAutoScience` 对外第一身份固定为独立 medical research domain agent，单一 MAS app skill 承接稳定 capability surface；OPL handoff、product-entry manifest 与其他机器桥接只作为集成或参考层，不改写第一主语。
-- 默认执行链是 `OPL/Temporal hosted autonomous runtime + Codex CLI default stage executor + MAS stable capability surface`。任务启动后，持久在线调度、唤醒、retry、resume、attempt ledger 和 worker residency 归 OPL/Temporal；`Codex CLI` 是 stage 内默认 concrete executor；Codex App 不是外围持续 driver。`hermes_agent` 只允许作为显式非默认 executor / proof lane，旧 Hermes provider 或 local carrier 只能进入 history / provenance / dev / CI / offline diagnostic 语境。
-- OPL-hosted production path 必须依赖 Temporal-backed provider transport / record / dispatch stage attempt；local / legacy substrate 不能生成 MAS 医学研究 truth，也不能替代 OPL Full online readiness。
-- MAS 不得新增或恢复 generic daemon、scheduler、attempt loop、queue hydration、retry/dead-letter、resume 或 worker residency owner；这些只能作为 OPL/Temporal owner route 的 refs、receipt、typed blocker 或 tombstone/provenance surface 被 MAS 投影。
+## Pack 与 generated surfaces
 
-## OPL 边界与标准 Agent 目标
+- `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
+- action catalog 当前包含 22 个 action。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
+- MAS domain entry 只实现 handler targets 与医学 authority result，不变成 platform facade。
+- 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
 
-- `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，持有 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes；它不把 MAS 改写为内部模块或研究 owner。
-- `OPL Runtime Manager`、native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface；不得成为 MAS scheduler kernel、session store、memory store、study truth、publication gate、artifact authority、concrete executor owner，或替代 `progress_projection`、`domain_diagnostic_report`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger、review ledger。
-- MAS 的目标态高于当前实现分布。当前仓内 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
-- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 domain authority refs / diagnostic provenance path。
-- MAS / OPL 下一层重构必须遵守 [MAS / OPL Agent OS 目标运行架构与重构计划](./runtime/designs/mas_opl_agent_os_target_operating_architecture.md) 的 owner split：OPL Agent OS 持有 Pack Compiler、StageRun Kernel、State Index Kernel、Route Reconciler、Lifecycle Plane、Observability Plane 和 Workbench Shell；MAS 只持有 Declarative Medical Research Pack、Medical Authority Kernel 和 domain-owned refs / receipts / blockers。Scientific Capability Registry、Light / Co-Scientist / EvoScientist / PaperSpine / ARIS / ARK / AutoSci 等外部能力不得变成默认 admission layer、第二 route table、quality owner、artifact authority、publication gate 或 memory authority。
-- MAS / OPL ordinary progress 的理想 spine 固定为 [MAS / OPL 进度运行时理想蓝图](./runtime/designs/mas_opl_progress_runtime_ideal_blueprint.md) 中的 `DomainIntent -> OPL Command -> OPL Event -> OPL Transactional Outbox -> StageRun / ToolInvocation -> MAS OwnerAnswer -> Derived Projection`。新增或保留 surface 只要承担 command log、event log、transactional outbox、fixed-point reconcile、StageRun lifecycle、human gate transport、state index、workbench shell 或 observability transport，就必须归 OPL primitive；只要承担 medical policy、owner receipt、typed blocker、quality verdict、artifact/source/memory authority 或 route-back/human answer consumption，就必须归 MAS authority surface。
-- 蓝图完成声明必须按 `contracts/paper_progress_transition_runtime_completion_audit.json#/blueprint_l0_l7_functional_acceptance` 分栏读取。`repo/source/control-plane` L0-L7 done 只能证明源码、合同、readback shape、replay fixtures、projection demotion、authority=false、tombstone/rebuild/no-active-caller 与 live-acceptance harness 已落地；不能被扩展为 overall blueprint complete、runtime ready、provider running、paper-line ready、publication-ready、domain-ready 或 production-ready。live-only deferred evidence 缺失也不能反向恢复 MAS private runtime authority 或打开新的 repo/source/control-plane backlog。
-- 任何“一步到位”“全部落地”“完成度 100%”类验收必须按 active plan 的落地矩阵拆成 `repo/source/control-plane` 与 `live acceptance` 两个百分比。OPL 基座的 `TransitionRuntime`、`Outbox`、`StageRunKernel`、`StateIndex`、`Tool Arsenal`、`Workbench` 可以分别在结构账关闭；MAS 的 `Declarative Medical Research Pack` 与 `Medical Authority Kernel` 也可以分别在结构账关闭。但 live acceptance 只有 fresh runtime / owner evidence 才能计分：OPL command/event/outbox/StageRun readback、domain diagnostic apply/readback、strict running proof、owner receipt、stable typed blocker、human gate、route-back evidence、quality gate receipt、paper/artifact semantic delta、reviewer/auditor receipt 或 production soak。docs、contract、tests、descriptor ready、candidate package、queue empty、projection clean、refs-only ledger 或 workbench visible 一律不得给 live acceptance 记 100%。
-- Live Evidence 后置是 MAS 日常开发基本原则。repo-source retirement、contract / schema / readback shape、projection demotion、authority=false、domain diagnostic / PaperProgressPolicyAdapter / OPL transition ABI、no-active-caller、tombstone/provenance 和 rebuild guard 属于功能/结构 lane，可以不等待 live domain diagnostic apply、OPL outbox / StageRun readback、DM002/DM003 fresh outcome、真实 paper artifact delta、owner receipt、stable typed blocker、human gate、provider running / long-soak 或 publication evidence 先行关闭。后置 Live Evidence 仍是 paper progress、publication-ready、live-runtime ready、domain-ready 和 production-ready claim 的必要验收；focused tests、projection clean、queue empty、contract pass、docs foldback 或 repo-source 删除不能替代。
-- `mas_mds_module_boundary_audit_report` 和 `mas_mds_architecture_owner_boundary_report` 是这条 progress spine 的结构 fitness function。任何 MAS group / layer 声称 `command_log`、`event_log`、`transactional_outbox`、`fixed_point_reconciler`、provider admission、attempt lifecycle、state index、workbench shell、tool selector 或 capability runtime authority，或打开对应 private capability flag，都必须 fail closed；只允许 MAS 暴露 `policy_adapter`、`owner_callable_adapter`、`authority_result_validator`、`body_free_diagnostic_projection`、`derived_projection`、`domain_authority_function` 或 `tombstone_or_provenance` 角色。
-- 通用 lifecycle substrate 归 OPL / shared family layer：stage attempt、queue、retry/dead-letter、resume、attempt ledger、locator/index、restore/retention shell、generic memory/artifact transport、observability 和 App/workbench shell。MAS 只能把这些 surface 读成 refs、receipt、typed blocker、no-forbidden-write proof 或 diagnostic projection；它们不能生成医学研究 truth、publication quality verdict、artifact mutation authorization、memory accept/reject verdict 或 source readiness verdict。
-- 文档和计划必须先设理想态，再找差距；差距不是妥协清单。处理清楚 active caller、替代 surface、provenance 和必要证据后，旧模块、旧接口、旧测试、旧目录、旧文案和兼容面默认删除、archive 或 tombstone。
+## Authority
 
-## MAS Domain Authority 与 AI-first 质量
+- 默认 next-action authority 只有 `StageOutcome -> NextActionEnvelope`。
+- OPL transport/readback 只有传输权；同 identity 的 MAS owner consumption 才能解释 domain result。
+- AI-first quality gate 必须消费独立 reviewer/auditor invocation 与 receipt；executor 不得自审并关闭质量门。
+- publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。
+- refs-only projection、schema、validator、test、workbench 可见性和 inventory presence 都不等于 authority verdict。
 
-- MAS 必须持有无法声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 或必要医学 helper implementation。缺少接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和 no-forbidden-write 证据时，必须作为功能/结构差距处理。
-- Retained Medical Authority Kernel 的机器读根是 `contracts/authority_kernel_inventory.json`，生成入口是 `src/med_autoscience/authority_kernel_inventory.py::build_authority_kernel_inventory`。新增或保留 MAS authority function 时，必须在 inventory 中列出 category、owner、active caller refs、allowed writes、forbidden authority、output refs、cannot-lift-to-OPL reason 与 retirement gate 或 upcollect target；generic runtime / OPL substrate owner 不得被列为 MAS retained authority。inventory presence 只表示 `inventory_landed_physical_thinning_pending`，不能被写成 authority fully retired、production-ready、paper-line progress、publication-ready 或 artifact mutation authorized。
-- AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
-- Hypothesis portfolio / evidence pack 只能作为 MAS-owned 研究探索和证据审计 shape。Co-Scientist 式 generation、reflection、ranking、Elo、proximity、evolution 或 meta-review signal 都是 current-owner-native JIT affordance / reviewer-briefing 输入；`next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review` 和 `opportunistic knowledge prefetch` 默认可用但不默认运行，只能在当前 owner / gate 显式声明或由 current delta 形态隐含需要时帮助 route 更快选择下一 owner action、帮助 reviewer / auditor 更快发现缺口、帮助 memory 复用失败路径。它们不得替代 source readiness verdict、AI reviewer / auditor quality gate、publication gate、human/expert gate、artifact authority、memory accept/reject decision、owner receipt 或 stable typed blocker；也不得变成 admission gate、route blocking layer、quality closure、publication readiness、paper progress、production-ready 或真实 paper-line closeout。
-- AI reviewer-backed `publication_eval/latest.json` 只有在 reviewer OS currentness proof 覆盖当前 canonical manuscript surface（`paper/draft.md`、`paper/manuscript.md` 或 `paper/build/review_manuscript.md`）且 digest/时间戳不陈旧时，才能关闭 `return_to_ai_reviewer_workflow` 的 required output；否则 materializer/dispatcher 必须视为 pending，repeat suppression 不得吞掉复评。
-- `allow_write` 必须按写面拆语义：publication gate 的 `allow_write=false` 只阻止下游投稿包、bundle、submission proofing、`current_package` 和 delivery mirror 写入；MAS managed runtime worker 在 controller-authorized analysis-campaign/write work unit 下仍可修改 canonical `paper/` 修订面。
-- 投稿包、submission-ready 或 finalize 后的用户、导师、审稿反馈是同一 study 的重新激活信号；必须先写入 durable revision intake，再通过 MAS-controlled relaunch/resume 接管 canonical paper surface 并重新生成投影包，不得让前台直接修改 `manuscript/current_package/`。
-- 大型 public data 默认保持 remote-only；只有 durable study charter 或 analysis plan 明确用途、体积预算、复用位置与清理/保留策略后，才允许下载或物化完整资产。
+## 退役与兼容
 
-## Read Model、票据与恢复
+- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、runtime shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
+- 旧 provider admission、current work unit、PaperRecovery 与 domain-action request 只允许 tombstone/provenance/no-resurrection guard，不得恢复 current caller。
+- MDS/DeepScientist 只作 provenance、explicit archive import、backend audit、upstream learning 与 parity oracle。
+- Hermes-Agent 只作显式非默认 executor/proof lane；不宣称与 Codex CLI 行为或质量等价。
 
-- `study_macro_state/latest.json` 是用户宏观状态的唯一 read model，用户可见投影固定从 `writer_state/user_next/reason` 派生；缺少 canonical macro state 或出现 writer 冲突时必须 fail-closed 为 `inspect/conflict`。
-- 当前执行票据由 PaperMission / PaperMissionTransaction / StageTerminalDecision / StageOutcome / owner receipt 或 stable typed blocker 组成。`owner_route`、request handoff 和旧 owner-callable dispatch 只能作为 legacy diagnostic / migration provenance / fail-closed carrier，不能绕过 paper-mission currentness、StageOutcome identity 或 OPL DomainProgressTransitionRuntime readback。
-- 默认 next-action authority 只承认 `StageOutcome -> NextActionEnvelope`。旧 `current_work_unit`、`current_execution_envelope`、`current_executable_owner_action`、PaperRecovery successor、provider admission、queue / attempt、StageAttempt 和 delivery mirror 只能作为 superseded diagnostic / provenance / no-resurrection guard；除非被同 identity 的 MAS owner consumption 明确消费，否则不得成为默认完成判断、current owner、provider admission authority、paper progress、submission-ready、publication-ready、runtime-ready 或 current-package authority。
-- 稳定控制面只承认 `macro_state`、PaperMission/StageOutcome、`receipt_or_blocker` 和 `evidence_refs`。细分 runtime/status reason、supersession reason、publication supervisor phase、operator/workbench 文案、旧 owner-route projection 和 projection-local status 只能作为 diagnostic/read-model detail 或 typed blocker payload，不得单独授权执行、恢复、写 artifact、刷新 publication eval 或关闭质量门。
-- Runtime health append 只有在显式 `source_signature` 相同的情况下幂等返回 existing diagnostic event；没有 OPL lifecycle proof 的 recover/launch/release/escalation 类事件不得写成 MAS lifecycle 事实或消耗 retry budget。retry/dead-letter、attempt ledger、worker liveness、canonical runtime action 和 runtime lifecycle owner 均归 OPL/Temporal，MAS 只能投影 body-free diagnostic refs、owner receipt、typed blocker 或 route-back evidence。
-- 文件生命周期治理不得从 cleanup plan 反向推断 study truth；终局止损文件生命周期 plan 只能由 materialized macro state 授权，物理 apply 仍要求 manifest、sha256、restore index 与 restore proof。
-- generic lifecycle refs / StateIndex store 归 OPL，只做 refs index、read model、receipt 和幂等检索。MAS 只发 body-free source-adapter refs，不保留本地 SQLite persistence；两者都不能替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。
-- 开发 checkout 只保存 repo source、docs、schema/contract、locator/index、receipt ref、restore/retention policy 与 authority-function descriptor。真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact、临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须写入受控 study workspace/runtime artifact root 或用户级 runtime state。
-- `runtime/authority_functions/` 的语义只限最小 MAS authority function anchor；它不得变成 runtime artifact root、generic lifecycle engine、session store、scheduler、runner、queue、workbench 或 memory body store。
-- OPL 上收通用 workspace/file lifecycle primitive 后，MAS 私有 scheduler/runner/session/workbench 残留只能作为迁移输入、domain authority refs、diagnostic provenance 或 tombstone；不得继续定义长期结构。
+## Durable truth
 
-## MDS / DeepScientist 与 legacy 进入规则
+- study、publication、runtime 与 display 真相归 stable runtime/controller/contract/generated artifact surface；docs 只解释和导航。
+- SQLite/index/read model 是可重建投影，不得替代 canonical files、owner receipts 或 artifact authority。
+- status/workbench 只能读取 body-free refs、receipts、blockers 与 diagnostics，不得授权执行或变更 artifact。
+- workspace 不依赖 MAS checkout 内 `.venv`；环境由 OPL substrate 和标准 package tooling 准备。
 
-- `MDS` 只能作为显式可选 runtime/native/review event source、backend audit、explicit archive import reference、upstream intake 或行为等价 oracle；MAS 的 `StudyTruthKernel` 持有 `canonical_next_action`、publication gate 解释、package authority 解释和 delivery state。
-- `MDS` 只能作为显式 archive/provenance 或外部 probe 输入；worker liveness、attempt、retry/dead-letter、runtime escalation 与 reconcile authority 归 OPL current-control / StageRun / Observability。MAS 只能消费对应 readback 并产出 domain owner receipt、typed blocker 或 route-back，不得重建私有 runtime health kernel。
-- MDS parity 不允许被读成科研记录降级：核心科研审计必须继续由 MAS 研究 evidence pack、negative / failed-path ledger、decision trace、artifact lineage / reproducibility refs、AI reviewer / auditor record、owner receipt 或 stable typed blocker 承担。旧 MDS daemon residency、GitOps state management、interactive artifact mutation UX、WebSocket terminal attach 和 workspace-local service 是 retired 或 OPL-owned product/runtime direction，不是 MAS 当前能力缺口。
-- truth/gate/status 或 liveness/recovery 事故必须同时落 reducer rule、fixture test 与 runbook entry。后续 MDS / DeepScientist 相关能力只能沿 owner matrix、strangler refactor 和 architecture fitness functions 进入。
-- `mas_mds_architecture_owner_boundary_report` 是 architecture owner boundary fitness function。entry projection、observability、MDS backend/oracle 或 runtime diagnostic adapter 不得声明或替代 `study_truth`、`scientific_quality`、`medical_writing_quality`、`publication_readiness`、`submission_authority`、`artifact_authority` 或 `user_visible_next_action`；也不得声明或替代 OPL-owned `runtime_health`、`canonical_runtime_action`、attempt ledger、worker liveness、retry/dead-letter 或 runtime lifecycle。
-- 重新打开默认 dependency、未带 provenance/parity proof 的 physical absorb、未带 rollback surface 的 owner switch、以及用 MDS mechanical oracle 替代 MAS AI reviewer / controller authority 的变更都必须 fail-closed。
+## External learning
 
-## 工程方法
+- 外部框架默认是 pattern source/provenance。只有进入 MAS owner surface 或 OPL callable/generated surface并有 allowed/forbidden authority evidence，才可写成 landed。
+- Scientific Capability Registry 与 advisory workers 是 refs-only/fail-open support，不是 admission layer、第二 route table、quality owner、artifact authority 或 publication gate。
 
-- 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
-- 重大变更必须在独立 worktree 中完成，保持可追溯与可回滚。
-- 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、回归基线或 provenance 存在。
+## Evidence
 
-## 文档与结构
+- repo/source/control-plane 完成由 diff、contract/schema、focused tests 与 no-active-caller proof 支持。
+- live/runtime/readiness claim 必须有 fresh OPL readback、MAS owner receipt、stable typed blocker、human gate、independent reviewer/auditor receipt或真实 artifact semantic delta。
+- docs、tests、descriptor ready、queue empty、projection clean、candidate package 和 dry-run 不得升级为 paper progress、publication ready、runtime ready、domain ready 或 production ready。
+- Live evidence 可以后置，但后置不能被解释为已经 ready，也不能反向恢复已退役的 MAS private platform。
 
-- `docs/project.md`、`docs/architecture.md`、`docs/invariants.md`、`docs/decisions.md`、`docs/status.md` 是核心骨架。
-- 文档按 `active/`、`public/`、`product/`、`runtime/`、`delivery/`、`source/`、`policies/`、`specs/`、`references/`、`history/` 分类收口，不得平铺堆放；旧 `program/` 与 `capabilities/` 只作为 `docs/history/**` 中的迁移来源或 provenance 目录名出现。
-- 理想态差距和开发计划必须按目标态拆分 `功能/结构差距` 与 `测试/证据差距`；现有通用功能面应由 OPL 承担时，即使可运行，也写成功能/结构差距。
-- Live Evidence、production evidence、provider long-soak、真实 study/paper run、owner receipt、stable typed blocker、human gate、publication evidence 和 artifact delta 默认进入后置 `测试/证据差距` / readiness lane；只有它们直接保护医学 authority、artifact mutation、owner receipt、typed blocker、human gate、closeout admission 或 publication/production claim 时，才可阻塞对应动作。
-- `当前实际` 只能作为迁移起点、风险和证据来源；不得反向约束理想态，不得把现有私有实现包装成长期设计。
-- `contracts/` 是机器可读 contract root；模块边界 contract 归入 `contracts/modules/`，叙述性说明留在 `docs/`。
-- `docs/**` 是中文内部开发与维护参考；稳定路径优先使用无语言后缀 `.md` 承载中文 canonical 内容。
-- 根层 `README*` 是否保留公开双语入口，由产品分发和 public 需求单独决定。
+## 工程约束
 
-## 验证
-
-- 统一验证入口为 `scripts/verify.sh`。
-- 不带参数的 `scripts/verify.sh` 是本地 smoke 入口，负责 sanity 与 fast tests，不代表完整回归。
-- `scripts/verify.sh regression` 是显式回归入口，默认由 advisory/nightly 承接。
-- `scripts/verify.sh ci-preflight <base-ref>` 是 push CI 入口，必须基于 repo-tracked preflight contract 展开变更面检查，并与 build 共同保护 `main` / `development`。
-- `regression`、`display`、`submission`、`family` 与 `meta` lane 由 advisory/nightly 承接，不回灌到 push quick-checks。
-- `smoke`、`ci-preflight` 与 `full` 的耗时预算只用于观察和提醒；duration drift 与相对基线百分比变化通过 advisory run log、summary artifact、只读 history summary 或 release/full 记录暴露，不得成为 push quick-checks 的新增阻塞项。
-- 修改 machine-readable contract surface、测试入口或运行语义时，至少补跑 `make test-meta`；纯叙述性 docs-only 变更按 `documentation_review_only` 处理。
-- Python / pytest 验证必须通过 clean runner 路由 bytecode、`uv sync` project venv、pytest cache 与仓库外稳定 `UV_CACHE_DIR`；开发 checkout 不应产生 `.venv`、`__pycache__`、`.pytest_cache`、`.uv-cache` 或 `*.egg-info` 副产物，也不得让 provider stage 继承用户全局 uv cache 后因宿主权限/沙箱漂移阻断 owner callable。高频本地验证入口默认启用 checkout 外 clean-runner cache：`scripts/run-pytest-clean.sh` 与本地 `scripts/verify.sh` 复用 `MAS_CLEAN_RUNNER_REUSE_ENV=1` 的 `venv`、`uv-cache`、`pycache`、`egg-info` 与 sync marker；直接 `run-python-clean.sh` 调用即使使用 short-lived runner，也默认把 `UV_CACHE_DIR` 指到 checkout 外稳定 cache root。需要隔离 runner root 时，可显式设置 `MAS_CLEAN_RUNNER_TMP_ROOT` 或 `MAS_CLEAN_RUNNER_REUSE_ENV=0`；需要连 uv cache 也冷启动时，再设置 `MAS_CLEAN_RUNNER_ISOLATE_UV_CACHE=1`。runner 继续拒绝 checkout 内复用根、默认 uv cache 或 `MAS_CLEAN_RUNNER_EGG_INFO_BASE`。
-- Study runtime 的 analysis bundle 准备必须修复将被 worker 实际使用的 study workspace Python；不得通过创建或依赖 MAS checkout 内 `.venv` 来伪造 ready 状态。
+- 删除优先；不为已退役系统再建审计、投影和专测体系。
+- 保持 source/test 文件职责清晰；超过 1500 行是拆分信号。
+- 测试使用 pytest 原生递归收集，不恢复 wildcard aggregate/re-export plumbing。
+- Python packaging 信任标准安装/OPL workspace override，不在 import 时改写 `sys.path`、`__path__` 或 `sys.modules`。
