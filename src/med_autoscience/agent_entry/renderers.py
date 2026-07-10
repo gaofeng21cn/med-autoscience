@@ -88,11 +88,17 @@ def render_stage_route_contract_guide() -> str:
         "Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`",
         "State: `active_runtime_support`",
         "Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in "
-        "machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.",
+        "machine-readable contracts, source, tests, OPL generated/read-model output, runtime ledgers, and owner receipts.",
         "",
         f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
         "",
         f"Currentness and recovery-obligation source: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`.",
+        "",
+        "`managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. "
+        "`doctor`、`bootstrap`、`overlay-status`、`request-opl-stage-attempt` and `study-progress` are not current "
+        "repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a "
+        "separate machine-contract migration. Current public actions come only from "
+        "`contracts/action_catalog.json` and OPL generated surfaces.",
         "",
         "The YAML route contract selects stages and route families. It does not authorize provider admission, "
         "OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, "

@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
 State: `active_runtime_support`
-Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, OPL generated/read-model output, runtime ledgers, and owner receipts.
 
 Canonical source: `agent/stages/stage_route_contract.yaml`.
 
@@ -50,7 +50,7 @@ flowchart LR
 - default_runtime_mode: managed
 - lightweight_scope: none
 - preconditions: workspace/profile available
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: (none)
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -62,7 +62,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: early evidence framing
 - preconditions: workspace/profile available
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: scout
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -74,7 +74,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: route selection and study framing
 - preconditions: workspace/profile available
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: idea | decision
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -86,7 +86,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: pathway adjustment and stop-loss
 - preconditions: workspace/profile available
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: decision
 - managed_routes: scout | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -98,7 +98,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: manuscript and delivery packaging
 - preconditions: workspace/profile available
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: write
 - managed_routes: write | finalize
 - startup_boundary_gated_routes: (none)
@@ -110,7 +110,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: controller-visible canonical manuscript text/structure revision from existing evidence only
 - preconditions: workspace/profile available | latest task intake explicitly limits work to canonical paper text/structure or evidence repackaging from existing results | study is in manual_finishing or bundle-stage-ready state, or foreground takeover has been explicitly allowed | runtime is inactive, paused, stopped, or supervisor-only takeover rules allow foreground work
-- managed_entry_actions (legacy semantic labels; not public commands): doctor | bootstrap | overlay-status | study-progress
+- managed_entry_actions: doctor | bootstrap | overlay-status | study-progress
 - lightweight_routes: write | finalize
 - managed_routes: write | finalize
 - startup_boundary_gated_routes: (none)
