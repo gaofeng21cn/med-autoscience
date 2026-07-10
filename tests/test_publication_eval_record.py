@@ -171,6 +171,12 @@ def test_publication_eval_record_accepts_explicit_routeback_contract() -> None:
             "runtime_context_refs value must be a ref string",
         ),
         (
+            lambda payload: payload["runtime_context_refs"].update(
+                unexpected_authority_ref="/runtime/unexpected-authority.json"
+            ),
+            "runtime_context_refs contains unexpected ref key unexpected_authority_ref",
+        ),
+        (
             lambda payload: payload.update(
                 authority_boundary={"mutated_current_package": 1}
             ),
