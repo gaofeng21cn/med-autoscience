@@ -22,7 +22,8 @@
     "opl_projection_ref": "agent/principles/opl-standard-agent-principles.md",
     "domain_specialization_ref": "agent/principles/domain-specialization.md",
     "legacy_mas_projection_ref": "agent/principles/standard_agent_principles.md",
-    "stage_control_plane_ref": "contracts/stage_control_plane.json",
+    "stage_manifest_ref": "agent/stages/manifest.json",
+    "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
     "mas_paper_study_stage_pack_ref": "contracts/mas-paper-study-stage-pack.json",
     "pack_compiler_input_ref": "contracts/pack_compiler_input.json",
     "action_catalog_ref": "contracts/action_catalog.json",
@@ -34,8 +35,8 @@
   "domain_mapping": {
     "domain_intake": {
       "principle_id": "domain_intake_mapping",
-      "domain_stage_ref": "contracts/mas-paper-study-stage-pack.json#/stages/0",
-      "stage_id": "01-study_intake",
+      "domain_stage_ref": "agent/stages/manifest.json#/stages/0",
+      "stage_id": "direction_and_route_selection",
       "prompt_ref": "agent/principles/domain-specialization.md#mas-study-intake",
       "is_standalone_skill": false,
       "owner_receipt_or_typed_blocker_required": true,
