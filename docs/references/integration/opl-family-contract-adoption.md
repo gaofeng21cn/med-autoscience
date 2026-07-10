@@ -40,7 +40,7 @@ OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 ag
 
 ## Product Operator Projection
 
-`MAS` 通过 `product-entry-status`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 OPL 新增的 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。
+`MAS` 通过 `study_progress`、`study_state_matrix`、`paper_mission` 与 `domain_handler_export` action refs 映射 `opl_family_product_operator_projection.v1`。OPL generated product/status/workbench surface 必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。
 
 `opl runtime observability-export` 是 OPL-owned read-only export surface，MAS 只消费 source refs、freshness、owner split、domain-owned projection refs、owner receipt refs 和 typed blocker refs。它不能被 MAS 解释成 domain action authorization、executor switch authorization、auto-degrade authorization、domain truth write、memory body write、publication quality verdict 或 paper/artifact closure。
 
@@ -50,7 +50,7 @@ OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 ag
 
 2026-05-12 fresh OPL read model 已解析 `mas_publication_route_memory`，并把 MAS 的 `migration_readiness.status` 读为 `workspace_apply_closure_ready`。这说明 MAS 侧 Markdown canonical library、seed index、workspace apply、workspace memory pack locator、stage entry refs、typed closeout writeback 和 writeback receipt locator 已能作为 domain-owned memory surface 被 OPL 发现。
 
-`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。维护者查看当前 workspace memory inventory 时使用 `medautosci publication route-memory-inventory --workspace-root <workspace>`，默认输出 body-free，适合 OPL/Aion ref-only grouping；正文审查必须显式请求 body 并留在 MAS owner 语境。
+`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。维护者从 canonical Markdown library、seed index 与 workspace body-free inventory refs 检查当前 memory；旧 `medautosci publication route-memory-inventory` 已退役，正文审查必须留在 MAS owner 语境。
 
 当前 OPL family-runtime 的 production required provider 是 `temporal`；fresh read model 已把默认 provider 选到 Temporal，并证明 managed service / worker residency 可用。`local_sqlite` 只在显式选择时作为 dev/CI/offline diagnostic baseline，不能替代 production provider、domain daemon replacement 或 paper-line readiness。MAS domain memory 可以被 OPL 以 body-free locator / refs 投影和索引，但真实 memory body、writeback accept/reject、paper-line live apply、human gate/resume 和 publication authority 继续由 MAS owner surfaces 持有。
 

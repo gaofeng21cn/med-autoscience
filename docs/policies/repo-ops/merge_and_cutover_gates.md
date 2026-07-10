@@ -124,14 +124,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 
 ### 4. workspace contract 全绿
 
-至少要确认：
-
-- `doctor`
-- `bootstrap`
-- `overlay-status`
-- `backend-audit`
-
-这些命令对目标 workspace 都是通过状态。
+至少要确认 OPL workspace/profile/environment currentness、generated interface parity、MAS source/backend-audit refs 和 runtime owner readback。旧 `doctor`、`bootstrap`、`overlay-status`、`backend-audit` CLI 已退役；不得把这些名称恢复成 cutover 命令。
 
 ### 5. 单项目热身验证通过
 

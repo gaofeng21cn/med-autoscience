@@ -98,12 +98,7 @@ git worktree add .worktree/intake-2026-03-31-daemon-fix -b intake/2026-03-31-dae
 
 ### 2. 先在 `MedAutoScience` 做升级检查
 
-不要先改 fork，再去看兼容性。先用 `MedAutoScience` 判定当前是否适合 intake：
-
-```bash
-cd <med-autoscience-root>
-PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile /path/to/profile.toml --refresh
-```
+不要先改 fork，再去看兼容性。旧 `python -m med_autoscience.cli doctor backend-upgrade` 已退役，只作为 legacy command provenance。当前 intake 应由维护者直接读取受控 fork manifest/source refs，并调用 MAS internal backend-audit/intake functions；它们尚未进入 22-action catalog，不得恢复临时 CLI。
 
 至少要确认：
 

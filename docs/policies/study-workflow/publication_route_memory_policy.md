@@ -176,7 +176,7 @@ MAS now exposes `publication_route_memory` as a MAS-owned domain memory surface:
 
 - `publication_route_memory_pack` at `portfolio/research_memory/publication_route_memory/memory_pack.json`
 - `publication_route_memory_apply_receipt` under `portfolio/research_memory/publication_route_memory/migration_receipts`
-- `publication_route_memory_inventory` through `medautosci publication route-memory-inventory --workspace-root <workspace>` as the read-only, body-free-by-default inventory/export surface
+- `build_publication_route_memory_inventory` as the internal read-only, body-free-by-default inventory builder; it currently has no catalog public action
 - `stage_knowledge_packet.publication_route_memory_refs` as the small stage-entry retrieval set; it carries ids, route family, title, locator, receipt ref, authority boundary, and a concise `route_memory_summary`, not the whole card body
 - `stage_knowledge_packet.publication_strategy_memory_use_policy` and `publication_strategy_memory_prompt_block` as the AI-facing reference-only instruction block. These fields tell the executor how to read the memory refs; they do not score, match, recommend, gate, or authorize a route.
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
@@ -198,9 +198,9 @@ The companion `publication_route_memory_seed_fixture.json` is now a seed index /
 
 Accepted `workspace_reusable` lessons from typed stage closeout update the workspace `publication_route_memory_pack` as natural-language memory cards. When closeout payloads include rich card sections, MAS preserves those fields in the promoted card. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary. The workspace pack is generated/applied MAS state, not the first editing surface for maintainers.
 
-MAS exposes these as callable owner surfaces through `publication-route-memory-apply-seed`, `publication-route-memory-inventory`, `stage-knowledge-packet`, `stage-memory-closeout-route`, and `paper-soak-memory-proof`. These commands are domain-owned execution/read/receipt surfaces; they do not make OPL the memory body owner or publication quality authority. The grouped public form for the inventory is `medautosci publication route-memory-inventory --workspace-root <workspace>`. By default it returns card metadata, locator refs, filters, receipt counts, OPL/Aion receipt inventory, ref-only operator grouping, stale/deprecated review summary, and authority boundary while excluding the rich body. `--include-card-body` is reserved for maintainer review and returns the prose sections such as `best_fit`, `minimum_evidence_package`, `table_figure_pattern`, `claim_boundary`, `reviewer_risks`, `pivot_or_stop_rules`, and `failure_modes`.
+MAS retains domain-owned seed/inventory/knowledge-packet/memory-closeout/paper-soak functions. They do not make OPL the memory body owner or publication quality authority. The internal inventory builder returns card metadata, locator refs, filters, receipt counts, OPL/Aion receipt inventory, ref-only operator grouping, stale/deprecated review summary, and authority boundary while excluding the rich body by default. Maintainer body review reads the canonical Markdown or explicitly requests the internal body projection. These functions are not in the current 22-action catalog; old command names are retired/provenance only.
 
-The maintainer-facing workbench entrypoint is `medautosci publication strategy-memory-workbench --workspace-root <workspace>`. It is a read surface over the same MAS-owned Publication Strategy Memory refs, not a new memory owner. Its default output is body-free and should group the signals a maintainer needs before deciding whether to inspect, refresh, deprecate, or re-apply cards:
+The maintainer-facing read path is the canonical Markdown library plus workspace body-free inventory refs. It is not a new memory owner. The internal inventory projection should group the signals a maintainer needs before deciding whether to inspect, refresh, deprecate, or re-apply cards:
 
 - card metadata, route family, stage applicability, status, freshness, locator, and provenance refs;
 - migration receipt, writeback proposal, writeback receipt, and OPL/Aion display receipt summaries;
@@ -210,7 +210,7 @@ The maintainer-facing workbench entrypoint is `medautosci publication strategy-m
 
 The workbench remains Markdown-first, AI-readable, and reference-only. It can point maintainers to the canonical Markdown body and MAS workspace receipts, but it must not become a route scorer, matching engine, evidence gate, controller decision source, publication-readiness gate, or programmatic recipe controller. Maintenance queue items are prompts for human/MAS maintainer review, not automatic accept/reject/deprecate decisions. `--include-card-body` may be used only for maintainer review of the natural-language card body; ordinary OPL/App projection and operator overview stay body-free.
 
-`medautosci workspace init` now applies the default Publication Strategy Memory seed for a new workspace through the MAS owner seed-apply surface and returns `publication_strategy_memory_seed` in the init result. Dry-run only reports the planned seed and does not write files. If a workspace already has `publication_route_memory/memory_pack.json`, init preserves it and reports `already_present`; explicit maintainer re-apply remains available through `ops/medautoscience/bin/publication-strategy-memory-seed` or `publication-route-memory-apply-seed --apply`.
+OPL workspace lifecycle may invoke the MAS owner seed-apply function for a new workspace through a typed handoff. Dry-run only reports the planned seed and does not write files. If a workspace already has `publication_route_memory/memory_pack.json`, seed apply preserves it and reports `already_present`. The old `medautosci workspace init` and `ops/medautoscience/bin/publication-strategy-memory-seed` wrappers are retired; public re-apply requires a catalog action/schema rather than a restored CLI.
 
 2026-05-12 fresh paper-line proof: DM002 read-only closeout consumed `publication_route_memory_seed__negative_result_stoploss` and carried MAS-owned writeback receipt refs under both the study stage-knowledge artifact root and workspace `portfolio/research_memory/publication_route_memory/writeback_receipts`. The `real-paper-autonomy-guarded-apply-proof` surface now promotes this into a final ref-level memory proof for DM002: consumed route-memory refs and MAS router/workspace/OPL-Aion receipt refs are visible, `body_included=false`, and missing live apply permission remains a typed blocker rather than an artifact delta claim. `paper_autonomy/guarded-apply` can now write a MAS domain-handler dispatch receipt that carries the same DM002 ref chain plus provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, and typed blocker refs. This proves the ref chain is usable for OPL/Aion projection and provider-hosted receipt closure. It does not let OPL read memory prose, accept/reject writebacks, or mutate workspace truth.
 
@@ -222,12 +222,12 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 ## Planning Gate Classification
 
-Publication Strategy Memory 的后续规划入口是 [MAS Current Development Lines](../../active/current-development-lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
+Publication Strategy Memory 的后续规划入口是 [MAS Current Development Lines](../../active/current-development-lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、internal body-free inventory builder、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地；旧 CLI inventory 已退役。后续要增加真实 paper-line receipts 和维护纪律。
 
 | memory gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |
 | `paper_line_receipt_scaleout` | `functional_follow_through_gate` | `planned; DM002 ref chain landed` | 多条 paper line 产生 accepted / rejected / route-back reusable lesson receipts，并可由 body-free inventory/export 读取。 |
-| `cross_workspace_inventory_smoke` | `functional_follow_through_gate` | `planned; CLI inventory_landed` | 不同 workspace 的 pack、migration receipt、writeback proposal/receipt 都能以 body-free refs、counts、freshness 和 authority boundary 展示。 |
+| `cross_workspace_inventory_smoke` | `functional_follow_through_gate` | `planned; internal inventory builder landed` | 不同 workspace 的 pack、migration receipt、writeback proposal/receipt 都能以 body-free refs、counts、freshness 和 authority boundary 展示。 |
 | `card_status_and_stale_review` | `functional_follow_through_gate` | `planned; rich_seed_library_landed` | card status、deprecated/stale reason、review date 和 maintainer body review 规则清晰；不引入 ordinary-user write UI。 |
 | `memory_body_apply` | `production_evidence_gate_when_live_workspace_required` | `planned; body_owner_boundary_landed` | 真实 workspace/runtime owner 接受或拒绝 body/writeback apply；OPL/Aion 只持 locator、index、projection、freshness 和 receipt refs，不读取正文。 |
 
@@ -263,12 +263,7 @@ This is maintainable today because the canonical cards are Markdown prose. Cards
 
 Use the maintainer workbench as the default human review entrypoint and the read-only CLI inventory as the lower-level export / compatibility entrypoint. Both give stable metadata, locator refs, and receipt summaries without copying the memory body:
 
-```bash
-medautosci publication strategy-memory-workbench --workspace-root <workspace>
-medautosci publication route-memory-inventory --workspace-root <workspace>
-medautosci publication route-memory-inventory --workspace-root <workspace> --stage decision
-medautosci publication route-memory-inventory --workspace-root <workspace> --route-family weak_or_negative_result_handling --include-card-body
-```
+旧 `medautosci publication strategy-memory-workbench` / `route-memory-inventory` examples are retired command provenance. Current inspection reads the canonical Markdown library, seed index and workspace body-free inventory refs; body review stays in MAS maintainer context.
 
 The workbench and the first two inventory forms are suitable for body-free projection/review. The `--include-card-body` form is for MAS maintainers inspecting or repairing the natural-language memory card itself.
 

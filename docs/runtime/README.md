@@ -4,13 +4,13 @@ Status: `active runtime docs index`
 Owner: `MedAutoScience`
 Purpose: `runtime_docs_index`
 State: `active_support`
-Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、CLI/MCP/API payload、product-entry manifest、owner receipt、runtime/controller durable surfaces 和真实 workspace artifact。
+Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、OPL generated-interface payload、owner receipt、runtime/controller durable surfaces 和真实 workspace artifact。
 
 `docs/runtime/` 按生命周期角色组织。
 
 当前口径：MAS runtime docs 只定义医学研究 domain agent 的 domain-authority refs surfaces、controller truth、typed blocker、owner receipt、artifact locator 和 projection/display contract。通用 stage attempt、provider workflow、queue、wakeup、retry/dead-letter、resume、human gate transport、attempt ledger、generic state-machine runner、generic memory/artifact/workbench primitive 与跨 domain projection 属于 OPL Framework / shared family layer。MAS direct/local 诊断只能读取 MAS domain truth、owner receipt、typed blocker 和 projection，不能启动或替代 hosted autonomy。
 
-本文是 runtime support 索引，不是 active backlog、runtime ready 证明或 provider/live evidence ledger。当前 completion、gap 和下一步回到 `docs/active/mas-ideal-state-gap-plan.md`；runtime 机器真相回到 contracts、source、CLI/read-model、runtime/controller durable surfaces、owner receipts 和 typed blockers；已完成或退役 runtime 过程进入 `docs/history/runtime/`。
+本文是 runtime support 索引，不是 active backlog、runtime ready 证明或 provider/live evidence ledger。当前 completion、gap 和下一步回到 `docs/active/mas-ideal-state-gap-plan.md`；runtime 机器真相回到 contracts、source、OPL generated/read-model output、runtime/controller durable surfaces、owner receipts 和 typed blockers；已完成或退役 runtime 过程进入 `docs/history/runtime/`。
 
 Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 MAS owner refs、advisory ranking/proximity projection、missing ref family、typed blocker、reviewer/human gate refs 或 owner receipt refs。OPL runtime 可以调度探索 stage、运输 refs、投影候选排序和显示证据包完整性；不能把 Elo、ranking、proximity、queue completion、attempt ledger 或 workbench 可见性升级成 source readiness、quality verdict、publication gate closeout、artifact authority 或 human/expert approval。
 
@@ -25,8 +25,8 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 | [contracts](./contracts/) | MAS runtime-facing contracts、owner boundary、durable surface、artifact authority 和 backend/interface 规则。 |
 | [control](./control/) | MAS controller、domain transition control、owner route、safe action 和 runtime action surface。通用 provider/queue/attempt 归 OPL。 |
 | [projections](./projections/) | Read model、用户可见状态、observability 和非权威摘要。 |
-| [display](./display/) | 历史展示合同目录；MAS-local Progress Portal 已退役，当前展示消费由 OPL-hosted workbench / App 读取 MAS refs-only projection。 |
-| [designs](./designs/) | 活跃 / 已落地 runtime design support。它们解释目标边界、已落地支撑和剩余设计判断，但不替代 source、contracts、tests、CLI/read-model 或 runtime receipts。 |
+| display（已退役） | MAS-local Progress Portal/display 目录已退役；当前展示由 OPL-hosted workbench/App 读取 MAS refs-only projection。 |
+| [designs](./designs/) | 活跃 / 已落地 runtime design support。它们解释目标边界、已落地支撑和剩余设计判断，但不替代 source、contracts、tests、generated/read-model output 或 runtime receipts。 |
 
 ## 主入口
 
@@ -46,7 +46,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md)：固定 `data/datasets/**` 数据资产 body 与 runtime residue、cold-store、SQLite compact 的分账边界；OPL 只消费 locator/ref/projection，不持有 MAS 医学数据 authority。
 - [Study progress projection](./projections/study_progress_projection.md)
 
-`designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 CLI/read-model 为准。
+`designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 generated/read-model output 为准。
 
 ## Superseded Control-Plane Designs
 

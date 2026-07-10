@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `agent_runtime_entry_and_boundary`
 State: `active_runtime_support`
-Machine boundary: 本文是人读 runtime contract support。可执行 runtime truth 继续归 machine-readable contracts、source、tests、CLI/read-model output、runtime ledgers、OPL current-control / provider attempt refs、MAS owner receipts 和 typed blockers。
+Machine boundary: 本文是人读 runtime contract support。可执行 runtime truth 继续归 machine-readable contracts、source、tests、OPL generated-interface/read-model output、runtime ledgers、OPL current-control / provider attempt refs、MAS owner receipts 和 typed blockers。
 
 这份文档写给 `Codex` 等 Agent、内部技术协作者，以及需要审阅 Agent 行为的人。它属于 `docs/runtime/` active support 层，不是默认公开入口；若未来提升为公开入口，先更新 `docs/public/` / `docs/product/` 的 owner 文档与核心五件套。
 
@@ -18,7 +18,7 @@ Machine boundary: 本文是人读 runtime contract support。可执行 runtime t
 | Domain entry / authority | `MedAutoScience` | study truth、stage semantics、publication route、source readiness、quality gate、artifact/package authority、publication-route memory decision、owner receipt、typed blocker、safe action refs。 |
 | Generic runtime substrate | `OPL provider-backed stage runtime` / Temporal | stage attempt、queue、wakeup、retry/dead-letter、resume、human-gate transport、provider query、worker residency、generic transition runner、operator projection。 |
 | Generated / hosted surfaces | OPL generated shell + MAS domain handler target | CLI/MCP/Skill/product-entry/status/workbench descriptor、allowlisted task dispatch、refs-only projection。 |
-| Product projection | `study-progress` / OPL App workbench / hosted generated workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
+| Product projection | `study_progress` / OPL App workbench / hosted generated workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
 
 `Codex CLI` 是当前第一公民 executor。其他 executor adapter 只能通过 OPL 显式接入，且只保证接入、生命周期、回执与审计边界，不承诺行为效果等价。
 
@@ -30,10 +30,10 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 | entry | 当前读法 |
 | --- | --- |
-| `CLI` | 默认正式入口。 |
-| `MCP` | 协议层，不改写 CLI-first 语义。 |
-| `controller` | 内部控制面，不与 CLI/MCP 并列为对外 formal entry。 |
-| product-entry manifest / status | generated/hosted companion surface，只暴露 guardrail、entry、projection 和 handoff refs。 |
+| MAS primary skill | direct semantic entry；通过 generated action surface 调用 MAS handler。 |
+| OPL generated CLI/MCP/Skill | OPL-owned interface；从 catalog/schema 生成，不在 MAS repo 维护 parser/transport。 |
+| `controller` / authority function | MAS internal implementation target，不是独立 public transport。 |
+| product-entry/status/workbench | OPL generated/hosted companion surface，只暴露 guardrail、entry、projection 和 handoff refs。 |
 
 Product-entry contract 的当前执行真相：
 
@@ -78,25 +78,19 @@ Canonical durable surfaces 包括：
 
 ## Stable Runtime Entries
 
-用户和 Agent 当前可见的启动与监督入口：
+用户和 Agent 当前可见的 action id：
 
-| task | entry |
+| task | action id |
 | --- | --- |
-| repo 主线阶段 / 缺口 | `mainline-status` |
-| repo 阶段详情 | `mainline-phase --phase <current|next|phase_id>` |
-| workspace cockpit | `workspace-cockpit --profile <profile>` |
-| durable study task intake | `submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"` |
-| 正式启动或续跑 | `launch-study --profile <profile> --study-id <study_id>` |
-| 人话进度投影 | `study progress --profile <profile> --study-id <study_id>` |
-| PaperMission / StageOutcome readback | `paper-mission inspect --profile <profile> --study-id <study_id> --format json` |
-| product companion | `product-entry-status --profile <profile>` / `product-entry-manifest --profile <profile>` |
+| repo 主线阶段 / 缺口 | `mainline_status` / `mainline_phase` |
+| durable study task intake | `submit_study_task` |
+| 正式启动或续跑 | `launch_study` |
+| 人话进度投影 | `study_progress` |
+| workspace study matrix | `study_state_matrix` |
+| PaperMission / StageOutcome readback | `paper_mission` |
+| OPL handoff | `domain_handler_export` / `domain_handler_dispatch` |
 
-Workspace-local Progress-first 监控薄入口：
-
-- `ops/medautoscience/bin/study-progress <study_id> --format json`
-- `ops/medautoscience/bin/study-state-matrix --format json`
-
-`progress-projection` workspace wrapper 与 CLI command 已退役；文档、脚本和自动化必须使用 `study-progress --format json`。
+具体 CLI/MCP/tool spelling 由 OPL 从 `contracts/action_catalog.json` 和 schemas 生成。MAS repo 不提供 workspace-local wrapper、手写 parser 或 MCP transport。
 
 `runtime domain-diagnostic-report`、`domain-health-diagnostic`、`paper-mission-owner-surface` 和 `owner-route-reconcile` 只保留为 explicit legacy provenance / tombstone 语境；默认监督、automation、论文推进或 stage completion 判断不得把它们作为入口。
 
@@ -111,9 +105,9 @@ Agent 调用接口时遵守以下顺序：
 3. 不直接调用 external Hermes daemon / repo / workspace surface 发起研究流程，除非当前 profile 显式进入 hosted target 诊断。
 4. 不直接调用 `MedDeepScientist` daemon HTTP API，不把 `MedDeepScientist` UI / CLI 当成研究入口。
 5. 所有正式研究推进经 MAS controller / domain handler 产生 DomainIntent、owner route、owner receipt 或 typed blocker，再由 OPL hydrate stage attempt。
-6. 变更数据资产时使用对应 policy / CLI mutation 入口；不把自由文本状态塞进 registry，也不绕过 release contract。
+6. 变更数据资产时使用对应 owner policy/function；未进入 action catalog 的 internal function 不得包装成临时 CLI，也不把自由文本状态塞进 registry或绕过 release contract。
 
-低层数据资产、workspace bootstrap 和 profile 命令不在本文重复维护。当前入口读：
+低层数据资产、OPL workspace lifecycle 和 profile binding 不在本文重复维护。当前入口读：
 
 - workspace 接入与部署：[bootstrap README](../../../bootstrap/README.md)
 - workspace 架构：[Workspace architecture](../../references/workspace/workspace_architecture.md)
@@ -142,10 +136,10 @@ Agent 调用接口时遵守以下顺序：
 
 ## Frontend / Product Projection Contract
 
-Product-entry、workspace cockpit 和 OPL App / hosted workbench 只能消费 MAS refs-only projection 做 projection / drilldown / handoff：
+OPL generated product-entry/status/workbench 只能消费 MAS refs-only projection 做 projection / drilldown / handoff：
 
-- `study-progress` 负责用户可读阶段摘要、当前任务摘要、progress freshness、当前阻塞、下一步、`intervention_lane`、`recommended_command(s)` 和 `recovery_contract`。
-- `workspace-cockpit` / `launch-study` / `product-entry-status` 消费 `study-progress.recovery_contract`、`recommended_command` 和 `intervention_lane`，不得各自再猜恢复路径。
+- `study_progress` 负责用户可读阶段摘要、当前任务摘要、progress freshness、当前阻塞、下一步、`intervention_lane`、safe action refs 和 `recovery_contract`。
+- OPL generated status/workbench 与 `launch_study` 消费同一 `study_progress` refs，不得各自再猜恢复路径。
 - 质量硬阻塞、human decision gate、runtime recovery、workspace supervision gap 和 study progress gap 必须结构化投影，不能压平成泛化 `study_blocked`。
 - Product projection 不能写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper body、memory body、artifact body 或 MAS owner receipt authority。
 
@@ -155,7 +149,7 @@ Product-entry、workspace cockpit 和 OPL App / hosted workbench 只能消费 MA
 - MDS / DeepScientist / Hermes / non-default executor proof lane / workspace archive 是 MAS 默认 active runtime owner。
 - workspace-local LaunchAgent / systemd / cron / docker service 是产品态常驻路径或替代 scheduler。
 - `runtime_transport`、`mas_runtime_core*`、旧 lifecycle writer、旧 alias、legacy wrapper 或 compatibility facade 是 current active caller。
-- Markdown 文档路径、章节或文案是机器接口。机器面必须使用 schema、JSON、CLI/API payload、manifest、durable semantic ID 或 generated artifact。
+- Markdown 文档路径、章节或文案不是机器接口。机器面必须使用 schema、JSON、generated interface payload、manifest、durable semantic ID 或 generated artifact。
 
 ## 历史指针
 

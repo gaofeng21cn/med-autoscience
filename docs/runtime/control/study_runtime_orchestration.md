@@ -63,11 +63,11 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 - [`src/med_autoscience/controllers/domain_status_projection.py`](../../../src/med_autoscience/controllers/domain_status_projection.py)
   - 当前 diagnostic/status projection 入口，暴露 `progress_projection(...)` 和 `study_outer_loop_tick(...)`，读取 MAS domain refs 并返回 status payload
   - 不 re-export `request_opl_stage_attempt`、pause/resume/transport helper 或旧 private runtime control-plane binding
-- [`src/med_autoscience/controllers/progress_projection.py`](../../../src/med_autoscience/controllers/progress_projection.py) / [`src/med_autoscience/controllers/progress_projection/`](../../../src/med_autoscience/controllers/progress_projection/)
+- [`src/med_autoscience/controllers/progress_projection/`](../../../src/med_autoscience/controllers/progress_projection/)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
 - [`src/med_autoscience/controllers/study_runtime_types.py`](../../../src/med_autoscience/controllers/study_runtime_types.py)
   - 作为 lazy import shim 暴露 typed names；它不定义 router re-export 兼容合同
-- [`src/med_autoscience/controllers/study_runtime_decision.py`](../../../src/med_autoscience/controllers/study_runtime_decision.py)
+- [`src/med_autoscience/controllers/study_runtime_decision/`](../../../src/med_autoscience/controllers/study_runtime_decision/)
   - 负责 status read-model、decision state machine、quest runtime audit 收口
 - [`src/med_autoscience/controllers/study_runtime_startup.py`](../../../src/med_autoscience/controllers/study_runtime_startup.py)
   - 负责 startup contract、create payload、overlay helper、startup hydration / context sync
@@ -341,7 +341,7 @@ summary truth 约束：
 
 OPL external worker / hosted runtime 执行每个 study/work-unit 时，必须绑定受控 `workspace_root` / `root` / `cwd`，并在 attempt record 中持久化。所有可写路径必须位于该受控 root 下，任何路径越界、symlink 越界、相对路径逃逸或跨 study root 写入都必须 fail-closed，并把 `failure_reason` 写成 `workspace_boundary_violation`。
 
-这条 workspace isolation 规则只约束 OPL external worker / hosted runtime。当前 `Codex-default host-agent runtime` 仍按现有 controller + host-agent 工作方式运行，不因为本节新增 work-unit contract 而改变 CLI、MCP、product-entry 或当前 Codex path 的默认执行模型。
+这条 workspace isolation 规则只约束 OPL external worker / hosted runtime。当前 `Codex-default host-agent runtime` 仍按 MAS domain handler + OPL generated surface/host-agent 工作方式运行，不因为本节新增 work-unit contract 而改变 current Codex executor model。
 
 ### Retry / backoff / reconciliation
 
@@ -567,7 +567,7 @@ workspace teardown 必须满足：
 
 - [`tests/test_study_runtime_router.py`](../../../tests/test_study_runtime_router.py)
 - [`tests/test_study_runtime_router_topology.py`](../../../tests/test_study_runtime_router_topology.py)
-- [`tests/test_study_runtime_typed_surface.py`](../../../tests/test_study_runtime_typed_surface.py)
+- [`tests/test_study_runtime_typed_surface_cases/`](../../../tests/test_study_runtime_typed_surface_cases/)
 - [`tests/test_progress_projection_evidence_adoption.py`](../../../tests/test_progress_projection_evidence_adoption.py)
 - [`tests/test_study_runtime_execution_control_intent_cases/`](../../../tests/test_study_runtime_execution_control_intent_cases/)
 - [`tests/test_study_runtime_execution_evidence_adoption_cases/`](../../../tests/test_study_runtime_execution_evidence_adoption_cases/)

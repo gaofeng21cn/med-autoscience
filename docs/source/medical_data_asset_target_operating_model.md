@@ -214,30 +214,14 @@ DPCC 迁移和使用规则：
 
 后续若要进一步减少在线体积，正确路径是先新增 dataset-level retention contract、cold ref、restore proof、study impact report 和 controller mutation，再由 owner-authorized data asset command 执行。不能手工移动或删除真实数据 body。
 
-## 理想命令面
+## 理想调用面
 
-长期命令面应收敛为两层。
+长期调用面收敛为两层：
 
-MAS domain commands：
+- MAS internal authority functions：`data_assets_status`、`startup_data_readiness`、`apply_data_asset_update` 及 release/impact explain helpers 持有医学数据语义、source readiness、study impact 与 mutation receipt。
+- OPL generic owner surface：负责 workspace/file lifecycle、index rebuild/integrity、lineage display、cold restore、conformance 和 operator projection。
 
-```text
-medautosci data assets-status --workspace-root <workspace>
-medautosci data startup-readiness --workspace-root <workspace> --study-id <study>
-medautosci data apply-asset-update --workspace-root <workspace> --payload-file <payload.json>
-medautosci data asset-impact --workspace-root <workspace>
-medautosci data release-explain --workspace-root <workspace> --dataset-id <id> --version <version>
-```
-
-OPL generic commands：
-
-```text
-opl data-asset index rebuild|doctor|integrity-check --workspace <workspace>
-opl data-asset lineage explain --dataset <id>@<version>
-opl data-asset restore --cold-ref <ref>
-opl data-asset conformance --domain mas|mag|rca|oma
-```
-
-MAS commands decide medical authority. OPL commands rebuild generic indexes, restore body, and display refs.
+这些 MAS functions 当前不在 22-action catalog 中，因此旧 `medautosci data ...` 只作为 retired/provenance command identity，不是可运行入口。需要公开调用时，必须先在 `contracts/action_catalog.json` 和 input/output schemas 增加 action id，再由 OPL 生成 surface；不得恢复 repo-local parser 或 wrapper。
 
 ## 近期落地顺序
 

@@ -51,8 +51,8 @@ Replay 读取顺序固定为：
 
 1. fresh `study_progress`
 2. `paper_recovery_state`
-3. `domain-diagnostic-report --dry-run`
-4. OPL current-control / attempt ledger
+3. OPL current-control / attempt / worker live readback
+4. MAS `domain_handler_export` refs and same-identity transition/closeout evidence
 5. owner receipt / typed blocker / human gate / route-back refs
 
 常见事故与裁决：

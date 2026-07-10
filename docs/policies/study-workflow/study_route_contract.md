@@ -9,7 +9,7 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_contracts`。
 `modes` 只回答某个 entry mode 当前允许走哪些 route，正式 route 定义统一以 `route_contracts` 为准。
 
-`stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 `show-stage-route-contract`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。旧 `show-agent-entry-modes` CLI 和 `agent_entry.modes` Python API 已退役；当前公开入口只保留 stage route contract。Markdown guide、Codex skill prompt 与 OpenClaw prompt 都从它派生。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
+`stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 stage surface contract、OPL generated/family descriptor 和测试读取。旧 `show-stage-route-contract`、`show-agent-entry-modes` CLI 和 `agent_entry.modes` Python API 已退役；当前公开 surface 由 OPL 从 pack/action/schema 生成。Markdown guide 与 Agent entry prompt 可从结构化 source 派生。它不是 domain memory；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
 
 Route contract 定义的是 stage 进入条件、最小 durable output、回退触发和 human-gate 边界。它可以约束执行器和投影面，但不能把 `hard_success_gate`、`durable_outputs_minimum`、stage card、human review page 或 OPL projection 解释为 publication quality verdict、submission readiness、artifact mutation authorization、source readiness verdict 或 controller decision replacement。
 

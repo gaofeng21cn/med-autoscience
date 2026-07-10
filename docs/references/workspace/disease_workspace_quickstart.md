@@ -3,91 +3,42 @@
 Owner: `MedAutoScience`
 Purpose: `workspace_bootstrap_reference`
 State: `current_reference`
-Machine boundary: 本文是人读 workspace 建立指南；workspace/runtime 机器真相以 profile template、bootstrap CLI、OPL workspace/file lifecycle contracts、artifact/root locator、quest manifest、restore index、MAS owner receipts 和 OPL provider/framework contracts 为准。SQLite、ledger 与 manifest 是 durable refs/projections，不是 MAS generic lifecycle owner。
+Machine boundary: 本文是人读 workspace 接入指南；workspace lifecycle、locator、environment、StateIndex、retention/restore 和 hosted workbench 的机器真相归 OPL。MAS 机器真相归 profile/action schemas、domain handlers、owner receipts、typed blockers 和医学 authority surfaces。
 
-这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
+## 结论
 
-目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入 `MedAutoScience`。controlled backend / oracle 只在 legacy diagnostic、backend audit 或 parity proof 需要时配置。
+MAS 已退役 repo-local workspace initializer、bootstrap shell、MCP `init_workspace` 和 CLI `init-workspace`。新 workspace 由 OPL generated/hosted workspace lifecycle surface 创建和绑定，MAS 只接收 `profile_ref`、`study_id` 与受权 refs。
 
-## 先记住一句话
+不要运行或恢复：
 
-一个 workspace 默认对应一个病种，或一个稳定的专病研究主题。
+- `medautosci-mcp` / MCP `init_workspace`；
+- `python -m med_autoscience.cli init-workspace`；
+- `medautosci workspace init/bootstrap`；
+- `ops/medautoscience/bin/bootstrap`、`show-profile`、`enter-study`、`storage-audit`；
+- repo-local installer、workspace environment builder 或 runtime wrapper。
 
-它不是单篇论文目录，而是：
+这些 identity 只用于旧 workspace 的 provenance/retirement 说明，不是当前执行入口。
 
-- 共享数据底座
-- 多条研究线的组合面
-- 多篇论文的持续产出面
+## 对象边界
 
-## 先分清 5 个对象
+- `workspace`：病种级长期资产层，可含多个 dataset version、study 和 paper line。
+- `dataset family/version`：workspace 级数据版本；study 只消费已登记版本。
+- `study`：单条具体研究线，通常对应一篇主稿或一组强关联交付物。
+- `quest` / StageRun：OPL 受管执行身份；attempt lifecycle 归 OPL，医学结果解释归 MAS。
+- `paper bundle/submission package`：study-local 交付物，不属于 workspace 顶层。
 
-### 1. `workspace`
+## 最小接入信息
 
-病种级长期资产层。
+OPL workspace surface 至少要给 MAS action 提供：
 
-它负责管理：
+- `profile_ref`
+- `study_id`
+- `task_intent`（提交任务时）
+- action schema 要求的 workspace/source refs
 
-- 私有数据与公开数据
-- 数据版本与合同
-- 选题池与跨 study 积累
-- 本地运行状态与入口脚本
+`profiles/workspace.profile.template.toml` 是 profile 结构参考，不是 workspace initializer。不要让文档、Agent 或 wrapper 从目录猜 profile、repo 或 runtime path。
 
-### 2. `dataset family / version`
-
-workspace 级数据版本层。
-
-例如：
-
-- 主分析数据 `master/v2026-03-28`
-- 补充随访版本
-- 多中心追加版本
-
-这些版本属于 workspace，而不是某个单独 study。
-
-### 3. `study`
-
-单条具体研究线。
-
-通常一个 `study` 对应：
-
-- 一篇主稿
-- 或一组强关联投稿产物
-
-例如：
-
-- 临床分类器研究
-- 亚型重构研究
-- 外部验证与模型更新研究
-
-### 4. `quest`
-
-`MAS Runtime OS` 在某个 study 下的受管运行状态。
-
-它更像运行过程和任务执行面，不是病种级目录，也不是外部 `MedDeepScientist` daemon 的默认入口。
-
-### 5. `paper bundle / submission package`
-
-某个 study 收敛出来的投稿交付物。
-
-它属于 study-local 结果，不属于 workspace 顶层。
-
-## 推荐最小骨架
-
-如果 Agent 已接入 `medautosci-mcp`，优先直接调用 MCP tool `init_workspace`。
-
-如果当前环境还没有接 MCP，再用 CLI：
-
-```bash
-uv run python -m med_autoscience.cli init-workspace \
-  --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
-  --workspace-name my-disease
-```
-
-如果你想先让 Agent 看计划，再决定是否创建，可以先加 `--dry-run`。
-
-这个命令默认 no root Git / no quest Git。新 workspace 的 runtime / lifecycle refs 由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；generic workspace/file lifecycle、artifact locator、restore / retention shell 属于 OPL primitive，MAS 只消费 refs、typed blocker、owner receipt 和 source / artifact authority 输出。workspace 根目录 Git、quest `.git`、Git diff/log 和 worktree list 都不是 active truth。
-
-这个命令会生成下面这套 MAS-first 最小骨架：
+推荐的 domain 资产布局是：
 
 ```text
 <workspace>/
@@ -99,106 +50,52 @@ uv run python -m med_autoscience.cli init-workspace \
 │       ├── data_assets/
 │       └── research_memory/
 ├── refs/
-├── artifacts/
-│   └── runtime/
-├── runtime/
-│   ├── quests/
-│   ├── archives/
-│   └── restore_index/
-└── ops/
-    └── medautoscience/
-        ├── bin/
-        ├── profiles/
-        ├── config.env
-        └── README.md
+└── artifacts/
 ```
 
-旧 workspace 中的 `ops/med-deepscientist/runtime/quests/`、quest-local `.ds/`、`.ds/worktrees/` 和 quest `.git` 只作为一次性 legacy intake、restore proof 或 diagnostic provenance 输入；有效内容必须提炼到新版 `artifacts/runtime/**` / `runtime/artifacts/**` surface。新 quest active path 不再由 MDS Git 或 Git worktree 维护，也不从 `.ds/worktrees` 读取论文当前状态。quest materializer 应在 repo-level guard 中阻断既有 quest `.git` 回流：materialize 出来的 active quest root 必须是普通目录，manifest 记录 `git_runtime_used=false` 与 `quest_git_active_path_retired=true`。
+OPL 可以在其 owner contract 下增加 runtime/quest/restore/index 目录；这些目录不是 MAS bootstrap 输出合同，也不能让 MAS 重新成为 generic lifecycle owner。
 
-当前维护口径是 current workspaces 的 root Git 已完成 restore-proof full retirement。未来如果接入外部或旧 workspace 时发现 root `.git`，它只属于 legacy maintenance diagnostic，不是论文审计仓库，也不是可选日常状态面；不得提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite refs index、archive payload 或 quest runtime 目录。有提交或 dirty 的 root Git 必须先完成 inventory、authority classification、restore archive、sha256 和 restore command，再决定是否 remove。
-如果旧 workspace 已经因为误 `git add` 产生很大的 `.git/objects`，先运行：
+## 启动顺序
 
-```bash
-ops/medautoscience/bin/storage-audit --git-only
-```
+1. 通过 OPL generated/hosted workspace lifecycle surface 创建或登记 workspace。
+2. 绑定 `profile_ref`，登记 source/data refs、数据字典、终点定义、纳排标准和参考资料。
+3. 用 generated action `submit_study_task` 写 durable study task intake。
+4. 用 generated action `launch_study` 提交 MAS domain handoff，由 OPL hydrate StageRun。
+5. 用 `study_progress`、`study_state_matrix` 或 `paper_mission` 读取 refs-only progress/owner route。
+6. 当 action 返回 typed blocker 或 human gate 时，交对应 owner 处理；不得用 workspace wrapper 绕过。
 
-确认报告里 `categories.git.health.recommended_action` 后，再运行低风险 hardening：
+这些是 action id，不承诺具体 CLI 拼写。实际 CLI/MCP/Skill/product UI 由 OPL 从 `contracts/action_catalog.json` 和 schemas 生成。
 
-```bash
-ops/medautoscience/bin/storage-audit --git-only --apply
-```
+## 数据与 authority
 
-只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且 lifecycle ledger 已记录 restore-proof inventory/archive/remove 计划时，才允许进入 root Git remove 步骤。root Git 退役后不得通过 bootstrap 重新初始化。历史命令形态如下，仅用于维护者诊断：
+- 私有/公开数据版本登记在 workspace 级数据资产层。
+- study 只消费已登记的版本；同一版本可被多个 study 复用。
+- 不在每个 study 复制一份未经登记的数据真相源。
+- MAS 只保留 source readiness、study truth、quality gate、artifact/package authority、memory accept/reject、owner receipt 和 typed blocker。
+- generic workspace/file lifecycle、artifact locator、StateIndex、restore/retention、cleanup 和 operator shell 归 OPL。
 
-```bash
-ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-workspace-git
-```
+数据资产状态、startup readiness、asset update、impact 和 release explanation 的医学函数仍可作为 MAS internal authority functions 存在；它们当前不是 22-action catalog 的 public action。除非 catalog/schema 正式增加 action id，否则不能把旧 `medautosci data ...` 文案当作可运行命令。
 
-## 每个目录大致做什么
+## Git 与旧 workspace
 
-- `datasets/`
-  - 冻结后的分析数据版本
-- `contracts/`
-  - 变量定义、终点定义、纳排标准等稳定语义
-- `studies/`
-  - 每个 `study-id` 的独立研究工作区
-- `portfolio/`
-  - 选题池、公开数据扩展、数据资产登记、跨 study 方法学积累
-- `refs/`
-  - 参考文章与文献提取稿
-- `ops/`
-  - 本地入口、配置和运行状态
-- `artifacts/runtime/`
-  - runtime lifecycle refs、lifecycle migration ledger、status projection 和 restore proof
-- `runtime/quests/`
-  - 普通 quest 执行目录和 manifest，不是 Git repo
-- `runtime/archives/`、`runtime/restore_index/`
-  - runtime archive 与恢复索引
+新 workspace 默认 no root Git / no quest Git。Git history、Git diff/log、workspace root Git、quest `.git` 和 worktree list 都不是 current runtime truth。
 
-## 私有数据、公开数据与 study 的关系
+旧 workspace 中的 `ops/medautoscience/bin/*`、`ops/med-deepscientist/bin/*`、quest-local `.ds/`、`.ds/worktrees/` 和 quest `.git` 只作为 legacy intake、restore proof、diagnostic provenance 或 cleanup target。涉及 archive/remove 等物理操作时，必须交 OPL lifecycle owner，并要求 inventory、authority classification、hash、restore command、authorization 和 readback；不要恢复已退役的 MAS `storage-audit` wrapper。
 
-默认关系如下：
+## Runtime boundary
 
-- 私有数据版本登记在 workspace 级数据资产层
-- 公开数据扩展线索也登记在 workspace 级数据资产层
-- `study` 只消费这些已登记的数据版本
-- 同一数据版本可以被多个 study 复用
+- `MedAutoScience` 是医学研究 domain owner，不是 generic runtime platform。
+- OPL provider-backed stage runtime 持有 attempt、queue、worker residency、retry/dead-letter、resume 与 operator projection。
+- OPL generated/hosted surface 消费 MAS action schemas、body-free refs、owner receipts 和 typed blockers。
+- `MedDeepScientist` 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference。
+- `Hermes-Agent` 只可指外部 runtime 项目/服务、显式 proof lane 或历史 provenance。
 
-不要让每个 study 都维护一份自己的“真相数据副本”。
-
-## 新项目推荐启动顺序
-
-1. 建立病种级 workspace 骨架
-2. 放入原始数据、数据说明、变量定义、终点定义和参考资料
-3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍保留 controlled backend 诊断入口，再只读核对旧 `ops/med-deepscientist/config.env`
-4. 审阅生成的 `ops/medautoscience/profiles/*.local.toml`
-5. 运行 `ops/medautoscience/bin/show-profile`
-6. 运行 `ops/medautoscience/bin/bootstrap`
-7. 再在 `studies/` 下创建首个 `study-id`
-8. 从 `ops/medautoscience/bin/enter-study` 或受管入口进入 intake、scout、idea、write 等阶段
-
-## Runtime Boundary
-
-- `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
-- `MAS Runtime OS` 是 MAS domain runtime adapter、owner receipt 与 typed blocker surface；默认 generic runtime owner、attempt / queue / worker residency / retry-dead-letter 和 supervision scheduler owner 属于 OPL provider-backed stage runtime（`opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement）
-- workspace/file lifecycle、artifact locator、restore/retention、generic cleanup policy 与 operator projection shell 属于 OPL owner primitive；MAS 只保留 source readiness、study truth、quality gate、artifact authority、owner receipt 和 typed blocker
-- MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 只作 explicit legacy diagnostic adapter
-- `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
-- 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
-- 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口
-- `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
-- Agent 查状态或做 lifecycle 操作时，读 file authority、study/runtime read model、lifecycle refs/ledger、quest manifest 和 restore index；不查 Git
-
-## 常见误区
-
-- 不要复制整个 legacy workspace 当模板
-- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；只有 backend audit / parity oracle / source provenance 需要时才配置外部 MDS reference repo
-- 不要把单篇论文目录当成 workspace 顶层
-- 不要在每个 study 下各自维护一份未经登记的数据真相源
+Workspace 已创建、profile 可解析或 generated interface ready 都不证明 runtime live、paper progress、publication-ready、artifact mutation authority 或 domain ready。Live evidence 必须从对应 OPL runtime readback、MAS owner receipt/quality gate/typed blocker/human gate 和真实 artifact 读取。
 
 ## 接下来读什么
 
+- [MAS Bootstrap](../../../bootstrap/README.md)
 - [Workspace Architecture](workspace_architecture.md)
 - [Runtime Boundary](../../runtime/contracts/runtime_boundary.md)
-- [Bootstrap](../../../bootstrap/README.md)
+- [Agent Runtime Interface](../../runtime/contracts/agent_runtime_interface.md)
 - [workspace.profile.template.toml](../../../profiles/workspace.profile.template.toml)

@@ -12,7 +12,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `study_progress` 是 `controller-owned progress projection`
 - 用户可见状态只从 `study_macro_state` 派生
 - 前台判断围绕同一条 study authority 展开，不再各入口自行拼装 runtime / publication / controller 细节
-- MAS-local Progress Portal / workbench materializer 已退役。当前用户展示面由 OPL App / OPL-hosted workbench 消费 `study_progress` / `workspace-cockpit` / durable truth refs；MAS 只保留 refs-only projection、owner receipt、typed blocker 与 domain authority refs，不提供 repo-local HTTP service、action endpoint 或 MAS-owned generic workbench。
+- MAS-local Progress Portal / workbench materializer 已退役。当前用户展示面由 OPL App / OPL-hosted workbench 消费 `study_progress` 与 durable truth refs；MAS 只保留 refs-only projection、owner receipt、typed blocker 与 domain authority refs，不提供 repo-local HTTP service、action endpoint 或 MAS-owned generic workbench。
 
 ## 1. 目标
 
@@ -80,7 +80,7 @@ canonical envelope：
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
 - 只要 `progress_projection.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
 - 前台的人话进度固定来自这些 `MAS` durable surface、MAS owner refs 与 OPL `current_control_state` refs；外部 executor adapter、diagnostic 或历史 substrate 的状态只按实际已验证接入情况描述
-- `study_progress` / `progress_projection` 的 lazy controller import 必须通过 `med_autoscience.lazy_module_proxy` 解析，并在每次访问时尊重 `sys.modules` 当前模块身份。测试、CLI dependency probe 或 MCP runtime reload 可能会删除并重导入 `domain_status_projection`、`study_progress`、`owner_route_handoff` 等模块；projection 入口不得缓存旧模块对象后继续读取旧 currentness、旧 monkeypatch 或旧 provider-admission 状态。新增 lazy import 不得私自复制缓存代理实现，也不得用 `lru_cache` 固定 runtime controller module object。
+- `study_progress` / `progress_projection` 的 lazy controller import 必须通过 `med_autoscience.lazy_module_proxy` 解析，并在每次访问时尊重 `sys.modules` 当前模块身份。测试或 generated-interface runtime reload 可能会删除并重导入 `domain_status_projection`、`study_progress`、`owner_route_handoff` 等模块；projection 入口不得缓存旧模块对象后继续读取旧 currentness、旧 monkeypatch 或旧 provider-admission 状态。新增 lazy import 不得私自复制缓存代理实现，也不得用 `lru_cache` 固定 runtime controller module object。
 
 ## 4. 输出合同
 
@@ -120,7 +120,7 @@ canonical envelope：
 其中：
 
 - `study_macro_state` 是用户宏观状态唯一源，短枚举固定为 `writer_state/user_next/reason`
-- `user_visible_projection` 是从 `study_macro_state` 派生的人类可见状态读模型；CLI markdown、MCP compact projection、workspace cockpit、attention queue 和 product-entry-status 都只能消费它
+- `user_visible_projection` 是从 `study_macro_state` 派生的人类可见状态读模型；OPL generated CLI/MCP/status/workbench、attention queue 都只能消费它
 - `current_stage` / `current_stage_summary` / `current_blockers` / `next_system_action` 保留为从 `user_visible_projection` 派生的展示字段，不再作为入口自行解释状态的来源
 - `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
@@ -158,7 +158,7 @@ canonical envelope：
 - `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
 - `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
 - `quality_closure_truth` / `quality_review_followthrough` 分别表达质量闭环裁决与复评后的跟进状态，用于和 `autonomy_soak_status` 一起解释“系统是否仍在同线自动收口”
-- `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-entry-status`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
+- `research_runtime_control_projection` 是给 OPL generated status/workbench/product-entry 与上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、safe action refs 与 `research_gate_surface` 固定到同一条 `study_progress` 字段路径上
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path` 或 OPL current-control-state refs；`active_run_id` / launch report 只是 provenance，不能单独证明 worker live
@@ -225,9 +225,9 @@ Progress-first owner action 不能被同 fingerprint 读模型误判为重复调
 
 入口层规则：
 
-- MCP compact / markdown、CLI markdown、`workspace-cockpit`、workspace alerts 和 product-entry-status preview 必须读取 schema v2 `user_visible_projection`。
-- `study-progress --format json` 的顶层 `current_stage`、`current_stage_summary`、`current_blockers`、`next_system_action`、`paper_stage` 和用户态 writer 字段必须来自自身的 `user_visible_projection`，其中 `reason` 是用户态 Progress-First reason。
-- Workspace 监控薄入口固定为 `ops/medautoscience/bin/study-progress <study_id> --format json` 和 `ops/medautoscience/bin/study-state-matrix --format json`。前者读取单 study 结构化 Progress-first 状态，后者读取 workspace 级 study matrix；`progress-projection` workspace wrapper 与 CLI command 已退役。
+- OPL generated CLI/MCP/status/workbench 与 workspace alerts 必须读取 schema v2 `user_visible_projection`。
+- `study_progress` action 的顶层 `current_stage`、`current_stage_summary`、`current_blockers`、`next_system_action`、`paper_stage` 和用户态 writer 字段必须来自自身的 `user_visible_projection`，其中 `reason` 是用户态 Progress-First reason。
+- Workspace 监控通过 generated `study_progress` 和 `study_state_matrix` action 读取；repo-local `ops/medautoscience/bin/*`、`progress-projection` wrapper 与手写 CLI command 已退役。
 - 缺少 v2 `user_visible_projection` 时，入口只允许通过 assembly/read-model 层用 `study_macro_state` 生成；缺 `study_macro_state` 或发现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，提示重新生成 canonical projection。
 - 入口不得回退到 legacy top-level `current_stage/current_blockers/next_system_action` 作为用户状态来源。
 - `user_visible_projection.conditions` 只表达 projection 状态，例如 `macro_state_known`、`package_delivered`、`actual_write_active`、`blocked`、`next_action_known`、`evidence_available`、`user_action_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
@@ -277,6 +277,6 @@ Progress-first owner action 不能被同 fingerprint 读模型误判为重复调
 这里固定 OPL-hosted workbench / App-native MAS study view 和 `study_progress` 的关系：
 
 - `study_progress.user_visible_projection` 是 OPL App-native MAS study workbench 的主要用户状态输入。
-- `workspace-cockpit`、`product-entry-status`、MCP compact/markdown 和 OPL App workbench 应消费同一套 projection，而不是各自解释状态。
+- OPL generated status/product-entry/MCP 和 OPL App workbench 应消费同一套 projection，而不是各自解释状态。
 - MAS repo 不再生成或托管 Progress Portal 本地 materializer；需要长期托管、刷新、跨域唤醒或统一状态面时，由 OPL App / OPL Runtime Manager 消费同一 read-model 和 OPL handoff refs。
 - 旧 MDS WebUI 的可视化价值可以被吸收，但默认品牌、路径和用户可见语义必须是 `Med Auto Science`。

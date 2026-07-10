@@ -32,11 +32,7 @@ B002 / B003 的目标是推进论文，不是用论文测试 MAS / OPL。MAS / O
 
 ### Root-Cause Depth Gate
 
-监督、heartbeat、repair lane、candidate absorption、currentness/readiness 判断和停滞 closeout 都必须走 `contracts/runtime/mas-root-cause-depth-gate.json`。可执行读回命令是：
-
-```bash
-medautosci doctor root-cause-depth-gate --repo-root <repo> --format json
-```
+监督、heartbeat、repair lane、candidate absorption、currentness/readiness 判断和停滞 closeout 都必须走 `contracts/runtime/mas-root-cause-depth-gate.json`。当前 action catalog 不暴露独立 root-cause CLI；旧 `medautosci doctor root-cause-depth-gate` 已退役。Agent/owner 直接读取该 contract 与对应 evidence refs，不得恢复 repo-local parser。
 
 每条 blocker / repair / absorption 判断至少包含 6 项：`symptom`、`failing_boundary`、`root_cause`、`owner_surface`、`fix_or_next_action`、`proof`。`proof` 还必须说明 evidence refs 证明什么、不证明什么。
 

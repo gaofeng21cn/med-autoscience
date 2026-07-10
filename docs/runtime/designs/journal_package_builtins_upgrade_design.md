@@ -7,7 +7,7 @@ Machine boundary: Human-readable design support only; implementation truth remai
 
 ## 当前读法
 
-本文记录 `journal_requirements` 与 `journal_package` 内置化的设计边界。对应 implementation 已经进入当前 source、CLI、controller、publication gate 与 focused tests；本文不再承担 active implementation plan，也不作为投稿质量、最终期刊 ready 或 publication-ready 证明。
+本文记录 `journal_requirements` 与 `journal_package` 内置化的设计边界。对应 implementation 已经进入当前 source、controller、publication gate 与 focused tests；这些 internal functions 当前没有 catalog public action。本文不再承担 active implementation plan，也不作为投稿质量、最终期刊 ready 或 publication-ready 证明。
 
 当前机器真相入口：
 
@@ -16,7 +16,7 @@ Machine boundary: Human-readable design support only; implementation truth remai
 - `src/med_autoscience/controllers/journal_package.py`
 - `src/med_autoscience/controllers/publication_gate/state_resolvers.py`
 - `src/med_autoscience/controllers/publication_gate/report_builders.py`
-- `src/med_autoscience/controllers/publication_gate/supervisor_and_cli.py`
+- `src/med_autoscience/controllers/publication_gate/`（internal publication-gate implementation；文件名中的 legacy CLI 语义不构成 public entry）
 - `tests/test_journal_requirements_controller.py`
 - `tests/test_journal_package_controller.py`
 - `tests/test_publication_gate_cases/*`
@@ -241,9 +241,8 @@ generic package 完整性与 journal package 完整性分别报告。
 
 ### 已接入
 
-- `src/med_autoscience/cli/__init__.py`
 - `src/med_autoscience/controllers/submission_targets.py`
-- `src/med_autoscience/controllers/study_delivery_sync.py`
+- `src/med_autoscience/controllers/study_delivery_sync/__init__.py`
 - `src/med_autoscience/controllers/publication_gate/__init__.py`
 - `src/med_autoscience/policies/controller_first.py`
 
@@ -302,11 +301,11 @@ generic package 完整性与 journal package 完整性分别报告。
 
 ## 当前验收读法
 
-以下条件已由当前 source / CLI / focused tests 覆盖为内置能力边界：
+以下条件已由当前 source / focused tests 覆盖为 internal capability boundary；旧 `publication ...` command names 只作 behavior identity，不是可执行 CLI：
 
-1. `publication resolve-journal-shortlist` 继续可用，且结果能稳定支撑后续 target / package 链路。
-2. `publication resolve-journal-requirements` 可保存官方要求快照和结构化 contract。
-3. `publication materialize-journal-package` 能生成稳定浅层投稿包。
+1. journal shortlist resolver 能稳定支撑后续 target/package 链路。
+2. journal requirements controller 可保存官方要求快照和结构化 contract。
+3. journal package controller 能生成稳定浅层投稿包。
 4. `study_delivery_sync` 能把 journal package 同步到 `submission_packages/<journal_slug>/`。
 5. `publication_gate` 能感知 journal package 完整性与缺件。
 6. 覆盖对应测试，并通过 repo 验证入口。

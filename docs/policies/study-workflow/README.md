@@ -62,9 +62,9 @@ MAS 的论文套路经验库现在按人读概念 `Markdown-first Publication St
 | repo seed index | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 9 张 seed card 的机器索引和 Markdown locator；不是 strategy memory 正文，也不是真实 memory store。 |
 | workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 某个 MAS workspace 内应用/回写后的可检索 memory pack；它是 MAS 生成面，不是维护者第一编辑面。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
-| 维护者 workbench 读面 | `medautosci publication strategy-memory-workbench --workspace-root <workspace>` | 面向 MAS maintainer 的 body-free 读面，把 card metadata、receipt summary、stale/deprecated review、workspace/pack coverage 和 writeback refs 放在一个 Markdown-first、AI-readable、reference-only workbench；默认不输出 memory 正文。 |
-| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 底层/兼容 inventory export，按 workspace/stage/route family/status 查看 card 元数据、locator、receipt summary、operator grouping 和 stale/deprecated review summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
-| workspace 初始化 | `medautosci workspace init` / `ops/medautoscience/bin/publication-strategy-memory-*` | 新 workspace 自动通过 MAS seed-apply surface 生成默认 strategy memory pack；dry-run 只报告计划；已有 pack 不覆盖，只报告 `already_present`。 |
+| 维护者正文/索引 | Markdown library、seed index 与 workspace memory pack refs | Maintainer 直接查看 canonical Markdown body；internal inventory builder 可生成 body-free card metadata、receipt summary、stale/deprecated review、workspace/pack coverage 和 writeback refs。 |
+| Public action status | 当前无 catalog action | 旧 strategy-memory workbench、route-memory inventory CLI 和 workspace init wrapper 已退役；若需要 public callable，先增加 action/schema，再由 OPL 生成 surface。 |
+| workspace 初始化 | OPL workspace lifecycle + MAS internal seed-apply owner function | 新 workspace 的 generic lifecycle 归 OPL；MAS seed-apply 保留 memory authority 与 existing-pack no-overwrite 语义，不提供 repo-local initializer。 |
 
 `study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的人类维护入口现在是 `publication_route_memory_library.md`。`publication_route_memory_seed_fixture.json` 只做索引和 locator，workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs` / `publication_strategy_memory_prompt_block`、`stage-memory-closeout-route` 和 `route-memory-inventory` 是应用、检索、回写与审计面；这些 surface 传递的是 refs、summary、locator、receipt、use policy 和 authority boundary，不把 Markdown strategy body 变成路线裁决。
 
@@ -78,13 +78,7 @@ MAS 的论文套路经验库现在按人读概念 `Markdown-first Publication St
 
 这些 JSON 现在已经方便维护者阅读和审计，但还不是面向普通用户的编辑 UI。安全管理路径应优先使用 MAS owner CLI/controller surface 生成 pack、proposal 和 receipt；手工编辑 workspace pack 只应作为 maintainer-level 修复，并保持 `memory_id`、stage applicability、source/provenance、status、rich body 和 receipt refs 可追溯。
 
-当前推荐查看方式优先使用维护者 workbench；需要底层 export 或向后兼容时再用 inventory：
-
-```bash
-medautosci publication strategy-memory-workbench --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk
-medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk
-medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk --stage decision
-```
+当前推荐查看方式是直接读取 canonical Markdown library、seed index 和 workspace body-free inventory refs。旧 `medautosci publication strategy-memory-workbench` / `route-memory-inventory` 只作 provenance，不再作为执行说明。
 
 2026-05-12 fresh inventory output 显示 DM-CVD workspace 的旧 pack 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。当前 repo Markdown library 已扩展为 `9` 张富文本 seed cards，seed fixture 只做索引；新 workspace 或重新应用 seed 后会得到完整 seed library。默认读面不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory/workbench；审查正文时才使用 maintainer-only `--include-card-body`。
 
@@ -107,7 +101,7 @@ medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/wo
 - 继续把真实 paper stage closeout 中的可复用 lesson 写成 natural-language strategy memory card，并通过 MAS `memory_write_router_receipt` 接受或拒绝。
 - 给每个活跃 MAS workspace 保持 `publication_route_memory/memory_pack.json`、migration receipt、writeback proposal、writeback receipt 完整可查。
 - 新 workspace 使用 `workspace init` 自动得到默认 seed pack；已有 pack 通过 MAS owner surface 显式重放，不由初始化静默覆盖。
-- 使用 `medautosci publication strategy-memory-workbench --workspace-root <workspace>` 做默认 body-free 的维护者读面；需要底层 export 时再用 `route-memory-inventory`，需要审查正文时才由 maintainer 显式加 `--include-card-body`。
+- 默认读取 canonical Markdown body 与 workspace body-free inventory refs；需要程序化 public export 时，先把 inventory semantics 加入 action catalog/schema，再由 OPL 生成 surface。
 - 把 DM002 之外的真实 paper closeout 继续通过 MAS router 生成 accepted/rejected writeback receipt，优先补足负结果/止损、外部验证/模型更新、审稿返修路线三类高频经验。
 - 在 OPL/Aion 侧先做按 workspace、stage、route family、status、receipt freshness 的 ref-only 分组展示；OPL/Aion 不读取 Markdown 正文、不裁决路线。
 - 给 memory card 补 maintainer-level `status` 纪律，例如 active、draft_seed、deprecated、stale_review_needed；状态仍由 MAS workspace owner surface 和 receipt 支撑。

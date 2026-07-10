@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `target_operating_architecture_support_reference`
 State: `active_support_reference`
-Machine boundary: 本文是人读目标运行架构参考。机器真相继续归 `agent/` pack、`contracts/`、源码、CLI/MCP/API 行为、OPL generated/hosted surfaces、runtime/controller durable surfaces、owner receipt、typed blocker、真实 workspace artifact 与 repo-native verification；当前差距、执行顺序、完成判断和下一轮 prompt 只回到 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
+Machine boundary: 本文是人读目标运行架构参考。机器真相继续归 `agent/` pack、`contracts/`、源码、OPL generated/hosted interface 行为、runtime/controller durable surfaces、owner receipt、typed blocker、真实 workspace artifact 与 repo-native verification；当前差距、执行顺序、完成判断和下一轮 prompt 只回到 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
 Date: `2026-06-16`
 
 ## 读法
@@ -173,18 +173,18 @@ MAS 只长期保留无法声明化的最小 authority functions：
 - owner-consumption / live-soak evidence shape
 - no-new-default-next-action 约束
 
-### 5. Agent Tool Arsenal / Capability Invocation OS
+### 5. Generated Capability Invocation
 
 MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、native helper 和 OPL hosted action，长期都应被 agent 当作一组按当前任务动态发现的工具，而不是被人类用户阅读、记忆和手动组合。
 
 当前实现状态：
 
-- `src/med_autoscience/action_catalog.py` 当前生成 MAS action catalog，已经表达 action id、effect、command、surface kind、MCP tool name、workspace locator fields 和 authority boundary；具体 action 集合以 `contracts/action_catalog.json` 为机器真相。
-- `src/med_autoscience/mcp_server/tool_registry.py` 当前暴露 10 个 MCP task tools；`study_progress`、`display_pack_agent`、`scientific_capability_registry`、`authority_operations` 和只读 `agent_tool_arsenal` 已携带 `outputSchema` 与 tool annotations，`display_pack_agent` 以 `discover / orchestrate / plan / preflight / render` mode 聚合绘图资产包调用，`scientific_capability_registry` 以 `index / resolve / invoke` mode 聚合外部科学能力与 refs-only advisory worker 调用，`agent_tool_arsenal` 支持读取 index、card、soft `resolve`、hard invocation plan、result envelope schema 和 completeness diagnostic。成功 MCP call result 的 `structuredContent` 已统一为 `mas_tool_result_envelope`，原 payload 保存在 `structured_payload`；envelope 现在带 `recovery` 与顶层快捷字段，明确 retryability、missing refs、staleness、next safe actions、owner_needed、receipt/blocker/diagnostic refs 和 no-forbidden-authority proof；`doctor_audit`、`workspace_readiness`、`research_assets`、`publication_status`、`open_auto_research_soak` 和 `agent_tool_arsenal` 等非 action-card tools 由 diagnostic 显式标为 support / diagnostic MCP tools。
-- `src/med_autoscience/runtime_control/owner_callable_registry.py` 当前表达 owner action 到 callable surface 的 required inputs / outputs / idempotency / fingerprint scope；`contracts/agent_tool_arsenal.json` 已把这些 owner callable 编成 `owner_callable_cards`，供 `current_owner_delta.action_type` 解析 invocation plan。
-- `plugins/med-autoscience/skills/med-autoscience/SKILL.md` 仍是 direct path skill 约束和人读护栏；agent-facing 调用材料由 `contracts/agent_tool_arsenal.json` 和 MCP `agent_tool_arsenal` 读取，不要求 executor 读长 runbook 后自行拼装工具。
-- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces，并把 `agent_tool_arsenal` source ref 指向 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`；`scientific_capability_registry` 已作为 callable/action catalog/MCP/CLI/product-entry ABI 落地。`contracts/agent_tool_arsenal.json` 的 counts 是 invocation ABI / card counts，不是 OPL brand module counts；新增合同字段只作为生成/校验材料，Agent ordinary path 只消费 `AgentExecutionIndex`、`discovery_hint`、`fit_signal`、`invocation_gate`、`adaptation_policy`、`OperationalToolCard`、`CapabilityResolverReceipt`、`CapabilityInvocationPlan.primary_operational_card` 和 `ToolResultEnvelope.recovery`。OPL 十大品牌模块 taxonomy 以 OPL repo 为 owner truth，MAS 只消费 projection / handler boundary；Capability Invocation OS 折回 Pack / Atlas / Stagecraft / Console / Connect / Runway，不新增第 11 模块。剩余尾项是 hosted OPL ordinary-path live soak、direct/hosted parity、live current-owner-delta soak 和 hosted OPL ordinary-path 对这些 ordinary execution views 的消费验证。
-- `lightweight_executor_receipt` 已从 descriptor-only contract 扩展为 L0/L1 可用 evidence 面：`src/med_autoscience/lightweight_executor_receipts.py` 能从 `ToolResultEnvelope` 或 default executor evidence dict 生成 refs-only receipt，记录 tool/action status、stdout/stderr refs、output refs、failure class、env fingerprint 与 isolation diagnostic；`ToolResultEnvelope` / `CapabilityInvocationPlan` / `ToolUseCard` 已暴露可选 `executor_receipt_ref` 和 `lightweight_executor_receipt_contract_ref`。默认只承认 `L0_host_clean_runner` / `L1_process_workspace` 的 Codex / `uv` clean runner / process-workspace evidence；Docker / OpenHands 仍只允许显式 `L3_containerized_sandbox` proof lane，inside-container 默认不启用 Docker / DinD / Docker socket。该 receipt 不执行命令、不新增 external runtime 或 admission gate，也不能写 owner receipt、typed blocker、publication eval、controller decisions、current package、submission package、stage closeout、quality verdict 或 artifact authority，缺 receipt 不阻断 current owner action。
+- `contracts/action_catalog.json` 直接声明 22 个 action id、effect、handler target、supported surface、workspace locator fields、schema refs 和 authority boundary；MAS 不再维护 catalog generator。
+- `contracts/pack_compiler_input.json` 与 `contracts/generated_surface_handoff.json` 请求 OPL 生成/托管 CLI、MCP、Skill、product-entry、status、workbench 和 harness surface；repo-local MCP registry/JSON-RPC transport 已退役。
+- `src/med_autoscience/runtime_control/owner_callable_registry.py` 继续表达 internal owner action 的 required inputs/outputs/idempotency/fingerprint scope，但不再编译成 MAS-local Tool Arsenal public ABI。
+- `agent/primary_skill/SKILL.md` 是 canonical rich skill；`plugins/med-autoscience/skills/med-autoscience/SKILL.md` 是受控 carrier mirror。Agent-facing ordinary interface 由 OPL 从 action catalog/schema 生成。
+- `scientific_capability_registry` 是 catalog action；Display Pack 使用独立 `display_pack_*` actions。旧聚合 `display_pack_agent`、`authority_operations`、`agent_tool_arsenal` 和 diagnostic MCP tools 只属于 retired/provenance identity。
+- `lightweight_executor_receipts.py` 只生成 refs-only internal evidence；它不执行命令、不新增 external runtime/admission gate，也不能写 owner receipt、typed blocker、publication eval、controller decisions、current package、submission package、stage closeout、quality verdict 或 artifact authority。
 
 目标接口：
 
@@ -264,7 +264,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 ### Lane 1：Pack Compiler 与 generated surface 收敛
 
-目标：让 `agent/` 成为 MAS semantic pack 单一来源，OPL 从 pack 生成 CLI / MCP / Skill / product-entry / workbench / action descriptors，并生成 Agent Tool Arsenal 的 compact index 与 tool cards。
+目标：让 `agent/` 成为 MAS semantic pack 单一来源，OPL 从 pack 生成 CLI / MCP / Skill / product-entry / workbench / action descriptors，并按需生成 compact action index 与 tool cards。
 
 实施步骤：
 
@@ -272,14 +272,14 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 2. 把现有 action catalog、stage route、quality contracts、generated surface handoff 对齐到该 contract。
 3. 给 direct MAS skill path 和 OPL-hosted path 加 parity fixture：同一 action 必须落到同一 MAS owner surface。
 4. 把 repo-local wrapper 标记为 generated target / authority function / diagnostic ref / tombstone 四类。
-5. `contracts/agent_tool_arsenal.json` 已从 action catalog、owner callable registry、stage route、MCP registry 和 plugin skill 汇总 `ToolArsenalIndex` / `ToolUseCard` / `CapabilityInvocationPlan` / `ToolResultEnvelope` / `ToolAuditTrail` 的 machine-readable ABI；MCP `agent_tool_arsenal` 已提供 `completeness_diagnostic`，实际 tool call result 也已返回 `mas_tool_result_envelope`。`scientific_capability_registry` 已新增 repo-side owner-consumption / live-soak evidence packet shape，用于记录 current owner delta identity、capability output refs、owner response refs、no-forbidden-write proof 和 fail-open flags。后续只按 OPL resolver/runtime 消费、parity 和真实 owner evidence 扩展。
+5. OPL 从 `contracts/action_catalog.json`、schemas、stage route 和 primary skill 生成 compact action/tool descriptors；MAS 不再维护 `agent_tool_arsenal` contract、MCP tool 或 repo-local registry。`scientific_capability_registry` 继续提供 refs-only owner-consumption evidence shape，后续只按 OPL generated caller、parity 和真实 owner evidence 扩展。
 
 验收：
 
 - OPL conformance 能从 pack 发现 MAS stage/action/quality/handoff。
 - hand-written generic wrapper 不再作为长期 owner。
 - 新 stage 只改 pack / contract，不改 runtime scheduler。
-- Agent 能通过 MCP `agent_tool_arsenal` 从 `current_owner_delta` 读取 index、card、plan、result schema 或 completeness diagnostic，并通过 MCP/CLI `scientific_capability_registry` 读取或调用 current-delta-bound refs-only capability；repo-side module API 能生成 refs-only owner-consumption / live-soak evidence packet；hosted OPL resolver/runtime 后续负责把该 ABI 接入 ordinary invocation path。
+- Agent 能通过 OPL generated `scientific_capability_registry` action 和 compact descriptors 读取或调用 current-delta-bound refs-only capability；MAS handler 能生成 refs-only owner-consumption evidence packet；OPL resolver/runtime 负责 ordinary invocation path。
 
 ### Lane 2：OPL StageRun / durable execution 上收
 
@@ -389,7 +389,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 - sidecar / advisory worker 不生成 current owner，不写 owner receipt，不写 paper progress。
 - owner-consumption / live-soak evidence shape 已在 repo-side `scientific_capability_registry` API 与 focused tests 落地；owner-consumed refs 仍必须由真实 owner receipt、typed blocker、reviewer receipt 或 route-back evidence 才能计入当前 delta。
 - Agent 工具调用不要求用户理解具体 CLI/MCP/helper；用户只看到目标、授权、人类决策和异常。
-- Capability registry 的 MAS repo structure 已由 `scientific_capability_registry` 的 action catalog、MCP runtime、CLI、Agent Tool Arsenal、owner-consumption evidence API 和 focused tests 证明；hosted OPL ordinary-path consumption evidence 已由 `contracts/hosted_ordinary_path_consumption.json` 与 MCP `agent_tool_arsenal(mode=hosted_consumption)` 落地。ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级仍由 live owner receipt / typed blocker / reviewer receipt 证明。
+- Capability registry 的 MAS repo structure 已由 `scientific_capability_registry` action、schema、domain handler、owner-consumption evidence builder 和 focused tests 证明；OPL generated/hosted consumption 必须直接消费这些 refs，不经过已退役的 Tool Arsenal/MCP wrapper。ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级仍由 live owner receipt / typed blocker / reviewer receipt 证明。
 
 ### Lane 8：OPL Workbench / Operator UX
 
@@ -531,7 +531,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
-3. **Lane 1 tool arsenal consumption tail**：`contracts/agent_tool_arsenal.json` 已把 action catalog、MCP tool、owner callable registry、plugin skill、stage route 和 `scientific_capability_registry` 映射成 ToolArsenalIndex / ToolUseCard / CapabilityInvocationPlan；`display_pack_agent` 已从 CLI/domain-handler descriptor 升级为聚合 MCP runtime，`scientific_capability_registry` 已把 external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack 折成 public MCP/CLI/product-entry capability runtime，并提供 repo-side refs-only owner-consumption / live-soak evidence packet；该 packet 现已包含 `standard_agent_feedback_loop_tail`，机器标记 production generated-surface caller negative samples、real owner accepted answer / typed blocker scaleout 和 long-soak negative conformance 仍需 OPL hosted/runtime evidence，不能由 MAS repo-side shape 关闭；`hosted_ordinary_path_consumption` 已把 OPL hosted ordinary path 所需 consumption evidence 接到 MCP `agent_tool_arsenal(mode=hosted_consumption)`。下一步是 direct/hosted parity、OPL generated caller negative samples 和真实 paper-line owner-consumed refs。
+3. **Lane 1 generated interface**：22-action catalog、schemas、primary skill、stage route 与 OPL generated surface handoff 已对齐；旧 Tool Arsenal contract、MCP runtime、`display_pack_agent` 聚合入口和 `hosted_ordinary_path_consumption` 已退役。`scientific_capability_registry` 与独立 `display_pack_*` actions 提供最小公开 ABI；剩余只是真实 owner evidence、generated caller negative samples 和 live-soak evidence。
 4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 canonical `NextActionEnvelope` 为 next-action authority，并把 `current_owner_delta` 限定为 owner projection / drilldown。
 5. **Lane 4 authority function inventory**：`contracts/authority_kernel_inventory.json` 已给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类；下一步按该 inventory 做物理收薄、旧 residue 删除门、OPL upcollect consumption 和真实 evidence 验证。
 6. **Lane 7 capability registry runtime ABI**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 已折回 `scientific_capability_registry`，MAS 提供 current-delta-bound `index / resolve / invoke` ABI、allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界、owner-consumption / live-soak evidence shape、standard-agent feedback-loop tail schema 和 hosted OPL consumption evidence；剩余是真实 owner evidence、direct/hosted parity、OPL production caller negative samples 和 long-soak negative conformance。

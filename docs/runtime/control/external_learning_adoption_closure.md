@@ -97,13 +97,13 @@ MAS 侧只记录三类机器面：
 
 ## 后续优化折回
 
-External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前 MAS repo-native callable 入口是 `scientific_capability_registry`，由 action catalog、MCP runtime、CLI/product-entry 和 Agent Tool Arsenal 暴露 `summary / inventory / index / resolve / invoke` ABI；CLI 另提供 `owner-consumption` 文件化 package 消费入口，用于把 MAS Scholar Skills materialized package 归一为 MAS owner-gate request/readback。hosted OPL ordinary path 仍按 OPL family-level `W3-capability-registry-fail-open` 消费这些 ABI。
+External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前公开 action id 是 `scientific_capability_registry`，由 OPL 从 catalog/schema 生成 CLI/MCP/Skill/product surface，并 dispatch 到 MAS handler。文件化 ScholarSkills package 的 owner-consumption 仍由同一 MAS domain handler/internal evidence builder 归一为 owner-gate request/readback；不恢复独立 CLI mode 或 Tool Arsenal。
 
 - `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 hosted current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy；MAS 只提供 repo-native capability registry ABI 和 domain authority boundary。
 - `W4-domain-kernel-manifest`：MAS 负责声明每个 external-learning ref family 的 domain consumption boundary、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级条件。
 - `W7-production-evidence-soak`：只有 ARS claim-support、AutoSci source discovery、ARK micro-canary 等 refs 被真实 owner action 消费并产出 owner receipt、typed blocker、reviewer receipt、human gate 或 route-back evidence 后，才计入 study progress。
 
-因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 `current_owner_delta` 汇总、列出、解析或显式调用已落地 refs-only capability，并通过 CLI 文件输入消费 ScholarSkills package refs。
+因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 current action/owner refs 汇总、列出、解析或显式调用已落地 refs-only capability，并通过 schema-bound input 消费 ScholarSkills package refs。
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned stage prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；canonical stage prompt source 仍是 `agent/stages/` + `agent/prompts/`，不能把 Nature-skills manifest、overlay template 或 Codex `.codex/skills` 投影当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 

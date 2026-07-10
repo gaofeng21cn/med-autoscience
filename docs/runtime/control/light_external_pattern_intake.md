@@ -56,21 +56,9 @@ Light skill 本身可学习的是 skill-engineering 方法，不是 skill invent
 
 ## Operator 读取规则
 
-Light intake 进入 MAS 时有四类基础 advisory ref；skill-content refs 只在 payload present 或 route-required 时物化。当前 canonical MAS-owned 自动物化入口是：
+Light intake 进入 MAS 时有四类基础 advisory ref；skill-content refs 只在 payload present 或 route-required 时物化。MAS-owned internal handler 是 `med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs`，写入 `artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json` 和 `artifacts/stage_outputs/<stage>/advisory/refs/*.json`。
 
-```bash
-medautosci study light-advisory-materialize \
-  --profile <profile.toml> \
-  --study-id <study-id> \
-  --work-unit-id <current-work-unit-id> \
-  --owner-action <current-owner-action> \
-  --stage <stage-id> \
-  --source-ref study.yaml \
-  --payload-file <advisory-payload.json> \
-  --apply
-```
-
-该命令由 `med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs` 执行，写入 `artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json` 和 `artifacts/stage_outputs/<stage>/advisory/refs/*.json`。它是 MAS 的 ref materializer，不调用 Light runtime、router 或 `db09`；它只写 refs-only advisory bundle 和必要的 typed-blocker candidate，不写 study truth、paper body、artifact body、memory body、owner receipt、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 `current_package`。
+该 handler 当前不在 22-action catalog 中；旧 `medautosci study light-advisory-materialize` 已退役，不能作为 operator 命令。若后续需要 public surface，先增加 catalog action/schema，再由 OPL 生成接口。handler 不调用 Light runtime、router 或 `db09`；它只写 refs-only advisory bundle 和必要的 typed-blocker candidate，不写 study truth、paper body、artifact body、memory body、owner receipt、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 `current_package`。
 
 - `verified_asset_ref`：记录模板、脚本、代码资产、API 字段或库行为的来源、核验命令、日期、license / auth / rate-limit 风险和适用边界。
 - `collision_check_ref`：记录核心机制 / 核心结论关键词、检索库、最像前作、delta、阴性证据和 novelty risk。
