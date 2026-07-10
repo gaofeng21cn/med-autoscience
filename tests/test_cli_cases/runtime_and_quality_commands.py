@@ -101,10 +101,10 @@ def test_removed_analysis_bundle_provisioning_command_is_removed() -> None:
         cli.main(["runtime", "ensure-analysis-bundle"])
 
 
-def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_launch_study_command_dispatches_domain_projection(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.study_launch_projection"
     )
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -608,10 +608,10 @@ def test_mainline_phase_command_dispatches_controller(monkeypatch, capsys) -> No
     assert exit_code == 0
     assert called["selector"] == "next"
     assert json.loads(captured.out)["phase"]["id"] == "phase_2_user_product_loop"
-def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_launch_study_command_dispatches_domain_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     launch_surface = importlib.import_module(
-        "med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface"
+        "med_autoscience.controllers.study_launch_projection"
     )
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -676,9 +676,9 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
     assert json.loads(captured.out)["runtime_status"]["decision"] == "resume"
 
 
-def test_submit_study_task_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_submit_study_task_command_dispatches_domain_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    entry_runtime = importlib.import_module("med_autoscience.controllers.product_entry.entry_runtime")
+    task_submission = importlib.import_module("med_autoscience.controllers.study_task_submission")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
@@ -718,7 +718,7 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
             "artifacts": {"latest_json": "/tmp/latest.json", "latest_markdown": "/tmp/latest.md"},
         }
 
-    monkeypatch.setattr(entry_runtime, "submit_study_task", fake_submit)
+    monkeypatch.setattr(task_submission, "submit_study_task", fake_submit)
 
     exit_code = cli.main(
         [

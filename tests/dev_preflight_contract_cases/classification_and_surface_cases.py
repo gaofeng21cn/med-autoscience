@@ -593,7 +593,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
-        "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+        "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
     ]
 
 
@@ -642,7 +642,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
             "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
-        "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+        "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
         (
             "scripts/run-pytest-clean.sh "
             "tests/test_external_learning_adoption_closure.py "

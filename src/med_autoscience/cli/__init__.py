@@ -304,11 +304,11 @@ def main(argv: list[str] | None = None) -> int:
     if study_read_result is not None:
         return study_read_result
 
-    from med_autoscience.controllers.product_entry.entry_runtime import (
+    from med_autoscience.controllers.study_task_submission import (
         render_submit_study_task_markdown,
         submit_study_task,
     )
-    from med_autoscience.controllers.product_entry.workspace_cockpit.launch_surface import (
+    from med_autoscience.controllers.study_launch_projection import (
         launch_study,
         render_launch_study_markdown,
     )

@@ -4,8 +4,6 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
-import shutil
-import subprocess
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.controllers import stage_knowledge_plane
@@ -310,7 +308,7 @@ def _render_workspace_rules() -> str:
 
 
 def _medautoscience_repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[4]
 
 
 def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) -> str:
@@ -336,28 +334,6 @@ def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) ->
     )
 
 
-def _detect_github_username() -> str | None:
-    env_login = os.environ.get("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN")
-    if env_login and env_login.strip():
-        return env_login.strip()
-    if shutil.which("gh") is None:
-        return None
-    try:
-        completed = subprocess.run(
-            ["gh", "api", "user", "--jq", ".login"],
-            capture_output=True,
-            check=False,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if completed.returncode != 0:
-        return None
-    login = completed.stdout.strip()
-    return login or None
-
-
 def _render_workspace_profile(
     *,
     workspace_root: Path,
@@ -376,7 +352,6 @@ def _render_workspace_profile(
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root,
         include_hermes_placeholders=include_hermes_placeholders,
-        github_username=_detect_github_username(),
     )
     return "\n".join(line for _, line in entries) + "\n"
 
@@ -682,7 +657,6 @@ def init_workspace(
                             default_citation_style=default_citation_style,
                             hermes_agent_repo_root=hermes_agent_repo_root,
                             hermes_home_root=hermes_home_root,
-                            github_username=_detect_github_username(),
                         ),
                         executable=item.executable,
                     )

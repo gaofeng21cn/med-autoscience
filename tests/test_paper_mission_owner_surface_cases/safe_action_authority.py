@@ -120,7 +120,7 @@ def test_scan_domain_routes_queues_specificity_and_ai_reviewer_actions_without_q
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        importlib.import_module("med_autoscience.controllers.study_progress.projection"),
         "read_study_progress",
         lambda **_: {
             "study_id": "001-dm-cvd-mortality-risk",
@@ -340,7 +340,7 @@ def test_scan_domain_routes_apply_safe_actions_materializes_stopped_dm002_lifecy
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        importlib.import_module("med_autoscience.controllers.study_progress.projection"),
         "read_study_progress",
         lambda **_: {
             "study_id": "001-dm-cvd-mortality-risk",
@@ -399,7 +399,7 @@ def test_scan_domain_routes_apply_safe_actions_materializes_stopped_dm002_lifecy
     ]
 
 
-def test_scan_domain_routes_uses_pull_request_route_when_github_user_is_not_owner(
+def test_scan_domain_routes_keeps_execution_authorization_owned_by_opl(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -451,7 +451,7 @@ def test_scan_domain_routes_uses_pull_request_route_when_github_user_is_not_owne
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        importlib.import_module("med_autoscience.controllers.study_progress.projection"),
         "read_study_progress",
         lambda **_: {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -474,15 +474,11 @@ def test_scan_domain_routes_uses_pull_request_route_when_github_user_is_not_owne
     assert result["developer_supervisor_mode"]["mode"] == "developer_apply_safe"
     assert result["developer_supervisor_mode"]["developer_mode_enabled"] is True
     assert result["developer_supervisor_mode"]["safe_actions_enabled"] is True
-    assert result["developer_supervisor_mode"]["github_user_gate"] == {
-        "expected_login": "gaofeng21cn",
-        "login": "someone-else",
-        "allowed": False,
-        "source": "env",
-        "reason": "github_user_requires_pull_request_route",
-    }
-    assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
-    assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
+    assert result["developer_supervisor_mode"]["projection_role"] == "mas_domain_action_projection_only"
+    assert result["developer_supervisor_mode"]["execution_authorization_owner"] == "one-person-lab"
+    assert result["developer_supervisor_mode"]["repo_level_repair_authority"] is False
+    assert "github_user_gate" not in result["developer_supervisor_mode"]
+    assert "repo_write_policy" not in result["developer_supervisor_mode"]
     assert study["action_queue"] == []
     assert study["owner_route"]["next_owner"] == "one-person-lab"
     assert study["owner_route"]["owner_reason"] == "opl_stage_attempt_admission_required"
@@ -553,7 +549,7 @@ def test_scan_domain_routes_apply_safe_actions_sanitizes_unsafe_repair_authority
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        importlib.import_module("med_autoscience.controllers.study_progress.projection"),
         "read_study_progress",
         lambda **_: {
             "study_id": "002-risk",

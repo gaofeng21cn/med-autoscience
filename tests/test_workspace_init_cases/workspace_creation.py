@@ -383,7 +383,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_literature_registry = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
     assert portfolio_memory_readme.is_file()
     assert portfolio_memory_registry.is_file()
-    assert workspace_literature_registry.is_file()
+    assert not workspace_literature_registry.exists()
     assert "Portfolio Research Memory" in portfolio_memory_readme.read_text(encoding="utf-8")
     route_memory_pack = (
         workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
@@ -434,8 +434,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     root_agents_text = root_agents.read_text(encoding="utf-8")
     assert "# glioma Workspace Rules" in root_agents_text
     assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
-    assert "`developer_supervisor_mode`、`github_username` 与 `mas_developer_github_usernames`" in root_agents_text
-    assert "PR route" in root_agents_text
+    assert "developer_supervisor_mode" not in root_agents_text
+    assert "github_username" not in root_agents_text
+    assert "mas_developer_github_usernames" not in root_agents_text
     assert "如果登录账号是 `gaofeng21cn`" not in root_agents_text
     assert "优先使用 `rtk` 前缀运行 shell 命令。" not in root_agents_text
     assert "优先读取 `MINERU_TOKEN`" not in root_agents_text
@@ -448,7 +449,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_pyproject = workspace_root / "pyproject.toml"
     assert workspace_pyproject.is_file()
     workspace_pyproject_text = workspace_pyproject.read_text(encoding="utf-8")
-    expected_repo_relpath = Path(os.path.relpath(Path(module.__file__).resolve().parents[3], workspace_root)).as_posix()
+    expected_repo_relpath = Path(os.path.relpath(Path(module.__file__).resolve().parents[4], workspace_root)).as_posix()
     assert 'name = "glioma-workspace"' in workspace_pyproject_text
     assert 'description = "Managed Python environment for the glioma workspace."' in workspace_pyproject_text
     assert '"med-autoscience[analysis]"' in workspace_pyproject_text
@@ -695,17 +696,9 @@ def test_generated_profile_optional_wrapper_accepts_no_args_under_bash_nounset(t
     ]
 
 
-def test_init_workspace_records_detected_github_username_in_profile(monkeypatch, tmp_path: Path) -> None:
+def test_init_workspace_does_not_write_execution_admission_identity_fields(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "detected-user-workspace"
-
-    monkeypatch.setattr(module.shutil, "which", lambda command: "/usr/bin/gh" if command == "gh" else None)
-
-    class Completed:
-        returncode = 0
-        stdout = "someone-else\n"
-
-    monkeypatch.setattr(module.subprocess, "run", lambda *_, **__: Completed())
 
     module.init_workspace(
         workspace_root=workspace_root,
@@ -717,12 +710,12 @@ def test_init_workspace_records_detected_github_username_in_profile(monkeypatch,
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "detected-user.local.toml"
     profile_text = profile_path.read_text(encoding="utf-8")
 
-    assert 'developer_supervisor_mode = "external_observe"' in profile_text
-    assert 'github_username = "someone-else"' in profile_text
-    assert 'mas_developer_github_usernames = ["gaofeng21cn"]' in profile_text
+    assert "developer_supervisor_mode" not in profile_text
+    assert "github_username" not in profile_text
+    assert "mas_developer_github_usernames" not in profile_text
 
 
-def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypatch, tmp_path: Path) -> None:
+def test_init_workspace_merges_profile_root_keys_before_existing_tables(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "existing-table-workspace"
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "existing-table.local.toml"
@@ -745,8 +738,6 @@ def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypa
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(module, "_detect_github_username", lambda: "gaofeng21cn")
-
     module.init_workspace(
         workspace_root=workspace_root,
         workspace_name="existing-table",
@@ -755,17 +746,19 @@ def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypa
     )
 
     profile_text = profile_path.read_text(encoding="utf-8")
-    assert profile_text.index('github_username = "gaofeng21cn"') < profile_text.index("[explicit_archive_import_ref]")
-    assert profile_text.count('developer_supervisor_mode = "external_observe"') == 1
-    assert profile_text.count('mas_developer_github_usernames = ["gaofeng21cn"]') == 1
+    assert profile_text.index(
+        'default_startup_anchor_policy = "scout_first_for_continue_existing_state"'
+    ) < profile_text.index("[explicit_archive_import_ref]")
+    assert "developer_supervisor_mode" not in profile_text
+    assert "github_username" not in profile_text
+    assert "mas_developer_github_usernames" not in profile_text
 
 
-def test_bootstrap_repairs_table_misnested_developer_profile_keys(monkeypatch, tmp_path: Path) -> None:
+def test_bootstrap_removes_retired_execution_admission_profile_keys(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     profiles = importlib.import_module("med_autoscience.profiles")
     workspace_root = tmp_path / "profile-repair-workspace"
 
-    monkeypatch.setattr(module, "_detect_github_username", lambda: "gaofeng21cn")
     module.init_workspace(
         workspace_root=workspace_root,
         workspace_name="profile-repair",
@@ -811,16 +804,13 @@ def test_bootstrap_repairs_table_misnested_developer_profile_keys(monkeypatch, t
     profile_text = profile_path.read_text(encoding="utf-8")
     assert str(profile_path) in first["upgraded_files"]
     assert str(profile_path) in second["skipped_files"]
-    assert profile_text.count('developer_supervisor_mode = "external_observe"') == 1
-    assert profile_text.count('mas_developer_github_usernames = ["gaofeng21cn"]') == 1
-    assert profile_text.count('github_username = "gaofeng21cn"') == 1
-    assert profile_text.index('developer_supervisor_mode = "external_observe"') < profile_text.index(
-        "[explicit_archive_import_ref]"
-    )
+    assert "developer_supervisor_mode" not in profile_text
+    assert "mas_developer_github_usernames" not in profile_text
+    assert "github_username" not in profile_text
     profile = profiles.load_profile(profile_path)
-    assert profile.developer_supervisor_mode == "external_observe"
-    assert profile.github_username == "gaofeng21cn"
-    assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
+    assert not hasattr(profile, "developer_supervisor_mode")
+    assert not hasattr(profile, "github_username")
+    assert not hasattr(profile, "mas_developer_github_usernames")
 
 
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:

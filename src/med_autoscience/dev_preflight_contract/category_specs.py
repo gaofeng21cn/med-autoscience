@@ -303,7 +303,7 @@ def build_category_specs(
                 "tests/test_stage_route_reconcile_contract.py "
                 "tests/test_overlay_installer.py -q"
             ),
-            f"{pytest_clean_runner} tests/test_product_entry.py -q",
+            f"{pytest_clean_runner} tests/test_mas_workspace_domain_projection.py -q",
         ),
     ),
     spec_type(

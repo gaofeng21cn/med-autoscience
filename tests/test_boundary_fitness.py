@@ -68,7 +68,7 @@ def test_audit_reports_new_or_growing_files_over_preferred_boundary_as_advisory(
 def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
     mechanical_path = Path("src/med_autoscience/controllers/provider_admission/chunk_01.py")
-    semantic_path = Path("src/med_autoscience/controllers/product_entry/shared.py")
+    semantic_path = Path("src/med_autoscience/controllers/current_work_unit/workspace_projection.py")
     _write_python_lines(tmp_path / mechanical_path, 3)
     _write_python_lines(tmp_path / semantic_path, 3)
 
@@ -89,8 +89,8 @@ def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path:
     nested_path = Path(
         "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_events_parts/human_gates.py"
     )
-    parts_marker_path = Path("src/med_autoscience/controllers/product_entry_parts/__init__.py")
-    shared_base_path = Path("src/med_autoscience/controllers/product_entry/shared_base.py")
+    parts_marker_path = Path("src/med_autoscience/controllers/study_progress_parts/__init__.py")
+    shared_base_path = Path("src/med_autoscience/controllers/study_progress/shared_base.py")
     near_limit_path = Path("src/med_autoscience/controllers/study_progress_parts/projection.py")
     wildcard_export_path = Path("tests/test_gate_facade.py")
     exec_compile_path = Path("src/med_autoscience/controllers/study_runtime_decision.py")

@@ -107,6 +107,9 @@ def test_study_progress_compact_payload_derives_macro_state_from_current_payload
 
 def test_current_write_routeback_overrides_stale_progress_run_and_package_handoff() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
+    user_visible_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress.user_visible_projection"
+    )
 
     payload = module._normalize_study_progress_payload(
         {
@@ -156,7 +159,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
             },
         }
     )
-    payload["user_visible_projection"] = module.build_user_visible_projection(payload)
+    payload["user_visible_projection"] = user_visible_projection.build_user_visible_projection(payload)
 
     assert payload["study_macro_state"]["writer_state"] == "queued"
     assert payload["study_macro_state"]["user_next"] == "repair"
@@ -252,28 +255,26 @@ def test_mcp_progress_markdown_renders_medical_paper_readiness_summary() -> None
     assert markdown.strip()
 
 
-def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry.workspace_surfaces")
+def test_workspace_domain_projection_carries_truth_snapshot_refs() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit.workspace_projection"
+    )
 
-    item = module._study_item(
-        progress_payload={
+    projection = module.build_workspace_domain_projection(
+        study_progress_payloads=[{
             "study_id": "003-dpcc",
             "truth_epoch": "truth-event-000004-live",
             "study_truth_snapshot": {**_truth_snapshot(), "study_macro_state": _study_macro_state()},
             "authority_snapshot": _authority_snapshot(),
             "supervision": {"active_run_id": "run-e52f5574"},
-        },
-        profile_ref="/tmp/profile.toml",
+        }]
     )
+    item = projection["domain_display"]["studies"][0]
 
-    assert item["truth_epoch"] == "truth-event-000004-live"
     assert item["authority_snapshot"]["control_state"] == "opl_handoff_required"
     assert item["study_truth_snapshot"]["canonical_next_action"] == "request_opl_handoff_hydration"
     assert item["study_truth_snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
-    assert item["study_macro_state"]["writer_state"] == "live"
-    assert item["study_macro_state"]["user_next"] == "watch"
-    assert item["study_macro_state"]["reason"] == "runtime"
-    assert item["study_macro_state"]["details"]["active_run_id"] == "run-e52f5574"
+    assert projection["opl_hosted_projection"]["mas_aggregates_operator_attention"] is False
 
 
 def test_mcp_compact_projection_carries_study_macro_state() -> None:
@@ -331,32 +332,3 @@ def test_domain_diagnostic_report_managed_study_action_carries_truth_snapshot_su
         "read_opl_current_control_state",
         "open_monitoring_entry",
     ]
-
-
-def test_product_entry_surfaces_expose_medical_writing_quality_artifacts() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry.generated_status_projection")
-    artifact_inventory = module._build_artifact_inventory_surface(
-        profile=type("Profile", (), {"workspace_root": Path("/tmp/workspace"), "runtime_root": Path("/tmp/runtime")})(),
-        progress_projection={},
-        product_entry_shell={"launch_study": {"command": "launch"}, "study_progress": {"command": "progress"}},
-        progress_projection_command="status",
-    )
-
-    file_ids = {item["file_id"] for item in artifact_inventory["supporting_files"]}
-    assert "medical_manuscript_blueprint" in file_ids
-    assert "medical_journal_style_corpus" in file_ids
-    assert "medical_prose_review_request" in file_ids
-    assert "medical_prose_review" in file_ids
-    assert "retrospective_medical_prose_audit" in file_ids
-
-    control_projection = module._build_research_runtime_control_projection(
-        resume_command="launch",
-        check_progress_command="progress",
-        check_runtime_status_command="status",
-        surface_kind="research_runtime_control_projection",
-    )
-    assert control_projection["medical_writing_quality_surface"]["subjective_quality_owner"] == "ai_reviewer"
-    assert control_projection["medical_writing_quality_surface"]["mechanical_flags_role"] == (
-        "evidence_snippets_only"
-    )
-    assert "refs.medical_prose_review_path" in control_projection["artifact_pickup_surface"]["fallback_fields"]

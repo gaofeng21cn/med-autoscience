@@ -103,7 +103,6 @@ def refresh_controller_decisions_for_current_publication_eval(
     study_root,
 ) -> dict[str, Any]:
     developer_mode = resolve_developer_supervisor_mode(
-        profile=profile,
         requested_mode=mode,
         apply_safe_actions=apply,
         scheduler_owner="controller_decision_refresh",

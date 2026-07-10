@@ -6,12 +6,11 @@ import shlex
 import tomllib
 
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
-from med_autoscience.developer_supervisor_mode import EXPECTED_DEVELOPER_GITHUB_LOGIN
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
 from med_autoscience.workspace_paths import portfolio_root
 
 
-PROFILE_TABLE_MISNESTED_TOP_LEVEL_KEYS = {
+RETIRED_PROFILE_KEYS = {
     "developer_supervisor_mode",
     "github_username",
     "mas_developer_github_usernames",
@@ -31,7 +30,6 @@ def render_workspace_profile_entries(
     hermes_agent_repo_root: Path | None,
     hermes_home_root: Path | None,
     include_hermes_placeholders: bool,
-    github_username: str | None,
 ) -> list[tuple[str, str]]:
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     entries: list[tuple[str, str]] = [
@@ -99,15 +97,8 @@ def render_workspace_profile_entries(
                 "startup_boundary_requirements",
                 'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
             ),
-            ("developer_supervisor_mode", 'developer_supervisor_mode = "external_observe"'),
-            (
-                "mas_developer_github_usernames",
-                f"mas_developer_github_usernames = [{quote_toml_string(EXPECTED_DEVELOPER_GITHUB_LOGIN)}]",
-            ),
         ]
     )
-    if github_username is not None:
-        entries.append(("github_username", f"github_username = {quote_toml_string(github_username)}"))
     return entries
 
 
@@ -207,7 +198,6 @@ def merge_workspace_profile_content(
     default_citation_style: str,
     hermes_agent_repo_root: Path | None,
     hermes_home_root: Path | None,
-    github_username: str | None,
 ) -> str:
     merge_entries = render_workspace_profile_entries(
         workspace_root=workspace_root,
@@ -217,7 +207,6 @@ def merge_workspace_profile_content(
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root,
         include_hermes_placeholders=False,
-        github_username=github_username,
     )
     repaired_content = remove_misnested_workspace_profile_entries(existing_content)
     try:
@@ -251,17 +240,13 @@ def merge_workspace_profile_content(
 
 def remove_misnested_workspace_profile_entries(existing_content: str) -> str:
     output_lines: list[str] = []
-    in_table = False
     changed = False
     for line in existing_content.splitlines():
         stripped = line.strip()
-        if stripped.startswith("["):
-            in_table = True
-        if in_table:
-            key = _profile_assignment_key(stripped)
-            if key in PROFILE_TABLE_MISNESTED_TOP_LEVEL_KEYS:
-                changed = True
-                continue
+        key = _profile_assignment_key(stripped)
+        if key in RETIRED_PROFILE_KEYS:
+            changed = True
+            continue
         output_lines.append(line)
     if not changed:
         return existing_content

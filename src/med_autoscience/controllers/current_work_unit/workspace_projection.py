@@ -22,18 +22,15 @@ def build_workspace_domain_projection(
     *,
     study_progress_payloads: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Expose MAS-owned refs; OPL Console owns aggregation and operator UX."""
     domain_display = [_study_refs(payload) for payload in study_progress_payloads]
-    current_work_units = []
-    for payload, display in zip(study_progress_payloads, domain_display, strict=True):
-        current_work_unit = _mapping(payload.get("current_work_unit"))
-        if current_work_unit:
-            current_work_units.append(
-                build_domain_current_work_unit_projection(
-                    current_work_unit,
-                    domain_display=display,
-                )
-            )
+    current_work_units = [
+        build_domain_current_work_unit_projection(
+            current_work_unit,
+            domain_display=display,
+        )
+        for payload, display in zip(study_progress_payloads, domain_display, strict=True)
+        if (current_work_unit := _mapping(payload.get("current_work_unit")))
+    ]
     return {
         "surface_kind": "opl_domain_projection",
         "schema_version": 1,

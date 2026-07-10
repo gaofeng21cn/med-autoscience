@@ -69,21 +69,23 @@ def test_mcp_progress_compact_projection_carries_runtime_health_snapshot_summary
     }
 
 
-def test_workspace_cockpit_study_item_carries_runtime_health_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry.workspace_surfaces")
+def test_workspace_domain_projection_carries_runtime_health_snapshot_refs() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit.workspace_projection"
+    )
 
-    item = module._study_item(
-        progress_payload={
+    projection = module.build_workspace_domain_projection(
+        study_progress_payloads=[{
             "study_id": "002-dm-cvd",
             "runtime_health_epoch": "runtime-health-event-000002-live",
             "runtime_health_snapshot": _runtime_health_snapshot(),
             "supervision": {"health_status": "recovering"},
-        },
-        profile_ref="/tmp/profile.toml",
+        }]
     )
+    item = projection["domain_display"]["studies"][0]
 
-    assert item["runtime_health_epoch"] == "runtime-health-event-000002-live"
     assert item["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
+    assert projection["opl_hosted_projection"]["mas_generates_operator_commands"] is False
 
 
 def test_domain_diagnostic_report_managed_study_action_carries_runtime_health_snapshot_summary() -> None:

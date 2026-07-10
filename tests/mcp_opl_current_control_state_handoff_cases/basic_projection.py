@@ -10,7 +10,7 @@ from tests.mcp_opl_current_control_state_handoff_cases.shared import (
     write_json as _write_json,
 )
 
-def test_study_progress_opl_current_control_state_handoff_projection_reads_developer_supervisor_mode(tmp_path) -> None:
+def test_study_progress_opl_current_control_state_handoff_does_not_copy_private_execution_policy(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
     handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
@@ -41,13 +41,17 @@ def test_study_progress_opl_current_control_state_handoff_projection_reads_devel
 
     projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
 
-    assert projection["mode"] == "developer_apply_safe"
-    assert projection["mode_label"] == "Developer Supervisor Mode"
-    assert projection["scheduler_owner"] == "external_scheduler"
-    assert projection["codex_app_heartbeat_required"] is False
-    assert projection["safe_actions_enabled"] is True
-    assert projection["repo_level_repair_authority"] is True
-    assert projection["github_user_gate"] == {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None}
+    assert projection["study_id"] == "001-risk"
+    for key in (
+        "mode",
+        "mode_label",
+        "scheduler_owner",
+        "codex_app_heartbeat_required",
+        "safe_actions_enabled",
+        "repo_level_repair_authority",
+        "github_user_gate",
+    ):
+        assert key not in projection
 
 
 def test_study_progress_opl_current_control_state_handoff_projection_preserves_string_why_not_applied(tmp_path) -> None:

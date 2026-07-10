@@ -3,9 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 
-DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
-
-
 def _render_medautosci_shared(profile_relpath: Path) -> str:
     return (
         "#!/usr/bin/env bash\n"

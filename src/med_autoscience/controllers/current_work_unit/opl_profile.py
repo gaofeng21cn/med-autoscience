@@ -40,8 +40,9 @@ def build_domain_projection_profile() -> dict[str, Any]:
         "source_paths": [
             "src/med_autoscience/controllers/current_work_unit/projection.py",
             "src/med_autoscience/controllers/current_work_unit/opl_profile.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
-            "src/med_autoscience/controllers/product_entry/entry_runtime.py",
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/controllers/study_launch_projection.py",
+            "src/med_autoscience/controllers/study_task_submission.py",
         ],
         "surface_kinds": {
             "domain_projection": "opl_domain_projection",

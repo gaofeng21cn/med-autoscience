@@ -178,10 +178,10 @@ def test_final_soak_uses_canonical_readiness_when_matrix_is_absent(tmp_path: Pat
     )
 
 
-def test_final_soak_readiness_payload_projects_into_mcp_and_product_actions(tmp_path: Path) -> None:
+def test_final_soak_readiness_payload_projects_into_mcp_and_domain_display(tmp_path: Path) -> None:
     mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
-    cockpit_payload = importlib.import_module(
-        "med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload"
+    workspace_projection = importlib.import_module(
+        "med_autoscience.controllers.current_work_unit.workspace_projection"
     )
     root = _materialize_fixture(tmp_path)[0]
     readiness = json.loads(
@@ -195,13 +195,21 @@ def test_final_soak_readiness_payload_projects_into_mcp_and_product_actions(tmp_
         {"study_id": root.name, "medical_paper_readiness": readiness}
     )
     missing = compact["medical_paper_readiness"]["missing_surfaces"][0]
-    normalized = cockpit_payload._normalized_medical_paper_readiness_projection(readiness)
-    card = normalized["action_cards"][0]
+    domain_projection = workspace_projection.build_workspace_domain_projection(
+        study_progress_payloads=[
+            {
+                "study_id": root.name,
+                "medical_paper_readiness": readiness,
+            }
+        ]
+    )
+    projected_readiness = domain_projection["domain_display"]["studies"][0][
+        "medical_paper_readiness"
+    ]
 
     assert missing["surface_key"] == "literature_provider_runtime"
     assert missing["action_id"] == "run_provider_literature_scout"
     assert missing["action_label"] == "联网补文献"
-    assert card["action_id"] == "run_provider_literature_scout"
-    assert card["authority"] == "observability_projection_only"
-    assert card["quality_claim_authorized"] is False
-    assert normalized["mechanical_projection_can_authorize_quality"] is False
+    assert projected_readiness["overall_status"] == "blocked"
+    assert projected_readiness["quality_claim_authorized"] is False
+    assert domain_projection["authority_boundary"]["projection_can_claim_publication_ready"] is False

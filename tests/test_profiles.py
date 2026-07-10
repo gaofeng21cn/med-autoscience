@@ -28,9 +28,6 @@ PROFILE_LINES = [
     'legacy_code_execution_policy = "forbid_without_user_approval"',
     'public_data_discovery_policy = "required_for_scout_route_selection"',
     'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
-    'developer_supervisor_mode = "external_observe"',
-    'github_username = "gaofeng21cn"',
-    'mas_developer_github_usernames = ["gaofeng21cn"]',
     "",
     "[[default_submission_targets]]",
     'exporter_profile = "frontiers_family_harvard"',
@@ -94,10 +91,6 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
     assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
-    assert profile.developer_supervisor_mode == "external_observe"
-    assert profile.developer_supervisor_mode_explicit is True
-    assert profile.github_username == "gaofeng21cn"
-    assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
     assert len(profile.default_submission_targets) == 1
     assert profile.default_submission_targets[0]["exporter_profile"] == "frontiers_family_harvard"
     assert profile.default_submission_targets[0]["primary"] is True
@@ -181,10 +174,6 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
     assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
-    assert profile.developer_supervisor_mode == "internal_only"
-    assert profile.developer_supervisor_mode_explicit is False
-    assert profile.github_username is None
-    assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
 
 
 def test_workspace_profile_template_defaults_to_primary_figure_overlay_skill() -> None:
@@ -194,6 +183,9 @@ def test_workspace_profile_template_defaults_to_primary_figure_overlay_skill() -
     assert "figure" in payload["medical_overlay_skills"]
     assert "external-scientific-skills" in payload["medical_overlay_skills"]
     assert "figure-polish" not in payload["medical_overlay_skills"]
+    assert "developer_supervisor_mode" not in payload
+    assert "github_username" not in payload
+    assert "mas_developer_github_usernames" not in payload
 
 
 def test_load_profile_accepts_historical_reference_tables_without_top_level_mds_fields(tmp_path: Path) -> None:
@@ -353,10 +345,9 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert policy["legacy_code_execution_policy"] == profile.legacy_code_execution_policy
     assert policy["public_data_discovery_policy"] == profile.public_data_discovery_policy
     assert policy["startup_boundary_requirements"] == list(profile.startup_boundary_requirements)
-    assert policy["developer_supervisor_mode"] == "external_observe"
-    assert policy["developer_supervisor_mode_explicit"] is True
-    assert policy["github_username"] == "gaofeng21cn"
-    assert policy["mas_developer_github_usernames"] == ["gaofeng21cn"]
+    assert "developer_supervisor_mode" not in policy
+    assert "github_username" not in policy
+    assert "mas_developer_github_usernames" not in policy
 
     archetype = contract["archetype"]
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
@@ -760,7 +751,7 @@ def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Pat
         profiles.load_profile(profile_path)
 
 
-def test_load_profile_rejects_invalid_developer_supervisor_mode(tmp_path: Path) -> None:
+def test_load_profile_does_not_restore_retired_execution_admission_fields(tmp_path: Path) -> None:
     profile_path = tmp_path / "invalid-developer-supervisor.local.toml"
     profile_path.write_text(
         "\n".join(
@@ -781,8 +772,11 @@ def test_load_profile_rejects_invalid_developer_supervisor_mode(tmp_path: Path) 
     )
 
     profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="developer_supervisor_mode"):
-        profiles.load_profile(profile_path)
+    profile = profiles.load_profile(profile_path)
+
+    assert not hasattr(profile, "developer_supervisor_mode")
+    assert not hasattr(profile, "github_username")
+    assert not hasattr(profile, "mas_developer_github_usernames")
 
 
 def test_load_profile_rejects_med_deepscientist_as_default_managed_backend(tmp_path: Path) -> None:

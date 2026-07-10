@@ -358,31 +358,29 @@
       "refs_only": true
     },
     "contract_can_trigger_execution": false,
-    "developer_mode_execution_gate_refs": [
-      "opl-developer-mode:repo-fix-execution",
-      "opl-developer-mode:direct-fix-or-fork-pr-route"
-    ],
-    "developer_route_policy": {
-      "auto_developer_mode_can_select_local_checkout_source_when_identity_matches": true,
-      "direct_fix_route": "requires_target_repo_direct_write_authority_or_agent_owner_developer_authority",
-      "feedback_capture_route": "allowed_for_all_users_refs_only",
-      "manual_developer_mode_cannot_grant_direct_repo_write": true,
-      "manual_enable_without_direct_write_route": "fork_pull_request",
-      "official_or_third_party_agent_without_authority_route": "fork_pull_request_or_owner_handoff"
+    "execution_handoff_policy": {
+      "domain_pack_role": "refs_only_work_order_candidate",
+      "execution_owner": "one-person-lab",
+      "mas_can_select_direct_write_or_pull_request_route": false,
+      "missing_authorization_outcome": "opl_execution_authorization_required"
     },
-    "feedback_capture_requires_developer_mode": false,
+    "feedback_capture_requires_execution_authorization": false,
     "feedbackops_event_kind": "target_agent_feedback_external_suite",
     "must_follow_target_domain_mainline": true,
     "must_not_compete_with_target_domain_mainline": true,
+    "opl_execution_authorization_refs": [
+      "one-person-lab:contracts/stage-run-kernel-contract.json#execution_authorization_policy",
+      "runtime-ref:trusted_opl_execution_authorization"
+    ],
     "policy_id": "standard_agent_feedback_self_evolution_trigger.v1",
-    "repo_fix_execution_requires_opl_developer_mode": true,
+    "repo_fix_execution_requires_opl_execution_authorization": true,
     "required_trigger_fields": [
       "feedbackops_event_kind",
       "accepted_feedback_profile",
       "target_agent_id",
       "idempotency_key",
       "external_suite_ref",
-      "developer_mode_execution_gate_refs",
+      "opl_execution_authorization_refs",
       "oma_evolution_skill_ref",
       "owner_closeout_readback_refs"
     ],
@@ -393,7 +391,7 @@
       "domain_or_package_thin_feedback_adapter",
       "opl_feedbackops_agent_lab_status_projection",
       "opl_meta_agent_oma_agent_evolution_work_order",
-      "developer_mode_direct_fix_or_fork_pr_route",
+      "opl_execution_authorization_and_owner_route_handoff",
       "target_owner_closeout_readback"
     ],
     "version": "foundry-agent-feedback-self-evolution-trigger.v1"

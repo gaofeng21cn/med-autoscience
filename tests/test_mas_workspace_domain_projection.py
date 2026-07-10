@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from med_autoscience.controllers.product_entry.workspace_cockpit.cockpit_payload import (
+from med_autoscience.controllers.current_work_unit.workspace_projection import (
     build_workspace_domain_projection,
 )
 

@@ -91,39 +91,6 @@
       "status": "ready_for_opl_pack_compiler_consumption_standard_agent_purity_guarded",
       "surface_kind": "mas_declarative_pack_compiler_input"
     },
-    "state_index_source_adapter_role": {
-      "authority": "body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
-      "body_policy": "refs_receipts_blockers_only",
-      "classification": "domain_authority_refs",
-      "current_mas_role": "body_free_state_index_source_adapter",
-      "forbidden_mas_roles": [
-        "generic_persistence_engine",
-        "generic_lifecycle_engine",
-        "generic_runtime_lifecycle_owner",
-        "generic_restore_retention_owner"
-      ],
-      "generic_owner_claim_allowed": false,
-      "mas_consumes_opl_current_control_state_refs": true,
-      "mas_may_claim_generic_persistence_engine": false,
-      "mas_may_emit_domain_receipt_refs": true,
-      "mas_may_write_domain_truth": false,
-      "owner": "one-person-lab",
-      "provenance_role": "body_free_domain_authority_ref_source_adapter",
-      "replacement_expectation": {
-        "audit_ref": "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-        "expected_replacements": [
-          "opl_runtime_lifecycle_index_contract",
-          "opl_artifact_lifecycle_storage_audit_shell",
-          "opl_app_workbench_shell",
-          "opl_provider_scheduler_lifecycle",
-          "opl_queue_attempt_retry_dead_letter",
-          "opl_generic_transition_runner"
-        ],
-        "mas_allowed_role_until_replacement": "body_free_state_index_source_adapter",
-        "owner": "one-person-lab",
-        "required_before_mas_generic_owner_claim": true
-      }
-    },
     "domain_authority_refs_retirement_gates": [
       {
         "can_emit_generic_owner_verdict": false,
@@ -825,9 +792,10 @@
       {
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/workspace_init/",
           "src/med_autoscience/workspace_contracts.py",
           "src/med_autoscience/controllers/workspace_literature.py",
+          "src/med_autoscience/adapters/literature/pubmed.py",
+          "src/med_autoscience/adapters/literature/pmc.py",
           "src/med_autoscience/controllers/literature_provider_runtime.py"
         ],
         "current_ref_status": "domain_source_adapter_active",
@@ -973,7 +941,11 @@
             "workbench",
             "workbench_drilldown",
             "portal",
-            "cockpit"
+            "cockpit",
+            "domain_projection_profile",
+            "workspace_domain_projection",
+            "study_launch_handoff",
+            "study_task_intake_owner_route"
           ],
           "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
           "domain_ref_owner": "med-autoscience",
@@ -1001,7 +973,11 @@
             "workbench",
             "workbench_drilldown",
             "portal",
-            "cockpit"
+            "cockpit",
+            "domain_projection_profile",
+            "workspace_domain_projection",
+            "study_launch_handoff",
+            "study_task_intake_owner_route"
           ],
           "replacement_owner": "one-person-lab",
           "required_before_retire": [
@@ -1016,9 +992,9 @@
         },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
-          "src/med_autoscience/controllers/product_entry/workspace_cockpit/launch_surface.py",
-          "src/med_autoscience/controllers/product_entry/generated_status_projection.py"
+          "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+          "src/med_autoscience/controllers/study_launch_projection.py",
+          "src/med_autoscience/controllers/study_task_submission.py"
         ],
         "current_ref_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
         "current_surface_refs": [
@@ -1027,22 +1003,26 @@
           "workbench",
           "workbench_drilldown",
           "portal",
-          "cockpit"
+          "cockpit",
+          "domain_projection_profile",
+          "workspace_domain_projection",
+          "study_launch_handoff",
+          "study_task_intake_owner_route"
         ],
         "domain_ref_consumers": [
-          "progress portal read-model materializer",
-          "workspace cockpit",
-          "product-entry manifest"
+          "opl generated console and workbench",
+          "domain entry study launch handoff",
+          "domain entry task intake handoff"
         ],
         "latest_thinning_evidence": {
           "does_not_claim_opl_default_caller": true,
-          "does_not_claim_physical_delete": true,
           "does_not_touch_publication_or_package_authority": true,
-          "domain_projection_entry_shells": [
-            "src/med_autoscience/controllers/product_entry/program_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
-            "src/med_autoscience/controllers/product_entry/manifest_surfaces.py"
+          "domain_projection_sources": [
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/controllers/study_launch_projection.py",
+            "src/med_autoscience/controllers/study_task_submission.py"
           ],
+          "physical_delete_landed": true,
           "read_model_materializer_boundary": {
             "active_callers": [],
             "does_not_claim": [
@@ -1115,7 +1095,7 @@
         ],
         "owner": "med-autoscience",
         "proof_refs": [
-          "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
+          "contracts/domain_projection_profile.json",
           "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"
         ],
         "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, while OPL owns the hosted workbench and generated projection shell."
@@ -1171,7 +1151,9 @@
           "src/med_autoscience/controllers/paper_mission_owner_surface/",
           "src/med_autoscience/controllers/domain_action_request_materializer/",
           "src/med_autoscience/controllers/stage_outcome_authority.py",
-          "src/med_autoscience/controllers/owner_callable_action_policy.py"
+          "src/med_autoscience/controllers/owner_callable_action_policy.py",
+          "src/med_autoscience/reviewer_revision_feedbackops_dispatch.py",
+          "src/med_autoscience/reviewer_revision_oma_materialization.py"
         ],
         "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
         "current_surface_refs": [
@@ -1296,7 +1278,7 @@
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/domain_entry.py",
-          "src/med_autoscience/controllers/product_entry.py",
+          "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
           "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
           "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
           "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
@@ -1342,7 +1324,9 @@
       {
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/opl_unique_control_plane_boundary/"
+          "src/med_autoscience/controllers/opl_unique_control_plane_boundary/consumer_migration_inventory.py",
+          "src/med_autoscience/controllers/workspace_init/retired_entries.py",
+          "src/med_autoscience/controllers/mds_capability_parity/behavior_equivalence.py"
         ],
         "current_ref_status": "opl_replacement_default_local_tombstone_only",
         "domain_ref_consumers": [
@@ -1353,6 +1337,7 @@
           "typed_blocker"
         ],
         "migration_action": "declare_scheduler_requirement_in_pack_and_keep_retired_provenance_refs",
+        "migration_class": "provenance_or_fixture",
         "module_id": "generic_daemon_or_scheduler_lifecycle",
         "opl_expected_primitives": [
           "scheduler_lifecycle",
@@ -1366,7 +1351,12 @@
         "authority_boundary": "opl_owns_queue_attempt_retry_transport_mas_signs_stage_closeout_receipts",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/study_runtime_execution/controller_authorization_receipts.py"
+          "src/med_autoscience/controllers/study_runtime_execution/controller_authorization_receipts.py",
+          "src/med_autoscience/controllers/paper_mission_owner_surface/opl_provider_attempts.py",
+          "src/med_autoscience/controllers/opl_provider_ready_adapter/provider_readiness.py",
+          "src/med_autoscience/controllers/study_runtime_decision/publication_and_submission.py",
+          "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py",
+          "src/med_autoscience/runtime_control/owner_route_attempt_protocol.py"
         ],
         "current_ref_status": "opl_owned_runtime_control_mas_consumes_closeout_refs",
         "domain_ref_consumers": [
@@ -1447,7 +1437,9 @@
           "src/med_autoscience/controllers/publication_gate.py",
           "src/med_autoscience/controllers/study_progress/publication_runtime.py",
           "src/med_autoscience/controllers/ai_reviewer_runtime_workflow.py",
-          "src/med_autoscience/controllers/ai_reviewer_publication_eval.py"
+          "src/med_autoscience/controllers/ai_reviewer_publication_eval.py",
+          "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality/__init__.py",
+          "src/med_autoscience/study_task_intake_revision.py"
         ],
         "current_ref_status": "domain_authority_active",
         "domain_ref_consumers": [
@@ -1732,8 +1724,7 @@
         },
         {
           "current_paths": [
-            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-            "src/med_autoscience/controllers/product_entry/program_surfaces.py"
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
           ],
           "current_role": "domain_skill_handler_target_and_pack_refs_only",
           "surface_id": "skill",
@@ -1741,9 +1732,10 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry.py"
+            "contracts/domain_projection_profile.json",
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
           ],
-          "current_role": "domain_manifest_ref_source_no_default_caller",
+          "current_role": "domain_projection_profile_and_refs_source",
           "surface_id": "product_entry",
           "target_role": "opl_generated_product_entry_surface"
         },
@@ -1759,8 +1751,8 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry/",
-            "src/med_autoscience/controllers/progress_projection.py"
+            "src/med_autoscience/controllers/study_progress/",
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
           ],
           "current_role": "domain_truth_refs_status_projection_source",
           "surface_id": "status",
@@ -1768,7 +1760,7 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/"
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
           ],
           "current_role": "domain_refs_workbench_projection_source",
           "surface_id": "workbench",
@@ -1776,7 +1768,9 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/product_entry/"
+            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/controllers/study_launch_projection.py",
+            "src/med_autoscience/controllers/study_task_submission.py"
           ],
           "current_role": "domain_refs_projection_builder_source",
           "surface_id": "projection_shell",
@@ -2407,27 +2401,6 @@
           "src/med_autoscience/controllers/domain_action_request_materializer/transition_request_projection.py",
           "src/med_autoscience/controllers/domain_action_request_materializer/transition_request_record_fields.py",
           "src/med_autoscience/controllers/domain_action_request_materializer/writer_handoff_preservation.py",
-          "src/med_autoscience/controllers/product_entry/automation_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/boundary_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/command_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/entry_runtime.py",
-          "src/med_autoscience/controllers/product_entry/family_lifecycle_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
-          "src/med_autoscience/controllers/product_entry/guarded_workflow_steps.py",
-          "src/med_autoscience/controllers/product_entry/human_status_view.py",
-          "src/med_autoscience/controllers/product_entry/manifest_projection_compaction.py",
-          "src/med_autoscience/controllers/product_entry/manifest_rendering.py",
-          "src/med_autoscience/controllers/product_entry/manifest_shell_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/manifest_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/paper_orchestra_operator.py",
-          "src/med_autoscience/controllers/product_entry/program_runtime_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/program_surfaces.py",
-          "src/med_autoscience/controllers/product_entry/shared.py",
-          "src/med_autoscience/controllers/product_entry/shared_base.py",
-          "src/med_autoscience/controllers/product_entry/shared_labels.py",
-          "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
-          "src/med_autoscience/controllers/product_entry/workspace_cockpit/launch_surface.py",
-          "src/med_autoscience/controllers/product_entry/workspace_surfaces.py",
           "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_inventory.py",
           "src/med_autoscience/controllers/workspace_literature.py"
         ],
@@ -2474,6 +2447,39 @@
       "domain_handler_default",
       "test_lane_default"
     ],
+    "state_index_source_adapter_role": {
+      "authority": "body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
+      "body_policy": "refs_receipts_blockers_only",
+      "classification": "domain_authority_refs",
+      "current_mas_role": "body_free_state_index_source_adapter",
+      "forbidden_mas_roles": [
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_runtime_lifecycle_owner",
+        "generic_restore_retention_owner"
+      ],
+      "generic_owner_claim_allowed": false,
+      "mas_consumes_opl_current_control_state_refs": true,
+      "mas_may_claim_generic_persistence_engine": false,
+      "mas_may_emit_domain_receipt_refs": true,
+      "mas_may_write_domain_truth": false,
+      "owner": "one-person-lab",
+      "provenance_role": "body_free_domain_authority_ref_source_adapter",
+      "replacement_expectation": {
+        "audit_ref": "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+        "expected_replacements": [
+          "opl_runtime_lifecycle_index_contract",
+          "opl_artifact_lifecycle_storage_audit_shell",
+          "opl_app_workbench_shell",
+          "opl_provider_scheduler_lifecycle",
+          "opl_queue_attempt_retry_dead_letter",
+          "opl_generic_transition_runner"
+        ],
+        "mas_allowed_role_until_replacement": "body_free_state_index_source_adapter",
+        "owner": "one-person-lab",
+        "required_before_mas_generic_owner_claim": true
+      }
+    },
     "status": "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack",
     "surface_kind": "mas_functional_consumer_boundary"
   },

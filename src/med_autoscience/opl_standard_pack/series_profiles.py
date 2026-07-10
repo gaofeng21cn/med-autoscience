@@ -69,7 +69,7 @@ STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY = {
         "domain_or_package_thin_feedback_adapter",
         "opl_feedbackops_agent_lab_status_projection",
         "opl_meta_agent_oma_agent_evolution_work_order",
-        "developer_mode_direct_fix_or_fork_pr_route",
+        "opl_execution_authorization_and_owner_route_handoff",
         "target_owner_closeout_readback",
     ],
     "required_trigger_fields": [
@@ -78,7 +78,7 @@ STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY = {
         "target_agent_id",
         "idempotency_key",
         "external_suite_ref",
-        "developer_mode_execution_gate_refs",
+        "opl_execution_authorization_refs",
         "oma_evolution_skill_ref",
         "owner_closeout_readback_refs",
     ],
@@ -86,25 +86,18 @@ STANDARD_FEEDBACK_SELF_EVOLUTION_TRIGGER_POLICY = {
         "contracts/opl-framework/agent-lab-contract.json#/"
         "domain_feedback_self_evolution_surface"
     ),
-    "feedback_capture_requires_developer_mode": False,
-    "repo_fix_execution_requires_opl_developer_mode": True,
+    "feedback_capture_requires_execution_authorization": False,
+    "repo_fix_execution_requires_opl_execution_authorization": True,
     "contract_can_trigger_execution": False,
-    "developer_mode_execution_gate_refs": [
-        "opl-developer-mode:repo-fix-execution",
-        "opl-developer-mode:direct-fix-or-fork-pr-route",
+    "opl_execution_authorization_refs": [
+        "one-person-lab:contracts/stage-run-kernel-contract.json#execution_authorization_policy",
+        "runtime-ref:trusted_opl_execution_authorization",
     ],
-    "developer_route_policy": {
-        "feedback_capture_route": "allowed_for_all_users_refs_only",
-        "direct_fix_route": (
-            "requires_target_repo_direct_write_authority_or_"
-            "agent_owner_developer_authority"
-        ),
-        "manual_enable_without_direct_write_route": "fork_pull_request",
-        "official_or_third_party_agent_without_authority_route": (
-            "fork_pull_request_or_owner_handoff"
-        ),
-        "manual_developer_mode_cannot_grant_direct_repo_write": True,
-        "auto_developer_mode_can_select_local_checkout_source_when_identity_matches": True,
+    "execution_handoff_policy": {
+        "execution_owner": "one-person-lab",
+        "domain_pack_role": "refs_only_work_order_candidate",
+        "mas_can_select_direct_write_or_pull_request_route": False,
+        "missing_authorization_outcome": "opl_execution_authorization_required",
     },
     "authority_boundary": {
         "refs_only": True,

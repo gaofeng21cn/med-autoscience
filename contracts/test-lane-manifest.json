@@ -98,7 +98,7 @@
         "tests/test_runtime_supervision.py",
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_study_progress.py",
-        "tests/test_product_entry.py"
+        "tests/test_mas_workspace_domain_projection.py"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
@@ -256,7 +256,7 @@
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_product_entry.py"
+        "tests/test_mas_workspace_domain_projection.py"
       ],
       "docs": [
         "docs/active/mas-ideal-state-gap-plan.md",
@@ -342,7 +342,7 @@
       "kind": "focused_paper_autonomy_stability_evidence_gate",
       "paths": [
         "tests/test_paper_autonomy_stability_evidence.py",
-        "tests/test_cli_cases/workspace_monolith_migration_command.py",
+        "tests/test_legacy_active_path_retire.py",
         "tests/test_workspace_git_boundary.py"
       ],
       "overlap_policy": "allowed_with_regression",
@@ -362,8 +362,8 @@
       "kind": "focused_mas_entry_docs_contract_gate",
       "paths": [
         "tests/test_test_lane_governance.py",
-        "tests/product_entry_cases/action_catalog_parity.py",
-        "tests/test_cli_cases/domain_handler_functional_closure_command.py",
+        "tests/test_domain_entry.py",
+        "tests/test_cli_cases/domain_handler_and_submission_commands.py",
         "tests/test_codex_plugin.py",
         "tests/test_codex_plugin_scaffold.py",
         "tests/test_mcp_server.py"

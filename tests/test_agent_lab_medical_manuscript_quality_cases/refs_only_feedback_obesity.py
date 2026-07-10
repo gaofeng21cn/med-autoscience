@@ -80,9 +80,11 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
     assert trigger["idempotency_key"] == (
         "feedbackops:mas/obesity_multicenter_phenotype_atlas/high_quality_medical_manuscript/latest_suite"
     )
-    assert trigger["feedback_capture_requires_developer_mode"] is False
-    assert trigger["repo_fix_execution_requires_opl_developer_mode"] is True
-    assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
+    assert trigger["feedback_capture_requires_execution_authorization"] is False
+    assert trigger["repo_fix_execution_requires_opl_execution_authorization"] is True
+    assert "runtime-ref:trusted_opl_execution_authorization" in trigger[
+        "opl_execution_authorization_refs"
+    ]
     assert trigger["refs_only"] is True
     assert trigger["writes_study_truth"] is False
     assert trigger["status"] == "runnable_after_suite_materialized"

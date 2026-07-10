@@ -4,78 +4,34 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
-INTERNAL_AI_MONITOR_INTERVAL_SECONDS = 5 * 60
-INTERNAL_AI_DOCTOR_TIMEOUT_SECONDS = 15 * 60
-INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS = 30 * 60
-DEVELOPER_HEARTBEAT_INTERVAL_SECONDS = 60 * 60
-OWNER_PICKUP_OVERDUE_HOURS = 2
-DEVELOPER_SUPERVISOR_ATTENTION_HOURS = 6
 
 
 def owner_callable_policy() -> dict[str, Any]:
     return {
-        "executor_kind": "codex_cli_default",
-        "executor_name": "Codex CLI",
-        "executor_mode": "autonomous_agent_loop",
-        "default_model_policy": "inherit_current_codex_configuration",
-        "default_reasoning_effort_policy": "inherit_current_codex_configuration",
-        "chat_completion_only_executor_forbidden": True,
+        "surface_kind": "mas_owner_callable_execution_requirement",
+        "schema_version": SCHEMA_VERSION,
+        "execution_authorization_owner": "one-person-lab",
+        "required_input": "trusted_opl_execution_authorization",
+        "domain_owner": "MedAutoScience",
+        "mas_selects_executor": False,
+        "mas_selects_model": False,
+        "mas_runs_generic_executor": False,
+        "mas_may_validate_domain_preconditions": True,
     }
 
 
 def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
     return {
-        "surface": "two_layer_ai_repair_policy",
+        "surface": "mas_domain_repair_handoff_policy",
         "schema_version": SCHEMA_VERSION,
-        "internal_ai_repair": {
-            "monitor_interval_seconds": INTERNAL_AI_MONITOR_INTERVAL_SECONDS,
-            "ai_doctor_timeout_seconds": INTERNAL_AI_DOCTOR_TIMEOUT_SECONDS,
-            "no_progress_repair_after_seconds": INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS,
-            "trigger_principles": [
-                "no_meaningful_progress",
-                "same_fingerprint_loop",
-                "read_churn_without_artifact_delta",
-                "stale_truth_surface",
-                "runtime_recovery_retry_budget_exhausted",
-            ],
-            "owner_callable_adapter": owner_callable_policy(),
-        },
-        "developer_supervisor": {
-            "heartbeat_interval_seconds": DEVELOPER_HEARTBEAT_INTERVAL_SECONDS,
-            "owner_pickup_overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
-            "developer_attention_after_hours": DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
-            "default_enablement": {
-                "authority_surface": "opl_family_user_config",
-                "config_path": "~/Library/Application Support/OPL/state/developer-supervisor.json",
-                "state_dir_env_override": "OPL_STATE_DIR",
-                "workspace_profile_fields": [
-                    "developer_supervisor_mode",
-                    "github_username",
-                    "mas_developer_github_usernames",
-                ],
-                "mas_developer_route": "direct_commit",
-                "other_developer_route": "pull_request",
-                "manual_enablement_supported": True,
-                "unknown_github_user_fall_back_to": "external_observe",
-            },
-            "scope_policy": {
-                "scope": "workspace_dynamic_active_studies",
-                "new_mas_task_enrollment": "automatic_on_next_heartbeat",
-                "hard_coded_study_allowlist_required": False,
-            },
-            "same_tick_actions": [
-                "paper-mission inspect --format json",
-                "paper-mission terminalize-stage when a bound StageOutcome packet is present",
-                "OPL DomainProgressTransitionRuntime intake/readback",
-                "OPL-authorized MAS owner-callable adapter or stable typed blocker",
-            ],
-            "repair_principles": [
-                "consume_unowned_or_overdue_action_queue",
-                "materialize_owner_callable_transition_request",
-                "execute_only_after_opl_authorized_owner_callable_adapter",
-                "preserve_owner_output_authority",
-                "escalate_when_internal_ai_repair_did_not_apply",
-            ],
+        "owner_callable_requirement": owner_callable_policy(),
+        "domain_repair_boundary": {
+            "mas_may_emit_domain_action_ref": True,
+            "mas_may_emit_human_gate": True,
+            "mas_may_emit_typed_blocker": True,
+            "mas_may_authorize_provider_attempt": False,
+            "mas_may_run_generic_scheduler": False,
+            "mas_may_define_repo_write_policy": False,
         },
         "guardrails": {
             "paper_package_mutation_allowed": False,
@@ -86,11 +42,4 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
     }
 
 
-__all__ = [
-    "DEVELOPER_HEARTBEAT_INTERVAL_SECONDS",
-    "INTERNAL_AI_DOCTOR_TIMEOUT_SECONDS",
-    "INTERNAL_AI_MONITOR_INTERVAL_SECONDS",
-    "INTERNAL_NO_PROGRESS_REPAIR_AFTER_SECONDS",
-    "owner_callable_policy",
-    "two_layer_ai_repair_policy_payload",
-]
+__all__ = ["owner_callable_policy", "two_layer_ai_repair_policy_payload"]

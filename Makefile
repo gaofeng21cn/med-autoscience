@@ -33,8 +33,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary \
 	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
-	tests/test_study_progress.py \
-	tests/test_product_entry.py
+	tests/test_study_progress.py
 
 FAST_TESTS := \
 	tests/test_smoke_entrypoints.py \
@@ -81,7 +80,7 @@ test-control-plane:
 	scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)
 
 test-medical-paper-ops:
-	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_workspace_medical_paper_ops_health.py
+	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py
 
 test-medical-quality-regression:
 	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py

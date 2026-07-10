@@ -37,9 +37,6 @@ from .lifecycle import (
     current_status_suppresses_ai_repair_lifecycle,
     read_ai_repair_lifecycle,
 )
-from .mode_fields import (
-    _opl_current_control_state_mode_fields,
-)
 from .non_advancing_readback import (
     copy_opl_transition_readback_fields as _copy_opl_transition_readback_fields,
 )
@@ -377,7 +374,6 @@ def opl_current_control_state_study_handoff_projection(
             latest_terminal_consumed_readback,
             apply_matching_terminal_closeout_to_handoff=_apply_matching_terminal_closeout_to_handoff,
         )
-    projection.update(_opl_current_control_state_mode_fields(payload))
     return _apply_matching_terminal_closeout_to_handoff(projection)
 
 
@@ -567,7 +563,6 @@ def _closeout_only_study_handoff_projection(
     if typed_closeout:
         projection["latest_typed_owner_callable_closeout"] = dict(typed_closeout)
         projection = _apply_typed_owner_callable_adapter_closeout_to_handoff(projection)
-    projection.update(_opl_current_control_state_mode_fields(source_payload))
     return projection
 
 

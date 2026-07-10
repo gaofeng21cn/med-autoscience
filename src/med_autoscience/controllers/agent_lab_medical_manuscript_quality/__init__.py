@@ -61,11 +61,9 @@ from med_autoscience.runtime_protocol import quest_state
 FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
 HIGH_QUALITY_MEDICAL_MANUSCRIPT_FEEDBACK_PROFILE = "high_quality_medical_manuscript_feedback"
 FEEDBACKOPS_TARGET_AGENT_ID = "med-autoscience"
-DEVELOPER_MODE_EXECUTION_GATE_REFS = [
-    "opl-developer-mode:repo-fix-execution",
-    "workspace-profile-ref:developer_supervisor_mode",
-    "workspace-profile-ref:github_username",
-    "workspace-profile-ref:mas_developer_github_usernames",
+OPL_EXECUTION_AUTHORIZATION_REFS = [
+    "one-person-lab:contracts/stage-run-kernel-contract.json#execution_authorization_policy",
+    "runtime-ref:trusted_opl_execution_authorization",
 ]
 PAPER_MISSION_SUBORDINATION = {
     "surface_kind": "mas_paper_mission_subordination",
@@ -372,9 +370,9 @@ def _feedback_self_evolution_trigger(
         ],
         "target_agent_id": FEEDBACKOPS_TARGET_AGENT_ID,
         "idempotency_key": f"feedbackops:mas/{study_id}/high_quality_medical_manuscript/latest_suite",
-        "feedback_capture_requires_developer_mode": False,
-        "repo_fix_execution_requires_opl_developer_mode": True,
-        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "feedback_capture_requires_execution_authorization": False,
+        "repo_fix_execution_requires_opl_execution_authorization": True,
+        "opl_execution_authorization_refs": list(OPL_EXECUTION_AUTHORIZATION_REFS),
         "refs_only": True,
         "writes_study_truth": False,
         "status": "runnable_after_suite_materialized",

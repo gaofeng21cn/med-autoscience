@@ -212,12 +212,14 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="projection",
             default_for_new_surfaces=True,
             repo_paths=[
-                "src/med_autoscience/controllers/product_entry/manifest_surfaces.py",
+                "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                "src/med_autoscience/controllers/study_launch_projection.py",
+                "src/med_autoscience/controllers/study_task_submission.py",
                 "src/med_autoscience/controllers/real_paper_autonomy_soak_inventory.py",
             ],
             mapping_explanation=(
                 "New projection surfaces should land in the standard projection-builder slot; current "
-                "product-entry and soak inventory builders remain the active repo mapping."
+                "domain projection, launch/task handoff, and soak inventory builders remain the active repo mapping."
             ),
         ),
         _physical_skeleton_slot(

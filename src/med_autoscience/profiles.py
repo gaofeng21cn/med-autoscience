@@ -4,10 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import tomllib
 
-from med_autoscience.developer_supervisor_mode import (
-    EXPECTED_DEVELOPER_GITHUB_LOGIN,
-    SUPPORTED_DEVELOPER_SUPERVISOR_MODES,
-)
 from med_autoscience.overlay.constants import (
     DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
     SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES,
@@ -72,10 +68,6 @@ class WorkspaceProfile:
     legacy_code_execution_policy: str = "forbid_without_user_approval"
     public_data_discovery_policy: str = "required_for_scout_route_selection"
     startup_boundary_requirements: tuple[str, ...] = SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS
-    developer_supervisor_mode: str = "internal_only"
-    developer_supervisor_mode_explicit: bool = False
-    github_username: str | None = None
-    mas_developer_github_usernames: tuple[str, ...] = (EXPECTED_DEVELOPER_GITHUB_LOGIN,)
     profile_ref: Path | None = None
 
     def __post_init__(self) -> None:
@@ -206,18 +198,6 @@ def _optional_non_empty_string_list(
     if any(not item.strip() for item in values):
         raise TypeError(f"{key} must be an array of non-empty strings")
     return values
-
-
-def _optional_developer_supervisor_mode(payload: dict[str, object]) -> str:
-    mode = _optional_string_with_default(
-        payload,
-        "developer_supervisor_mode",
-        default="internal_only",
-    )
-    if mode not in SUPPORTED_DEVELOPER_SUPERVISOR_MODES:
-        supported = ", ".join(SUPPORTED_DEVELOPER_SUPERVISOR_MODES)
-        raise TypeError(f"developer_supervisor_mode must be one of: {supported}")
-    return mode
 
 
 def _optional_opl_runtime_ref(payload: dict[str, object]) -> str:
@@ -401,14 +381,6 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         legacy_code_execution_policy=_optional_legacy_code_execution_policy(payload),
         public_data_discovery_policy=_optional_public_data_discovery_policy(payload),
         startup_boundary_requirements=_optional_startup_boundary_requirements(payload),
-        developer_supervisor_mode=_optional_developer_supervisor_mode(payload),
-        developer_supervisor_mode_explicit="developer_supervisor_mode" in payload,
-        github_username=_optional_string(payload, "github_username", empty_as_none=True),
-        mas_developer_github_usernames=_optional_non_empty_string_list(
-            payload,
-            "mas_developer_github_usernames",
-            default=(EXPECTED_DEVELOPER_GITHUB_LOGIN,),
-        ),
         profile_ref=profile_path,
     )
 
@@ -467,10 +439,6 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
             "legacy_code_execution_policy": profile.legacy_code_execution_policy,
             "public_data_discovery_policy": profile.public_data_discovery_policy,
             "startup_boundary_requirements": list(profile.startup_boundary_requirements),
-            "developer_supervisor_mode": profile.developer_supervisor_mode,
-            "developer_supervisor_mode_explicit": profile.developer_supervisor_mode_explicit,
-            "github_username": profile.github_username,
-            "mas_developer_github_usernames": list(profile.mas_developer_github_usernames),
         },
         "archetype": {
             "preferred_study_archetypes": list(profile.preferred_study_archetypes),

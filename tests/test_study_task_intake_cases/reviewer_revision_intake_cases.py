@@ -336,9 +336,11 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     assert trigger["idempotency_key"] == (
         "feedbackops:mas/study-revision/reviewer_revision/2026-04-24T00:00:00+00:00"
     )
-    assert trigger["feedback_capture_requires_developer_mode"] is False
-    assert trigger["repo_fix_execution_requires_opl_developer_mode"] is True
-    assert "opl-developer-mode:repo-fix-execution" in trigger["developer_mode_execution_gate_refs"]
+    assert trigger["feedback_capture_requires_execution_authorization"] is False
+    assert trigger["repo_fix_execution_requires_opl_execution_authorization"] is True
+    assert "runtime-ref:trusted_opl_execution_authorization" in trigger[
+        "opl_execution_authorization_refs"
+    ]
     assert trigger["refs_only"] is True
     assert trigger["writes_study_truth"] is False
     assert trigger["paper_mission_subordination"]["mainline_route"] == [

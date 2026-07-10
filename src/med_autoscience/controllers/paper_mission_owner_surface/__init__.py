@@ -19,7 +19,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import parked_truth
 from med_autoscience.controllers.paper_mission_owner_surface import projection_errors, provider_admission_projection
 from med_autoscience.controllers.paper_mission_owner_surface import provider_readiness_runtime_health
 from med_autoscience.controllers.paper_mission_owner_surface import publication_gate_actions, queue_slo
-from med_autoscience.controllers.paper_mission_owner_surface import repo_write_policy, request_packets
+from med_autoscience.controllers.paper_mission_owner_surface import request_packets
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts, scan_output, status_projection
 from med_autoscience.controllers.paper_mission_owner_surface import stage_artifact_owner_actions, stale_redrive_resolution
 from med_autoscience.controllers.paper_mission_owner_surface import story_surface_delta_actions, study_identity
@@ -714,7 +714,6 @@ def _study_projection(
                         next_owner=next_owner,
                         active_run_id=_active_run_id(status_payload, progress_payload),
                     )
-    actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,
         progress=progress_payload,
@@ -874,7 +873,6 @@ def scan_domain_routes(
     study_identity.validate_scan_paper_mission_owner_surface_study_ids(profile, resolved_study_ids)
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
-        profile=profile,
         requested_mode=developer_supervisor_mode,
         apply_safe_actions=apply_safe_actions,
         scheduler_owner="opl_current_control_state",

@@ -549,30 +549,6 @@ def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind
     assert receipt["diagnostic_role"] == "retired_default_paper_dispatch"
 
 
-def test_product_entry_default_mainline_has_no_legacy_domain_diagnostic_or_dispatch_command(
-    tmp_path: Path,
-) -> None:
-    from med_autoscience.controllers.product_entry.manifest_surfaces import (
-        build_product_entry_manifest,
-    )
-
-    profile = make_profile(tmp_path)
-
-    manifest = build_product_entry_manifest(
-        profile=profile,
-        profile_ref=tmp_path / "profile.toml",
-    )
-
-    paper_mission = manifest["medical_paper_product_entry"]
-    default_command = paper_mission["default_command"]
-    assert paper_mission["default_action_intent"] == "domain_route/start-or-resume"
-    assert "paper-mission drive" in default_command
-    assert "paper-mission inspect" in paper_mission["inspect_command"]
-    assert "domain-diagnostic-report" not in default_command
-    assert "owner-callable-adapter" not in default_command
-    assert "PaperRecovery" not in default_command
-
-
 def test_action_catalog_and_mcp_manifest_do_not_expose_legacy_default_paper_tool(
     tmp_path: Path,
 ) -> None:

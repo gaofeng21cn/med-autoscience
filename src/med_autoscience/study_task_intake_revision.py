@@ -135,11 +135,9 @@ FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
 REVIEWER_REVISION_FEEDBACK_PROFILE = "reviewer_revision_feedback"
 FEEDBACKOPS_TARGET_AGENT_ID = "med-autoscience"
 OPL_FEEDBACKOPS_STANDARD_AGENT_ID = "mas"
-DEVELOPER_MODE_EXECUTION_GATE_REFS = [
-    "opl-developer-mode:repo-fix-execution",
-    "workspace-profile-ref:developer_supervisor_mode",
-    "workspace-profile-ref:github_username",
-    "workspace-profile-ref:mas_developer_github_usernames",
+OPL_EXECUTION_AUTHORIZATION_REFS = [
+    "one-person-lab:contracts/stage-run-kernel-contract.json#execution_authorization_policy",
+    "runtime-ref:trusted_opl_execution_authorization",
 ]
 PAPER_MISSION_SUBORDINATION = {
     "surface_kind": "mas_paper_mission_subordination",
@@ -365,9 +363,9 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
         ],
         "target_agent_id": FEEDBACKOPS_TARGET_AGENT_ID,
         "idempotency_key": _reviewer_revision_feedbackops_idempotency_key(payload, study_id=study_id),
-        "feedback_capture_requires_developer_mode": False,
-        "repo_fix_execution_requires_opl_developer_mode": True,
-        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "feedback_capture_requires_execution_authorization": False,
+        "repo_fix_execution_requires_opl_execution_authorization": True,
+        "opl_execution_authorization_refs": list(OPL_EXECUTION_AUTHORIZATION_REFS),
         "refs_only": True,
         "writes_study_truth": False,
         "status": "queued_for_agent_lab_external_suite",
@@ -511,7 +509,7 @@ def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any]
             "opl feedback reconcile --json",
             "medautosci paper-mission inspect --study-id <study_id> --format json",
         ],
-        "developer_mode_execution_gate_refs": list(DEVELOPER_MODE_EXECUTION_GATE_REFS),
+        "opl_execution_authorization_refs": list(OPL_EXECUTION_AUTHORIZATION_REFS),
         "required_packet_refs": list(trigger["required_packet_refs"]),
         "closeout_acceptance_requirements": dict(trigger["closeout_acceptance_requirements"]),
         "authority_boundary": dict(REVIEWER_REVISION_SELF_EVOLUTION_AUTHORITY_BOUNDARY),
