@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from tests.reviewer_os_fixture_helpers import (
     claim_evidence_alignment_digest,
     clear_sci_clinical_registry_review,
@@ -834,4 +836,73 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     assert read_model["revert"]["route_back"]["action_type"] == "route_back_same_line"
     assert read_model["repair_loop"]["status"] == "blocked"
     assert read_model["repair_work_units"] == []
+    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
+
+
+def test_reviewer_refinement_loop_requires_calibration_learning_refs(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "ai_reviewer_calibration_learning.json",
+        {
+            "surface": "ai_reviewer_calibration_learning_read_model",
+            "learning_entries": [
+                {
+                    "entry_id": "learn::major-revision::coverage",
+                    "source_outcome": "major_revision",
+                    "failure_mode": "coverage_as_quality",
+                    "source_ref": "reviews/round-1.md#editor",
+                    "issue_summary": "Coverage was treated as quality.",
+                    "claim_refs": [],
+                    "evidence_refs": ["paper/reporting_guideline_checklist.json"],
+                    "reviewer_trace_refs": ["paper/review/review_ledger.json#editor"],
+                }
+            ],
+        },
+    )
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    assert read_model["required_calibration_refs"] == [
+        "ai_reviewer_calibration_corpus#coverage_as_quality"
+    ]
+    assert "required_calibration_ref_missing:coverage_as_quality" in read_model["accept"]["blockers"]
+    assert read_model["accept"]["accepted"] is False
+    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
+    assert read_model["contract"]["learning_can_authorize_quality"] is False
+
+
+@pytest.mark.parametrize(
+    ("currentness_mutation", "error"),
+    [
+        (
+            lambda checks: checks["current_manuscript"].update(status="stale"),
+            "current_manuscript.status must be current",
+        ),
+        (
+            lambda checks: checks["current_package_freshness"].update(source_eval_id="stale-eval"),
+            "current_package_freshness.source_eval_id must match source_eval.eval_id",
+        ),
+    ],
+)
+def test_reviewer_refinement_loop_rejects_noncurrent_latest_eval(
+    currentness_mutation,
+    error: str,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    currentness_mutation(payload["reviewer_operating_system"]["currentness_checks"])
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    blocker = f"publication_eval_reviewer_operating_system_invalid:reviewer_operating_system.currentness_checks.{error}"
+    assert blocker in read_model["snapshot"]["authority_blockers"]
+    assert blocker in read_model["accept"]["blockers"]
+    assert read_model["accept"]["accepted"] is False
+    assert read_model["revert"]["route_back"]["route_target"] == "review"
     assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"

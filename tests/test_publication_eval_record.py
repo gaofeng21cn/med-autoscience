@@ -164,6 +164,18 @@ def test_publication_eval_record_accepts_explicit_routeback_contract() -> None:
             lambda payload: payload["charter_context_ref"].update(study_id="study"),
             "charter context ref payload contains unknown fields: study_id",
         ),
+        (
+            lambda payload: payload["runtime_context_refs"].update(
+                runtime_escalation_ref={"artifact_path": "/runtime/escalation.json"}
+            ),
+            "runtime_context_refs value must be a ref string",
+        ),
+        (
+            lambda payload: payload.update(
+                authority_boundary={"mutated_current_package": 1}
+            ),
+            "authority_boundary mutated_current_package must be bool",
+        ),
     ],
 )
 def test_publication_eval_record_fails_closed_on_authority_leaks(mutation, message: str) -> None:
@@ -172,6 +184,30 @@ def test_publication_eval_record_fails_closed_on_authority_leaks(mutation, messa
 
     with pytest.raises((TypeError, ValueError), match=message):
         PublicationEvalRecord.from_payload(payload)
+
+
+def test_publication_eval_record_normalizes_ref_whitespace_without_expanding_authority() -> None:
+    payload = _payload()
+    payload["runtime_context_refs"] = {
+        " runtime_escalation_ref ": " /runtime/escalation.json ",
+        "main_result_ref": " /runtime/main_result.json ",
+    }
+    payload["delivery_context_refs"] = {
+        "paper_root_ref": " /study/paper ",
+        " submission_minimal_ref ": " /study/paper/submission_manifest.json ",
+    }
+
+    record = PublicationEvalRecord.from_payload(payload)
+
+    assert record.runtime_context_refs == {
+        "runtime_escalation_ref": "/runtime/escalation.json",
+        "main_result_ref": "/runtime/main_result.json",
+    }
+    assert record.delivery_context_refs == {
+        "paper_root_ref": "/study/paper",
+        "submission_minimal_ref": "/study/paper/submission_manifest.json",
+    }
+    assert record.authority_boundary is None
 
 
 @pytest.mark.parametrize(

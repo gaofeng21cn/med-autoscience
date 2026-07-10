@@ -76,3 +76,9 @@ def test_registry_quality_floor_cannot_be_cleared_by_wording_alone() -> None:
 
     assert floor["any_red_flag_requires_major_or_blocker_row"] is True
     assert floor["cannot_be_cleared_by_restrained_wording_alone"] is True
+
+
+from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
+    test_canonical_paper_owner_surface_rejects_untrusted_projection,
+    test_quality_repair_batch_routes_to_producer_and_materializes_owner_delta,
+)
