@@ -259,7 +259,8 @@
     "product_layer",
     "domain_label",
     "authority_owner",
-    "stage_control_plane_ref"
+    "stage_control_plane_ref",
+    "stage_manifest_ref"
   ],
   "required_stage_packets": [
     "stage_completion_policy",
@@ -331,6 +332,9 @@
     "consumer_alignment_check": "family:shared-release",
     "domain_contract_version_pin_does_not_authorize_domain_truth": true,
     "domain_dependency_pin_required": true,
+    "owner_managed_latest_stable_channel_required": true,
+    "lockfile_resolved_commit_receipt_required": true,
+    "consumer_exact_commit_equality_gate": false,
     "owner_commit_pin": "3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7",
     "owner_commit_pin_required": true,
     "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
@@ -339,7 +343,8 @@
       "uv.lock"
     ]
   },
-  "stage_control_plane_ref": "contracts/stage_control_plane.json",
+  "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
+  "stage_manifest_ref": "agent/stages/manifest.json",
   "stage_control_plane_target_domain_id": "med-autoscience",
   "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
   "standard_feedback_self_evolution_trigger_policy": {

@@ -34,7 +34,139 @@
       "next_stage_refs": [
         "baseline_and_evidence_setup"
       ],
-      "trust_lane": "ai_decision"
+      "trust_lane": "ai_decision",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:direction_and_route_selection",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     },
     {
       "stage_id": "baseline_and_evidence_setup",
@@ -65,7 +197,139 @@
       "next_stage_refs": [
         "bounded_analysis_campaign"
       ],
-      "trust_lane": "domain_agent"
+      "trust_lane": "domain_agent",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:baseline_and_evidence_setup",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     },
     {
       "stage_id": "bounded_analysis_campaign",
@@ -97,7 +361,139 @@
       "next_stage_refs": [
         "manuscript_authoring"
       ],
-      "trust_lane": "codex_executor"
+      "trust_lane": "codex_executor",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:bounded_analysis_campaign",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     },
     {
       "stage_id": "manuscript_authoring",
@@ -129,7 +525,139 @@
       "next_stage_refs": [
         "review_and_quality_gate"
       ],
-      "trust_lane": "codex_executor"
+      "trust_lane": "codex_executor",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:manuscript_authoring",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     },
     {
       "stage_id": "review_and_quality_gate",
@@ -163,7 +691,139 @@
         "manuscript_authoring",
         "finalize_and_publication_handoff"
       ],
-      "trust_lane": "ai_decision"
+      "trust_lane": "ai_decision",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:review_and_quality_gate",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     },
     {
       "stage_id": "finalize_and_publication_handoff",
@@ -194,7 +854,139 @@
         "publication_handoff_receipt_or_typed_blocker_recorded"
       ],
       "next_stage_refs": [],
-      "trust_lane": "human_gate"
+      "trust_lane": "human_gate",
+      "tool_refs": [
+        {
+          "catalog_role": "available_affordance_catalog_not_workflow_script",
+          "ref": "agent/tools/domain_affordances.md",
+          "ref_kind": "repo_path",
+          "role": "stage_tool_affordance_catalog"
+        }
+      ],
+      "tool_affordance_boundary": {
+        "capability_refs": [
+          {
+            "ref": "medical_source_literature_and_dataset_context_reading",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "medical_analysis_manuscript_figure_and_review_workspace_operation",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "publication_quality_and_integrity_review_support",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          },
+          {
+            "ref": "refs_only_receipt_and_stage_artifact_materialization",
+            "ref_kind": "policy_ref",
+            "role": "capability_boundary"
+          }
+        ],
+        "catalog_role": "available_affordance_catalog_not_workflow_script",
+        "credential_boundary_refs": [
+          {
+            "ref": "no_secret_material_in_stage_pack",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          },
+          {
+            "ref": "executor_must_request_human_gate_for_missing_credentials",
+            "ref_kind": "policy_ref",
+            "role": "credential_boundary_boundary"
+          }
+        ],
+        "executor_autonomy": {
+          "executor_can_choose_order_and_parallelism": true,
+          "executor_can_choose_tools": true,
+          "executor_can_request_missing_context_or_human_gate": true,
+          "executor_can_skip_tools": true,
+          "executor_can_substitute_tools_within_boundary": true,
+          "tool_catalog_can_authorize_forbidden_write": false,
+          "tool_catalog_can_define_cognitive_strategy": false,
+          "tool_catalog_can_override_stage_goal": false,
+          "tool_catalog_can_prescribe_tool_sequence": false
+        },
+        "forbidden_authority_refs": [
+          {
+            "ref": "publication_readiness_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "medical_quality_verdict_without_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "clinical_or_research_truth_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "artifact_body_mutation_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          },
+          {
+            "ref": "memory_body_write_by_opl",
+            "ref_kind": "policy_ref",
+            "role": "forbidden_authority_boundary"
+          }
+        ],
+        "permission_scope_refs": [
+          {
+            "ref": "repo_context_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "declared_medical_research_workspace_read",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "bounded_stage_output_write_when_owner_authorized",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          },
+          {
+            "ref": "receipt_or_typed_blocker_return",
+            "ref_kind": "policy_ref",
+            "role": "permission_scope_boundary"
+          }
+        ],
+        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "side_effect_risk_refs": [
+          {
+            "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          },
+          {
+            "ref": "artifact_or_submission_mutation_requires_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "side_effect_risk_boundary"
+          }
+        ],
+        "surface_kind": "opl_tool_affordance_boundary",
+        "version": "tool-affordance-boundary.v1",
+        "write_scope_refs": [
+          {
+            "ref": "medical_research_stage_workspace_refs_only:finalize_and_publication_handoff",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          },
+          {
+            "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
+            "ref_kind": "policy_ref",
+            "role": "write_scope_boundary"
+          }
+        ]
+      }
     }
   ],
   "authority_boundary": {

@@ -60,7 +60,7 @@
     "required_retained_surface_ids": [
       "stage_outcome_authority",
       "progress_portal_study_workbench_overview_action_projection",
-      "agent_tool_arsenal_scientific_capability_registry"
+      "scientific_capability_registry_metadata"
     ]
   },
   "live_runtime_readiness": {
@@ -104,8 +104,8 @@
     "src/med_autoscience/runtime_protocol/runtime_surface_retirement/__init__.py",
     "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
     "tests/test_adapter_retirement_boundary.py",
-    "tests/test_adapter_retirement_boundary_cases/runtime_inventory_contract.py",
-    "tests/test_adapter_retirement_boundary_cases/runtime_surface_no_authority_audit.py",
+    "tests/test_adapter_retirement_boundary_cases/test_runtime_inventory_contract.py",
+    "tests/test_adapter_retirement_boundary_cases/test_runtime_surface_no_authority_audit.py",
     "tests/test_opl_family_persistence_adapter.py",
     "tests/test_paper_progress_transition_refs.py",
     "tests/test_paper_progress_transition_runtime_completion_audit.py"

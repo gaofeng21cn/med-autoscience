@@ -35,7 +35,7 @@ def test_mas_production_acceptance_surface_exists_and_records_domain_owned_tail_
     payload = _acceptance()
 
     assert payload["surface_kind"] == "mas_domain_owned_production_acceptance"
-    assert payload["domain_id"] == "med-autoscience"
+    assert payload["domain_id"] == "mas"
     assert payload["owner"] == "MedAutoScience"
     assert payload["acceptance_status"] in {
         "closed_by_domain_owned_acceptance_receipt",

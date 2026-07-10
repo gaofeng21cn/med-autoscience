@@ -19,7 +19,7 @@ def _inventory() -> dict:
     return json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
 
 
-def assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -> None:
+def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -> None:
     inventory = _inventory()
     retirement = importlib.import_module(
         "med_autoscience.runtime_protocol.runtime_surface_retirement"

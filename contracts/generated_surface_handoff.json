@@ -146,7 +146,7 @@
       },
       {
         "body_included": false,
-        "ref": "tests/test_opl_standard_pack_cases/generated_interface_cases.py",
+        "ref": "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
         "role": "standard_pack_contract_test_surface"
       },
       {

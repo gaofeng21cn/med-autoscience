@@ -333,7 +333,7 @@ def test_retired_domain_owner_refresh_controller_command_is_not_active_cli_surfa
     retired_command = "domain-owner-action-refresh-controller-decisions"
     allowed_refs = {
         "tests/test_adapter_retirement_boundary.py",
-        "tests/test_adapter_retirement_boundary_cases/owner_callable_projection.py",
+        "tests/test_adapter_retirement_boundary_cases/test_owner_callable_projection.py",
         "tests/test_cli_cases/domain_action_request_materializer_command.py",
     }
     violations: list[str] = []

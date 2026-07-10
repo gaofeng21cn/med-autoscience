@@ -331,14 +331,15 @@ def build_category_specs(
             "contracts/agent_lab_handoff.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
-            "tests/test_opl_standard_pack.py",
+            "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
+            "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
         ),
         prefix_paths=(
             "contracts/production_acceptance/",
         ),
         commands=(
             f"{pytest_clean_runner} tests/test_mas_production_acceptance.py -q",
-            f"{pytest_clean_runner} tests/test_opl_standard_pack.py -q",
+            f"{pytest_clean_runner} tests/test_opl_standard_pack_cases -q",
         ),
     ),
     spec_type(

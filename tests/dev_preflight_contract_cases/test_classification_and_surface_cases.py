@@ -692,7 +692,8 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
             "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
-            "tests/test_opl_standard_pack.py",
+            "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
+            "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
         ]
     )
 
@@ -700,7 +701,7 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "scripts/run-pytest-clean.sh tests/test_mas_production_acceptance.py -q",
-        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack_cases -q",
     ]
 
 
