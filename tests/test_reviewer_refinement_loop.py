@@ -7,6 +7,7 @@ from typing import Any
 
 from tests.reviewer_os_fixture_helpers import (
     claim_evidence_alignment_digest,
+    clear_sci_clinical_registry_review,
     ready_claim_evidence_alignment_gate,
 )
 
@@ -216,6 +217,10 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             },
         },
         "claim_evidence_alignment": claim_alignment,
+        "sci_clinical_registry_review": clear_sci_clinical_registry_review(
+            manuscript_ref=input_bundle["manuscript"],
+            evidence_ref=input_bundle["evidence_ledger"],
+        ),
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",
@@ -830,9 +835,3 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     assert read_model["repair_loop"]["status"] == "blocked"
     assert read_model["repair_work_units"] == []
     assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
-
-from tests.test_reviewer_refinement_loop_cases.calibration_and_rebuttal_cases import (
-    test_reviewer_refinement_loop_projects_required_learning_calibration_refs,
-    test_revision_rebuttal_loop_projects_comment_action_matrix_and_repair_routes,
-    test_revision_rebuttal_loop_projects_response_package_planning_surfaces,
-)
