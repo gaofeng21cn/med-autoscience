@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from med_autoscience.display_pack_gallery_catalog import TemplateRecord
+from med_autoscience.display_pack_gallery_catalog import (
+    TABLE_PREVIEW_GALLERY_TEMPLATE_IDS,
+    TemplateRecord,
+)
 from med_autoscience.display_pack_gallery.assets import RenderedAsset
 from med_autoscience.display_pack_gallery.composition_gallery import (
     build_composition_gallery_surface,
@@ -228,7 +231,10 @@ def audit_template_quality(record: TemplateRecord, asset: RenderedAsset, baselin
     warnings: list[str] = []
     if asset.status != "rendered":
         blockers.append(f"render_status_{asset.status}")
-    table_preview_card = record.kind == "table_shell" and record.template_id == "table1_baseline_characteristics"
+    table_preview_card = (
+        record.kind == "table_shell"
+        and record.template_id in TABLE_PREVIEW_GALLERY_TEMPLATE_IDS
+    )
     if (record.renderer_family == "n/a" or record.kind == "table_shell") and not table_preview_card:
         blockers.append("non_visual_template_not_gallery_card")
     if not record.medical_family_ids:

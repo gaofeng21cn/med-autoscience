@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shlex
 import subprocess as _subprocess
 import time
 from types import SimpleNamespace
@@ -15,6 +14,7 @@ from med_autoscience.display_pack_dependency_environment import (
     apply_dependency_run_context,
     load_dependency_run_context,
 )
+from med_autoscience.display_pack_subprocess_entrypoint import expand_subprocess_entrypoint
 
 subprocess = SimpleNamespace(run=_subprocess.run)
 
@@ -57,21 +57,6 @@ def subprocess_placeholders(
         "template_root": str(template_root),
         "pack_root": str(pack_root),
     }
-
-
-def expand_subprocess_entrypoint(entrypoint: str, *, placeholders: Mapping[str, str]) -> list[str]:
-    raw_argv = shlex.split(entrypoint)
-    if not raw_argv:
-        raise ValueError("subprocess display template entrypoint must not be empty")
-    expanded: list[str] = []
-    for token in raw_argv:
-        expanded_token = token
-        for placeholder, value in placeholders.items():
-            expanded_token = expanded_token.replace("{" + placeholder + "}", value)
-        if "{" in expanded_token or "}" in expanded_token:
-            raise ValueError(f"unsupported subprocess renderer placeholder in `{entrypoint}`")
-        expanded.append(expanded_token)
-    return expanded
 
 
 def run_subprocess_renderer(

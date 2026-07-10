@@ -7,6 +7,9 @@ import os
 import subprocess
 
 from med_autoscience.display_pack_gallery_catalog import TemplateRecord
+from med_autoscience.display_pack_subprocess_entrypoint import (
+    expand_subprocess_entrypoint,
+)
 from med_autoscience.display_pack_gallery import paths
 from med_autoscience.display_pack_gallery.assets import (
     RenderedAsset,
@@ -32,14 +35,34 @@ from med_autoscience.display_pack_gallery.dependency_run_context import (
 )
 from med_autoscience.display_pack_dependency_environment import apply_dependency_run_context
 
+def _r_renderer_argv(record: TemplateRecord, request_path: Path) -> list[str]:
+    return expand_subprocess_entrypoint(
+        record.entrypoint,
+        placeholders={
+            "render_mode": "final",
+            "request_json": str(request_path),
+        },
+    )
+
+
+def _r_renderer_entrypoint_source(record: TemplateRecord) -> Path:
+    for token in _r_renderer_argv(record, Path("gallery-render-request.json")):
+        candidate = Path(token)
+        if candidate.suffix.lower() == ".r":
+            return candidate if candidate.is_absolute() else (record.template_dir / candidate).resolve()
+    raise ValueError(f"R/ggplot2 template `{record.template_id}` entrypoint does not reference an R source file")
+
+
 def _r_renderer_source_paths(record: TemplateRecord) -> list[Path]:
     rlib_root = paths.PACK_ROOT / "rlib" / "medicaldisplaycore"
-    return [
-        record.template_dir / "render.R",
+    source_paths = [
         record.template_dir / "template.toml",
         paths.PACK_ROOT / "renderer_dependency_profile.json",
         *sorted(rlib_root.glob("*.R")),
     ]
+    if record.renderer_family == "r_ggplot2":
+        source_paths.insert(0, _r_renderer_entrypoint_source(record))
+    return source_paths
 
 
 def _python_renderer_source_paths(record: TemplateRecord) -> list[Path]:
@@ -214,7 +237,7 @@ def _render_r_template(
         )
     write_json(payload_path, payload)
     write_json(request_path, request)
-    argv, env = _prepare_r_subprocess(["Rscript", "render.R", "--request", str(request_path)])
+    argv, env = _prepare_r_subprocess(_r_renderer_argv(record, request_path))
     result = subprocess.run(
         argv,
         cwd=record.template_dir,

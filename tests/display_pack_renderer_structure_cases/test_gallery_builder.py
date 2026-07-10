@@ -98,7 +98,10 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
         audit_family="Publication",
         renderer_family="r_ggplot2",
         execution_mode="subprocess",
-        entrypoint="Rscript render.R --request {request_json}",
+        entrypoint=(
+            "Rscript ../../render.R --template alluvial_transition "
+            "--mode {render_mode} --request {request_json}"
+        ),
         paper_proven=False,
         required_exports=("png", "pdf"),
         template_dir=CORE_PACK_ROOT / "templates" / "alluvial_transition",
@@ -202,6 +205,21 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
     rendering._render_r_template(cohort_flow_record, {}, force_render=True)
 
     assert len(calls) == 3
+    alluvial_call = next(
+        call
+        for call in calls
+        if call["request"]["short_template_id"] == "alluvial_transition"
+    )
+    assert alluvial_call["argv"][1:-1] == [
+        "../../render.R",
+        "--template",
+        "alluvial_transition",
+        "--mode",
+        "final",
+        "--request",
+    ]
+    assert CORE_PACK_ROOT / "render.R" in rendering._r_renderer_source_paths(record)
+    assert record.template_dir / "render.R" not in rendering._r_renderer_source_paths(record)
     assert {call["request"]["short_template_id"] for call in calls} == {
         "alluvial_transition",
         "table1_baseline_characteristics",
@@ -209,7 +227,6 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
     }
     for call in calls:
         expected_profile_ids = {
-            "r_ggplot2_evidence_subprocess_v1",
             "r_ggplot2_alluvial_transition_v1",
         } if call["request"]["short_template_id"] == "alluvial_transition" else (
             {
@@ -234,6 +251,59 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
         assert set(dependency_cache_context["required_profile_ids"].split(",")) == expected_profile_ids
         assert dependency_cache_context["rscript_path"] == "/opt/opl/bin/Rscript"
         assert dependency_cache_context["r_libs_user"] == str(tmp_path / "opl-managed-r-lib")
+
+
+def test_gallery_quality_uses_shared_table_preview_template_ids(monkeypatch, tmp_path: Path) -> None:
+    from med_autoscience.display_pack_gallery.assets import RenderedAsset
+    from med_autoscience.display_pack_gallery_catalog import TemplateRecord
+    from med_autoscience.display_pack_gallery import quality
+
+    record = TemplateRecord(
+        template_id="future_table_preview",
+        full_template_id="fenggaolab.org.medical-display-core::future_table_preview",
+        display_name="Future Table Preview",
+        kind="table_shell",
+        audit_family="Publication Shells and Tables",
+        renderer_family="n/a",
+        execution_mode="python_plugin",
+        entrypoint="example.table_shells:render",
+        paper_proven=False,
+        required_exports=("csv", "md"),
+        template_dir=tmp_path,
+        canonical_family_id="baseline_characteristics_table",
+        canonical_family_title="Baseline Characteristics Table",
+        canonical_family_category="Publication Shells and Tables",
+        canonical_template_id="future_table_preview",
+        figure_archetype="baseline_characteristics_table",
+        migration_status="canonical",
+        default_visible=True,
+        migrated_alias_template_ids=(),
+        migration_reason="",
+        analysis_responsibility="table_shell",
+        analysis_input_state="reviewed_table_values",
+        medical_family_ids=("baseline_characteristics_table",),
+        publication_quality_profile={
+            "starter_recipe_ids": ["baseline_table"],
+            "style_profile_ids": ["publication"],
+            "palette_token_ids": ["text"],
+            "qa_gate_ids": ["rendered_visual_audit"],
+        },
+    )
+    monkeypatch.setattr(
+        quality,
+        "TABLE_PREVIEW_GALLERY_TEMPLATE_IDS",
+        frozenset({record.template_id}),
+        raising=False,
+    )
+
+    audit = quality.audit_template_quality(
+        record,
+        RenderedAsset(status="rendered", pdf_ref="future_table_preview.pdf"),
+        RenderedAsset(status="not_rendered"),
+    )
+
+    assert "non_visual_template_not_gallery_card" not in audit["blockers"]
+    assert "table_shell_preview_not_table_authority" in audit["warnings"]
 
 
 def test_gallery_builder_packages_cached_assets_by_default(monkeypatch, tmp_path: Path, capsys) -> None:
