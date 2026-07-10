@@ -10,7 +10,6 @@ from med_autoscience.controllers.submission_minimal import package_builder, sour
 from med_autoscience.controllers.submission_minimal.authority import describe_submission_minimal_authority
 from med_autoscience.controllers.submission_minimal.package_builder import create_submission_minimal_package
 from med_autoscience.controllers.submission_minimal.shared_base import (
-    resolve_compiled_markdown_path,
     resolve_compiled_pdf_path,
 )
 from tests.submission_minimal_cases.shared_base import (
@@ -216,27 +215,125 @@ def test_submission_authority_ignores_post_gate_evidence_ledger_refresh(
     assert describe_submission_minimal_authority(paper_root=paper_root)["status"] == "current"
 
 
-def test_resolve_compiled_sources_fail_closed_on_submission_self_reference(tmp_path: Path) -> None:
+def test_create_submission_minimal_package_wires_excluded_roots_to_compiled_source_resolvers(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     paper_root = make_paper_workspace(tmp_path)
     submission_root = paper_root / "submission_minimal"
     write_text(submission_root / "manuscript_source.md", "# Wrong self reference\n")
     write_text(submission_root / "paper.pdf", "%PDF-1.4\n%wrong\n")
-
-    resolved_markdown = resolve_compiled_markdown_path(
-        workspace_root=paper_root.parent,
-        bundle_manifest={"draft_path": "paper/build/review_manuscript.md"},
-        compile_report={"source_markdown_path": "paper/submission_minimal/manuscript_source.md"},
-        excluded_roots=(submission_root,),
-    )
-    resolved_pdf = resolve_compiled_pdf_path(
-        workspace_root=paper_root.parent,
-        bundle_manifest={"pdf_path": "paper/paper.pdf"},
-        compile_report={"pdf_path": "paper/submission_minimal/paper.pdf"},
-        excluded_roots=(submission_root,),
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "source_markdown_path": "paper/submission_minimal/manuscript_source.md",
+            "source_markdown": "paper/submission_minimal/manuscript_source.md",
+            "output_pdf": "paper/submission_minimal/paper.pdf",
+            "pdf_path": "paper/submission_minimal/paper.pdf",
+        },
     )
 
-    assert resolved_markdown == paper_root / "build" / "review_manuscript.md"
-    assert resolved_pdf == paper_root / "paper.pdf"
+    observed_roots: dict[str, tuple[Path, ...]] = {}
+    original_markdown_resolver = package_builder.resolve_compiled_markdown_path
+    original_pdf_resolver = package_builder.resolve_compiled_pdf_path
+
+    def resolve_markdown(**kwargs):
+        observed_roots["markdown"] = kwargs["excluded_roots"]
+        return original_markdown_resolver(**kwargs)
+
+    def resolve_pdf(**kwargs):
+        observed_roots["pdf"] = kwargs["excluded_roots"]
+        return original_pdf_resolver(**kwargs)
+
+    monkeypatch.setattr(package_builder, "resolve_compiled_markdown_path", resolve_markdown)
+    monkeypatch.setattr(package_builder, "resolve_compiled_pdf_path", resolve_pdf)
+
+    manifest = create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert submission_root.resolve() in observed_roots["markdown"]
+    assert observed_roots["markdown"] == observed_roots["pdf"]
+    assert manifest["input_compiled_pdf_path"] == "paper/paper.pdf"
+
+
+def test_describe_submission_minimal_authority_flags_legacy_manifest_when_source_is_newer(tmp_path: Path) -> None:
+    paper_root = make_paper_workspace(tmp_path)
+    manifest = create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+    (paper_root / "submission_minimal" / "audit" / "submission_manifest.json").unlink()
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest.pop("source_signature", None)
+    manifest.pop("source_contract", None)
+    dump_json(manifest_path, manifest)
+
+    assert describe_submission_minimal_authority(paper_root=paper_root)["status"] == "current"
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        "# Updated review manuscript\n\nLegacy package is now stale.\n",
+    )
+
+    stale = describe_submission_minimal_authority(paper_root=paper_root)
+    assert stale["status"] == "stale_source_changed"
+    assert stale["stale_reason"] == "submission_source_newer_than_manifest"
+
+
+def test_resolve_compiled_pdf_path_uses_present_compiled_pdf_asset_when_report_lacks_pdf_path(
+    tmp_path: Path,
+) -> None:
+    paper_root = make_paper_workspace(tmp_path)
+
+    resolved = resolve_compiled_pdf_path(
+        workspace_root=paper_root.parent,
+        bundle_manifest={
+            "schema_version": 1,
+            "included_assets": [
+                {"path": "paper/figures/F1_main.pdf", "kind": "figure_export", "status": "present"},
+                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
+            ],
+        },
+        compile_report={},
+    )
+
+    assert resolved == paper_root / "paper.pdf"
+
+
+def test_create_submission_minimal_package_rebuilds_pdf_when_compile_report_lacks_pdf_candidate(
+    tmp_path: Path,
+) -> None:
+    paper_root = make_paper_workspace(tmp_path)
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {"source_markdown_path": "paper/build/review_manuscript.md"},
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+    (paper_root / "paper.pdf").unlink()
+
+    manifest = create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert (paper_root / "submission_minimal" / "paper.pdf").exists()
+    assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
+    assert manifest["input_compiled_pdf_path"] is None
+    assert manifest["input_compiled_pdf_status"] == "not_required_rebuilt_from_submission_source"
 
 
 def test_submission_source_signature_changes_with_renderer_contract(

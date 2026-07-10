@@ -4,6 +4,10 @@ import importlib
 
 import pytest
 
+from tests.display_surface_materialization_cases.layout_sidecar_fixtures import (
+    _minimal_layout_sidecar_for_template,
+)
+
 
 def _box(box_id: str, box_type: str, coordinates: tuple[float, float, float, float]) -> dict[str, object]:
     x0, y0, x1, y1 = coordinates
@@ -26,6 +30,116 @@ def _sidecar(
         "guide_boxes": guide_boxes or [],
         "metrics": metrics or {},
     }
+
+
+def _break_profile_structure(layout_sidecar: dict[str, object], mutation: str) -> None:
+    if mutation == "remove_flow_connector":
+        layout_sidecar["guide_boxes"] = [
+            box
+            for box in layout_sidecar["guide_boxes"]
+            if box["box_type"] != "flow_connector"
+        ]
+        return
+    if mutation == "move_overview_marker_outside_panel":
+        marker = next(
+            box
+            for box in layout_sidecar["layout_boxes"]
+            if box["box_id"] == "overview_primary_1"
+        )
+        marker.update({"x0": 0.88, "x1": 0.90})
+        return
+    if mutation == "remove_treated_fraction_panel":
+        layout_sidecar["panel_boxes"] = layout_sidecar["panel_boxes"][:1]
+        return
+    if mutation == "remove_time_horizon":
+        layout_sidecar["metrics"].pop("time_horizon_months")
+        return
+    if mutation == "reverse_second_panel_rows":
+        layout_sidecar["metrics"]["panels"][1]["rows"].reverse()
+        return
+    if mutation == "replace_consequence_layer":
+        layout_sidecar["metrics"]["consequence_panels"][0]["panel_id"] = "transcriptome"
+        return
+    if mutation == "replace_pathway_layer":
+        layout_sidecar["metrics"]["pathway_panels"][0]["panel_id"] = "transcriptome"
+        return
+    raise AssertionError(f"unknown profile structure mutation: {mutation}")
+
+
+PROFILE_STRUCTURE_CASES = (
+    pytest.param(
+        "publication_illustration_flow",
+        "cohort_flow_figure",
+        "remove_flow_connector",
+        "missing_flow_connector",
+        id="flow-connector",
+    ),
+    pytest.param(
+        "publication_generalizability_subgroup_composite_panel",
+        "generalizability_subgroup_composite_panel",
+        "move_overview_marker_outside_panel",
+        "overview_metric_marker_outside_panel",
+        id="panel-containment",
+    ),
+    pytest.param(
+        "publication_decision_curve",
+        "time_to_event_decision_curve",
+        "remove_treated_fraction_panel",
+        "treated_fraction_panel_missing",
+        id="treated-fraction-panel",
+    ),
+    pytest.param(
+        "publication_evidence_curve",
+        "time_dependent_roc_horizon",
+        "remove_time_horizon",
+        "time_horizon_months_missing",
+        id="time-horizon",
+    ),
+    pytest.param(
+        "publication_compact_effect_estimate_panel",
+        "compact_effect_estimate_panel",
+        "reverse_second_panel_rows",
+        "panel_row_order_mismatch",
+        id="row-order",
+    ),
+    pytest.param(
+        "publication_genomic_alteration_multiomic_consequence_panel",
+        "genomic_alteration_multiomic_consequence_panel",
+        "replace_consequence_layer",
+        "consequence_panel_ids_invalid",
+        id="genomic-consequence-layers",
+    ),
+    pytest.param(
+        "publication_genomic_alteration_pathway_integrated_composite_panel",
+        "genomic_alteration_pathway_integrated_composite_panel",
+        "replace_pathway_layer",
+        "pathway_panel_ids_invalid",
+        id="pathway-layers",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("qc_profile", "template_id", "mutation", "expected_rule"),
+    PROFILE_STRUCTURE_CASES,
+)
+def test_run_display_layout_qc_preserves_profile_specific_structure_owners(
+    qc_profile: str,
+    template_id: str,
+    mutation: str,
+    expected_rule: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+    layout_sidecar = _minimal_layout_sidecar_for_template(template_id)
+
+    baseline = module.run_display_layout_qc(qc_profile=qc_profile, layout_sidecar=layout_sidecar)
+    assert baseline["status"] == "pass"
+
+    _break_profile_structure(layout_sidecar, mutation)
+    result = module.run_display_layout_qc(qc_profile=qc_profile, layout_sidecar=layout_sidecar)
+
+    assert result["status"] == "fail"
+    assert expected_rule in {issue["rule_id"] for issue in result["issues"]}
 
 
 GEOMETRY_CASES = (

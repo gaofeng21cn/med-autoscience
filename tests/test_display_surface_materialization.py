@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience import display_registry
 from med_autoscience.display_pack_resolver import get_template_short_id
 
 from tests.display_surface_materialization_cases.layout_sidecar_fixtures import (
@@ -14,10 +15,14 @@ from tests.display_surface_materialization_cases.layout_sidecar_fixtures import 
 from tests.display_surface_materialization_cases.registry_id_helpers import (
     _ensure_output_parents,
 )
+from tests.display_surface_materialization_cases.shared import (
+    use_current_scholarskills_display_pack,
+)
 
 
 @pytest.fixture(autouse=True)
 def _fake_subprocess_display_renderer(monkeypatch):
+    use_current_scholarskills_display_pack(monkeypatch)
     materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
 
     def fake_subprocess_renderer(
@@ -58,6 +63,9 @@ def _fake_subprocess_display_renderer(monkeypatch):
         }
 
     monkeypatch.setattr(materialize_module, "_run_subprocess_renderer", fake_subprocess_renderer)
+    yield
+    display_registry._active_template_manifests.cache_clear()
+    display_registry._active_registry_state.cache_clear()
 
 
 from tests.display_surface_materialization_cases.registry_id_helpers import (
