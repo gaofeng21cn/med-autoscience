@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import artifact_lifecycle_operations_report
-from med_autoscience.domain_entry import MedAutoScienceDomainEntry
+from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 
 
 RECEIPT_REF_FAMILIES = (
@@ -80,17 +80,15 @@ def test_lifecycle_report_bounds_receipt_ref_families(tmp_path: Path) -> None:
     assert project["authority_boundary"]["mas_can_authorize_artifact_mutation_from_projection"] is False
 
 
-def test_domain_entry_projects_active_lifecycle_report(tmp_path: Path) -> None:
+def test_lifecycle_report_stays_refs_only_without_reentering_public_actions(
+    tmp_path: Path,
+) -> None:
     workspace_root = _workspace_with_lifecycle_index(tmp_path, ref_count=1)
 
-    payload = MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "artifact-lifecycle-report",
-            "workspace_roots": [str(workspace_root)],
-        }
+    payload = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+        workspace_roots=[workspace_root]
     )
 
-    assert payload["command"] == "artifact-lifecycle-report"
     assert payload["surface"] == "artifact_lifecycle_report"
     assert payload["surface_kind"] == "mas_artifact_lifecycle_refs_report"
     assert payload["report_kind"] == "opl_lifecycle_index_domain_projection"
@@ -104,3 +102,4 @@ def test_domain_entry_projects_active_lifecycle_report(tmp_path: Path) -> None:
         "mas_can_claim_package_ready": False,
         "mas_can_claim_publication_ready": False,
     }
+    assert "artifact-lifecycle-report" not in SERVICE_SAFE_DOMAIN_COMMANDS
