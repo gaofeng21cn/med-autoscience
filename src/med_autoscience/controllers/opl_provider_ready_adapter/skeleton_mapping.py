@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import stage_quality_contract
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 
 from .provider_readiness import DOMAIN_OWNER, TARGET_DOMAIN_ID
 
@@ -34,9 +35,9 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
                 "stage prompt and review/repair prompt surfaces",
             ],
             "agent/skills": [
-                "medautosci product skill-catalog --format json",
-                "medautosci domain-handler export --format json",
-                "medautosci domain-handler dispatch --format json",
+                "agent/primary_skill/SKILL.md",
+                domain_entry_handler_target("domain-handler-export"),
+                domain_entry_handler_target("domain-handler-dispatch"),
             ],
             "agent/knowledge": [
                 "artifacts/stage_knowledge/<stage>/latest.json",

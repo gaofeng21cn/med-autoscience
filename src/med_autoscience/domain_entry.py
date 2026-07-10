@@ -105,6 +105,7 @@ class MedAutoScienceDomainEntry:
             "study-state-matrix",
             "export-inspection-package",
             "publication-aftercare-plan",
+            "delivery-authority-backfill-apply",
             "external-learning-adoption-closure",
             "scientific-capability-registry",
             "mainline-status",
@@ -582,6 +583,17 @@ def _dispatch_domain_capability(command: str, request: Mapping[str, Any]) -> dic
         return build_publication_aftercare_plan(
             study_root=Path(str(request["study_root"])),
             quest_root=(Path(str(request["quest_root"])) if request.get("quest_root") else None),
+        )
+    if command == "delivery-authority-backfill-apply":
+        from med_autoscience.controllers.delivery_authority_backfill_apply import run_backfill_apply
+
+        return run_backfill_apply(
+            workspace_roots=tuple(
+                Path(str(item)).expanduser().resolve()
+                for item in _sequence_value(request.get("workspace_roots"))
+            ),
+            apply=_bool_value(request.get("apply")),
+            authority_snapshot=_optional_mapping_value(request.get("authority_snapshot")),
         )
     if command == "external-learning-adoption-closure":
         from med_autoscience.external_learning_adoption_closure import build_external_learning_adoption_closure

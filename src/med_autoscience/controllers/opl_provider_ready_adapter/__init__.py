@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 from med_autoscience.controllers.opl_functional_closure_surfaces import (
     build_functional_closure_status_projection,
     build_lifecycle_apply_requests_surface,
@@ -84,7 +85,7 @@ def build_opl_provider_ready_contract(
             "mas_owned_hermes_or_claude_executor": False,
         },
         "direct_mas_path": _direct_mas_path(profile_ref_text),
-        "domain_handler_contract": _domain_handler_contract(profile=profile, profile_ref_text=profile_ref_text),
+        "domain_handler_contract": _domain_handler_contract(profile=profile),
         "forbidden_write_guard": build_forbidden_write_guard_proof(
             result="configured",
             task_id=None,
@@ -184,19 +185,19 @@ def _direct_mas_path(profile_ref_text: str) -> dict[str, Any]:
         "status": "authoritative",
         "profile_ref": profile_ref_text,
         "commands": {
-            "read_status": f"medautosci study progress --profile {profile_ref_text} --format json",
-            "read_runtime": f"medautosci study progress --profile {profile_ref_text} --study-id <study_id> --format json",
-            "paper_mission_readback": f"medautosci paper-mission inspect --profile {profile_ref_text} --study-id <study_id> --format json",
-            "paper_mission_drive": f"medautosci paper-mission drive --profile {profile_ref_text} --study-id <study_id>",
+            "read_status": domain_entry_handler_target("study-progress"),
+            "read_runtime": domain_entry_handler_target("study-progress"),
+            "paper_mission_readback": domain_entry_handler_target("paper-mission"),
+            "paper_mission_drive": domain_entry_handler_target("paper-mission"),
         },
         "must_converge_with_opl_hosted_path": True,
     }
 
 
-def _domain_handler_contract(*, profile: WorkspaceProfile, profile_ref_text: str) -> dict[str, Any]:
+def _domain_handler_contract(*, profile: WorkspaceProfile) -> dict[str, Any]:
     return {
-        "export_command": f"medautosci domain-handler export --profile {profile_ref_text} --format json",
-        "dispatch_command": "medautosci domain-handler dispatch --task <task.json> --format json",
+        "export_command": domain_entry_handler_target("domain-handler-export"),
+        "dispatch_command": domain_entry_handler_target("domain-handler-dispatch"),
         "default_paper_mission_queue_source": "/paper_mission_default_tasks",
         "queue_hydration_source": "/pending_family_tasks",
         "queue_hydration_source_role": "mixed_explicit_owner_handoff_and_migration_compatibility_queue",

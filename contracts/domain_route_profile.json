@@ -47,7 +47,7 @@
     "domain_route/terminalize-stage",
     "domain_route/typed-blocker-resolution"
   ],
-  "domain_id": "medautoscience",
+  "domain_id": "mas",
   "domain_truth_owner": "MedAutoScience",
   "field_mapping": {
     "attempt_identity.attempt_idempotency_key": "attempt_idempotency_key",
@@ -138,9 +138,10 @@
     ]
   },
   "legacy_domain_ids": [
+    "medautoscience",
     "med-autoscience"
   ],
-  "profile_id": "medautoscience.domain_route.compatibility.v1",
+  "profile_id": "mas.domain_route.compatibility.v1",
   "profile_role": "domain_owned_compatibility_profile",
   "receipt_labels": {
     "human_gate": [
@@ -177,7 +178,7 @@
   "source_paths": [
     "src/med_autoscience/domain_route_profile.py",
     "src/med_autoscience/paper_mission_opl_carrier.py",
-    "src/med_autoscience/cli/paper_mission_commands/opl_runtime_submission.py",
+    "src/med_autoscience/paper_mission_domain/opl_runtime_submission.py",
     "src/med_autoscience/controllers/owner_route_handoff/task_kinds.py"
   ],
   "substrate_owner": "one-person-lab",

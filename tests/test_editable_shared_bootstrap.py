@@ -61,7 +61,7 @@ def test_runtime_bootstrap_modules_are_physically_retired() -> None:
 
     for relative_path in (
         "src/med_autoscience/__init__.py",
-        "src/med_autoscience/action_catalog.py",
+        "src/med_autoscience/domain_entry.py",
         "src/med_autoscience/domain_entry_contract.py",
     ):
         source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")

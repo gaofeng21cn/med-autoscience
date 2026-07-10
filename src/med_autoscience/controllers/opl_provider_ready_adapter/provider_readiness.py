@@ -11,7 +11,7 @@ from med_autoscience.controllers.opl_unique_control_plane_boundary.generated_cal
 from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 
 
-TARGET_DOMAIN_ID = "medautoscience"
+TARGET_DOMAIN_ID = "mas"
 DOMAIN_OWNER = "med-autoscience"
 OPL_OWNER = "one-person-lab"
 SCHEMA_VERSION = 1

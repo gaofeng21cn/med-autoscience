@@ -32,8 +32,8 @@ def test_domain_route_profile_owns_legacy_mapping_before_generic_opl_intake() ->
     profile = build_domain_route_profile()
 
     assert profile["agent_id"] == "mas"
-    assert profile["domain_id"] == "medautoscience"
-    assert profile["legacy_domain_ids"] == ["med-autoscience"]
+    assert profile["domain_id"] == "mas"
+    assert profile["legacy_domain_ids"] == ["medautoscience", "med-autoscience"]
     assert profile["canonical_task_kind"] == "domain_route/stage-route"
     assert profile["handoff_intake_surface_kind"] == (
         "opl_domain_route_handoff_intake_readback"
@@ -75,7 +75,7 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
     assert readback["status"] == "accepted_for_provider_projection"
     assert request["surface_kind"] == "opl_domain_route_runtime_request"
     assert request["task_kind"] == "domain_route/stage-route"
-    assert request["domain_id"] == "medautoscience"
+    assert request["domain_id"] == "mas"
     assert request["command_kind"] == "route_back"
     assert request["route_target"] == "review_and_quality_gate"
     assert request["domain_route_transaction_ref"] == (
@@ -103,7 +103,7 @@ def test_runtime_submission_uses_generic_task_and_content_bound_dedupe(tmp_path:
     )
 
     assert first is not None and second is not None
-    assert first["domainId"] == "medautoscience"
+    assert first["domainId"] == "mas"
     assert first["taskKind"] == "domain_route/stage-route"
     assert first["payload"]["surface_kind"] == "opl_domain_route_runtime_request"
     assert first["dedupe_key"] != second["dedupe_key"]

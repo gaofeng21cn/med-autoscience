@@ -54,7 +54,7 @@ def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(
     assert result["package_status"] == {"pROC": True}
 
 
-def test_analysis_bundle_reports_opl_bioconductor_provisioning_blocker(monkeypatch) -> None:
+def test_analysis_bundle_reports_opl_bioconductor_provisioning_owner(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     monkeypatch.setattr(
         module,
@@ -73,11 +73,12 @@ def test_analysis_bundle_reports_opl_bioconductor_provisioning_blocker(monkeypat
     assert result["r_package_sources"]["pROC"] == "cran"
     assert result["r_package_sources"]["ComplexHeatmap"] == "bioconductor"
     assert result["provisioning"] == {
-        "status": "opl_runtime_environment_bioconductor_source_unsupported",
+        "status": "opl_runtime_environment_bioconductor_source_supported",
         "owner": "one-person-lab",
         "owner_surface": "opl env prepare",
         "blocked_requirement": "ComplexHeatmap",
         "contract_ref": "contracts/opl-framework/runtime-environment-substrate-contract.json",
+        "owner_release_ref": "one-person-lab@19abf74e79227e0f4924ab1588ecf3a3eb18d613",
         "effect": "read_only",
         "mas_provisioning_allowed": False,
     }

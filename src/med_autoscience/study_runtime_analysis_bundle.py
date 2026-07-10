@@ -38,11 +38,12 @@ DEFAULT_R_ANALYSIS_BUNDLE_PACKAGES = (
 )
 BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
 ANALYSIS_PROVISIONING_BLOCKER = {
-    "status": "opl_runtime_environment_bioconductor_source_unsupported",
+    "status": "opl_runtime_environment_bioconductor_source_supported",
     "owner": "one-person-lab",
     "owner_surface": "opl env prepare",
     "blocked_requirement": "ComplexHeatmap",
     "contract_ref": "contracts/opl-framework/runtime-environment-substrate-contract.json",
+    "owner_release_ref": "one-person-lab@19abf74e79227e0f4924ab1588ecf3a3eb18d613",
     "effect": "read_only",
     "mas_provisioning_allowed": False,
 }

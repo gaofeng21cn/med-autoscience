@@ -63,7 +63,7 @@ test-control-plane:
 	scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)
 
 test-medical-paper-ops:
-	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py
+	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py
 
 test-medical-quality-regression:
 	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py

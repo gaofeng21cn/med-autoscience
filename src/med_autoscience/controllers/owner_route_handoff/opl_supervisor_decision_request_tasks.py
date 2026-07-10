@@ -109,7 +109,7 @@ def opl_supervisor_decision_request_task(
         },
     }
     return {
-        "domain_id": "medautoscience",
+        "domain_id": "mas",
         "task_kind": "domain_autonomy/supervisor-decision",
         "recommended_task_kind": "domain_autonomy/supervisor-decision",
         "priority": 75,

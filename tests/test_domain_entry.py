@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 import pytest
@@ -207,6 +208,66 @@ def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
     assert contracts["display-pack-figure-plan"]["required_fields"] == ["figure_request"]
     assert contracts["display-pack-render"]["required_fields"] == ["paper_root"]
     assert "visual_audit_review" in contracts["display-pack-render"]["optional_fields"]
+
+
+def test_action_catalog_targets_and_required_fields_match_domain_entry_contract() -> None:
+    contract_module = importlib.import_module("med_autoscience.domain_entry_contract")
+    catalog = json.loads(
+        (Path(__file__).resolve().parents[1] / "contracts/action_catalog.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    actions = {item["action_id"]: item for item in catalog["actions"]}
+
+    assert set(actions) == {
+        command.replace("-", "_") for command in contract_module.SERVICE_SAFE_DOMAIN_COMMANDS
+    }
+    for command, spec in contract_module.SERVICE_SAFE_DOMAIN_COMMANDS.items():
+        action = actions[command.replace("-", "_")]
+        target = contract_module.domain_entry_handler_target(command)
+        assert action["workspace_locator_fields"] == list(spec.required_fields)
+        assert action["source_command"]["command"] == target
+        for surface in ("cli", "mcp", "product_entry", "skill"):
+            assert action["supported_surfaces"][surface]["command"] == target
+
+        module_name, symbol_ref = target.split(":", 1)
+        symbol_path, target_action_id = symbol_ref.split("#", 1)
+        owner_name, method_name = symbol_path.split(".", 1)
+        owner = getattr(importlib.import_module(module_name), owner_name)
+        assert callable(getattr(owner, method_name))
+        assert target_action_id == command.replace("-", "_")
+
+
+def test_domain_entry_dispatches_delivery_authority_backfill_apply(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    backfill = importlib.import_module("med_autoscience.controllers.delivery_authority_backfill_apply")
+    workspace_root = tmp_path / "workspace"
+    called: dict[str, object] = {}
+
+    def fake_run_backfill_apply(*, workspace_roots, apply, authority_snapshot):
+        called.update(
+            workspace_roots=tuple(workspace_roots),
+            apply=apply,
+            authority_snapshot=authority_snapshot,
+        )
+        return {"surface": "delivery_authority_backfill_apply", "status": "planned"}
+
+    monkeypatch.setattr(backfill, "run_backfill_apply", fake_run_backfill_apply)
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "delivery-authority-backfill-apply",
+            "workspace_roots": [str(workspace_root)],
+            "apply": False,
+            "authority_snapshot": {"decision": "inspect"},
+        }
+    )
+
+    assert payload["command"] == "delivery-authority-backfill-apply"
+    assert called == {
+        "workspace_roots": (workspace_root.resolve(),),
+        "apply": False,
+        "authority_snapshot": {"decision": "inspect"},
+    }
 
 
 def test_domain_entry_rejects_control_plane_cleanup_apply(tmp_path: Path) -> None:

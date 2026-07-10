@@ -21,7 +21,7 @@ def build_opl_substrate_adapter_projection(
     return {
         "surface_kind": "mas_opl_generic_substrate_adapter",
         "version": "mas-opl-generic-substrate-adapter.v1",
-        "target_domain_id": "medautoscience",
+        "target_domain_id": "mas",
         "mode": "opaque_index_only_refs",
         "consumer": "one-person-lab",
         "export_owner": "med-autoscience",

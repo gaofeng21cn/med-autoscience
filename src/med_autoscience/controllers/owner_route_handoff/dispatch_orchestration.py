@@ -547,12 +547,12 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
     except ValueError as exc:
         return _dispatch_error(generated_at=generated_at, reason="invalid_task", detail=str(exc))
     task_id = _text(task.get("task_id")) or "unknown_task"
-    domain_id = _text(task.get("domain_id")) or "medautoscience"
+    domain_id = _text(task.get("domain_id")) or "mas"
     source_task_kind = _text(task.get("task_kind")) or "unknown"
     task_kind = canonical_domain_task_kind(source_task_kind) or "unknown"
     if task_kind != source_task_kind:
         task = {**task, "task_kind": task_kind}
-    if domain_id != "medautoscience":
+    if domain_id not in {"mas", "medautoscience", "med-autoscience"}:
         return _dispatch_error(
             generated_at=generated_at,
             task_id=task_id,

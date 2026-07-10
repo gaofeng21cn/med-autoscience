@@ -1,7 +1,7 @@
 {
   "surface_kind": "mas_domain_owned_production_acceptance",
   "schema_version": 1,
-  "domain_id": "med-autoscience",
+  "domain_id": "mas",
   "owner": "MedAutoScience",
   "updated_at": "2026-05-20",
   "acceptance_status": "closed_by_domain_owned_acceptance_receipt",

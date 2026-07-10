@@ -23,8 +23,7 @@ def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descr
     assert action["supported_surfaces"]["mcp"]["surface_kind"] == "research_integrity_gate_input_bundle"
     assert "only produces evidence" in action["summary"]
     assert "does not write publication authority" in action["summary"]
-    assert "payload" in action["workspace_locator_fields"]
-    assert "reference_checks" in action["workspace_locator_fields"]
+    assert action["workspace_locator_fields"] == []
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["can_write_mas_study_truth"] is False
     assert boundary["can_write_publication_eval_latest"] is False
@@ -58,7 +57,7 @@ def test_action_catalog_exposes_research_integrity_reference_verification_descri
     assert action["supported_surfaces"]["mcp"]["public_runtime"] is False
     assert "complete-reference verification lane" in action["summary"]
     assert "does not write publication authority" in action["summary"]
-    assert "references" in action["workspace_locator_fields"]
+    assert action["workspace_locator_fields"] == []
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["can_write_mas_study_truth"] is False
     assert boundary["can_write_publication_eval_latest"] is False
@@ -92,7 +91,7 @@ def test_action_catalog_exposes_research_integrity_stage_hook_descriptor() -> No
     assert action["supported_surfaces"]["mcp"]["public_runtime"] is False
     assert "Mandatory Review/Publication Gate stage-hook input" in action["summary"]
     assert "trigger research-integrity-reference-verification" in action["summary"]
-    assert "manuscript" in action["workspace_locator_fields"]
+    assert action["workspace_locator_fields"] == []
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["stage_hook_consumers"] == ["review_gate", "publication_gate"]
     assert boundary["triggered_action"] == "research-integrity-reference-verification"

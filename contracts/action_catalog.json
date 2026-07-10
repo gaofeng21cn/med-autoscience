@@ -377,8 +377,69 @@
       },
       "title": "Plan publication aftercare progression",
       "workspace_locator_fields": [
-        "study_root",
-        "quest_root"
+        "study_root"
+      ]
+    },
+    {
+      "action_id": "delivery_authority_backfill_apply",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_mutate_current_package": false,
+        "can_mutate_submission_minimal": false,
+        "can_write_delivery_manifest": true,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "controller_gated_delivery_manifest_fields_only",
+        "surface_authority": "delivery_manifest_authority_backfill"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [
+        "delivery_sync_authority_gate"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
+        "surface_kind": "delivery_authority_backfill_apply"
+      },
+      "summary": "Apply a controller-authorized backfill only to delivery manifest lifecycle, source-signature, and publication-ref fields. It cannot mutate current_package or submission_minimal.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "delivery_authority_backfill_apply"
+        },
+        "cli": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
+          "surface_kind": "delivery_authority_backfill_apply"
+        },
+        "mcp": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "delivery_authority_backfill_apply",
+          "tool_name": "delivery_authority_backfill_apply"
+        },
+        "openai": {
+          "tool_name": "delivery_authority_backfill_apply"
+        },
+        "product_entry": {
+          "action_key": "delivery_authority_backfill_apply",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
+          "surface_kind": "delivery_authority_backfill_apply"
+        },
+        "skill": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
+          "command_contract_id": "delivery_authority_backfill_apply",
+          "surface_kind": "delivery_authority_backfill_apply"
+        }
+      },
+      "title": "Apply controller-gated delivery manifest backfill",
+      "workspace_locator_fields": [
+        "workspace_roots"
       ]
     },
     {
@@ -441,9 +502,7 @@
         }
       },
       "title": "Inspect external learning adoption closure",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "display_pack_capability_discover",
@@ -505,10 +564,7 @@
         }
       },
       "title": "Discover MAS Display Pack capability",
-      "workspace_locator_fields": [
-        "repo_root",
-        "paper_root"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "display_pack_figure_plan",
@@ -571,8 +627,6 @@
       },
       "title": "Plan a Display Pack figure",
       "workspace_locator_fields": [
-        "repo_root",
-        "paper_root",
         "figure_request"
       ]
     },
@@ -637,16 +691,7 @@
         }
       },
       "title": "Orchestrate a Display Pack figure",
-      "workspace_locator_fields": [
-        "repo_root",
-        "paper_root",
-        "current_owner_delta",
-        "claim_ref",
-        "data_ref",
-        "paper_target",
-        "intent",
-        "figure_request"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "display_pack_preflight",
@@ -708,12 +753,7 @@
         }
       },
       "title": "Preflight a Display Pack figure",
-      "workspace_locator_fields": [
-        "repo_root",
-        "paper_root",
-        "template_id",
-        "figure_request"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "display_pack_render",
@@ -779,10 +819,7 @@
       },
       "title": "Render a Display Pack figure receipt",
       "workspace_locator_fields": [
-        "repo_root",
-        "paper_root",
-        "figure_request",
-        "visual_audit_review"
+        "paper_root"
       ]
     },
     {
@@ -850,9 +887,7 @@
       },
       "title": "Resolve or invoke scientific capabilities",
       "workspace_locator_fields": [
-        "current_owner_delta",
-        "study_root",
-        "capability_id"
+        "mode"
       ]
     },
     {
@@ -938,26 +973,7 @@
         }
       },
       "title": "Build Research Integrity gate input",
-      "workspace_locator_fields": [
-        "payload",
-        "reference_checks",
-        "reference",
-        "references",
-        "claim_spans",
-        "claim",
-        "claims",
-        "citation_refs",
-        "evidence_refs",
-        "reference_attestation_refs",
-        "manuscript_sections",
-        "manuscript",
-        "numeric_facts",
-        "display_facts",
-        "provider_evidence",
-        "reference_attestations",
-        "display_to_claim_map",
-        "reporting_guideline_expectations"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "research_integrity_reference_verification",
@@ -1042,16 +1058,7 @@
         }
       },
       "title": "Build Research Integrity reference verification payload",
-      "workspace_locator_fields": [
-        "payload",
-        "reference",
-        "references",
-        "provider_evidence",
-        "provider_receipts",
-        "source_refs",
-        "reference_manager_ref",
-        "manuscript_ref"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "research_integrity_review_publication_gate_stage_hook",
@@ -1142,32 +1149,7 @@
         }
       },
       "title": "Trigger Research Integrity review/publication gate hook",
-      "workspace_locator_fields": [
-        "payload",
-        "stage_id",
-        "stage_event",
-        "stage_hook_ref",
-        "reference",
-        "references",
-        "provider_evidence",
-        "provider_receipts",
-        "source_refs",
-        "reference_manager_ref",
-        "manuscript_ref",
-        "claim_spans",
-        "claim",
-        "claims",
-        "citation_refs",
-        "evidence_refs",
-        "reference_attestation_refs",
-        "manuscript_sections",
-        "manuscript",
-        "numeric_facts",
-        "display_facts",
-        "reference_attestations",
-        "display_to_claim_map",
-        "reporting_guideline_expectations"
-      ]
+      "workspace_locator_fields": []
     },
     {
       "action_id": "mainline_status",

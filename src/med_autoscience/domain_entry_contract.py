@@ -67,6 +67,10 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ("study_root",),
         ("quest_root",),
     ),
+    "delivery-authority-backfill-apply": DomainEntryCommandSpec(
+        ("workspace_roots",),
+        ("apply", "authority_snapshot"),
+    ),
     "external-learning-adoption-closure": DomainEntryCommandSpec(()),
     "scientific-capability-registry": DomainEntryCommandSpec(
         ("mode",),

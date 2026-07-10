@@ -17,6 +17,7 @@ from med_autoscience.external_learning_adoption_closure import (
 )
 from med_autoscience.display_pack_agent import display_pack_capability_discover
 from med_autoscience.paper_mission_domain import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -102,7 +103,7 @@ def export_family_domain_handler(
     return {
         "surface_kind": "mas_family_domain_handler_export",
         "version": "mas-family-domain-handler.v1",
-        "target_domain_id": "medautoscience",
+        "target_domain_id": "mas",
         "generated_at": generated_at,
         "profile": {
             "profile_name": profile.name,
@@ -153,7 +154,7 @@ def export_family_domain_handler(
             "not_authority_for": ["study_truth", "publication_quality", "artifact_gate", "paper_package"],
         },
         "dispatch": {
-            "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
+            "entrypoint": domain_entry_handler_target("domain-handler-dispatch"),
             "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "default_queue_source": "/paper_mission_default_tasks",
             "legacy_queue_source": "/pending_family_tasks",
@@ -207,7 +208,7 @@ def export_family_domain_handler(
         "family_opl_current_control_state_handoff": {
             "surface_kind": "family_opl_current_control_state_handoff",
             "version": "family-opl-current-control-state-handoff.v1",
-            "target_domain_id": "medautoscience",
+            "target_domain_id": "mas",
             "handoff_id": f"{profile.name}_mas_family_opl_current_control_state_handoff",
             "adapter_id": "opl_family_runtime_provider_wakeup_to_mas_domain_handler",
             "cadence": {"interval_seconds": 60},
@@ -216,9 +217,9 @@ def export_family_domain_handler(
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
-            "repair_command": f"medautosci domain-handler export --profile {profile_ref} --format json",
+            "repair_command": domain_entry_handler_target("domain-handler-export"),
             "safe_reconcile_hint": (
-                "Use OPL provider/runtime manager wakeup plus medautosci domain-handler export/dispatch; "
+                "Use the OPL provider/runtime manager plus the generated MAS domain-handler targets; "
                 "MAS default surfaces stay in standard OPL Agent shape."
             ),
             "standard_agent_purity": functional_closure["functional_consumer_boundary"][
@@ -485,7 +486,7 @@ def _current_typed_blocker_owner_resolution_ref(
         profile_name=profile.name,
     )
     return {
-        "domain_id": "medautoscience",
+        "domain_id": "mas",
         "ref_kind": "typed_blocker_owner_resolution_ref",
         "task_kind": "domain_autonomy/supervisor-decision",
         "recommended_task_kind": "domain_autonomy/supervisor-decision",
@@ -896,7 +897,7 @@ def _paper_autonomy_tasks(
             continue
         tasks.append(
             {
-                "domain_id": "medautoscience",
+                "domain_id": "mas",
                 "task_kind": "domain_autonomy/repair-recheck",
                 "priority": 40,
                 "source": "mas-domain-handler-export",

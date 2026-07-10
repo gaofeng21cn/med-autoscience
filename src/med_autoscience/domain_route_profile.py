@@ -8,9 +8,9 @@ from typing import Any
 
 
 AGENT_ID = "mas"
-DOMAIN_ID = "medautoscience"
-LEGACY_DOMAIN_IDS = ("med-autoscience",)
-PROFILE_ID = "medautoscience.domain_route.compatibility.v1"
+DOMAIN_ID = "mas"
+LEGACY_DOMAIN_IDS = ("medautoscience", "med-autoscience")
+PROFILE_ID = "mas.domain_route.compatibility.v1"
 PROFILE_REF = "contracts/domain_route_profile.json"
 DOMAIN_ROUTE_TASK_KIND = "domain_route/stage-route"
 DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND = "domain_route/start-or-resume"
@@ -110,7 +110,7 @@ def build_domain_route_profile() -> dict[str, Any]:
         "source_paths": [
             "src/med_autoscience/domain_route_profile.py",
             "src/med_autoscience/paper_mission_opl_carrier.py",
-            "src/med_autoscience/cli/paper_mission_commands/opl_runtime_submission.py",
+            "src/med_autoscience/paper_mission_domain/opl_runtime_submission.py",
             "src/med_autoscience/controllers/owner_route_handoff/task_kinds.py",
         ],
         "task_kind_normalization": dict(TASK_KIND_NORMALIZATION),

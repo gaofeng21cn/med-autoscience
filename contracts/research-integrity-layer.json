@@ -543,9 +543,9 @@
       "src/med_autoscience/domain_entry.py::research-integrity-gate-input",
       "src/med_autoscience/domain_entry.py::research-integrity-reference-verification",
       "src/med_autoscience/domain_entry.py::research-integrity-review-publication-gate-stage-hook",
-      "src/med_autoscience/action_catalog.py::research_integrity_gate_input",
-      "src/med_autoscience/action_catalog.py::research_integrity_reference_verification",
-      "src/med_autoscience/action_catalog.py::research_integrity_review_publication_gate_stage_hook",
+      "contracts/action_catalog.json#research_integrity_gate_input",
+      "contracts/action_catalog.json#research_integrity_reference_verification",
+      "contracts/action_catalog.json#research_integrity_review_publication_gate_stage_hook",
       "src/med_autoscience/domain_entry_contract.py::research-integrity-gate-input",
       "src/med_autoscience/domain_entry_contract.py::research-integrity-reference-verification",
       "src/med_autoscience/domain_entry_contract.py::research-integrity-review-publication-gate-stage-hook"
