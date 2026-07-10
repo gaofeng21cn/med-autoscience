@@ -494,7 +494,10 @@ def test_domain_handler_export_projects_memory_paper_soak_proof_refs_readonly(tm
     assert "prose_summary" not in json.dumps(projection, ensure_ascii=False)
 
 
-def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_reviewer_refresh_refs_without_private_repair_dispatch(
+    tmp_path: Path,
+    capsys,
+) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -510,43 +513,39 @@ def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_pat
 
     assert exit_code == 0
     study = payload["studies"][0]
-    assert study["paper_autonomy_loop"]["status"] == "repair_recheck_ready"
-    assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is True
-    repair_tasks = [
+    assert study["paper_autonomy_loop"]["status"] == "blocked"
+    assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is False
+    assert study["paper_autonomy_loop"]["repair_work_units"] == []
+    assert all(
+        task["task_kind"] != "domain_autonomy/repair-recheck"
+        for task in payload["pending_family_tasks"]
+    )
+    reviewer_refresh_tasks = [
         task for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_autonomy/repair-recheck"
+        if task["task_kind"] == "domain_route/reviewer-refresh"
     ]
-    assert len(repair_tasks) == 2
-    assert {
-        task["payload"]["repair_work_unit"]["callable_surface"]
-        for task in repair_tasks
-    } == {
-        "quality_repair_batch.run_quality_repair_batch",
-        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
-    }
-    first_task = repair_tasks[0]
-    assert first_task["payload"]["profile"] == str(profile_path)
-    assert first_task["payload"]["study_id"] == "001-risk"
-    assert first_task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
-    assert first_task["dispatch_owner"] == "med-autoscience"
-    unit = first_task["payload"]["repair_work_unit"]
-    assert unit["owner"] in {"quality_repair_batch", "ai_reviewer"}
-    assert unit["callable_surface"]
-    assert unit["gate_replay_target"] in {
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-    }
-    assert unit["direct_package_mutation_allowed"] is False
-    assert unit["current_package_mutation_allowed"] is False
-    assert unit["quality_authorization_allowed"] is False
-    assert unit["submission_authorization_allowed"] is False
-    assert unit["batch_scope"] == "study_callable_surface"
-    assert unit["batched_work_units"]
-    assert unit["prohibited_outputs"] == [
-        "paper/current_package",
-        "manuscript/current_package",
-        "quality_override",
-        "submission_authorization",
+    assert len(reviewer_refresh_tasks) == 1
+    task = reviewer_refresh_tasks[0]
+    assert task["payload"]["profile"] == str(profile_path)
+    assert task["payload"]["study_id"] == "001-risk"
+    assert task["payload"]["publication_aftercare_reason"] == "reviewer_refresh_owner_route_ref"
+    assert task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only"
+    assert task["dispatch_owner"] == "med-autoscience"
+    assert all(source_ref["body_included"] is False for source_ref in task["source_refs"])
+    evidence = task["domain_dispatch_evidence_record_payload"]
+    assert evidence["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    assert evidence["body_included"] is False
+    assert evidence["typed_blocker_refs"]
+    assert evidence["domain_ready_claimed"] is False
+    assert evidence["publication_ready_claimed"] is False
+    assert evidence["artifact_mutation_authorized"] is False
+    assert evidence["forbidden_payload_fields"] == [
+        "study_truth_body",
+        "paper_body",
+        "publication_verdict_body",
+        "artifact_body",
+        "memory_body",
+        "current_package_body",
     ]
 
 
