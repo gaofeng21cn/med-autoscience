@@ -22,6 +22,8 @@ from tests.submission_minimal_cases.shared_base import (
     write_text,
 )
 
+pytestmark = pytest.mark.submission_heavy
+
 
 def test_create_submission_minimal_package_prefers_current_compile_source_and_refreshes_review(
     tmp_path: Path,

@@ -33,6 +33,8 @@ from med_autoscience.controllers.submission_minimal.package_builder import (
     create_submission_minimal_package,
 )
 
+pytestmark = pytest.mark.submission_heavy
+
 
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     paper_root = make_paper_workspace(tmp_path)

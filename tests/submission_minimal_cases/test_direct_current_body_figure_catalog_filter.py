@@ -31,6 +31,8 @@ from tests.submission_minimal_cases.shared import (
     make_stage_native_current_body_workspace,
 )
 
+pytestmark = pytest.mark.submission_heavy
+
 
 def test_create_submission_minimal_package_filters_nested_supplementary_figures_when_canonical_catalog_exists(
     tmp_path: Path,
