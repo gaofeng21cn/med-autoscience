@@ -15,6 +15,16 @@ def _contract() -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts/stage_artifact_kernel_adoption.json").read_text(encoding="utf-8"))
 
 
+def test_state_index_kernel_adoption_points_to_opl_kernel_contract() -> None:
+    contract = json.loads(
+        (REPO_ROOT / "contracts/state_index_kernel_adoption.json").read_text(encoding="utf-8")
+    )
+
+    assert contract["kernel_contract_ref"] == (
+        "contracts/opl-framework/state-index-kernel-contract.json"
+    )
+
+
 def test_stage_artifact_kernel_adoption_declares_physical_stage_folder_truth() -> None:
     contract = _contract()
 
