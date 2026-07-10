@@ -20,6 +20,10 @@ from med_autoscience.controllers.runtime_trajectory_proof import (
             "non_replayable",
             "authority_surface_replay_blocked",
         ),
+        ("artifact_write", "key", ["artifacts/controller_decisions/latest.json"], "non_replayable", "authority_surface_replay_blocked"),
+        ("artifact_write", "key", ["progress_projection"], "non_replayable", "authority_surface_replay_blocked"),
+        ("artifact_write", "key", ["study_truth"], "non_replayable", "authority_surface_replay_blocked"),
+        ("artifact_write", "key", ["submission readiness"], "non_replayable", "authority_surface_replay_blocked"),
     ),
 )
 def test_runtime_trajectory_replay_policy_is_fail_closed(

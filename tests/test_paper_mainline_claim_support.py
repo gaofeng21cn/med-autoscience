@@ -3,6 +3,15 @@ from __future__ import annotations
 from med_autoscience.paper_mainline_claim_support import build_claim_citation_support_matrix
 
 
+NO_AUTHORITY_BOUNDARY = {
+    "can_write_mas_truth": False,
+    "can_mutate_paper_body": False,
+    "can_authorize_quality_verdict": False,
+    "can_authorize_publication_readiness": False,
+    "can_run_external_search": False,
+}
+
+
 def test_builds_refs_only_progress_first_claim_citation_support_matrix() -> None:
     result = build_claim_citation_support_matrix(
         [
@@ -26,7 +35,7 @@ def test_builds_refs_only_progress_first_claim_citation_support_matrix() -> None
     assert result["mainline_waits_for_support_matrix"] is False
     assert result["can_block_current_owner_action"] is False
     assert result["missing_required_refs"] == result["typed_blocker_candidates"] == []
-    assert all(value is False for value in result["authority_boundary"].values())
+    assert result["authority_boundary"] == NO_AUTHORITY_BOUNDARY
     entry = result["matrix_entries"][0]
     assert entry["evidence_refs"] == [
         "paper/evidence_ledger.json#/claims/A1/evidence/E1",
@@ -75,7 +84,7 @@ def test_typed_blocker_candidates_are_fail_open_and_non_authoritative() -> None:
     assert result["status"] == "typed_blocker_candidate"
     assert result["refs_only"] is result["fail_open"] is True
     assert result["can_block_current_owner_action"] is False
-    assert all(value is False for value in result["authority_boundary"].values())
+    assert result["authority_boundary"] == NO_AUTHORITY_BOUNDARY
     reasons = {(item["claim_id"], item["reason"]) for item in result["typed_blocker_candidates"]}
     assert reasons == {
         ("missing", "invalid_support_grade"),
