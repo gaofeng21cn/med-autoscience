@@ -66,14 +66,11 @@ def _r_renderer_source_paths(record: TemplateRecord) -> list[Path]:
 
 
 def _python_renderer_source_paths(record: TemplateRecord) -> list[Path]:
-    source_paths = [
+    package_root = paths.PACK_ROOT / "src" / "fenggaolab_org_medical_display_core"
+    return [
         record.template_dir / "template.toml",
-        paths.PACK_ROOT / "src" / "fenggaolab_org_medical_display_core" / "illustration_shells" / "__init__.py",
-        paths.PACK_ROOT / "src" / "fenggaolab_org_medical_display_core" / "illustration_shells" / "render_illustration_shell.py",
+        *sorted(package_root.rglob("*.py")),
     ]
-    if record.template_id == "submission_graphical_abstract":
-        source_paths.append(paths.REPO_ROOT / "src" / "med_autoscience" / "display_pack_gallery" / "design_svg_renderer.py")
-    return source_paths
 
 
 def _rendered_r_asset(
@@ -464,31 +461,18 @@ def _render_python_template(
         )
     write_json(payload_path, render_payload)
     if record.kind == "illustration_shell":
-        if record.template_id == "submission_graphical_abstract":
-            from med_autoscience.display_pack_gallery.design_svg_renderer import (
-                render_submission_graphical_abstract_gallery_preview,
-            )
+        from fenggaolab_org_medical_display_core.illustration_shells import render_illustration_shell
 
-            render_submission_graphical_abstract_gallery_preview(
-                shell_payload=render_payload,
-                render_context=render_context,
-                output_svg_path=output_svg,
-                output_png_path=output_png,
-                output_layout_path=output_layout,
-            )
-        else:
-            from fenggaolab_org_medical_display_core.illustration_shells import render_illustration_shell
-
-            render_illustration_shell(
-                template_id=record.full_template_id,
-                shell_payload=render_payload,
-                render_context=render_context,
-                output_svg_path=output_svg,
-                output_png_path=output_png,
-                output_pdf_path=output_pdf,
-                output_layout_path=output_layout,
-                payload_path=payload_path,
-            )
+        render_illustration_shell(
+            template_id=record.full_template_id,
+            shell_payload=render_payload,
+            render_context=render_context,
+            output_svg_path=output_svg,
+            output_png_path=output_png,
+            output_pdf_path=output_pdf,
+            output_layout_path=output_layout,
+            payload_path=payload_path,
+        )
     else:
         raise RuntimeError(f"unsupported python gallery kind `{record.kind}`")
     for path in (output_png, output_layout):

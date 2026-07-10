@@ -772,7 +772,7 @@ Rebuild boundary:
 
 Template-library refactor decision:
 
-- `submission_graphical_abstract`: rebuilt back onto the no-regression full-width three-panel GA skeleton after the single-canvas experiment degraded layout balance. It keeps the medical `cohort -> risk signal -> care action` story, evidence cues, SVG source, and layout-QC sidecar. It is still a refs-only lower-bound example, not paper-specific publication authority.
+- `submission_graphical_abstract`: uses the ScholarSkills pack renderer as the only implementation and keeps the three-stage clinical storyline as one composition recipe. The visible artwork contains only the population, core finding or risk signal, and clinical meaning; evidence refs, owner gates, quality-floor metadata, and review state stay in the payload or layout sidecar. The Gallery example is deliberately non-quantitative, while numeric paper results require an explicit evidence ref before rendering. It remains a refs-only lower-bound example, not paper-specific publication authority.
 - `r_ggplot2_evidence_figures`: no wholesale visual redraw in this Gallery pass. Current R templates already share the publication theme/palette system; broad redraw would risk visual regression. Reuse work should continue through shared theme, legend, payload-normalization, and QC helpers with before/after screenshots.
 - `cohort_flow_figure` and `table1_baseline_characteristics`: remain reporting/table previews with their own authority boundaries; do not force them into the GA visual system.
 
