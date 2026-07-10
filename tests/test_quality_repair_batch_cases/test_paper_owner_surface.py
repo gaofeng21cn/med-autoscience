@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -189,3 +190,51 @@ def test_quality_repair_batch_repairs_missing_display_registry_for_existing_pape
         "status": "owner_surface_initialized",
         "displays": [],
     }
+
+
+def test_quality_repair_batch_blocks_before_producer_without_authorized_canonical_inputs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-001"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n",
+        encoding="utf-8",
+    )
+    (quest_root / "paper" / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "paper" / "draft.md").write_text("# Projected draft\n", encoding="utf-8")
+    _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    _write_quality_summary(study_root)
+    producer = Mock(side_effect=AssertionError("upstream producer must not run"))
+    monkeypatch.setattr(
+        module.quality_repair_batch_upstream,
+        "run_upstream_paper_repair_unit",
+        producer,
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context=_analysis_claim_evidence_repair_route_context(),
+    )
+
+    assert result["status"] == "blocked_no_paper_root"
+    assert result["paper_owner_surface_prepare"]["status"] == (
+        "blocked_missing_authorized_canonical_inputs"
+    )
+    assert result["blocked_reason"] == "canonical_paper_inputs_rehydrate_required"
+    producer.assert_not_called()

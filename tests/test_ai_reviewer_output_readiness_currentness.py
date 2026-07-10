@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 
 from med_autoscience.controllers.stage_outcome_authority import output_readiness
+from med_autoscience.controllers.paper_mission_owner_surface import (
+    SUPERVISION_LATEST_RELATIVE_PATH,
+)
 
 from tests.stage_outcome_authority_helpers import (
     owner_route as _owner_route,
@@ -67,7 +70,7 @@ def test_ai_reviewer_output_pending_when_current_manuscript_is_newer_than_latest
     ) is True
 
 
-def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
+def test_materializer_does_not_revive_legacy_scan_action_for_pending_eval(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -100,7 +103,7 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
         },
     }
     _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_paper_mission_owner_surface",
             "schema_version": 1,
@@ -151,10 +154,14 @@ def test_materializer_does_not_repeat_suppress_current_manuscript_pending_eval(
     )
 
     assert result["repeat_suppressed_count"] == 0
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["dispatch_status"] == "transition_request_pending"
-    assert dispatch["repeat_suppressed"] is False
-    assert dispatch["blocked_reason"] == "opl_execution_authorization_required"
-    assert dispatch["source_action_body_omitted"] is True
-    assert dispatch["owner_route_body_omitted"] is True
-    assert "owner_callable_adapters" not in result
+    assert result["domain_progress_transition_requests"] == []
+    assert result["written_files"] == []
+    assert result["ignored_actions"] == [
+        {
+            "action_id": None,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
+            "study_id": study_id,
+        }
+    ]
+    assert result["authority_boundary"]["durable_carrier_owner"] == "one-person-lab"
