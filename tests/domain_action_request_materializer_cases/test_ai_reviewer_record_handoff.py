@@ -141,7 +141,12 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
     assert dispatch["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert dispatch["prompt_contract_ref"]["owner_callable_command_ref"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract_ref"]["owner_callable_target"] == (
+        "med_autoscience.controllers.ai_reviewer_publication_eval:"
+        "materialize_ai_reviewer_publication_eval_record"
+    )
+    assert dispatch["prompt_contract_ref"]["owner_callable_request"]["build_production_trace"] is True
+    assert dispatch["prompt_contract_ref"]["owner_callable_request"]["study_id"] == study_id
     assert dispatch["prompt_contract_ref"]["owner_callable_payload_ref"].endswith(
         "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
     )
@@ -337,6 +342,37 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
     assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
     assert result["written_files"] == []
     assert dispatch["record_production_satisfaction_ref"]["eval_id"] == eval_id
+
+
+def test_record_only_handoff_canonical_check_requires_structured_owner_callable_request() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.stage_outcome_authority.record_only_handoff"
+    )
+    payload_ref = "/tmp/ai-reviewer-record-payload.json"
+    prompt_contract = {
+        "owner_callable_payload_ref": payload_ref,
+        "owner_callable_target": (
+            "med_autoscience.controllers.ai_reviewer_publication_eval:"
+            "materialize_ai_reviewer_publication_eval_record"
+        ),
+        "owner_callable_request": {
+            "profile_ref": "/tmp/profile.toml",
+            "study_id": "001-risk",
+            "record_payload_ref": payload_ref,
+            "build_production_trace": True,
+        },
+        "ai_reviewer_record_production_request": {
+            "owner_callable_runtime": "repo_local_python_module"
+        },
+        "allowed_write_surfaces": [
+            "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+    }
+
+    assert module._record_only_prompt_contract_is_canonical(prompt_contract) is True
+    prompt_contract["owner_callable_request"]["build_production_trace"] = False
+    assert module._record_only_prompt_contract_is_canonical(prompt_contract) is False
 
 
 def test_materialize_ai_reviewer_record_handoff_does_not_suppress_stale_current_inputs_record(

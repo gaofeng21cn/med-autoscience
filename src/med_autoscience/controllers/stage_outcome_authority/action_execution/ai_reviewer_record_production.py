@@ -138,9 +138,14 @@ def _profile_ref(profile: WorkspaceProfile) -> str | None:
     return str(Path(ref).expanduser().resolve()) if ref is not None else None
 
 
-def _command_for_payload_ref(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> str:
-    del profile, study_id, payload_ref
-    return AI_REVIEWER_RECORD_OWNER_TARGET
+def _owner_callable_request(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> dict[str, Any]:
+    return {
+        "profile_ref": _profile_ref(profile),
+        "study_id": study_id,
+        "record_payload_ref": payload_ref,
+        "source": "ai_reviewer_record_production_handoff",
+        "build_production_trace": True,
+    }
 
 
 def _current_medical_prose_review_ref(
@@ -205,7 +210,8 @@ def _production_request_with_owner_callable_payload_ref(
     result["owner_callable_payload_ref"] = payload_ref
     result["owner_callable_payload_role"] = "ai_reviewer_record_payload_authoring_target"
     result["owner_callable_profile_ref"] = _profile_ref(profile)
-    result["owner_callable_command"] = _command_for_payload_ref(
+    result["owner_callable_target"] = AI_REVIEWER_RECORD_OWNER_TARGET
+    result["owner_callable_request"] = _owner_callable_request(
         profile=profile,
         study_id=study_id,
         payload_ref=payload_ref,
@@ -255,7 +261,8 @@ def _record_payload_authoring_target(
         "record_payload": existing_payload,
         "record_payload_contract": dict(_mapping(production_request.get("owner_callable_payload_contract"))),
         "owner_callable_surface": _text(production_request.get("owner_callable_surface")),
-        "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_target": _text(production_request.get("owner_callable_target")),
+        "owner_callable_request": dict(_mapping(production_request.get("owner_callable_request"))),
         "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
         "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
@@ -296,7 +303,14 @@ def build_ai_reviewer_record_production_request(
         "required_input_refs": required_inputs,
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
-        "owner_callable_command": AI_REVIEWER_RECORD_OWNER_TARGET,
+        "owner_callable_target": AI_REVIEWER_RECORD_OWNER_TARGET,
+        "owner_callable_request_contract": {
+            "profile_ref": "required_profile_locator",
+            "study_id": "required_study_locator",
+            "record_payload_ref": "required_ai_reviewer_authored_payload_ref",
+            "source": "ai_reviewer_record_production_handoff",
+            "build_production_trace": True,
+        },
         "owner_callable_runtime": "repo_local_python_module",
         "owner_callable_profile_required": True,
         "reviewer_operating_system_contract": {
@@ -321,7 +335,7 @@ def build_ai_reviewer_record_production_request(
         "followup_actions": [
             "refresh owner_callable_payload_ref guard metadata from the current production request",
             "fill owner_callable_payload_ref.record_payload with an AI-reviewer-authored publication eval record",
-            "run owner_callable_command exactly as rendered",
+            "invoke owner_callable_target with owner_callable_request through the OPL owner-callable adapter",
             "record owner callable result refs for OPL DomainProgressTransitionRuntime intake",
             "wait for OPL current_owner_delta or DomainProgressTransitionRuntime live readback",
         ],
@@ -423,7 +437,8 @@ def build_ai_reviewer_record_worker_handoff(
         "request_packet_ref": REQUEST_PACKET_REF,
         "owner_route_currentness_basis": owner_route_currentness_basis or None,
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
-        "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_target": _text(production_request.get("owner_callable_target")),
+        "owner_callable_request": dict(_mapping(production_request.get("owner_callable_request"))),
         "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
         "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         "record_payload_authoring_target_surface": RECORD_PAYLOAD_AUTHORING_SURFACE,
@@ -431,8 +446,8 @@ def build_ai_reviewer_record_worker_handoff(
         "record_payload_target_owner_editable_fields": list(RECORD_PAYLOAD_TARGET_OWNER_EDITABLE_FIELDS),
         "execution_steps": [
             "Read owner_callable_payload_ref, refresh its guard-consumed metadata fields from ai_reviewer_record_production_request, and fill record_payload with the AI reviewer publication eval record.",
-            "Run owner_callable_command exactly as rendered to let MAS rebuild the production reviewer_operating_system trace and write the record-only archive.",
-            "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
+            "Invoke owner_callable_target with owner_callable_request through the OPL owner-callable adapter so MAS can rebuild the production reviewer_operating_system trace and write the record-only archive.",
+            "Do not invent a CLI spelling or write artifacts/publication_eval/latest.json.",
             "Emit the required typed closeout packet with the materialized record ref.",
         ],
         "ai_reviewer_record_production_request": {

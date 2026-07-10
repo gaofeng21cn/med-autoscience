@@ -218,6 +218,81 @@
       ]
     },
     {
+      "action_id": "paper_mission",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "owner_receipt_typed_blocker_or_domain_refs_only"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/paper_mission",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
+        "surface_kind": "paper_mission_readback"
+      },
+      "summary": "Inspect or advance the canonical MAS paper mission through owner receipts, typed blockers, human gates, and OPL transition refs.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "paper_mission"
+        },
+        "cli": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
+          "surface_kind": "paper_mission_readback"
+        },
+        "mcp": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "paper_mission_readback",
+          "tool_name": "paper_mission"
+        },
+        "openai": {
+          "tool_name": "paper_mission"
+        },
+        "product_entry": {
+          "action_key": "paper_mission",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
+          "surface_kind": "paper_mission_readback"
+        },
+        "skill": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
+          "command_contract_id": "paper_mission",
+          "surface_kind": "paper_mission_readback"
+        }
+      },
+      "title": "Inspect or advance MAS paper mission",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id"
+      ],
+      "optional_fields": [
+        "paper_mission_command",
+        "objective",
+        "mission_id",
+        "candidate",
+        "run_id",
+        "output_root",
+        "submit_opl_runtime",
+        "opl_bin",
+        "dry_run"
+      ]
+    },
+    {
       "action_id": "study_state_matrix",
       "authority_boundary": {
         "authoritative_truth_refs": [

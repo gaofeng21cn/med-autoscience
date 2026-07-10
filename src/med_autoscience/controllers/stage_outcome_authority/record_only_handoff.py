@@ -46,10 +46,19 @@ def canonical_record_only_handoff_dispatch(
 def _record_only_prompt_contract_is_canonical(prompt_contract: Mapping[str, Any]) -> bool:
     if _text(prompt_contract.get("owner_callable_payload_ref")) is None:
         return False
-    command = _text(prompt_contract.get("owner_callable_command"))
-    if command is None:
+    if _text(prompt_contract.get("owner_callable_target")) != AI_REVIEWER_RECORD_OWNER_TARGET:
         return False
-    if command != AI_REVIEWER_RECORD_OWNER_TARGET:
+    owner_request = _mapping(prompt_contract.get("owner_callable_request"))
+    if not all(
+        _text(owner_request.get(field)) is not None
+        for field in ("profile_ref", "study_id", "record_payload_ref")
+    ):
+        return False
+    if owner_request.get("build_production_trace") is not True:
+        return False
+    if _text(owner_request.get("record_payload_ref")) != _text(
+        prompt_contract.get("owner_callable_payload_ref")
+    ):
         return False
     request = _mapping(prompt_contract.get("ai_reviewer_record_production_request"))
     if _text(request.get("owner_callable_runtime")) != "repo_local_python_module":

@@ -271,7 +271,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
-            "src/med_autoscience/mcp_server/__init__.py",
             "src/med_autoscience/controllers/provider_admission/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
             "src/med_autoscience/controllers/study_progress/projection_quality_surfaces.py",
@@ -281,8 +280,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_autonomy_state_surface.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
         ]
     )
 
@@ -292,27 +289,12 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_cli_parser_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(["src/med_autoscience/cli/parser.py"])
-
-    assert result.matched_categories == ("cli_parser_surface",)
-    assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh "
-        "tests/test_study_runtime_execution_evidence_adoption_cases/"
-        "test_standard_agent_purity_boundary.py -q",
-    ]
-
-
 def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
-            "src/med_autoscience/cli/current_owner_delta_owner_answer_commands.py",
             "tests/test_owner_answer_candidate_intake.py",
         ]
     )
@@ -330,17 +312,14 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/study_interventions.py",
-            "src/med_autoscience/cli/study_owner_gate_commands.py",
             "tests/test_study_interventions.py",
-            "tests/test_cli_cases/domain_action_request_materializer_command.py",
         ]
     )
 
     assert result.matched_categories == ("study_owner_gate_decision_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_study_interventions.py "
-        "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
+        "scripts/run-pytest-clean.sh tests/test_study_interventions.py -q",
     ]
 
 
@@ -556,7 +535,6 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "agent/stages/manuscript_authoring.policy.md",
             "agent/stages/review_and_quality_gate.policy.md",
             "contracts/action_catalog.json",
-            "contracts/agent_tool_arsenal.json",
             "contracts/authority_kernel_inventory.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
@@ -794,7 +772,6 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
             "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
-            "tests/test_opl_standard_pack.py",
         ]
     )
 
@@ -802,7 +779,6 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "scripts/run-pytest-clean.sh tests/test_mas_production_acceptance.py -q",
-        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack.py -q",
     ]
 
 

@@ -39,6 +39,20 @@ def domain_entry_handler_target(command: str) -> str:
 
 SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "study-progress": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
+    "paper-mission": DomainEntryCommandSpec(
+        ("profile_ref", "study_id"),
+        (
+            "paper_mission_command",
+            "objective",
+            "mission_id",
+            "candidate",
+            "run_id",
+            "output_root",
+            "submit_opl_runtime",
+            "opl_bin",
+            "dry_run",
+        ),
+    ),
     "launch-study": DomainEntryCommandSpec(
         ("profile_ref", "study_id"),
         ("entry_mode", "allow_stopped_relaunch", "explicit_user_wakeup", "force"),

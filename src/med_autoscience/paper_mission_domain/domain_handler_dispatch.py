@@ -14,7 +14,7 @@ def paper_mission_domain_handler_dispatch_receipt(
     start_or_resume_task_kind: str,
     forbidden_authority_writes: tuple[str, ...],
     dispatch_execution_policy: Callable[[dict[str, Any]], str],
-    recommended_domain_command: Callable[..., str],
+    recommended_domain_invocation: Callable[..., dict[str, Any]],
 ) -> dict[str, Any]:
     payload = task.get("payload") if isinstance(task.get("payload"), dict) else {}
     profile_ref = (
@@ -86,7 +86,7 @@ def paper_mission_domain_handler_dispatch_receipt(
             "action_intent": start_or_resume_task_kind,
             "study_id": study_id,
             "execution_policy": dispatch_execution_policy(readback),
-            "recommended_domain_command": recommended_domain_command(
+            "recommended_domain_invocation": recommended_domain_invocation(
                 profile_ref=profile_ref,
                 study_id=study_id,
                 readback=readback,

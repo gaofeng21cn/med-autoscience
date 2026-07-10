@@ -297,6 +297,7 @@ def test_action_catalog_targets_and_required_fields_match_real_domain_entry_disp
 
     assert set(calls) == set(contract_module.SERVICE_SAFE_DOMAIN_COMMANDS)
     assert calls["scientific-capability-registry"]["args"] == ()
+    assert calls["paper-mission"]["kwargs"]["paper_mission_command"] == "inspect"
     assert calls["display-pack-capability-discover"]["kwargs"] == {
         "repo_root": None,
         "paper_root": None,
@@ -414,6 +415,7 @@ def _install_required_only_dispatch_handlers(monkeypatch, tmp_path: Path) -> dic
 
     domain_entry = importlib.import_module("med_autoscience.domain_entry")
     monkeypatch.setattr(domain_entry, "read_study_progress", capture("study-progress"))
+    monkeypatch.setattr(domain_entry, "build_paper_mission_readback", capture("paper-mission"))
     monkeypatch.setattr(domain_entry, "launch_study", capture("launch-study"))
     monkeypatch.setattr(domain_entry, "submit_study_task", capture("submit-study-task"))
 

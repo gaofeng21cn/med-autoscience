@@ -148,19 +148,24 @@ def dispatch_execution_policy(readback: dict[str, Any]) -> str:
     return "paper_mission_no_write_dry_run"
 
 
-def recommended_domain_command(
+def recommended_domain_invocation(
     *,
     profile_ref: object,
     study_id: str,
     readback: dict[str, Any],
-) -> str:
-    del profile_ref, study_id
-    target = domain_entry_handler_target("paper-mission")
+) -> dict[str, Any]:
+    command = "inspect"
     if readback.get("surface_kind") == "paper_mission_drive_readback":
-        return f"{target}#drive_non_authority_candidate_and_ledger"
-    if readback.get("surface_kind") == "paper_mission_materialized_readback":
-        return f"{target}#inspect_materialized_readback"
-    return f"{target}#inspect"
+        command = "drive"
+    return {
+        "target": domain_entry_handler_target("paper-mission"),
+        "request": {
+            "command": "paper-mission",
+            "profile_ref": str(profile_ref),
+            "study_id": study_id,
+            "paper_mission_command": command,
+        },
+    }
 
 
 def paper_audit_pack_for_cli_readback(

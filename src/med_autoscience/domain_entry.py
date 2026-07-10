@@ -59,12 +59,13 @@ class MedAutoScienceDomainEntry:
 
     def dispatch(self, request: Mapping[str, Any]) -> dict[str, Any]:
         command = _require_command(request).replace("_", "-")
+        spec = SERVICE_SAFE_DOMAIN_COMMANDS.get(command)
+        if spec is None:
+            raise ValueError(f"不支持的 domain entry command: {command}")
+
+        _assert_required_fields(command=command, required_fields=spec.required_fields, request=request)
+
         if command == "paper-mission":
-            _assert_required_fields(
-                command=command,
-                required_fields=("profile_ref", "study_id"),
-                request=request,
-            )
             profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
             profile = self._profile_loader(profile_ref)
             payload = build_paper_mission_readback(
@@ -83,11 +84,6 @@ class MedAutoScienceDomainEntry:
                 source="domain-entry",
             )
             return _with_command(command, payload)
-        spec = SERVICE_SAFE_DOMAIN_COMMANDS.get(command)
-        if spec is None:
-            raise ValueError(f"不支持的 domain entry command: {command}")
-
-        _assert_required_fields(command=command, required_fields=spec.required_fields, request=request)
 
         if command in {"domain-handler-export", "domain-handler-dispatch"}:
             payload = _dispatch_domain_handler(command, request)

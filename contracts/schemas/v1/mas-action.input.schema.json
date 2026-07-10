@@ -147,6 +147,58 @@
         }
       }
     },
+    "paper_mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_ref",
+        "study_id"
+      ],
+      "properties": {
+        "candidate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "opl_bin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_mission_command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "study_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "submit_opl_runtime": {
+          "type": "boolean"
+        }
+      }
+    },
     "study_state_matrix": {
       "type": "object",
       "additionalProperties": false,

@@ -55,7 +55,7 @@ from .materialized_mission_readback import (
 from .materialized_readback_context import (
     dispatch_execution_policy as _dispatch_execution_policy,
     paper_facing_action_fields as _paper_facing_action_fields,
-    recommended_domain_command as _recommended_domain_command,
+    recommended_domain_invocation as _recommended_domain_invocation,
 )
 from .projection_fields import (
     resolve_consume_candidate_ref as _resolve_consume_candidate_ref,
@@ -808,7 +808,7 @@ def paper_mission_domain_handler_dispatch_receipt(
         start_or_resume_task_kind=DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
         forbidden_authority_writes=FORBIDDEN_AUTHORITY_WRITES,
         dispatch_execution_policy=_dispatch_execution_policy,
-        recommended_domain_command=_recommended_domain_command,
+        recommended_domain_invocation=_recommended_domain_invocation,
     )
 
 

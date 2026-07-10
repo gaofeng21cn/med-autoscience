@@ -205,7 +205,7 @@ def _recommended_readback_command(
 
 def paper_mission_readback_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
     del profile_ref, study_id
-    return f"{domain_entry_handler_target('paper-mission')}#inspect"
+    return domain_entry_handler_target("paper-mission")
 
 
 def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:

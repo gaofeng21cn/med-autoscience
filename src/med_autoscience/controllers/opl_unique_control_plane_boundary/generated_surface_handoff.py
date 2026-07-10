@@ -19,7 +19,10 @@ def build_generated_surface_handoff(
         "handoff_surfaces": [
             {
                 "surface_id": "cli",
-                "current_paths": ["src/med_autoscience/cli/__init__.py", "src/med_autoscience/cli/"],
+                "current_paths": [
+                    "contracts/action_catalog.json",
+                    "src/med_autoscience/domain_entry.py",
+                ],
                 "current_role": "domain_handler_command_target_refs_only",
                 "target_role": "opl_generated_command_surface",
             },
