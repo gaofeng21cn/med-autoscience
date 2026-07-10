@@ -1,32 +1,22 @@
-from .shared import (
-    annotations,
-    _shared_base,
-    _registry_id_helpers,
-    _workspace_surface_fixtures,
-    _layout_sidecar_fixtures,
-    _illustration_payload_fixtures,
-    _current_evidence_payload_fixtures,
-    importlib,
-    json,
-    Path,
-    re,
-    sys,
-    Any,
-    plt,
-    pytest,
-    display_registry,
-    get_template_short_id,
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+import pytest
+
+from med_autoscience import display_registry
+
+from .layout_sidecar_fixtures import _minimal_layout_sidecar_for_template
+from .registry_id_helpers import (
+    _ensure_output_parents,
     full_id,
     dump_json,
-    extract_svg_font_size,
     write_default_publication_display_contracts,
-    restrict_display_registry_to_display_ids,
+)
+from .workspace_surface_fixtures import (
     build_display_surface_workspace,
-    minimal_current_layout_sidecar,
-    minimal_tail_layout_sidecar,
-    _center_transportability_governance_display,
-    _current_evidence_input_envelopes,
-    _make_generalizability_subgroup_composite_panel_display,
 )
 
 
@@ -153,7 +143,7 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)
+    paper_root = build_display_surface_workspace(tmp_path)
     write_default_publication_display_contracts(paper_root)
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     reporting_contract = (
@@ -377,7 +367,7 @@ def test_materialize_display_surface_rejects_invalid_contract_backed_layout_side
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)
+    paper_root = build_display_surface_workspace(tmp_path)
     write_default_publication_display_contracts(paper_root)
     dump_json(
         paper_root / "display_registry.json",

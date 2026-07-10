@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from med_autoscience import display_registry
-
-
-def _short_id(template_id: str) -> str:
-    return str(template_id).rsplit("::", 1)[-1]
+_REPRESENTATIVE_EVIDENCE_TEMPLATE_IDS = (
+    "roc_curve_binary",
+    "pr_curve_binary",
+    "calibration_curve_binary",
+    "decision_curve_binary",
+    "kaplan_meier_grouped",
+)
 
 
 def _current_evidence_template_ids(*, include_extended_evidence: bool) -> tuple[str, ...]:
-    template_ids = tuple(_short_id(spec.template_id) for spec in display_registry.list_evidence_figure_specs())
     if include_extended_evidence:
-        return template_ids
-    return template_ids[:5]
+        return (*_REPRESENTATIVE_EVIDENCE_TEMPLATE_IDS, "generalizability_subgroup_composite_panel")
+    return _REPRESENTATIVE_EVIDENCE_TEMPLATE_IDS
 
 
 def _build_workspace_registry_displays(
