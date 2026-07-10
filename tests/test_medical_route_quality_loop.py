@@ -25,6 +25,21 @@ def test_phase_gate_handoff_accepts_complete_pass():
     )
 
 
+def test_phase_gate_handoff_accepts_and_blocks_write_finalize():
+    payload = _payload()
+    payload.update(from_route="write", to_route="finalize", next_route="finalize")
+    payload.pop("analysis_campaign_plan")
+
+    record = phase.build_phase_gate_handoff(payload)
+    assert (record.transition_id, record.advance_allowed, record.analysis_campaign_plan) == (
+        "write->finalize", True, None
+    )
+
+    payload["gate_result"] = "NEEDS_REVIEW"
+    with pytest.raises(ValueError, match="does not allow advance"):
+        phase.build_phase_gate_handoff(payload)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [("gate_result", "NEEDS_REVIEW", "does not allow advance"),
