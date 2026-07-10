@@ -189,6 +189,7 @@
   "minimal_authority_semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
   "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
   "required_domain_pack_paths": [
+    "agent/stages/manifest.json",
     "agent/stages/stage_route_contract.yaml",
     "agent/stages/stage_native_semantic_pack.yaml",
     "agent/prompts/direction_and_route_selection.md",

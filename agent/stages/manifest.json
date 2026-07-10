@@ -1,0 +1,211 @@
+{
+  "surface_kind": "opl_standard_agent_declarative_stage_manifest",
+  "version": "opl-standard-agent-declarative-stage-manifest.v1",
+  "target_domain_id": "mas",
+  "owner": "mas",
+  "stages": [
+    {
+      "stage_id": "direction_and_route_selection",
+      "stage_kind": "planning",
+      "title": "Direction and route selection",
+      "summary": "Select a medically defensible study direction and route from current evidence.",
+      "goal": "Choose the next research route without treating OPL transport or provider state as medical truth.",
+      "policy_ref": "agent/stages/direction_and_route_selection.policy.md",
+      "prompt_ref": "agent/prompts/direction_and_route_selection.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+        "agent/knowledge/publication_route_memory.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/artifact_source_authority_gate.md"
+      ],
+      "allowed_action_refs": [
+        "submit_study_task",
+        "study_progress",
+        "scientific_capability_registry"
+      ],
+      "requires": [
+        "study_intent_and_source_context_available"
+      ],
+      "ensures": [
+        "accepted_direction_or_typed_route_blocker_recorded"
+      ],
+      "next_stage_refs": [
+        "baseline_and_evidence_setup"
+      ],
+      "trust_lane": "ai_decision"
+    },
+    {
+      "stage_id": "baseline_and_evidence_setup",
+      "stage_kind": "source_preparation",
+      "title": "Baseline and evidence setup",
+      "summary": "Establish source readiness, study baseline, and the evidence boundary.",
+      "goal": "Bind data, source, claim, and artifact refs before analysis begins.",
+      "policy_ref": "agent/stages/baseline_and_evidence_setup.policy.md",
+      "prompt_ref": "agent/prompts/baseline_and_evidence_setup.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/artifact_source_authority_gate.md"
+      ],
+      "allowed_action_refs": [
+        "study_state_matrix",
+        "research_integrity_gate_input",
+        "scientific_capability_registry"
+      ],
+      "requires": [
+        "accepted_direction_or_typed_route_blocker_recorded"
+      ],
+      "ensures": [
+        "source_and_evidence_baseline_ready"
+      ],
+      "next_stage_refs": [
+        "bounded_analysis_campaign"
+      ],
+      "trust_lane": "domain_agent"
+    },
+    {
+      "stage_id": "bounded_analysis_campaign",
+      "stage_kind": "domain_specific",
+      "title": "Bounded analysis campaign",
+      "summary": "Run the accepted analysis route within explicit evidence and authority bounds.",
+      "goal": "Produce reviewable analysis refs without widening claims beyond the accepted study boundary.",
+      "policy_ref": "agent/stages/bounded_analysis_campaign.policy.md",
+      "prompt_ref": "agent/prompts/bounded_analysis_campaign.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/artifact_source_authority_gate.md"
+      ],
+      "allowed_action_refs": [
+        "submit_study_task",
+        "study_progress",
+        "research_integrity_gate_input"
+      ],
+      "requires": [
+        "source_and_evidence_baseline_ready"
+      ],
+      "ensures": [
+        "bounded_analysis_evidence_ready"
+      ],
+      "next_stage_refs": [
+        "manuscript_authoring"
+      ],
+      "trust_lane": "codex_executor"
+    },
+    {
+      "stage_id": "manuscript_authoring",
+      "stage_kind": "creation",
+      "title": "Manuscript authoring",
+      "summary": "Draft and revise the manuscript against accepted analysis and evidence refs.",
+      "goal": "Materialize a reviewable manuscript without self-authorizing publication quality.",
+      "policy_ref": "agent/stages/manuscript_authoring.policy.md",
+      "prompt_ref": "agent/prompts/manuscript_authoring.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/publication_route_memory.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/ai_reviewer_auditor_gate.md"
+      ],
+      "allowed_action_refs": [
+        "submit_study_task",
+        "display_pack_orchestrate",
+        "display_pack_render"
+      ],
+      "requires": [
+        "bounded_analysis_evidence_ready"
+      ],
+      "ensures": [
+        "manuscript_candidate_ready_for_independent_review"
+      ],
+      "next_stage_refs": [
+        "review_and_quality_gate"
+      ],
+      "trust_lane": "codex_executor"
+    },
+    {
+      "stage_id": "review_and_quality_gate",
+      "stage_kind": "review",
+      "title": "Review and quality gate",
+      "summary": "Run independent medical, statistical, evidence, and display review.",
+      "goal": "Return an owner receipt, typed blocker, human gate, or route-back from independent review evidence.",
+      "policy_ref": "agent/stages/review_and_quality_gate.policy.md",
+      "prompt_ref": "agent/prompts/review_and_quality_gate.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/publication_route_memory.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "agent/quality_gates/artifact_source_authority_gate.md"
+      ],
+      "allowed_action_refs": [
+        "research_integrity_reference_verification",
+        "research_integrity_review_publication_gate_stage_hook",
+        "display_pack_preflight"
+      ],
+      "requires": [
+        "manuscript_candidate_ready_for_independent_review"
+      ],
+      "ensures": [
+        "quality_gate_owner_result_recorded"
+      ],
+      "next_stage_refs": [
+        "manuscript_authoring",
+        "finalize_and_publication_handoff"
+      ],
+      "trust_lane": "ai_decision"
+    },
+    {
+      "stage_id": "finalize_and_publication_handoff",
+      "stage_kind": "packaging",
+      "title": "Finalize and publication handoff",
+      "summary": "Freeze the accepted package and return publication-facing authority refs.",
+      "goal": "Prepare the final inspection and publication handoff without bypassing human submission authority.",
+      "policy_ref": "agent/stages/finalize_and_publication_handoff.policy.md",
+      "prompt_ref": "agent/prompts/finalize_and_publication_handoff.md",
+      "knowledge_refs": [
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/publication_route_memory.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
+      ],
+      "quality_gate_refs": [
+        "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "agent/quality_gates/artifact_source_authority_gate.md"
+      ],
+      "allowed_action_refs": [
+        "export_inspection_package",
+        "publication_aftercare_plan",
+        "domain_handler_export"
+      ],
+      "requires": [
+        "quality_gate_owner_result_recorded"
+      ],
+      "ensures": [
+        "publication_handoff_receipt_or_typed_blocker_recorded"
+      ],
+      "next_stage_refs": [],
+      "trust_lane": "human_gate"
+    }
+  ],
+  "authority_boundary": {
+    "domain_truth_owner": "mas",
+    "medical_quality_verdict_owner": "mas",
+    "publication_quality_verdict_owner": "mas",
+    "artifact_mutation_authority_owner": "mas",
+    "owner_receipt_signer": "mas",
+    "opl_role": "descriptor_runtime_and_transition_carrier",
+    "opl_can_write_domain_truth": false,
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_sign_owner_receipt": false
+  }
+}
