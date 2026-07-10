@@ -106,7 +106,6 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     assert observation["can_complete"] is True
     assert observation["transition_readback_required"] is True
     assert observation["execution_count"] == 0
-    assert profile["workspace_migration_dry_run"]["writes_performed"] is False
     assert profile["real_workspace_soak_monitor"]["writes_performed"] is False
     assert {blocker["kind"] for blocker in payload["blockers"]} >= {"human_gate", "runtime_truth"}
     assert "wait_for_human_wakeup" in payload["next_actions"]

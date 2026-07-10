@@ -8,7 +8,6 @@ from med_autoscience.controllers import paper_progress_degradation_evidence
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import paper_mission_owner_surface
-from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -29,13 +28,11 @@ READ_ONLY_CONTRACT = {
         "read_profiles",
         "read_status_surfaces",
         "observe_owner_route_handoff_without_receipt_write",
-        "run_workspace_migration_dry_run",
         "build_real_workspace_soak_monitor_read_model",
     ],
     "prohibited_actions": [
         "runtime_relaunch",
         "paper_mission_owner_surface_receipt_write",
-        "workspace_migration_apply",
         "current_package_write",
         "publication_eval_write",
         "controller_decisions_write",
@@ -125,7 +122,6 @@ def _profile_evidence(
         return {
             **base,
             "owner_route_handoff_observation": _skipped("profile_unreadable"),
-            "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
             "blockers": [blocker],
@@ -147,7 +143,6 @@ def _profile_evidence(
             "profile_readable": False,
             "profile_error": blocker["reason"],
             "owner_route_handoff_observation": _skipped("profile_unreadable"),
-            "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
             "blockers": [blocker],
@@ -161,7 +156,6 @@ def _profile_evidence(
         requested_study_ids=requested_study_ids,
     )
     owner_route_handoff = _owner_route_handoff_observation(profile=profile, study_ids=resolved_study_ids)
-    migration = _workspace_migration_dry_run(profile_path=profile_path)
     monitor = _workspace_soak_monitor(studies=studies)
     progress_degradation = paper_progress_degradation_evidence.build_profile_progress_degradation_evidence(
         profile_path=str(profile_path),
@@ -174,7 +168,6 @@ def _profile_evidence(
         profile_path=str(profile_path),
         studies=studies,
         owner_route_handoff=owner_route_handoff,
-        migration=migration,
         monitor=monitor,
     )
     blockers.extend(
@@ -186,7 +179,6 @@ def _profile_evidence(
         **base,
         "resolved_study_ids": list(resolved_study_ids),
         "owner_route_handoff_observation": owner_route_handoff,
-        "workspace_migration_dry_run": migration,
         "real_workspace_soak_monitor": monitor,
         "paper_progress_degradation_evidence": progress_degradation,
         "blockers": blockers,
@@ -319,42 +311,6 @@ def _step_receipts(
     ]
 
 
-def _workspace_migration_dry_run(profile_path: Path) -> dict[str, Any]:
-    try:
-        payload = workspace_monolith_migration.run_workspace_monolith_migration(
-            profile_path=profile_path,
-            apply=False,
-        )
-    except Exception as exc:
-        return {
-            "status": "blocked",
-            "can_complete": False,
-            "dry_run": True,
-            "writes_performed": False,
-            "reason": f"{type(exc).__name__}: {exc}",
-            "next_action": "repair_workspace_migration_inputs",
-        }
-    skipped = [dict(item) for item in _sequence(payload.get("skipped")) if isinstance(item, Mapping)]
-    migrated = [dict(item) for item in _sequence(payload.get("migrated")) if isinstance(item, Mapping)]
-    duplicate = [dict(item) for item in _sequence(payload.get("duplicate")) if isinstance(item, Mapping)]
-    status = "appliable" if migrated and not duplicate else "skipped" if skipped or not migrated else "blocked"
-    if duplicate:
-        status = "blocked"
-    return {
-        "status": status,
-        "can_complete": True,
-        "dry_run": True,
-        "writes_performed": False,
-        "appliable_count": len(migrated),
-        "skipped_count": len(skipped),
-        "duplicate_count": len(duplicate),
-        "skipped_reasons": _reason_counts(skipped),
-        "appliable_reasons": _reason_counts(migrated),
-        "duplicate_reasons": _reason_counts(duplicate),
-        "mutation_policy": payload.get("mutation_policy"),
-    }
-
-
 def _workspace_soak_monitor(*, studies: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     study_roots = [_text(study.get("study_root")) for study in studies if _text(study.get("study_root"))]
     if not study_roots:
@@ -386,7 +342,6 @@ def _profile_blockers(
     profile_path: str,
     studies: Sequence[Mapping[str, Any]],
     owner_route_handoff: Mapping[str, Any],
-    migration: Mapping[str, Any],
     monitor: Mapping[str, Any],
 ) -> list[dict[str, str]]:
     blockers: list[dict[str, str]] = []
@@ -431,15 +386,6 @@ def _profile_blockers(
                 next_action=_text(stable_blocker.get("next_action")) or "resolve_stable_blocker",
                 profile_path=profile_path,
                 study_id=_text(stable_blocker.get("study_id")),
-            )
-        )
-    if migration.get("can_complete") is not True:
-        blockers.append(
-            _blocker(
-                kind="runtime_truth",
-                reason=_text(migration.get("reason")) or "workspace_migration_dry_run_blocked",
-                next_action=_text(migration.get("next_action")) or "repair_workspace_migration_inputs",
-                profile_path=profile_path,
             )
         )
     if monitor.get("status") in {"blocked", "partial"}:

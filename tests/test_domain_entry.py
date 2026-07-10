@@ -73,6 +73,33 @@ def test_domain_entry_launch_study_forwards_explicit_user_wakeup(monkeypatch, tm
     assert called["force"] is True
 
 
+def test_domain_entry_submit_study_task_forwards_task_intake_kind(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    called: dict[str, object] = {}
+
+    def fake_submit_study_task(**kwargs):
+        called.update(kwargs)
+        return {"surface_kind": "submit_study_task"}
+
+    monkeypatch.setattr(module, "load_profile", lambda ref: profile)
+    monkeypatch.setattr(module, "submit_study_task", fake_submit_study_task)
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "submit-study-task",
+            "profile_ref": str(profile_ref),
+            "study_id": "001-risk",
+            "task_intent": "review evidence",
+            "task_intake_kind": "owner_request",
+        }
+    )
+
+    assert payload["command"] == "submit-study-task"
+    assert called["task_intake_kind"] == "owner_request"
+
+
 def test_external_caller_can_consume_domain_entry_contract_without_repo_local_helper(
     monkeypatch,
     tmp_path: Path,

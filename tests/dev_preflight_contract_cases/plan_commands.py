@@ -40,7 +40,6 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
 
     assert "scripts/run-pytest-clean.sh tests/test_dev_preflight_contract.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_dev_preflight.py -q" in commands
-    assert "scripts/run-pytest-clean.sh tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
     assert "scripts/run-pytest-clean.sh tests/test_work_unit_runtime_contract.py -q" not in commands
     assert "scripts/run-pytest-clean.sh tests/test_domain_diagnostic_report.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands

@@ -143,6 +143,7 @@ def test_domain_entry_contract_exposes_research_integrity_gate_input_without_wor
         "reference_attestations",
         "display_to_claim_map",
         "reporting_guideline_expectations",
+        "reporting_checklist_expectations",
     ]
     assert contracts["research-integrity-reference-verification"]["required_fields"] == []
     assert contracts["research-integrity-reference-verification"]["optional_fields"] == [
@@ -161,6 +162,47 @@ def test_domain_entry_contract_exposes_research_integrity_gate_input_without_wor
     ]
     assert "display_to_claim_map" in contracts["research-integrity-review-publication-gate-stage-hook"][
         "optional_fields"
+    ]
+    assert "reporting_checklist_expectations" in contracts[
+        "research-integrity-review-publication-gate-stage-hook"
+    ]["optional_fields"]
+
+
+def test_research_integrity_gate_accepts_union_payloads_and_guideline_alias(monkeypatch) -> None:
+    domain_entry = importlib.import_module("med_autoscience.domain_entry")
+    gate_bundle = importlib.import_module("med_autoscience.research_integrity.gate_bundle")
+    calls: list[dict[str, object]] = []
+
+    def fake_build(**kwargs):
+        calls.append(kwargs)
+        return {"surface_kind": "research_integrity_gate_input_bundle"}
+
+    monkeypatch.setattr(gate_bundle, "build_research_integrity_gate_input_bundle", fake_build)
+    payload = domain_entry.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "research-integrity-gate-input",
+            "reference_checks": {"reference": {"id": "ref-1"}, "provider_evidence": []},
+            "claim_spans": {"claim_id": "claim-1", "text": "Supported claim"},
+            "citation_refs": "ref:ref-1",
+            "numeric_facts": [{"fact_id": "fact-1", "value": "1"}],
+            "display_facts": {"figure_1": {"fact_id": "fact-1"}},
+            "reporting_guideline_expectations": [{"guideline": "STROBE"}],
+        }
+    )
+
+    assert payload["command"] == "research-integrity-gate-input"
+    assert calls == [
+        {
+            "reference_checks": ({"reference": {"id": "ref-1"}, "provider_evidence": []},),
+            "claim_spans": ({"claim_id": "claim-1", "text": "Supported claim"},),
+            "citation_refs": ("ref:ref-1",),
+            "evidence_refs": (),
+            "reference_attestation_refs": (),
+            "manuscript_sections": None,
+            "numeric_facts": [{"fact_id": "fact-1", "value": "1"}],
+            "display_facts": {"figure_1": {"fact_id": "fact-1"}},
+            "reporting_checklist_expectations": [{"guideline": "STROBE"}],
+        }
     ]
 
 

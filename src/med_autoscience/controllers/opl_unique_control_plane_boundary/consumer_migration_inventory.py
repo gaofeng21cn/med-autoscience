@@ -953,7 +953,6 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "migration_class": "provenance_or_fixture",
         "code_paths": [
             "src/med_autoscience/controllers/opl_unique_control_plane_boundary/consumer_migration_inventory.py",
-            "src/med_autoscience/controllers/workspace_init/retired_entries.py",
             "src/med_autoscience/controllers/mds_capability_parity/behavior_equivalence.py",
         ],
         "domain_ref_consumers": ["opl_current_control_state owner refs"],

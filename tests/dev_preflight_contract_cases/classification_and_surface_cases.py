@@ -469,8 +469,6 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
-            "src/med_autoscience/controllers/workspace_init.py",
-            "tests/test_workspace_init.py",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )

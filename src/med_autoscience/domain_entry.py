@@ -404,6 +404,7 @@ def _research_integrity_gate_input_payload(request: Mapping[str, Any]) -> dict[s
         "reference_attestations",
         "display_to_claim_map",
         "reporting_guideline_expectations",
+        "reporting_checklist_expectations",
     ):
         if field_name in request:
             payload[field_name] = request[field_name]
@@ -428,6 +429,7 @@ def _research_integrity_gate_input_kwargs(request: Mapping[str, Any]) -> dict[st
         "reporting_checklist_expectations": _first_present(
             payload,
             "reporting_checklist_expectations",
+            "reporting_guideline_expectations",
             mapping=manuscript,
         ),
     }

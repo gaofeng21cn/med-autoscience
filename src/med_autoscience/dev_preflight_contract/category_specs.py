@@ -191,15 +191,12 @@ def build_category_specs(
         exact_paths=(
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
-            "src/med_autoscience/controllers/workspace_init.py",
             "tests/test_sentrux_gitstats_helper.py",
-            "tests/test_workspace_init.py",
         ),
         prefix_paths=(),
         commands=(
             f"{pytest_clean_runner} tests/test_dev_preflight_contract.py -q",
             f"{pytest_clean_runner} tests/test_dev_preflight.py -q",
-            f"{pytest_clean_runner} tests/test_workspace_init.py -q",
             "make test-meta",
         ),
     ),

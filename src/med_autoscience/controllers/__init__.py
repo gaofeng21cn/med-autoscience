@@ -33,5 +33,4 @@ __all__ = [
     "submission_minimal",
     "submission_targets",
     "workspace_literature",
-    "workspace_init",
 ]

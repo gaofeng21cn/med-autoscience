@@ -46,6 +46,7 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "submit-study-task": DomainEntryCommandSpec(
         ("profile_ref", "study_id", "task_intent"),
         (
+            "task_intake_kind",
             "entry_mode",
             "journal_target",
             "constraints",
@@ -140,6 +141,7 @@ SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS: dict[str, DomainEntryCommandSpec] = {
             "reference_attestations",
             "display_to_claim_map",
             "reporting_guideline_expectations",
+            "reporting_checklist_expectations",
         ),
     ),
     "research-integrity-reference-verification": DomainEntryCommandSpec(
@@ -182,6 +184,7 @@ SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS: dict[str, DomainEntryCommandSpec] = {
             "reference_attestations",
             "display_to_claim_map",
             "reporting_guideline_expectations",
+            "reporting_checklist_expectations",
         ),
     ),
 }

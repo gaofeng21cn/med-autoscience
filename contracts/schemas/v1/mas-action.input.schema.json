@@ -14,17 +14,41 @@
       ],
       "properties": {
         "constraints": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "entry_mode": {
           "type": "string",
           "minLength": 1
         },
         "evidence_boundary": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "first_cycle_outputs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "journal_target": {
           "type": "string",
@@ -35,9 +59,21 @@
           "minLength": 1
         },
         "reference_papers": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "study_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_intake_kind": {
           "type": "string",
           "minLength": 1
         },
@@ -46,7 +82,15 @@
           "minLength": 1
         },
         "trusted_inputs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array"
+            }
+          ]
         }
       }
     },
@@ -363,26 +407,68 @@
       "required": [],
       "properties": {
         "citation_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "claim": {
           "type": "object"
         },
         "claim_spans": {
-          "type": "string",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "claims": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "display_facts": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "display_to_claim_map": {
           "type": "object"
         },
         "evidence_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "manuscript": {
           "type": "object"
@@ -391,31 +477,98 @@
           "type": "object"
         },
         "numeric_facts": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "payload": {
           "type": "object"
         },
         "provider_evidence": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference": {
           "type": "object"
         },
         "reference_attestation_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference_attestations": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference_checks": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "references": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "reporting_checklist_expectations": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reporting_guideline_expectations": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         }
       }
     },
@@ -432,10 +585,24 @@
           "type": "object"
         },
         "provider_evidence": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "provider_receipts": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference": {
           "type": "object"
@@ -445,10 +612,28 @@
           "minLength": 1
         },
         "references": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "source_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         }
       }
     },
@@ -458,26 +643,68 @@
       "required": [],
       "properties": {
         "citation_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "claim": {
           "type": "object"
         },
         "claim_spans": {
-          "type": "string",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "claims": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "display_facts": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "display_to_claim_map": {
           "type": "object"
         },
         "evidence_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "manuscript": {
           "type": "object"
@@ -490,38 +717,116 @@
           "type": "object"
         },
         "numeric_facts": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "payload": {
           "type": "object"
         },
         "provider_evidence": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "provider_receipts": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference": {
           "type": "object"
         },
         "reference_attestation_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference_attestations": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reference_manager_ref": {
           "type": "string",
           "minLength": 1
         },
         "references": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "reporting_checklist_expectations": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "reporting_guideline_expectations": {
-          "type": "object"
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "source_refs": {
-          "type": "array"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
         },
         "stage_event": {
           "type": "string",

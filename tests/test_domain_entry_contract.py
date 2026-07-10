@@ -33,4 +33,5 @@ def test_domain_entry_contract_exposes_research_integrity_stage_hook_trigger() -
         "reference_attestations",
         "display_to_claim_map",
         "reporting_guideline_expectations",
+        "reporting_checklist_expectations",
     ]
