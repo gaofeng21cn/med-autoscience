@@ -20,7 +20,6 @@ SOURCE_FAMILIES = (
     "archive_refs",
     "owner_route_receipts",
     "dispatch_receipts",
-    "paper_progress_transition_refs",
     "stage_artifact_delta_refs",
 )
 
@@ -37,22 +36,6 @@ def emit_owner_route_receipt_source(
         scope="study",
         source_path=receipt_path,
         payload=receipt,
-    )
-
-
-def emit_paper_progress_transition_source(
-    *,
-    study_root: Path,
-    quest_root: Path,
-    receipt: Mapping[str, Any],
-    receipt_path: Path,
-) -> dict[str, Any]:
-    return _study_receipt_source(
-        family="paper_progress_transition_refs",
-        study_root=study_root,
-        quest_root=quest_root,
-        receipt=receipt,
-        receipt_path=receipt_path,
     )
 
 
@@ -211,7 +194,6 @@ __all__ = [
     "SURFACE_KIND",
     "STATE_INDEX_SOURCE_ADAPTER_REF",
     "emit_owner_route_receipt_source",
-    "emit_paper_progress_transition_source",
     "emit_stage_artifact_delta_source",
     "source_adapter_contract",
     "source_adapter_manifest",

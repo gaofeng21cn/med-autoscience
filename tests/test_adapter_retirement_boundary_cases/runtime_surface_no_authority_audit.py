@@ -98,3 +98,38 @@ def test_runtime_surface_retirement_guard_keeps_stage_outcome_contract() -> None
         "surface_id": "stage_outcome_authority",
         "reason": "retained_surface_contract_mismatch",
     } in violations
+
+
+def test_runtime_surface_retirement_guard_rejects_missing_retired_surface() -> None:
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    inventory = copy.deepcopy(_inventory())
+    inventory["surfaces"] = [
+        surface
+        for surface in inventory["surfaces"]
+        if surface["surface_id"] != "domain_authority_refs_index"
+    ]
+
+    assert {
+        "surface_id": "<inventory>",
+        "reason": "retired_surface_set_mismatch",
+    } in retirement.validate_runtime_surface_retirement_inventory(inventory)
+
+
+def test_runtime_surface_retirement_guard_rejects_retired_tombstone_rewrite() -> None:
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    inventory = copy.deepcopy(_inventory())
+    surface = next(
+        surface
+        for surface in inventory["surfaces"]
+        if surface["surface_id"] == "domain_authority_refs_index"
+    )
+    surface["tombstone_ref"] = "human_doc:mas-private-surface-retirement#wrong"
+
+    assert {
+        "surface_id": "domain_authority_refs_index",
+        "reason": "retired_surface_contract_mismatch",
+    } in retirement.validate_runtime_surface_retirement_inventory(inventory)

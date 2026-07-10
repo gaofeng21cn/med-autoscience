@@ -7,7 +7,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "generic_queue_attempt_retry_dead_letter", "generic_transition_runner",
     ],
     "domain_authority_refs": [
-        "domain_authority_refs_index", "paper_progress_transition_refs", "runtime_storage_maintenance",
+        "opl_state_index_source_adapter", "paper_progress_transition_refs", "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell", "artifact_lifecycle_storage_audit_shell",
     ],
     "minimal_authority_function": [
@@ -32,7 +32,7 @@ DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS = {
     "workbench_portal_generic_shell",
 }
 DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
-    "domain_authority_refs_index": {
+    "opl_state_index_source_adapter": {
         "domain_ref_consumer_refs": [
             "owner-route handoff records owner-receipt refs",
             "domain-handler/product-entry projections consume domain authority refs only",
@@ -40,7 +40,7 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
         ],
         "retirement_gate_status": "local_index_retired_body_free_source_adapter_active",
         "delete_or_tombstone_after": [
-            "domain_authority_refs_replaced_by_opl_generated_ref_index",
+            "source_adapter_replaced_by_opl_generated_ref_intake",
             "owner_receipt_ref_parity_proven",
             "no_forbidden_write_proof_recorded",
             "focused_domain_authority_refs_tests_green",
@@ -213,7 +213,7 @@ def _module_with_retirement_gate(item: dict[str, object]) -> dict[str, object]:
 
 _FUNCTIONAL_MODULE_INVENTORY = (
     {
-        "module_id": "domain_authority_refs_index",
+        "module_id": "opl_state_index_source_adapter",
         "owner": "med-autoscience",
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
@@ -230,7 +230,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "current_ref_status": "body_free_state_index_source_adapter_no_local_persistence",
         "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
         "provenance_boundary": {
-            "surface_role": "domain_authority_receipt_locator_and_ref_index",
+            "surface_role": "body_free_domain_authority_ref_source_adapter",
             "history_role": "retired_runtime_lifecycle_sqlite_provenance",
             "body_policy": "refs_receipts_blockers_only",
             "may_emit": ["owner_receipt_ref", "typed_blocker_ref", "progress_projection_ref", "domain_authority_locator_ref"],
@@ -244,7 +244,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         },
         "migration_action": "emit_body_free_state_index_source_refs_and_consume_opl_current_control_state",
         "retention_reason": (
-            "MAS can index paper-line owner receipts, typed blockers, and locators as domain authority refs; "
+            "MAS can emit body-free paper-line owner receipt, typed blocker, and locator refs; "
             "generic persistence, runtime lifecycle indexing, restore/retention, queue, and receipt ledger ownership stay in OPL."
         ),
         "opl_expected_primitives": [

@@ -359,7 +359,7 @@ RUNTIME_CONTINUITY_COMPLETION = {
         "source_priority": [
             "opl_current_control_state",
             "provider_attempt_ledger",
-            "domain_authority_refs_index",
+            "opl_state_index_source_adapter",
             "owner_route/dispatch_receipts",
             "historical_fixture_ref",
         ],

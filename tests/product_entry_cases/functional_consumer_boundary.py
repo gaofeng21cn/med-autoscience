@@ -187,7 +187,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_transition_runner",
     ]
     assert classification["domain_authority_refs"] == [
-        "domain_authority_refs_index",
+        "opl_state_index_source_adapter",
         "paper_progress_transition_refs",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
@@ -215,7 +215,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "local_launchd_scheduler_install_path" not in by_id
     assert "workspace_local_watch_service_wrappers" not in by_id
     assert "domain_diagnostic_report_loop_shell" not in by_id
-    assert by_id["domain_authority_refs_index"]["code_paths"] == [
+    assert by_id["opl_state_index_source_adapter"]["code_paths"] == [
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
@@ -278,7 +278,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert owner_followthrough["closes_artifact_lifecycle_receipt_scaleout"] is False
     assert owner_followthrough["ready_claim_authorized"] is False
 
-    lifecycle_role = boundary["domain_authority_refs_index_role"]
+    lifecycle_role = boundary["state_index_source_adapter_role"]
     assert lifecycle_role["classification"] == "domain_authority_refs"
     assert lifecycle_role["current_mas_role"] == "body_free_state_index_source_adapter"
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False

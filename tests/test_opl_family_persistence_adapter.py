@@ -61,7 +61,6 @@ def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path:
             "archive_refs",
             "owner_route_receipts",
             "dispatch_receipts",
-            "paper_progress_transition_refs",
             "stage_artifact_delta_refs",
         ],
         "local_persistence": "absent",
@@ -118,7 +117,6 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "archive_refs",
         "owner_route_receipts",
         "dispatch_receipts",
-        "paper_progress_transition_refs",
         "stage_artifact_delta_refs",
     ]
     assert adoption["payload"]["persistence"]["state_index_source_adapter_ref"] == (
@@ -183,7 +181,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
     ]["generated_default_caller_boundary"]
-    assert "domain_authority_refs_index" in runtime_handoff["opl_replacement_surfaces"]
+    assert "state_index_kernel" in runtime_handoff["opl_replacement_surfaces"]
     assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "generic_persistence_engine_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "provider_backed_family_runtime" in runtime_handoff["opl_replacement_surfaces"]

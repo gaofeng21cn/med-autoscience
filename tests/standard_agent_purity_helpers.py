@@ -22,7 +22,7 @@ STANDARD_AGENT_BOUNDARY_KEYS = {
     "functional_module_inventory_summary",
     "functional_followthrough_gap_summary",
     "domain_authority_refs_retirement_gates",
-    "domain_authority_refs_index_role",
+    "state_index_source_adapter_role",
     "opl_functional_harness_consumer_coverage",
     "standard_agent_purity_guard",
     "standard_agent_purity_guard_scope",

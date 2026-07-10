@@ -43,7 +43,7 @@
     "version": "opl-state-index-kernel-sqlite-sidecar-adoption.v1",
     "state_index_kernel_owner": "one-person-lab",
     "sqlite_sidecar_owner": "one-person-lab",
-    "mas_role": "primary_small_file_compaction_candidate_and_refs_only_index_source",
+    "mas_role": "body_free_state_index_source_adapter",
     "index_authority": "derived_refs_only_rebuildable_read_model",
     "source_of_truth": "physical_stage_folder_files_mas_owned_truth_files_and_domain_owner_receipts",
     "derived_index_rebuildable": true,
@@ -103,7 +103,6 @@
         "archive_refs",
         "owner_route_receipts",
         "dispatch_receipts",
-        "paper_progress_transition_refs",
         "stage_artifact_delta_refs"
       ],
       "local_persistence": "absent",
@@ -119,8 +118,7 @@
       "can_authorize_provider_admission": false,
       "replacement_owner_surface": "one-person-lab StateIndexKernel",
       "opl_state_index_contract_active": true,
-      "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired",
-      "physical_delete_projection_owner_decision_required": true
+      "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired"
     },
     "authority_boundary": {
       "mas_can_write_opl_state_index_kernel": false,
@@ -216,7 +214,6 @@
       "stage_kernel_projection",
       "mas_opl_runtime_workbench_projection",
       "app_workbench_artifact_drilldown",
-      "stage_kernel_projection.state_index",
       "stage_kernel_projection.promotion",
       "stage_kernel_projection.lineage_retention",
       "mas_opl_runtime_workbench_projection.stage_operating_layer.cross_domain_soak"
@@ -243,21 +240,10 @@
   "notes": [
     "MAS consumes the OPL physical Stage Folder Kernel as the primary stage artifact truth when present.",
     "stage_artifact_index remains a refs-only derived projection and cannot promote file presence, provider completion, or stale legacy outputs into current progress.",
-    "2026-06-04 follow-through lands read-only state index, semantic receipt validation, promotion audit, lineage/retention drilldown, and cross-domain soak projection as operating-layer surfaces.",
+    "The body-free StateIndex source adapter emits refs for OPL ownership; semantic receipt validation, promotion audit, lineage/retention drilldown, and cross-domain soak remain read-only operating-layer surfaces.",
     "These operating-layer surfaces expose refs, blockers, fail-closed reasons, and read-only readiness summaries; they do not write MAS truth, current pointer, publication eval, controller decisions, artifact body, memory body, or paper package body."
   ],
   "operating_layer_landed_surfaces": {
-    "state_index_kernel": {
-      "surface_kind": "opl_state_index_kernel_rows_projection",
-      "implementation_ref": "src/med_autoscience/controllers/opl_state_index_kernel.py",
-      "projection_refs": [
-        "stage_kernel_projection.state_index",
-        "mas_opl_runtime_workbench_projection.stage_operating_layer.state_index"
-      ],
-      "derived_index_rebuildable": true,
-      "sqlite_record_counts_as_stage_complete": false,
-      "body_included": false
-    },
     "semantic_receipt_validation": {
       "surface_kind": "mas_stage_semantic_receipt_validation",
       "implementation_ref": "src/med_autoscience/controllers/mas_stage_semantic_receipts.py",

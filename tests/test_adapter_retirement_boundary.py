@@ -29,7 +29,9 @@ from tests.test_adapter_retirement_boundary_cases.runtime_inventory_contract imp
     test_runtime_retirement_inventory_schema_is_closed_and_machine_readable,
 )
 from tests.test_adapter_retirement_boundary_cases.runtime_surface_no_authority_audit import (
+    test_runtime_surface_retirement_guard_rejects_missing_retired_surface,
     test_runtime_surface_retirement_guard_rejects_resurrection_and_authority,
+    test_runtime_surface_retirement_guard_rejects_retired_tombstone_rewrite,
     test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regression,
 )
 

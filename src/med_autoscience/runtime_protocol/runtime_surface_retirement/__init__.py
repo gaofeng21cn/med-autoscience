@@ -91,6 +91,68 @@ REQUIRED_RETAINED_SURFACES = {
         "opl:storage-maintenance-and-restore",
     ),
 }
+REQUIRED_RETIRED_SURFACES = {
+    "runtime_transport_core_bridge": (
+        "opl:provider-stage-runtime",
+        "human_doc:mas-private-surface-retirement#runtime_transport_core_bridge",
+        "none",
+    ),
+    "runtime_turn_runner_closeout_adapter": (
+        "opl:stage-run-closeout",
+        "human_doc:mas-private-surface-retirement#runtime_turn_runner_closeout_adapter",
+        "none",
+    ),
+    "worker_lease_residency_projection": (
+        "opl:provider-attempt-lease",
+        "human_doc:mas-private-surface-retirement#worker_lease_residency_projection",
+        "none",
+    ),
+    "domain_authority_refs_index": (
+        "opl:state-index-kernel",
+        "human_doc:mas-private-surface-retirement#domain_authority_refs_index",
+        "none",
+    ),
+    "owner_callable_dispatch_request": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#default_executor_dispatch_request",
+        "none",
+    ),
+    "domain_action_request_materializer_local_carrier_persistence_api": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#domain_action_request_materializer_local_carrier_persistence_api",
+        "none",
+    ),
+    "owner_callable_adapter_legacy_dispatch_projection_alias": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#owner_callable_adapter_legacy_dispatch_projection_alias",
+        "none",
+    ),
+    "domain_action_request_materializer_current_owner_callable_adapters_api": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#domain_action_request_materializer_current_default_executor_dispatches_api",
+        "none",
+    ),
+    "domain_action_request_materializer_owner_callable_adapter_projection": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#domain_action_request_materializer_owner_callable_adapter_projection",
+        "none",
+    ),
+    "domain_action_request_materializer_request_tasks_projection": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#domain_action_request_materializer_request_tasks_projection",
+        "none",
+    ),
+    "domain_action_request_materializer_canonical_transition_request_body_projection": (
+        "opl:domain-progress-transition-runtime",
+        "human_doc:mas-private-surface-retirement#domain_action_request_materializer_canonical_transition_request_body_projection",
+        "none",
+    ),
+    "owner_callable_adapter_receipt_latest_wire_projection": (
+        "opl:stage-run-closeout-binding",
+        "human_doc:mas-private-surface-retirement#default_executor_execution_latest_wire_projection",
+        "none",
+    ),
+}
 
 
 def audit_runtime_surface_retirement_inventory(
@@ -216,6 +278,26 @@ def validate_runtime_surface_retirement_inventory(
         )
         if actual != expected:
             violations.append(_violation(surface_id, "retained_surface_contract_mismatch"))
+    retired = {
+        item["surface_id"]: item
+        for item in raw_surfaces
+        if isinstance(item, Mapping)
+        and _text(item.get("surface_id")) is not None
+        and item.get("disposition") == "physically_retired"
+    }
+    if set(retired) != set(REQUIRED_RETIRED_SURFACES):
+        violations.append(_violation("<inventory>", "retired_surface_set_mismatch"))
+    for surface_id, expected in REQUIRED_RETIRED_SURFACES.items():
+        surface = retired.get(surface_id)
+        if surface is None:
+            continue
+        actual = (
+            surface.get("replacement_ref"),
+            surface.get("tombstone_ref"),
+            surface.get("retained_mas_role"),
+        )
+        if actual != expected:
+            violations.append(_violation(surface_id, "retired_surface_contract_mismatch"))
     return violations
 
 
@@ -250,6 +332,7 @@ __all__ = [
     "FORBIDDEN_RESURRECTED_SURFACE_IDS",
     "REQUIRED_MAS_RETAINS",
     "REQUIRED_OPL_OWNS",
+    "REQUIRED_RETIRED_SURFACES",
     "REQUIRED_RETAINED_SURFACES",
     "audit_runtime_surface_retirement_inventory",
     "validate_runtime_surface_retirement_inventory",

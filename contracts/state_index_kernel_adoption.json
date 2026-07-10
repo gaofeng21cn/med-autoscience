@@ -3,7 +3,6 @@
   "version": "opl-state-index-kernel-adoption.v1",
   "owner": "med-autoscience",
   "domain_id": "med-autoscience",
-  "kernel_contract_ref": "contracts/opl-framework/state-index-kernel-contract.json",
   "sqlite_role": "rebuildable_refs_only_sidecar_index",
   "physical_truth_role": "stage_folder_manifest_receipt_artifact_body_file_truth",
   "required_index_databases": [
@@ -41,7 +40,6 @@
       "archive_refs",
       "owner_route_receipts",
       "dispatch_receipts",
-      "paper_progress_transition_refs",
       "stage_artifact_delta_refs"
     ],
     "local_persistence": "absent",
@@ -57,8 +55,7 @@
     "can_authorize_provider_admission": false,
     "replacement_owner_surface": "one-person-lab StateIndexKernel",
     "opl_state_index_contract_active": true,
-    "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired",
-    "physical_delete_projection_owner_decision_required": true
+    "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired"
   },
   "compaction_policy": {
     "small_file_runtime_refs_may_be_indexed": true,

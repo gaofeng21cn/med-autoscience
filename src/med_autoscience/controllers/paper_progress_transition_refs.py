@@ -9,9 +9,6 @@ from typing import Any
 from med_autoscience.controllers.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
-from med_autoscience.runtime_protocol import opl_state_index_source_adapter
-
-
 SCHEMA_VERSION = 1
 RECEIPTS_RELATIVE_PATH = Path("artifacts/runtime/paper_progress_transition_refs/receipts.jsonl")
 TRANSITION_REQUEST_PENDING = "transition_request_pending_opl_runtime_required"
@@ -56,11 +53,6 @@ def record_paper_progress_transition_ref(
             conflicting_receipt_id=_text(existing_for_key.get("receipt_id")),
         )
         _append_receipt(resolved_study_root, conflict)
-        _index_receipt(
-            study_root=resolved_study_root,
-            quest_root=resolved_quest_root,
-            receipt=conflict,
-        )
         return conflict
 
     duplicate = _receipt_for_source_fingerprint(existing_receipts, source_fingerprint)
@@ -79,11 +71,6 @@ def record_paper_progress_transition_ref(
             conflicting_receipt_id=None,
         )
         _append_receipt(resolved_study_root, receipt)
-        _index_receipt(
-            study_root=resolved_study_root,
-            quest_root=resolved_quest_root,
-            receipt=receipt,
-        )
         return receipt
 
     receipt = _receipt(
@@ -100,11 +87,6 @@ def record_paper_progress_transition_ref(
         conflicting_receipt_id=None,
     )
     _append_receipt(resolved_study_root, receipt)
-    _index_receipt(
-        study_root=resolved_study_root,
-        quest_root=resolved_quest_root,
-        receipt=receipt,
-    )
     return receipt
 
 
@@ -200,20 +182,6 @@ def _required_opl_transactional_outbox() -> dict[str, Any]:
         in set(readback_shape.get("required_runtime_refs") or []),
         "mas_can_create_command_event_outbox_or_stage_run": False,
     }
-
-
-def _index_receipt(
-    *,
-    study_root: Path,
-    quest_root: Path,
-    receipt: Mapping[str, Any],
-) -> None:
-    opl_state_index_source_adapter.emit_paper_progress_transition_source(
-        study_root=study_root,
-        quest_root=quest_root,
-        receipt=receipt,
-        receipt_path=transition_refs_path(study_root),
-    )
 
 
 def _receipt_for_idempotency_key(receipts: list[dict[str, Any]], idempotency_key: str) -> dict[str, Any] | None:

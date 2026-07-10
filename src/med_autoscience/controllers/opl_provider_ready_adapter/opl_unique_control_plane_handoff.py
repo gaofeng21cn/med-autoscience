@@ -19,7 +19,7 @@ _OPL_REPLACEMENT_SURFACES = [
     "retry_dead_letter_transport",
     "generic_transition_runner",
     "worker_residency_manager",
-    "domain_authority_refs_index",
+    "state_index_kernel",
     "memory_locator_writeback_transport",
     "artifact_locator_retention_restore_shell",
     "operator_workbench_projection",

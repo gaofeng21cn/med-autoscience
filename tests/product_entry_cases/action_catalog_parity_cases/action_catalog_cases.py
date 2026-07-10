@@ -498,7 +498,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
     assert_standard_agent_purity_boundary(boundary)
-    assert boundary["domain_authority_refs_index_role"]["mas_may_claim_generic_persistence_engine"] is False
+    assert boundary["state_index_source_adapter_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",
         "generic_daemon",

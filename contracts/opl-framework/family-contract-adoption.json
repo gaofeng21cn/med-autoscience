@@ -690,7 +690,6 @@
       "archive_refs",
       "owner_route_receipts",
       "dispatch_receipts",
-      "paper_progress_transition_refs",
       "stage_artifact_delta_refs"
     ],
     "maps_to_opl_contracts": {

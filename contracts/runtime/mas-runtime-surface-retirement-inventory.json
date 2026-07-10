@@ -60,7 +60,7 @@
       "surface_id": "owner_callable_dispatch_request",
       "disposition": "physically_retired",
       "replacement_ref": "opl:domain-progress-transition-runtime",
-      "tombstone_ref": "human_doc:mas-private-surface-retirement#owner_callable_dispatch_request",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#default_executor_dispatch_request",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
     },
@@ -84,7 +84,7 @@
       "surface_id": "domain_action_request_materializer_current_owner_callable_adapters_api",
       "disposition": "physically_retired",
       "replacement_ref": "opl:domain-progress-transition-runtime",
-      "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_current_owner_callable_adapters_api",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_current_default_executor_dispatches_api",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
     },
@@ -116,7 +116,7 @@
       "surface_id": "owner_callable_adapter_receipt_latest_wire_projection",
       "disposition": "physically_retired",
       "replacement_ref": "opl:stage-run-closeout-binding",
-      "tombstone_ref": "human_doc:mas-private-surface-retirement#owner_callable_adapter_receipt_latest_wire_projection",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#default_executor_execution_latest_wire_projection",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
     },

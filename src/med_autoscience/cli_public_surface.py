@@ -19,7 +19,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "sync-entry-assets"): "sync-agent-entry-assets",
     ("doctor", "preflight"): "preflight-changes",
     ("doctor", "preflight-contract-report"): "preflight-contract-report",
-    ("doctor", "live-runtime-evidence-rollup"): "live-runtime-evidence-rollup",
     ("doctor", "root-cause-depth-gate"): "root-cause-depth-gate",
     ("doctor", "backend-audit"): "backend-audit",
     ("workspace", "bootstrap"): "bootstrap",

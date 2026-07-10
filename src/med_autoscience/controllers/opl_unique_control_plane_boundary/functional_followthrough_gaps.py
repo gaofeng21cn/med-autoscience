@@ -110,11 +110,11 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "gate_id": "domain_authority_refs_thinning",
         "owner": "med-autoscience",
         "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
-        "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
+        "evidence_required": "source-adapter/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
         "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
+            "state_index_source_adapter_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain",
         ],
         "functional_structure_gap": False,
@@ -161,7 +161,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "domain_authority_refs_index_role.mas_consumes_opl_current_control_state_refs=true",
+            "state_index_source_adapter_role.mas_consumes_opl_current_control_state_refs=true",
             "artifact_lifecycle_storage_audit_shell.proof_refs",
             "OPL current_control_state read model",
         ],
@@ -175,7 +175,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
+            "state_index_source_adapter_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "workbench_portal_generic_shell.read_model_materializer_boundary",
         ],
         "functional_structure_gap": False,
@@ -373,7 +373,7 @@ PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX = {
         {
             "disposition": "temporary_refs_projection",
             "module_ids": [
-                "domain_authority_refs_index",
+                "opl_state_index_source_adapter",
                 "paper_progress_transition_refs",
                 "runtime_storage_maintenance",
                 "publication_route_memory_locator_transport_shell",

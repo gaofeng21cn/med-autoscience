@@ -58,7 +58,7 @@ def test_state_index_kernel_adoption_keeps_sqlite_refs_only_and_rebuildable() ->
     assert adoption["surface_kind"] == "opl_state_index_kernel_sqlite_sidecar_adoption"
     assert adoption["state_index_kernel_owner"] == "one-person-lab"
     assert adoption["sqlite_sidecar_owner"] == "one-person-lab"
-    assert adoption["mas_role"] == "primary_small_file_compaction_candidate_and_refs_only_index_source"
+    assert adoption["mas_role"] == "body_free_state_index_source_adapter"
     assert adoption["index_authority"] == "derived_refs_only_rebuildable_read_model"
     assert adoption["source_of_truth"] == (
         "physical_stage_folder_files_mas_owned_truth_files_and_domain_owner_receipts"
@@ -145,7 +145,6 @@ def test_mas_state_index_source_adapter_is_body_free_and_non_authoritative() -> 
         "archive_refs",
         "owner_route_receipts",
         "dispatch_receipts",
-        "paper_progress_transition_refs",
         "stage_artifact_delta_refs",
     ]
     assert adapter["local_persistence"] == "absent"
@@ -164,21 +163,17 @@ def test_mas_state_index_source_adapter_is_body_free_and_non_authoritative() -> 
     assert adapter["retired_pilot_tombstone"] == (
         "runtime:mas-refs-only-state-index-pilot-retired"
     )
-    assert adapter["physical_delete_projection_owner_decision_required"] is True
 
 
 def test_operating_layer_landed_surfaces_are_read_only_and_projected() -> None:
     surfaces = _contract()["operating_layer_landed_surfaces"]
 
     assert set(surfaces) == {
-        "state_index_kernel",
         "semantic_receipt_validation",
         "promotion_runtime_audit",
         "lineage_retention_drilldown",
         "workbench_cross_domain_soak",
     }
-    assert surfaces["state_index_kernel"]["derived_index_rebuildable"] is True
-    assert surfaces["state_index_kernel"]["sqlite_record_counts_as_stage_complete"] is False
     assert surfaces["semantic_receipt_validation"]["receipt_body_read"] is False
     assert surfaces["semantic_receipt_validation"]["ready_claims_allowed"] is False
     assert surfaces["promotion_runtime_audit"]["read_only"] is True

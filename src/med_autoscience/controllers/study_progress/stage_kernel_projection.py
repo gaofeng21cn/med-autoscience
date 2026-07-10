@@ -10,7 +10,6 @@ from med_autoscience.controllers.opl_stage_lineage_retention import (
 from med_autoscience.controllers.opl_stage_promotion_runtime import (
     promotion_audit_from_stage_projection,
 )
-from med_autoscience.controllers.opl_state_index_kernel import build_state_index_kernel_rows
 from med_autoscience.controllers.stage_run_kernel import (
     stage_run_kernel_projection_from_stage_state,
 )
@@ -102,7 +101,6 @@ def stage_kernel_projection_from_artifact_index(
         "blocker": blocker,
         "next_owner": _mapping_copy(stage_artifact_index.get("next_owner_action")),
         "provider_liveness": _mapping_copy(stage_artifact_index.get("provider_liveness")),
-        "state_index": _state_index_projection(stage_artifact_index),
         "source_refs": _stage_kernel_source_refs(
             stage_artifact_index=stage_artifact_index,
             selected_stage=selected_stage,
@@ -285,20 +283,6 @@ def _action_type_for_delta(
     if state == "DomainAccepted":
         return _non_empty_text(next_owner_action.get("action_type")) or "advance_next_stage"
     return _non_empty_text(next_owner_action.get("action_type")) or "materialize_stage_artifact_delta"
-
-
-def _state_index_projection(stage_artifact_index: Mapping[str, Any]) -> dict[str, Any]:
-    projection = build_state_index_kernel_rows(stage_artifact_index=stage_artifact_index)
-    return {
-        "surface_kind": "stage_kernel_state_index_projection",
-        "status": projection["status"],
-        "row_count": projection["row_count"],
-        "index_authority": projection["index_authority"],
-        "derived_index_rebuildable": True,
-        "sqlite_record_counts_as_stage_complete": False,
-        "violations": list(projection["violations"]),
-        "authority_boundary": dict(projection["authority_boundary"]),
-    }
 
 
 def _promotion_projection(

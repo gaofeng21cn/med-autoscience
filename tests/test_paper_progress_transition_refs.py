@@ -28,14 +28,6 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     refs = importlib.import_module("med_autoscience.controllers.paper_progress_transition_refs")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
-    manifest_path = (
-        tmp_path
-        / "workspace"
-        / "runtime"
-        / "artifacts"
-        / "opl_state_index_source_adapter"
-        / "authority_refs_source.json"
-    )
 
     first = refs.record_paper_progress_transition_ref(
         study_root=study_root,
@@ -112,7 +104,6 @@ def test_transition_ref_replays_semantically_equivalent_receipt_for_same_idempot
     assert replay["intent_fingerprint"] == first["intent_fingerprint"]
     assert replay["semantic_receipt"] == first["semantic_receipt"]
     assert len(refs.read_transition_refs(study_root=study_root)) == 1
-    assert not manifest_path.exists()
 
 
 def test_transition_ref_rejects_legacy_authority_index_persistence_alias(tmp_path: Path) -> None:

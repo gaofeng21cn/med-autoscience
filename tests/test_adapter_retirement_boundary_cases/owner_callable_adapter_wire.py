@@ -115,7 +115,7 @@ def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker
     assert surface["mas_runtime_authority"] is False
     assert surface["tombstone_ref"] == (
         "human_doc:mas-private-surface-retirement#"
-        "owner_callable_adapter_receipt_latest_wire_projection"
+        "default_executor_execution_latest_wire_projection"
     )
 
     audit = retirement.audit_runtime_surface_retirement_inventory(inventory)

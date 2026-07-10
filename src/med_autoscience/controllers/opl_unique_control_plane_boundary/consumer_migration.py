@@ -695,14 +695,14 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
         "domain_authority_refs_retirement_gates": domain_authority_refs_retirement_gates,
-        "domain_authority_refs_index_role": {
+        "state_index_source_adapter_role": {
             "classification": "domain_authority_refs",
             "current_mas_role": "body_free_state_index_source_adapter",
             "authority": "body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "owner": REPLACEMENT_OWNER,
-            "provenance_role": "domain_authority_ref_locator_index",
+            "provenance_role": "body_free_domain_authority_ref_source_adapter",
             "body_policy": "refs_receipts_blockers_only",
-            "mas_may_index_domain_receipts": True,
+            "mas_may_emit_domain_receipt_refs": True,
             "mas_may_claim_generic_persistence_engine": False,
             "mas_consumes_opl_current_control_state_refs": True,
             "mas_may_write_domain_truth": False,
