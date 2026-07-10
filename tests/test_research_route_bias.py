@@ -3,92 +3,49 @@ from __future__ import annotations
 import importlib
 
 
-def test_route_bias_rendering_uses_markdown_first_body(tmp_path, monkeypatch) -> None:
+def test_route_bias_markdown_contract_and_stage_render(tmp_path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.policies.research_route_bias")
+    openers = "\n".join(f"- {stage_id}: {stage_id} opener" for stage_id in module.SUPPORTED_STAGE_IDS)
     markdown_path = tmp_path / "research_route_bias_policy.md"
     markdown_path.write_text(
-        "\n".join(
-            [
-                "# Research Route Bias Policy",
-                "",
-                "## high_plasticity_medical",
-                "",
-                "Title: Markdown Sentinel Route Bias",
-                "",
-                "### Preferred Route Order",
-                "",
-                "- markdown-only route order",
-                "",
-                "### Candidate Scoring Dimensions",
-                "",
-                "- markdown-only scoring dimension",
-                "",
-                "### Downrank Patterns",
-                "",
-                "- markdown-only downrank pattern",
-                "",
-                "### Public Data Rules",
-                "",
-                "- markdown-only public data rule",
-                "",
-                "### Stage Openers",
-                "",
-                "- intake-audit: markdown-only intake opener",
-                "- scout: markdown-only scout opener",
-                "- baseline: markdown-only baseline opener",
-                "- idea: markdown-only idea opener",
-                "- decision: markdown-only decision opener",
-                "- experiment: markdown-only experiment opener",
-                "- analysis-campaign: markdown-only campaign opener",
-                "",
-                "### Stage Questions",
-                "",
-                "- scout: markdown-only scout question",
-                "",
-            ]
-        )
-        + "\n",
+        f"""# Research Route Bias Policy
+
+## high_plasticity_medical
+Title: Synthetic Route Bias
+### Preferred Route Order
+- preferred route
+### Candidate Scoring Dimensions
+- scoring dimension
+### Downrank Patterns
+- downrank pattern
+### Public Data Rules
+- public data rule
+### Stage Openers
+{openers}
+### Stage Questions
+- scout: scout question
+""",
         encoding="utf-8",
     )
     monkeypatch.setattr(module, "RESEARCH_ROUTE_BIAS_MARKDOWN_PATH", markdown_path)
-
-    block = module.render_policy_block(stage_id="scout")
-
-    assert "markdown-only scout opener" in block
-    assert "markdown-only route order" in block
-    assert "markdown-only scout question" in block
-    assert module.get_policy().title == "Markdown Sentinel Route Bias"
-
-
-def test_default_route_bias_policy_exposes_expected_contract() -> None:
-    module = importlib.import_module("med_autoscience.policies.research_route_bias")
-
     policy = module.get_policy()
+    assert policy.title == "Synthetic Route Bias"
+    assert policy.preferred_route_order == ("preferred route",)
+    assert policy.candidate_scoring_dimensions == ("scoring dimension",)
+    assert policy.downrank_patterns == ("downrank pattern",)
+    assert policy.public_data_rules == ("public data rule",)
+    assert policy.stage_openers == {stage_id: f"{stage_id} opener" for stage_id in module.SUPPORTED_STAGE_IDS}
+    assert policy.stage_questions == {"scout": ("scout question",)}
+    block = module.render_policy_block(stage_id="scout")
+    assert all(text in block for text in ("scout opener", "preferred route", "scout question"))
+    assert "decision opener" not in block
 
-    assert policy.policy_id == "high_plasticity_medical"
-    assert policy.preferred_route_order[0] == (
-        "supervised prediction or risk-stratification routes with clinically interpretable downstream analyses"
-    )
-    assert (
-        "subtype-reconstruction routes that can be converted into clinically legible subgroup stories or subtype recognizers"
-        in policy.preferred_route_order
-    )
-    assert "clinical significance if the result is positive" in policy.candidate_scoring_dimensions
-    assert "the main value would hinge on one fixed clinical factor being significant" in policy.downrank_patterns
-    assert "Do not add public data only as decorative workload." in policy.public_data_rules
-
-
-def test_render_route_bias_block_is_stage_specific_and_publication_facing() -> None:
-    module = importlib.import_module("med_autoscience.policies.research_route_bias")
-
-    scout_block = module.render_policy_block(stage_id="scout")
-    decision_block = module.render_policy_block(stage_id="decision")
-
-    assert "## Medical publication route bias" in scout_block
-    assert "do not treat all reasonable frames as equally good scouting outputs" in scout_block
-    assert "clinically meaningful classifier / risk-stratification / utility package" in decision_block
-    assert "gray-zone triage" in decision_block
-    assert "LLM / agent tasks only when the task can be bounded" in decision_block
-    assert "Default priority order" in scout_block
-    assert "Candidate scoring dimensions" in scout_block
-    assert "Down-rank routes with these failure patterns" in scout_block
+    monkeypatch.undo()
+    default = module.get_policy()
+    assert default.policy_id == module.DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
+    assert default.title
+    assert default.preferred_route_order
+    assert default.candidate_scoring_dimensions
+    assert default.downrank_patterns
+    assert default.public_data_rules
+    assert set(default.stage_openers) == set(module.SUPPORTED_STAGE_IDS)

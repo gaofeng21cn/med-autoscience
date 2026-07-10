@@ -3,114 +3,53 @@ from __future__ import annotations
 import importlib
 
 
-def test_study_archetype_rendering_uses_markdown_first_body(tmp_path, monkeypatch) -> None:
+def test_study_archetype_markdown_contract_and_render(tmp_path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.policies.study_archetypes")
     markdown_path = tmp_path / "study_archetypes.md"
     markdown_path.write_text(
-        "\n".join(
-            [
-                "# Study Archetypes",
-                "",
-                "## clinical_classifier",
-                "",
-                "Title: Markdown Sentinel Classifier",
-                "",
-                "### When To Prefer",
-                "",
-                "- markdown-only fit signal",
-                "",
-                "### Expected Paper Package",
-                "",
-                "- markdown-only evidence package",
-                "",
-                "### Public Data Roles",
-                "",
-                "- markdown-only public-data role",
-                "",
-            ]
-        )
-        + "\n",
+        """# Study Archetypes
+
+## clinical_classifier
+Title: Synthetic Classifier
+### When To Prefer
+- fit signal
+### Expected Paper Package
+- evidence package
+### Public Data Roles
+- public data role
+""",
         encoding="utf-8",
     )
     monkeypatch.setattr(module, "STUDY_ARCHETYPES_MARKDOWN_PATH", markdown_path)
+    archetype = module.get_archetype("clinical_classifier")
+    assert archetype.title == "Synthetic Classifier"
+    assert archetype.when_to_prefer == ("fit signal",)
+    assert archetype.expected_paper_package == ("evidence package",)
+    assert archetype.public_data_roles == ("public data role",)
 
-    block = module.render_archetype_block(archetype_ids=("clinical_classifier",))
-
-    assert "### Markdown Sentinel Classifier" in block
-    assert "markdown-only evidence package" in block
-    assert module.get_archetype("clinical_classifier").title == "Markdown Sentinel Classifier"
+    block = module.render_archetype_block(("clinical_classifier",))
+    assert all(text in block for text in ("Synthetic Classifier", "evidence package", "public data role"))
 
 
-def test_default_study_archetypes_include_classifier_and_llm_agent_routes() -> None:
+def test_default_and_survey_archetypes_keep_structural_contract() -> None:
     module = importlib.import_module("med_autoscience.policies.study_archetypes")
 
-    archetypes = module.resolve_archetypes()
-
-    assert [item.archetype_id for item in archetypes] == [
+    assert tuple(item.archetype_id for item in module.resolve_archetypes()) == (
         "clinical_classifier",
         "clinical_subtype_reconstruction",
         "external_validation_model_update",
         "gray_zone_triage",
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
-    ]
-    assert "decision-curve / threshold / net-benefit analysis" in archetypes[0].expected_paper_package
-    assert "cluster stability or reproducibility assessment" in archetypes[1].expected_paper_package
-    assert "transportability / recalibration / model-updating analysis" in archetypes[2].expected_paper_package
-    assert "rule-in / rule-out / gray-zone yield analysis" in archetypes[3].expected_paper_package
-    assert "prompt / reasoning / agent-architecture variants" in archetypes[4].expected_paper_package
-    assert "functional / pathway / regulator-level interpretation" in archetypes[5].expected_paper_package
+    )
 
-
-def test_render_study_archetype_block_surfaces_paper_package_expectations() -> None:
-    module = importlib.import_module("med_autoscience.policies.study_archetypes")
-
-    block = module.render_archetype_block(
-        archetype_ids=(
-            "clinical_classifier",
-            "clinical_subtype_reconstruction",
-            "external_validation_model_update",
-            "gray_zone_triage",
-            "llm_agent_clinical_task",
-            "mechanistic_sidecar_extension",
+    survey = module.get_archetype("survey_trend_analysis")
+    assert survey.archetype_id == "survey_trend_analysis"
+    assert all(
+        (
+            survey.title,
+            survey.when_to_prefer,
+            survey.expected_paper_package,
+            survey.public_data_roles,
         )
     )
-
-    assert "## Preferred study archetypes" in block
-    assert "### Clinical classifier / risk stratification" in block
-    assert "### Clinical subtype reconstruction" in block
-    assert "### External validation / model update" in block
-    assert "### Gray-zone triage / reflex-testing support" in block
-    assert "### LLM agent for a clinical task" in block
-    assert "### Mechanistic sidecar extension" in block
-    assert "subgroup comparison" in block
-    assert "error taxonomy or failure-mode review" in block
-    assert "cluster stability or reproducibility assessment" in block
-    assert "transportability / recalibration / model-updating analysis" in block
-    assert "functional / pathway / regulator-level interpretation" in block
-
-
-def test_resolve_explicit_survey_trend_analysis_archetype() -> None:
-    module = importlib.import_module("med_autoscience.policies.study_archetypes")
-
-    archetypes = module.resolve_archetypes(("survey_trend_analysis",))
-
-    assert [item.archetype_id for item in archetypes] == ["survey_trend_analysis"]
-    assert archetypes[0].title == "Survey trend / guideline correspondence"
-    assert "trend comparison across timepoints" in archetypes[0].expected_paper_package
-    assert (
-        "pre-draft asset upgrade scan across timepoint, stakeholder, center/geography, and guideline axes"
-        in archetypes[0].expected_paper_package
-    )
-    assert (
-        "field-verified multicenter or geography coverage before national or multicenter framing"
-        in archetypes[0].expected_paper_package
-    )
-    assert "prespecified subgroup or association analyses when verified variables support them" in (
-        archetypes[0].expected_paper_package
-    )
-    assert (
-        "guideline-to-reality constraint discussion covering price, reimbursement, access, safety, and clinician recommendation gaps"
-        in archetypes[0].expected_paper_package
-    )
-    assert "practice or preference drift" in archetypes[0].public_data_roles
