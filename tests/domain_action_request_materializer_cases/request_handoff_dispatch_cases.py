@@ -451,17 +451,19 @@ def test_materialize_domain_action_requests_mixed_queue_writes_owner_callable_ad
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["domain_progress_transition_request_count"] == 2
-    assert [dispatch["executor_kind"] for dispatch in dispatches] == [
-        "codex_cli_default",
-        "codex_cli_default",
-    ]
+    assert all("executor_kind" not in dispatch for dispatch in dispatches)
+    assert all("default_model_policy" not in dispatch for dispatch in dispatches)
+    assert result["effective_mode"] == "opl_execution_authorization"
+    assert all(dispatch["target_runtime_owner"] == "one-person-lab" for dispatch in dispatches)
+    assert all(dispatch["provider_admission_requires_opl_runtime_result"] is True for dispatch in dispatches)
+    assert all(dispatch["mas_dispatch_authority"] is False for dispatch in dispatches)
+    assert all(dispatch["mas_private_attempt_loop_forbidden"] is True for dispatch in dispatches)
     assert [dispatch["action_type"] for dispatch in dispatches] == [
         "publication_gate_specificity_required",
         "return_to_ai_reviewer_workflow",
     ]
     assert dispatches[0]["next_executable_owner"] == "publication_gate"
     assert dispatches[1]["next_executable_owner"] == "ai_reviewer"
-    assert dispatches[0]["default_model_policy"] == "inherit_current_codex_configuration"
     assert set(module.FORBIDDEN_SURFACES).issubset(dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"])
     assert "artifacts/publication_eval/latest.json" in dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"]
     assert "artifacts/controller_decisions/latest.json" in dispatches[1]["prompt_contract_ref"]["forbidden_surfaces"]

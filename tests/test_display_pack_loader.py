@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shlex
 import subprocess
 
 import pytest
@@ -175,8 +176,15 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
     assert len(python_records) == 0
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
-        assert record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
-        assert (record.template_path.parent / "render.R").is_file()
+        argv = [
+            token.format(render_mode="execute", request_json="request.json")
+            for token in shlex.split(record.template_manifest.entrypoint)
+        ]
+        renderer_path = (record.template_path.parent / argv[1]).resolve()
+        assert argv[0] == "Rscript"
+        assert argv[-2:] == ["--request", "request.json"]
+        assert renderer_path.is_file()
+        assert renderer_path.is_relative_to(record.pack_root)
 
 
 def test_default_display_pack_template_inventory_is_canonical_only() -> None:
