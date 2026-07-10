@@ -150,18 +150,19 @@ def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) ->
 
 
 def transition_request_projection(dispatch: dict[str, object]) -> dict[str, object]:
-    from med_autoscience.controllers import domain_action_request_materializer
+    from med_autoscience.controllers import owner_callable_adapter_projection
 
-    return domain_action_request_materializer._with_transition_request_projection(dispatch)
+    return owner_callable_adapter_projection.domain_progress_transition_requests(
+        {"domain_progress_transition_requests": [dispatch]}
+    )[0]
 
 
 def transition_request_consumer_latest(*dispatches: dict[str, object]) -> dict[str, object]:
     transition_requests = [transition_request_projection(dispatch) for dispatch in dispatches]
     return {
-        "surface": "domain_action_request_materializer",
+        "surface": "stage_outcome_authority_transition_requests",
         "schema_version": 1,
         "canonical_transition_request_surface": "domain_progress_transition_requests",
-        "owner_callable_adapters": list(dispatches),
         "domain_progress_transition_requests": transition_requests,
         "domain_progress_transition_request_count": len(transition_requests),
     }

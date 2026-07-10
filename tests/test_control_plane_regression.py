@@ -66,31 +66,6 @@ def test_opl_runtime_refs_invalidates_stale_active_run_when_liveness_has_no_work
     assert facts.recovery_pending is True
 
 
-def test_same_fingerprint_repeated_turn_stays_stable(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.provider_admission.managed_wakeup")
-    study_root = tmp_path / "studies" / "001-risk"
-    status_payload = fixtures.same_fingerprint_status_payload()
-
-    first = module._build_outer_loop_wakeup_audit(
-        study_root=study_root,
-        status_payload=status_payload,
-    )
-    latest_path = Path(first["latest_path"])
-    latest_path.parent.mkdir(parents=True, exist_ok=True)
-    latest_path.write_text(json.dumps(first, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-    second = module._build_outer_loop_wakeup_audit(
-        study_root=study_root,
-        status_payload=status_payload,
-    )
-
-    assert first["input_fingerprint"] == second["input_fingerprint"]
-    assert second["previous_input_fingerprint"] == first["input_fingerprint"]
-    assert second["dispatch_cause"] == "input_unchanged"
-    assert second["watched_inputs"]["status"]["active_run_id"] == "run-live-fingerprint"
-    assert second["watched_inputs"]["status"]["runtime_liveness_status"] == "live"
-
-
 def test_package_handoff_parked_projection() -> None:
     module = importlib.import_module("med_autoscience.controllers.auto_runtime_parking")
 

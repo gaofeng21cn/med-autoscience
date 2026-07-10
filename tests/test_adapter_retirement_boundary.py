@@ -10,7 +10,6 @@ from tests.test_adapter_retirement_boundary_cases.owner_callable_adapter_wire im
     test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in,
 )
 from tests.test_adapter_retirement_boundary_cases.owner_callable_projection import (
-    test_materializer_local_carrier_persistence_api_is_physically_retired,
     test_owner_callable_projection_does_not_accept_legacy_dispatch_alias,
     test_transition_request_counts_are_canonical_not_legacy_adapter_counts,
     test_owner_callable_projection_requires_canonical_transition_request_surface,

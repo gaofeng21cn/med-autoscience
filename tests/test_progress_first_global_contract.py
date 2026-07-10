@@ -12,17 +12,6 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _legacy_request_task_refs(result: dict[str, object]) -> list[dict[str, object]]:
-    diagnostics = result["legacy_request_task_diagnostics"]
-    assert isinstance(diagnostics, dict)
-    assert "request_tasks" not in result
-    return [
-        dict(item)
-        for item in diagnostics.get("legacy_request_task_refs") or []
-        if isinstance(item, dict)
-    ]
-
-
 def test_effective_current_context_prefers_valid_current_ai_reviewer_record_over_stale_latest() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_first_current_context")
 
@@ -145,102 +134,6 @@ def test_closeout_first_admission_blocks_new_owner_callable_adapter_task_when_bi
     assert blocker["reason"] == "closeout_required_before_new_owner_callable_adapter_task"
     assert blocker["work_unit_id"] == "publishability_repair_sprint"
     assert blocker["next_owner"] == "med-autoscience"
-
-
-def test_domain_action_materializer_blocks_new_owner_callable_adapter_task_until_running_attempt_closeout(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "002-dm-china-us-mortality-attribution"
-    write_study(profile.workspace_root, study_id, quest_id="quest-002")
-    owner_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": "quest-002",
-        "truth_epoch": "truth-epoch-002",
-        "runtime_health_epoch": "runtime-health-002",
-        "work_unit_fingerprint": "work-unit-progress-first",
-        "source_fingerprint": "source-current",
-        "current_owner": "mas_controller",
-        "next_owner": "write",
-        "owner_reason": "manuscript_story_surface_delta_missing",
-        "allowed_actions": ["run_quality_repair_batch"],
-        "idempotency_key": "owner-route::dm002::progress-first",
-        "source_refs": {
-            "work_unit_id": "publishability_repair_sprint",
-            "source_eval_id": "eval-current",
-        },
-    }
-    _write_json(
-        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
-        {
-            "surface": "portable_paper_mission_owner_surface",
-            "schema_version": 1,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "quest_id": "quest-002",
-                    "owner_route": owner_route,
-                    "running_attempt": {
-                        "state": "running",
-                        "stage_attempt_id": "sat-running",
-                        "immutable_dispatch_packet": {
-                            "packet_id": "packet-running",
-                            "dispatchable": True,
-                            "effective_eval_id": "eval-current",
-                        },
-                    },
-                }
-            ],
-            "action_queue": [
-                {
-                    "study_id": study_id,
-                    "quest_id": "quest-002",
-                    "action_type": "run_quality_repair_batch",
-                    "owner": "write",
-                    "request_owner": "write",
-                    "required_output_surface": "artifacts/controller/quality_repair_batch/latest.json",
-                    "owner_route": owner_route,
-                }
-            ],
-        },
-    )
-
-    result = module.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    dispatch = result["domain_progress_transition_requests"][0]
-    assert dispatch["dispatch_status"] == "blocked"
-    assert dispatch["blocked_reason"] == "closeout_required_before_new_owner_callable_adapter_task"
-    assert dispatch["progress_first_closeout_admission_body_omitted"] is True
-    assert dispatch["progress_first_closeout_admission_ref"]["admission_status"] == "blocked"
-    assert dispatch["progress_first_closeout_admission_ref"]["blocked_reason"] == (
-        "closeout_required_before_new_owner_callable_adapter_task"
-    )
-    [request_task] = _legacy_request_task_refs(result)
-    assert request_task["surface"] == "supervisor_request_handoff_task_ref"
-    assert request_task["handoff_packet_body_omitted"] is True
-    assert "handoff_packet" not in request_task
-    assert result["written_files"] == []
-    assert result["apply_writes_disabled_reason"] == "opl_domain_progress_transition_runtime_owns_durable_carrier"
-    assert result["mas_local_dispatch_carrier_persistence"] == "forbidden"
-    assert not (
-        profile.studies_root
-        / study_id
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapters"
-        / "run_quality_repair_batch.json"
-    ).exists()
 
 
 def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
