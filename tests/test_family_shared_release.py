@@ -88,8 +88,9 @@ def test_current_checkout_family_shared_pins_align_with_opl_release_contract(tmp
 
 
 def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
     contract = json.loads(
-        (Path(__file__).resolve().parents[1] / "contracts" / "foundry_agent_series.json").read_text(
+        (repo_root / "contracts" / "foundry_agent_series.json").read_text(
             encoding="utf-8"
         )
     )
@@ -123,6 +124,13 @@ def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None
         "domain_adapter_must_not_copy_policy_body_as_authority": True,
         "consumer_alignment_check": "foundry:policy-release",
     }
+    handoff = json.loads(
+        (repo_root / "contracts" / "generated_surface_handoff.json").read_text(encoding="utf-8")
+    )
+    assert contract["app_projection_ref"] == (
+        "contracts/generated_surface_handoff.json#/generated_surfaces/3"
+    )
+    assert handoff["generated_surfaces"][3]["surface_id"] == "product_entry_manifest"
 
 
 def test_family_shared_alignment_uses_repo_root_by_default(monkeypatch, tmp_path: Path) -> None:

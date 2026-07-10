@@ -48,7 +48,7 @@ def build_generated_surface_handoff(
                 "surface_id": "product_entry",
                 "current_paths": [
                     "contracts/domain_projection_profile.json",
-                    "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                    "src/med_autoscience/domain_entry.py",
                 ],
                 "current_role": "domain_projection_profile_and_refs_source",
                 "target_role": "opl_generated_product_entry_surface",
@@ -76,7 +76,6 @@ def build_generated_surface_handoff(
                 "surface_id": "status",
                 "current_paths": [
                     "src/med_autoscience/controllers/study_progress/",
-                    "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
                 ],
                 "current_role": "domain_truth_refs_status_projection_source",
                 "target_role": "opl_generated_status_wrapper_over_mas_truth_refs",
@@ -84,7 +83,7 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "workbench",
                 "current_paths": [
-                    "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                    "contracts/domain_projection_profile.json",
                 ],
                 "current_role": "domain_refs_workbench_projection_source",
                 "target_role": "opl_hosted_workbench_shell_consuming_mas_refs",
@@ -92,7 +91,7 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "projection_shell",
                 "current_paths": [
-                    "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                    "src/med_autoscience/controllers/study_progress/",
                     "src/med_autoscience/controllers/study_launch_projection.py",
                     "src/med_autoscience/controllers/study_task_submission.py",
                 ],

@@ -1021,10 +1021,10 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "minimal_authority_function",
         "code_paths": [
-            "src/med_autoscience/controllers/publication_gate.py",
+            "src/med_autoscience/controllers/publication_gate/__init__.py",
             "src/med_autoscience/controllers/study_progress/publication_runtime.py",
             "src/med_autoscience/controllers/ai_reviewer_runtime_workflow.py",
-            "src/med_autoscience/controllers/ai_reviewer_publication_eval.py",
+            "src/med_autoscience/controllers/ai_reviewer_publication_eval/__init__.py",
             "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality/__init__.py",
             "src/med_autoscience/study_task_intake_revision.py",
         ],

@@ -62,7 +62,7 @@ SURFACE_KIND = "mas_stage_quality_pack_contract"
 VERSION = "mas-stage-quality-pack-contract.v1"
 PROJECTION_KIND = "stage_quality_pack_projection"
 CONTRACT_REF = "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
-REPO_PATH = "src/med_autoscience/stage_quality_contract.py"
+REPO_PATH = "src/med_autoscience/stage_quality_contract/__init__.py"
 
 PACK_ROLE = "quality_input_and_reviewer_rubric"
 REFRESH_POLICY = "rebuild_product_entry_manifest_before_opl_discovery"

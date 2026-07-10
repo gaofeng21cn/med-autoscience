@@ -19,7 +19,7 @@
     "app_consumes_shared_progress_projection_only": true,
     "display_policy": "classification_only_no_domain_artifact_body"
   },
-  "app_projection_ref": "contracts/generated_surface_handoff.json#/product_entry",
+  "app_projection_ref": "contracts/generated_surface_handoff.json#/generated_surfaces/3",
   "authority_boundary": {
     "app_owns_display_and_user_action_shell": true,
     "domain_owns_truth_quality_artifact_memory_and_receipts": true,

@@ -132,7 +132,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
                 "docs/policies/study-workflow/stage_led_research_autonomy.md",
                 "agent/stages/stage_route_contract.yaml",
                 "src/med_autoscience/resources/stage_route_contract.yaml",
-                "src/med_autoscience/controllers/stage_knowledge_plane.py",
+                "src/med_autoscience/controllers/stage_knowledge_plane/__init__.py",
             ],
             mapping_explanation=(
                 "New stage definitions should land in the standard slot while existing stage policy "
@@ -188,9 +188,9 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             default_for_new_surfaces=True,
             repo_paths=[
                 stage_quality_contract.REPO_PATH,
-                "src/med_autoscience/controllers/publication_gate.py",
-                "src/med_autoscience/controllers/ai_reviewer_publication_eval.py",
-                "src/med_autoscience/controllers/paper_repair_executor.py",
+                "src/med_autoscience/controllers/publication_gate/__init__.py",
+                "src/med_autoscience/controllers/ai_reviewer_publication_eval/__init__.py",
+                "src/med_autoscience/controllers/paper_repair_executor/__init__.py",
             ],
             mapping_explanation=(
                 "New quality contracts should land in the standard quality-gate slot while existing "
@@ -204,7 +204,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             repo_paths=[
                 "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
                 "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
-                "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
+                "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",
             ],
             mapping_explanation=(
                 "Runtime domain handler contracts stay mapped to the current MAS adapter surfaces; new domain "
@@ -217,14 +217,15 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="projection",
             default_for_new_surfaces=True,
             repo_paths=[
-                "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                "contracts/domain_projection_profile.json",
+                "src/med_autoscience/controllers/study_progress/",
                 "src/med_autoscience/controllers/study_launch_projection.py",
                 "src/med_autoscience/controllers/study_task_submission.py",
-                "src/med_autoscience/controllers/real_paper_autonomy_soak_inventory.py",
+                "src/med_autoscience/controllers/real_paper_autonomy_soak_inventory/__init__.py",
             ],
             mapping_explanation=(
-                "New projection surfaces should land in the standard projection-builder slot; current "
-                "domain projection, launch/task handoff, and soak inventory builders remain the active repo mapping."
+                "New projection surfaces should land in the standard projection-builder slot; the domain "
+                "profile, study-progress refs, launch/task handoff, and soak inventory builders are the current mapping."
             ),
         ),
         _physical_skeleton_slot(

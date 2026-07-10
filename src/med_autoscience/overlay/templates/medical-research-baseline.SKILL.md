@@ -40,7 +40,7 @@ The core lane renderer injects the generated stage operating surface here.
 - `statistical_analysis_pack`
 - `stop_loss_pack`
 - `human_gate_pack`
-- Machine source refs: `src/med_autoscience/stage_quality_contract.py`, `docs/runtime/contracts/stage_surfaces.md#baseline`
+- Machine source refs: `src/med_autoscience/stage_quality_contract/__init__.py`, `docs/runtime/contracts/stage_surfaces.md#baseline`
 
 ## Allowed MAS owner tools
 

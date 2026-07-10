@@ -244,7 +244,7 @@ generic package 完整性与 journal package 完整性分别报告。
 - `src/med_autoscience/cli/__init__.py`
 - `src/med_autoscience/controllers/submission_targets.py`
 - `src/med_autoscience/controllers/study_delivery_sync.py`
-- `src/med_autoscience/controllers/publication_gate.py`
+- `src/med_autoscience/controllers/publication_gate/__init__.py`
 - `src/med_autoscience/policies/controller_first.py`
 
 ### 已新增

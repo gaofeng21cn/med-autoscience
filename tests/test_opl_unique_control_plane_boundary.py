@@ -8,6 +8,7 @@ import pytest
 
 import med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps as followthrough_gaps
 import med_autoscience.controllers.opl_provider_ready_adapter.opl_unique_control_plane_handoff as provider_handoff
+import med_autoscience.controllers.opl_provider_ready_adapter.skeleton_mapping as skeleton_mapping
 from med_autoscience.controllers.opl_unique_control_plane_boundary import consumer_migration
 from med_autoscience.controllers.opl_unique_control_plane_boundary import (
     consumer_migration_inventory,
@@ -76,6 +77,26 @@ def test_consumer_migration_contract_is_standard_agent_purity_and_pack_input_onl
     assert inventory["paper_mission_owner_surface_materialize_dispatch_shell"][
         "latest_thinning_evidence"
     ]["domain_repo_physical_delete_authorized"] is True
+
+
+def test_generated_surface_and_skeleton_mappings_only_reference_current_paths() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    boundary = consumer_migration.build_functional_consumer_boundary()
+    handoff = boundary["generated_surface_handoff"]
+    current_paths = {
+        path
+        for surface in handoff["handoff_surfaces"]
+        for path in surface["current_paths"]
+    }
+    skeleton = skeleton_mapping.build_physical_skeleton_layout_audit_surface()
+    current_paths.update(
+        path
+        for slot in skeleton["slots"]
+        for path in slot["repo_paths"]
+    )
+
+    assert "src/med_autoscience/controllers/current_work_unit/workspace_projection.py" not in current_paths
+    assert all((repo_root / path).exists() for path in current_paths)
 
 
 @pytest.mark.parametrize(

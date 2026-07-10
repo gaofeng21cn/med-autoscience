@@ -164,7 +164,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
             "src/med_autoscience/controllers/medical_quality_operating_system.py",
             "src/med_autoscience/controllers/ai_reviewer_publication_eval_workflow.py",
             "src/med_autoscience/controllers/quality_ledger_enforcer.py",
-            "src/med_autoscience/controllers/publication_gate.py",
+            "src/med_autoscience/controllers/publication_gate/__init__.py",
         ],
         "allowed_dependencies": ["mas_core", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],

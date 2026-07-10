@@ -69,7 +69,7 @@ test-medical-paper-ops:
 	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py
 
 test-medical-quality-regression:
-	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py
+	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/test_owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py
 
 test-structure:
 	scripts/run-python-clean.sh scripts/line_budget.py
