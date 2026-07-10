@@ -313,7 +313,7 @@ def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
     )
 
     assert runtime_request["taskKind"] == "domain_route/stage-route"
-    assert runtime_request["dedupe_key"].startswith("domain-route:v1:medautoscience:")
+    assert runtime_request["dedupe_key"].startswith("domain-route:v1:mas:")
     payload = runtime_request["payload"]
     assert payload["surface_kind"] == "opl_domain_route_runtime_request"
     assert payload["domain_route_transaction_ref"] == "paper-mission-transaction::dm003"

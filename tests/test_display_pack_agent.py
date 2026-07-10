@@ -12,12 +12,12 @@ from med_autoscience.display_pack_agent import (
     display_pack_orchestrate,
     display_pack_preflight,
 )
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = REPO_ROOT.parent.parent.parent if REPO_ROOT.parent.name == ".worktrees" else REPO_ROOT.parent
-SCHOLARSKILLS_CORE_PACK_ROOT = WORKSPACE_ROOT / "mas-scholar-skills" / "packs" / "medical-display-core"
+SCHOLARSKILLS_CORE_PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 SCHOLARSKILLS_REQUIREMENT_PROFILE_REF = (SCHOLARSKILLS_CORE_PACK_ROOT / "renderer_dependency_profile.json").as_posix()
 
 
@@ -89,17 +89,17 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
 
     assert payload["surface_kind"] == "display_pack_agent_capability"
     assert payload["status"] == "available"
-    assert payload["inventory"]["template_count"] == 54
-    assert payload["inventory"]["active_template_count"] == 54
-    assert payload["inventory"]["canonical_family_count"] == 54
-    assert payload["inventory"]["canonical_template_count"] == 54
+    assert payload["inventory"]["template_count"] == 52
+    assert payload["inventory"]["active_template_count"] == 52
+    assert payload["inventory"]["canonical_family_count"] == 52
+    assert payload["inventory"]["canonical_template_count"] == 52
     assert payload["inventory"]["legacy_alias_template_count"] == 0
     assert payload["inventory"]["kind_counts"]["evidence_figure"] >= 15
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 10
     assert payload["inventory"]["analysis_responsibility_counts"] == {
         "computed_in_template": 3,
         "illustration_shell": 1,
-        "table_shell": 9,
+        "table_shell": 7,
         "validated_summary_required": 41,
     }
     assert payload["inventory"]["kind_counts"]["illustration_shell"] == 2
@@ -753,7 +753,9 @@ def test_display_pack_preflight_blocks_cohort_flow_without_ggconsort_capable_rec
     assert requirement["render_contract"]["checked_in_execution_mode"] == "subprocess"
     assert requirement["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
     assert requirement["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
-    assert requirement["render_contract"]["checked_in_renderer_ref"] == "templates/cohort_flow_figure/render.R"
+    assert requirement["render_contract"]["checked_in_renderer_ref"] == (
+        "rlib/medicaldisplaycore/cohort_flow_renderer.R"
+    )
     assert packages["dplyr"]["required"] is True
     assert packages["ggconsort"]["required"] is True
     assert packages["ggconsort"]["source"] == {

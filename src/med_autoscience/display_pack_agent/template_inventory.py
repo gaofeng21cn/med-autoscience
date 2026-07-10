@@ -4,6 +4,7 @@ from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+import shlex
 from typing import Any
 
 from med_autoscience.display_pack_analysis_responsibility import analysis_boundary_payload
@@ -83,6 +84,16 @@ def renderer_policy_projection(
     )
 
 
+def renderer_entrypoint_exists(template_root: Path, entrypoint: str) -> bool:
+    try:
+        tokens = shlex.split(entrypoint)
+    except ValueError:
+        return False
+    if len(tokens) < 2:
+        return False
+    return (template_root / tokens[1]).resolve().is_file()
+
+
 def template_summary(
     record: LoadedDisplayTemplate,
     catalogs: Mapping[Path, CanonicalTemplateCatalog | None] | None = None,
@@ -137,7 +148,7 @@ def template_summary(
             repo_root=repo_root or record.pack_root,
             records=[record],
         ),
-        "has_render_r": (template_root / "render.R").is_file(),
+        "has_render_r": renderer_entrypoint_exists(template_root, manifest.entrypoint),
         "has_render_candidate": (template_root / "render_candidate.R").is_file(),
         "golden_case_count": len(manifest.golden_case_paths),
         "exemplar_ref_count": len(manifest.exemplar_refs),

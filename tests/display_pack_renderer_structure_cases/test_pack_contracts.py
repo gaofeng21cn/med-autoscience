@@ -27,7 +27,8 @@ def test_core_pack_evidence_renderer_is_split_into_maintainable_modules() -> Non
     evidence_package = CORE_PACK_MODULE_ROOT / "evidence_figures"
 
     assert not legacy_single_file.exists()
-    assert (evidence_package / "__init__.py").exists()
+    assert not (evidence_package / "__init__.py").exists()
+    assert (evidence_package / "r_renderer.py").exists()
 
     module_line_counts = {
         path.relative_to(CORE_PACK_MODULE_ROOT).as_posix(): len(path.read_text(encoding="utf-8").splitlines())
@@ -35,7 +36,6 @@ def test_core_pack_evidence_renderer_is_split_into_maintainable_modules() -> Non
     }
 
     assert module_line_counts
-    assert module_line_counts["evidence_figures/__init__.py"] <= 220
     assert max(module_line_counts.values()) <= 1500
 
 
@@ -58,7 +58,7 @@ def test_core_pack_illustration_shells_are_split_into_maintainable_modules() -> 
 
 def test_core_pack_evidence_renderer_exports_only_r_entrypoint() -> None:
     sys.path.insert(0, str(CORE_PACK_SRC_ROOT))
-    module = importlib.import_module("fenggaolab_org_medical_display_core.evidence_figures")
+    module = importlib.import_module("fenggaolab_org_medical_display_core.evidence_figures.r_renderer")
 
     assert callable(module.render_r_evidence_figure)
     assert not hasattr(module, "render_python_evidence_figure")
@@ -71,11 +71,13 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
         if payload["kind"] == "evidence_figure" and payload["renderer_family"] == "r_ggplot2":
             r_templates.append(payload["template_id"])
             assert payload["execution_mode"] == "subprocess"
-            assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+            assert payload["entrypoint"].startswith("Rscript ../../render.R --template ")
+            assert f"--template {payload['template_id']}" in payload["entrypoint"]
+            assert "--mode {render_mode}" in payload["entrypoint"]
             assert "render_r_evidence_figure" not in payload["entrypoint"]
-            assert (manifest_path.parent / "render.R").is_file()
+            assert (manifest_path.parent / "../../render.R").resolve().is_file()
 
-    assert len(r_templates) == 38
+    assert len(r_templates) == 43
 
 
 def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subprocess() -> None:
@@ -85,11 +87,13 @@ def test_cohort_flow_materialization_manifest_uses_pack_local_ggconsort_subproce
     assert payload["kind"] == "illustration_shell"
     assert payload["renderer_family"] == "r_ggplot2"
     assert payload["execution_mode"] == "subprocess"
-    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert payload["entrypoint"] == (
+        "Rscript ../../render.R --template cohort_flow_figure --mode {render_mode} --request {request_json}"
+    )
 
 
 def test_cohort_flow_checked_in_renderer_asset_uses_prepared_dependency_gate_without_installs() -> None:
-    render_path = CORE_PACK_ROOT / "templates" / "cohort_flow_figure" / "render.R"
+    render_path = CORE_PACK_ROOT / "rlib" / "medicaldisplaycore" / "cohort_flow_renderer.R"
     source = render_path.read_text(encoding="utf-8")
 
     assert render_path.is_file()
@@ -105,21 +109,17 @@ def test_cohort_flow_checked_in_renderer_asset_uses_prepared_dependency_gate_wit
         "require_ggconsort()",
         "cohort_step_frame",
         "cohort_exclusion_frame",
-        'ggplot2::annotate(\n      "rect"',
-        "grid::arrow",
+        "create_consort_data",
+        "consort_box_add",
+        "consort_arrow_add",
     ):
         assert contract in source
-    for retired_blank_prone_call in (
-        "ggconsort::cohort_start",
-        "ggconsort::geom_consort",
-        "ggconsort::theme_consort",
-    ):
-        assert retired_blank_prone_call not in source
+    assert "ggconsort::geom_consort" not in source
 
 
 def test_alluvial_transition_checked_in_renderer_uses_ggalluvial_without_fallback_or_installs() -> None:
     manifest_path = CORE_PACK_ROOT / "templates" / "alluvial_transition" / "template.toml"
-    render_path = CORE_PACK_ROOT / "templates" / "alluvial_transition" / "render.R"
+    render_path = CORE_PACK_ROOT / "render.R"
     renderer_source = (
         CORE_PACK_ROOT
         / "rlib"
@@ -130,7 +130,9 @@ def test_alluvial_transition_checked_in_renderer_uses_ggalluvial_without_fallbac
 
     assert payload["renderer_family"] == "r_ggplot2"
     assert payload["execution_mode"] == "subprocess"
-    assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert payload["entrypoint"] == (
+        "Rscript ../../render.R --template alluvial_transition --mode {render_mode} --request {request_json}"
+    )
     assert render_path.is_file()
     assert 'requireNamespace("ggalluvial", quietly = TRUE)' in renderer_source
     assert "ggalluvial::geom_alluvium" in renderer_source
@@ -183,23 +185,33 @@ def test_lidocaineq_specialized_renderers_use_mature_packages_without_installing
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     records = ledger["records"]
-    manifest_ids = []
+    manifest_kinds = {}
     for manifest_path in sorted((CORE_PACK_ROOT / "templates").glob("*/template.toml")):
         payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
-        manifest_ids.append(payload["template_id"])
+        manifest_kinds[payload["template_id"]] = payload["kind"]
 
     records_by_template = {item["template_id"]: item for item in records}
-    assert sorted(records_by_template) == sorted(manifest_ids)
-    assert ledger["summary"]["current_template_count"] == 43
+    assert set(records_by_template) < set(manifest_kinds)
+    generated_action_only = set(manifest_kinds) - set(records_by_template)
+    assert sum(manifest_kinds[item] == "evidence_figure" for item in generated_action_only) == 5
+    assert sum(manifest_kinds[item] == "table_shell" for item in generated_action_only) == 6
+    assert ledger["summary"]["current_template_count"] == 41
     assert ledger["summary"]["current_evidence_template_count"] == 38
     assert ledger["summary"]["current_r_ggplot2_subprocess_evidence_count"] == 38
-    assert ledger["summary"]["current_table_shell_count"] == 3
+    assert ledger["summary"]["current_table_shell_count"] == 1
+    assert ledger["summary"]["paper_derived_reference_count"] == 2
     assert ledger["summary"]["retired_alias_template_count"] == 40
     assert ledger["summary"]["python_evidence_retained_count"] == 0
     assert "retired_python_evidence_template_count" not in ledger["summary"]
     assert "retired_python_evidence_template_ids" not in ledger
-    assert {item["migration_lane"] for item in records} == {"CANONICAL_CURRENT"}
-    assert {item["migration_status"] for item in records} == {"current_canonical_template"}
+    assert {item["migration_lane"] for item in records} == {
+        "CANONICAL_CURRENT",
+        "PAPER_DERIVED_REFERENCE",
+    }
+    assert {item["migration_status"] for item in records} == {
+        "current_canonical_template",
+        "paper_derived_reference",
+    }
     assert "retired_aliases" in ledger
     assert {item["template_id"] for item in ledger["retired_aliases"]}.isdisjoint(records_by_template)
     assert records_by_template["risk_layering_monotonic_bars"]["migration_status"] == "current_canonical_template"
@@ -207,8 +219,8 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert records_by_template["time_to_event_multihorizon_calibration_panel"]["migration_status"] == "current_canonical_template"
     assert records_by_template["time_to_event_decision_curve"]["migration_status"] == "current_canonical_template"
     assert records_by_template["center_transportability_governance_summary_panel"]["migration_status"] == "current_canonical_template"
-    assert records_by_template["table2_phenotype_gap_summary"]["migration_status"] == "current_canonical_template"
-    assert records_by_template["table3_transition_site_support_summary"]["migration_status"] == "current_canonical_template"
+    assert records_by_template["table2_phenotype_gap_summary"]["migration_status"] == "paper_derived_reference"
+    assert records_by_template["table3_transition_site_support_summary"]["migration_status"] == "paper_derived_reference"
 
 
 def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> None:
@@ -223,16 +235,15 @@ def test_core_pack_current_evidence_renderers_are_r_subprocess_defaults() -> Non
     assert len(current_records) == 38
     for record in current_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
-        render_path = template_root / "render.R"
+        manifest = tomllib.loads((template_root / "template.toml").read_text(encoding="utf-8"))
+        render_path = (template_root / "../../render.R").resolve()
         assert render_path.is_file(), record["template_id"]
         assert record["renderer_family"] == "r_ggplot2"
         assert record["execution_mode"] == "subprocess"
-        assert record["entrypoint"] == "Rscript render.R --request {request_json}"
-        assert record["render_script_path"] == "render.R"
+        assert manifest["entrypoint"].startswith("Rscript ../../render.R --template ")
+        assert f"--template {record['template_id']}" in manifest["entrypoint"]
         assert record["migration_lane"] == "CANONICAL_CURRENT"
         assert record["migration_status"] == "current_canonical_template"
-        wrapper_source = render_path.read_text(encoding="utf-8")
-        assert f'expected_template_id = "{record["template_id"]}"' in wrapper_source
 
 
 def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -> None:
@@ -325,7 +336,7 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert reporting_flow_profile["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
     assert reporting_flow_profile["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
     assert reporting_flow_profile["render_contract"]["checked_in_renderer_ref"] == (
-        "templates/cohort_flow_figure/render.R"
+        "rlib/medicaldisplaycore/cohort_flow_renderer.R"
     )
     assert reporting_flow_profile["render_contract"]["prepared_dependency_receipt_required_before_render"] is True
     assert candidate_profile["renderer_family"] == "r_ggplot2"

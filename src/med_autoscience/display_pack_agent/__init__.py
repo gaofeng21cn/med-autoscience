@@ -48,6 +48,7 @@ from .template_inventory import (
     full_template_id as _full_template_id,
     inventory_summary as _inventory_summary,
     migration_index_from_catalogs as _migration_index_from_catalogs,
+    renderer_entrypoint_exists as _renderer_entrypoint_exists,
     template_summary as _template_summary,
 )
 from .preflight_support import (
@@ -598,7 +599,7 @@ def display_pack_preflight(
                 }
             )
         if manifest.execution_mode == "subprocess" and manifest.renderer_family == "r_ggplot2":
-            if not (template_root / "render.R").is_file():
+            if not _renderer_entrypoint_exists(template_root, manifest.entrypoint):
                 blocking_findings.append(
                     {
                         "code": "render_r_missing",

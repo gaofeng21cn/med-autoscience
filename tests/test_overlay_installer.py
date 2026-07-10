@@ -77,7 +77,7 @@ def test_new_stage_skill_surface_templates_are_complete_human_readable_surfaces(
     assert "Stage card ref:" in skill_text
     assert "Route contract ref:" in skill_text
     assert "stage_knowledge_contract.py" in skill_text
-    assert "stage_quality_contract.py" in skill_text
+    assert "stage_quality_contract.py" not in skill_text
     assert "Allowed MAS owner tools" in skill_text
     assert "OPL Boundary" in skill_text
     assert "no RH dependency" in skill_text

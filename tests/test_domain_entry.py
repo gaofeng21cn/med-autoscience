@@ -203,16 +203,10 @@ def test_domain_entry_dispatches_display_pack_agent_orchestrate_without_profile(
 
     assert payload["command"] == "display-pack-orchestrate"
     assert payload["surface_kind"] == "display_pack_agent_orchestration"
-    assert payload["status"] == "needs_repair"
+    assert payload["status"] == "ready_to_render"
     assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
-    assert payload["preflight"]["blocking_findings"] == [
-        {
-            "code": "render_r_missing",
-            "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
-            "route_hint": "renderer_asset_repair",
-        }
-    ]
-    assert payload["next_callable"] == "display-pack-repair"
+    assert payload["preflight"]["blocking_findings"] == []
+    assert payload["next_callable"] == "display-pack-render"
     assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
 
 

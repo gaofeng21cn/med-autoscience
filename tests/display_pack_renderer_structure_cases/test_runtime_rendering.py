@@ -83,8 +83,17 @@ def test_core_pack_representative_lidocaineq_default_renderers_render_with_r_sub
         for template_id, payload in default_payloads.items():
             request_path = _candidate_request(template_id=template_id, payload=payload, output_dir=output_dir)
             completed = subprocess.run(
-                ["Rscript", "render.R", "--request", str(request_path)],
-                cwd=CORE_PACK_ROOT / "templates" / template_id,
+                [
+                    "Rscript",
+                    "render.R",
+                    "--template",
+                    template_id,
+                    "--mode",
+                    "final",
+                    "--request",
+                    str(request_path),
+                ],
+                cwd=CORE_PACK_ROOT,
                 capture_output=True,
                 text=True,
                 check=False,

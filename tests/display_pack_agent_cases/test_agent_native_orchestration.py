@@ -175,8 +175,8 @@ def test_display_pack_preflight_returns_typed_repair_routes_without_readiness_au
     assert result["status"] == "blocked"
     assert result["publication_readiness_verdict"] is False
     assert result["authority_boundary"]["can_authorize_publication_readiness"] is False
-    assert result["repair_owner"] == "MedAutoScience"
-    assert result["next_callable"] == "install_r_runtime_or_package"
+    assert result["repair_owner"] == "OPL Framework"
+    assert result["next_callable"] == "opl_runtime_env_doctor"
 
     routes = result["typed_repair_routes"]
     assert isinstance(routes, list)

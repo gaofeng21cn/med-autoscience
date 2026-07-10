@@ -176,8 +176,8 @@
     "can_authorize_provider_admission": false,
     "implemented_launch_points": [
       "after_current_owner_delta_materialized",
-      "after_executor_turn_or_subagent_completion_via_cli",
-      "after_receipt_or_typed_blocker_recorded_via_cli"
+      "after_executor_turn_or_subagent_completion",
+      "after_receipt_or_typed_blocker_recorded"
     ],
     "implemented_outputs": [
       "tool_affordance_ref",

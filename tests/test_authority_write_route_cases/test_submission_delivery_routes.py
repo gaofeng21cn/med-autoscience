@@ -184,7 +184,7 @@ def test_delivery_sync_without_snapshot_still_writes_non_submit_current_package(
     assert (study_root / "submission.zip").exists()
 
 
-def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
+def test_submission_minimal_does_not_derive_authority_from_study_projection_surfaces(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -202,11 +202,8 @@ def test_submission_minimal_derives_snapshot_from_study_authority_surfaces(
         publication_profile="general_medical_journal",
     )
 
-    assert result["authority_route_gate"]["allowed"] is True
-    assert result["authority_route_gate"]["route_authorization_flag"] == "paper_write_allowed"
-    assert result["authority_route_gate"]["snapshot_ref"]["study_truth_epoch"] == "truth-1"
-    assert "authority_snapshot_missing" not in result["authority_route_gate"]["blocking_reasons"]
-    assert (paper_root / "submission_minimal" / "audit" / "submission_manifest.json").exists()
+    assert result["authority_route_gate"]["allowed"] is False
+    assert "authority_snapshot_missing" in result["authority_route_gate"]["blocking_reasons"]
 
 
 def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_current_package(tmp_path: Path) -> None:
@@ -223,14 +220,13 @@ def test_delivery_sync_derives_snapshot_but_does_not_require_bundle_gate_for_cur
 
     assert result["package_kind"] == "current_package"
     assert result["can_submit"] is False
-    assert "authority_snapshot_missing" not in result["authority_route_gate"]["blocking_reasons"]
     assert result["authority_route_gate"]["allowed"] is True
     assert result["submission_authority_gate"]["allowed"] is False
-    assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
+    assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
     assert (study_root / "submission").exists()
 
 
-def test_delivery_sync_derives_snapshot_from_current_projection_surfaces_when_latest_files_are_stale(
+def test_delivery_sync_does_not_derive_submission_authority_from_projection_surfaces(
     tmp_path: Path,
 ) -> None:
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -303,11 +299,10 @@ def test_delivery_sync_derives_snapshot_from_current_projection_surfaces_when_la
     )
 
     assert result["authority_route_gate"]["allowed"] is True
-    assert result["submission_authority_gate"]["allowed"] is True
-    assert "authority_snapshot_missing" not in result["submission_authority_gate"]["blocking_reasons"]
-    assert "bundle_build_allowed_false" not in result["submission_authority_gate"]["blocking_reasons"]
-    assert result["package_kind"] == "submission_ready_package"
-    assert result["can_submit"] is True
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
 
 
 def test_submission_ready_delivery_uses_v2_submission_audit_evidence_when_paper_root_ledger_is_missing(
@@ -396,7 +391,7 @@ def test_submission_ready_delivery_refreshes_legacy_submission_zip(tmp_path: Pat
         assert "audit/submission_manifest.json" in archive.namelist()
 
 
-def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_path: Path) -> None:
+def test_delivery_sync_does_not_adopt_runtime_gate_as_submission_authority(tmp_path: Path) -> None:
     paper_root, study_root = make_delivery_workspace(tmp_path)
     _write_runtime_authority_snapshots(
         study_root,
@@ -443,17 +438,11 @@ def test_delivery_sync_adopts_current_runtime_gate_clear_for_bundle_route(tmp_pa
         stage="submission_minimal",
     )
 
-    assert result["package_kind"] == "submission_ready_package"
-    assert result["can_submit"] is True
+    assert result["package_kind"] == "current_package"
+    assert result["can_submit"] is False
     assert result["authority_route_gate"]["allowed"] is True
-    assert result["submission_authority_gate"]["allowed"] is True
-    assert result["submission_authority_gate"]["controller_route_gate"]["action_family"] == (
-        "paper.package.submission_minimal"
-    )
-    assert result["submission_authority_gate"]["controller_route_gate"]["work_unit_id"] == (
-        "submission_minimal_refresh"
-    )
-    assert "bundle_build_allowed_false" not in result["submission_authority_gate"]["blocking_reasons"]
+    assert result["submission_authority_gate"]["allowed"] is False
+    assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
 
 
 def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp_path: Path) -> None:
@@ -494,7 +483,7 @@ def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp
     assert result["package_kind"] == "current_package"
     assert result["can_submit"] is False
     assert result["submission_authority_gate"]["allowed"] is False
-    assert "bundle_build_allowed_false" in result["submission_authority_gate"]["blocking_reasons"]
+    assert "authority_snapshot_missing" in result["submission_authority_gate"]["blocking_reasons"]
 
 
 def test_fresh_snapshot_authorizes_submission_minimal_write(
