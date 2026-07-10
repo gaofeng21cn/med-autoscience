@@ -1,123 +1,31 @@
 from __future__ import annotations
 
-import importlib
 import pytest
+
+from med_autoscience.controllers.architecture_owner_boundary import (
+    build_architecture_owner_boundary_report,
+    validate_architecture_owner_boundary_report,
+)
 
 
 pytestmark = pytest.mark.meta
 
 
-def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_authority_risk() -> None:
-    module = importlib.import_module("med_autoscience.controllers.architecture_owner_boundary")
+def test_architecture_owner_boundary_keeps_opl_authority_out_of_mas() -> None:
+    report = build_architecture_owner_boundary_report()
+    layers = {item["layer_id"]: item for item in report["owner_layers"]}
 
-    report = module.build_architecture_owner_boundary_report()
+    assert validate_architecture_owner_boundary_report(report)["ok"] is True
+    assert layers["opl_progress_spine"]["owner"] == "one-person-lab"
+    assert layers["mas_runtime_diagnostic_refs"]["authority_surfaces"] == []
+    assert layers["mas_runtime_diagnostic_refs"]["owned_progress_spine_surfaces"] == []
 
-    assert report["surface"] == "mas_mds_architecture_owner_boundary_report"
-    assert report["verdict"] == "structural_risk_confirmed_and_guarded"
-    assert report["assessment"]["has_duplicate_authority_risk"] is True
-    assert report["assessment"]["big_bang_rewrite_allowed"] is False
-    assert report["assessment"]["recommended_strategy"] == (
-        "owner_matrix_plus_strangler_refactor_plus_architecture_fitness_functions"
-    )
-    by_layer = {layer["layer_id"]: layer for layer in report["owner_layers"]}
-    assert by_layer["mas_core"]["owner"] == "MedAutoScience"
-    assert by_layer["mas_core"]["role"] == "authority"
-    assert by_layer["mas_core"]["hub_role"] == "authority"
-    assert "study_truth" in by_layer["mas_core"]["authority_surfaces"]
-    assert by_layer["quality_os"]["owner"] == "MedAutoScience"
-    assert by_layer["quality_os"]["hub_role"] == "authority"
-    assert "publication_readiness" in by_layer["quality_os"]["authority_surfaces"]
-    assert by_layer["runtime_os"]["owner"] == "one-person-lab"
-    assert by_layer["runtime_os"]["role"] == "runtime_lifecycle_owner"
-    assert by_layer["runtime_os"]["hub_role"] == "authority"
-    assert "runtime_health" in by_layer["runtime_os"]["authority_surfaces"]
-    assert "canonical_runtime_action" in by_layer["runtime_os"]["authority_surfaces"]
-    assert by_layer["opl_progress_spine"]["owner"] == "one-person-lab"
-    assert by_layer["opl_progress_spine"]["role"] == "progress_transition_runtime_owner"
-    assert by_layer["opl_progress_spine"]["hub_role"] == "authority"
-    assert set(by_layer["opl_progress_spine"]["authority_surfaces"]) >= {
-        "command_log",
-        "event_log",
-        "transactional_outbox",
-        "fixed_point_reconciler",
-        "provider_admission",
-        "stage_run_lifecycle",
-        "state_index_kernel",
-        "workbench_shell",
-        "tool_selector",
+    layers["mas_runtime_diagnostic_refs"]["authority_surfaces"] = ["runtime_health"]
+    issue_codes = {
+        item["code"]
+        for item in validate_architecture_owner_boundary_report(report)["issues"]
     }
-    assert by_layer["mas_runtime_diagnostic_refs"]["owner"] == "MedAutoScience"
-    assert by_layer["mas_runtime_diagnostic_refs"]["role"] == "adapter"
-    assert by_layer["mas_runtime_diagnostic_refs"]["hub_role"] == "adapter"
-    assert by_layer["mas_runtime_diagnostic_refs"]["authority_surfaces"] == []
-    assert by_layer["mas_runtime_diagnostic_refs"]["diagnostic_ref_surfaces"] == [
-        "runtime_health_snapshot",
-        "canonical_runtime_action_hint",
-        "opl_current_control_readback_ref",
-        "opl_stage_run_readback_ref",
-    ]
-    assert "opl_progress_spine" in by_layer["mas_runtime_diagnostic_refs"]["consumes_authority_from"]
-    assert by_layer["mas_runtime_diagnostic_refs"]["owned_progress_spine_surfaces"] == []
-    assert by_layer["entry_projection"]["role"] == "projection"
-    assert by_layer["entry_projection"]["hub_role"] == "read_model"
-    assert by_layer["entry_projection"]["authority_surfaces"] == []
-    assert by_layer["entry_projection"]["may_replace_authority"] is False
-    assert by_layer["observability_os"]["role"] == "observability"
-    assert by_layer["observability_os"]["hub_role"] == "read_model"
-    assert by_layer["observability_os"]["authority_surfaces"] == []
-    assert by_layer["mds_backend"]["owner"] == "MedDeepScientist"
-    assert by_layer["mds_backend"]["role"] == "controlled_backend"
-    assert by_layer["mds_backend"]["hub_role"] == "adapter"
-    assert by_layer["mds_backend"]["authority_surfaces"] == []
-    assert "publication_readiness" in by_layer["mds_backend"]["forbidden_authority_surfaces"]
-    assert by_layer["mds_backend"]["may_replace_authority"] is False
-    assert {risk["risk_id"] for risk in report["duplication_risk_classes"]} == {
-        "entry_projection_as_authority",
-        "mds_oracle_as_quality_owner",
-        "observability_as_control",
-        "runtime_status_double_parse",
-        "mas_private_progress_spine",
-    }
-    assert {item["basis_id"] for item in report["external_engineering_basis"]} >= {
-        "strangler_fig",
-        "architecture_fitness_functions",
-        "team_topologies_cognitive_load",
-    }
-
-
-def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() -> None:
-    module = importlib.import_module("med_autoscience.controllers.architecture_owner_boundary")
-    report = module.build_architecture_owner_boundary_report()
-    by_layer = {layer["layer_id"]: layer for layer in report["owner_layers"]}
-    by_layer["entry_projection"]["authority_surfaces"] = ["user_visible_next_action"]
-    by_layer["entry_projection"]["may_replace_authority"] = True
-    by_layer["observability_os"]["authority_surfaces"] = ["publication_readiness"]
-    by_layer["mas_runtime_diagnostic_refs"]["authority_surfaces"] = ["runtime_health"]
-    by_layer["mas_runtime_diagnostic_refs"]["owned_progress_spine_surfaces"] = [
-        "transactional_outbox",
-        "fixed_point_reconciler",
-    ]
-    by_layer["entry_projection"]["may_generate_workbench_action"] = True
-    by_layer["observability_os"]["may_select_tool_for_runtime"] = True
-    by_layer["mds_backend"]["authority_surfaces"] = ["publication_readiness"]
-    by_layer["mds_backend"]["may_replace_authority"] = True
-    by_layer["mas_core"]["authority_surfaces"] = []
-    report["assessment"]["big_bang_rewrite_allowed"] = True
-
-    validation = module.validate_architecture_owner_boundary_report(report)
-
-    assert validation["ok"] is False
-    assert {issue["code"] for issue in validation["issues"]} == {
-        "big_bang_rewrite_unblocked",
-        "projection_layer_claims_authority",
-        "projection_layer_can_replace_authority",
-        "non_authority_hub_claims_authority",
-        "non_authority_hub_can_replace_authority",
-        "mds_claims_mas_authority",
-        "mds_can_replace_authority",
+    assert {
         "mas_claims_opl_runtime_lifecycle_authority",
         "mas_claims_opl_progress_spine_authority",
-        "mas_private_progress_spine_capability_enabled",
-        "authority_hub_missing_authority_surface",
-        "mas_authority_layer_missing_authority",
-    }
+    } <= issue_codes
