@@ -8,6 +8,14 @@ CONTRACT_ID = "mas_authority_kernel_inventory.v1"
 CONTRACT_REF = "contracts/authority_kernel_inventory.json"
 SCHEMA_VERSION = 1
 OWNER = "MedAutoScience"
+FORBIDDEN_DOMAIN_AUTHORITY = (
+    "study_truth",
+    "publication_quality",
+    "submission_readiness",
+    "artifact_authority",
+    "memory_accept_reject",
+    "current_package",
+)
 INVENTORY_STATE = "inventory_landed_physical_thinning_pending"
 GENERIC_RUNTIME_OWNER_NAMES = frozenset(
     {

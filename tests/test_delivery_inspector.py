@@ -5,7 +5,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from tests.test_cli_cases.shared import write_profile
+from tests.profile_test_helpers import write_profile
 from tests.test_study_delivery_sync_cases.shared import dump_json, make_delivery_workspace, write_text
 from tests.control_plane_route_helpers import writable_route_context
 
@@ -447,39 +447,6 @@ def test_delivery_inspector_keeps_fresh_delivery_current_when_manifest_source_ro
     assert result["freshness"]["delivery_status"] == "current"
     assert result["freshness"]["stale_reason"] is None
     assert result["freshness"]["verdict"] == "current"
-
-
-def test_delivery_inspector_cli_supports_public_publication_alias_json(tmp_path: Path, capsys) -> None:
-    sync_module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
-    cli = importlib.import_module("med_autoscience.cli")
-    paper_root, study_root = make_delivery_workspace(tmp_path)
-    profile_path = tmp_path / "profile.local.toml"
-    _write_profile_for_workspace(profile_path, workspace_root=tmp_path / "repo")
-    sync_module.sync_study_delivery(
-        paper_root=paper_root,
-        stage="submission_minimal",
-        route_context=writable_route_context(),
-    )
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "delivery-inspect",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            study_root.name,
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    payload = json.loads(captured.out)
-    assert payload["freshness"]["verdict"] == "current"
-    assert payload["mutation_policy"]["read_only"] is True
-    assert payload["human_package"]["role"] == "human_facing_mirror"
 
 
 def test_delivery_inspector_reports_source_mirror_and_legacy_upgrade_contract(tmp_path: Path) -> None:

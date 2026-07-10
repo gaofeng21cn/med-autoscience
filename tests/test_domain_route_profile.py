@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from med_autoscience.cli.paper_mission_commands import opl_runtime_submission
+from med_autoscience.paper_mission_domain import opl_runtime_submission
 from med_autoscience.domain_route_profile import (
     TASK_KIND_NORMALIZATION,
     build_domain_route_handoff_intake_readback,

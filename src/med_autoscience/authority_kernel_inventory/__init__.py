@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.agent_tool_arsenal import FORBIDDEN_DOMAIN_AUTHORITY
 from .gaps import inventory_gaps
 from .items import inventory_items
 from .schema import (
     CONTRACT_ID,
     CONTRACT_REF,
+    FORBIDDEN_DOMAIN_AUTHORITY,
     GENERIC_RUNTIME_OWNER_NAMES,
     INVENTORY_STATE,
     OWNER,
@@ -32,7 +32,7 @@ def build_authority_kernel_inventory() -> dict[str, Any]:
             "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
             "docs/active/mas-ideal-state-gap-plan.md",
             "src/med_autoscience/runtime_control/owner_callable_registry.py",
-            "src/med_autoscience/agent_tool_arsenal.py",
+            "contracts/action_catalog.json",
             "contracts/foundry-agent-os-domain-kernel-manifest.json",
             "contracts/mas-paper-study-stage-pack.json",
         ],

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from med_autoscience.opl_runtime_contract import OPL_HOSTED_STAGE_RUNTIME_ID, OPL_RUNTIME_OWNER
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 from med_autoscience.controllers.mainline_status.labels import _non_empty_text
 from med_autoscience.controllers.mainline_status.program_surfaces import (
     build_phase2_user_product_loop,
@@ -356,17 +357,17 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "entry_points": [
                 {
                     "name": "mainline_status",
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "先看 repo 主线真相、当前 tranche 和 remaining gaps。",
                 },
                 {
                     "name": "workspace_cockpit",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "看当前 workspace 的监管、attention queue 和用户入口回路。",
                 },
                 {
                     "name": "study_progress",
-                    "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>",
+                    "command": domain_entry_handler_target("study-progress"),
                     "purpose": "确认 active study 当前卡在哪、下一步是什么、是否需要人工决策。",
                 },
             ],
@@ -397,22 +398,22 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "entry_points": [
                 {
                     "name": "workspace_cockpit",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "把 workspace-cockpit 当作当前用户 inbox 入口使用。",
                 },
                 {
                     "name": "submit_study_task",
-                    "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+                    "command": domain_entry_handler_target("submit-study-task"),
                     "purpose": "把任务写成 durable truth，而不是只停在对话里。",
                 },
                 {
                     "name": "launch_study",
-                    "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+                    "command": domain_entry_handler_target("launch-study"),
                     "purpose": "正式启动或续跑 study，并立即拿到监督入口。",
                 },
                 {
                     "name": "study_progress",
-                    "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>",
+                    "command": domain_entry_handler_target("study-progress"),
                     "purpose": "持续轮询人话进度、阻塞、下一步和最新监督入口。",
                 },
             ],
@@ -440,17 +441,17 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "entry_points": [
                 {
                     "name": "doctor",
-                    "command": "uv run python -m med_autoscience.cli doctor report --profile <profile>",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "先看 workspace / MAS domain refs boundary readiness。",
                 },
                 {
                     "name": "study_progress",
-                    "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --format json",
+                    "command": domain_entry_handler_target("study-progress"),
                     "purpose": "读取 MAS domain progress 与 OPL current-control-state handoff refs。",
                 },
                 {
                     "name": "paper_mission_inspect",
-                    "command": "uv run python -m med_autoscience.cli paper-mission inspect --profile <profile> --study-id <study_id> --format json",
+                    "command": domain_entry_handler_target("paper-mission"),
                     "purpose": "读取 PaperMission / StageOutcome / OPL transition readback，确认下一 owner、typed blocker 或 artifact delta。",
                 },
             ],
@@ -482,12 +483,12 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "entry_points": [
                 {
                     "name": "mainline_phase",
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction",
+                    "command": domain_entry_handler_target("mainline-phase"),
                     "purpose": "先看 backend deconstruction 的当前边界、入口和退出条件。",
                 },
                 {
                     "name": "deconstruction_map",
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "核对 backend deconstruction 的 program reference 与后续替换边界。",
                 },
             ],
@@ -515,12 +516,12 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "entry_points": [
                 {
                     "name": "mainline_phase",
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation",
+                    "command": domain_entry_handler_target("mainline-phase"),
                     "purpose": "先看 stage-runtime / platform 这层现在仍然为什么是后置阶段。",
                 },
                 {
                     "name": "mainline_status",
-                    "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+                    "command": domain_entry_handler_target("mainline-status"),
                     "purpose": "回到当前主线，确认更大平台化工作是否已经到了诚实时机。",
                 },
             ],
@@ -626,10 +627,10 @@ def read_mainline_status() -> dict[str, Any]:
             "reference:opl_handoff",
         ],
         "commands": {
-            "mainline_status": "uv run python -m med_autoscience.cli doctor mainline-status",
-            "unified_enhancement_program": "uv run python -m med_autoscience.cli doctor mainline-status --format json",
-            "workspace_cockpit": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
-            "study_progress": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>",
+            "mainline_status": domain_entry_handler_target("mainline-status"),
+            "unified_enhancement_program": domain_entry_handler_target("mainline-status"),
+            "workspace_cockpit": domain_entry_handler_target("mainline-status"),
+            "study_progress": domain_entry_handler_target("study-progress"),
         },
     }
 

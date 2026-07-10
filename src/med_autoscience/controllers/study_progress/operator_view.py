@@ -36,19 +36,14 @@ def _study_command_surfaces(
     study_id: str,
     profile_ref: str | Path | None,
 ) -> dict[str, str]:
-    prefix = _command_prefix(profile_ref)
-    profile_arg = _profile_arg(profile_ref)
-    selector = _study_selector(study_id=study_id)
-    paper_mission_inspect = (
-        f"{prefix} paper-mission inspect --profile {profile_arg} {selector}"
-    )
+    del profile, study_id, profile_ref
     return {
-        "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
-        "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
-        "progress_projection": f"{prefix} study progress --profile {profile_arg} {selector} --format json",
-        "quality_repair_batch": f"{prefix} study quality-repair-batch --profile {profile_arg} {selector}",
-        "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
-        "refresh_supervision": f"{paper_mission_inspect} --format json",
+        "workspace_cockpit": domain_entry_handler_target("mainline-status"),
+        "study_progress": domain_entry_handler_target("study-progress"),
+        "progress_projection": domain_entry_handler_target("study-progress"),
+        "quality_repair_batch": domain_entry_handler_target("domain-handler-dispatch"),
+        "launch_study": domain_entry_handler_target("launch-study"),
+        "refresh_supervision": domain_entry_handler_target("paper-mission"),
     }
 
 

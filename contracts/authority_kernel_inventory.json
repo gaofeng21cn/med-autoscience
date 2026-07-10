@@ -295,6 +295,9 @@
       "forbidden_writes": [
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
+        "artifacts/owner_receipts/**",
+        "artifacts/typed_blockers/**",
+        "artifacts/artifact_authority/**",
         "paper/**",
         "paper/submission_minimal/**",
         "manuscript/current_package/**",
@@ -318,9 +321,8 @@
     },
     {
       "active_caller_refs": [
-        "contracts/agent_tool_arsenal.json#/tool_cards/scientific_capability_registry",
-        "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index",
-        "src/med_autoscience/mcp_server/__init__.py::agent_tool_arsenal"
+        "contracts/action_catalog.json#/actions/12",
+        "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry"
       ],
       "allowed_writes": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
@@ -433,7 +435,7 @@
     "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
     "docs/active/mas-ideal-state-gap-plan.md",
     "src/med_autoscience/runtime_control/owner_callable_registry.py",
-    "src/med_autoscience/agent_tool_arsenal.py",
+    "contracts/action_catalog.json",
     "contracts/foundry-agent-os-domain-kernel-manifest.json",
     "contracts/mas-paper-study-stage-pack.json"
   ],

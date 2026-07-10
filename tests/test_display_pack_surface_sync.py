@@ -624,16 +624,3 @@ def test_sync_display_pack_surface_resolves_table_requirement_from_shell(tmp_pat
     assert "paper/baseline_characteristics_schema.json" in result["updated_files"]
     table_payload = load_json(paper_root / "baseline_characteristics_schema.json")
     assert table_payload["table_shell_id"] == "fenggaolab.org.medical-display-core::table1_baseline_characteristics"
-
-
-def test_cli_sync_display_pack_surface_emits_result_json(tmp_path: Path, capsys) -> None:
-    cli_module = importlib.import_module("med_autoscience.cli")
-    paper_root = build_sync_workspace(tmp_path)
-
-    exit_code = cli_module.main(["publication", "sync-display-pack", "--paper-root", str(paper_root)])
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-    assert exit_code == 0
-    assert payload["status"] == "synced"
-    assert "paper/risk_layering_monotonic_inputs.json" in payload["updated_files"]

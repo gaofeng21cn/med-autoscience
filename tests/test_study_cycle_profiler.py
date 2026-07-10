@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from tests.test_cli_cases.shared import write_profile
+from tests.profile_test_helpers import write_profile
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:

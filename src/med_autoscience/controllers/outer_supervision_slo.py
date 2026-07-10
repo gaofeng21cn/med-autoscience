@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.controllers.opl_unique_control_plane_boundary import consumer_migration
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -203,14 +204,8 @@ def _recommended_readback_command(
 
 
 def paper_mission_readback_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
-    command = (
-        "uv run python -m med_autoscience.cli paper-mission inspect "
-        f"--profile {_quote(str(profile_ref) if profile_ref is not None else '<profile>')}"
-    )
-    resolved_study_id = _text(study_id)
-    if resolved_study_id is not None:
-        command = f"{command} --study-id {_quote(resolved_study_id)}"
-    return f"{command} --format json"
+    del profile_ref, study_id
+    return f"{domain_entry_handler_target('paper-mission')}#inspect"
 
 
 def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:

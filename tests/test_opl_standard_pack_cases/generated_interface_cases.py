@@ -7,8 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience.opl_standard_pack import build_standard_pack
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS = {
     "direction_and_route_selection",
@@ -19,9 +17,11 @@ LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS = {
 
 
 def test_light_external_pattern_intake_projects_into_stage_surfaces_as_refs_only() -> None:
-    generated = build_standard_pack()
+    generated = json.loads(
+        (REPO_ROOT / "contracts/stage_control_plane.json").read_text(encoding="utf-8")
+    )
     stages_by_id = {
-        stage["stage_id"]: stage for stage in generated["stage_control_plane"]["stages"]
+        stage["stage_id"]: stage for stage in generated["stages"]
     }
 
     assert LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS <= set(stages_by_id)
@@ -73,9 +73,11 @@ def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
     assert bundle["product_entry"]["status"] == "ready"
     assert bundle["openai_tool"]["status"] == "ready"
     assert bundle["ai_sdk"]["status"] == "ready"
-    generated = build_standard_pack()
+    generated = json.loads(
+        (REPO_ROOT / "contracts/stage_control_plane.json").read_text(encoding="utf-8")
+    )
     assert {item["stage_id"] for item in bundle["stage_routes"]} == {
-        stage["stage_id"] for stage in generated["stage_control_plane"]["stages"]
+        stage["stage_id"] for stage in generated["stages"]
     }
 
 

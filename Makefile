@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
+.PHONY: test test-smoke test-regression test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
 
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
@@ -18,20 +18,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_delivery_authority_backfill_apply.py \
-	tests/test_cli_cases/public_entry_commands.py::test_workspace_authority_migration_audit_command_dispatches_read_only_controller \
-	tests/test_cli_cases/public_entry_commands.py::test_control_plane_cleanup_apply_is_not_public \
-	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller_options \
-	tests/test_cli_cases/authority_operation_commands.py \
-	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_description_documents_authority_operation_surfaces \
-	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_schema_accepts_authority_operation_options \
-	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_can_call_workspace_authority_migration_audit \
-	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_rejects_cleanup_apply_mode \
-	tests/mcp_server_cases/test_authority_operations.py::test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_group_commands \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary \
-	tests/test_truth_projection_surfaces.py \
+	 tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
 	tests/test_study_progress.py
 
@@ -47,10 +34,6 @@ test-smoke:
 
 test-regression:
 	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden"
-
-test-ci-preflight:
-	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
-	scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"
 
 test-fast:
 	scripts/run-pytest-clean.sh $(FAST_TESTS) -q

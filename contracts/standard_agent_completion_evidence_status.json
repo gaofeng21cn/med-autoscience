@@ -100,15 +100,14 @@
         "contracts/runtime/legacy-active-path-tombstones.json",
         "tests/standard_agent_purity_helpers.py",
         "tests/test_adapter_retirement_boundary.py",
-        "tests/test_cli_cases/public_entry_commands.py",
-        "src/med_autoscience/cli_public_surface.py"
+        "tests/test_domain_entry.py",
+        "src/med_autoscience/domain_entry.py"
       ],
       "observed_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
         "tests/test_adapter_retirement_boundary.py",
-        "tests/test_cli_cases/public_entry_commands.py",
-        "tests/test_cli_cases/public_entry_commands.py::test_runtime_legacy_ds_retire_public_surface_is_retired",
-        "src/med_autoscience/cli_public_surface.py#GROUPED_SUBCOMMANDS",
+        "tests/test_domain_entry.py",
+        "src/med_autoscience/domain_entry.py#MedAutoScienceDomainEntry",
         "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
         "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
       ],
@@ -230,7 +229,7 @@
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases",
-        "contracts/agent_tool_arsenal.json#/scientific_capability_registry/owner_consumption_evidence_schema/standard_agent_feedback_loop_tail",
+        "contracts/action_catalog.json#/actions/12",
         "src/med_autoscience/scientific_capability_registry.py::build_capability_owner_consumption_evidence/standard_agent_feedback_loop_tail",
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_builds_nonblocking_consumption_evidence_without_owner_refs",
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_consumption_evidence_with_owner_refs_stays_non_authorizing"

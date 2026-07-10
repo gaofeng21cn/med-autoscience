@@ -1,7 +1,7 @@
 {
   "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
   "consumes_agent_pack_refs": true,
-  "domain_id": "med-autoscience",
+  "domain_id": "mas",
   "domain_repo_can_own_generated_surface": false,
   "generated_surface_owner": "one-person-lab",
   "generated_surface_policy": {
@@ -23,6 +23,15 @@
       "current_package"
     ],
     "must_read_semantics_from": "agent/"
+  },
+  "runtime_environment_handoff": {
+    "owner": "one-person-lab",
+    "requirement_profile_ref": "contracts/runtime_environment_requirements.json",
+    "substrate_contract_ref": "one-person-lab:contracts/opl-framework/runtime-environment-substrate-contract.json",
+    "prepare_command": "opl env prepare --domain mas --profile analysis-display --platform <platform> --requirement-profile contracts/runtime_environment_requirements.json --artifact-root <artifact_root> --apply --json",
+    "run_command": "opl env run --domain mas --profile analysis-display --artifact-root <artifact_root> -- <command>",
+    "mas_can_provision_environment": false,
+    "profile_counts_as_domain_ready": false
   },
   "generated_surfaces": [
     {
@@ -137,7 +146,7 @@
       },
       {
         "body_included": false,
-        "ref": "tests/test_opl_standard_pack.py",
+        "ref": "tests/test_opl_standard_pack_cases/generated_interface_cases.py",
         "role": "standard_pack_contract_test_surface"
       },
       {

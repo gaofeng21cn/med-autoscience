@@ -99,7 +99,6 @@
     "contracts/stage_run_kernel_profile.json",
     "contracts/progress_first_safety_envelope.json",
     "contracts/foundry_agent_series.json",
-    "contracts/agent_tool_arsenal.json",
     "contracts/stage_control_plane.json"
   ],
   "external_engineering_principles": {

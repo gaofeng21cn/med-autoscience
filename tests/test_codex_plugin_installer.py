@@ -12,13 +12,10 @@ def test_repo_specific_plugin_installers_are_physically_retired() -> None:
     assert not (REPO_ROOT / "src" / "med_autoscience" / "codex_plugin_installer.py").exists()
 
 
-def test_python_cli_installation_uses_standard_project_scripts() -> None:
+def test_python_project_defers_cli_and_mcp_generation_to_opl() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["scripts"] == {
-        "medautosci": "med_autoscience.cli:entrypoint",
-        "medautosci-mcp": "med_autoscience.mcp_server:entrypoint",
-    }
+    assert "scripts" not in pyproject["project"]
 
 
 def test_codex_plugin_is_a_tracked_opl_materialization_source() -> None:

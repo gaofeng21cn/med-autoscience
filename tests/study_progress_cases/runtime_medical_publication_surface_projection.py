@@ -17,7 +17,6 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -142,7 +141,6 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     )
 
     result = module.read_study_progress(profile=profile, study_id="002-risk")
-    compact = mcp_projection.compact_study_progress_projection(result)
 
     surface = result["runtime_medical_publication_surface"]
     assert surface["authority"] == "runtime_report_projection_only"
@@ -159,9 +157,6 @@ def test_study_progress_projects_newer_runtime_medical_publication_surface_when_
     assert "参考文献引用覆盖仍不完整。" in result["current_blockers"]
     assert "图表布局 sidecar 仍不完整。" in result["user_visible_projection"]["current_blockers"]
     assert "参考文献引用覆盖仍不完整。" in result["status_narration_contract"]["current_blockers"]
-    assert compact["runtime_medical_publication_surface"]["status"] == "blocked"
-    assert compact["runtime_medical_publication_surface"]["study_shadow"]["status"] == "ready"
-    assert compact["runtime_medical_publication_surface"]["top_hits"][0]["phrase"] == "F5"
 
 
 def test_runtime_medical_publication_surface_projects_structured_and_invalid_blockers(

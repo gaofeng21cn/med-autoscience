@@ -25,7 +25,7 @@ def build_generated_surface_handoff(
             },
             {
                 "surface_id": "mcp",
-                "current_paths": ["src/med_autoscience/mcp_server/__init__.py"],
+                "current_paths": ["src/med_autoscience/domain_entry.py"],
                 "current_role": "domain_handler_tool_target_refs_only",
                 "target_role": "opl_generated_mcp_descriptor_surface",
             },

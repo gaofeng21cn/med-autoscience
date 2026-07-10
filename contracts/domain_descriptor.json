@@ -6,7 +6,7 @@
     "opl_can_write_domain_truth": false,
     "opl_can_write_memory_body": false
   },
-  "domain_id": "med-autoscience",
+  "domain_id": "mas",
   "domain_label": "Med Auto Science",
   "domain_repo_can_own_generated_surface": false,
   "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
@@ -25,7 +25,6 @@
   "schema_version": 1,
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
-    "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
     "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
     "domain_projection_profile": "contracts/domain_projection_profile.json",
     "domain_route_profile": "contracts/domain_route_profile.json",
@@ -33,10 +32,10 @@
     "foundry_agent_series_policy_release": "contracts/opl-framework/foundry-agent-series-policy-release.json",
     "functional_privatization_audit": "contracts/functional_privatization_audit.json",
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
-    "hosted_ordinary_path_consumption": "contracts/hosted_ordinary_path_consumption.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
     "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
+    "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "stage_control_plane": "contracts/stage_control_plane.json"
   },
   "surface_kind": "domain_agent_descriptor"

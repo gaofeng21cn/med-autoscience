@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shlex
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +31,11 @@ from med_autoscience.publication_eval_record.validation import (
     _ALLOWED_GAP_TYPES,
     _REQUIRED_DELIVERY_CONTEXT_REF_KEYS,
     _REQUIRED_RUNTIME_CONTEXT_REF_KEYS,
+)
+
+AI_REVIEWER_RECORD_OWNER_TARGET = (
+    "med_autoscience.controllers.ai_reviewer_publication_eval:"
+    "materialize_ai_reviewer_publication_eval_record"
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -134,22 +138,9 @@ def _profile_ref(profile: WorkspaceProfile) -> str | None:
     return str(Path(ref).expanduser().resolve()) if ref is not None else None
 
 
-def _repo_local_cli_prefix() -> str:
-    repo_root = Path(__file__).resolve().parents[5]
-    python_path = f"{repo_root / 'src'}:{repo_root}"
-    return f"PYTHONPATH={shlex.quote(python_path)} python3 -m med_autoscience.cli"
-
-
 def _command_for_payload_ref(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> str:
-    profile_ref = _profile_ref(profile)
-    profile_arg = f"--profile {shlex.quote(profile_ref)} " if profile_ref is not None else "--profile <profile.toml> "
-    return (
-        f"{_repo_local_cli_prefix()} publication materialize-ai-reviewer-record "
-        f"{profile_arg}"
-        f"--study-id {shlex.quote(study_id)} "
-        f"--payload-file {shlex.quote(payload_ref)} "
-        "--build-production-trace"
-    )
+    del profile, study_id, payload_ref
+    return AI_REVIEWER_RECORD_OWNER_TARGET
 
 
 def _current_medical_prose_review_ref(
@@ -305,11 +296,7 @@ def build_ai_reviewer_record_production_request(
         "required_input_refs": required_inputs,
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
-        "owner_callable_command": (
-            f"{_repo_local_cli_prefix()} publication materialize-ai-reviewer-record --profile <profile.toml> "
-            "--study-id <study-id> --payload-file <ai_reviewer_record_payload.json> "
-            "--build-production-trace"
-        ),
+        "owner_callable_command": AI_REVIEWER_RECORD_OWNER_TARGET,
         "owner_callable_runtime": "repo_local_python_module",
         "owner_callable_profile_required": True,
         "reviewer_operating_system_contract": {

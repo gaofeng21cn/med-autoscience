@@ -7,7 +7,6 @@ from tests.study_progress_cases.completion_evidence_projection import *  # noqa:
 from tests.study_progress_cases.delivery_inspection_visibility import *  # noqa: F403
 from tests.study_progress_cases.domain_routeback_currentness_projection import *  # noqa: F403
 from tests.study_progress_cases.evidence_gap_projection import *  # noqa: F403
-from tests.study_progress_cases.medical_paper_ops_health_projection import *  # noqa: F403
 from tests.study_progress_cases.medical_readiness_v2_projection import *  # noqa: F403
 from tests.study_progress_cases.milestone_parking_projection import *  # noqa: F403
 from tests.study_progress_cases.open_auto_research_projection import *  # noqa: F403

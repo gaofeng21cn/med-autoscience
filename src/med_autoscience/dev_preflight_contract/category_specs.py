@@ -41,14 +41,12 @@ def build_category_specs(
             "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
             "tests/test_codex_plugin.py",
             "tests/test_codex_plugin_installer.py",
-            "tests/test_codex_plugin_installer_script.py",
             "tests/test_codex_plugin_scaffold.py",
         ),
         prefix_paths=(),
         commands=(
             f"{pytest_clean_runner} tests/test_codex_plugin.py -q",
             f"{pytest_clean_runner} tests/test_codex_plugin_installer.py -q",
-            f"{pytest_clean_runner} tests/test_codex_plugin_installer_script.py -q",
             f"{pytest_clean_runner} tests/test_codex_plugin_scaffold.py -q",
         ),
     ),
@@ -113,12 +111,10 @@ def build_category_specs(
         category_id="data_asset_operating_surface",
         exact_paths=(
             "contracts/data_asset_operating_contract.json",
-            "src/med_autoscience/cli/workspace_data_commands.py",
             "src/med_autoscience/controllers/data_assets.py",
             "src/med_autoscience/controllers/data_assets/layout.py",
             "src/med_autoscience/controllers/data_assets/public_registry.py",
             "src/med_autoscience/controllers/data_assets/release_inventory.py",
-            "tests/test_cli_cases/workspace_and_data_asset_commands.py",
             "tests/test_data_asset_operating_contract.py",
             "tests/test_data_assets.py",
         ),
@@ -127,8 +123,7 @@ def build_category_specs(
             (
                 f"{pytest_clean_runner} "
                 "tests/test_data_asset_operating_contract.py "
-                "tests/test_data_assets.py "
-                "tests/test_cli_cases/workspace_and_data_asset_commands.py -q"
+                "tests/test_data_assets.py -q"
             ),
         ),
     ),
@@ -249,7 +244,6 @@ def build_category_specs(
         category_id="standard_agent_pack_surface",
         exact_paths=(
             "contracts/action_catalog.json",
-            "contracts/agent_tool_arsenal.json",
             "contracts/artifact_locator_contract.json",
             "contracts/authority_kernel_inventory.json",
             "contracts/domain_descriptor.json",
@@ -257,7 +251,6 @@ def build_category_specs(
             "contracts/generated_surface_handoff.json",
             "contracts/foundry_agent_series.json",
             "contracts/golden_path_profile.json",
-            "contracts/hosted_ordinary_path_consumption.json",
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/memory_descriptor.json",
             "contracts/owner_receipt_contract.json",
@@ -276,13 +269,9 @@ def build_category_specs(
             "src/med_autoscience/overlay/templates/medical-research-figure-integrity.template.md",
             "src/med_autoscience/overlay/templates/medical-research-prisma-flow.template.md",
             "src/med_autoscience/overlay/templates/medical-research-skill-content-patterns.block.md",
-            "src/med_autoscience/hosted_ordinary_path_consumption.py",
             "src/med_autoscience/resources/stage_route_contract.yaml",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
-            "tests/test_agent_tool_arsenal_hosted_consumption_mcp.py",
-            "tests/test_hosted_ordinary_path_preflight_contract.py",
-            "tests/test_hosted_ordinary_path_consumption.py",
         ),
         prefix_paths=(
             "agent/knowledge/",
@@ -380,14 +369,12 @@ def build_category_specs(
             "contracts/agent_lab_handoff.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
-            "tests/test_opl_standard_pack.py",
         ),
         prefix_paths=(
             "contracts/production_acceptance/",
         ),
         commands=(
             f"{pytest_clean_runner} tests/test_mas_production_acceptance.py -q",
-            f"{pytest_clean_runner} tests/test_opl_standard_pack.py -q",
         ),
     ),
     spec_type(
@@ -440,8 +427,6 @@ def build_category_specs(
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/control_intent.py",
-            "src/med_autoscience/cli/__init__.py",
-            "src/med_autoscience/mcp_server/__init__.py",
             "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             "src/med_autoscience/controllers/provider_admission/managed_wakeup.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
@@ -455,11 +440,7 @@ def build_category_specs(
             "tests/control_plane_fixtures.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
-            "tests/test_cli_cases/public_entry_commands.py",
-            "tests/test_mcp_server.py",
             "tests/test_runtime_protocol_paper_artifacts.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
             "tests/test_autonomy_state_surface.py",
             "tests/test_study_delivery_sync.py",
             "tests/test_truth_projection_surfaces.py",
@@ -475,7 +456,6 @@ def build_category_specs(
         category_id="owner_answer_candidate_intake_surface",
         exact_paths=(
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
-            "src/med_autoscience/cli/current_owner_delta_owner_answer_commands.py",
             "tests/test_owner_answer_candidate_intake.py",
         ),
         prefix_paths=(),
@@ -487,26 +467,11 @@ def build_category_specs(
         category_id="study_owner_gate_decision_surface",
         exact_paths=(
             "src/med_autoscience/controllers/study_interventions.py",
-            "src/med_autoscience/cli/study_owner_gate_commands.py",
             "tests/test_study_interventions.py",
-            "tests/test_cli_cases/domain_action_request_materializer_command.py",
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_study_interventions.py "
-            "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
-        ),
-    ),
-    spec_type(
-        category_id="cli_parser_surface",
-        exact_paths=(
-            "src/med_autoscience/cli/parser.py",
-        ),
-        prefix_paths=(),
-        commands=(
-            f"{pytest_clean_runner} "
-            "tests/test_study_runtime_execution_evidence_adoption_cases/"
-            "test_standard_agent_purity_boundary.py -q",
+            f"{pytest_clean_runner} tests/test_study_interventions.py -q",
         ),
     ),
     spec_type(

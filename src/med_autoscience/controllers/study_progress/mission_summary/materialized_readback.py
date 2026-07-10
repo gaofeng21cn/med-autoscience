@@ -11,7 +11,7 @@ from med_autoscience.paper_mission_consumption_readback import (
 from med_autoscience.paper_mission_stage_closure_ledger import (
     latest_paper_mission_stage_closure_decision_readback,
 )
-from med_autoscience.cli.paper_mission_commands.stage_closure_terminalizer import (
+from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
     latest_current_stage_closure_for_consumption,
 )
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (

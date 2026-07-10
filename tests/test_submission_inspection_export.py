@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 from tests.control_plane_route_helpers import writable_route_context
-from tests.test_cli_cases.shared import write_profile
+from tests.profile_test_helpers import write_profile
 from tests.test_study_delivery_sync_cases.shared import dump_json, make_delivery_workspace, write_text
 
 
@@ -217,50 +217,3 @@ def test_export_inspection_package_reuses_current_authorized_package_when_curren
     )
     assert manifest["source_package_status"] == "authorized_current_package"
     assert manifest["authority"]["can_authorize_submission_dispatch"] is False
-
-
-def test_export_inspection_package_cli_and_delivery_inspector_projection(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    workspace_root = tmp_path / "repo"
-    study_root = workspace_root / "studies" / "001-blocked-style"
-    paper_root = study_root / "paper"
-    profile_path = tmp_path / "profile.local.toml"
-    _write_profile_for_workspace(profile_path, workspace_root=workspace_root)
-    write_text(study_root / "study.yaml", "study_id: 001-blocked-style\n")
-    write_text(paper_root / "draft.md", "# Draft\n")
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "export-inspection-package",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            study_root.name,
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    payload = json.loads(captured.out)
-    assert payload["status"] == "inspection_package_materialized"
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "delivery-inspect",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            study_root.name,
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-    assert exit_code == 0
-    inspection = json.loads(captured.out)
-    assert inspection["inspection_package"]["status"] == "current"
-    assert inspection["inspection_package"]["inspection_only"] is True
-    assert inspection["inspection_package"]["can_submit"] is False
-    assert "export-inspection-package" in inspection["next_inspection_export_command"]

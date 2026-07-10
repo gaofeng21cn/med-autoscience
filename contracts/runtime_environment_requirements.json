@@ -1,0 +1,38 @@
+{
+  "surface_kind": "opl_runtime_environment_requirement_profile",
+  "version": "opl-runtime-environment-requirement-profile.v1",
+  "domain_id": "mas",
+  "profile_id": "analysis-display",
+  "ownership_boundary": {
+    "profile_owner": "MedAutoScience",
+    "runtime_environment_owner": "OPL Framework",
+    "substrate_contract_ref": "one-person-lab:contracts/opl-framework/runtime-environment-substrate-contract.json",
+    "profile_counts_as_domain_truth": false,
+    "profile_counts_as_runtime_ready": false,
+    "profile_counts_as_visual_quality_verdict": false
+  },
+  "profiles": [
+    {
+      "profile_id": "analysis-display",
+      "purpose": "R dependencies required by MAS analysis and medical display handlers.",
+      "runtime_binaries": [
+        {
+          "name": "Rscript",
+          "required": true
+        }
+      ],
+      "language_packages": {
+        "r": [
+          {
+            "name": "ComplexHeatmap",
+            "required": true,
+            "source": {
+              "type": "bioconductor"
+            }
+          }
+        ],
+        "python": []
+      }
+    }
+  ]
+}

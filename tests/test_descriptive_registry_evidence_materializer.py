@@ -327,21 +327,3 @@ def test_materialized_reporting_audit_accepts_cohort_flow_shell(tmp_path: Path) 
 
     assert "missing_cohort_flow_shell" not in result["blockers"]
     assert "missing_cohort_flow" not in result["blockers"]
-
-
-def test_cli_parser_recognizes_descriptive_registry_evidence_command() -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    parser = cli.build_parser()
-    args = parser.parse_args(
-        [
-            "descriptive-registry-evidence-materialize",
-            "--study-root",
-            "study",
-            "--paper-root",
-            "paper",
-            "--dry-run",
-        ]
-    )
-    assert args.command == "descriptive-registry-evidence-materialize"
-    assert args.dry_run is True
-    assert args.apply is False

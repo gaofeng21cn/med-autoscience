@@ -212,32 +212,6 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     assert handoff["writer_handoff"]["writer_state"] == "queued"
 
 
-def test_autonomy_evidence_cli_dispatches_stability_and_workspace_guarded_apply(
-    monkeypatch, tmp_path: Path, capsys
-) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    calls: dict[str, object] = {}
-
-    def capture(owner: str):
-        def build(**kwargs):
-            calls[owner] = kwargs
-            return {"surface": owner}
-
-        return build
-
-    monkeypatch.setattr(cli.paper_autonomy_stability_evidence, "build_paper_autonomy_stability_evidence", capture("stability"))
-    monkeypatch.setattr(cli.real_paper_autonomy_soak_inventory, "build_real_paper_autonomy_guarded_apply_proof", capture("guarded_apply"))
-
-    assert cli.main(["runtime", "paper-autonomy-stability-evidence", "--yang-root", str(tmp_path), "--profiles", "profile.toml", "--studies", "001"]) == 0
-    assert json.loads(capsys.readouterr().out)["surface"] == "stability"
-    assert cli.main(["real-paper-autonomy-guarded-apply-proof", "--yang-root", str(tmp_path), "--target-study", "DM002"]) == 0
-    assert json.loads(capsys.readouterr().out)["surface"] == "guarded_apply"
-    assert calls == {
-        "stability": {"yang_root": tmp_path, "profile_paths": ("profile.toml",), "study_ids": ("001",)},
-        "guarded_apply": {"yang_root": tmp_path, "profile_paths": None, "target_studies": ("DM002",)},
-    }
-
-
 def test_progress_degradation_ignores_migrated_ai_reviewer_tombstone(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_degradation_evidence")
     workspace = tmp_path / "workspace"

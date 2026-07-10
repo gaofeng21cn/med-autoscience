@@ -145,8 +145,8 @@
       "mas_runtime_authority": false
     },
     {
-      "surface_id": "agent_tool_arsenal_scientific_capability_registry",
-      "disposition": "retained_read_only_projection",
+      "surface_id": "scientific_capability_registry_metadata",
+      "disposition": "domain_handler_target_for_opl_capability_runtime",
       "replacement_ref": "opl:capability-runtime",
       "tombstone_ref": null,
       "retained_mas_role": "declarative_capability_metadata_projection",

@@ -1,22 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import json
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_COMMANDS_BY_COMMAND
-from med_autoscience.controllers import (
-    artifact_lifecycle_operations_report,
-    continuous_soak_summary,
-    delivery_authority_backfill_apply,
-    workspace_authority_migration_audit,
-)
 from med_autoscience.controllers.study_launch_projection import launch_study
 from med_autoscience.controllers.study_task_submission import submit_study_task
 from med_autoscience.controllers.study_progress.projection import read_study_progress
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
-from med_autoscience.cli.paper_mission_commands import build_paper_mission_readback
+from med_autoscience.paper_mission_domain import build_paper_mission_readback
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -53,8 +47,6 @@ RESEARCH_INTEGRITY_FORBIDDEN_AUTHORITY_FLAGS = (
     "can_authorize_publication_readiness",
     "can_authorize_submission_readiness",
 )
-
-
 class MedAutoScienceDomainEntry:
     """给 OPL framework、direct MAS skill 和 CLI 复用的 service-safe structured entry。"""
 
@@ -66,7 +58,7 @@ class MedAutoScienceDomainEntry:
         self._profile_loader = profile_loader or load_profile
 
     def dispatch(self, request: Mapping[str, Any]) -> dict[str, Any]:
-        command = _require_command(request)
+        command = _require_command(request).replace("_", "-")
         if command == "paper-mission":
             _assert_required_fields(
                 command=command,
@@ -97,8 +89,8 @@ class MedAutoScienceDomainEntry:
 
         _assert_required_fields(command=command, required_fields=spec.required_fields, request=request)
 
-        if command in AUTHORITY_OPERATION_COMMANDS_BY_COMMAND:
-            payload = _dispatch_authority_operation(command, request)
+        if command in {"domain-handler-export", "domain-handler-dispatch"}:
+            payload = _dispatch_domain_handler(command, request)
             return _with_command(command, payload)
 
         if command in DISPLAY_PACK_DOMAIN_COMMANDS:
@@ -107,6 +99,18 @@ class MedAutoScienceDomainEntry:
 
         if command in RESEARCH_INTEGRITY_DOMAIN_COMMANDS:
             payload = _dispatch_research_integrity_command(command, request)
+            return _with_command(command, payload)
+
+        if command in {
+            "study-state-matrix",
+            "export-inspection-package",
+            "publication-aftercare-plan",
+            "external-learning-adoption-closure",
+            "scientific-capability-registry",
+            "mainline-status",
+            "mainline-phase",
+        }:
+            payload = _dispatch_domain_capability(command, request)
             return _with_command(command, payload)
 
         profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
@@ -135,11 +139,11 @@ def _assert_required_fields(
 
 
 def _with_command(command: str, payload: dict[str, Any]) -> dict[str, Any]:
-        if not isinstance(payload, dict):
-            raise TypeError(f"domain entry `{command}` 返回值必须是 mapping。")
-        if "command" in payload:
-            return payload
-        return {"command": command, **payload}
+    if not isinstance(payload, dict):
+        raise TypeError(f"domain entry `{command}` 返回值必须是 mapping。")
+    if "command" in payload:
+        return payload
+    return {"command": command, **payload}
 
 
 def _dispatch_profile_command(
@@ -220,19 +224,6 @@ def _sequence_value(value: Any) -> tuple[Any, ...]:
     return (value,)
 
 
-def _workspace_roots_value(value: Any) -> tuple[Path, ...]:
-    roots = _sequence_value(value)
-    if not roots:
-        raise ValueError("authority operation 缺少 workspace_roots。")
-    paths: list[Path] = []
-    for item in roots:
-        text = str(item).strip()
-        if not text:
-            raise ValueError("authority operation workspace_roots 不能包含空值。")
-        paths.append(Path(text).expanduser())
-    return tuple(paths)
-
-
 def _bool_value(value: Any, *, default: bool = False) -> bool:
     if value is None:
         return default
@@ -243,12 +234,6 @@ def _optional_int_value(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
-
-
-def _optional_float_value(value: Any) -> float | None:
-    if value is None:
-        return None
-    return float(value)
 
 
 def _optional_mapping_value(value: Any) -> Mapping[str, Any] | None:
@@ -533,43 +518,108 @@ def _optional_research_integrity_mapping(value: Any, field_name: str) -> Mapping
     return value
 
 
-def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
-    workspace_roots = _workspace_roots_value(request.get("workspace_roots"))
-    if command == "workspace-authority-migration-audit":
-        return workspace_authority_migration_audit.run_migration_audit(
-            workspace_roots=workspace_roots,
-            dry_run=True,
+def _dispatch_domain_handler(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+    if command == "domain-handler-export":
+        from med_autoscience.controllers.owner_route_handoff.domain_handler_export import (
+            export_family_domain_handler,
         )
-    if command == "delivery-authority-backfill-apply":
-        return delivery_authority_backfill_apply.run_backfill_apply(
-            workspace_roots=workspace_roots,
-            apply=_bool_value(request.get("apply")),
-            authority_snapshot=_optional_mapping_value(request.get("authority_snapshot")),
+
+        profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
+        return export_family_domain_handler(
+            profile=load_profile(profile_ref),
+            profile_ref=profile_ref,
+            opl_production_proof_ref=_optional_text(request.get("opl_production_proof_ref")),
+            study_ids=tuple(str(item) for item in _sequence_value(request.get("study_ids"))),
         )
-    if command == "artifact-lifecycle-report":
-        return artifact_lifecycle_operations_report.run_lifecycle_operations_report(
-            workspace_roots=workspace_roots,
-            deep=_bool_value(request.get("deep")),
-            max_files=_optional_int_value(request.get("max_files")),
-            max_seconds=_optional_float_value(request.get("max_seconds")),
+
+    task_path = Path(str(request["task_ref"])).expanduser().resolve()
+    task = json.loads(task_path.read_text(encoding="utf-8"))
+    if not isinstance(task, Mapping):
+        raise ValueError("domain handler task 必须是 JSON object。")
+    from med_autoscience.paper_mission_domain import (
+        DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+        paper_mission_domain_handler_dispatch_receipt,
+    )
+
+    if task.get("task_kind") == DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND:
+        return paper_mission_domain_handler_dispatch_receipt(
+            task=task,
+            task_path=task_path,
+            load_profile=load_profile,
         )
-    if command == "storage-governance-report":
-        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
-            workspace_roots=workspace_roots,
-            deep=_bool_value(request.get("deep")),
-            max_files=_optional_int_value(request.get("max_files")),
-            max_seconds=_optional_float_value(request.get("max_seconds")),
+
+    from med_autoscience.controllers.owner_route_handoff.dispatch_orchestration import dispatch_family_domain_handler_task
+
+    return dispatch_family_domain_handler_task(task_path=task_path)
+
+
+def _dispatch_domain_capability(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+    if command == "study-state-matrix":
+        from med_autoscience.controllers import domain_status_projection, study_state_matrix
+
+        profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
+        return study_state_matrix.build_study_state_matrix(
+            profile=load_profile(profile_ref),
+            domain_status_projection=domain_status_projection,
+            study_ids=tuple(str(item) for item in _sequence_value(request.get("study_ids"))),
+            entry_mode=_optional_text(request.get("entry_mode")),
         )
-        return {
-            **result,
-            "surface": "storage_governance_report",
-            "source_surface": result.get("surface"),
-        }
-    if command == "artifact-lifecycle-continuous-soak-summary":
-        return continuous_soak_summary.build_continuous_soak_summary(
-            workspace_roots=workspace_roots,
-            deep=_bool_value(request.get("deep")),
-            max_files=_optional_int_value(request.get("max_files")),
-            max_seconds=_optional_float_value(request.get("max_seconds")),
+    if command == "export-inspection-package":
+        from med_autoscience.controllers.submission_inspection_export import export_inspection_package
+
+        profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
+        return export_inspection_package(
+            profile=load_profile(profile_ref),
+            profile_ref=profile_ref,
+            study_id=str(request["study_id"]),
+            publication_profile=_optional_text(request.get("publication_profile")),
+            force_materialize=_bool_value(request.get("force_materialize")),
+            source="domain-entry",
         )
-    raise ValueError(f"不支持的 authority operation command: {command}")
+    if command == "publication-aftercare-plan":
+        from med_autoscience.controllers.publication_aftercare import build_publication_aftercare_plan
+
+        return build_publication_aftercare_plan(
+            study_root=Path(str(request["study_root"])),
+            quest_root=(Path(str(request["quest_root"])) if request.get("quest_root") else None),
+        )
+    if command == "external-learning-adoption-closure":
+        from med_autoscience.external_learning_adoption_closure import build_external_learning_adoption_closure
+
+        return build_external_learning_adoption_closure()
+    if command == "scientific-capability-registry":
+        return _dispatch_scientific_capability(request)
+    from med_autoscience.controllers import mainline_status
+
+    if command == "mainline-status":
+        return mainline_status.read_mainline_status()
+    return mainline_status.read_mainline_phase_status(
+        _optional_text(request.get("selector")) or "current"
+    )
+
+
+def _dispatch_scientific_capability(request: Mapping[str, Any]) -> dict[str, Any]:
+    from med_autoscience import scientific_capability_registry as registry
+
+    mode = str(request["mode"])
+    if mode == "summary":
+        return registry.build_scientific_capability_registry_summary()
+    if mode == "inventory":
+        return registry.build_scientific_capability_registry_inventory()
+    if mode == "index":
+        return registry.build_scientific_capability_registry()
+    current_owner_delta = _optional_mapping_value(request.get("current_owner_delta"))
+    if mode == "resolve":
+        return registry.resolve_scientific_capabilities(current_owner_delta=current_owner_delta)
+    if mode != "invoke":
+        raise ValueError(f"不支持的 scientific capability mode: {mode}")
+    capability_id = _optional_text(request.get("capability_id"))
+    if not capability_id:
+        raise ValueError("scientific capability invoke 缺少 capability_id。")
+    return registry.invoke_scientific_capability(
+        capability_id=capability_id,
+        current_owner_delta=current_owner_delta,
+        study_root=_optional_text(request.get("study_root")),
+        apply=_bool_value(request.get("apply")),
+        payload=_optional_mapping_value(request.get("payload")),
+    )

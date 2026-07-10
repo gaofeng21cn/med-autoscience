@@ -18,7 +18,6 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -95,8 +94,6 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    compact = mcp_projection.compact_study_progress_projection(result)
-    markdown = mcp_projection.render_mcp_study_progress_markdown(result)
 
     dashboard = result["opl_current_control_state_handoff"]
     assert dashboard["surface_kind"] == "opl_current_control_state_provider_attempt_handoff"
@@ -111,5 +108,3 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
         dashboard["stage_progress_log"]["authority_boundary"]["can_authorize_quality_verdict"]
         is False
     )
-    assert compact["opl_current_control_state_handoff"]["stage_progress_log"]["attempt_count"] == 3
-    assert "stage_progress_log: attempts `3`" in markdown

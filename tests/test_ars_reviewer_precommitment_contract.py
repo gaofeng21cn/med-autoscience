@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from med_autoscience.opl_standard_pack import build_standard_pack
 from med_autoscience.stage_quality_contract import (
     JOURNAL_FAMILY_QUALITY_PACK_IDS,
     build_stage_quality_pack_contract,
@@ -104,7 +103,14 @@ def test_stage_quality_contract_exposes_descriptor_only_data_access_isolation_me
 
 
 def test_stage_control_metadata_projects_data_access_isolation_refs_without_authority() -> None:
-    stage_control_plane = build_standard_pack()["stage_control_plane"]
+    import json
+    from pathlib import Path
+
+    stage_control_plane = json.loads(
+        (Path(__file__).resolve().parents[1] / "contracts/stage_control_plane.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     for stage in stage_control_plane["stages"]:
         assert stage["quality_pack_projection"]["data_access_ground_truth_isolation_ref"] == (

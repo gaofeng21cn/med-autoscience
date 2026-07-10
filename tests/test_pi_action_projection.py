@@ -5,7 +5,6 @@ from med_autoscience.controllers.pi_action_projection import (
     build_pi_action_projection,
     compact_pi_action_projection,
 )
-from med_autoscience.mcp_server.study_progress_projection import compact_study_progress_projection
 
 
 def test_pi_action_projection_maps_study_progress_surfaces_to_doctor_categories() -> None:
@@ -149,24 +148,3 @@ def test_compact_pi_action_projection_preserves_projection_only_boundary() -> No
             "can_mutate_runtime": False,
         },
     }
-
-
-def test_mcp_compact_study_progress_keeps_pi_action_projection() -> None:
-    full = {
-        "schema_version": 1,
-        "study_id": "003-package",
-        "current_stage": "manual_finishing",
-        "next_system_action": "进入 submission package rebuild",
-        "pi_action_projection": build_pi_action_projection(
-            {
-                "study_id": "003-package",
-                "next_system_action": "进入 submission package rebuild",
-            }
-        ),
-    }
-
-    compact = compact_study_progress_projection(full)
-
-    assert compact["pi_action_projection"]["surface"] == "pi_action_projection"
-    assert compact["pi_action_projection"]["primary_category"] == "进入 submission package rebuild"
-    assert compact["pi_action_projection"]["authority_contract"]["can_authorize_submission"] is False

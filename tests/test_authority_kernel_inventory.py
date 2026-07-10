@@ -101,9 +101,9 @@ def test_authority_kernel_inventory_covers_required_categories_and_fields() -> N
 
 def test_authority_kernel_inventory_forbidden_authority_is_complete() -> None:
     module = importlib.import_module("med_autoscience.authority_kernel_inventory")
-    arsenal = importlib.import_module("med_autoscience.agent_tool_arsenal")
+    schema = importlib.import_module("med_autoscience.authority_kernel_inventory.schema")
 
-    expected = set(arsenal.FORBIDDEN_DOMAIN_AUTHORITY)
+    expected = set(schema.FORBIDDEN_DOMAIN_AUTHORITY)
     inventory = module.build_authority_kernel_inventory()
 
     assert set(inventory["forbidden_domain_authority"]) == expected

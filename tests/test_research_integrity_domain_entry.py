@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
+
+
+def _action_catalog() -> dict[str, object]:
+    path = Path(__file__).resolve().parents[1] / "contracts/action_catalog.json"
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descriptor() -> None:
-    action_catalog = importlib.import_module("med_autoscience.action_catalog")
-
-    catalog = action_catalog.build_mas_action_catalog()
+    catalog = _action_catalog()
     actions = {item["action_id"]: item for item in catalog["actions"]}
-    mcp_projection = action_catalog.action_catalog_metadata_by_mcp_tool(catalog)
     action = actions["research_integrity_gate_input"]
     boundary = action["authority_boundary"]
 
@@ -19,12 +23,8 @@ def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descr
     assert action["supported_surfaces"]["mcp"]["surface_kind"] == "research_integrity_gate_input_bundle"
     assert "only produces evidence" in action["summary"]
     assert "does not write publication authority" in action["summary"]
-    assert mcp_projection["research_integrity_gate_input"]["input_schema"]["properties"]["payload"] == {
-        "type": "object"
-    }
-    assert mcp_projection["research_integrity_gate_input"]["input_schema"]["properties"]["reference_checks"] == {
-        "type": "array"
-    }
+    assert "payload" in action["workspace_locator_fields"]
+    assert "reference_checks" in action["workspace_locator_fields"]
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["can_write_mas_study_truth"] is False
     assert boundary["can_write_publication_eval_latest"] is False
@@ -45,11 +45,8 @@ def test_action_catalog_exposes_research_integrity_gate_input_as_read_only_descr
 
 
 def test_action_catalog_exposes_research_integrity_reference_verification_descriptor() -> None:
-    action_catalog = importlib.import_module("med_autoscience.action_catalog")
-
-    catalog = action_catalog.build_mas_action_catalog()
+    catalog = _action_catalog()
     actions = {item["action_id"]: item for item in catalog["actions"]}
-    mcp_projection = action_catalog.action_catalog_metadata_by_mcp_tool(catalog)
     action = actions["research_integrity_reference_verification"]
     boundary = action["authority_boundary"]
 
@@ -61,9 +58,7 @@ def test_action_catalog_exposes_research_integrity_reference_verification_descri
     assert action["supported_surfaces"]["mcp"]["public_runtime"] is False
     assert "complete-reference verification lane" in action["summary"]
     assert "does not write publication authority" in action["summary"]
-    assert mcp_projection["research_integrity_reference_verification"]["input_schema"]["properties"][
-        "references"
-    ] == {"type": "array"}
+    assert "references" in action["workspace_locator_fields"]
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["can_write_mas_study_truth"] is False
     assert boundary["can_write_publication_eval_latest"] is False
@@ -84,11 +79,8 @@ def test_action_catalog_exposes_research_integrity_reference_verification_descri
 
 
 def test_action_catalog_exposes_research_integrity_stage_hook_descriptor() -> None:
-    action_catalog = importlib.import_module("med_autoscience.action_catalog")
-
-    catalog = action_catalog.build_mas_action_catalog()
+    catalog = _action_catalog()
     actions = {item["action_id"]: item for item in catalog["actions"]}
-    mcp_projection = action_catalog.action_catalog_metadata_by_mcp_tool(catalog)
     action = actions["research_integrity_review_publication_gate_stage_hook"]
     boundary = action["authority_boundary"]
 
@@ -100,9 +92,7 @@ def test_action_catalog_exposes_research_integrity_stage_hook_descriptor() -> No
     assert action["supported_surfaces"]["mcp"]["public_runtime"] is False
     assert "Mandatory Review/Publication Gate stage-hook input" in action["summary"]
     assert "trigger research-integrity-reference-verification" in action["summary"]
-    assert mcp_projection["research_integrity_review_publication_gate_stage_hook"]["input_schema"][
-        "properties"
-    ]["manuscript"] == {"type": "object"}
+    assert "manuscript" in action["workspace_locator_fields"]
     assert boundary["outputs_are_gate_inputs"] is True
     assert boundary["stage_hook_consumers"] == ["review_gate", "publication_gate"]
     assert boundary["triggered_action"] == "research-integrity-reference-verification"

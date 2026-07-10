@@ -146,32 +146,3 @@ def test_materializer_fails_closed_for_stale_or_invalid_delta_identity() -> None
     assert "stage_run_authorization_record" not in result
     assert result["authority_boundary"]["can_claim_domain_ready"] is False
     assert result["authority_boundary"]["can_create_owner_receipt"] is False
-
-
-def test_current_owner_delta_owner_answer_cli_outputs_record_payloads(tmp_path, capsys) -> None:
-    from med_autoscience import cli
-
-    delta_file = tmp_path / "current-owner-delta.json"
-    delta_file.write_text(json.dumps(_fresh_guarded_apply_delta()), encoding="utf-8")
-
-    exit_code = cli.main(
-        [
-            "current-owner-delta-owner-answer",
-            "--current-owner-delta-file",
-            str(delta_file),
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    payload = json.loads(captured.out)
-    assert payload["status"] == "materialized"
-    assert payload["typed_blocker"]["latest_owner_answer_kind"] == "typed_blocker"
-    assert payload["domain_owner_payload_summary_record"]["command"] == (
-        "opl runtime domain-owner-payload-summary record --target-identity <json> --payload <json>"
-    )
-    assert payload["stage_run_authorization_record"]["command"] == (
-        "opl runtime stage-run-authorization record --payload <json>"
-    )

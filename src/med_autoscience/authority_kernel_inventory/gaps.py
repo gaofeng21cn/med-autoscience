@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.agent_tool_arsenal import FORBIDDEN_DOMAIN_AUTHORITY
 from med_autoscience.authority_kernel_inventory.schema import (
+    FORBIDDEN_DOMAIN_AUTHORITY,
     GENERIC_RUNTIME_OWNER_NAMES,
     REQUIRED_ITEM_FIELDS,
     AuthorityKernelItem,

@@ -14,6 +14,7 @@ from opl_harness_shared.product_entry_program_companions import (
 )
 
 from med_autoscience.opl_runtime_contract import OPL_HOSTED_STAGE_RUNTIME_ID, OPL_RUNTIME_OWNER
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 
 
 def build_backend_deconstruction_lane(
@@ -33,7 +34,7 @@ def build_backend_deconstruction_lane(
         },
         explicit_archive_import_ref={
             "surface_kind": "explicit_archive_import_ref",
-            "command": "uv run python -m med_autoscience.cli backend-audit --mode archive-import",
+            "command": domain_entry_handler_target("mainline-status"),
         },
         parity_oracle_ref={
             "surface_kind": "parity_oracle_ref",
@@ -45,7 +46,7 @@ def build_backend_deconstruction_lane(
             "archive_import_is_explicit_one_way_provenance",
         ],
         capability_classification="source_provenance_only",
-        recommended_audit_command="uv run python -m med_autoscience.cli backend-audit",
+        recommended_audit_command=domain_entry_handler_target("mainline-status"),
     )
     return {
         "surface_kind": "phase4_backend_deconstruction_lane",
@@ -174,9 +175,7 @@ def build_platform_target() -> dict[str, Any]:
             "phase_3_multi_workspace_host_clearance",
             "phase_4_backend_deconstruction",
         ],
-        recommended_phase_command=(
-            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation"
-        ),
+        recommended_phase_command=domain_entry_handler_target("mainline-phase"),
         land_now=[
             "repo-tracked product-entry shell and family orchestration companions",
             "controller-owned runtime/progress/recovery truth",
@@ -314,33 +313,21 @@ def _command_ref(command: str) -> dict[str, Any]:
 
 def build_phase2_user_product_loop() -> dict[str, Any]:
     return build_phase2_user_product_loop_lane(
-        entry_status_command="uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-        workspace_cockpit_command="uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
-        submit_task_command=(
-            "uv run python -m med_autoscience.cli study submit-task --profile <profile> "
-            "--study-id <study_id> --task-intent '<task_intent>'"
-        ),
-        launch_study_command="uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
-        study_progress_command=(
-            "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>"
-        ),
+        entry_status_command=domain_entry_handler_target("mainline-status"),
+        workspace_cockpit_command=domain_entry_handler_target("mainline-status"),
+        submit_task_command=domain_entry_handler_target("submit-study-task"),
+        launch_study_command=domain_entry_handler_target("launch-study"),
+        study_progress_command=domain_entry_handler_target("study-progress"),
         controller_decisions_ref="studies/<study_id>/artifacts/controller_decisions/latest.json",
     )
 
 
 def build_phase3_clearance_lane() -> dict[str, Any]:
-    doctor_command = "uv run python -m med_autoscience.cli doctor report --profile <profile>"
-    supervisor_service_command = "uv run python -m med_autoscience.cli study progress --profile <profile> --format json"
-    refresh_supervision_command = (
-        "uv run python -m med_autoscience.cli paper-mission inspect "
-        "--profile <profile> --study-id <study_id> --format json"
-    )
-    launch_study_command = (
-        "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>"
-    )
-    study_progress_command = (
-        "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>"
-    )
+    doctor_command = domain_entry_handler_target("mainline-status")
+    supervisor_service_command = domain_entry_handler_target("study-progress")
+    refresh_supervision_command = domain_entry_handler_target("paper-mission")
+    launch_study_command = domain_entry_handler_target("launch-study")
+    study_progress_command = domain_entry_handler_target("study-progress")
     return _build_shared_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
         summary=(
@@ -411,7 +398,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="progress_projection.autonomous_runtime_notice",
-                command="uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+                command=domain_entry_handler_target("study-progress"),
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="paper_mission_readback",
@@ -426,9 +413,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
                 ref="studies/<study_id>/artifacts/controller_decisions/latest.json",
             ),
         ],
-        recommended_phase_command=(
-            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_3_multi_workspace_host_clearance"
-        ),
+        recommended_phase_command=domain_entry_handler_target("mainline-phase"),
     )
 
 
@@ -474,7 +459,5 @@ def build_phase4_backend_deconstruction() -> dict[str, Any]:
             "do not restore external MDS as a default runtime dependency",
         ],
         deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
-        recommended_phase_command=(
-            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction"
-        ),
+        recommended_phase_command=domain_entry_handler_target("mainline-phase"),
     )

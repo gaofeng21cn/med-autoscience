@@ -13,6 +13,7 @@ from med_autoscience.domain_route_profile import (
     DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     canonical_domain_task_kind,
 )
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 
 from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
@@ -130,15 +131,14 @@ def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None
 
 
 def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id: str | None) -> str:
-    profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
+    del profile_ref, study_id
     if action_type == "domain_route_recover":
-        return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
+        return domain_entry_handler_target("domain-handler-export")
     if action_type == "safe_reconcile_dry_run":
-        return f"uv run python -m med_autoscience.cli domain-handler export{profile_part} --format json"
+        return domain_entry_handler_target("domain-handler-export")
     if action_type == "study_progress_read":
-        study_selector = f" --study-id {study_id}" if study_id else ""
-        return f"uv run python -m med_autoscience.cli study progress{profile_part}{study_selector} --format json"
-    return f"uv run python -m med_autoscience.cli product entry_status{profile_part} --format json"
+        return domain_entry_handler_target("study-progress")
+    return domain_entry_handler_target("mainline-status")
 
 
 def _file_digest(path: Path) -> str:

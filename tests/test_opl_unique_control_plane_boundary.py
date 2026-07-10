@@ -8,7 +8,6 @@ import pytest
 
 import med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps as followthrough_gaps
 import med_autoscience.controllers.opl_provider_ready_adapter.opl_unique_control_plane_handoff as provider_handoff
-import med_autoscience.opl_standard_pack as standard_pack
 from med_autoscience.controllers.opl_unique_control_plane_boundary import consumer_migration
 from med_autoscience.controllers.opl_unique_control_plane_boundary import (
     consumer_migration_inventory,
@@ -146,15 +145,6 @@ def test_physical_retirement_decision_fails_closed_across_derived_surfaces(
     assert inventory["paper_mission_owner_surface_materialize_dispatch_shell"][
         "latest_thinning_evidence"
     ]["domain_repo_physical_delete_authorized"] is False
-
-    audit = standard_pack._functional_privatization_audit(boundary)
-    assert audit["physical_retirement_decision"] == decision_readback
-    assert audit["physical_source_morphology_scan"]["proof_assertions"][
-        "physical_delete_authorized"
-    ] is False
-    assert audit["physical_source_morphology_scan"]["completion_boundary"][
-        "physical_retirement_owner_decision_present"
-    ] is False
 
     handoff = provider_handoff.build_opl_unique_control_plane_handoff(
         physical_retirement_decision=decision

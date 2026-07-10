@@ -17,7 +17,7 @@
     "minimal_authority_function"
   ],
   "classification_policy": "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority",
-  "domain_id": "med-autoscience",
+  "domain_id": "mas",
   "functional_consumer_boundary": {
     "consumer_role": "domain_authority_pack_thin_program_surface",
     "declarative_pack_compiler_input": {
@@ -1319,7 +1319,7 @@
           "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
           "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
         ],
-        "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
+        "current_ref_status": "domain_handlers_active_opl_generated_wrappers_owned_by_opl",
         "current_surface_refs": [
           "cli",
           "mcp",
@@ -1329,10 +1329,9 @@
           "product_session"
         ],
         "domain_ref_consumers": [
-          "MAS CLI",
-          "MCP tool handlers",
-          "skill direct domain entry",
-          "product-entry manifest"
+          "OPL generated CLI",
+          "OPL generated MCP",
+          "OPL generated skill and product surfaces"
         ],
         "mas_domain_authority_refs": [
           "domain_action_handler",
@@ -1347,7 +1346,7 @@
           "opl_skill_descriptor_projection",
           "opl_generated_command_surface"
         ],
-        "owner": "med-autoscience",
+        "owner": "one-person-lab",
         "proof_refs": [
           "declarative_pack_compiler_input.family_action_catalog",
           "generated_surface_handoff.cli",
@@ -1742,18 +1741,13 @@
       "generated_surface_owner": "one-person-lab",
       "handoff_surfaces": [
         {
-          "current_paths": [
-            "src/med_autoscience/cli/__init__.py",
-            "src/med_autoscience/cli/"
-          ],
+          "current_paths": [],
           "current_role": "domain_handler_command_target_refs_only",
           "surface_id": "cli",
           "target_role": "opl_generated_command_surface"
         },
         {
-          "current_paths": [
-            "src/med_autoscience/mcp_server/__init__.py"
-          ],
+          "current_paths": [],
           "current_role": "domain_handler_tool_target_refs_only",
           "surface_id": "mcp",
           "target_role": "opl_generated_mcp_descriptor_surface"
@@ -3031,5 +3025,5 @@
   "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",
   "state": "manifest_projected_for_opl_unified_audit",
   "surface_kind": "functional_privatization_audit",
-  "target_domain_id": "med-autoscience"
+  "target_domain_id": "mas"
 }

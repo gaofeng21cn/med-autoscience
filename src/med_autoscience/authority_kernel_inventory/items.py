@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from med_autoscience.authority_kernel_inventory.schema import (
+    FORBIDDEN_DOMAIN_AUTHORITY,
     OWNER,
     AuthorityKernelItem,
 )
-from med_autoscience.agent_tool_arsenal import FORBIDDEN_DOMAIN_AUTHORITY
 from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_for_action,
     paper_work_unit_lifecycle_for_action,
@@ -215,9 +215,8 @@ def _capability_item() -> AuthorityKernelItem:
         owner=OWNER,
         surface_ref="src/med_autoscience/scientific_capability_registry.py::build_scientific_capability_registry",
         active_caller_refs=(
-            "contracts/agent_tool_arsenal.json#/tool_cards/scientific_capability_registry",
-            "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index",
-            "src/med_autoscience/mcp_server/__init__.py::agent_tool_arsenal",
+            "contracts/action_catalog.json#/actions/12",
+            "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
         ),
         allowed_writes=(
             "artifacts/advisory/external_learning_sidecar/latest.json",

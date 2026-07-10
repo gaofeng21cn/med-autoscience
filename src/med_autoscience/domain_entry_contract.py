@@ -10,13 +10,8 @@ from opl_harness_shared.family_entry_contracts import (
     build_family_domain_entry_contract as _build_shared_family_domain_entry_contract,
 )
 
-from med_autoscience.authority_operation_command_catalog import (
-    AUTHORITY_OPERATION_COMMANDS,
-    AuthorityOperationCommand,
-)
-
-
 SERVICE_SAFE_ENTRY_ADAPTER = "MedAutoScienceDomainEntry"
+SERVICE_SAFE_ENTRY_TARGET = "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch"
 SERVICE_SAFE_ENTRY_SURFACE_KIND = "med_autoscience_service_safe_domain_entry"
 PRODUCT_ENTRY_BUILDER_COMMAND = "opl-generated-product-entry"
 PRODUCT_ENTRY_MANIFEST_SCHEMA_REF = "contracts/schemas/v1/product-entry-manifest.schema.json"
@@ -38,6 +33,10 @@ class DomainEntryCommandSpec:
     optional_fields: tuple[str, ...] = ()
 
 
+def domain_entry_handler_target(command: str) -> str:
+    return f"{SERVICE_SAFE_ENTRY_TARGET}#{command.replace('-', '_')}"
+
+
 SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "study-progress": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "launch-study": DomainEntryCommandSpec(
@@ -56,6 +55,25 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
             "first_cycle_outputs",
         ),
     ),
+    "study-state-matrix": DomainEntryCommandSpec(
+        ("profile_ref",),
+        ("study_ids", "entry_mode"),
+    ),
+    "export-inspection-package": DomainEntryCommandSpec(
+        ("profile_ref", "study_id"),
+        ("publication_profile", "force_materialize"),
+    ),
+    "publication-aftercare-plan": DomainEntryCommandSpec(
+        ("study_root",),
+        ("quest_root",),
+    ),
+    "external-learning-adoption-closure": DomainEntryCommandSpec(()),
+    "scientific-capability-registry": DomainEntryCommandSpec(
+        ("mode",),
+        ("capability_id", "current_owner_delta", "study_root", "apply", "payload"),
+    ),
+    "mainline-status": DomainEntryCommandSpec(()),
+    "mainline-phase": DomainEntryCommandSpec((), ("selector",)),
 }
 SERVICE_SAFE_DISPLAY_PACK_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "display-pack-capability-discover": DomainEntryCommandSpec(
@@ -163,11 +181,18 @@ SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ),
     ),
 }
-SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | AuthorityOperationCommand] = {
+SERVICE_SAFE_DOMAIN_HANDLER_COMMANDS: dict[str, DomainEntryCommandSpec] = {
+    "domain-handler-export": DomainEntryCommandSpec(
+        ("profile_ref",),
+        ("study_ids", "opl_production_proof_ref"),
+    ),
+    "domain-handler-dispatch": DomainEntryCommandSpec(("task_ref",)),
+}
+SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     **SERVICE_SAFE_OPERATOR_COMMANDS,
     **SERVICE_SAFE_DISPLAY_PACK_COMMANDS,
     **SERVICE_SAFE_RESEARCH_INTEGRITY_COMMANDS,
-    **{item.command: item for item in AUTHORITY_OPERATION_COMMANDS},
+    **SERVICE_SAFE_DOMAIN_HANDLER_COMMANDS,
 }
 
 

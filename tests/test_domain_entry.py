@@ -127,75 +127,6 @@ def test_domain_entry_rejects_missing_required_fields(tmp_path: Path) -> None:
         )
 
 
-def test_domain_entry_dispatches_authority_operations(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.domain_entry")
-    workspace_root = tmp_path / "workspace"
-
-    monkeypatch.setattr(
-        module.workspace_authority_migration_audit,
-        "run_migration_audit",
-        lambda *, workspace_roots, dry_run: {
-            "surface": "workspace_authority_migration_audit",
-            "workspace_roots": [str(path) for path in workspace_roots],
-            "dry_run": dry_run,
-        },
-    )
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "workspace-authority-migration-audit",
-            "workspace_roots": [str(workspace_root)],
-        }
-    )
-
-    assert payload == {
-        "command": "workspace-authority-migration-audit",
-        "surface": "workspace_authority_migration_audit",
-        "workspace_roots": [str(workspace_root)],
-        "dry_run": True,
-    }
-
-
-def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.domain_entry")
-    workspace_root = tmp_path / "workspace"
-
-    monkeypatch.setattr(
-        module.artifact_lifecycle_operations_report,
-        "run_lifecycle_operations_report",
-        lambda *, workspace_roots, deep, max_files, max_seconds: {
-            "surface": "artifact_lifecycle_report",
-            "workspace_roots": [str(path) for path in workspace_roots],
-            "scan_policy": {
-                "deep_scan_enabled": deep,
-                "max_files": max_files,
-                "max_seconds": max_seconds,
-            },
-        },
-    )
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "artifact-lifecycle-report",
-            "workspace_roots": [str(workspace_root)],
-            "deep": True,
-            "max_files": 13,
-            "max_seconds": 3.25,
-        }
-    )
-
-    assert payload == {
-        "command": "artifact-lifecycle-report",
-        "surface": "artifact_lifecycle_report",
-        "workspace_roots": [str(workspace_root)],
-        "scan_policy": {
-            "deep_scan_enabled": True,
-            "max_files": 13,
-            "max_seconds": 3.25,
-        },
-    }
-
-
 def test_domain_entry_dispatches_display_pack_agent_plan_without_profile() -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     repo_root = Path(__file__).resolve().parents[1]
@@ -288,41 +219,6 @@ def test_domain_entry_rejects_control_plane_cleanup_apply(tmp_path: Path) -> Non
             "workspace_roots": [str(workspace_root)],
             "apply": True,
         })
-
-
-def test_domain_entry_dispatches_backfill_apply_authority_snapshot(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.domain_entry")
-    workspace_root = tmp_path / "workspace"
-    snapshot = {"surface": "authority_snapshot"}
-    captured: dict[str, object] = {}
-
-    def fake_run_backfill_apply(*, workspace_roots, apply, authority_snapshot=None):
-        captured["workspace_roots"] = list(workspace_roots)
-        captured["apply"] = apply
-        captured["authority_snapshot"] = authority_snapshot
-        return {
-            "surface": "delivery_authority_backfill_apply",
-            "workspace_roots": [str(path) for path in workspace_roots],
-            "apply": apply,
-        }
-
-    monkeypatch.setattr(module.delivery_authority_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "delivery-authority-backfill-apply",
-            "workspace_roots": [str(workspace_root)],
-            "apply": True,
-            "authority_snapshot": snapshot,
-        }
-    )
-
-    assert captured == {
-        "workspace_roots": [workspace_root],
-        "apply": True,
-        "authority_snapshot": snapshot,
-    }
-    assert payload["surface"] == "delivery_authority_backfill_apply"
 
 
 def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:

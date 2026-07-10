@@ -154,13 +154,13 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="skill",
             default_for_new_surfaces=True,
             repo_paths=[
-                "src/med_autoscience/cli/__init__.py",
-                "src/med_autoscience/cli/parser.py",
-                "plugins/med-autoscience/bin/medautosci-mcp",
+                "agent/primary_skill/SKILL.md",
+                "src/med_autoscience/domain_entry.py",
+                "contracts/action_catalog.json",
             ],
             mapping_explanation=(
-                "New skill-callable surfaces should land in the standard skill slot while the "
-                "current CLI, parser, and MCP wrapper remain the active callable surfaces."
+                "New skill-callable surfaces land in the canonical skill and domain-handler targets; "
+                "OPL owns generated CLI and MCP interfaces."
             ),
         ),
         _physical_skeleton_slot(

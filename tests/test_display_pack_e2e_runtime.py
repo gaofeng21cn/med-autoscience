@@ -796,46 +796,6 @@ def test_materialize_display_pack_publication_manifest_fails_when_declared_panel
     assert not (paper_root / "build" / "display_pack_publication_manifest.json").exists()
 
 
-def test_cli_publication_display_pack_e2e_emits_manifest_json(tmp_path: Path, capsys) -> None:
-    from med_autoscience import cli
-
-    repo_root, paper_root = _build_workspace(tmp_path)
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "display-pack-e2e",
-            "--repo-root",
-            str(repo_root),
-            "--paper-root",
-            str(paper_root),
-            "--visual-audit-review-json",
-            json.dumps(_visual_audit_review()),
-        ]
-    )
-
-    payload = json.loads(capsys.readouterr().out)
-    assert exit_code == 0
-    assert payload["status"] == "publication_manifested"
-    assert payload["manifest_path"].endswith("paper/build/display_pack_publication_manifest.json")
-
-    exit_code = cli.main(
-        [
-            "publication",
-            "display-pack-provenance-bundles",
-            "--repo-root",
-            str(repo_root),
-            "--paper-root",
-            str(paper_root),
-        ]
-    )
-
-    payload = json.loads(capsys.readouterr().out)
-    assert exit_code == 0
-    assert payload["status"] == "materialized"
-    assert payload["bundles"][0]["provenance_bundle_ref"] == "paper/build/provenance/figures/F1/bundle.json"
-
-
 def test_materialize_figure_provenance_bundles_records_missing_refs(tmp_path: Path) -> None:
     from med_autoscience.display_pack_provenance_bundle import materialize_figure_provenance_bundles
 

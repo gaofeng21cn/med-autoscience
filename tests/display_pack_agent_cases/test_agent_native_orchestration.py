@@ -193,44 +193,6 @@ def test_display_pack_preflight_returns_typed_repair_routes_without_readiness_au
     )
 
 
-def test_mcp_display_pack_agent_orchestrate_mode_returns_tool_result_envelope() -> None:
-    module = importlib.import_module("med_autoscience.mcp_server")
-    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
-
-    assert "orchestrate" in tools["display_pack_agent"]["inputSchema"]["properties"]["mode"]["enum"]
-    assert tools["display_pack_agent"]["inputSchema"]["properties"]["current_owner_delta"] == {
-        "type": "object"
-    }
-
-    result = module.call_tool(
-        "display_pack_agent",
-        {
-            "mode": "orchestrate",
-            "repo_root": str(REPO_ROOT),
-            "current_owner_delta": _current_owner_delta(),
-            "claim_ref": CLAIM_REF,
-            "data_ref": DATA_REF,
-            "intent": "ROC curve for primary mortality risk discrimination",
-            "max_recommendations": 2,
-            "check_runtime_dependencies": False,
-        },
-    )
-
-    assert result["isError"] is False
-    envelope = result["structuredContent"]
-    assert isinstance(envelope, dict)
-    assert envelope["surface_kind"] == "mas_tool_result_envelope"
-    assert envelope["tool_id"] == "display_pack_agent"
-    assert envelope["tool_mode"] == "orchestrate"
-    assert envelope["status"] in {"succeeded", "blocked"}
-
-    payload = _structured_payload(result)
-    assert payload["surface_kind"] == "display_pack_agent_orchestration"
-    assert payload["figure_intent"]["claim_ref"] == CLAIM_REF
-    assert payload["figure_request"]["data_ref"] == DATA_REF
-    assert payload["quality_floor"]["publication_readiness_verdict"] is False
-    assert payload["next_callable"] in {"display-pack-render", "display-pack-repair"}
-
 
 def test_scientific_capability_registry_invokes_display_pack_agent_native_plan() -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")

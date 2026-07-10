@@ -93,7 +93,6 @@
       "kind": "focused_outer_supervision_slo_contract_gate",
       "paths": [
         "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
@@ -363,10 +362,8 @@
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/test_domain_entry.py",
-        "tests/test_cli_cases/domain_handler_and_submission_commands.py",
         "tests/test_codex_plugin.py",
-        "tests/test_codex_plugin_scaffold.py",
-        "tests/test_mcp_server.py"
+        "tests/test_codex_plugin_scaffold.py"
       ],
       "docs": [
         "docs/status.md",
@@ -376,8 +373,8 @@
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "entry_projection_and_controlled_domain_handler_bridge_no_study_truth_authority",
       "source_of_truth": [
-        "src/med_autoscience/action_catalog.py",
-        "src/med_autoscience/mcp_server/__init__.py",
+        "contracts/action_catalog.json",
+        "src/med_autoscience/domain_entry.py",
         "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
         "plugins/med-autoscience/.codex-plugin/plugin.json",
         "docs/runtime/control/controllers.md"

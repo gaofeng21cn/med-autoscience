@@ -310,11 +310,11 @@ def _pack_promotion_evidence(pack_id: str) -> dict[str, object]:
                     "strength": "strong",
                 },
                 {
-                    "evidence_id": "light_external_advisory_materializer_cli_tests",
+                    "evidence_id": "light_external_advisory_domain_tests",
                     "evidence_kind": "focused_tests",
                     "ref_kind": "test",
-                    "ref": "tests/test_cli_cases/light_advisory_materializer_command.py",
-                    "role": "operator_callable_materializer_command",
+                    "ref": "tests/test_light_advisory_materializer.py",
+                    "role": "domain_materializer_contract",
                     "strength": "strong",
                 }
             ],

@@ -736,8 +736,7 @@
       ],
       "verification_refs": [
         "tests/test_research_integrity_stage_hooks.py",
-        "tests/test_research_integrity_reference_verification.py",
-        "tests/test_opl_standard_pack.py"
+        "tests/test_research_integrity_reference_verification.py"
       ],
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/quality_gate",
@@ -759,8 +758,7 @@
         "contracts/production_acceptance/mas-production-acceptance.json"
       ],
       "verification_refs": [
-        "tests/test_agent_lab_medical_manuscript_quality.py",
-        "tests/test_opl_standard_pack.py"
+        "tests/test_agent_lab_medical_manuscript_quality.py"
       ],
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/agent_lab",
@@ -884,7 +882,6 @@
         "agent/primary_skill/SKILL.md"
       ],
       "verification_refs": [
-        "tests/test_opl_standard_pack.py",
         "tests/test_domain_entry_contract.py"
       ],
       "forbidden_surfaces": [
@@ -1848,6 +1845,92 @@
       "exposure_owner": "opl_connect_mas_scholar_skills_profile"
     },
     {
+      "capability_id": "mas-tool-connector-catalog",
+      "surface_role": "tool_connector",
+      "capability_kind": "tool_connector",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "contract_ref",
+        "ref": "contracts/action_catalog.json",
+        "role": "domain_action_connector_catalog"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/tools/domain_affordances.md",
+          "role": "domain_affordance_boundary"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/action_catalog.json",
+          "role": "opl_generated_action_catalog_source"
+        }
+      ],
+      "sync_policy": "repo_local_declarative_source",
+      "externalization_reason": "MAS declares domain action targets and affordance boundaries; OPL generates and hosts the CLI, MCP, Skill, product, status, and workbench tool surfaces.",
+      "improvement_tokens": [
+        "tool_connector",
+        "action_catalog",
+        "domain_affordances"
+      ],
+      "failure_tokens": [
+        "tool_connector",
+        "action_catalog",
+        "domain_affordances"
+      ],
+      "canonical_paths": [
+        "agent/tools/domain_affordances.md",
+        "contracts/action_catalog.json"
+      ],
+      "target_repo_file_hints": [
+        "agent/tools/domain_affordances.md",
+        "contracts/action_catalog.json"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      },
+      "canonical_target_paths": [
+        "agent/tools/domain_affordances.md",
+        "contracts/action_catalog.json"
+      ],
+      "verification_refs": [
+        "tests/test_domain_entry_contract.py",
+        "tests/test_research_integrity_domain_entry.py",
+        "tests/test_display_pack_agent_surfaces.py"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      }
+    },
+    {
       "capability_id": "mas-stage-prompts",
       "surface_role": "stage_prompt",
       "capability_kind": "stage_prompt",
@@ -1905,94 +1988,7 @@
       ],
       "verification_refs": [
         "tests/test_stage_prompt_specialist_routes.py",
-        "tests/test_overlay_installer.py",
-        "tests/test_opl_standard_pack.py"
-      ],
-      "forbidden_surfaces": [
-        "Yang authority/current_package/publication_eval/controller_decisions",
-        "owner_receipts",
-        "typed_blockers",
-        "human_gates",
-        "runtime_queues",
-        "provider_attempts",
-        "paper_bodies"
-      ],
-      "owner_closeout_boundary": {
-        "owner": "MedAutoScience",
-        "required_return_shapes": [
-          "owner_receipt_ref",
-          "typed_blocker_ref",
-          "human_gate_ref",
-          "route_back_ref"
-        ],
-        "can_write_owner_receipt_body": false,
-        "can_create_typed_blocker": false,
-        "can_write_domain_truth": false,
-        "can_claim_publication_ready": false,
-        "can_claim_current_package_authority": false,
-        "mas_owner_surface_acceptance_required": true
-      }
-    },
-    {
-      "capability_id": "mas-tool-connector-catalog",
-      "surface_role": "tool_connector",
-      "capability_kind": "tool_connector",
-      "canonical_owner": "MedAutoScience",
-      "physical_source_ref": {
-        "ref_kind": "contract_ref",
-        "ref": "contracts/agent_tool_arsenal.json",
-        "role": "domain_tool_connector_catalog"
-      },
-      "runtime_projection_refs": [
-        {
-          "ref_kind": "contract_ref",
-          "ref": "contracts/action_catalog.json",
-          "role": "action_catalog"
-        },
-        {
-          "ref_kind": "contract_ref",
-          "ref": "contracts/agent_tool_arsenal.json",
-          "role": "agent_tool_arsenal"
-        }
-      ],
-      "sync_policy": "repo_local_default",
-      "externalization_reason": "Tool access remains a MAS/Fabric connector boundary; professional skills may reference tools but do not become tools.",
-      "improvement_tokens": [
-        "tool_connector",
-        "agent_tool_arsenal",
-        "action_catalog"
-      ],
-      "failure_tokens": [
-        "tool_connector",
-        "agent_tool_arsenal",
-        "action_catalog"
-      ],
-      "canonical_paths": [
-        "contracts/agent_tool_arsenal.json",
-        "contracts/action_catalog.json"
-      ],
-      "target_repo_file_hints": [
-        "contracts/agent_tool_arsenal.json",
-        "contracts/action_catalog.json"
-      ],
-      "authority_boundary": {
-        "can_write_domain_truth": false,
-        "can_write_memory_body": false,
-        "can_mutate_artifact_body": false,
-        "can_sign_owner_receipt": false,
-        "can_create_typed_blocker": false,
-        "can_authorize_quality_or_export": false,
-        "can_claim_domain_ready": false,
-        "can_claim_production_ready": false
-      },
-      "canonical_target_paths": [
-        "contracts/agent_tool_arsenal.json",
-        "contracts/action_catalog.json"
-      ],
-      "verification_refs": [
-        "tests/test_domain_entry_contract.py",
-        "tests/test_research_integrity_domain_entry.py",
-        "tests/test_opl_standard_pack.py"
+        "tests/test_overlay_installer.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -2076,7 +2072,6 @@
         "contracts/domain_descriptor.json"
       ],
       "verification_refs": [
-        "tests/test_opl_standard_pack.py",
         "tests/test_agent_lab_medical_manuscript_quality.py"
       ],
       "forbidden_surfaces": [
@@ -2162,8 +2157,7 @@
       ],
       "verification_refs": [
         "tests/test_research_integrity_stage_hooks.py",
-        "tests/test_research_integrity_reference_verification.py",
-        "tests/test_opl_standard_pack.py"
+        "tests/test_research_integrity_reference_verification.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -2249,8 +2243,7 @@
         "contracts/production_acceptance/mas-production-acceptance.json"
       ],
       "verification_refs": [
-        "tests/test_agent_lab_medical_manuscript_quality.py",
-        "tests/test_opl_standard_pack.py"
+        "tests/test_agent_lab_medical_manuscript_quality.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",

@@ -176,50 +176,11 @@ pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"
 export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider -o cache_dir=${tmp_root}/pytest-cache"
 
-cli_apply_requires_analysis_extra() {
-  if [[ "$#" -lt 3 ]]; then
-    return 1
-  fi
-  if [[ "${1}" != "-m" || "${2}" != "med_autoscience.cli" ]]; then
-    return 1
-  fi
-
-  local command="${3}"
-  local subcommand="${4:-}"
-  if [[ "${command}" == "sidecar" ]]; then
-    if [[ "${subcommand}" == "dispatch" ]]; then
-      return 0
-    fi
-    return 1
-  fi
-  return 1
-}
-
 analysis_extra_enabled=0
-if [[ "${MAS_CLEAN_RUNNER_ANALYSIS_EXTRA:-0}" == "1" ]] || cli_apply_requires_analysis_extra "$@"; then
+if [[ "${MAS_CLEAN_RUNNER_ANALYSIS_EXTRA:-0}" == "1" ]]; then
   analysis_extra_enabled=1
   export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
 fi
-
-entrypoint_bin="${tmp_root}/bin"
-mkdir -p "${entrypoint_bin}"
-
-write_launcher() {
-  local name="${1}"
-  local module="${2}"
-  local path="${entrypoint_bin}/${name}"
-
-  {
-    printf '#!/usr/bin/env bash\n'
-    printf 'set -euo pipefail\n'
-    printf 'exec "%s/scripts/run-python-clean.sh" -m "%s" "$@"\n' "${repo_root}" "${module}"
-  } >"${path}"
-  chmod +x "${path}"
-}
-
-write_launcher medautosci med_autoscience.cli
-write_launcher medautosci-mcp med_autoscience.mcp_server
-export PATH="${entrypoint_bin}:${PATH}"
 
 if [[ "${analysis_extra_enabled}" == "1" ]]; then
   sync_marker="${tmp_root}/uv-sync.analysis.done"

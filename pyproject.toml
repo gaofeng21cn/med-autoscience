@@ -35,10 +35,6 @@ analysis = [
   "pypdf>=5.0",
 ]
 
-[project.scripts]
-medautosci = "med_autoscience.cli:entrypoint"
-medautosci-mcp = "med_autoscience.mcp_server:entrypoint"
-
 [dependency-groups]
 dev = [
   "build>=1.2",

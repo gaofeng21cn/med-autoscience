@@ -47,7 +47,7 @@
     "owner_receipt_schema",
     "quality_gate_refs"
   ],
-  "domain_id": "med-autoscience",
+  "domain_id": "mas",
   "domain_pack_owner": "med-autoscience",
   "domain_repo_can_own_generated_surface": false,
   "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
@@ -216,8 +216,7 @@
   "runtime_enforcement_status": "contract_validator_landed",
   "schema_version": 1,
   "source_refs": {
-    "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
-    "agent_tool_arsenal": "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index",
+    "action_catalog": "contracts/action_catalog.json",
     "authority_functions_source_ref": "runtime/authority_functions/README.md",
     "canonical_agent_pack_root": "agent/",
     "capability_map_source_ref": "contracts/capability_map.json",
@@ -226,6 +225,7 @@
     "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
     "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
     "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
+    "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
     "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
     "required_domain_pack_paths": [

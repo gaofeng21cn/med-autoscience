@@ -23,7 +23,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
         "surface_kind": "study_task_intake"
       },
       "summary": "先把用户任务写成 durable study task intake，再启动研究执行。",
@@ -32,11 +32,11 @@
           "tool_name": "submit_study_task"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
           "surface_kind": "study_task_intake"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "study_task_intake",
@@ -47,11 +47,11 @@
         },
         "product_entry": {
           "action_key": "submit_study_task",
-          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
           "surface_kind": "study_task_intake"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
           "command_contract_id": "submit_study_task",
           "surface_kind": "study_task_intake"
         }
@@ -86,7 +86,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
         "surface_kind": "launch_study"
       },
       "summary": "写入 MAS domain handoff，由 OPL 唯一控制面 hydrate 成 stage attempt。",
@@ -95,11 +95,11 @@
           "tool_name": "launch_study"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
           "surface_kind": "launch_study"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "launch_study",
@@ -110,11 +110,11 @@
         },
         "product_entry": {
           "action_key": "launch_study",
-          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
           "surface_kind": "launch_study"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
           "command_contract_id": "launch_study",
           "surface_kind": "launch_study"
         }
@@ -146,7 +146,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
         "surface_kind": "study_progress"
       },
       "summary": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
@@ -155,11 +155,11 @@
           "tool_name": "study_progress"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
           "surface_kind": "study_progress"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
           "descriptor_only": false,
           "public_runtime": true,
           "surface_kind": "study_progress",
@@ -170,11 +170,11 @@
         },
         "product_entry": {
           "action_key": "study_progress",
-          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
           "surface_kind": "study_progress"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
           "command_contract_id": "study_progress",
           "surface_kind": "study_progress"
         }
@@ -213,7 +213,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
         "surface_kind": "study_state_matrix"
       },
       "summary": "只读物化 MAS-owned study_state_matrix，包括 domain_transition_table、family_transition_spec 和 family_transition_matrix_cases，供 OPL generic transition runner 消费；不写 study truth、不执行 domain action、不授权论文质量或投稿就绪。",
@@ -222,11 +222,11 @@
           "tool_name": "study_state_matrix"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
           "surface_kind": "study_state_matrix"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "study_state_matrix",
@@ -237,11 +237,11 @@
         },
         "product_entry": {
           "action_key": "study_state_matrix",
-          "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
           "surface_kind": "study_state_matrix"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
           "command_contract_id": "study_state_matrix",
           "surface_kind": "study_state_matrix"
         }
@@ -275,7 +275,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
         "surface_kind": "publication_inspection_package_export"
       },
       "summary": "Export a human inspection only paper snapshot for writing-style review. It is not current_package, not submission_minimal authority, and cannot authorize publication quality or submission readiness.",
@@ -284,11 +284,11 @@
           "tool_name": "export_inspection_package"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
           "surface_kind": "publication_inspection_package_export"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "publication_inspection_package_export",
@@ -299,11 +299,11 @@
         },
         "product_entry": {
           "action_key": "export_inspection_package",
-          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
           "surface_kind": "publication_inspection_package_export"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
           "command_contract_id": "export_inspection_package",
           "surface_kind": "publication_inspection_package_export"
         }
@@ -342,7 +342,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
         "surface_kind": "mas_publication_aftercare_plan"
       },
       "summary": "Read a refs-only publication aftercare control surface for resubmission, talk package, Overleaf sync, ARIS research-pipeline / auto-review-loop / experiment queue absorption, and reviewer refresh. It can only emit MAS owner-route task refs or typed blockers; it does not write publication_eval, controller_decisions, current_package, paper package, or submission authority.",
@@ -351,11 +351,11 @@
           "tool_name": "publication_aftercare_plan"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
           "surface_kind": "mas_publication_aftercare_plan"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mas_publication_aftercare_plan",
@@ -366,11 +366,11 @@
         },
         "product_entry": {
           "action_key": "publication_aftercare_plan",
-          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
           "surface_kind": "mas_publication_aftercare_plan"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
           "command_contract_id": "publication_aftercare_plan",
           "surface_kind": "mas_publication_aftercare_plan"
         }
@@ -407,7 +407,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "medautosci domain-handler export --profile <profile> --format json",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
         "surface_kind": "mas_external_learning_adoption_closure"
       },
       "summary": "Read the MAS-owned closure surface for Co-Scientist, Nature-skills, ARS, AutoSci, EvoScientist/EvoSkills, ARK, ARIS, PaperSpine, and Open Auto Research learning. It distinguishes owner-surface landed work from contract-only or not-landed gaps, and declares the nonblocking external-learning sidecar execution slot.",
@@ -416,11 +416,11 @@
           "tool_name": "external_learning_adoption_closure"
         },
         "cli": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
           "surface_kind": "mas_external_learning_adoption_closure"
         },
         "mcp": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mas_external_learning_adoption_closure",
@@ -431,11 +431,11 @@
         },
         "product_entry": {
           "action_key": "external_learning_adoption_closure",
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
           "surface_kind": "mas_external_learning_adoption_closure"
         },
         "skill": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
           "command_contract_id": "external_learning_adoption_closure",
           "surface_kind": "mas_external_learning_adoption_closure"
         }
@@ -470,7 +470,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
         "surface_kind": "display_pack_agent_capability"
       },
       "summary": "Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; humans manage assets, agents consume this structured capability surface.",
@@ -479,11 +479,11 @@
           "tool_name": "display_pack_capability_discover"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
           "surface_kind": "display_pack_agent_capability"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
           "descriptor_only": false,
           "mode": "discover",
           "public_runtime": true,
@@ -495,11 +495,11 @@
         },
         "product_entry": {
           "action_key": "display_pack_capability_discover",
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
           "surface_kind": "display_pack_agent_capability"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
           "command_contract_id": "display_pack_capability_discover",
           "surface_kind": "display_pack_agent_capability"
         }
@@ -535,7 +535,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
         "surface_kind": "display_pack_agent_figure_plan"
       },
       "summary": "Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
@@ -544,11 +544,11 @@
           "tool_name": "display_pack_figure_plan"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
           "surface_kind": "display_pack_agent_figure_plan"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
           "descriptor_only": false,
           "mode": "plan",
           "public_runtime": true,
@@ -560,11 +560,11 @@
         },
         "product_entry": {
           "action_key": "display_pack_figure_plan",
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
           "surface_kind": "display_pack_agent_figure_plan"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
           "command_contract_id": "display_pack_figure_plan",
           "surface_kind": "display_pack_agent_figure_plan"
         }
@@ -602,7 +602,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
         "surface_kind": "display_pack_agent_orchestration"
       },
       "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
@@ -611,11 +611,11 @@
           "tool_name": "display_pack_orchestrate"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
           "surface_kind": "display_pack_agent_orchestration"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
           "descriptor_only": false,
           "mode": "orchestrate",
           "public_runtime": true,
@@ -627,11 +627,11 @@
         },
         "product_entry": {
           "action_key": "display_pack_orchestrate",
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
           "surface_kind": "display_pack_agent_orchestration"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
           "command_contract_id": "display_pack_orchestrate",
           "surface_kind": "display_pack_agent_orchestration"
         }
@@ -673,7 +673,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
         "surface_kind": "display_pack_agent_preflight"
       },
       "summary": "Check selected template assets, QC profile, R runtime dependencies, style profile lock, and golden coverage before render. Findings route to style/profile/runtime/template repair without mutating data, statistics, evidence marks, or publication verdicts.",
@@ -682,11 +682,11 @@
           "tool_name": "display_pack_preflight"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
           "surface_kind": "display_pack_agent_preflight"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
           "descriptor_only": false,
           "mode": "preflight",
           "public_runtime": true,
@@ -698,11 +698,11 @@
         },
         "product_entry": {
           "action_key": "display_pack_preflight",
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
           "surface_kind": "display_pack_agent_preflight"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
           "command_contract_id": "display_pack_preflight",
           "surface_kind": "display_pack_agent_preflight"
         }
@@ -743,7 +743,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
         "surface_kind": "display_pack_agent_render_receipt"
       },
       "summary": "Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt.",
@@ -752,11 +752,11 @@
           "tool_name": "display_pack_render"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
           "surface_kind": "display_pack_agent_render_receipt"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
           "descriptor_only": false,
           "mode": "render",
           "public_runtime": true,
@@ -768,11 +768,11 @@
         },
         "product_entry": {
           "action_key": "display_pack_render",
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
           "surface_kind": "display_pack_agent_render_receipt"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
           "command_contract_id": "display_pack_render",
           "surface_kind": "display_pack_agent_render_receipt"
         }
@@ -783,75 +783,6 @@
         "paper_root",
         "figure_request",
         "visual_audit_review"
-      ]
-    },
-    {
-      "action_id": "lightweight_executor_receipt",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_block_current_owner_action": false,
-        "can_execute_command": false,
-        "can_mount_docker_socket": false,
-        "can_start_docker": false,
-        "can_write_controller_decisions": false,
-        "can_write_current_package": false,
-        "can_write_owner_receipt": false,
-        "can_write_publication_eval": false,
-        "can_write_typed_blocker": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "executor_receipt_contract_read_model"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "medautosci domain-handler export --profile <profile> --format json",
-        "surface_kind": "mas_lightweight_executor_receipt_contract"
-      },
-      "summary": "Read the MAS/OPL lightweight executor receipt contract. It records command evidence refs for Codex/uv/local executor attempts without executing commands, starting Docker, mounting the Docker socket, or introducing OpenHands as a default runtime.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "lightweight_executor_receipt"
-        },
-        "cli": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
-          "surface_kind": "mas_lightweight_executor_receipt_contract"
-        },
-        "mcp": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mas_lightweight_executor_receipt_contract",
-          "tool_name": "lightweight_executor_receipt"
-        },
-        "openai": {
-          "tool_name": "lightweight_executor_receipt"
-        },
-        "product_entry": {
-          "action_key": "lightweight_executor_receipt",
-          "command": "medautosci domain-handler export --profile <profile> --format json",
-          "surface_kind": "mas_lightweight_executor_receipt_contract"
-        },
-        "skill": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
-          "command_contract_id": "lightweight_executor_receipt",
-          "surface_kind": "mas_lightweight_executor_receipt_contract"
-        }
-      },
-      "title": "Inspect lightweight executor receipt contract",
-      "workspace_locator_fields": [
-        "profile_ref"
       ]
     },
     {
@@ -884,7 +815,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
         "surface_kind": "mas_scientific_capability_registry"
       },
       "summary": "Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate.",
@@ -893,11 +824,11 @@
           "tool_name": "scientific_capability_registry"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
           "surface_kind": "mas_scientific_capability_registry"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
           "descriptor_only": false,
           "public_runtime": true,
           "surface_kind": "mas_scientific_capability_registry",
@@ -908,11 +839,11 @@
         },
         "product_entry": {
           "action_key": "scientific_capability_registry",
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
           "surface_kind": "mas_scientific_capability_registry"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <summary|inventory|index|resolve|invoke>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
           "command_contract_id": "scientific_capability_registry",
           "surface_kind": "mas_scientific_capability_registry"
         }
@@ -973,7 +904,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
         "surface_kind": "research_integrity_gate_input_bundle"
       },
       "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
@@ -982,11 +913,11 @@
           "tool_name": "research_integrity_gate_input"
         },
         "cli": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
           "surface_kind": "research_integrity_gate_input_bundle"
         },
         "mcp": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "research_integrity_gate_input_bundle",
@@ -997,11 +928,11 @@
         },
         "product_entry": {
           "action_key": "research_integrity_gate_input",
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
           "surface_kind": "research_integrity_gate_input_bundle"
         },
         "skill": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-gate-input payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
           "command_contract_id": "research_integrity_gate_input",
           "surface_kind": "research_integrity_gate_input_bundle"
         }
@@ -1077,7 +1008,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
         "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
       },
       "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
@@ -1086,11 +1017,11 @@
           "tool_name": "research_integrity_reference_verification"
         },
         "cli": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
           "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
         },
         "mcp": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "research_integrity_reference_verification_gate_input_bundle",
@@ -1101,11 +1032,11 @@
         },
         "product_entry": {
           "action_key": "research_integrity_reference_verification",
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
           "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
         },
         "skill": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-reference-verification payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
           "command_contract_id": "research_integrity_reference_verification",
           "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
         }
@@ -1177,7 +1108,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
         "surface_kind": "research_integrity_review_publication_gate_stage_hook"
       },
       "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
@@ -1186,11 +1117,11 @@
           "tool_name": "research_integrity_review_publication_gate_stage_hook"
         },
         "cli": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
           "surface_kind": "research_integrity_review_publication_gate_stage_hook"
         },
         "mcp": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "research_integrity_review_publication_gate_stage_hook",
@@ -1201,11 +1132,11 @@
         },
         "product_entry": {
           "action_key": "research_integrity_review_publication_gate_stage_hook",
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
           "surface_kind": "research_integrity_review_publication_gate_stage_hook"
         },
         "skill": {
-          "command": "MedAutoScienceDomainEntry.dispatch(research-integrity-review-publication-gate-stage-hook payload)",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
           "command_contract_id": "research_integrity_review_publication_gate_stage_hook",
           "surface_kind": "research_integrity_review_publication_gate_stage_hook"
         }
@@ -1259,7 +1190,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
         "surface_kind": "mainline_status"
       },
       "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
@@ -1268,11 +1199,11 @@
           "tool_name": "mainline_status"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
           "surface_kind": "mainline_status"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mainline_status",
@@ -1283,11 +1214,11 @@
         },
         "product_entry": {
           "action_key": "mainline_status",
-          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
           "surface_kind": "mainline_status"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
           "command_contract_id": "mainline_status",
           "surface_kind": "mainline_status"
         }
@@ -1316,7 +1247,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
         "surface_kind": "mainline_phase"
       },
       "summary": "查看某一阶段当前可用入口、退出条件与关键文档。",
@@ -1325,11 +1256,11 @@
           "tool_name": "mainline_phase"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
           "surface_kind": "mainline_phase"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mainline_phase",
@@ -1340,11 +1271,11 @@
         },
         "product_entry": {
           "action_key": "mainline_phase",
-          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
           "surface_kind": "mainline_phase"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
           "command_contract_id": "mainline_phase",
           "surface_kind": "mainline_phase"
         }
@@ -1373,7 +1304,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "medautosci domain-handler export --profile <profile> --format json",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
         "surface_kind": "mas_family_domain_handler_export"
       },
       "summary": "Export MAS-owned read-only projection, pending OPL family tasks, source refs, owner receipt contract and substrate refs for OPL generated/hosted surfaces. It does not authorize study truth, publication quality, artifact gate or current package writes.",
@@ -1382,11 +1313,11 @@
           "tool_name": "domain_handler_export"
         },
         "cli": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
           "surface_kind": "mas_family_domain_handler_export"
         },
         "mcp": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mas_family_domain_handler_export",
@@ -1397,11 +1328,11 @@
         },
         "product_entry": {
           "action_key": "domain_handler_export",
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
           "surface_kind": "mas_family_domain_handler_export"
         },
         "skill": {
-          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
           "command_contract_id": "domain_handler_export",
           "surface_kind": "mas_family_domain_handler_export"
         }
@@ -1432,7 +1363,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
         "surface_kind": "mas_family_domain_handler_dispatch_receipt"
       },
       "summary": "Boundary for OPL typed task consumption. Ordinary paper execution uses domain_route/start-or-resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts.",
@@ -1441,11 +1372,11 @@
           "tool_name": "domain_handler_dispatch"
         },
         "cli": {
-          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
           "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         },
         "mcp": {
-          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mas_family_domain_handler_dispatch_receipt",
@@ -1456,11 +1387,11 @@
         },
         "product_entry": {
           "action_key": "domain_handler_dispatch",
-          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
           "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         },
         "skill": {
-          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
           "command_contract_id": "domain_handler_dispatch",
           "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         }
@@ -1468,65 +1399,6 @@
       "title": "Dispatch MAS domain-handler task",
       "workspace_locator_fields": [
         "task_ref"
-      ]
-    },
-    {
-      "action_id": "authority_operations",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
-        "surface_kind": "mas_authority_operation_handlers"
-      },
-      "summary": "Call MAS authority-operation domain handlers through one tool: workspace_authority_migration_audit, storage_governance_report, delivery_authority_backfill_apply, artifact_lifecycle_report, artifact_lifecycle_continuous_soak_summary. workspace_authority_migration_audit is dry-run-only; storage_governance_report and artifact_lifecycle_report are read-only; delivery_authority_backfill_apply is MAS delivery-authority gated. Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "authority_operations"
-        },
-        "cli": {
-          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
-          "surface_kind": "mas_authority_operation_handlers"
-        },
-        "mcp": {
-          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
-          "descriptor_only": false,
-          "public_runtime": true,
-          "surface_kind": "mas_authority_operation_handlers",
-          "tool_name": "authority_operations"
-        },
-        "openai": {
-          "tool_name": "authority_operations"
-        },
-        "product_entry": {
-          "action_key": "authority_operations",
-          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
-          "surface_kind": "mas_authority_operation_handlers"
-        },
-        "skill": {
-          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
-          "command_contract_id": "authority_operations",
-          "surface_kind": "mas_authority_operation_handlers"
-        }
-      },
-      "title": "Call MAS authority operation handlers",
-      "workspace_locator_fields": [
-        "workspace_roots"
       ]
     }
   ],
@@ -1592,6 +1464,6 @@
   ],
   "owner": "MedAutoScience",
   "surface_kind": "family_action_catalog",
-  "target_domain_id": "med-autoscience",
+  "target_domain_id": "mas",
   "version": "family-action-catalog.v1"
 }

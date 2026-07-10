@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.cli.paper_mission_commands import (
+from med_autoscience.paper_mission_domain import (
     DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     build_paper_mission_readback,
 )

@@ -244,23 +244,3 @@ def test_external_learning_closure_exposes_lightweight_executor_receipt_contract
         "quality_verdict",
         "stage_closeout",
     } <= set(receipt_contract["forbidden_authority"])
-
-
-def test_action_catalog_exposes_lightweight_executor_receipt_as_read_only_contract() -> None:
-    action_catalog = importlib.import_module("med_autoscience.action_catalog")
-
-    catalog = action_catalog.build_mas_action_catalog()
-    actions = {item["action_id"]: item for item in catalog["actions"]}
-    action = actions["lightweight_executor_receipt"]
-
-    assert action["effect"] == "read_only"
-    assert action["source_command"]["surface_kind"] == "mas_lightweight_executor_receipt_contract"
-    assert action["authority_boundary"]["surface_authority"] == (
-        "executor_receipt_contract_read_model"
-    )
-    assert action["authority_boundary"]["can_execute_command"] is False
-    assert action["authority_boundary"]["can_start_docker"] is False
-    assert action["authority_boundary"]["can_mount_docker_socket"] is False
-    assert action["authority_boundary"]["can_write_owner_receipt"] is False
-    assert action["authority_boundary"]["can_write_typed_blocker"] is False
-    assert action["authority_boundary"]["can_block_current_owner_action"] is False

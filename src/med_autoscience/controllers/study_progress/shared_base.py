@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import shlex
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
@@ -21,6 +20,7 @@ from med_autoscience.controller_confirmation_summary import (
 )
 from med_autoscience.controller_summary import read_controller_summary, stable_controller_summary_path
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
+from med_autoscience.domain_entry_contract import domain_entry_handler_target
 from med_autoscience.controllers.study_progress.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
@@ -537,26 +537,6 @@ def _humanize_token(token: object) -> str | None:
     if text is None:
         return None
     return text.replace("_", " ")
-
-
-def _quote_cli_arg(value: str | Path | None) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return "<profile>"
-    return shlex.quote(text)
-
-
-def _command_prefix(profile_ref: str | Path | None) -> str:
-    del profile_ref
-    return "uv run python -m med_autoscience.cli"
-
-
-def _profile_arg(profile_ref: str | Path | None) -> str:
-    return _quote_cli_arg(Path(profile_ref).expanduser().resolve() if profile_ref is not None else None)
-
-
-def _study_selector(*, study_id: str) -> str:
-    return f"--study-id {_quote_cli_arg(study_id)}"
 
 
 def _display_text(value: object) -> str | None:

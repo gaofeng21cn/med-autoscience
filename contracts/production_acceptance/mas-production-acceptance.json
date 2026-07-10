@@ -933,7 +933,7 @@
             "body_included": false
           },
           {
-            "ref": "scripts/run-pytest-clean.sh -q tests/test_opl_standard_pack.py tests/test_stage_quality_contract.py",
+            "ref": "scripts/run-pytest-clean.sh -q tests/test_opl_standard_pack_cases/generated_interface_cases.py tests/test_stage_quality_contract.py",
             "role": "stage_pack_contract_tests",
             "body_included": false
           }

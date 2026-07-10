@@ -7,13 +7,13 @@ import pytest
 
 from med_autoscience.paper_mission_run import PaperMissionRun
 from med_autoscience.paper_mission_transaction import PaperMissionTransaction
-from tests.test_cli_cases.paper_mission_command_helpers import (
+from tests.paper_mission_test_helpers import (
     _write_matching_domain_gate_closeout,
     _paper_mission_transaction_payload,
     _paper_mission_forbidden_write_guard,
     _write_submission_milestone_package,
 )
-from tests.test_cli_cases.shared import write_profile
+from tests.profile_test_helpers import write_profile
 
 
 @pytest.fixture(autouse=True)

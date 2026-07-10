@@ -12,12 +12,11 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
-def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
+def test_study_progress_projects_ai_repair_lifecycle(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
-    mcp_projection = importlib.import_module("med_autoscience.mcp_server.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -71,13 +70,10 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
     monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
-    compact = mcp_projection.compact_study_progress_projection(result)
 
     assert result["ai_repair_lifecycle"]["state"] == "external_supervisor_required"
     assert result["ai_repair_lifecycle"]["blocked_reason"] == "runtime_recovery_not_authorized"
     assert result["refs"]["ai_repair_lifecycle_path"].endswith("artifacts/autonomy/repair_lifecycle/latest.json")
-    assert compact["ai_repair_lifecycle"]["next_owner"] == "external_supervisor"
-    assert compact["ai_repair_lifecycle"]["external_supervisor_required"] is True
 
 
 def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_evidence_adoption(

@@ -16,7 +16,7 @@ from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
 from med_autoscience.display_pack_agent import display_pack_capability_discover
-from med_autoscience.cli.paper_mission_commands import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
+from med_autoscience.paper_mission_domain import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter

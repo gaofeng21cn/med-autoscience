@@ -1,7 +1,7 @@
 {
   "name": "med-autoscience",
   "version": "0.1.0a4",
-  "description": "Codex plugin shell for the MedAutoScience medical research orchestration runtime.",
+  "description": "Codex skill carrier for the MedAutoScience medical research domain pack.",
   "author": {
     "name": "Gao Feng",
     "url": "https://github.com/gaofeng21cn"
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Med Auto Science",
     "shortDescription": "Medical research orchestration for Codex.",
-    "longDescription": "Adds a thin Codex plugin entry for MedAutoScience while preserving the existing Python CLI, controller contracts, profile binding, MAS-owned runtime surfaces, and OPL/Hermes sidecar bridge.",
+    "longDescription": "Installs the MedAutoScience domain skill; OPL owns generated CLI, MCP, product, and workbench surfaces while MAS keeps medical authority handlers.",
     "developerName": "Gao Feng",
     "category": "Research",
     "capabilities": [
