@@ -246,14 +246,15 @@
       "surface": "stage_route_currentness_identity",
       "module": "src/med_autoscience/controllers/stage_route_currentness_identity.py",
       "normalization_helper": {
-        "surface": "stage_route_currentness_normalization",
-        "module": "src/med_autoscience/controllers/domain_action_request_materializer/currentness_identity.py",
-        "merge_rule": "later_non_empty_fields_override_earlier_values_none_never_clears_existing_values",
+        "surface": "domain_projection_profile",
+        "module": "src/med_autoscience/domain_projection_profile.py",
+        "profile_ref": "contracts/domain_projection_profile.json",
+        "canonical_identity_source": "NextActionEnvelope",
         "applies_to": [
-          "prebuilt_opl_domain_progress_transition_request",
-          "ai_reviewer_record_handoff",
-          "paper_recovery_successor_bridge",
-          "domain_handler_owner_route_wrapper"
+          "opl_domain_next_action_profile_projection",
+          "domain_handler_owner_route_refs",
+          "study_launch_handoff",
+          "study_task_intake_handoff"
         ],
         "authority_boundary": {
           "can_generate_action": false,
@@ -517,14 +518,15 @@
     "surface_kind": "mas_opl_stage_route_call_graph",
     "purpose": "Machine-readable graph for the canonical MAS/OPL next-action authority path, runtime receipt consumption, legacy diagnostic boundaries, and same-identity loop guards.",
     "canonical_authority_source_code_refs": [
-      "src/med_autoscience/controllers/stage_outcome_authority.py",
+      "src/med_autoscience/controllers/stage_outcome_authority/__init__.py",
+      "src/med_autoscience/controllers/next_action_envelope.py",
+      "src/med_autoscience/domain_projection_profile.py",
       "src/med_autoscience/paper_mission_opl_readback/next_action_envelope.py",
-      "src/med_autoscience/controllers/study_progress/projection_payload_assembly.py"
+      "contracts/domain_projection_profile.json"
     ],
-    "legacy_diagnostic_source_code_refs": [
-      "src/med_autoscience/controllers/current_work_unit.py",
-      "src/med_autoscience/controllers/current_execution_envelope.py",
-      "src/med_autoscience/controllers/provider_admission/provider_admission_current_control.py"
+    "legacy_diagnostic_provenance_refs": [
+      "contracts/runtime/legacy-active-path-tombstones.json",
+      "stage_route_reconcile_contract.next_action_supersession.retired_projection_modules"
     ],
     "legacy_diagnostic_source_semantics": "retired_or_diagnostic_only_not_canonical_reducer",
     "nodes": [
@@ -1976,9 +1978,9 @@
   },
   "verification_refs": [
     "tests/test_stage_route_reconcile_contract.py",
-    "tests/paper_mission_owner_surface_cases/test_opl_provider_attempt_projection.py",
-    "tests/test_domain_diagnostic_report_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
-    "tests/test_current_work_unit_retirement.py",
+    "tests/test_next_action_envelope.py",
+    "tests/test_mas_workspace_domain_projection.py",
+    "tests/test_next_action_legacy_authority_retirement.py",
     "scripts/verify.sh",
     "make test-meta"
   ],

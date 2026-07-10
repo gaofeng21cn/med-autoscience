@@ -20,16 +20,20 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "cli",
                 "current_paths": [
+                    "contracts/pack_compiler_input.json",
                     "contracts/action_catalog.json",
                     "src/med_autoscience/domain_entry.py",
                 ],
-                "current_role": "domain_handler_command_target_refs_only",
+                "current_role": "pack_contract_and_domain_handler_command_target_refs_only",
                 "target_role": "opl_generated_command_surface",
             },
             {
                 "surface_id": "mcp",
-                "current_paths": ["src/med_autoscience/domain_entry.py"],
-                "current_role": "domain_handler_tool_target_refs_only",
+                "current_paths": [
+                    "contracts/pack_compiler_input.json",
+                    "src/med_autoscience/domain_entry.py",
+                ],
+                "current_role": "pack_contract_and_domain_handler_tool_target_refs_only",
                 "target_role": "opl_generated_mcp_descriptor_surface",
             },
             {

@@ -36,6 +36,8 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
             ],
             "agent/skills": [
                 "agent/primary_skill/SKILL.md",
+                "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+                "contracts/pack_compiler_input.json",
                 domain_entry_handler_target("domain-handler-export"),
                 domain_entry_handler_target("domain-handler-dispatch"),
             ],
@@ -156,12 +158,14 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             default_for_new_surfaces=True,
             repo_paths=[
                 "agent/primary_skill/SKILL.md",
+                "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+                "contracts/pack_compiler_input.json",
                 "src/med_autoscience/domain_entry.py",
                 "contracts/action_catalog.json",
             ],
             mapping_explanation=(
-                "New skill-callable surfaces land in the canonical skill and domain-handler targets; "
-                "OPL owns generated CLI and MCP interfaces."
+                "Skill behavior is declared by the canonical skill, carrier, and pack contracts; "
+                "MAS exposes domain-handler targets while OPL owns generated CLI and MCP interfaces."
             ),
         ),
         _physical_skeleton_slot(

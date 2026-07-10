@@ -58,6 +58,7 @@ PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS = (
     {
         "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
         "path": "src/med_autoscience/controllers/domain_action_request_materializer",
+        "status": "retired_absence_guard",
         "forbidden_tokens": (
             "resolve_developer_supervisor_mode",
             "github_gate",
@@ -734,7 +735,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "code_paths": [
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
-            "src/med_autoscience/controllers/artifact_retention_operations_plan.py", "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py",
         ],
         "domain_ref_consumers": ["artifact lifecycle CLI/MCP", "product-entry artifact projection"],
         "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
@@ -750,7 +751,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/domain_projection_profile.py",
+            "src/med_autoscience/controllers/next_action_envelope.py",
             "src/med_autoscience/controllers/study_launch_projection.py",
             "src/med_autoscience/controllers/study_task_submission.py",
         ],
@@ -830,7 +832,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 "does_not_touch_publication_or_package_authority": True,
             },
             "domain_projection_sources": [
-                "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+                "src/med_autoscience/domain_projection_profile.py",
+                "src/med_autoscience/controllers/next_action_envelope.py",
                 "src/med_autoscience/controllers/study_launch_projection.py",
                 "src/med_autoscience/controllers/study_task_submission.py",
             ],
@@ -849,8 +852,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/paper_mission_owner_surface/",
-            "src/med_autoscience/controllers/domain_action_request_materializer/",
-            "src/med_autoscience/controllers/stage_outcome_authority.py",
+            "src/med_autoscience/controllers/next_action_envelope.py",
+            "src/med_autoscience/controllers/stage_outcome_authority/__init__.py",
             "src/med_autoscience/controllers/owner_callable_action_policy.py",
             "src/med_autoscience/reviewer_revision_feedbackops_dispatch.py",
             "src/med_autoscience/reviewer_revision_oma_materialization.py",
@@ -872,8 +875,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "status": "owner_callable_action_policy_single_source_landed",
             "policy_module": "src/med_autoscience/controllers/owner_callable_action_policy.py",
             "thin_entrypoints": [
-                "src/med_autoscience/controllers/domain_action_request_materializer.py",
-                "src/med_autoscience/controllers/stage_outcome_authority.py",
+                "src/med_autoscience/controllers/next_action_envelope.py",
+                "src/med_autoscience/controllers/stage_outcome_authority/__init__.py",
             ],
             "single_source_fields": [
                 "supported_action_types",
@@ -912,7 +915,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/domain_entry.py",
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/domain_projection_profile.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
             "plugins/med-autoscience/skills/med-autoscience/SKILL.md",

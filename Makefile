@@ -11,15 +11,11 @@ CONTROL_PLANE_TESTS := \
 	tests/test_autonomy_state_surface.py \
 	tests/test_study_runtime_typed_surface_cases/test_status_type_cases.py \
 	tests/test_authority_route_gate.py \
-	tests/test_artifact_lifecycle_inventory.py \
-	tests/test_artifact_retention_operations_plan.py \
 	tests/test_storage_governance_policy_kernel.py \
-	tests/test_artifact_lifecycle_operations_report.py \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_delivery_authority_backfill_apply.py \
 	tests/test_truth_projection_surfaces.py \
-	tests/test_runtime_health_projection_surfaces.py \
 	tests/study_progress_cases \
 	--ignore=tests/study_progress_cases/current_owner_handoff_projection_cases \
 	--ignore=tests/study_progress_cases/test_medical_writing_surfaces.py

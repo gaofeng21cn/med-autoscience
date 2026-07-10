@@ -85,19 +85,15 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     assert shared_identity["surface"] == "stage_route_currentness_identity"
     assert shared_identity["module"] == "src/med_autoscience/controllers/stage_route_currentness_identity.py"
     normalization = shared_identity["normalization_helper"]
-    assert normalization["surface"] == "stage_route_currentness_normalization"
-    assert normalization["module"] == (
-        "src/med_autoscience/controllers/domain_action_request_materializer/"
-        "currentness_identity.py"
-    )
-    assert normalization["merge_rule"] == (
-        "later_non_empty_fields_override_earlier_values_none_never_clears_existing_values"
-    )
+    assert normalization["surface"] == "domain_projection_profile"
+    assert normalization["module"] == "src/med_autoscience/domain_projection_profile.py"
+    assert normalization["profile_ref"] == "contracts/domain_projection_profile.json"
+    assert normalization["canonical_identity_source"] == "NextActionEnvelope"
     assert normalization["applies_to"] == [
-        "prebuilt_opl_domain_progress_transition_request",
-        "ai_reviewer_record_handoff",
-        "paper_recovery_successor_bridge",
-        "domain_handler_owner_route_wrapper",
+        "opl_domain_next_action_profile_projection",
+        "domain_handler_owner_route_refs",
+        "study_launch_handoff",
+        "study_task_intake_handoff",
     ]
     assert normalization["authority_boundary"] == {
         "can_generate_action": False,
@@ -259,20 +255,21 @@ def test_stage_route_reconcile_contract_declares_stage_route_call_graph_and_loop
     graph = contract["stage_route_call_graph"]
     assert graph["surface_kind"] == "mas_opl_stage_route_call_graph"
     assert graph["canonical_authority_source_code_refs"] == [
-        "src/med_autoscience/controllers/stage_outcome_authority.py",
+        "src/med_autoscience/controllers/stage_outcome_authority/__init__.py",
+        "src/med_autoscience/controllers/next_action_envelope.py",
+        "src/med_autoscience/domain_projection_profile.py",
         "src/med_autoscience/paper_mission_opl_readback/next_action_envelope.py",
-        "src/med_autoscience/controllers/study_progress/projection_payload_assembly.py",
+        "contracts/domain_projection_profile.json",
     ]
-    assert graph["legacy_diagnostic_source_code_refs"] == [
-        "src/med_autoscience/controllers/current_work_unit.py",
-        "src/med_autoscience/controllers/current_execution_envelope.py",
-        "src/med_autoscience/controllers/provider_admission/provider_admission_current_control.py",
+    assert graph["legacy_diagnostic_provenance_refs"] == [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "stage_route_reconcile_contract.next_action_supersession.retired_projection_modules",
     ]
     assert graph["legacy_diagnostic_source_semantics"] == (
         "retired_or_diagnostic_only_not_canonical_reducer"
     )
     assert (
-        "src/med_autoscience/controllers/current_work_unit.py"
+        "contracts/runtime/legacy-active-path-tombstones.json"
         not in graph["canonical_authority_source_code_refs"]
     )
 

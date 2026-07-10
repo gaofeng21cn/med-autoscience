@@ -361,7 +361,7 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_opl_transition_readback_contract.py",
-            "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_mas_workspace_domain_projection.py",
         ]
     )
 
@@ -374,8 +374,8 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert "make test-control-plane" not in planned_commands
     assert (
         "scripts/run-pytest-clean.sh "
-        "tests/test_paper_progress_policy_adapter.py "
-        "tests/test_opl_transition_readback_contract.py -q"
+        "tests/test_opl_transition_readback_contract.py "
+        "tests/test_mas_workspace_domain_projection.py -q"
     ) in planned_commands
     assert (
         "scripts/run-pytest-clean.sh "

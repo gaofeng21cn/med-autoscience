@@ -488,14 +488,14 @@ def build_category_specs(
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_opl_transition_readback_contract.py",
-            "tests/test_paper_progress_policy_adapter.py",
+            "tests/test_mas_workspace_domain_projection.py",
         ),
         prefix_paths=(),
         commands=(
             (
                 f"{pytest_clean_runner} "
-                "tests/test_paper_progress_policy_adapter.py "
-                "tests/test_opl_transition_readback_contract.py -q"
+                "tests/test_opl_transition_readback_contract.py "
+                "tests/test_mas_workspace_domain_projection.py -q"
             ),
             (
                 f"{pytest_clean_runner} "

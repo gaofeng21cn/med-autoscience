@@ -35,7 +35,7 @@
         "canonical StageOutcome -> NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json",
         "contracts/stage_route_reconcile_contract.json",
-        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_next_action_legacy_authority_retirement.py",
         "tests/test_stage_route_reconcile_contract.py"
       ],
       "observed_refs": [
@@ -43,7 +43,7 @@
         "contracts/paper_recovery_kernel_contract.json#/metadata/stage_outcome_to_next_action_authority=StageOutcome->NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json#/authority_boundaries/forbidden_authority_claims",
         "contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption",
-        "tests/test_paper_recovery_kernel_contract.py::PaperRecovery default_next_action_authority=false contract check",
+        "tests/test_next_action_legacy_authority_retirement.py::legacy projections require canonical NextActionEnvelope",
         "tests/test_stage_route_reconcile_contract.py::test_stage_route_reconcile_contract_consumes_paper_recovery_kernel",
         "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/exactly_one_obligation_actuator_outcomes",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM002-DM003-post-apply-readback"
@@ -155,14 +155,14 @@
       "status": "satisfied_with_repo_evidence",
       "required_evidence_refs": [
         "tests/test_standard_agent_completion_acceptance_contract.py",
-        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_next_action_legacy_authority_retirement.py",
         "tests/test_stage_route_reconcile_contract.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
       ],
       "observed_refs": [
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_acceptance_false_completion_claims_are_explicit",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected",
-        "tests/test_paper_recovery_kernel_contract.py",
+        "tests/test_next_action_legacy_authority_retirement.py",
         "tests/test_stage_route_reconcile_contract.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_retired_owner_callable_adapter_residue_cleanup_receipt_without_progress_claim",

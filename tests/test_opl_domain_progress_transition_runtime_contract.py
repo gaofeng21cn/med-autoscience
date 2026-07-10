@@ -216,28 +216,14 @@ def test_transition_spine_forbidden_interpretations_are_explicit_false_authority
     }.issubset(forbidden_interpretations)
 
 
-def test_helper_shapes_are_single_source_for_existing_runtime_consumers() -> None:
+def test_readback_shape_is_single_sourced_from_runtime_contract() -> None:
     helper = importlib.import_module(
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
     )
     readback = importlib.import_module(
         "med_autoscience.controllers.opl_transition_readback"
     )
-    boundaries = importlib.import_module(
-        "med_autoscience.controllers.provider_admission.provider_admission_boundaries"
-    )
-    projection = importlib.import_module(
-        "med_autoscience.controllers.domain_action_request_materializer.transition_request_projection"
-    )
-
     assert readback.required_opl_transition_readback_shape() == helper.required_readback_shape()
-    assert boundaries.domain_progress_transition_request_authority_boundary() == (
-        helper.mas_request_authority_boundary()
-    )
-    assert projection._opl_transition_runtime_postcondition() == helper.runtime_postcondition()
-    assert projection._mas_transition_projection_authority_boundary() == (
-        helper.mas_projection_authority_boundary()
-    )
 
 
 def test_policy_adapter_request_uses_runtime_contract_and_remains_mas_request_only() -> None:
