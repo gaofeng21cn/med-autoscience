@@ -85,16 +85,12 @@ def test_paper_mission_owner_surface_no_longer_accepts_tombstoned_runtime_apply_
     assert retired_apply_flag not in signature.parameters
 
 
-def test_retired_worker_cli_and_transport_aliases_do_not_return() -> None:
-    cli_parser = importlib.import_module("med_autoscience.cli.parser")
+def test_retired_worker_transport_aliases_do_not_return() -> None:
     domain_status_projection = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     figure_loop_guard = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     medical_publication_surface = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
 
-    help_text = cli_parser.build_parser(study_cycle_profiler=None).format_help()
-    retired_worker_flag = "--" + "managed-runtime" + "-worker"
     retired_transport_attr = "managed_runtime" + "_transport"
-    assert retired_worker_flag not in help_text
     assert not hasattr(domain_status_projection, retired_transport_attr)
     assert not hasattr(figure_loop_guard, retired_transport_attr)
     assert not hasattr(medical_publication_surface, retired_transport_attr)

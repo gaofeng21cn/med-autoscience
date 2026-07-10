@@ -210,7 +210,11 @@ def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
     assert "visual_audit_review" in contracts["display-pack-render"]["optional_fields"]
 
 
-def test_action_catalog_targets_and_required_fields_match_domain_entry_contract() -> None:
+def test_action_catalog_targets_and_required_fields_match_real_domain_entry_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    domain_entry_module = importlib.import_module("med_autoscience.domain_entry")
     contract_module = importlib.import_module("med_autoscience.domain_entry_contract")
     catalog = json.loads(
         (Path(__file__).resolve().parents[1] / "contracts/action_catalog.json").read_text(
@@ -218,6 +222,10 @@ def test_action_catalog_targets_and_required_fields_match_domain_entry_contract(
         )
     )
     actions = {item["action_id"]: item for item in catalog["actions"]}
+    calls = _install_required_only_dispatch_handlers(monkeypatch, tmp_path)
+    profile = make_profile(tmp_path)
+    monkeypatch.setattr(domain_entry_module, "load_profile", lambda ref: profile)
+    entry = domain_entry_module.MedAutoScienceDomainEntry(profile_loader=lambda ref: profile)
 
     assert set(actions) == {
         command.replace("-", "_") for command in contract_module.SERVICE_SAFE_DOMAIN_COMMANDS
@@ -236,6 +244,40 @@ def test_action_catalog_targets_and_required_fields_match_domain_entry_contract(
         owner = getattr(importlib.import_module(module_name), owner_name)
         assert callable(getattr(owner, method_name))
         assert target_action_id == command.replace("-", "_")
+
+        request = _required_only_request(command, spec.required_fields, tmp_path)
+        assert set(request) == {"command", *spec.required_fields}
+        payload = entry.dispatch(request)
+        assert payload["command"] == command
+
+    assert set(calls) == set(contract_module.SERVICE_SAFE_DOMAIN_COMMANDS)
+    assert calls["scientific-capability-registry"]["args"] == ()
+    assert calls["display-pack-capability-discover"]["kwargs"] == {
+        "repo_root": None,
+        "paper_root": None,
+        "include_templates": False,
+        "opl_descriptor_output_dir": None,
+    }
+    assert calls["research-integrity-gate-input"]["kwargs"] == {
+        "reference_checks": (),
+        "claim_spans": (),
+        "citation_refs": (),
+        "evidence_refs": (),
+        "reference_attestation_refs": (),
+        "manuscript_sections": None,
+        "numeric_facts": None,
+        "display_facts": None,
+        "reporting_checklist_expectations": None,
+    }
+    assert calls["research-integrity-reference-verification"]["kwargs"] == {"payload": {}}
+    assert calls["research-integrity-review-publication-gate-stage-hook"]["kwargs"] == {
+        "payload": {}
+    }
+    assert calls["delivery-authority-backfill-apply"]["kwargs"] == {
+        "workspace_roots": (tmp_path.resolve(),),
+        "apply": False,
+        "authority_snapshot": None,
+    }
 
 
 def test_domain_entry_dispatches_delivery_authority_backfill_apply(monkeypatch, tmp_path: Path) -> None:
@@ -313,6 +355,98 @@ def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
         "opl_can_write_domain_truth": False,
         "opl_can_authorize_quality_or_export": False,
     }
+
+
+def _install_required_only_dispatch_handlers(monkeypatch, tmp_path: Path) -> dict[str, dict[str, object]]:
+    calls: dict[str, dict[str, object]] = {}
+
+    def capture(command: str):
+        def handler(*args: object, **kwargs: object) -> dict[str, object]:
+            calls[command] = {"args": args, "kwargs": kwargs}
+            return {"surface_kind": command}
+
+        return handler
+
+    domain_entry = importlib.import_module("med_autoscience.domain_entry")
+    monkeypatch.setattr(domain_entry, "read_study_progress", capture("study-progress"))
+    monkeypatch.setattr(domain_entry, "launch_study", capture("launch-study"))
+    monkeypatch.setattr(domain_entry, "submit_study_task", capture("submit-study-task"))
+
+    module_handlers = {
+        "med_autoscience.controllers.study_state_matrix": {
+            "build_study_state_matrix": "study-state-matrix",
+        },
+        "med_autoscience.controllers.submission_inspection_export": {
+            "export_inspection_package": "export-inspection-package",
+        },
+        "med_autoscience.controllers.publication_aftercare": {
+            "build_publication_aftercare_plan": "publication-aftercare-plan",
+        },
+        "med_autoscience.controllers.delivery_authority_backfill_apply": {
+            "run_backfill_apply": "delivery-authority-backfill-apply",
+        },
+        "med_autoscience.external_learning_adoption_closure": {
+            "build_external_learning_adoption_closure": "external-learning-adoption-closure",
+        },
+        "med_autoscience.scientific_capability_registry": {
+            "build_scientific_capability_registry_summary": "scientific-capability-registry",
+        },
+        "med_autoscience.controllers.mainline_status": {
+            "read_mainline_status": "mainline-status",
+            "read_mainline_phase_status": "mainline-phase",
+        },
+        "med_autoscience.display_pack_agent": {
+            "display_pack_capability_discover": "display-pack-capability-discover",
+            "display_pack_orchestrate": "display-pack-orchestrate",
+            "display_pack_figure_plan": "display-pack-figure-plan",
+            "display_pack_preflight": "display-pack-preflight",
+            "display_pack_render": "display-pack-render",
+        },
+        "med_autoscience.research_integrity.gate_bundle": {
+            "build_research_integrity_gate_input_bundle": "research-integrity-gate-input",
+        },
+        "med_autoscience.research_integrity.reference_verification": {
+            "build_reference_verification_payload": "research-integrity-reference-verification",
+        },
+        "med_autoscience.research_integrity.stage_hooks": {
+            "build_review_publication_gate_stage_hook_payload": (
+                "research-integrity-review-publication-gate-stage-hook"
+            ),
+        },
+        "med_autoscience.controllers.owner_route_handoff.domain_handler_export": {
+            "export_family_domain_handler": "domain-handler-export",
+        },
+        "med_autoscience.controllers.owner_route_handoff.dispatch_orchestration": {
+            "dispatch_family_domain_handler_task": "domain-handler-dispatch",
+        },
+    }
+    for module_name, handlers in module_handlers.items():
+        module = importlib.import_module(module_name)
+        for function_name, command in handlers.items():
+            monkeypatch.setattr(module, function_name, capture(command))
+
+    return calls
+
+
+def _required_only_request(
+    command: str,
+    required_fields: tuple[str, ...],
+    tmp_path: Path,
+) -> dict[str, object]:
+    task_ref = tmp_path / "domain-handler-task.json"
+    task_ref.write_text('{"task_kind":"generated-interface-parity"}\n', encoding="utf-8")
+    values: dict[str, object] = {
+        "profile_ref": str(tmp_path / "profile.local.toml"),
+        "study_id": "study-001",
+        "task_intent": "inspect",
+        "study_root": str(tmp_path / "study"),
+        "workspace_roots": [str(tmp_path)],
+        "mode": "summary",
+        "figure_request": {},
+        "paper_root": str(tmp_path / "paper"),
+        "task_ref": str(task_ref),
+    }
+    return {"command": command, **{field: values[field] for field in required_fields}}
 
 
 def _build_request_from_contract(

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from med_autoscience import cli
 from med_autoscience.display_pack_agent import display_pack_render
 from tests.test_display_pack_agent import (
     REPO_ROOT,
