@@ -80,7 +80,7 @@ Machine boundary: Human-readable implementation support only; active execution t
   - `paper/figure_polish_lifecycle.json` 负责从 `draft_rendered` 到 `publication_manifested` 的 AI/VLM polish 状态前缀，绑定 visual-audit evidence 与 lock refs；
   - `paper/ai_illustration_receipt.json` 只允许记录 `illustration_shell` AI 候选，且 `scientific_claim_carried=false` 是硬边界；
   - `paper/build/display_pack_lock.json` 会记录这些 surface 的 path / status / hash，submission manifest 会继续保留这些 refs；
-  - `medautosci publication display-pack-e2e` 已把 intent/spec、style/overrides、Display Pack renderer、layout QC、visual audit receipt、polish lifecycle、artifact manifest、display pack lock 和 publication manifest 串成可运行路径。
+  - OPL generated `display_pack_orchestrate` / `display_pack_render` actions 已把 intent/spec、style/overrides、Display Pack renderer、layout QC、visual audit receipt、polish lifecycle、artifact manifest、display pack lock 和 publication manifest 串到同一 MAS handler/authority boundary；MAS 不再维护 repo-local publication CLI。
 - 当前唯一活跃缺口，不再是“能不能包化”，而是：
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；

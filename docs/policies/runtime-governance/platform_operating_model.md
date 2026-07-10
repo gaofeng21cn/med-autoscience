@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
 State: `active_policy`
-Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, CLI/read-model output, runtime ledgers, controller artifacts, and owner receipts.
+Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, OPL generated/read-model output, runtime ledgers, controller artifacts, and owner receipts.
 
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
@@ -13,7 +13,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
-- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 MAS domain authority refs / Progress Portal / Artifact OS / Quality OS 与外挂工具、组织论文交付
+- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用 OPL generated action 与 MAS domain handler、协调 MAS domain authority refs、OPL hosted status/workbench、Artifact OS、Quality OS 与外挂工具、组织论文交付
 - `MedAutoScience` 自身负责提供稳定、可验证、可审计的 domain-agent entry 接口，而不是要求人手工维护底层状态文件
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
@@ -34,7 +34,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 ### Domain agent entry 负责
 
 - 暴露面向人类与 Agent 的正式 domain 入口
-- 固定 workspace / profile / controller / overlay / adapter 的稳定接口
+- 固定 action catalog、schema、domain handler、owner receipt、typed blocker 与 authority ref 的稳定接口
 - 保持公开定位、entry contract、核心 docs 与审计边界清晰
 - 防止调用方绕过正式入口直接碰内部 runtime
 
@@ -57,7 +57,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 - 读取 profile、workspace、study、runtime、portfolio 的当前状态
 - 优先在高可塑性、易形成阳性证据包的研究路径中做选题与切换
-- 调用 controller 和 overlay 完成数据治理、门控、交付同步与实验编排
+- 调用 OPL generated action 与 MAS authority function 完成数据治理、门控、交付同步与实验编排
 - 在弱结果方向上尽快止损，而不是默认把整条线做完
 
 ### OPL / Codex 执行层
@@ -77,18 +77,17 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 当前正式操作面包括：
 
-- profile
-  - 定义 workspace、runtime、publication profile、overlay scope、研究偏置和默认 archetype
-- formal-entry matrix
-  - `CLI`：默认 formal entry
-  - `MCP`：supported protocol layer
-  - `controller`：internal control surface
-- stage / overlay
-  - 把医学前验、stage packet、质量约束和 route-back 规则前移到 MAS stage
+- workspace/profile/environment
+  - 由 OPL owner surface 定义 workspace binding、runtime profile、environment preparation 和 operator context
+- generated-entry matrix
+  - OPL 从 MAS action catalog/schema 生成 CLI、MCP、Skill、product-entry、status 与 workbench
+  - MAS 只保留 `MedAutoScienceDomainEntry.dispatch#<action_id>` 与最小 authority function
+- stage pack
+  - 把医学前验、stage packet、质量约束和 route-back 规则放在 MAS `agent/` pack
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
-这些操作面属于 `MedAutoScience` 的 domain-agent 对外控制表面；它们驱动的 controller、runtime、eval、delivery 链条，则属于内部 execution/runtime surface。
+Generated interface 与 generic runtime 属于 OPL；MAS action semantics、domain handler、quality/artifact/publication authority 属于 MedAutoScience。两边不复制 parser、transport、runtime 或 truth。
 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
 
 对 workspace 的状态 mutation，默认遵循以下原则：
@@ -101,10 +100,10 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 一次标准的医学自动科研推进，默认按以下链路组织：
 
-1. Agent 读取 profile，并对目标 workspace 执行 bootstrap / overlay 检查。
+1. Agent 从 OPL workspace/profile/environment readback 获取目标 workspace、study identity 与依赖状态。
 2. Agent 检查数据资产状态，包括私有版本、公开数据机会、startup readiness。
 3. Agent 按研究偏置策略，优先选择高可塑性、易形成医学证据包的课题 archetype。
-4. Agent 为当前 quest 安装或重覆写医学 overlay，把门控与写作约束前移到执行阶段。
+4. OPL 从 MAS `agent/` pack hydrate 当前 stage packet，把门控与写作约束带入 executor attempt。
 5. Hosted path 由 OPL/Temporal 持久在线管理 stage attempt、wakeup、retry、resume 和 queue；Codex App 不承担外围持续 driver。
 6. `Codex CLI` 在 MAS stage packet 约束内执行实验、写作、修复和交付准备。
 7. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、AI reviewer、medical publication surface 等治理。
@@ -124,7 +123,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 - 公开数据与机制扩展 sidecar
 - 基于通用大模型构造面向临床窄任务的专用智能体
 
-是否采用某一类路线，不由底层引擎自由漂移决定，而由 profile、policy、overlay 和 controller 共同约束。
+是否采用某一类路线，不由底层引擎自由漂移决定，而由 profile、MAS policy/stage pack、owner route 与 authority function 共同约束。
 
 ## 人类审核面
 
