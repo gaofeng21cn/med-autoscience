@@ -45,6 +45,7 @@ def subprocess_placeholders(
     paper_root: Path,
     template_root: Path,
     pack_root: Path,
+    render_mode: str,
 ) -> dict[str, str]:
     return {
         "request_json": str(request_path),
@@ -56,6 +57,7 @@ def subprocess_placeholders(
         "paper_root": str(paper_root),
         "template_root": str(template_root),
         "pack_root": str(pack_root),
+        "render_mode": render_mode,
     }
 
 
@@ -106,6 +108,7 @@ def run_subprocess_renderer(
         paper_root=paper_root,
         template_root=runtime_template_root,
         pack_root=pack_root,
+        render_mode="final",
     )
     argv = expand_subprocess_entrypoint(template_manifest.entrypoint, placeholders=placeholders)
     env = {
@@ -216,6 +219,7 @@ def run_candidate_subprocess_renderer(
         paper_root=paper_root,
         template_root=runtime_template_root,
         pack_root=pack_root,
+        render_mode="candidate",
     )
     argv = expand_subprocess_entrypoint(entrypoint, placeholders=placeholders)
     env = {

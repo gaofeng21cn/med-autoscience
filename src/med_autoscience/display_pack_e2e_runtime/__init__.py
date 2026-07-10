@@ -13,9 +13,6 @@ from med_autoscience.display_pack_dependency_environment import (
     dependency_environment_authority_boundary,
 )
 from med_autoscience.display_pack_lock import write_display_pack_lock
-from med_autoscience.display_pack_agent.figure_workflow import (
-    build_rendered_figure_workflow_packet,
-)
 from med_autoscience.display_pack_loader import load_enabled_local_display_template_records
 from med_autoscience.display_pack_provenance_bundle import (
     PROVENANCE_INDEX_REF,
@@ -552,6 +549,10 @@ def _write_figure_workflow_packet(
     figure_entries: list[dict[str, Any]],
     audit_receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
+    from med_autoscience.display_pack_agent.figure_workflow import (
+        build_rendered_figure_workflow_packet,
+    )
+
     receipt_refs = {
         "display_pack_lock": DISPLAY_PACK_LOCK_REF,
         "publication_manifest": f"paper/build/{PUBLICATION_MANIFEST_BASENAME}",

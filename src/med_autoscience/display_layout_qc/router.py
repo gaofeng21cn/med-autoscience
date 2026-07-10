@@ -10,10 +10,10 @@ from .curves_extended import (
     _check_publication_time_to_event_multihorizon_calibration_panel,
 )
 from .curves_primary import _check_publication_decision_curve, _check_publication_evidence_curve, _check_publication_risk_layering_bars, _check_publication_survival_curve
-from .dpcc_primary_care import (
-    _check_publication_dpcc_phenotype_gap_structure,
-    _check_publication_dpcc_transition_site_support,
-    _check_publication_dpcc_treatment_gap_alignment,
+from .stratified_display import (
+    _check_publication_stratified_mismatch_burden,
+    _check_publication_stratified_mismatch_matrix,
+    _check_publication_transition_support_matrix,
 )
 from .effects_panels import (
     _check_publication_broader_heterogeneity_summary_panel,
@@ -94,9 +94,9 @@ QC_PROFILE_RUNNERS = {
     "publication_time_to_event_multihorizon_calibration_panel": _check_publication_time_to_event_multihorizon_calibration_panel,
     "publication_generalizability_subgroup_composite_panel": _check_publication_generalizability_subgroup_composite_panel,
     "publication_center_transportability_governance_summary_panel": _check_publication_center_transportability_governance_summary_panel,
-    "publication_dpcc_phenotype_gap_structure": _check_publication_dpcc_phenotype_gap_structure,
-    "publication_dpcc_transition_site_support": _check_publication_dpcc_transition_site_support,
-    "publication_dpcc_treatment_gap_alignment": _check_publication_dpcc_treatment_gap_alignment,
+    "publication_stratified_mismatch_matrix": _check_publication_stratified_mismatch_matrix,
+    "publication_transition_support_matrix": _check_publication_transition_support_matrix,
+    "publication_stratified_mismatch_burden": _check_publication_stratified_mismatch_burden,
     "publication_workflow_fact_sheet_panel": _check_publication_workflow_fact_sheet_panel,
     "publication_design_evidence_composite_shell": _check_publication_design_evidence_composite_shell,
     "submission_graphical_abstract": _check_submission_graphical_abstract,

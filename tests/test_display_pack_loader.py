@@ -190,12 +190,26 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
 def test_default_display_pack_template_inventory_is_canonical_only() -> None:
     default_records = load_enabled_local_display_pack_template_records(REPO_ROOT)
     full_records = load_enabled_local_display_pack_template_records(REPO_ROOT, inventory_scope="all")
+    reference_records = load_enabled_local_display_pack_template_records(
+        REPO_ROOT,
+        inventory_scope="paper_derived_reference",
+    )
 
     assert len(default_records) >= 37
     assert len(full_records) >= len(default_records)
-    assert {record.template_manifest.template_id for record in default_records} == {
-        record.template_manifest.template_id for record in full_records
+    default_ids = {record.template_manifest.template_id for record in default_records}
+    full_ids = {record.template_manifest.template_id for record in full_records}
+    reference_ids = {record.template_manifest.template_id for record in reference_records}
+    assert reference_ids == {
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
     }
+    assert default_ids == full_ids - reference_ids
+    assert all(record.template_manifest.default_visible is False for record in reference_records)
+    assert all(
+        record.template_manifest.inventory_class == "paper_derived_reference"
+        for record in reference_records
+    )
     assert "time_dependent_roc_comparison_panel" not in {
         record.template_manifest.template_id for record in default_records
     }

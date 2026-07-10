@@ -578,6 +578,7 @@ def _category_completion(
 
 
 def _publication_quality_profile_coverage(records: list[TemplateRecord]) -> dict[str, Any]:
+    records = [record for record in records if record.default_visible]
     missing_family = sorted(record.template_id for record in records if not record.medical_family_ids)
     missing_recipe = sorted(
         record.template_id

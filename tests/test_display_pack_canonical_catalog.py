@@ -17,6 +17,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     gallery_visual_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
+    paper_derived_reference_records,
     reporting_flow_gallery_records,
     read_template_records,
     table_preview_gallery_records,
@@ -57,9 +58,14 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
     records = load_enabled_local_display_template_records(REPO_ROOT, inventory_scope="all")
     template_ids = {record.template_manifest.template_id for record in records}
 
-    assert set(catalog.canonical_template_ids) == template_ids
+    reference_ids = set(catalog.paper_derived_reference_template_ids)
+    assert set(catalog.canonical_template_ids) == template_ids - reference_ids
+    assert reference_ids == {
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    }
     assert set(catalog.alias_template_ids).isdisjoint(template_ids)
-    assert len(catalog.canonical_template_ids) == 54
+    assert len(catalog.canonical_template_ids) == 52
     assert len(catalog.alias_template_ids) == 40
     assert len(catalog.entries_by_template_id) == 94
     responsibility_counts = {}
@@ -71,7 +77,7 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
     assert responsibility_counts == {
         "computed_in_template": 3,
         "illustration_shell": 1,
-        "table_shell": 9,
+        "table_shell": 7,
         "validated_summary_required": 41,
     }
     for template_id in catalog.canonical_template_ids:
@@ -100,14 +106,31 @@ def test_canonical_template_catalog_maps_full_template_inventory() -> None:
     assert current_template.analysis_input_state == "validated_display_payload"
     assert "time_dependent_roc_comparison_panel" in current_template.aliases
 
+    for template_id in reference_ids:
+        entry = catalog.entries_by_template_id[template_id]
+        assert entry.migration_status == "paper_derived_reference"
+        assert entry.resource_class == "paper_derived_reference"
+        assert entry.default_visible is False
+        assert entry.paper_provenance_refs == (
+            "med-autoscience/studies/003-dpcc-primary-care-phenotype-treatment-gap",
+        )
+
 
 def test_table_preview_gallery_only_exposes_table_shells_with_preview_renderers() -> None:
     records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
     non_visual_records = non_visual_canonical_records(records)
+    paper_derived_records = paper_derived_reference_records(records)
     table_preview_records = table_preview_gallery_records(records)
 
     assert len(records) == 54
-    assert len(non_visual_records) == 9
+    assert len(non_visual_records) == 7
+    assert [record.template_id for record in paper_derived_records] == [
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    ]
+    assert all(record.default_visible is False for record in paper_derived_records)
+    assert all(record.resource_class == "paper_derived_reference" for record in paper_derived_records)
+    assert all(record.paper_provenance_refs for record in paper_derived_records)
     assert {record.kind for record in non_visual_records} == {"table_shell"}
     assert [record.template_id for record in table_preview_records] == [
         "table1_baseline_characteristics",
@@ -146,8 +169,6 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
         "supplementary_missingness_atlas",
         "supplementary_variable_ascertainment",
         "table1_baseline_characteristics",
-        "table2_phenotype_gap_summary",
-        "table3_transition_site_support_summary",
         "table4_adult_multidimensional_phenotype",
         "table5_xiangya_psychometabolic_profile",
         "table6_adult_bmi_waist_central_adiposity",
@@ -344,8 +365,8 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["publication_polish_policy"]["palette_scale_policy"]["per_plot_palette_drift_allowed"] is False
     assert manifest["publication_quality_profile_coverage"] == {
         "schema_version": 1,
-        "current_template_count": 54,
-        "complete_profile_template_count": 54,
+        "current_template_count": 52,
+        "complete_profile_template_count": 52,
         "complete_profile_percent": 100,
         "medical_family_missing_template_ids": [],
         "starter_recipe_missing_template_ids": [],
@@ -356,7 +377,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["analysis_responsibility_counts"] == {
         "computed_in_template": 3,
         "illustration_shell": 1,
-        "table_shell": 9,
+        "table_shell": 7,
         "validated_summary_required": 41,
     }
     assert manifest["analysis_responsibility_policy"]["raw_request_fail_closed"] is True
@@ -444,11 +465,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert manifest["table_preview_gallery_template_count"] == len(manifest["table_preview_gallery_templates"]) == 1
     assert manifest["visual_gallery_template_count"] == 46
     assert manifest["template_count"] == 46
-    assert manifest["current_template_count"] == 54
+    assert manifest["current_template_count"] == 52
     assert manifest["retired_alias_template_count"] == 40
-    assert manifest["non_visual_canonical_template_count"] == len(manifest["non_visual_inventory"]) == 9
-    assert manifest["catalog_default_visible_template_count"] == 54
-    assert manifest["default_visible_template_count"] == 54
+    assert manifest["non_visual_canonical_template_count"] == len(manifest["non_visual_inventory"]) == 7
+    assert manifest["catalog_default_visible_template_count"] == 52
+    assert manifest["default_visible_template_count"] == 52
     assert len(manifest["canonical_category_ontology"]) == 13
     assert "discrimination_curve" in {item["family_id"] for item in manifest["canonical_family_ontology"]}
     assert {item["kind"] for item in manifest["templates"]} == {"evidence_figure"}
@@ -472,8 +493,6 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "supplementary_missingness_atlas",
         "supplementary_variable_ascertainment",
         "table1_baseline_characteristics",
-        "table2_phenotype_gap_summary",
-        "table3_transition_site_support_summary",
         "table4_adult_multidimensional_phenotype",
         "table5_xiangya_psychometabolic_profile",
         "table6_adult_bmi_waist_central_adiposity",
@@ -519,8 +538,6 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         "supplementary_adult_sensitivity",
         "supplementary_missingness_atlas",
         "supplementary_variable_ascertainment",
-        "table2_phenotype_gap_summary",
-        "table3_transition_site_support_summary",
         "table4_adult_multidimensional_phenotype",
         "table5_xiangya_psychometabolic_profile",
         "table6_adult_bmi_waist_central_adiposity",
@@ -535,6 +552,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
         if item["kind"] == "evidence_figure" and item["renderer_family"] == "python"
     ]
     assert manifest["renderer_policy_completion"]["default_python_evidence_template_count"] == 0
+    assert manifest["renderer_policy_completion"]["current_template_count"] == 52
     assert manifest["renderer_policy_completion"]["default_r_ggplot2_evidence_template_count"] == 43
     assert manifest["renderer_policy_completion"]["all_r_ggplot2_evidence_template_count"] == 43
     assert manifest["renderer_policy_completion"]["python_evidence_retained_count"] == 0
@@ -638,11 +656,11 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "Gallery design figures | 1" in status_markdown
     assert "Gallery table preview figures | 1" in status_markdown
     assert "Gallery visual templates | 46" in status_markdown
-    assert "Current canonical templates | 54" in status_markdown
+    assert "Current canonical templates | 52" in status_markdown
     assert "Retired alias / duplicate ids | 40" in status_markdown
     assert "Current Python evidence templates | 0" in status_markdown
     assert "publication-ready claim authorized: `false`" in status_markdown
-    assert "publication quality profile coverage: `54/54` (100%)" in status_markdown
+    assert "publication quality profile coverage: `52/52` (100%)" in status_markdown
     assert "blocked evidence templates after current render: `43`" in status_markdown
     assert "blocked gallery visual templates after current render: `46`" in status_markdown
     assert "publication polish policy: `mas_publication_polish_policy.v1`" in status_markdown
@@ -653,8 +671,8 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert "| `cohort_flow_figure` | Cohort Flow Figure | r_ggplot2 | not_rendered |" in status_markdown
     assert "| `submission_graphical_abstract` | Submission Graphical Abstract | python | not_rendered |" in status_markdown
     assert "| `table1_baseline_characteristics` | Table 1 Baseline Characteristics | n/a | not_rendered |" in status_markdown
-    assert "`table2_phenotype_gap_summary`" in status_markdown
-    assert "`table3_transition_site_support_summary`" in status_markdown
+    assert "`table2_phenotype_gap_summary`" not in status_markdown
+    assert "`table3_transition_site_support_summary`" not in status_markdown
     assert "composition recipe policy: `mas_medical_figure_composition_recipes.v1`" in status_markdown
     assert "| `clinical_triptych_prediction` | Clinical Prediction Triptych | primary_model_performance_summary | 3 |" in status_markdown
     assert "- `storyboard_panel_hierarchy_declared`" in status_markdown

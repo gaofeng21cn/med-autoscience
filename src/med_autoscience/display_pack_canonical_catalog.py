@@ -27,6 +27,7 @@ class CanonicalTemplateFamily:
     analysis_input_state: str
     medical_family_ids: tuple[str, ...]
     publication_quality_profile: dict[str, Any]
+    paper_provenance_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,8 @@ class CanonicalTemplateEntry:
     analysis_input_state: str
     medical_family_ids: tuple[str, ...]
     publication_quality_profile: dict[str, Any]
+    resource_class: str = "canonical"
+    paper_provenance_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -59,6 +62,7 @@ class CanonicalTemplateCatalog:
     entries_by_template_id: dict[str, CanonicalTemplateEntry]
     canonical_template_ids: tuple[str, ...]
     alias_template_ids: tuple[str, ...]
+    paper_derived_reference_template_ids: tuple[str, ...] = ()
 
 
 def _expect_str(payload: dict[str, Any], key: str) -> str:
@@ -116,6 +120,7 @@ def _parse_family(raw_family: dict[str, Any]) -> CanonicalTemplateFamily:
         analysis_input_state=_expect_str(raw_family, "analysis_input_state"),
         medical_family_ids=medical_family_ids,
         publication_quality_profile=publication_quality_profile,
+        paper_provenance_refs=_expect_str_tuple(raw_family, "paper_provenance_refs"),
     )
 
 
@@ -157,6 +162,8 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
             analysis_input_state=family.analysis_input_state,
             medical_family_ids=family.medical_family_ids,
             publication_quality_profile=family.publication_quality_profile,
+            resource_class="canonical",
+            paper_provenance_refs=family.paper_provenance_refs,
         )
         if family.canonical_template_id in entries_by_template_id:
             raise ValueError(f"duplicate canonical template id `{family.canonical_template_id}`")
@@ -180,8 +187,51 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
                 analysis_input_state=family.analysis_input_state,
                 medical_family_ids=family.medical_family_ids,
                 publication_quality_profile=family.publication_quality_profile,
+                resource_class="migrated_alias",
+                paper_provenance_refs=family.paper_provenance_refs,
             )
             alias_template_ids.append(alias)
+
+    paper_derived_reference_template_ids: list[str] = []
+    raw_references = payload.get("paper_derived_references", [])
+    if not isinstance(raw_references, list):
+        raise ValueError("canonical template catalog paper_derived_references must be a list")
+    for index, raw_reference in enumerate(raw_references):
+        if not isinstance(raw_reference, dict):
+            raise ValueError(
+                f"canonical template catalog paper_derived_references[{index}] must be an object"
+            )
+        template_id = _expect_str(raw_reference, "template_id")
+        if template_id in entries_by_template_id:
+            raise ValueError(f"duplicate paper-derived reference template id `{template_id}`")
+        if _expect_str(raw_reference, "resource_class") != "paper_derived_reference":
+            raise ValueError(f"paper-derived reference `{template_id}` has invalid resource_class")
+        if _expect_bool(raw_reference, "default_visible"):
+            raise ValueError(f"paper-derived reference `{template_id}` must not be default visible")
+        medical_family_ids = _expect_str_tuple(raw_reference, "medical_family_ids")
+        entries_by_template_id[template_id] = CanonicalTemplateEntry(
+            family_id=template_id,
+            family_title=_expect_str(raw_reference, "title"),
+            family_category=_expect_str(raw_reference, "category"),
+            figure_archetype=_expect_str(raw_reference, "figure_archetype"),
+            canonical_template_id=template_id,
+            template_id=template_id,
+            migration_status="paper_derived_reference",
+            default_visible=False,
+            aliases=(),
+            migration_reason=_expect_str(raw_reference, "reason"),
+            analysis_responsibility=normalize_analysis_responsibility(
+                raw_reference.get("analysis_responsibility")
+            ),
+            analysis_input_state=_expect_str(raw_reference, "analysis_input_state"),
+            medical_family_ids=medical_family_ids,
+            publication_quality_profile=publication_quality_profile_for_medical_families(
+                medical_family_ids
+            ),
+            resource_class="paper_derived_reference",
+            paper_provenance_refs=_expect_str_tuple(raw_reference, "paper_provenance_refs"),
+        )
+        paper_derived_reference_template_ids.append(template_id)
 
     return CanonicalTemplateCatalog(
         schema_version=schema_version,
@@ -194,6 +244,7 @@ def load_canonical_template_catalog(pack_root: Path) -> CanonicalTemplateCatalog
         entries_by_template_id=entries_by_template_id,
         canonical_template_ids=tuple(canonical_template_ids),
         alias_template_ids=tuple(alias_template_ids),
+        paper_derived_reference_template_ids=tuple(paper_derived_reference_template_ids),
     )
 
 
@@ -213,6 +264,8 @@ def default_canonical_entry(template_id: str, *, category: str, title: str) -> C
         analysis_input_state="validated_display_payload",
         medical_family_ids=(),
         publication_quality_profile={},
+        resource_class="canonical",
+        paper_provenance_refs=(),
     )
 
 

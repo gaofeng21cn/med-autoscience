@@ -213,7 +213,7 @@ stopifnot(identical(table_layout$panel_boxes[[1]]$box_type, "table_region"))
     assert result.returncode == 0, result.stderr
 
 
-def test_dpcc_purpose_first_templates_use_metadata_title_policy() -> None:
+def test_stratified_mismatch_template_uses_metadata_title_policy() -> None:
     assert shutil.which("Rscript") is not None
     repo_root = Path(__file__).resolve().parents[1]
     r_script = r"""
@@ -223,23 +223,33 @@ source(file.path(core_pack_root, "rlib/medicaldisplaycore/evidence_renderer.R"))
 source(file.path(core_pack_root, "rlib/medicaldisplaycore/candidate_renderer.R"))
 payload <- list(
   title = "This manuscript caption title must not be drawn inside the plot",
-  y_label = "DPCC phenotype",
+  y_label = "Clinical profile",
+  metric_definitions = list(
+    list(metric_id = "indicator_a", metric_label = "Indicator A"),
+    list(metric_id = "indicator_b", metric_label = "Indicator B"),
+    list(metric_id = "indicator_c", metric_label = "Indicator C"),
+    list(metric_id = "indicator_d", metric_label = "Indicator D")
+  ),
   rows = list(
     list(
-      phenotype_label = "Glycemic-dominant diabetes",
-      index_patients = 1000,
-      severe_glycemia_low_intensity_gap_patients = 720,
-      uncontrolled_glycemia_no_drug_gap_patients = 480,
-      hypertension_no_antihypertensive_gap_patients = 580,
-      dyslipidemia_no_lipid_lowering_gap_patients = 660
+      group_label = "Higher-risk profile",
+      group_size = 1000,
+      metrics = list(
+        list(metric_id = "indicator_a", event_count = 720, denominator = 1000),
+        list(metric_id = "indicator_b", event_count = 480, denominator = 1000),
+        list(metric_id = "indicator_c", event_count = 580, denominator = 1000),
+        list(metric_id = "indicator_d", event_count = 660, denominator = 1000)
+      )
     ),
     list(
-      phenotype_label = "Lower-burden diabetes",
-      index_patients = 800,
-      severe_glycemia_low_intensity_gap_patients = 0,
-      uncontrolled_glycemia_no_drug_gap_patients = 96,
-      hypertension_no_antihypertensive_gap_patients = 128,
-      dyslipidemia_no_lipid_lowering_gap_patients = 168
+      group_label = "Lower-risk profile",
+      group_size = 800,
+      metrics = list(
+        list(metric_id = "indicator_a", event_count = 0, denominator = 800),
+        list(metric_id = "indicator_b", event_count = 96, denominator = 800),
+        list(metric_id = "indicator_c", event_count = 128, denominator = 800),
+        list(metric_id = "indicator_d", event_count = 168, denominator = 800)
+      )
     )
   ),
   render_context = list(
@@ -258,11 +268,11 @@ plot <- build_candidate_evidence_plot("treatment_gap_alignment_figure", payload)
 built <- ggplot2::ggplot_build(plot)
 stopifnot(is.null(built$plot$labels$title))
 layout <- build_candidate_layout_override("treatment_gap_alignment_figure", payload)
-stopifnot(identical(layout$metrics$source_renderer, "MAS/DPCC::treatment_gap_alignment_figure"))
-stopifnot(identical(layout$metrics$figure_purpose, "guideline_linked_treatment_gap_burden_small_multiples"))
+stopifnot(identical(layout$metrics$source_renderer, "fenggaolab.org.medical-display-core::treatment_gap_alignment_figure"))
+stopifnot(identical(layout$metrics$figure_purpose, "stratified_indicator_mismatch_burden_small_multiples"))
 stopifnot(identical(layout$metrics$rendered_title_policy, "figure_title_metadata_only_not_drawn_inside_plot"))
 stopifnot(length(layout$panel_boxes) == 4)
-stopifnot(identical(built$plot$labels$x, "Recorded mismatch rate (% of eligible indicator denominator)"))
+stopifnot(identical(built$plot$labels$x, "Mismatch rate (% of eligible denominator)"))
 built_labels <- unique(unlist(lapply(built$data, function(layer) layer$label %||% character())))
 stopifnot(any(grepl("^72.0% [(]720/1,000[)]$", built_labels)))
 """

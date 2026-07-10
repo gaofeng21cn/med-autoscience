@@ -57,6 +57,9 @@ class DisplayTemplateManifest:
     execution_mode: str
     entrypoint: str
     paper_proven: bool
+    inventory_class: str
+    default_visible: bool
+    paper_provenance_refs: tuple[str, ...]
 
 
 def _expect_str(payload: dict[str, object], key: str) -> str:
@@ -216,6 +219,17 @@ def load_display_template_manifest(
         if execution_mode != "subprocess":
             raise ValueError("evidence_figure templates must use subprocess execution mode")
 
+    inventory_class = _optional_str(payload, "inventory_class") or "canonical"
+    if inventory_class not in {"canonical", "paper_derived_reference"}:
+        raise ValueError("inventory_class must be `canonical` or `paper_derived_reference`")
+    default_visible = payload.get("default_visible")
+    if default_visible is None:
+        default_visible = inventory_class == "canonical"
+    elif not isinstance(default_visible, bool):
+        raise ValueError("default_visible must be a bool")
+    if inventory_class == "paper_derived_reference" and default_visible:
+        raise ValueError("paper_derived_reference templates must set default_visible=false")
+
     return DisplayTemplateManifest(
         template_id=template_id,
         full_template_id=full_template_id,
@@ -238,4 +252,7 @@ def load_display_template_manifest(
         execution_mode=execution_mode,
         entrypoint=_expect_str(payload, "entrypoint"),
         paper_proven=_expect_bool(payload, "paper_proven"),
+        inventory_class=inventory_class,
+        default_visible=default_visible,
+        paper_provenance_refs=_optional_str_tuple(payload, "paper_provenance_refs") or (),
     )

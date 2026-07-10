@@ -235,8 +235,12 @@ def test_checked_in_cohort_flow_runtime_uses_pack_local_ggconsort_subprocess() -
     assert runtime.template_manifest.renderer_family == "r_ggplot2"
     assert runtime.template_manifest.execution_mode == "subprocess"
     assert runtime.template_manifest.required_exports == ("png", "pdf")
-    assert runtime.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
-    assert (runtime.template_path.parent / "render.R").is_file()
+    assert runtime.template_manifest.entrypoint == (
+        "Rscript ../../render.R --template cohort_flow_figure "
+        "--mode {render_mode} --request {request_json}"
+    )
+    assert (runtime.pack_root / "render.R").is_file()
+    assert not (runtime.template_path.parent / "render.R").exists()
 
 
 def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> None:

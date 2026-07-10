@@ -13,9 +13,10 @@ from med_autoscience.display_pack_contract import (
     load_display_template_manifest,
 )
 from med_autoscience.display_pack_renderer_policy import default_surface_allowed_for
+from med_autoscience.display_pack_canonical_catalog import load_canonical_template_catalog
 
 _VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
-_VALID_TEMPLATE_INVENTORY_SCOPES = frozenset(("canonical", "all"))
+_VALID_TEMPLATE_INVENTORY_SCOPES = frozenset(("canonical", "paper_derived_reference", "all"))
 _DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -372,16 +373,16 @@ def load_enabled_local_display_template_records(
         raise ValueError(f"inventory_scope must be one of {sorted(_VALID_TEMPLATE_INVENTORY_SCOPES)!r}")
     records: list[LoadedDisplayTemplate] = []
     for loaded_pack in load_enabled_local_display_pack_records(repo_root, paper_root=paper_root):
-        canonical_ids = _default_visible_template_ids(loaded_pack.pack_root) if inventory_scope == "canonical" else None
+        selected_ids = _template_ids_for_inventory_scope(loaded_pack.pack_root, inventory_scope)
         template_paths = sorted((loaded_pack.pack_root / "templates").glob("*/template.toml"))
         for template_path in template_paths:
             template_manifest = load_display_template_manifest(
                 template_path,
                 expected_pack_id=loaded_pack.pack_manifest.pack_id,
             )
-            if canonical_ids is not None and template_manifest.template_id not in canonical_ids:
+            if selected_ids is not None and template_manifest.template_id not in selected_ids:
                 continue
-            if canonical_ids is not None and not default_surface_allowed_for(
+            if inventory_scope == "canonical" and not default_surface_allowed_for(
                 kind=template_manifest.kind,
                 renderer_family=template_manifest.renderer_family,
             ):
@@ -417,6 +418,21 @@ def _default_visible_template_ids(pack_root: Path) -> set[str] | None:
             raise ValueError(f"{catalog_path} families[{index}].canonical_template_id must be a non-empty string")
         template_ids.add(template_id.strip())
     return template_ids
+
+
+def _template_ids_for_inventory_scope(pack_root: Path, inventory_scope: str) -> set[str] | None:
+    if inventory_scope == "all":
+        return None
+    catalog = load_canonical_template_catalog(pack_root)
+    if catalog is None:
+        return None if inventory_scope == "canonical" else set()
+    if inventory_scope == "paper_derived_reference":
+        return set(catalog.paper_derived_reference_template_ids)
+    return {
+        template_id
+        for template_id in catalog.canonical_template_ids
+        if catalog.entries_by_template_id[template_id].default_visible
+    }
 
 
 def load_enabled_local_display_pack_templates(

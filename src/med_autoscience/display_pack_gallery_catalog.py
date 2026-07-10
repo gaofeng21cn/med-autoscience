@@ -48,6 +48,8 @@ class TemplateRecord:
     analysis_input_state: str
     medical_family_ids: tuple[str, ...]
     publication_quality_profile: dict[str, object]
+    resource_class: str = "canonical"
+    paper_provenance_refs: tuple[str, ...] = ()
 
 
 def read_template_records(pack_root: Path, template_root: Path) -> list[TemplateRecord]:
@@ -87,6 +89,8 @@ def read_template_records(pack_root: Path, template_root: Path) -> list[Template
                 analysis_input_state=canonical.analysis_input_state,
                 medical_family_ids=canonical.medical_family_ids,
                 publication_quality_profile=canonical.publication_quality_profile,
+                resource_class=canonical.resource_class,
+                paper_provenance_refs=canonical.paper_provenance_refs,
             )
         )
     if catalog is not None:
@@ -116,6 +120,14 @@ def default_surface_excluded_records(records: list[TemplateRecord]) -> list[Temp
         for record in records
         if record.default_visible
         and not default_surface_allowed_for(kind=record.kind, renderer_family=record.renderer_family)
+    ]
+
+
+def paper_derived_reference_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
+    return [
+        record
+        for record in records
+        if record.resource_class == "paper_derived_reference"
     ]
 
 

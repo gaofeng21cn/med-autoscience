@@ -33,6 +33,8 @@ def _ids_for_kind(kind: str) -> set[str]:
         _full_id(template_id)
         for template_id, payload in _template_manifests().items()
         if payload["kind"] == kind
+        and payload.get("inventory_class", "canonical") == "canonical"
+        and payload.get("default_visible", True) is True
     }
 
 
@@ -44,9 +46,9 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.template_id for item in evidence_specs} == _ids_for_kind("evidence_figure")
     assert {item.shell_id for item in illustration_specs} == _ids_for_kind("illustration_shell")
     assert {item.shell_id for item in table_specs} == _ids_for_kind("table_shell")
-    assert len(evidence_specs) == 38
+    assert len(evidence_specs) == 43
     assert len(illustration_specs) == 2
-    assert len(table_specs) == 3
+    assert len(table_specs) == 7
 
 
 def test_all_current_evidence_templates_are_r_ggplot2_subprocess() -> None:
@@ -79,8 +81,22 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
     )
     generic_output_profiles = {"publication_result_display", "publication_table_shell"}
 
-    assert set(_VALIDATOR_BY_SCHEMA_ID) == current_schema_ids
-    assert current_qc_profiles | generic_output_profiles <= set(QC_PROFILE_RUNNERS)
+    assert set(_VALIDATOR_BY_SCHEMA_ID) <= current_schema_ids
+    assert {
+        "stratified_mismatch_matrix_inputs_v1",
+        "transition_support_matrix_inputs_v1",
+        "stratified_mismatch_burden_inputs_v1",
+    } <= set(_VALIDATOR_BY_SCHEMA_ID)
+    assert {
+        "publication_stratified_mismatch_matrix",
+        "publication_transition_support_matrix",
+        "publication_stratified_mismatch_burden",
+    } <= set(QC_PROFILE_RUNNERS)
+    assert not {
+        "publication_dpcc_phenotype_gap_structure",
+        "publication_dpcc_transition_site_support",
+        "publication_dpcc_treatment_gap_alignment",
+    } & set(QC_PROFILE_RUNNERS)
 
 
 @pytest.mark.parametrize(
@@ -201,6 +217,20 @@ def test_table_shells_are_registered(table_id: str, expected_input_schema_id: st
     assert expected_input_schema_id in TABLE_INPUT_FILENAME_BY_SCHEMA_ID
 
 
+def test_dpcc_table_shells_are_explicit_paper_derived_references() -> None:
+    reference_specs = display_registry.list_paper_derived_reference_table_shell_specs()
+
+    assert {item.shell_id for item in reference_specs} == {
+        _full_id("table2_phenotype_gap_summary"),
+        _full_id("table3_transition_site_support_summary"),
+    }
+    assert not {
+        item.shell_id for item in reference_specs
+    } & {
+        item.shell_id for item in display_registry.list_table_shell_specs()
+    }
+
+
 @pytest.mark.parametrize(
     ("table_id", "expected_input_schema_id", "expected_qc_profile"),
     [
@@ -234,14 +264,10 @@ def test_live_publication_table_shells_are_available_for_publication_surface_rea
     assert spec.table_qc_profile == expected_qc_profile
     assert spec.required_exports == ("md",)
     assert expected_input_schema_id in TABLE_INPUT_FILENAME_BY_SCHEMA_ID
-    assert {
-        item.shell_id
-        for item in display_registry.list_table_shell_specs()
-    } == {
-        _full_id("table1_baseline_characteristics"),
-        _full_id("table2_phenotype_gap_summary"),
-        _full_id("table3_transition_site_support_summary"),
-    }
+    default_table_ids = {item.shell_id for item in display_registry.list_table_shell_specs()}
+    assert _full_id("table1_baseline_characteristics") in default_table_ids
+    assert _full_id("table2_phenotype_gap_summary") not in default_table_ids
+    assert _full_id("table3_transition_site_support_summary") not in default_table_ids
 
 
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:

@@ -203,6 +203,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py` 从本地 Ga
 | Gallery visual templates | {_count(manifest, "visual_gallery_template_count")} |
 | Current canonical templates | {_count(manifest, "canonical_template_count")} |
 | Current non-visual canonical inventory | {_count(manifest, "non_visual_canonical_template_count")} |
+| Paper-derived references (explicit only) | {_count(manifest, "paper_derived_reference_template_count")} |
 | Retired alias / duplicate ids | {_count(manifest, "retired_alias_template_count")} |
 | Migration index entries | {_count(manifest, "migration_inventory_template_count") + _count(manifest, "retired_alias_template_count")} |
 | Current Python evidence templates | {renderer_completion.get("python_evidence_retained_count", 0)} |
@@ -216,7 +217,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py` 从本地 Ga
 | Package-only reused assets | {render_cache.get("package_only", 0)} |
 | Render cache untracked | {render_cache.get("cache_untracked", 0)} |
 
-`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
+`Gallery evidence figures` 是 PDF 画册中展示的 R/ggplot2 数据证据图数量。`Gallery reporting flow figures` 是结构化人数和排除原因驱动的 cohort/participant flow 起点；其 checked-in renderer 是 R/ggplot2 + `ggconsort`，必须消费 OPL prepared dependency receipt / run-context 后才允许渲染。缺 receipt 或缺 `ggconsort` 时，Gallery 只记录 `not_rendered` typed reason，不回退到 Python generated participant flow，也不宣称已执行 `ggconsort`。`Gallery design figures` 是 graphical abstract 等非统计证据设计图起点。`Composition storyboard gallery pages` 是 PDF/HTML 前段展示的图页级方案数量。`Page-level composition recipes` 是组织多个数据证据面板的图页方案，不是更多单图模板。`Current canonical templates` 是当前可推荐 canonical surface。`Paper-derived references` 只保留论文来源和显式调用入口，默认不推荐、也不生成 Gallery 卡片。`Retired alias / duplicate ids` 只用于显式旧 ID 迁移，不是 current template，也不是画册卡片。
 
 Package-only 打包复用状态：`{asset_reuse.get("status", "")}`；复制资产数：`{asset_reuse.get("copied_file_count", 0)}`；更新资产数：`{asset_reuse.get("updated_file_count", 0)}`。代码、payload、style profile 或 dependency receipt 未变化时，Gallery 可从既有 assets 重打包 HTML/PDF/local gallery markdown outputs；真正的渲染 freshness 仍由 render cache key、layout sidecar、dependency run-context 和真实论文 artifact 审计证明。
 

@@ -75,8 +75,6 @@ _TABLE_SHELL_ORDER = tuple(
     _full_id(item)
     for item in (
         "table1_baseline_characteristics",
-        "table2_phenotype_gap_summary",
-        "table3_transition_site_support_summary",
     )
 )
 _SEMANTIC_REGISTRY_ID_ALIASES = {
@@ -271,6 +269,18 @@ def _active_template_manifests() -> tuple[DisplayTemplateManifest, ...]:
 
 
 @lru_cache(maxsize=1)
+def _paper_derived_reference_table_specs() -> dict[str, TableShellSpec]:
+    return {
+        manifest.full_template_id: _build_table_shell_spec(manifest)
+        for manifest in load_enabled_local_display_pack_templates(
+            _REPO_ROOT,
+            inventory_scope="paper_derived_reference",
+        )
+        if manifest.kind == "table_shell"
+    }
+
+
+@lru_cache(maxsize=1)
 def _active_registry_state() -> tuple[
     tuple[EvidenceFigureSpec, ...],
     tuple[IllustrationShellSpec, ...],
@@ -343,6 +353,10 @@ def list_table_shell_specs() -> tuple[TableShellSpec, ...]:
     return table_specs
 
 
+def list_paper_derived_reference_table_shell_specs() -> tuple[TableShellSpec, ...]:
+    return tuple(_paper_derived_reference_table_specs().values())
+
+
 def get_paper_family_label(paper_family_id: str) -> str:
     normalized = str(paper_family_id or "").strip()
     try:
@@ -381,7 +395,10 @@ def get_table_shell_spec(shell_id: str) -> TableShellSpec:
         try:
             return _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID[normalized]
         except KeyError:
-            raise ValueError(f"unknown table shell `{shell_id}`") from exc
+            try:
+                return _paper_derived_reference_table_specs()[normalized]
+            except KeyError:
+                raise ValueError(f"unknown table shell `{shell_id}`") from exc
 
 
 def is_evidence_figure_template(template_id: str) -> bool:
@@ -399,4 +416,8 @@ def is_illustration_shell(shell_id: str) -> bool:
 def is_table_shell(shell_id: str) -> bool:
     normalized = _canonicalize_registry_id(shell_id)
     _, _, _, _, _, table_by_shell = _active_registry_state()
-    return normalized in table_by_shell or normalized in _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID
+    return (
+        normalized in table_by_shell
+        or normalized in _LIVE_PUBLICATION_TABLE_SHELLS_BY_ID
+        or normalized in _paper_derived_reference_table_specs()
+    )

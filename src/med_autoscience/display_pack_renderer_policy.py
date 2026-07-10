@@ -120,9 +120,10 @@ def renderer_policy_payload(record: RendererPolicyRecord) -> dict[str, object]:
 
 
 def renderer_policy_completion(records: list[RendererPolicyRecord]) -> dict[str, object]:
+    current_records = [record for record in records if record.default_visible]
     all_evidence = [
         record
-        for record in records
+        for record in current_records
         if record.kind == EVIDENCE_FIGURE_KIND
     ]
     all_python_evidence = [
@@ -166,7 +167,7 @@ def renderer_policy_completion(records: list[RendererPolicyRecord]) -> dict[str,
         }
     )
     return {
-        "current_template_count": len(records),
+        "current_template_count": len(current_records),
         "current_evidence_template_count": len(all_evidence),
         "current_r_ggplot2_evidence_template_count": len(all_r_evidence),
         "current_python_evidence_template_count": len(all_python_evidence),

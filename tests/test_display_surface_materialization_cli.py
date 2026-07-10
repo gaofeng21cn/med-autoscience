@@ -26,6 +26,36 @@ DISPLAY_VISUAL_AUDIT_COMMAND = ("publication", "materialize-display-visual-audit
 @pytest.fixture(autouse=True)
 def _use_current_scholarskills_display_pack(monkeypatch):
     use_current_scholarskills_display_pack(monkeypatch)
+    materialize_module = importlib.import_module(
+        "med_autoscience.controllers.display_surface_materialization.materialize"
+    )
+
+    def fake_subprocess_renderer(
+        *,
+        template_manifest,
+        figure_id,
+        output_png_path,
+        output_pdf_path,
+        layout_sidecar_path,
+        **_kwargs,
+    ):
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_manifest.full_template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(
+                _minimal_layout_sidecar_for_template(template_manifest.full_template_id),
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return {"status": "rendered", "figure_id": figure_id}
+
+    monkeypatch.setattr(
+        materialize_module,
+        "_run_subprocess_renderer",
+        fake_subprocess_renderer,
+    )
     yield
     display_registry._active_template_manifests.cache_clear()
     display_registry._active_registry_state.cache_clear()
@@ -198,21 +228,21 @@ def patch_evidence_figure_renderer(
     )
 
 
-def test_dpcc_transition_heatmap_renderer_uses_sparse_percent_cell_labels() -> None:
+def test_transition_support_renderer_uses_sparse_percent_cell_labels() -> None:
     renderer_path = (
         current_scholarskills_core_pack_root()
         / "rlib"
         / "medicaldisplaycore"
-        / "dpcc_primary_care_renderers.R"
+        / "stratified_display_renderers.R"
     )
     renderer_source = renderer_path.read_text(encoding="utf-8")
 
-    transition_renderer = renderer_source.split("dpcc_plot_transition_site_support <- function(payload) {", 1)[1]
-    transition_renderer = transition_renderer.split("dpcc_plot_treatment_gap_alignment <- function(payload) {", 1)[0]
+    transition_renderer = renderer_source.split("plot_transition_support_matrix <- function(payload) {", 1)[1]
+    transition_renderer = transition_renderer.split("plot_stratified_mismatch_burden <- function(payload) {", 1)[0]
     assert "(n=%s)" not in transition_renderer
-    assert "share_of_transition_patients >= 0.04" in transition_renderer
+    assert "transition_share >= 0.04" in transition_renderer
     assert 'transition_cell_label_policy = "major_share_percent_only_no_counts"' in renderer_source
-    assert 'site_support_label_policy = "percent_only_counts_remain_in_table"' in renderer_source
+    assert 'support_label_policy = "percent_only_counts_remain_in_table"' in renderer_source
 
 
 def patch_layout_qc_pass(controller_module, monkeypatch) -> None:
@@ -326,7 +356,7 @@ def test_cli_materialize_display_visual_audit_flags_dense_transition_heatmap_wit
             "schema_version": 1,
             "template_id": "site_held_out_stability_figure",
             "metrics": {
-                "source_renderer": "MAS/DPCC::site_held_out_stability_figure",
+                "source_renderer": "fenggaolab.org.medical-display-core::site_held_out_stability_figure",
                 "figure_purpose": "phenotype_transition_stability_plus_site_held_out_support",
                 "rendered_title_policy": "figure_title_metadata_only_not_drawn_inside_plot",
                 "transition_rows": dense_rows,

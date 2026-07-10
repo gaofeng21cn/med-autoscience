@@ -28,6 +28,7 @@ from med_autoscience.display_pack_gallery_catalog import (
     gallery_visual_records,
     gallery_template_family_ontology,
     non_visual_canonical_records,
+    paper_derived_reference_records,
     reporting_flow_gallery_records,
     table_preview_gallery_records,
     visual_gallery_records,
@@ -211,6 +212,7 @@ def build_manifest(
     non_visual_records = non_visual_canonical_records(records)
     catalog_default_records = canonical_catalog_default_records(records)
     default_excluded_records = default_surface_excluded_records(records)
+    paper_derived_records = paper_derived_reference_records(records)
     lidocaineq_preview_template_ids = {item.mas_template_id for item in LIDOCAINEQ_COVERAGE_ITEMS}
     canonical_rendered_count = sum(
         1
@@ -274,7 +276,7 @@ def build_manifest(
         "visual_gallery_template_count": len(all_gallery_visual_records),
         "composition_recipe_gallery_count": composition_gallery_surface["composition_recipe_count"],
         "non_visual_canonical_template_count": len(non_visual_records),
-        "current_template_count": len(records),
+        "current_template_count": len(catalog_default_records),
         "migration_inventory_template_count": len(records),
         "retired_alias_template_count": sum(
             len(record.migrated_alias_template_ids)
@@ -288,6 +290,7 @@ def build_manifest(
         "catalog_default_visible_template_count": len(catalog_default_records),
         "default_visible_template_count": len(canonical_records(records)),
         "default_surface_excluded_template_count": len(default_excluded_records),
+        "paper_derived_reference_template_count": len(paper_derived_records),
         "legacy_alias_template_count": sum(1 for record in records if record.migration_status == "migrated_alias"),
         "rendered_image_template_count": canonical_rendered_count,
         "rendered_design_image_template_count": design_rendered_count,
@@ -324,7 +327,13 @@ def build_manifest(
         "renderer_policy": default_surface_renderer_policy(),
         "renderer_policy_completion": renderer_policy_completion(records),
         "analysis_responsibility_counts": dict(
-            sorted(Counter(record.analysis_responsibility for record in records).items())
+            sorted(
+                Counter(
+                    record.analysis_responsibility
+                    for record in records
+                    if record.default_visible
+                ).items()
+            )
         ),
         "analysis_responsibility_policy": {
             "computed_in_template": "Template renderer computes a bounded analysis workflow from declared raw input.",
@@ -423,6 +432,14 @@ def build_manifest(
             )
             for record in default_excluded_records
         ],
+        "paper_derived_reference_inventory": [
+            _template_payload(
+                record,
+                rendered[record.template_id],
+                visual_gallery_visible=False,
+            )
+            for record in paper_derived_records
+        ],
         "migration_index": [
             {
                 "template_id": record.template_id,
@@ -476,6 +493,7 @@ def _template_payload(
         "medical_family_ids": list(record.medical_family_ids),
         "publication_quality_profile": dict(record.publication_quality_profile),
         "migration_status": record.migration_status,
+        "resource_class": record.resource_class,
         "default_visible": record.default_visible,
         "visual_gallery_visible": visual_gallery_visible,
         "migrated_alias_template_ids": list(record.migrated_alias_template_ids),
@@ -484,6 +502,7 @@ def _template_payload(
         "renderer_family": record.renderer_family,
         "execution_mode": record.execution_mode,
         "paper_proven": record.paper_proven,
+        "paper_provenance_refs": list(record.paper_provenance_refs),
         "renderer_policy": renderer_policy_payload(record),
         "dependency_requirements": dependency_requirements_for_template_ids(
             repo_root=paths.REPO_ROOT,
@@ -506,6 +525,7 @@ def _template_payload(
 
 
 def _publication_quality_profile_coverage(records: list[TemplateRecord]) -> dict[str, Any]:
+    records = [record for record in records if record.default_visible]
     missing_family = sorted(record.template_id for record in records if not record.medical_family_ids)
     missing_recipe = sorted(
         record.template_id

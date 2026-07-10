@@ -135,28 +135,32 @@ def _composition_stacked_bar_display() -> dict[str, Any]:
     }
 
 
-def _dpcc_phenotype_gap_structure_display() -> dict[str, Any]:
+def _stratified_mismatch_matrix_display() -> dict[str, Any]:
     return {
         "display_id": "Figure18",
         "template_id": _full("phenotype_gap_structure_figure"),
         "title": "Phenotype composition and treatment-gap structure",
         "caption": "Phenotype shares and treatment gaps remain explicitly linked.",
+        "metric_definitions": [
+            {"metric_id": "indicator_a", "metric_label": "Indicator A"},
+            {"metric_id": "indicator_b", "metric_label": "Indicator B"},
+        ],
         "rows": [
             {
-                "phenotype_label": "Lower-risk phenotype",
-                "share_of_index_patients": 0.58,
-                "severe_glycemia_low_intensity_gap_rate": 0.08,
-                "uncontrolled_glycemia_no_drug_gap_rate": 0.11,
-                "hypertension_no_antihypertensive_gap_rate": 0.09,
-                "dyslipidemia_no_lipid_lowering_gap_rate": 0.13,
+                "group_label": "Lower-risk profile",
+                "group_share": 0.58,
+                "metrics": [
+                    {"metric_id": "indicator_a", "value": 0.08},
+                    {"metric_id": "indicator_b", "value": 0.11},
+                ],
             },
             {
-                "phenotype_label": "Higher-risk phenotype",
-                "share_of_index_patients": 0.42,
-                "severe_glycemia_low_intensity_gap_rate": 0.19,
-                "uncontrolled_glycemia_no_drug_gap_rate": 0.22,
-                "hypertension_no_antihypertensive_gap_rate": 0.17,
-                "dyslipidemia_no_lipid_lowering_gap_rate": 0.24,
+                "group_label": "Higher-risk profile",
+                "group_share": 0.42,
+                "metrics": [
+                    {"metric_id": "indicator_a", "value": 0.19},
+                    {"metric_id": "indicator_b", "value": 0.22},
+                ],
             },
         ],
     }
@@ -194,7 +198,7 @@ def _alluvial_transition_display() -> dict[str, Any]:
     }
 
 
-def _dpcc_transition_site_support_display() -> dict[str, Any]:
+def _transition_support_matrix_display() -> dict[str, Any]:
     return {
         "display_id": "Figure21",
         "template_id": _full("site_held_out_stability_figure"),
@@ -202,18 +206,16 @@ def _dpcc_transition_site_support_display() -> dict[str, Any]:
         "caption": "Transition shares and site support remain auditable without count labels in cells.",
         "transition_rows": [
             {
-                "source_phenotype_label": "State A",
-                "target_phenotype_label": "State B",
-                "patient_count": 24,
-                "share_of_transition_patients": 0.12,
+                "source_group_label": "State A",
+                "target_group_label": "State B",
+                "unit_count": 24,
+                "transition_share": 0.12,
             }
         ],
-        "site_fold_rows": [
-            {"fold_id": "Site 1", "index_patients": 120, "share_of_index_patients": 0.48},
-            {"fold_id": "Site 2", "index_patients": 130, "share_of_index_patients": 0.52},
+        "support_rows": [
+            {"support_label": "Held-out group 1", "unit_count": 120, "support_share": 0.48},
+            {"support_label": "Held-out group 2", "unit_count": 130, "support_share": 0.52},
         ],
-        "visit_coverage": 0.91,
-        "eligible_site_count": 2,
     }
 
 
@@ -247,20 +249,24 @@ def _waterfall_response_display() -> dict[str, Any]:
     }
 
 
-def _dpcc_treatment_gap_alignment_display() -> dict[str, Any]:
+def _stratified_mismatch_burden_display() -> dict[str, Any]:
     return {
         "display_id": "Figure24",
         "template_id": _full("treatment_gap_alignment_figure"),
         "title": "Guideline-linked treatment-gap alignment",
         "caption": "Actual patient counts remain linked to each treatment-gap definition.",
+        "metric_definitions": [
+            {"metric_id": "indicator_a", "metric_label": "Indicator A"},
+            {"metric_id": "indicator_b", "metric_label": "Indicator B"},
+        ],
         "rows": [
             {
-                "phenotype_label": "Higher-risk phenotype",
-                "index_patients": 100,
-                "severe_glycemia_low_intensity_gap_patients": 18,
-                "uncontrolled_glycemia_no_drug_gap_patients": 21,
-                "hypertension_no_antihypertensive_gap_patients": 16,
-                "dyslipidemia_no_lipid_lowering_gap_patients": 23,
+                "group_label": "Higher-risk profile",
+                "group_size": 100,
+                "metrics": [
+                    {"metric_id": "indicator_a", "event_count": 18, "denominator": 100},
+                    {"metric_id": "indicator_b", "event_count": 21, "denominator": 100},
+                ],
             }
         ],
     }
@@ -580,13 +586,13 @@ def _current_evidence_input_envelopes() -> dict[str, dict[str, Any]]:
         "center_transportability_governance_summary_panel_inputs.json": {"schema_version": 1, "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1", "displays": [_center_transportability_governance_display()]},
         "distribution_violin_box_inputs.json": {"schema_version": 1, "input_schema_id": "distribution_violin_box_inputs_v1", "displays": [_distribution_violin_display()]},
         "composition_stacked_bar_inputs.json": {"schema_version": 1, "input_schema_id": "composition_stacked_bar_inputs_v1", "displays": [_composition_stacked_bar_display()]},
-        "dpcc_phenotype_gap_structure.json": {"schema_version": 1, "input_schema_id": "dpcc_phenotype_gap_structure_v1", "displays": [_dpcc_phenotype_gap_structure_display()]},
+        "stratified_mismatch_matrix_inputs.json": {"schema_version": 1, "input_schema_id": "stratified_mismatch_matrix_inputs_v1", "displays": [_stratified_mismatch_matrix_display()]},
         "correlation_scatter_inputs.json": {"schema_version": 1, "input_schema_id": "correlation_scatter_inputs_v1", "displays": [_correlation_scatter_display()]},
         "alluvial_transition_inputs.json": {"schema_version": 1, "input_schema_id": "alluvial_transition_inputs_v1", "displays": [_alluvial_transition_display()]},
-        "dpcc_transition_site_support.json": {"schema_version": 1, "input_schema_id": "dpcc_transition_site_support_v1", "displays": [_dpcc_transition_site_support_display()]},
+        "transition_support_matrix_inputs.json": {"schema_version": 1, "input_schema_id": "transition_support_matrix_inputs_v1", "displays": [_transition_support_matrix_display()]},
         "radar_profile_inputs.json": {"schema_version": 1, "input_schema_id": "radar_profile_inputs_v1", "displays": [_radar_profile_display()]},
         "waterfall_response_inputs.json": {"schema_version": 1, "input_schema_id": "waterfall_response_inputs_v1", "displays": [_waterfall_response_display()]},
-        "dpcc_treatment_gap_alignment.json": {"schema_version": 1, "input_schema_id": "dpcc_treatment_gap_alignment_v1", "displays": [_dpcc_treatment_gap_alignment_display()]},
+        "stratified_mismatch_burden_inputs.json": {"schema_version": 1, "input_schema_id": "stratified_mismatch_burden_inputs_v1", "displays": [_stratified_mismatch_burden_display()]},
         "dimensionality_reduction_inputs.json": {"schema_version": 1, "input_schema_id": "dimensionality_reduction_inputs_v1", "displays": _embedding_displays()},
         "heatmap_group_comparison_inputs.json": {"schema_version": 1, "input_schema_id": "heatmap_group_comparison_inputs_v1", "displays": [_heatmap_display()]},
         "confusion_matrix_heatmap_binary_inputs.json": {"schema_version": 1, "input_schema_id": "confusion_matrix_heatmap_binary_inputs_v1", "displays": [_confusion_matrix_display()]},
