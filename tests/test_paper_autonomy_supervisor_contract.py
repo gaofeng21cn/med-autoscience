@@ -608,6 +608,6 @@ def test_migration_status_records_opl_readback_and_mas_owner_gate_materializer()
         "src/med_autoscience/controllers/provider_admission/provider_admission_report.py",
         "src/med_autoscience/controllers/stage_outcome_authority/opl_execution_preflight.py",
         "tests/domain_action_request_materializer_cases/test_current_control_authority_selection.py",
-        "tests/test_provider_admission_current_control_cases/owner_gate_route_back_cases.py",
+        "tests/test_provider_admission_current_control_cases/test_owner_gate_route_back_cases.py",
     } <= set(mas["evidence"])
     assert "live paper-line soak complete" in mas["does_not_claim"]

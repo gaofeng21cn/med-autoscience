@@ -137,7 +137,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
     tmp_path: Path,
 ) -> None:
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
-    outer_loop_tests = importlib.import_module("tests.test_study_outer_loop")
+    outer_loop_tests = importlib.import_module("tests.test_study_outer_loop_cases.shared")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"

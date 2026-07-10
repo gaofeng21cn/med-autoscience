@@ -350,8 +350,8 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
             "tests/test_paper_recovery_provider_admission_state.py",
-            "tests/test_provider_admission_current_control.py",
-            "tests/test_provider_admission_current_control_arbiter.py",
+            "tests/test_provider_admission_current_control_cases/test_current_control_action_identity_cases.py",
+            "tests/test_provider_admission_current_control_cases/test_current_control_arbiter_cases.py",
         ]
     )
 
@@ -365,8 +365,7 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_paper_progress_policy_adapter.py "
-        "tests/test_provider_admission_current_control.py "
-        "tests/test_provider_admission_current_control_arbiter.py "
+        "tests/test_provider_admission_current_control_cases "
         "-q"
     ) in planned_commands
     assert (

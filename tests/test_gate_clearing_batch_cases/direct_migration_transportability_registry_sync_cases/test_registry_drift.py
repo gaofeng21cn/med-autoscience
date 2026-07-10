@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-from tests.test_gate_clearing_batch_cases import shared as _shared
-
-globals().update({
-    name: value
-    for name, value in vars(_shared).items()
-    if not name.startswith("__")
-})
+from tests.test_gate_clearing_batch_cases.shared import _write_json, importlib
 
 
 def test_stale_time_to_event_grouped_payload_candidates_detects_registry_display_id_drift(

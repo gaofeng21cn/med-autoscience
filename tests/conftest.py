@@ -30,8 +30,10 @@ META_FILES = {
 DISPLAY_HEAVY_FILES = {
     "tests/test_display_ab_golden_regression.py",
     "tests/test_display_abh_golden_regression.py",
-    "tests/test_display_ch_golden_regression.py",
-    "tests/test_display_deg_golden_regression.py",
+    "tests/display_ch_golden_regression_cases/test_clinical_baseline_and_transportability_golden.py",
+    "tests/display_deg_golden_regression_cases/test_atlas_spatial_trajectory_golden.py",
+    "tests/display_deg_golden_regression_cases/test_deg_omics_and_genomic_golden.py",
+    "tests/display_deg_golden_regression_cases/test_multiomic_spatial_and_trajectory_golden.py",
     "tests/test_display_layout_qc.py",
     "tests/test_display_surface_materialization.py",
     "tests/test_display_surface_materialization_cli.py",
@@ -49,10 +51,23 @@ FAMILY_FILES = {
 
 MATERIALIZATION_HEAVY_FILES = {
     "tests/test_fast_lane_executor.py",
-    "tests/test_gate_clearing_batch.py",
     "tests/test_journal_package_controller.py",
-    "tests/test_publication_gate.py",
     "tests/test_study_delivery_sync.py",
+    "tests/test_gate_clearing_batch_cases/test_display_materialization_failures.py",
+    "tests/test_gate_clearing_batch_cases/test_outer_loop_controller_action.py",
+    "tests/test_gate_clearing_batch_cases/test_planning_and_replay_primitives.py",
+    "tests/test_gate_clearing_batch_cases/test_planning_and_replay_recommendations.py",
+    "tests/test_gate_clearing_batch_cases/test_planning_and_replay_submission_refresh.py",
+    "tests/test_gate_clearing_batch_cases/test_startup_freshness_priority.py",
+    "tests/test_gate_clearing_batch_cases/test_transport_sync_normalization.py",
+    "tests/test_publication_gate_cases/test_blocker_payload_cases.py",
+    "tests/test_publication_gate_cases/test_deterministic_quality_gate_cases.py",
+    "tests/test_publication_gate_cases/test_drift_and_state_cases.py",
+    "tests/test_publication_gate_cases/test_journal_and_anchor_cases.py",
+    "tests/test_publication_gate_cases/test_paper_root_authority_cases.py",
+    "tests/test_publication_gate_cases/test_render_and_cli_cases.py",
+    "tests/test_publication_gate_cases/test_submission_manifest_paths.py",
+    "tests/test_publication_gate_cases/test_supervisor_cases.py",
 }
 
 SOAK_OR_GOLDEN_FILES = {

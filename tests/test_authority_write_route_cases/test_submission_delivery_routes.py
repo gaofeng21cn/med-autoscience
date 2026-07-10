@@ -19,7 +19,7 @@ from med_autoscience.runtime_status_summary import (
     build_runtime_status_summary,
     materialize_runtime_status_summary,
 )
-from tests.submission_minimal_cases.package_core_and_authority import (
+from tests.submission_minimal_cases.shared import (
     make_paper_workspace,
     remove_authority_snapshots,
 )

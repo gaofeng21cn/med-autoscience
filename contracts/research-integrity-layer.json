@@ -562,7 +562,7 @@
       "tests/test_domain_entry_contract.py"
     ],
     "standard_verification": [
-      "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py",
+      "rtk scripts/run-pytest-clean.sh tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/medical_publication_surface_cases",
       "rtk make test-meta",
       "rtk scripts/verify.sh"
     ]

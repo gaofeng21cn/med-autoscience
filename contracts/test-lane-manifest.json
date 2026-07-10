@@ -87,7 +87,7 @@
         "tests/test_opl_runtime_contract.py",
         "tests/test_runtime_supervision.py",
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
-        "tests/test_study_progress.py",
+        "tests/study_progress_cases",
         "tests/test_mas_workspace_domain_projection.py"
       ],
       "overlap_policy": "allowed_with_regression",
@@ -279,7 +279,7 @@
         "tests/test_runtime_supervision.py",
         "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
         "tests/test_paper_autonomy_stability_evidence.py",
-        "tests/test_study_progress.py"
+        "tests/study_progress_cases"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "paper_progress_read_model_owner_handoff_guard",

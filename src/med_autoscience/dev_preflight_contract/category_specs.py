@@ -59,21 +59,21 @@ def build_category_specs(
             "src/med_autoscience/controllers/medical_publication_surface.py",
             "src/med_autoscience/controllers/publication_gate.py",
             "tests/test_display_layout_qc.py",
-            "tests/test_display_schema_contract.py",
             "tests/test_display_surface_materialization.py",
-            "tests/test_medical_publication_surface.py",
-            "tests/test_publication_gate.py",
         ),
         prefix_paths=(
             "src/med_autoscience/display_layout_qc/",
             "src/med_autoscience/controllers/display_surface_materialization/",
+            "tests/display_schema_contract_cases/",
+            "tests/medical_publication_surface_cases/",
+            "tests/test_publication_gate_cases/",
         ),
         commands=(
-            f"{pytest_clean_runner} tests/test_display_schema_contract.py -q",
+            f"{pytest_clean_runner} tests/display_schema_contract_cases -q",
             f"{pytest_clean_runner} tests/test_display_surface_materialization.py -q",
             f"{pytest_clean_runner} tests/test_display_layout_qc.py -q",
-            f"{pytest_clean_runner} tests/test_publication_gate.py -q",
-            f"{pytest_clean_runner} tests/test_medical_publication_surface.py -q",
+            f"{pytest_clean_runner} tests/test_publication_gate_cases -q",
+            f"{pytest_clean_runner} tests/medical_publication_surface_cases -q",
         ),
     ),
     spec_type(
@@ -492,16 +492,13 @@ def build_category_specs(
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
             "tests/test_paper_recovery_provider_admission_state.py",
-            "tests/test_provider_admission_current_control.py",
-            "tests/test_provider_admission_current_control_arbiter.py",
         ),
-        prefix_paths=(),
+        prefix_paths=("tests/test_provider_admission_current_control_cases/",),
         commands=(
             (
                 f"{pytest_clean_runner} "
                 "tests/test_paper_progress_policy_adapter.py "
-                "tests/test_provider_admission_current_control.py "
-                "tests/test_provider_admission_current_control_arbiter.py "
+                "tests/test_provider_admission_current_control_cases "
                 "-q"
             ),
             (

@@ -9,7 +9,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_structure.py \
 	tests/test_domain_authority_snapshot.py \
 	tests/test_autonomy_state_surface.py \
-	tests/test_study_runtime_typed_surface_cases/status_type_cases.py \
+	tests/test_study_runtime_typed_surface_cases/test_status_type_cases.py \
 	tests/test_authority_route_gate.py \
 	tests/test_artifact_lifecycle_inventory.py \
 	tests/test_artifact_retention_operations_plan.py \
@@ -18,9 +18,11 @@ CONTROL_PLANE_TESTS := \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_delivery_authority_backfill_apply.py \
-	 tests/test_truth_projection_surfaces.py \
+	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
-	tests/test_study_progress.py
+	tests/study_progress_cases \
+	--ignore=tests/study_progress_cases/current_owner_handoff_projection_cases \
+	--ignore=tests/study_progress_cases/test_medical_writing_surfaces.py
 
 FAST_TESTS := \
 	tests/test_smoke_entrypoints.py \
