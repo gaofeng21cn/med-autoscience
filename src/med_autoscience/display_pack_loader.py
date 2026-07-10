@@ -169,7 +169,17 @@ def _resolve_git_repo_source_root(anchor_root: Path, raw_path: str) -> Path:
     resolved = (anchor_root / raw_path).expanduser().resolve()
     if (resolved / ".git").exists() or anchor_root.parent.name != ".worktrees":
         return resolved
-    return (anchor_root.parent.parent / raw_path).expanduser().resolve()
+    repo_local_worktree_sibling = (
+        anchor_root.parent.parent / raw_path
+    ).expanduser().resolve()
+    if (repo_local_worktree_sibling / ".git").exists():
+        return repo_local_worktree_sibling
+    shared_worktree_sibling = (
+        anchor_root.parent.parent / Path(raw_path).name
+    ).expanduser().resolve()
+    if (shared_worktree_sibling / ".git").exists():
+        return shared_worktree_sibling
+    return repo_local_worktree_sibling
 
 
 def _parse_source_configs(

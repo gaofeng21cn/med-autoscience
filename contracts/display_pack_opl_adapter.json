@@ -1,0 +1,35 @@
+{
+  "adapter_callable": "med_autoscience.display_pack_opl_adapter.write_enabled_opl_generic_pack_descriptors",
+  "authority_boundary": {
+    "can_authorize_app_release_readiness": false,
+    "can_authorize_grant_readiness": false,
+    "can_authorize_publication_readiness": false,
+    "can_authorize_quality_verdict": false,
+    "can_authorize_visual_export_readiness": false,
+    "can_mutate_artifact_body": false,
+    "can_sign_domain_owner_receipt": false,
+    "can_write_domain_truth": false,
+    "provider_completion_is_pack_quality_ready": false
+  },
+  "descriptor_media_type": "application/vnd.opl.pack.descriptor.v1+json",
+  "domain_action": "display-pack-capability-discover",
+  "domain_action_output_field": "opl_pack_descriptor_refs",
+  "generic_descriptor_required_fields": [
+    "schema_version",
+    "pack_id",
+    "version",
+    "pack_kind",
+    "owner",
+    "capabilities",
+    "resources",
+    "artifact_lifecycle",
+    "review_transport",
+    "authority_boundary",
+    "provenance"
+  ],
+  "owner": "MedAutoScience",
+  "schema_version": 1,
+  "source_contract_ref": "contracts/display-pack-contract.v2.json",
+  "surface_kind": "mas_display_pack_opl_adapter_contract",
+  "target_contract_ref": "one-person-lab:contracts/opl-framework/pack-os-contract.json#descriptor_contract"
+}

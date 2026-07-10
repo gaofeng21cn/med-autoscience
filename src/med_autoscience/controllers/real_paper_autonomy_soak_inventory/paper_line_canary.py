@@ -642,7 +642,7 @@ def _domain_dispatch_evidence_record_payload(
         ),
     )
     return build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id=paper_line_id,
         stage_id="finalize_and_publication_handoff",
         stage_evidence_stage_id="finalize_and_publication_handoff",

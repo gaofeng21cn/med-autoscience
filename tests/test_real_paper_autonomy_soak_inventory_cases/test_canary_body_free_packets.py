@@ -313,7 +313,7 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     ]
     assert gate_replay_ref in record["evidence_refs"]
     assert record["research_evidence_pack_ref"] == (
-        "mas-research-evidence-pack:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-research-evidence-pack:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert research_summary["pack_ref"] == record["research_evidence_pack_ref"]
@@ -327,11 +327,11 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     assert research_summary["decision_trace_refs"] == [gate_replay_ref, human_gate_ref]
     assert research_summary["progress_summary"]["evidence_tail_closure_summary"] == tail_closure
     assert research_summary["artifact_lineage_graph_ref"] == (
-        "mas-artifact-lineage-graph:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-artifact-lineage-graph:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert research_summary["reproducibility_bundle_ref"] == (
-        "mas-reproducibility-bundle:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-reproducibility-bundle:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert record["details"]["artifact_lineage_or_reproducibility_refs"] == [
@@ -512,7 +512,7 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     }
     evidence_payload = payload["domain_dispatch_evidence_record_payload"]
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
-    assert evidence_payload["task_kind"] == "paper_autonomy/guarded-apply"
+    assert evidence_payload["task_kind"] == "domain_autonomy/guarded-apply"
     assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
     assert evidence_payload["mode"] == "refs_only_domain_owned_success_payload"
     assert {
@@ -625,7 +625,7 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     record = evidence_payload["record_payload"]
     research_summary = record["research_evidence_pack_summary"]
     assert record["research_evidence_pack_ref"] == (
-        "mas-research-evidence-pack:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-research-evidence-pack:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert research_summary["owner_receipt_refs"] == []
@@ -633,11 +633,11 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert research_summary["negative_failed_path_refs"] == record["typed_blocker_refs"]
     assert research_summary["decision_trace_refs"] == []
     assert research_summary["artifact_lineage_graph_ref"] == (
-        "mas-artifact-lineage-graph:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-artifact-lineage-graph:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert research_summary["reproducibility_bundle_ref"] == (
-        "mas-reproducibility-bundle:medautoscience:paper_autonomy_guarded-apply:"
+        "mas-reproducibility-bundle:medautoscience:domain_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
     )
     assert record["details"]["artifact_lineage_or_reproducibility_refs"] == []

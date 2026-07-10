@@ -15,8 +15,8 @@ Machine boundary: 人读索引。可调用真相继续归 MAS app skill、CLI/MC
 - CLI：`medautosci paper-mission start --profile <profile> --study-id <study_id> --objective <objective> --dry-run --format json`
 - CLI：`medautosci paper-mission resume --profile <profile> --study-id <study_id> --mission-id <mission_id> --dry-run --format json`
 - CLI：`medautosci paper-mission consume-candidate --profile <profile> --study-id <study_id> --candidate <candidate_ref> --dry-run --format json`
-- product-entry：`medical_paper_product_entry.default_action_intent = paper_mission/start_or_resume`
-- domain-handler export：默认 task kind / action intent 为 `paper_mission/start_or_resume`，并携带 no-write authority boundary；旧 `stage_outcome/opl-handoff` 若出现，必须是 `default_paper_mission_entry=false` / `migration_diagnostic_only=true`。
+- product-entry：`medical_paper_product_entry.default_action_intent = domain_route/start-or-resume`
+- domain-handler export：默认 task kind / action intent 为 `domain_route/start-or-resume`，并携带 no-write authority boundary；旧 `stage_outcome/opl-handoff` 若出现，必须是 `default_paper_mission_entry=false` / `migration_diagnostic_only=true`。
 
 当前入口先看：
 
@@ -30,7 +30,7 @@ Machine boundary: 人读索引。可调用真相继续归 MAS app skill、CLI/MC
 
 MAS product surface 只解释 direct app-skill、product-entry、artifact-first mission summary、owner-route diagnostic handoff、sidecar dispatch refs 和 OPL App/workbench 消费边界。当前机器真相显示：
 
-- `contracts/generated_surface_handoff.json` 声明 CLI、MCP、Skill、product-entry manifest、sidecar export/dispatch、status read model、workbench drilldown 和 test harness 的 generated/default owner 是 `one-person-lab`；MAS 只提供 domain handler、domain refs、owner receipt、typed blocker、authority refs 和必要医学 helper。当前 MAS skill-facing paper path 应消费 `PaperMissionRun` readback 和 `paper_mission/start_or_resume`，不把 domain diagnostic/owner-callable/PaperRecovery 当成普通用户入口。
+- `contracts/generated_surface_handoff.json` 声明 CLI、MCP、Skill、product-entry manifest、sidecar export/dispatch、status read model、workbench drilldown 和 test harness 的 generated/default owner 是 `one-person-lab`；MAS 只提供 domain handler、domain refs、owner receipt、typed blocker、authority refs 和必要医学 helper。当前 MAS skill-facing paper path 应消费 `PaperMissionRun` readback 和 `domain_route/start-or-resume`，不把 domain diagnostic/owner-callable/PaperRecovery 当成普通用户入口。
 - `contracts/functional_privatization_audit.json` 把 generic scheduler、daemon、queue、attempt ledger、generic runner、generic workbench、memory locator、artifact lifecycle 和 observability 归为 OPL / shared-family owner；MAS 不能把 repo-local product/status/workbench shell 写成长期 generic platform。
 - `contracts/test-lane-manifest.json` 的 `mas-workbench-projection` 与 `mas-functional-consumer-followthrough` 只允许 App/workbench 消费 MAS refs-only projection 和 action receipt，不允许写 study truth、publication eval、controller decisions、terminal commands、current package、evidence/review ledger、memory body 或 artifact authority。
 - MAS 不再提供 repo-local Progress Portal / static HTML display materializer；默认 study read model 是 artifact-first mission summary，platform repair 折叠进 diagnostics。`medautosci workspace progress-portal`、`--serve`、`--enable-actions` 和 `ops/mas/bin/start-web` 不是当前入口。OPL hosted workbench / App shell 消费 MAS refs-only projection；MAS 不写 paper/package、publication gate、controller decision 或 provider runtime state。

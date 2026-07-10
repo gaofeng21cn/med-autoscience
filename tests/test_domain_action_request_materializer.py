@@ -331,8 +331,8 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     assert legacy_diagnostics["legacy_payload_scope"] == "identity_refs_only"
     assert legacy_diagnostics["legacy_dispatch_count"] == 2
     assert legacy_diagnostics["legacy_ready_count"] == 0
-    assert legacy_diagnostics["legacy_blocked_count"] == 1
-    assert legacy_diagnostics["legacy_transition_request_pending_count"] == 1
+    assert legacy_diagnostics["legacy_blocked_count"] == 2
+    assert legacy_diagnostics["legacy_transition_request_pending_count"] == 0
     assert legacy_diagnostics["legacy_dispatch_body_omitted"] is True
     assert len(legacy_diagnostics["legacy_dispatch_refs"]) == 2
     assert legacy_diagnostics["legacy_dispatches"] == legacy_diagnostics["legacy_dispatch_refs"]
@@ -344,7 +344,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         "current_package_freshness_required",
         "return_to_ai_reviewer_workflow",
     ]
-    assert transition_requests[0]["dispatch_status"] == "transition_request_pending"
+    assert transition_requests[0]["dispatch_status"] == "blocked"
     assert transition_requests[0]["legacy_owner_callable_adapter_readback"] is False
     assert transition_requests[0]["durable_carrier_owner"] == "one-person-lab"
     assert transition_requests[0]["mas_creates_owner_callable_carrier"] is False

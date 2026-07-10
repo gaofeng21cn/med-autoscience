@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.artifact_lifecycle_inventory import (
-    DELIVERY_PACKAGE_LAYOUT_STATUSES,
     classify_delivery_package_layout,
 )
 
 
 _AUTHORITY_OWNER_FIELDS = ("authority_owner", "owner", "authority")
+_DELIVERY_PACKAGE_LAYOUT_STATUSES = ("v2", "legacy", "unknown")
 _MANIFEST_SUFFIXES = ("manifest.json", "manifest.yaml", "manifest.yml")
 _KNOWN_AUTHORITY_OWNERS = {"controller", "mas_controller", "publication_gate", "runtime_controller"}
 _SKIPPED_DIR_NAMES = {
@@ -525,7 +525,7 @@ def _layout_paths_by_section(
 def _delivery_package_layout_status_counts(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
     return {
         status: sum(1 for study in studies if study.get("delivery_package_layout_status") == status)
-        for status in DELIVERY_PACKAGE_LAYOUT_STATUSES
+        for status in _DELIVERY_PACKAGE_LAYOUT_STATUSES
     }
 
 

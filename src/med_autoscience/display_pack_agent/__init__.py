@@ -13,6 +13,10 @@ from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
 )
+from med_autoscience.display_pack_opl_adapter import (
+    build_display_pack_opl_adapter_contract,
+    write_enabled_opl_generic_pack_descriptors,
+)
 from .figure_contract import (
     compile_display_figure_intent,
     figure_contract_policy,
@@ -125,6 +129,7 @@ def display_pack_capability_discover(
     repo_root: Path | str | None = None,
     paper_root: Path | str | None = None,
     include_templates: bool = False,
+    opl_descriptor_output_dir: Path | str | None = None,
 ) -> dict[str, Any]:
     normalized_repo_root = _normal_repo_root(repo_root)
     normalized_paper_root = _normal_optional_path(paper_root)
@@ -151,8 +156,16 @@ def display_pack_capability_discover(
             for action in AGENT_CAPABILITY_ACTIONS
         ],
         "expected_receipt_refs": display_pack_agent_receipt_refs(),
+        "opl_pack_descriptor_adapter": build_display_pack_opl_adapter_contract(),
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
+    normalized_descriptor_output_dir = _normal_optional_path(opl_descriptor_output_dir)
+    if normalized_descriptor_output_dir is not None:
+        payload["opl_pack_descriptor_refs"] = write_enabled_opl_generic_pack_descriptors(
+            repo_root=normalized_repo_root,
+            paper_root=normalized_paper_root,
+            output_dir=normalized_descriptor_output_dir,
+        )
     if include_templates:
         catalogs = _catalogs_by_pack_root(records)
         payload["templates"] = [

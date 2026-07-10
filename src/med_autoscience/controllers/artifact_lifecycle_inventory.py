@@ -1,19 +1,15 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-import os
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers.artifact_lifecycle_authority_kernel import (
-    ARTIFACT_ROLES,
     SCHEMA_VERSION,
     ArtifactLifecycleAuthorityKernel,
     classify_artifact_role,
-    cleanup_action_for_artifact,
-    cleanup_blockers_for_artifact,
     is_generated_authority_suffix,
     is_generated_authority_surface_path,
-    lifecycle_for_role,
 )
 from med_autoscience.controllers.submission_package_layout import (
     AUDIT_DIRNAME,
@@ -21,75 +17,35 @@ from med_autoscience.controllers.submission_package_layout import (
     REPRODUCIBILITY_DIRNAME,
     has_legacy_root_audit_files,
 )
-from med_autoscience.workspace_paths import datasets_root
+OPL_ARTIFACT_LIFECYCLE_INDEX = Path(
+    "control/opl/artifact_lifecycle/artifact_lifecycle_index.json"
+)
+OPL_ARTIFACT_LIFECYCLE_OWNER_REF = (
+    "one-person-lab:src/modules/workspace/workspace-artifact-lifecycle.ts"
+)
 
 
-DELIVERY_PACKAGE_LAYOUT_STATUSES = ("v2", "legacy", "unknown")
-
-def build_artifact_lifecycle_inventory(
-    *,
-    study_root: Path,
-    quest_root: Path | None = None,
-    paths: Sequence[Path],
-    runtime_status: Mapping[str, Any] | None = None,
-    mds_mechanical_signals: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
+def read_opl_artifact_lifecycle_refs(*, study_root: Path) -> dict[str, Any]:
+    """Read the OPL-owned lifecycle projection without rebuilding its inventory."""
     resolved_study_root = _resolve_path(study_root)
-    resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
-    artifacts = [
-        classify_artifact(
-            path=path,
-            study_root=resolved_study_root,
-            quest_root=resolved_quest_root,
-            runtime_status=runtime_status,
-        )
-        for path in paths
-    ]
-    mds_requests = _mds_mechanical_requests(mds_mechanical_signals)
+    index_path = resolved_study_root / OPL_ARTIFACT_LIFECYCLE_INDEX
+    index = _read_json_object(index_path)
     return {
         "schema_version": SCHEMA_VERSION,
-        "surface_kind": "artifact_lifecycle_inventory",
+        "surface_kind": "mas_artifact_lifecycle_refs",
+        "status": "available" if index else "opl_projection_required",
         "study_root": str(resolved_study_root),
-        "quest_root": str(resolved_quest_root) if resolved_quest_root is not None else None,
-        "roles": list(ARTIFACT_ROLES),
-        "artifacts": artifacts,
-        "mds_mechanical_signal_contract": _mds_mechanical_signal_contract(),
-        "mds_mechanical_requests": mds_requests,
-        "summary": {
-            "total_files_count": len(artifacts),
-            "role_counts": {role: sum(1 for item in artifacts if item["role"] == role) for role in ARTIFACT_ROLES},
-            "delivery_package_layout_status_counts": _delivery_package_layout_status_counts(artifacts),
-            "mds_signal_request_count": len(mds_requests),
-            "ready_authorization_count": 0,
+        "opl_artifact_lifecycle_index_ref": str(index_path),
+        "opl_owner_surface_ref": OPL_ARTIFACT_LIFECYCLE_OWNER_REF,
+        "refs": dict(index.get("refs") or {}) if isinstance(index.get("refs"), Mapping) else {},
+        "lifecycle_status": str(index.get("status") or "").strip() or None,
+        "authority_boundary": {
+            "refs_only": True,
+            "mas_rebuilds_generic_inventory": False,
+            "mas_scans_workspace_for_lifecycle": False,
+            "mas_can_authorize_artifact_mutation_from_projection": False,
+            "artifact_mutation_authority_owner": "MedAutoScience",
         },
-    }
-
-
-def build_study_artifact_lifecycle_registry(
-    *,
-    study_root: Path,
-    workspace_root: Path,
-    quest_root: Path | None = None,
-    runtime_status: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    resolved_study_root = _resolve_path(study_root)
-    resolved_workspace_root = _resolve_path(workspace_root)
-    resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
-    paths = _discover_registry_paths(
-        study_root=resolved_study_root,
-        workspace_root=resolved_workspace_root,
-        quest_root=resolved_quest_root,
-    )
-    inventory = build_artifact_lifecycle_inventory(
-        study_root=resolved_study_root,
-        quest_root=resolved_quest_root,
-        paths=paths,
-        runtime_status=runtime_status,
-    )
-    return {
-        **inventory,
-        "surface_kind": "workspace_study_artifact_lifecycle_registry",
-        "workspace_root": str(resolved_workspace_root),
     }
 
 
@@ -206,108 +162,10 @@ def classify_delivery_package_layout(path: Path) -> dict[str, Any] | None:
     }
 
 
-def evaluate_archive_cleanup_readiness(
-    *,
-    archive_path: Path,
-    restore_metadata: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    metadata = restore_metadata if isinstance(restore_metadata, Mapping) else {}
-    blockers: list[str] = []
-    restore_index = _first_text(metadata, ("restore_index_path", "restore_index", "restore_index_ref"))
-    checksum = _first_text(metadata, ("sha256", "checksum", "manifest_sha256", "archive_sha256"))
-    rehydrate_status = _rehydrate_verification_status(metadata)
-    if restore_index is None:
-        blockers.append("missing_restore_index")
-    if checksum is None:
-        blockers.append("missing_checksum")
-    if rehydrate_status != "verified":
-        blockers.append("missing_rehydrate_verification")
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "archive_cleanup_readiness",
-        "archive_path": str(_resolve_path(archive_path)),
-        "candidate_action": "blocked" if blockers else "cleanup-expanded-copy",
-        "physical_cleanup_allowed": not blockers,
-        "blockers": blockers,
-        "restore_index_path": restore_index,
-        "checksum": checksum,
-        "rehydrate_verification_status": rehydrate_status,
-    }
-
-
-def _mds_mechanical_signal_contract() -> dict[str, Any]:
-    return {
-        "role": "evidence_only",
-        "mechanical_signal_can_only": "request_artifact_or_package_review",
-        "quality_ready_authorized": False,
-        "publication_ready_authorized": False,
-        "submission_ready_authorized": False,
-    }
-
-
-def _mds_mechanical_requests(signals: Mapping[str, Any] | None) -> list[dict[str, Any]]:
-    if not isinstance(signals, Mapping):
-        return []
-    requests: list[dict[str, Any]] = []
-    for signal_id in sorted(str(key) for key in signals):
-        payload = signals.get(signal_id)
-        status = ""
-        if isinstance(payload, Mapping):
-            status = str(payload.get("status") or "").strip()
-        requests.append(
-            {
-                "signal_id": signal_id,
-                "request_kind": "artifact_or_package_review",
-                "status": status or "observed",
-                "quality_ready_authorized": False,
-                "publication_ready_authorized": False,
-                "submission_ready_authorized": False,
-            }
-        )
-    return requests
-
-
-def _discover_registry_paths(
-    *,
-    study_root: Path,
-    workspace_root: Path,
-    quest_root: Path | None,
-) -> list[Path]:
-    roots = [study_root, datasets_root(workspace_root)]
-    if quest_root is not None:
-        roots.append(quest_root / ".ds")
-    seen: set[Path] = set()
-    paths: list[Path] = []
-    for root in roots:
-        if not root.exists():
-            continue
-        for current_root, dirnames, filenames in os.walk(root):
-            dirnames[:] = [name for name in dirnames if name not in {".git", ".venv", "__pycache__"}]
-            for filename in filenames:
-                candidate = Path(current_root) / filename
-                resolved = candidate.resolve()
-                if resolved not in seen:
-                    seen.add(resolved)
-                    paths.append(resolved)
-    return sorted(paths)
-
-
 def _resolve_path(path: Path | None) -> Path:
     if path is None:
         raise ValueError("path must not be None")
     return Path(path).expanduser().resolve()
-
-
-def _delivery_package_layout_status_counts(artifacts: Sequence[Mapping[str, Any]]) -> dict[str, int]:
-    return {
-        status: sum(
-            1
-            for artifact in artifacts
-            if isinstance(artifact.get("delivery_package_layout"), Mapping)
-            and artifact["delivery_package_layout"].get("status") == status
-        )
-        for status in DELIVERY_PACKAGE_LAYOUT_STATUSES
-    }
 
 
 def _delivery_package_root_for_path(path: Path) -> tuple[Path | None, str | None]:
@@ -354,39 +212,22 @@ def _delivery_package_audit_guidance(status: str) -> str:
     return "audit_and_reproducibility_locations_unknown"
 
 
-def _first_text(payload: Mapping[str, Any], keys: tuple[str, ...]) -> str | None:
-    for key in keys:
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return None
-
-
-def _rehydrate_verification_status(payload: Mapping[str, Any]) -> str | None:
-    for key in ("rehydrate_verification", "restore_verification"):
-        value = payload.get(key)
-        if isinstance(value, Mapping):
-            status = str(value.get("status") or "").strip().lower()
-            if status:
-                return status
-        if isinstance(value, str) and value.strip():
-            return value.strip().lower()
-    status = str(payload.get("rehydrate_verification_status") or "").strip().lower()
-    return status or None
+def _read_json_object(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 __all__ = [
-    "ARTIFACT_ROLES",
     "SCHEMA_VERSION",
-    "build_artifact_lifecycle_inventory",
     "build_delivery_authority_sync",
-    "build_study_artifact_lifecycle_registry",
     "build_study_delivery_lifecycle_hook",
     "classify_artifact",
     "classify_artifact_role",
     "classify_delivery_package_layout",
-    "cleanup_action_for_artifact",
-    "cleanup_blockers_for_artifact",
-    "evaluate_archive_cleanup_readiness",
-    "lifecycle_for_role",
+    "read_opl_artifact_lifecycle_refs",
 ]

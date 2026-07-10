@@ -16,7 +16,7 @@ from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
 from med_autoscience.display_pack_agent import display_pack_capability_discover
-from med_autoscience.cli.paper_mission_commands import PAPER_MISSION_START_OR_RESUME_TASK_KIND
+from med_autoscience.cli.paper_mission_commands import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -154,10 +154,10 @@ def export_family_domain_handler(
         },
         "dispatch": {
             "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
-            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "default_queue_source": "/paper_mission_default_tasks",
             "legacy_queue_source": "/pending_family_tasks",
-            "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, PAPER_MISSION_START_OR_RESUME_TASK_KIND}),
+            "allowed_task_kinds": sorted({*ALLOWED_TASK_KINDS, DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND}),
             "retired_diagnostic_task_kinds": sorted(RETIRED_DIAGNOSTIC_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
@@ -477,7 +477,7 @@ def _current_typed_blocker_owner_resolution_ref(
         study_id=study_id,
     )
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/supervisor-decision",
+        task_kind="domain_autonomy/supervisor-decision",
         study_id=study_id,
         reason=reason,
         evidence_refs=source_refs,
@@ -487,8 +487,8 @@ def _current_typed_blocker_owner_resolution_ref(
     return {
         "domain_id": "medautoscience",
         "ref_kind": "typed_blocker_owner_resolution_ref",
-        "task_kind": "paper_autonomy/supervisor-decision",
-        "recommended_task_kind": "paper_autonomy/supervisor-decision",
+        "task_kind": "domain_autonomy/supervisor-decision",
+        "recommended_task_kind": "domain_autonomy/supervisor-decision",
         "source": "mas-domain-handler-export",
         "dedupe_key": f"mas:{profile.name}:{study_id}:current-typed-blocker:{source_fingerprint}",
         "source_fingerprint": source_fingerprint,
@@ -897,7 +897,7 @@ def _paper_autonomy_tasks(
         tasks.append(
             {
                 "domain_id": "medautoscience",
-                "task_kind": "paper_autonomy/repair-recheck",
+                "task_kind": "domain_autonomy/repair-recheck",
                 "priority": 40,
                 "source": "mas-domain-handler-export",
                 "requires_approval": False,

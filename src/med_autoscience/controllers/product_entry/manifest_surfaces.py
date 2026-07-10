@@ -26,10 +26,12 @@ _module_reexport(_program_surfaces)
 _module_reexport(_workspace_surfaces)
 
 
-from .manifest_status_surface import build_product_entry_status_payload as _build_product_entry_status_payload
 from med_autoscience.controllers import opl_provider_ready_adapter
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import study_domain_transition_table
+from med_autoscience.controllers.current_work_unit.opl_profile import (
+    build_domain_projection_profile,
+)
 from med_autoscience.controllers.opl_unique_control_plane_boundary import consumer_migration
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
@@ -39,6 +41,9 @@ from med_autoscience.evo_scientist_learning_projection import (
     build_evo_scientist_learning_projection,
 )
 from med_autoscience.evidence_gap_abi import build_evidence_gap_consumption_abi
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+)
 from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
@@ -272,12 +277,12 @@ def build_product_entry_manifest(
         profile_ref=profile_ref,
         allowed_task_kinds=(
             "stage_outcome/opl-handoff",
-            "paper_autonomy/repair-recheck",
-            "paper_autonomy/ai-reviewer-recheck",
-            "publication_aftercare/analysis-queue-progress",
-            "publication_aftercare/reviewer-refresh",
-            "paper_autonomy/gate-replay",
-            "paper_autonomy/route-decision",
+            "domain_autonomy/repair-recheck",
+            "domain_autonomy/ai-reviewer-recheck",
+            "domain_route/analysis-queue-progress",
+            "domain_route/reviewer-refresh",
+            "domain_autonomy/gate-replay",
+            "domain_autonomy/route-decision",
             "safe_reconcile/dry-run",
             "study_progress/read",
             "status/read",
@@ -426,6 +431,7 @@ def build_product_entry_manifest(
             "source_provenance": source_provenance,
             "phase5_platform_target": phase5_platform_target,
             "product_positioning": _build_product_positioning(),
+            "domain_projection_profile": build_domain_projection_profile(),
             "functional_consumer_boundary": functional_consumer_boundary,
             "opl_family_persistence_lifecycle_owner_route_adoption": (
                 opl_family_persistence_lifecycle_owner_route_adoption
@@ -499,7 +505,7 @@ def _with_paper_mission_product_entry(
         **manifest,
         "medical_paper_product_entry": {
             "surface_kind": "medical_paper_product_entry",
-            "default_action_intent": "paper_mission/start_or_resume",
+            "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "default_command": drive_command,
             "drive_command": drive_command,
             "inspect_command": inspect_command,
@@ -545,30 +551,6 @@ def build_skill_catalog(
     return skill_catalog
 
 
-def build_product_entry_status(
-    *,
-    profile: WorkspaceProfile,
-    profile_ref: str | Path | None = None,
-) -> dict[str, Any]:
-    manifest = build_product_entry_manifest(
-        profile=profile,
-        profile_ref=profile_ref,
-    )
-    workspace_cockpit = read_workspace_cockpit(
-        profile=profile,
-        profile_ref=profile_ref,
-    )
-    payload = _build_product_entry_status_payload(
-        manifest=manifest,
-        workspace_cockpit=workspace_cockpit,
-        schema_version=SCHEMA_VERSION,
-        product_entry_status_kind=PRODUCT_ENTRY_STATUS_KIND,
-        product_entry_status_schema_ref=PRODUCT_ENTRY_STATUS_SCHEMA_REF,
-    )
-    _validate_product_entry_status_contract(payload)
-    return payload
-
-
 def build_product_entry_preflight(
     *,
     profile: WorkspaceProfile,
@@ -596,5 +578,5 @@ __all__ = [
     name
     for name in globals()
     if not name.startswith("__")
-    and name not in {"_module_reexport", "_build_product_entry_status_payload"}
+    and name != "_module_reexport"
 ]

@@ -82,17 +82,6 @@ def current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[s
     return None
 
 
-def github_block_reason(developer_mode_payload: Mapping[str, Any], *, supported_mode: str) -> str | None:
-    if reason := text(developer_mode_payload.get("blocked_reason")):
-        return reason
-    gate = mapping(developer_mode_payload.get("github_user_gate"))
-    if reason := text(gate.get("reason")):
-        return reason
-    if text(developer_mode_payload.get("mode")) != supported_mode:
-        return "developer_apply_safe_required"
-    return None
-
-
 def owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
     handoff_packet = mapping(action.get("handoff_packet"))
     return (
@@ -150,7 +139,6 @@ __all__ = [
     "consumer_history_path",
     "consumer_latest_path",
     "current_scan_study",
-    "github_block_reason",
     "mapping",
     "nested_mapping",
     "owner_callable_adapter_path",

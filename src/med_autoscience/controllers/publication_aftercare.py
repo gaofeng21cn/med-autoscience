@@ -9,8 +9,8 @@ from .domain_dispatch_evidence_payload import build_domain_dispatch_evidence_rec
 
 
 SURFACE_KIND = "mas_publication_aftercare_plan"
-ANALYSIS_QUEUE_TASK_KIND = "publication_aftercare/analysis-queue-progress"
-REVIEWER_REFRESH_TASK_KIND = "publication_aftercare/reviewer-refresh"
+ANALYSIS_QUEUE_TASK_KIND = "domain_route/analysis-queue-progress"
+REVIEWER_REFRESH_TASK_KIND = "domain_route/reviewer-refresh"
 FORBIDDEN_WRITES = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",

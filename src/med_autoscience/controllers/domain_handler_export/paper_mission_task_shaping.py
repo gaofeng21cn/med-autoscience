@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.cli.paper_mission_commands import (
-    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     build_paper_mission_readback,
 )
 from med_autoscience.controllers import opl_domain_progress_transition_contract
@@ -191,9 +191,9 @@ def paper_mission_start_or_resume_task(
     task = {
         "task_id": f"paper-mission-start-or-resume::{study_id}",
         "domain_id": "medautoscience",
-        "task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-        "recommended_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-        "action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        "task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+        "recommended_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+        "action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
         "default_paper_mission_entry": True,
         "migration_diagnostic_only": False,
         "source": "mas-domain-handler-export",
@@ -283,7 +283,7 @@ def paper_mission_consumption_route_handoff_task(
         },
     ]
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_mission/stage-outcome",
+        task_kind="domain_route/stage-outcome",
         study_id=study_id,
         reason="paper_mission_consumption_opl_route_handoff_pending",
         evidence_refs=source_refs,
@@ -344,7 +344,7 @@ def paper_mission_consumption_route_handoff_task(
         payload["opl_transition_handoff_contract"] = opl_transition_handoff_contract
     return {
         "domain_id": "medautoscience",
-        "task_kind": "paper_mission/stage-outcome",
+        "task_kind": "domain_route/stage-outcome",
         "study_id": study_id,
         "quest_id": study_id,
         "action_type": action_type,
@@ -385,7 +385,7 @@ def mark_non_default_paper_mission_tasks(tasks: list[dict[str, Any]]) -> list[di
     marked: list[dict[str, Any]] = []
     for task in tasks:
         if (
-            text(task.get("task_kind")) == PAPER_MISSION_START_OR_RESUME_TASK_KIND
+            text(task.get("task_kind")) == DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
             and task.get("default_paper_mission_entry") is True
         ):
             marked.append(task)

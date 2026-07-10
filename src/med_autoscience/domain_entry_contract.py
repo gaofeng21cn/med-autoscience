@@ -60,7 +60,7 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
 SERVICE_SAFE_DISPLAY_PACK_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "display-pack-capability-discover": DomainEntryCommandSpec(
         (),
-        ("repo_root", "paper_root", "include_templates"),
+        ("repo_root", "paper_root", "include_templates", "opl_descriptor_output_dir"),
     ),
     "display-pack-orchestrate": DomainEntryCommandSpec(
         (),

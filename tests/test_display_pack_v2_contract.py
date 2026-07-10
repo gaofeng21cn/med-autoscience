@@ -94,6 +94,11 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
     assert external_substrate["status"] == OPL_EXTERNAL_SUBSTRATE_STATUS
     assert set(external_substrate["cli_surfaces"]) == OPL_EXTERNAL_SUBSTRATE_SURFACES
     assert external_substrate["verification_refs"]
+    adapter = handoff["generic_descriptor_adapter"]
+    assert adapter["status"] == "landed"
+    assert adapter["source_ref"] == "src/med_autoscience/display_pack_opl_adapter.py"
+    assert adapter["descriptor_media_type"] == "application/vnd.opl.pack.descriptor.v1+json"
+    assert adapter["output_field"] == "opl_pack_descriptor_refs"
     assert "generic_pack_cache" in handoff["target_capabilities"]
     assert "generic_pack_distribution" in handoff["target_capabilities"]
     assert "paper/figure_spec.json" in payload["quality_surfaces"]["paper_quality_refs"]

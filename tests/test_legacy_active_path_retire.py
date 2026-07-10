@@ -64,10 +64,10 @@ def test_old_path_replacement_points_to_paper_mission_run_contract() -> None:
     }
     assert tombstone["replacement_parity_proof"] == {
         "status": "machine_proved",
-        "replacement_action_intent": "paper_mission/start_or_resume",
+        "replacement_action_intent": "domain_route/start-or-resume",
         "product_entry_surface": "medical_paper_product_entry",
         "product_entry_default_command_contains": "paper-mission drive",
-        "domain_handler_default_task_kind": "paper_mission/start_or_resume",
+        "domain_handler_default_task_kind": "domain_route/start-or-resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {
             "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
@@ -219,9 +219,9 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
     assert proof["active_default_callers"] == []
     assert proof["default_cli_mcp_product_entry_or_skill_caller_count"] == 0
     assert proof["default_mainline_replacement"] == {
-        "action_intent": "paper_mission/start_or_resume",
+        "action_intent": "domain_route/start-or-resume",
         "product_entry_surface": "medical_paper_product_entry",
-        "domain_handler_task_kind": "paper_mission/start_or_resume",
+        "domain_handler_task_kind": "domain_route/start-or-resume",
         "contract_ref": "contracts/paper_mission_run_contract.json",
         "study_progress_projection": "artifact_first_mission_summary.paper_mission_run",
     }
@@ -234,7 +234,7 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
             "study_progress.artifact_first_mission_summary",
         ],
         "required_shared_replacement": {
-            "action_intent": "paper_mission/start_or_resume",
+            "action_intent": "domain_route/start-or-resume",
             "contract_ref": "contracts/paper_mission_run_contract.json",
             "schema_version": "paper-mission-run.v1",
             "validator": "med_autoscience.paper_mission_run.PaperMissionRun",
@@ -291,7 +291,7 @@ def test_no_active_default_caller_proof_scope_is_explicit() -> None:
         scope_by_id["product_entry_manifest.medical_paper_product_entry"][
             "required_default_fields"
         ]["default_action_intent"]
-        == "paper_mission/start_or_resume"
+        == "domain_route/start-or-resume"
     )
     assert scope_by_id["domain_handler_export.dispatch"]["legacy_carrier_policy"] == {
         "task_kind": "stage_outcome/opl-handoff",
@@ -467,7 +467,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
         profile_ref=tmp_path / "profile.toml",
     )
 
-    assert export["dispatch"]["default_action_intent"] == "paper_mission/start_or_resume"
+    assert export["dispatch"]["default_action_intent"] == "domain_route/start-or-resume"
     assert export["dispatch"]["default_queue_source"] == "/paper_mission_default_tasks"
     assert export["dispatch"]["legacy_queue_source"] == "/pending_family_tasks"
     assert export["pending_family_tasks_policy"]["default_paper_mission_queue_source"] == (
@@ -486,7 +486,7 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     ]
 
     default_tasks = export["paper_mission_default_tasks"]
-    assert [task["task_kind"] for task in default_tasks] == ["paper_mission/start_or_resume"]
+    assert [task["task_kind"] for task in default_tasks] == ["domain_route/start-or-resume"]
     assert all(task.get("migration_diagnostic_only") is False for task in default_tasks)
     assert not [
         task
@@ -545,7 +545,7 @@ def test_domain_handler_dispatch_rejects_legacy_owner_callable_adapter_task_kind
     assert receipt["migration_diagnostic_only"] is True
     assert receipt["ordinary_schedulable"] is False
     assert receipt["active_caller_class"] == "diagnostic_only"
-    assert receipt["replacement_task_kind"] == "paper_mission/start_or_resume"
+    assert receipt["replacement_task_kind"] == "domain_route/start-or-resume"
     assert receipt["diagnostic_role"] == "retired_default_paper_dispatch"
 
 
@@ -565,7 +565,7 @@ def test_product_entry_default_mainline_has_no_legacy_domain_diagnostic_or_dispa
 
     paper_mission = manifest["medical_paper_product_entry"]
     default_command = paper_mission["default_command"]
-    assert paper_mission["default_action_intent"] == "paper_mission/start_or_resume"
+    assert paper_mission["default_action_intent"] == "domain_route/start-or-resume"
     assert "paper-mission drive" in default_command
     assert "paper-mission inspect" in paper_mission["inspect_command"]
     assert "domain-diagnostic-report" not in default_command

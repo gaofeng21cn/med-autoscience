@@ -401,7 +401,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert study_projection["autonomy_continuation"]["status"] == "retired_runtime_liveness_scheduler_signal"
     assert study_projection["autonomy_continuation"]["replacement_owner"] == "one-person-lab"
     assert [task["task_kind"] for task in payload["paper_mission_default_tasks"]] == [
-        "paper_mission/start_or_resume"
+        "domain_route/start-or-resume"
     ]
     assert payload["paper_mission_default_tasks"][0]["default_paper_mission_entry"] is True
     non_default_tasks = [
@@ -514,7 +514,7 @@ def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_pat
     assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is True
     repair_tasks = [
         task for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "paper_autonomy/repair-recheck"
+        if task["task_kind"] == "domain_autonomy/repair-recheck"
     ]
     assert len(repair_tasks) == 2
     assert {
@@ -606,9 +606,9 @@ def test_domain_handler_export_suppresses_auxiliary_paper_tasks_when_opl_current
     assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is False
     assert study["publication_aftercare"]["currentness_status"] == "superseded_by_opl_current_owner_route"
     task_kinds = [task["task_kind"] for task in payload["pending_family_tasks"]]
-    assert "paper_autonomy/repair-recheck" not in task_kinds
-    assert "publication_aftercare/analysis-queue-progress" not in task_kinds
-    assert "publication_aftercare/reviewer-refresh" not in task_kinds
+    assert "domain_autonomy/repair-recheck" not in task_kinds
+    assert "domain_route/analysis-queue-progress" not in task_kinds
+    assert "domain_route/reviewer-refresh" not in task_kinds
     assert "stage_outcome/opl-handoff" not in task_kinds
 
 
@@ -828,12 +828,13 @@ def test_domain_handler_export_projects_publication_aftercare_analysis_and_revie
     study = payload["studies"][0]
     assert study["publication_aftercare"]["analysis_queue_entry"]["status"] == "ready"
     task_kinds = [task["task_kind"] for task in payload["pending_family_tasks"]]
-    assert "publication_aftercare/analysis-queue-progress" in task_kinds
-    assert "publication_aftercare/reviewer-refresh" in task_kinds
+    assert "domain_route/analysis-queue-progress" in task_kinds
+    assert "domain_route/reviewer-refresh" in task_kinds
     aftercare_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"].startswith("publication_aftercare/")
+        if task["task_kind"]
+        in {"domain_route/analysis-queue-progress", "domain_route/reviewer-refresh"}
     ]
     assert all(task["source"] == "mas-publication-aftercare" for task in aftercare_tasks)
     assert all(task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only" for task in aftercare_tasks)

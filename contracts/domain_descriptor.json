@@ -26,6 +26,9 @@
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
     "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
+    "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
+    "domain_projection_profile": "contracts/domain_projection_profile.json",
+    "domain_route_profile": "contracts/domain_route_profile.json",
     "foundry_agent_series": "contracts/foundry_agent_series.json",
     "foundry_agent_series_policy_release": "contracts/opl-framework/foundry-agent-series-policy-release.json",
     "functional_privatization_audit": "contracts/functional_privatization_audit.json",

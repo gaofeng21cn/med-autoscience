@@ -53,6 +53,11 @@ def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | No
             repo_root=Path(args.repo_root) if args.repo_root else None,
             paper_root=Path(args.paper_root) if args.paper_root else None,
             include_templates=bool(args.include_templates),
+            opl_descriptor_output_dir=(
+                Path(args.opl_descriptor_output_dir)
+                if args.opl_descriptor_output_dir
+                else None
+            ),
         )
 
     if args.command == "display-pack-agent-orchestrate":

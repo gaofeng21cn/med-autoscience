@@ -80,8 +80,12 @@ def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_w
 
     assert result["surface"] == "domain_action_request_materializer"
     assert result["dry_run"] is True
-    assert result["effective_mode"] == "developer_apply_safe"
-    assert result["github_gate"]["allowed"] is True
+    assert result["effective_mode"] == "opl_execution_authorization"
+    assert result["execution_authorization_owner"] == "one-person-lab"
+    assert result["execution_authorization_contract_ref"].endswith(
+        "stage-run-kernel-contract.json#execution_authorization_policy"
+    )
+    assert "github_gate" not in result
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["domain_progress_transition_request_count"] == 0

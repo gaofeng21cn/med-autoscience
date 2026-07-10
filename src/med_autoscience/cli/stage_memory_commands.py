@@ -43,14 +43,18 @@ def handle_stage_memory_command(
         return 0
 
     if args.command == "publication-strategy-memory-workbench":
-        result = publication_route_memory_inventory.build_publication_strategy_memory_workbench(
-            workspace_root=Path(args.workspace_root),
-            stage=args.stage,
-            route_family_tags=args.route_families,
-            statuses=args.statuses,
-            include_card_body=bool(args.include_card_body),
+        _print_json(
+            {
+                "surface_kind": "retired_mas_publication_strategy_memory_workbench",
+                "status": "retired_to_opl_console",
+                "opl_owner_surface_ref": (
+                    "one-person-lab:src/modules/console/"
+                    "runtime-tray-app-operator-drilldown.ts"
+                ),
+                "domain_inventory_command": "publication-route-memory-inventory",
+                "mas_materializes_operator_workbench": False,
+            }
         )
-        _print_json(result)
         return 0
 
     if args.command == "stage-knowledge-packet":

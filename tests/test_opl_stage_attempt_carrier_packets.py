@@ -38,7 +38,7 @@ def test_immutable_opl_stage_attempt_packet_is_abi_provenance_only(tmp_path: Pat
     assert packet["active_caller_class"] == "abi_provenance_carrier_only"
     assert packet["allowed_reference_class"] == "retired_handoff_provenance"
     assert packet["diagnostic_role"] == "retired_default_paper_dispatch"
-    assert packet["replacement_task_kind"] == "paper_mission/start_or_resume"
+    assert packet["replacement_task_kind"] == "domain_route/start-or-resume"
     assert packet["default_paper_mission_entry"] is False
     assert packet["ordinary_schedulable"] is False
     assert packet["migration_diagnostic_only"] is True

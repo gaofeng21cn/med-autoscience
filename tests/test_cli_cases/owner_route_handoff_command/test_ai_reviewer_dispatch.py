@@ -47,7 +47,7 @@ def test_domain_handler_dispatch_materializes_embedded_ai_reviewer_handoff_insid
         {
             "task_id": "paper-task-ai-reviewer-callable",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",
@@ -111,7 +111,7 @@ def test_domain_handler_dispatch_blocks_embedded_ai_reviewer_callable_without_op
         {
             "task_id": "paper-task-ai-reviewer-callable-blocked",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",
@@ -157,7 +157,7 @@ def test_domain_handler_dispatch_preserves_ai_reviewer_record_production_handoff
         {
             "task_id": "paper-task-ai-reviewer-current-manuscript-stale",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "002-dm-china-us-mortality-attribution",

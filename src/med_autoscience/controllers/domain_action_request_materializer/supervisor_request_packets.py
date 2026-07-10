@@ -21,9 +21,6 @@ def request_task(
     *,
     action: Mapping[str, Any],
     schema_version: int,
-    developer_mode_payload: Mapping[str, Any],
-    apply: bool,
-    supported_mode: str,
     packet_path: Path,
     scan_latest_path: Path,
     forbidden_surfaces: Iterable[str],
@@ -32,12 +29,6 @@ def request_task(
     study_id = _text(action.get("study_id")) or "unknown-study"
     action_type = _text(action.get("action_type")) or "unknown_action"
     handoff_packet = _mapping(action.get("handoff_packet"))
-    apply_allowed = (
-        apply
-        and _text(developer_mode_payload.get("mode")) == supported_mode
-        and developer_mode_payload.get("safe_actions_enabled") is True
-    )
-    blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload, supported_mode)
     authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
     request_owner = _owner_from_action(action, action_type)
     required_output_surface = _required_output_surface(action, action_type)
@@ -52,12 +43,12 @@ def request_task(
         action={**dict(action), "next_executable_owner": request_owner, "action_type": action_type},
         owner_route=owner_route,
     )
-    blocked_reason = _owner_route_block_reason(
-        blocked_reason=blocked_reason,
-        apply=apply,
-        owner_route_current=owner_route_current,
+    blocked_reason = (
+        "opl_execution_authorization_required"
+        if owner_route_current
+        else "owner_route_next_owner_mismatch"
     )
-    dispatch_status = "applied" if apply_allowed and owner_route_current else "dry_run" if not apply else "blocked"
+    dispatch_status = "transition_request_pending" if owner_route_current else "blocked"
     owner_pickup = _owner_pickup(
         request_owner=request_owner,
         required_output_surface=required_output_surface,
@@ -80,7 +71,6 @@ def request_task(
         idempotency_key=idempotency_key,
         request_packet_ref=request_packet_ref,
         owner_pickup=owner_pickup,
-        effective_mode=_text(developer_mode_payload.get("mode")),
         readiness_request=readiness_request,
     )
     return {
@@ -109,13 +99,14 @@ def request_task(
         "owner_route_current": owner_route_current,
         "dispatch_status": dispatch_status,
         "blocked_reason": blocked_reason,
-        "dry_run": not apply,
+        "dry_run": True,
         "forbidden_surfaces": list(forbidden_surfaces),
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(allowed_write_surfaces),
-        "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
-        "effective_mode": _text(developer_mode_payload.get("mode")),
-        "requested_mode": _text(developer_mode_payload.get("requested_mode")),
+        "execution_authorization_contract_ref": (
+            "one-person-lab:contracts/opl-framework/stage-run-kernel-contract.json"
+            "#execution_authorization_policy"
+        ),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
@@ -125,17 +116,6 @@ def request_task(
         "handoff_packet": handoff,
         "refs": {"scan_latest": str(scan_latest_path), "request_packet_path": str(packet_path)},
     }
-
-
-def _owner_route_block_reason(
-    *,
-    blocked_reason: str | None,
-    apply: bool,
-    owner_route_current: bool,
-) -> str | None:
-    if blocked_reason is not None or not apply or owner_route_current:
-        return blocked_reason
-    return "owner_route_next_owner_mismatch"
 
 
 def _owner_pickup(
@@ -176,7 +156,6 @@ def request_task_handoff_packet(
     idempotency_key: str | None,
     request_packet_ref: str,
     owner_pickup: Mapping[str, Any],
-    effective_mode: str | None,
     readiness_request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     readiness_request_payload = dict(readiness_request or {})
@@ -214,7 +193,6 @@ def request_task_handoff_packet(
             "medical_claims",
         ],
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
-        "effective_mode": effective_mode,
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
@@ -316,17 +294,6 @@ def _study_root_from_action(action: Mapping[str, Any], handoff_packet: Mapping[s
     source_ref = _text(action.get("source_ref")) or _text(handoff_packet.get("source_ref"))
     if source_ref and "/artifacts/" in source_ref:
         return Path(source_ref.split("/artifacts/", maxsplit=1)[0]).expanduser().resolve()
-    return None
-
-
-def _github_block_reason(developer_mode_payload: Mapping[str, Any], supported_mode: str) -> str | None:
-    if text := _text(developer_mode_payload.get("blocked_reason")):
-        return text
-    gate = _mapping(developer_mode_payload.get("github_user_gate"))
-    if text := _text(gate.get("reason")):
-        return text
-    if _text(developer_mode_payload.get("mode")) != supported_mode:
-        return "developer_apply_safe_required"
     return None
 
 

@@ -70,7 +70,7 @@ def test_provider_hosted_stage_attempt_uses_bound_dispatch_owner_route_when_scan
     }
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat_bb3fa22e4d97294b86998d7f")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", stage_packet_ref)
-    monkeypatch.setenv("OPL_STAGE_ID", "paper_mission/stage-outcome")
+    monkeypatch.setenv("OPL_STAGE_ID", "domain_route/stage-outcome")
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
     monkeypatch.setenv("OPL_ACTION_TYPE", "run_gate_clearing_batch")
     monkeypatch.setenv("OPL_WORK_UNIT_ID", "publication_gate_replay")

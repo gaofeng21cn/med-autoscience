@@ -6,11 +6,13 @@ from med_autoscience.cli.paper_mission_commands.common import (
     _optional_text,
     _slug,
 )
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+)
 
 PAPER_MISSION_CONTRACT_REF = "contracts/paper_mission_run_contract.json"
 PAPER_MISSION_CONTRACT_VERSION = "paper-mission-run.v1"
 PAPER_MISSION_CONTRACT_COMMIT = "a410db5c0c874187c8b1ddecee79c2e00c8fe691"
-PAPER_MISSION_START_OR_RESUME_TASK_KIND = "paper_mission/start_or_resume"
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "publication_eval/latest.json",
@@ -38,18 +40,18 @@ def no_write_output_manifest() -> dict[str, Any]:
 
 def action_intent(paper_mission_command: str) -> str:
     if paper_mission_command in {"start", "resume"}:
-        return PAPER_MISSION_START_OR_RESUME_TASK_KIND
+        return DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
     if paper_mission_command == "consume-candidate":
-        return "paper_mission/consume_candidate"
+        return "domain_route/consume-candidate"
     if paper_mission_command == "package-candidate":
-        return "paper_mission/package_candidate"
+        return "domain_route/package-candidate"
     if paper_mission_command == "drive":
-        return "paper_mission/drive"
+        return "domain_route/drive"
     if paper_mission_command == "terminalize-stage":
-        return "paper_mission/terminalize_stage"
+        return "domain_route/terminalize-stage"
     if paper_mission_command == "typed-blocker-resolution":
-        return "paper_mission/typed_blocker_resolution"
-    return "paper_mission/inspect"
+        return "domain_route/typed-blocker-resolution"
+    return "domain_route/inspect"
 
 
 def objective_for_command(*, paper_mission_command: str, objective: str | None) -> str:
@@ -119,7 +121,7 @@ __all__ = [
     "PAPER_MISSION_CONTRACT_COMMIT",
     "PAPER_MISSION_CONTRACT_REF",
     "PAPER_MISSION_CONTRACT_VERSION",
-    "PAPER_MISSION_START_OR_RESUME_TASK_KIND",
+    "DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND",
     "action_intent",
     "mission_id",
     "mutation_policy",

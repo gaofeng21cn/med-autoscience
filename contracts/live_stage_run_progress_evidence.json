@@ -64,7 +64,7 @@
     "source_observation": "current_owner_delta_owner_answer_missing=true",
     "answers_missing_owner_answer": true,
     "current_owner": "med-autoscience",
-    "stage_id": "paper_autonomy/guarded-apply",
+    "stage_id": "domain_autonomy/guarded-apply",
     "next_required_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
     "accepted_answer_shape": "typed_blocker_ref",
     "accepted_answer_shapes": [
@@ -81,7 +81,7 @@
       "source_surface": "current_owner_delta_bridge",
       "summary_kind": "owner_payload_item",
       "item_id": "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker",
-      "stage_id": "paper_autonomy/guarded-apply",
+      "stage_id": "domain_autonomy/guarded-apply",
       "task_or_study_ref": "medautoscience:frt_dfb2a46c1e1286b88bd02ce6",
       "lineage_ref": "sat_19c64e81217e5b7f8531abc6",
       "current_owner_delta_id": "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker",

@@ -261,6 +261,7 @@ def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
         "repo_root",
         "paper_root",
         "include_templates",
+        "opl_descriptor_output_dir",
     ]
     assert "current_owner_delta" in contracts["display-pack-orchestrate"]["optional_fields"]
     assert "figure_request" in contracts["display-pack-orchestrate"]["optional_fields"]

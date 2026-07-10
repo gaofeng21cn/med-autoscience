@@ -14,6 +14,13 @@ from med_autoscience.controllers.opl_unique_control_plane_boundary.functional_fo
     PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX,
     PRIVATE_SURFACE_RETIREMENT_GATE_POLICY,
 )
+from med_autoscience.controllers.current_work_unit.opl_profile import (
+    build_domain_projection_profile,
+)
+from med_autoscience.display_pack_opl_adapter import (
+    build_display_pack_opl_adapter_contract,
+)
+from med_autoscience.domain_route_profile import build_domain_route_profile
 from med_autoscience.hosted_ordinary_path_consumption import (
     build_hosted_ordinary_path_consumption_contract,
 )
@@ -57,7 +64,7 @@ from .series_profiles import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DOMAIN_LABEL = "Med Auto Science"
 DOMAIN_OWNER = "MedAutoScience"
 GENERATED_SURFACE_OWNER = "one-person-lab"
@@ -84,15 +91,18 @@ def _json_ready(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False))
 
 
-def build_standard_pack() -> dict[str, Any]:
+def build_standard_pack(*, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     action_catalog = build_mas_action_catalog()
     stage_control_plane = build_family_stage_control_plane(
         family_action_catalog=action_catalog,
     )
-    functional_boundary = build_functional_consumer_boundary()
+    functional_boundary = build_functional_consumer_boundary(repo_root=repo_root)
 
     return {
         "domain_descriptor": _domain_descriptor(),
+        "domain_route_profile": build_domain_route_profile(),
+        "domain_projection_profile": build_domain_projection_profile(),
+        "display_pack_opl_adapter": build_display_pack_opl_adapter_contract(),
         "pack_compiler_input": _pack_compiler_input(),
         "generated_surface_handoff": _generated_surface_handoff(),
         "action_catalog": _with_forbidden_roles(action_catalog),
@@ -111,7 +121,7 @@ def build_standard_pack() -> dict[str, Any]:
 
 
 def sync_standard_pack(*, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    contracts = build_standard_pack()
+    contracts = build_standard_pack(repo_root=repo_root)
     contract_dir = repo_root / "contracts"
     contract_dir.mkdir(parents=True, exist_ok=True)
     written: list[str] = []
@@ -156,6 +166,9 @@ def _domain_descriptor() -> dict[str, Any]:
             "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
             "generated_surface_handoff": "contracts/generated_surface_handoff.json",
             "functional_privatization_audit": "contracts/functional_privatization_audit.json",
+            "domain_route_profile": "contracts/domain_route_profile.json",
+            "domain_projection_profile": "contracts/domain_projection_profile.json",
+            "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
         },
         "authority_boundary": {
             "opl_can_write_domain_truth": False,

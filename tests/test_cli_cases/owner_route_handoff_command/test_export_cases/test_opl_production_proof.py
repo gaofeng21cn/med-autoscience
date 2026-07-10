@@ -144,7 +144,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
     assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_source_shape_landed"
     guarded_apply_tasks = [
         task for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "paper_autonomy/guarded-apply"
+        if task["task_kind"] == "domain_autonomy/guarded-apply"
     ]
     assert [task["payload"]["study_id"] for task in guarded_apply_tasks] == [
         "DM002",
@@ -168,7 +168,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
         assert task["task_id"] == dedupe_key
         assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
         assert evidence_payload["domain_id"] == "medautoscience"
-        assert evidence_payload["task_kind"] == "paper_autonomy/guarded-apply"
+        assert evidence_payload["task_kind"] == "domain_autonomy/guarded-apply"
         assert evidence_payload["study_id"] == study_id
         assert evidence_payload["body_included"] is False
         assert evidence_payload["domain_ready_claimed"] is False
@@ -187,7 +187,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
             "operator_must_bind_to_matching_opl_target_identity"
         ] is True
         assert evidence_payload["identity_binding"]["payload_identity"]["task_kind"] == (
-            "paper_autonomy/guarded-apply"
+            "domain_autonomy/guarded-apply"
         )
         assert evidence_payload["identity_binding"]["payload_identity"]["study_id"] == study_id
         assert evidence_payload["identity_binding"]["payload_identity"]["profile_name"] == "nfpitnet"
@@ -205,7 +205,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
         assert task == {
             "domain_id": "medautoscience",
             "task_id": dedupe_key,
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "priority": 30,
             "source": "mas-domain-handler-export",
             "requires_approval": False,
@@ -253,7 +253,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
                 },
                 {
                     "role": "opl_current_owner_delta_contract",
-                    "ref": "paper_autonomy/guarded-apply",
+                    "ref": "domain_autonomy/guarded-apply",
                     "exists": True,
                     "accepted_answer_shapes": _guarded_apply_accepted_answer_shapes(),
                     "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
@@ -287,7 +287,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
     assert repeat_exit_code == 0
     repeat_tasks = [
         task for task in repeat_payload["pending_family_tasks"]
-        if task["task_kind"] == "paper_autonomy/guarded-apply"
+        if task["task_kind"] == "domain_autonomy/guarded-apply"
     ]
     assert {
         task["payload"]["study_id"]: task["source_fingerprint"]

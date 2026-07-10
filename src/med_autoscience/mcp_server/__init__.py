@@ -722,6 +722,7 @@ def _call_display_pack_agent_discover(arguments: dict[str, Any]) -> dict[str, An
         repo_root=_optional_path(arguments, "repo_root"),
         paper_root=_optional_path(arguments, "paper_root"),
         include_templates=_optional_bool(arguments, "include_templates", default=False),
+        opl_descriptor_output_dir=_optional_path(arguments, "opl_descriptor_output_dir"),
     )
     return _tool_text_result(_json_text(result), structured=result)
 

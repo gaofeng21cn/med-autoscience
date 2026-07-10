@@ -72,7 +72,7 @@ def opl_supervisor_decision_request_task(
         }
     )
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/supervisor-decision",
+        task_kind="domain_autonomy/supervisor-decision",
         study_id=study_id,
         reason=reason,
         evidence_refs=source_refs,
@@ -110,8 +110,8 @@ def opl_supervisor_decision_request_task(
     }
     return {
         "domain_id": "medautoscience",
-        "task_kind": "paper_autonomy/supervisor-decision",
-        "recommended_task_kind": "paper_autonomy/supervisor-decision",
+        "task_kind": "domain_autonomy/supervisor-decision",
+        "recommended_task_kind": "domain_autonomy/supervisor-decision",
         "priority": 75,
         "source": "mas-domain-handler-export",
         "requires_approval": False,

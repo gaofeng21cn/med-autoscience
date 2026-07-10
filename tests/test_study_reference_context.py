@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-def test_build_study_reference_context_writes_artifact_and_promotes_workspace_registry(
+def test_build_study_reference_context_writes_artifact_and_emits_opl_source_intake(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -55,11 +55,11 @@ def test_build_study_reference_context_writes_artifact_and_promotes_workspace_re
     )
 
     artifact_path = study_root / "artifacts" / "reference_context" / "latest.json"
-    registry_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
-
     assert artifact_path.is_file()
     assert context["artifact_path"] == str(artifact_path)
-    assert context["workspace_registry_path"] == str(registry_path)
+    assert context["workspace_registry_path"] is None
+    assert context["workspace_source_intake_request"]["status"] == "opl_source_intake_required"
+    assert context["workspace_source_intake_request"]["record_count"] == 2
     assert context["record_count"] == 2
     assert context["mandatory_anchor_record_ids"] == ["pmid:12345"]
     assert context["selected_record_ids"] == ["pmid:12345", "doi:10.1000/example-2"]
@@ -82,4 +82,5 @@ def test_build_study_reference_context_writes_artifact_and_promotes_workspace_re
     assert persisted["selected_record_ids"] == ["pmid:12345", "doi:10.1000/example-2"]
 
     status = workspace_literature.workspace_literature_status(workspace_root=workspace_root)
-    assert status["record_count"] == 2
+    assert status["status"] == "opl_managed"
+    assert status["record_count"] == 0

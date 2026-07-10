@@ -7,6 +7,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+)
+
 
 IMMUTABLE_PACKET_DIRNAME = "immutable"
 OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY = {
@@ -14,7 +18,7 @@ OPL_STAGE_ATTEMPT_CARRIER_BOUNDARY = {
     "active_caller_class": "abi_provenance_carrier_only",
     "allowed_reference_class": "retired_handoff_provenance",
     "diagnostic_role": "retired_default_paper_dispatch",
-    "replacement_task_kind": "paper_mission/start_or_resume",
+    "replacement_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     "ordinary_schedulable": False,
     "default_paper_mission_entry": False,
     "migration_diagnostic_only": True,
@@ -72,7 +76,7 @@ def dispatch_with_immutable_packet_ref(
     payload["active_caller_class"] = "abi_provenance_carrier_only"
     payload["allowed_reference_class"] = "retired_handoff_provenance"
     payload["diagnostic_role"] = "retired_default_paper_dispatch"
-    payload["replacement_task_kind"] = "paper_mission/start_or_resume"
+    payload["replacement_task_kind"] = DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
     payload["ordinary_schedulable"] = False
     payload["default_paper_mission_entry"] = False
     payload["migration_diagnostic_only"] = True

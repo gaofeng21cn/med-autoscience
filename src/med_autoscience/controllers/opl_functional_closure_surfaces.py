@@ -302,7 +302,7 @@ def build_functional_closure_status_projection(
             gate_class="production_evidence_gate",
             owner_surface_refs=[
                 "/product_entry_manifest/provider_guarded_soak_read_model",
-                "/domain_handler_dispatch/paper_autonomy/guarded-apply",
+                "/domain_handler_dispatch/domain_autonomy/guarded-apply",
                 "/product_entry_manifest/workspace_runtime_evidence_receipt",
             ],
             status=(

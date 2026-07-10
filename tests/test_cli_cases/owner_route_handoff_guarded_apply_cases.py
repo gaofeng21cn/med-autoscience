@@ -63,7 +63,7 @@ def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_w
         {
             "task_id": "guarded-apply-dm002",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -177,7 +177,7 @@ def test_domain_handler_dispatch_guarded_apply_rejects_review_ledger_or_memory_b
         {
             "task_id": "guarded-apply-forbidden",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "DM002",
@@ -247,7 +247,7 @@ def test_domain_handler_dispatch_guarded_apply_records_mas_owner_receipt_present
         {
             "task_id": "guarded-apply-dm002-present",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -294,7 +294,7 @@ def test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_type
         {
             "task_id": "guarded-apply-provider-unavailable",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -346,7 +346,7 @@ def test_domain_handler_dispatch_guarded_apply_binds_current_owner_delta_identit
         {
             "task_id": "guarded-apply-current-owner-delta",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -368,7 +368,7 @@ def test_domain_handler_dispatch_guarded_apply_binds_current_owner_delta_identit
     assert binding == {
         "bound": True,
         "required": True,
-        "stage_id": "paper_autonomy/guarded-apply",
+        "stage_id": "domain_autonomy/guarded-apply",
         "lineage_ref": "sat_d1bbac5b1671e6afc08d743d",
         "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
         "accepted_answer_shape": [
@@ -412,7 +412,7 @@ def test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta
         {
             "task_id": "guarded-apply-current-owner-delta-missing-lineage",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -421,7 +421,7 @@ def test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta
                 "current_owner_delta_contract": {
                     "surface_kind": "mas_expected_opl_current_owner_delta",
                     "default_planning_root": "current_owner_delta",
-                    "stage_id": "paper_autonomy/guarded-apply",
+                    "stage_id": "domain_autonomy/guarded-apply",
                     "current_owner": "med-autoscience",
                     "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
                     "accepted_answer_shape": [
@@ -478,7 +478,7 @@ def test_domain_handler_dispatch_guarded_apply_rejects_three_shape_owner_delta(
         {
             "task_id": "guarded-apply-three-shape-current-owner-delta",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -487,7 +487,7 @@ def test_domain_handler_dispatch_guarded_apply_rejects_three_shape_owner_delta(
                 "current_owner_delta": {
                     "surface_kind": "opl_current_owner_delta",
                     "default_planning_root": "current_owner_delta",
-                    "stage_id": "paper_autonomy/guarded-apply",
+                    "stage_id": "domain_autonomy/guarded-apply",
                     "lineage_ref": "sat-three-shape",
                     "current_owner": "med-autoscience",
                     "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
@@ -552,7 +552,7 @@ def test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fing
     base_task = {
         "task_id": "frt_provider_guarded",
         "domain_id": "medautoscience",
-        "task_kind": "paper_autonomy/guarded-apply",
+        "task_kind": "domain_autonomy/guarded-apply",
         "payload": {
             "profile": str(profile_path),
             "study_id": "DM002",
@@ -608,7 +608,7 @@ def test_domain_handler_dispatch_guarded_apply_replays_duplicate_attempt_idempot
     task = {
         "task_id": "guarded-apply-duplicate",
         "domain_id": "medautoscience",
-        "task_kind": "paper_autonomy/guarded-apply",
+        "task_kind": "domain_autonomy/guarded-apply",
         "payload": {
             "profile": str(profile_path),
             "study_id": "DM002",
@@ -649,7 +649,7 @@ def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_recei
         {
             "task_id": "guarded-apply-conflict",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -666,7 +666,7 @@ def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_recei
         {
             "task_id": "guarded-apply-conflict",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",
@@ -700,7 +700,7 @@ def test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta
         {
             "task_id": "guarded-apply-missing-live-delta",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
+            "task_kind": "domain_autonomy/guarded-apply",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "DM002",

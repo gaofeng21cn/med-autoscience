@@ -153,18 +153,15 @@ def test_direct_next_action_runtime_request_carries_owner_consumption_successor_
     assert initial_request is not None
     assert successor_request is not None
     assert initial_request["dedupe_key"] != successor_request["dedupe_key"]
-    assert initial_request["payload"]["request_idempotency_key"] != successor_request[
-        "payload"
-    ]["request_idempotency_key"]
-    assert successor_request["payload"]["owner_consumption_readback_ref"] == (
-        "/tmp/receipt_owner_consumption.json"
-    )
-    assert successor_request["payload"]["advancing_delta_identity"][
-        "owner_consumption_readback_ref"
-    ] == "/tmp/receipt_owner_consumption.json"
-    assert successor_request["payload"]["advancing_delta_identity"][
-        "route_checkpoint_evidence_ref"
-    ] == "/tmp/stage_attempt_closeout_packet.json"
+    assert initial_request["payload"]["route_identity"][
+        "request_idempotency_key"
+    ] != successor_request["payload"]["route_identity"]["request_idempotency_key"]
+    assert "/tmp/receipt_owner_consumption.json" in successor_request["payload"][
+        "source_refs"
+    ]
+    assert "/tmp/stage_attempt_closeout_packet.json" in successor_request["payload"][
+        "source_refs"
+    ]
 
 
 def test_direct_next_action_uses_latest_consumed_receipt_when_current_carrier_is_stale() -> None:
@@ -212,11 +209,9 @@ def test_direct_next_action_uses_latest_consumed_receipt_when_current_carrier_is
     assert request is not None
     assert handoff["owner_consumption_status"] == "owner_consumed_route_checkpoint"
     assert handoff["route_checkpoint_evidence_ref"] == "/tmp/new-closeout.json"
-    assert request["payload"]["advancing_delta_identity"][
-        "route_checkpoint_evidence_ref"
-    ] == "/tmp/new-closeout.json"
+    assert "/tmp/new-closeout.json" in request["payload"]["source_refs"]
     successor_epoch = "/tmp/receipt_owner_consumption.json::/tmp/new-closeout.json"
-    assert request["payload"]["request_idempotency_key"].endswith(
+    assert request["payload"]["route_identity"]["request_idempotency_key"].endswith(
         "::successor::"
         f"{direct_handoff._stable_sha256(successor_epoch)[:12]}::opl-request"
     )
@@ -332,23 +327,8 @@ def test_direct_next_action_runtime_request_carries_latest_task_intake_scope(
     } in handoff["paper_mission_transaction"]["paper_audit_pack_refs"][
         "review_ledger_delta"
     ]
-    assert runtime_request["payload"]["task_intake_kind"] == "reviewer_revision"
-    assert runtime_request["payload"]["task_intake_ref"]["artifact_path"] == str(
-        task_intake_path
-    )
-    assert "Figure 4 count/% repair" in runtime_request["payload"][
-        "task_intake_summary"
-    ]["task_intent"]
-    assert "Figure 4 count/% repair" in runtime_request["payload"]["user_stage_log"][
-        "stage_goal"
-    ]
-    assert str(task_intake_path) in runtime_request["payload"]["user_stage_log"][
-        "evidence_refs"
-    ]
-    assert "text_revisions" in runtime_request["payload"]["user_stage_log"][
-        "task_scope"
-    ]["revision_checklist"]
-    assert "tables_figures" in runtime_request["payload"]["user_stage_log"][
-        "task_scope"
-    ]["revision_checklist"]
+    assert str(task_intake_path) in runtime_request["payload"]["source_refs"]
+    assert "task_intake_kind" not in runtime_request["payload"]
+    assert "task_intake_summary" not in runtime_request["payload"]
+    assert "user_stage_log" not in runtime_request["payload"]
     assert plain_runtime_request["dedupe_key"] != runtime_request["dedupe_key"]

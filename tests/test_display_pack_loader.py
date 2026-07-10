@@ -502,6 +502,52 @@ source_authority = false
     assert records[0].source_config.fallback is False
 
 
+def test_display_pack_source_resolves_workspace_sibling_from_shared_worktree_root(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    lane_root = workspace_root / ".worktrees" / "display-lane"
+    scholarskills_root = workspace_root / "mas-scholar-skills"
+    lane_root.mkdir(parents=True)
+    scholarskills_root.mkdir(parents=True)
+    config_dir = lane_root / "config"
+    config_dir.mkdir()
+    (config_dir / "display_packs.toml").write_text(
+        """
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../mas-scholar-skills"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_ref = "mas-scholar-skills:packs/medical-display-core"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    external_pack_root = scholarskills_root / "packs" / "medical-display-core"
+    _write_pack_manifest(
+        external_pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.1.0",
+    )
+    _write_template_manifest(external_pack_root)
+    _git(scholarskills_root, "init", "-b", "main")
+    _git(scholarskills_root, "config", "user.name", "Test User")
+    _git(scholarskills_root, "config", "user.email", "test@example.com")
+    _git(scholarskills_root, "add", ".")
+    _git(scholarskills_root, "commit", "-m", "Initial display pack")
+
+    records = load_enabled_local_display_pack_records(lane_root)
+
+    assert records[0].pack_root == external_pack_root.resolve()
+    assert records[0].source_config.resolved_source_root == scholarskills_root.resolve()
+
+
 def test_repo_default_consumes_sibling_scholarskills_core_pack_when_available() -> None:
     sibling_root = (REPO_ROOT / ".." / "mas-scholar-skills").resolve()
     sibling_pack_root = sibling_root / "packs" / "medical-display-core"

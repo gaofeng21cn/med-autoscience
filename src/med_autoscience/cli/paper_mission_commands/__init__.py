@@ -35,7 +35,7 @@ from .command_metadata import (
     FORBIDDEN_AUTHORITY_WRITES,
     PAPER_MISSION_CONTRACT_REF,
     PAPER_MISSION_CONTRACT_VERSION,
-    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     action_intent as _action_intent,
     mission_id as _mission_id,
     mutation_policy as _mutation_policy,
@@ -846,8 +846,8 @@ def build_paper_mission_readback(
         ),
         "contract_validation": _validate_with_contract_if_available(mission_candidate),
         "dispatch_plan": {
-            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+            "domain_handler_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": (
                 "governed_consume_record"
                 if consume_output_manifest is not None
@@ -870,7 +870,7 @@ def paper_mission_domain_handler_dispatch_receipt(
         task_path=task_path,
         load_profile=load_profile,
         build_readback=build_paper_mission_readback,
-        start_or_resume_task_kind=PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+        start_or_resume_task_kind=DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
         forbidden_authority_writes=FORBIDDEN_AUTHORITY_WRITES,
         dispatch_execution_policy=_dispatch_execution_policy,
         recommended_domain_command=_recommended_domain_command,
@@ -931,7 +931,7 @@ def _write_paper_mission_consumption_ledger_outputs(
 
 
 __all__ = [
-    "PAPER_MISSION_START_OR_RESUME_TASK_KIND",
+    "DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND",
     "build_paper_mission_readback",
     "handle_paper_mission_command",
     "paper_mission_domain_handler_dispatch_receipt",

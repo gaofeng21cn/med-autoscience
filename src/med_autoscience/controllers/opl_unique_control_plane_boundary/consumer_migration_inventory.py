@@ -1,5 +1,243 @@
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
+
+PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS = (
+    {
+        "module_id": "artifact_lifecycle_storage_audit_shell",
+        "path": "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+        "forbidden_tokens": (
+            "def build_artifact_lifecycle_inventory(",
+            "def build_artifact_registry(",
+            "def build_archive_cleanup_readiness(",
+            "os.walk(",
+        ),
+    },
+    {
+        "module_id": "artifact_lifecycle_storage_audit_shell",
+        "path": "src/med_autoscience/controllers/artifact_lifecycle_operations_report",
+        "forbidden_tokens": (
+            "os.walk(",
+            "def _scan_workspace(",
+            "def build_artifact_retention_operations_plan(",
+            "def build_storage_governance_policy_projection(",
+        ),
+    },
+    {
+        "module_id": "workspace_source_intake_shell",
+        "path": "src/med_autoscience/controllers/workspace_literature.py",
+        "forbidden_tokens": (
+            "def render_workspace_literature_files(",
+            '"registry.jsonl"',
+            '"references.bib"',
+            "def _write_text(",
+        ),
+    },
+    {
+        "module_id": "publication_route_memory_locator_transport_shell",
+        "path": (
+            "src/med_autoscience/controllers/stage_knowledge_plane/"
+            "publication_route_memory_inventory.py"
+        ),
+        "forbidden_tokens": (
+            '"opl_aion_receipt_inventory"',
+            "def _writeback_receipt_inventory(",
+            '"body_free_evidence_packets"',
+            "maintenance_workbench",
+        ),
+    },
+    {
+        "module_id": "paper_mission_owner_surface_materialize_dispatch_shell",
+        "path": "src/med_autoscience/controllers/domain_action_request_materializer",
+        "forbidden_tokens": (
+            "resolve_developer_supervisor_mode",
+            "github_gate",
+            "MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN",
+            "developer_apply_safe",
+        ),
+    },
+    {
+        "module_id": "workbench_portal_generic_shell",
+        "path": "src/med_autoscience/controllers/product_entry",
+        "forbidden_tokens": (
+            "def read_workspace_cockpit(",
+            "def build_product_entry_status(",
+            "def render_workspace_cockpit_markdown(",
+            "def _attention_queue(",
+            "workspace_attention_queue_preview",
+        ),
+    },
+)
+
+RETIRED_PRIVATE_GENERIC_PATHS = (
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        (
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/"
+            "scan_policy.py"
+        ),
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        (
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/"
+            "operational_summary.py"
+        ),
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        (
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/"
+            "study_projection.py"
+        ),
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/manifest_status_surface.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/attention_projection.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_attention.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/attention_hub.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_ai.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_common.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_header.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_medical.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_queue.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_sections.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_studies.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/command_assembly.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/health_cards.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/progress_projection.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/readiness_and_delivery.py",
+    ),
+    (
+        "workbench_portal_generic_shell",
+        "src/med_autoscience/controllers/product_entry/workspace_cockpit/state_and_study_items.py",
+    ),
+)
+
+
+def build_source_morphology(*, repo_root: Path | None = None) -> dict[str, Any]:
+    root = Path(repo_root or Path(__file__).resolve().parents[4]).resolve()
+    source_truth_available = (root / "src" / "med_autoscience").is_dir()
+    residues: list[dict[str, str]] = []
+    read_errors: list[dict[str, str]] = []
+    scanned_paths: set[str] = set()
+
+    if source_truth_available:
+        for spec in PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS:
+            relative_path = str(spec["path"])
+            source_path = root / relative_path
+            for candidate in _python_source_files(source_path):
+                candidate_ref = candidate.relative_to(root).as_posix()
+                scanned_paths.add(candidate_ref)
+                try:
+                    source = candidate.read_text(encoding="utf-8")
+                except OSError as exc:
+                    read_errors.append(
+                        {
+                            "module_id": str(spec["module_id"]),
+                            "path": candidate_ref,
+                            "reason": type(exc).__name__,
+                        }
+                    )
+                    continue
+                for token in spec["forbidden_tokens"]:
+                    if str(token) in source:
+                        residues.append(
+                            {
+                                "module_id": str(spec["module_id"]),
+                                "path": candidate_ref,
+                                "reason": "forbidden_private_generic_token_present",
+                                "token": str(token),
+                            }
+                        )
+
+        for module_id, relative_path in RETIRED_PRIVATE_GENERIC_PATHS:
+            if (root / relative_path).exists():
+                residues.append(
+                    {
+                        "module_id": module_id,
+                        "path": relative_path,
+                        "reason": "retired_private_generic_path_present",
+                        "token": "",
+                    }
+                )
+
+    residue_module_ids = sorted({item["module_id"] for item in residues})
+    source_purity_gap_count = (
+        len(residues) + len(read_errors) + (0 if source_truth_available else 1)
+    )
+    return {
+        "surface_kind": "mas_standard_agent_source_morphology",
+        "status": "clean" if source_purity_gap_count == 0 else "residue_or_scan_gap",
+        "source_truth_available": source_truth_available,
+        "scanned_source_paths": sorted(scanned_paths),
+        "retired_private_generic_paths": [path for _, path in RETIRED_PRIVATE_GENERIC_PATHS],
+        "active_private_generic_residue_count": len(residues),
+        "active_private_generic_residue_module_ids": residue_module_ids,
+        "active_private_generic_residues": residues,
+        "source_read_error_count": len(read_errors),
+        "source_read_errors": read_errors,
+        "source_purity_gap_count": source_purity_gap_count,
+    }
+
+
+def _python_source_files(path: Path) -> list[Path]:
+    if path.is_file():
+        return [path]
+    if path.is_dir():
+        return sorted(path.rglob("*.py"))
+    return []
+
+
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "declarative_pack_generated_surface": [
         "workspace_source_intake_shell", "workbench_portal_generic_shell", "paper_mission_owner_surface_materialize_dispatch_shell",
@@ -357,7 +595,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/workspace_init.py",
+            "src/med_autoscience/controllers/workspace_init/",
             "src/med_autoscience/workspace_contracts.py",
             "src/med_autoscience/controllers/workspace_literature.py",
             "src/med_autoscience/controllers/literature_provider_runtime.py",
@@ -375,7 +613,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
-            "src/med_autoscience/controllers/stage_knowledge_plane.py",
+            "src/med_autoscience/controllers/stage_knowledge_plane/",
             "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_inventory.py",
             "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_writeback.py",
         ],
@@ -392,7 +630,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
-            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py", "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
             "src/med_autoscience/controllers/artifact_retention_operations_plan.py", "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py",
         ],
         "domain_ref_consumers": ["artifact lifecycle CLI/MCP", "product-entry artifact projection"],
@@ -409,8 +648,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/",
-            "src/med_autoscience/controllers/product_entry/attention_projection.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/launch_surface.py",
             "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
         ],
         "domain_ref_consumers": [
@@ -436,10 +675,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
         "latest_thinning_evidence": {
-            "status": "mas_local_progress_portal_physical_delete_landed",
-            "extracted_paths": [
-                "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
-                "src/med_autoscience/controllers/product_entry/attention_projection.py",
+            "status": "mas_local_workspace_cockpit_materializer_physical_delete_landed",
+            "retired_paths": [
+                path
+                for module_id, path in RETIRED_PRIVATE_GENERIC_PATHS
+                if module_id == "workbench_portal_generic_shell"
             ],
             "read_model_materializer_boundary": {
                 "status": "retired_local_materializer_replaced_by_opl_hosted_workbench",
@@ -484,7 +724,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             },
             "domain_projection_entry_shells": [
                 "src/med_autoscience/controllers/product_entry/program_surfaces.py",
-                "src/med_autoscience/controllers/product_entry/workspace_attention.py",
+                "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
                 "src/med_autoscience/controllers/product_entry/manifest_surfaces.py",
             ],
             "does_not_claim_physical_delete": True,
@@ -498,7 +738,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/paper_mission_owner_surface.py", "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/paper_mission_owner_surface/",
+            "src/med_autoscience/controllers/domain_action_request_materializer/",
             "src/med_autoscience/controllers/stage_outcome_authority.py",
             "src/med_autoscience/controllers/owner_callable_action_policy.py",
         ],
@@ -694,4 +935,7 @@ __all__ = [
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
     "DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE",
+    "PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS",
+    "RETIRED_PRIVATE_GENERIC_PATHS",
+    "build_source_morphology",
 ]

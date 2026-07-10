@@ -58,9 +58,9 @@ REQUIRED_AUTHORITY_BOUNDARIES = {
     "display_pack_lock_can_authorize_publication_readiness": False,
 }
 
-OPL_HANDOFF_TAIL_STATUS = "opl_pack_os_substrate_landed_external"
-OPL_EXTERNAL_CONSUMER_STATUS = "landed_in_opl_repo"
-OPL_EXTERNAL_CONSUMER_SURFACE = "opl pack os mas-display-smoke"
+OPL_HANDOFF_TAIL_STATUS = "mas_generic_pack_descriptor_adapter_landed"
+OPL_EXTERNAL_CONSUMER_STATUS = "generic_descriptor_consumption"
+OPL_EXTERNAL_CONSUMER_SURFACE = "opl pack os inspect --descriptor <path>"
 OPL_EXTERNAL_SUBSTRATE_STATUS = "landed_in_opl_repo"
 OPL_EXTERNAL_SUBSTRATE_SURFACES = frozenset(
     (
@@ -70,7 +70,6 @@ OPL_EXTERNAL_SUBSTRATE_SURFACES = frozenset(
         "opl pack os distribute",
         "opl pack os lock",
         "opl pack os validate",
-        "opl pack os mas-display-smoke",
     )
 )
 
@@ -183,6 +182,33 @@ def _require_opl_handoff_tail(contract: Mapping[str, Any]) -> None:
     target_owner = _require_non_empty_string(handoff, "target_owner", context="opl_handoff")
     if target_owner != "OPL Pack OS":
         raise ValueError("opl_handoff.target_owner must equal 'OPL Pack OS'")
+    adapter = _require_object(
+        handoff.get("generic_descriptor_adapter"),
+        "opl_handoff.generic_descriptor_adapter",
+    )
+    expected_adapter_fields = {
+        "status": "landed",
+        "source_ref": "src/med_autoscience/display_pack_opl_adapter.py",
+        "contract_ref": "contracts/display_pack_opl_adapter.json",
+        "domain_action": "display-pack-capability-discover",
+        "materialization_argument": "opl_descriptor_output_dir",
+        "output_field": "opl_pack_descriptor_refs",
+        "target_contract_ref": (
+            "one-person-lab:contracts/opl-framework/pack-os-contract.json#descriptor_contract"
+        ),
+        "descriptor_media_type": "application/vnd.opl.pack.descriptor.v1+json",
+    }
+    for field_name, expected_value in expected_adapter_fields.items():
+        value = _require_non_empty_string(
+            adapter,
+            field_name,
+            context="opl_handoff.generic_descriptor_adapter",
+        )
+        if value != expected_value:
+            raise ValueError(
+                "opl_handoff.generic_descriptor_adapter."
+                f"{field_name} must equal {expected_value!r}"
+            )
     external_consumer = _require_object(
         handoff.get("external_opl_consumer"),
         "opl_handoff.external_opl_consumer",

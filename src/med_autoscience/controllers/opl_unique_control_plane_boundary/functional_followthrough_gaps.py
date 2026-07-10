@@ -206,7 +206,10 @@ REMAINING_EVIDENCE_GATES = (
         "gate_id": "publication_route_memory_receipt_scaleout",
         "owner": "med-autoscience",
         "mas_role": "accept_reject_or_block_publication_route_memory_writeback_in_workspace_owner_surface",
-        "evidence_required": "more real paper-line accepted/rejected/blocked router receipts and body-free inventory refs",
+        "evidence_required": (
+            "more real paper-line accepted/rejected/blocked router receipts consumed through "
+            "OPL Ledger refs without MAS generic receipt scanning"
+        ),
         "functional_structure_gap": False,
     },
     {
@@ -436,8 +439,22 @@ def _closure_gate_is_closed(gate: Mapping[str, Any]) -> bool:
 def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
+    source_morphology: Mapping[str, Any],
 ) -> dict[str, Any]:
     closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
+    source_purity_gap_count = int(source_morphology.get("source_purity_gap_count") or 0)
+    if source_purity_gap_count:
+        closure_gates = [
+            {
+                **item,
+                "closure_status": "source_morphology_gap_detected",
+                "functional_structure_gap": True,
+                "source_morphology_gap_count": source_purity_gap_count,
+            }
+            if item.get("gate_id") == "standard_agent_purity_guard"
+            else item
+            for item in closure_gates
+        ]
     closed_functional_structure_gates = [
         item for item in closure_gates if _closure_gate_is_closed(item)
     ]
@@ -451,6 +468,22 @@ def build_functional_followthrough_gap_summary(
     evidence_gate_ids = [str(item["gate_id"]) for item in REMAINING_EVIDENCE_GATES]
     functional_structure_gap_count = len(remaining_functional_followthrough_gates)
     remaining_items_are_evidence_gates = functional_structure_gap_count == 0
+    active_private_generic_residue_count = int(
+        source_morphology.get("active_private_generic_residue_count") or 0
+    )
+    residue_module_ids = [
+        str(item)
+        for item in source_morphology.get("active_private_generic_residue_module_ids") or []
+    ]
+    wrapper_tail_module_ids = sorted(
+        set(residue_module_ids).intersection(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS)
+    )
+    source_truth_available = source_morphology.get("source_truth_available") is True
+    source_purity_cutover_status = (
+        SOURCE_PURITY_CUTOVER_STATUS
+        if source_purity_gap_count == 0 and source_truth_available
+        else "standard_agent_source_shape_residue_or_scan_gap"
+    )
     return {
         "surface_kind": "mas_functional_followthrough_gap_summary",
         "status": (
@@ -458,14 +491,16 @@ def build_functional_followthrough_gap_summary(
             if remaining_items_are_evidence_gates
             else FUNCTIONAL_STRUCTURE_GAPS_REMAINING_STATUS
         ),
-        "classification_gap_count": 0,
+        "classification_gap_count": 0 if source_truth_available else 1,
         "functional_structure_gap_count": functional_structure_gap_count,
-        "active_private_generic_residue_count": 0,
-        "repo_local_wrapper_tail_count": 0,
-        "repo_local_wrapper_tail_module_ids": [],
+        "active_private_generic_residue_count": active_private_generic_residue_count,
+        "active_private_generic_residue_module_ids": residue_module_ids,
+        "repo_local_wrapper_tail_count": len(wrapper_tail_module_ids),
+        "repo_local_wrapper_tail_module_ids": wrapper_tail_module_ids,
         "former_repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
         "default_caller_readiness_status": "opl_generated_default_caller_ready",
-        "source_purity_cutover_status": SOURCE_PURITY_CUTOVER_STATUS,
+        "source_purity_cutover_status": source_purity_cutover_status,
+        "source_morphology_ref": "standard_agent_purity.source_morphology",
         "domain_repo_physical_delete_authorized": False,
         "remaining_gap_classification": (
             REMAINING_GAP_CLASSIFICATION

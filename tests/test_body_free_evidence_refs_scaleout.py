@@ -46,7 +46,7 @@ def _assert_body_free_packet(packet: Mapping[str, Any], *, role: str, owner: str
     assert not (set(packet) & FORBIDDEN_BODY_KEYS)
 
 
-def test_publication_route_memory_receipt_inventory_projects_accepted_rejected_and_blocked_body_free_refs(
+def test_publication_route_memory_inventory_delegates_generic_receipt_evidence_to_opl(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
@@ -112,17 +112,19 @@ def test_publication_route_memory_receipt_inventory_projects_accepted_rejected_a
     )
 
     inventory = module.build_publication_route_memory_inventory(workspace_root=tmp_path / "workspace")
-    receipts = inventory["opl_aion_receipt_inventory"]["receipts"]
-    packets = [packet for receipt in receipts for packet in receipt["body_free_evidence_packets"]]
-
-    assert {packet["role"] for packet in packets} == {
-        "accepted_memory_receipt_ref",
-        "rejected_memory_receipt_ref",
-        "blocked_memory_receipt_ref",
+    assert inventory["status"] == "missing"
+    assert inventory["cards"] == []
+    assert "opl_aion_receipt_inventory" not in inventory
+    assert inventory["opl_transport"] == {
+        "memory_lifecycle_owner_ref": (
+            "one-person-lab:src/modules/workspace/workspace-artifact-lifecycle.ts"
+        ),
+        "receipt_ledger_owner_ref": (
+            "one-person-lab:src/modules/ledger/memory-artifact-lifecycle-evidence-ledger.ts"
+        ),
+        "mas_locates_or_groups_generic_receipts": False,
+        "mas_materializes_operator_workbench": False,
     }
-    for packet in packets:
-        _assert_body_free_packet(packet, role=packet["role"], owner="MedAutoScience")
-    assert inventory["opl_aion_receipt_inventory"]["receipt_review_summary"]["blocked_writeback_ref_count"] == 1
     rendered = json.dumps(inventory, ensure_ascii=False)
     assert "MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered
     assert "REJECTED_MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered
@@ -548,7 +550,7 @@ def test_domain_dispatch_evidence_payload_fails_closed_when_owner_receipt_lacks_
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id="DM002",
         reason="real_paper_line_owner_receipt_observed",
         evidence_refs=[
@@ -681,7 +683,7 @@ def test_domain_dispatch_evidence_payload_fails_closed_on_schema_violations(
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id="DM002",
         reason="real_paper_line_owner_receipt_observed",
         evidence_refs=[
@@ -724,7 +726,7 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id="DM002",
         reason="real_paper_line_owner_receipt_observed",
         evidence_refs=[
@@ -849,7 +851,7 @@ def test_research_evidence_pack_negative_only_records_failed_path_without_consum
 
     summary = module.failed_path_consumption_summary(
         domain_id="medautoscience",
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id="DM002",
         negative_failed_path_refs=[
             "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",

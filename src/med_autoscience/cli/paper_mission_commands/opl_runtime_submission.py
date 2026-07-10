@@ -34,11 +34,15 @@ from med_autoscience.cli.paper_mission_commands.transaction_readback import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
 )
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ID as DOMAIN_ROUTE_DOMAIN_ID,
+    DOMAIN_ROUTE_TASK_KIND,
+    build_domain_route_runtime_request,
+)
 
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
-PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION = "user-stage-log-v2"
 OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS = 15
 
 
@@ -76,16 +80,19 @@ def opl_runtime_submission_readback(
             "status": "not_configured",
             "writes_runtime": False,
             "reason": "opl_bin_not_found",
-            "expected_command": "opl family-runtime enqueue --domain medautoscience --task-kind paper_mission/stage-route",
+            "expected_command": (
+                "opl family-runtime enqueue --domain medautoscience "
+                "--task-kind domain_route/stage-route"
+            ),
         }
     command = [
         selected_opl_bin,
         "family-runtime",
         "enqueue",
         "--domain",
-        "medautoscience",
+        DOMAIN_ROUTE_DOMAIN_ID,
         "--task-kind",
-        "paper_mission/stage-route",
+        DOMAIN_ROUTE_TASK_KIND,
         "--payload",
         json.dumps(runtime_request["payload"], ensure_ascii=False, separators=(",", ":")),
         "--dedupe-key",
@@ -93,7 +100,7 @@ def opl_runtime_submission_readback(
         "--priority",
         "100",
         "--source",
-        "mas-paper-mission-drive",
+        "mas-domain-route",
     ]
     try:
         completed = subprocess.run(
@@ -234,26 +241,23 @@ def _opl_runtime_tick_readback(
     runtime_request: Mapping[str, Any],
 ) -> dict[str, Any]:
     payload = _mapping(runtime_request.get("payload"))
-    transaction_ref = _optional_text(payload.get("paper_mission_transaction_ref"))
-    study_id = _optional_text(payload.get("study_id"))
+    transaction_ref = _optional_text(payload.get("domain_route_transaction_ref"))
     command = [
         opl_bin,
         "family-runtime",
         "tick",
         "--source",
-        "mas-paper-mission-drive-followthrough",
+        "mas-domain-route-followthrough",
         "--hydrate",
         "--limit",
         "1",
         "--domain",
-        "medautoscience",
+        DOMAIN_ROUTE_DOMAIN_ID,
         "--task-kind",
-        "paper_mission/stage-route",
+        DOMAIN_ROUTE_TASK_KIND,
     ]
-    if study_id is not None:
-        command.extend(["--study", study_id])
     if transaction_ref is not None:
-        command.extend(["--payload-match", f"paper_mission_transaction_ref={transaction_ref}"])
+        command.extend(["--payload-match", f"domain_route_transaction_ref={transaction_ref}"])
     try:
         completed = subprocess.run(
             command,
@@ -360,404 +364,20 @@ def _opl_command_preview(command: list[str]) -> list[str]:
 def _opl_stage_route_runtime_request_from_handoff(
     handoff: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    study_id = _optional_text(handoff.get("study_id"))
-    transaction_ref = _optional_text(handoff.get("paper_mission_transaction_ref"))
-    route = _mapping(handoff.get("opl_route_command"))
-    command_kind = _first_text(handoff.get("route_command_kind"), route.get("command_kind"))
-    if not study_id or not transaction_ref or command_kind not in {
-        "start_next_stage",
-        "resume_stage",
-        "route_back",
-    }:
+    payload = build_domain_route_runtime_request(handoff)
+    if payload is None:
         return None
-    workspace_root = _handoff_workspace_root(handoff)
-    if workspace_root is None:
+    dedupe_key = _optional_text(_mapping(payload.get("route_identity")).get("dedupe_key"))
+    if dedupe_key is None:
         return None
-    route_identity_key = _optional_text(handoff.get("route_identity_key"))
-    attempt_idempotency_key = _optional_text(handoff.get("attempt_idempotency_key"))
-    request_idempotency_key = _optional_text(handoff.get("request_idempotency_key"))
-    candidate_ref = _optional_text(handoff.get("candidate_ref"))
-    candidate_hash = _paper_mission_candidate_ref_hash(candidate_ref)
-    task_intake_ref = _mapping(handoff.get("task_intake_ref"))
-    task_intake_summary = _mapping(handoff.get("task_intake_summary"))
-    task_intake_kind = _optional_text(handoff.get("task_intake_kind")) or _optional_text(
-        task_intake_summary.get("task_intake_kind")
-    )
-    owner_consumption_readback_ref = _optional_text(
-        handoff.get("owner_consumption_readback_ref")
-    )
-    route_checkpoint_evidence_ref = _optional_text(
-        handoff.get("route_checkpoint_evidence_ref")
-    )
-    carrier = _mapping(handoff.get("opl_runtime_carrier"))
-    work_unit_id = _first_text(handoff.get("work_unit_id"), carrier.get("work_unit_id"))
-    work_unit_fingerprint = _first_text(
-        handoff.get("work_unit_fingerprint"),
-        carrier.get("work_unit_fingerprint"),
-    )
-    if request_idempotency_key is None:
-        return None
-    identity_basis = request_idempotency_key
-    advancing_delta_identity = _paper_mission_stage_route_advancing_delta_identity(
-        handoff=handoff,
-        command_kind=command_kind,
-        candidate_ref=candidate_ref,
-        candidate_hash=candidate_hash,
-        owner_consumption_readback_ref=owner_consumption_readback_ref,
-        route_checkpoint_evidence_ref=route_checkpoint_evidence_ref,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-    advancing_delta_fingerprint = _stable_sha256(advancing_delta_identity)
-    dedupe_key = ":".join(
-        [
-            "paper-mission-route",
-            PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION,
-            study_id,
-            identity_basis,
-            command_kind,
-            advancing_delta_fingerprint,
-        ]
-    )
-    progress_guard = _paper_mission_route_request_progress_guard(handoff=handoff)
-    user_stage_log = _paper_mission_stage_route_user_stage_log(
-        handoff=handoff,
-        progress_guard=progress_guard,
-    )
-    task_intake_kind = _optional_text(handoff.get("task_intake_kind"))
-    task_intake_ref = _mapping(handoff.get("task_intake_ref"))
-    task_intake_summary = _mapping(handoff.get("task_intake_summary"))
-    route_impact = {
-        "decision": command_kind,
-        "route_target": _first_text(handoff.get("route_target"), route.get("target")),
-        "domain_ready_verdict": "domain_gate_pending",
-        "progress_delta_classification": user_stage_log["progress_delta_classification"],
-        "deliverable_progress_delta": user_stage_log["deliverable_progress_delta"],
-        "platform_repair_delta": user_stage_log["platform_repair_delta"],
-        "next_forced_delta": user_stage_log["next_forced_delta"],
-        "remaining_blockers": list(user_stage_log["remaining_blockers"]),
-        "evidence_refs": list(user_stage_log["evidence_refs"]),
-        "user_stage_log": user_stage_log,
-    }
-    payload = {
-        "surface_kind": "opl_mas_paper_mission_route_runtime_request",
-        "schema_version": 1,
-        "runtime_request_status": "queued_request",
-        "runtime_request_kind": "mas_paper_mission_stage_route",
-        "study_id": study_id,
-        "mission_id": _optional_text(handoff.get("mission_id")),
-        "candidate_ref": candidate_ref,
-        "candidate_hash": candidate_hash,
-        "task_intake_kind": task_intake_kind,
-        "task_intake_ref": task_intake_ref or None,
-        "task_intake_summary": task_intake_summary or None,
-        "owner_consumption_readback_ref": owner_consumption_readback_ref,
-        "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
-        "advancing_delta_fingerprint": advancing_delta_fingerprint,
-        "advancing_delta_identity": advancing_delta_identity,
-        "paper_mission_transaction_ref": transaction_ref,
-        "opl_route_command_ref": _optional_text(handoff.get("opl_route_command_ref")),
-        "route_identity_key": route_identity_key,
-        "attempt_idempotency_key": attempt_idempotency_key,
-        "request_idempotency_key": request_idempotency_key,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "action_fingerprint": work_unit_fingerprint,
-        "idempotency_key": request_idempotency_key,
-        "command_kind": command_kind,
-        "route_target": _first_text(handoff.get("route_target"), route.get("target")),
-        "workspace_root": workspace_root,
-        "domain_workspace_root": workspace_root,
-        **({"task_intake_kind": task_intake_kind} if task_intake_kind else {}),
-        **({"task_intake_ref": task_intake_ref} if task_intake_ref else {}),
-        **({"task_intake_summary": task_intake_summary} if task_intake_summary else {}),
-        "route_command_materialized": handoff.get("transaction_materialized") is True,
-        "opl_route_command": route,
-        "opl_route_handoff_record": dict(handoff),
-        "semantic_progress_guard": progress_guard,
-        "mas_owned_executor_stage": progress_guard.get("mas_owned_executor_stage"),
-        "domain_ready_verdict": "domain_gate_pending",
-        "route_impact": route_impact,
-        "user_stage_log": user_stage_log,
-        "stage_run_request": {
-            "request_status": "requested",
-            "requested_by": "mas_paper_mission_route_handoff",
-            "domain_truth_owner": "med-autoscience",
-            "runtime_owner": "one-person-lab",
-            "command_kind": command_kind,
-            "route_target": _first_text(handoff.get("route_target"), route.get("target")),
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "stage_run_created": False,
-            "provider_attempt_requested": False,
-        },
-        "authority_boundary": {
-            "domain_truth_owner": "med-autoscience",
-            "runtime_owner": "one-person-lab",
-            "runtime_request_scope": "opl_queue_and_stage_route_request_only",
-            "writes_owner_receipt": False,
-            "writes_typed_blocker": False,
-            "writes_human_gate": False,
-            "writes_current_package": False,
-            "writes_paper_body": False,
-            "writes_runtime_queue": False,
-            "writes_opl_queue": True,
-            "writes_opl_outbox": True,
-            "writes_opl_event": True,
-            "writes_opl_stage_run": False,
-            "writes_provider_attempt": False,
-            "can_claim_opl_runtime_enqueued": False,
-            "can_claim_opl_stage_run_created": False,
-            "can_claim_provider_running": False,
-            "can_claim_paper_progress": False,
-            "can_claim_runtime_ready": False,
-        },
-    }
     return {
-        "domainId": "medautoscience",
-        "taskKind": "paper_mission/stage-route",
+        "domainId": DOMAIN_ROUTE_DOMAIN_ID,
+        "taskKind": DOMAIN_ROUTE_TASK_KIND,
         "dedupe_key": dedupe_key,
         "priority": 100,
-        "source": "mas-paper-mission-drive",
+        "source": "mas-domain-route",
         "payload": payload,
     }
-
-
-def _paper_mission_candidate_ref_hash(candidate_ref: str | None) -> str | None:
-    if candidate_ref is None:
-        return None
-    path = Path(candidate_ref).expanduser()
-    if not path.is_file():
-        return None
-    try:
-        import hashlib
-
-        digest = hashlib.sha256()
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
-    except OSError:
-        return None
-    return f"sha256:{digest.hexdigest()}"
-
-
-def _paper_mission_stage_route_advancing_delta_identity(
-    *,
-    handoff: Mapping[str, Any],
-    command_kind: str,
-    candidate_ref: str | None,
-    candidate_hash: str | None,
-    owner_consumption_readback_ref: str | None,
-    route_checkpoint_evidence_ref: str | None,
-    work_unit_id: str | None,
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any]:
-    consume_result = _mapping(
-        _mapping(handoff.get("authority_consume_readback")).get("consume_result")
-    )
-    stage_terminal_decision = _mapping(handoff.get("stage_terminal_decision"))
-    terminal_owner_gate = _mapping(handoff.get("terminal_owner_gate"))
-    route = _mapping(handoff.get("opl_route_command"))
-    task_intake_ref = _mapping(handoff.get("task_intake_ref"))
-    task_intake_summary = _mapping(handoff.get("task_intake_summary"))
-    return {
-        "command_kind": command_kind,
-        "route_target": _first_text(handoff.get("route_target"), route.get("target")),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "candidate_ref": candidate_ref,
-        "candidate_hash": candidate_hash,
-        "task_intake_ref": _first_text(
-            task_intake_ref.get("artifact_path"),
-            task_intake_ref.get("task_id"),
-        ),
-        "task_intake_summary_fingerprint": (
-            _stable_sha256(task_intake_summary)[:12] if task_intake_summary else None
-        ),
-        "owner_consumption_readback_ref": owner_consumption_readback_ref,
-        "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
-        "owner_receipt_ref": _first_text(
-            handoff.get("owner_receipt_ref"),
-            handoff.get("domain_owner_receipt_ref"),
-            consume_result.get("owner_receipt_ref"),
-            consume_result.get("domain_owner_receipt_ref"),
-        ),
-        "typed_blocker_ref": _first_text(
-            handoff.get("typed_blocker_ref"),
-            terminal_owner_gate.get("typed_blocker_ref"),
-            consume_result.get("typed_blocker_ref"),
-        ),
-        "human_gate_ref": _first_text(
-            handoff.get("human_gate_ref"),
-            terminal_owner_gate.get("human_gate_ref"),
-            consume_result.get("human_gate_ref"),
-        ),
-        "route_back_evidence_ref": _first_text(
-            handoff.get("route_back_evidence_ref"),
-            stage_terminal_decision.get("route_back_evidence_ref"),
-            terminal_owner_gate.get("route_back_evidence_ref"),
-            consume_result.get("route_back_evidence_ref"),
-        ),
-        "paper_facing_delta_ref": _first_text(
-            handoff.get("paper_facing_delta_ref"),
-            consume_result.get("paper_facing_delta_ref"),
-        ),
-    }
-
-
-def _paper_mission_stage_route_user_stage_log(
-    *,
-    handoff: Mapping[str, Any],
-    progress_guard: Mapping[str, Any],
-) -> dict[str, Any]:
-    route = _mapping(handoff.get("opl_route_command"))
-    study_id = _optional_text(handoff.get("study_id")) or "unknown-study"
-    task_intake_ref = _mapping(handoff.get("task_intake_ref"))
-    task_intake_summary = _mapping(handoff.get("task_intake_summary"))
-    task_intake_kind = _optional_text(handoff.get("task_intake_kind")) or _optional_text(
-        task_intake_summary.get("task_intake_kind")
-    )
-    command_kind = _first_text(
-        handoff.get("route_command_kind"),
-        route.get("command_kind"),
-    ) or "paper_mission_stage_route"
-    route_target = _first_text(handoff.get("route_target"), route.get("target"))
-    candidate_ref = _optional_text(handoff.get("candidate_ref"))
-    transaction_ref = _optional_text(handoff.get("paper_mission_transaction_ref"))
-    route_back_ref = _first_text(
-        handoff.get("route_back_evidence_ref"),
-        _mapping(handoff.get("stage_terminal_decision")).get("route_back_evidence_ref"),
-        _mapping(handoff.get("terminal_owner_gate")).get("route_back_evidence_ref"),
-    )
-    task_intake_artifact_path = _optional_text(task_intake_ref.get("artifact_path"))
-    task_intake_intent = _optional_text(task_intake_summary.get("task_intent"))
-    first_cycle_outputs = _string_list(task_intake_summary.get("first_cycle_outputs"))
-    revision_checklist = _string_list(task_intake_summary.get("revision_checklist"))
-    evidence_refs = [
-        ref
-        for ref in (
-            candidate_ref,
-            transaction_ref,
-            _optional_text(handoff.get("opl_route_command_ref")),
-            route_back_ref,
-            _optional_text(handoff.get("source_ref")),
-            task_intake_artifact_path,
-        )
-        if ref is not None
-    ]
-    remaining_blockers = [
-        blocker
-        for blocker in (
-            _first_text(
-                handoff.get("blocked_reason"),
-                _mapping(handoff.get("stage_terminal_decision")).get("reason"),
-                _mapping(handoff.get("terminal_owner_gate")).get("blocked_reason"),
-                "paper_mission_stage_route_domain_gate_pending",
-            ),
-        )
-        if blocker is not None
-    ]
-    changed_surfaces = [ref for ref in (candidate_ref,) if ref is not None]
-    deliverable_delta_count = 1 if changed_surfaces else 0
-    reviewer_revision = task_intake_kind == "reviewer_revision"
-    if task_intake_intent is not None:
-        stage_goal = (
-            f"Execute the active {task_intake_kind or 'study'} scope for {study_id} "
-            f"through the MAS canonical paper route. Scoped objective: "
-            f"{task_intake_intent}"
-        )
-    else:
-        stage_goal = (
-            "Carry the PaperMission route command to OPL without claiming "
-            "submission readiness, publication readiness, owner receipt, "
-            "typed blocker, human gate, current package, or provider running."
-        )
-    if reviewer_revision:
-        problem_summary = (
-            "The latest reviewer_revision reactivated this study, but the current "
-            "route still needs a paper-facing repair delta or a typed source-readiness "
-            "blocker on the canonical paper surface."
-        )
-        next_forced_delta = "paper_facing_reviewer_revision_delta_or_typed_blocker"
-    else:
-        problem_summary = (
-            "MAS PaperMission produced or consumed a submission milestone "
-            "candidate, but the governed owner route remains at domain gate."
-        )
-        next_forced_delta = "domain_owner_answer_or_human_gate_or_non_synonymous_paper_delta"
-    stage_work_done = [
-        f"materialized {command_kind} request for {route_target or 'current stage'}",
-        "preserved MAS/OPL authority boundary",
-    ]
-    if task_intake_intent is not None:
-        stage_work_done.append("bound latest task_intake scope into the OPL route request")
-    if first_cycle_outputs:
-        stage_work_done.append(
-            "recorded expected first-cycle outputs: " + "; ".join(first_cycle_outputs)
-        )
-    return {
-        "surface_kind": "opl_user_stage_log",
-        "schema_version": 1,
-        "semantic_status": "provided_by_domain",
-        "semantic_source": "med_autoscience.paper_mission_stage_route",
-        "stage_name": f"PaperMission stage route for {study_id}",
-        "problem_summary": problem_summary,
-        "stage_goal": stage_goal,
-        "progress_delta_classification": (
-            "deliverable_progress" if deliverable_delta_count else "typed_blocker"
-        ),
-        "deliverable_progress_delta": {
-            "delta_count": deliverable_delta_count,
-            "delta_refs": changed_surfaces,
-            "delta_summary": "non-authority paper-facing candidate refs routed",
-        },
-        "platform_repair_delta": {
-            "delta_count": 0,
-            "delta_refs": [],
-            "delta_summary": None,
-        },
-        "next_forced_delta": next_forced_delta,
-        "stage_work_done": stage_work_done,
-        "changed_stage_surfaces": changed_surfaces,
-        "outcome": "domain_gate_pending",
-        "remaining_blockers": remaining_blockers,
-        "evidence_refs": evidence_refs,
-        "task_scope": {
-            "task_intake_kind": task_intake_kind,
-            "task_intake_ref": task_intake_ref or None,
-            "task_intake_intent": task_intake_intent,
-            "revision_checklist": revision_checklist,
-            "first_cycle_outputs": first_cycle_outputs,
-        },
-        "authority_boundary": {
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_paper_body": False,
-            "can_claim_paper_progress": False,
-            "can_claim_submission_ready": False,
-            "can_claim_publication_ready": False,
-            "can_claim_runtime_ready": False,
-        },
-        "semantic_progress_guard": {
-            "signature": _optional_text(progress_guard.get("signature")),
-            "status": _optional_text(progress_guard.get("status")),
-            "guard_kind": _optional_text(progress_guard.get("guard_kind")),
-        },
-    }
-
-
-def _string_list(value: Any) -> list[str]:
-    if isinstance(value, str):
-        value = [value]
-    if not isinstance(value, list):
-        return []
-    result: list[str] = []
-    for item in value:
-        text = _optional_text(item)
-        if text is not None:
-            result.append(text)
-    return result
 
 
 def semantic_progress_guard(

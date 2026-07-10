@@ -308,62 +308,19 @@ def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
 
 
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
-    commands = importlib.import_module("med_autoscience.cli.paper_mission_commands")
-
     runtime_request = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
         _route_back_handoff()
     )
 
-    assert runtime_request["dedupe_key"].startswith(
-        "paper-mission-route:"
-        f"{opl_runtime_submission.PAPER_MISSION_STAGE_ROUTE_RUNTIME_REQUEST_VERSION}:"
-        "003-dpcc-primary-care-phenotype-treatment-gap:"
-        "paper-mission-transaction::dm003:"
-        "route_back:"
-    )
+    assert runtime_request["taskKind"] == "domain_route/stage-route"
+    assert runtime_request["dedupe_key"].startswith("domain-route:v1:medautoscience:")
     payload = runtime_request["payload"]
-    assert payload["candidate_hash"] is None
-    assert payload["advancing_delta_fingerprint"]
-    assert payload["advancing_delta_identity"]["candidate_ref"] == "/tmp/package.json"
-    guard = payload["semantic_progress_guard"]
-    assert guard["guard_kind"] == "non_advancing_route_back_detection"
-    assert guard["can_claim_paper_progress"] is False
-    assert payload["mas_owned_executor_stage"] == guard["mas_owned_executor_stage"]
-    assert payload["mas_owned_executor_stage"]["stage_type"] == (
-        "paper_mission_semantic_progress_executor"
-    )
-    assert guard["signature_payload"]["paper_mission_transaction_ref"] == (
-        "paper-mission-transaction::dm003"
-    )
-    assert "typed_blocker_materialization" in guard["required_executor_outputs"]
-    user_stage_log = payload["route_impact"]["user_stage_log"]
-    assert payload["user_stage_log"] == user_stage_log
-    assert user_stage_log["surface_kind"] == "opl_user_stage_log"
-    assert user_stage_log["semantic_status"] == "provided_by_domain"
-    assert user_stage_log["progress_delta_classification"] == "deliverable_progress"
-    assert user_stage_log["deliverable_progress_delta"]["delta_count"] == 1
-    assert user_stage_log["platform_repair_delta"]["delta_count"] == 0
-    assert user_stage_log["next_forced_delta"] == (
-        "domain_owner_answer_or_human_gate_or_non_synonymous_paper_delta"
-    )
-    assert user_stage_log["stage_work_done"]
-    assert user_stage_log["changed_stage_surfaces"] == ["/tmp/package.json"]
-    assert user_stage_log["outcome"] == "domain_gate_pending"
-    assert user_stage_log["remaining_blockers"] == [
-        "paper_mission_stage_route_domain_gate_pending"
-    ]
-    assert user_stage_log["evidence_refs"] == [
-        "/tmp/package.json",
-        "paper-mission-transaction::dm003",
-        "/tmp/opl-route-command.json",
-    ]
-    assert user_stage_log["authority_boundary"]["can_claim_paper_progress"] is False
-    assert user_stage_log["authority_boundary"]["can_claim_submission_ready"] is False
-    assert payload["idempotency_key"] == "paper-mission-transaction::dm003"
-    assert payload["route_impact"]["domain_ready_verdict"] == "domain_gate_pending"
-    assert payload["route_impact"]["progress_delta_classification"] == (
-        "deliverable_progress"
-    )
+    assert payload["surface_kind"] == "opl_domain_route_runtime_request"
+    assert payload["domain_route_transaction_ref"] == "paper-mission-transaction::dm003"
+    assert "/tmp/package.json" in payload["source_refs"]
+    assert payload["authority_boundary"]["can_claim_domain_progress"] is False
+    assert "semantic_progress_guard" not in payload
+    assert "user_stage_log" not in payload
 
 
 def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
@@ -389,16 +346,16 @@ def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
 
-    assert first["payload"]["candidate_hash"].startswith("sha256:")
     assert first["dedupe_key"] == same["dedupe_key"]
-    assert first["payload"]["candidate_hash"] == same["payload"]["candidate_hash"]
+    assert first["payload"]["route_identity"]["source_fingerprint"] == same[
+        "payload"
+    ]["route_identity"]["source_fingerprint"]
     assert first["dedupe_key"] != second["dedupe_key"]
-    assert first["payload"]["candidate_hash"] != second["payload"]["candidate_hash"]
-    assert first["payload"]["request_idempotency_key"] == (
-        second["payload"]["request_idempotency_key"]
-    )
-    assert first["payload"]["advancing_delta_fingerprint"] != (
-        second["payload"]["advancing_delta_fingerprint"]
+    assert first["payload"]["route_identity"]["source_fingerprint"] != second[
+        "payload"
+    ]["route_identity"]["source_fingerprint"]
+    assert first["payload"]["route_identity"]["request_idempotency_key"] == (
+        second["payload"]["route_identity"]["request_idempotency_key"]
     )
 
 

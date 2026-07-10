@@ -144,10 +144,10 @@
       },
       "replacement_parity_proof": {
         "status": "machine_proved",
-        "replacement_action_intent": "paper_mission/start_or_resume",
+        "replacement_action_intent": "domain_route/start-or-resume",
         "product_entry_surface": "medical_paper_product_entry",
         "product_entry_default_command_contains": "paper-mission drive",
-        "domain_handler_default_task_kind": "paper_mission/start_or_resume",
+        "domain_handler_default_task_kind": "domain_route/start-or-resume",
         "study_progress_default_projection": "artifact_first_mission_summary.paper_mission_run",
         "legacy_task_kind_policy": {
           "retired_task_kind_marker": "owner_callable_adapter_stage_run_abi_tombstoned",
@@ -418,9 +418,9 @@
     "opl_active_reference_count": 0,
     "replacement_proof_required": true,
     "default_mainline_replacement": {
-      "action_intent": "paper_mission/start_or_resume",
+      "action_intent": "domain_route/start-or-resume",
       "product_entry_surface": "medical_paper_product_entry",
-      "domain_handler_task_kind": "paper_mission/start_or_resume",
+      "domain_handler_task_kind": "domain_route/start-or-resume",
       "contract_ref": "contracts/paper_mission_run_contract.json",
       "study_progress_projection": "artifact_first_mission_summary.paper_mission_run"
     },
@@ -433,7 +433,7 @@
         "study_progress.artifact_first_mission_summary"
       ],
       "required_shared_replacement": {
-        "action_intent": "paper_mission/start_or_resume",
+        "action_intent": "domain_route/start-or-resume",
         "contract_ref": "contracts/paper_mission_run_contract.json",
         "schema_version": "paper-mission-run.v1",
         "validator": "med_autoscience.paper_mission_run.PaperMissionRun"
@@ -453,7 +453,7 @@
         "surface_id": "product_entry_manifest.medical_paper_product_entry",
         "source_ref": "src/med_autoscience/controllers/product_entry/manifest_surfaces.py::_with_paper_mission_product_entry",
         "required_default_fields": {
-          "default_action_intent": "paper_mission/start_or_resume",
+          "default_action_intent": "domain_route/start-or-resume",
           "default_command_contains": "paper-mission inspect"
         },
         "forbidden_default_markers": [
@@ -466,7 +466,7 @@
         "surface_id": "domain_handler_export.dispatch",
         "source_ref": "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
         "required_default_fields": {
-          "dispatch.default_action_intent": "paper_mission/start_or_resume"
+          "dispatch.default_action_intent": "domain_route/start-or-resume"
         },
         "legacy_carrier_policy": {
           "task_kind": "stage_outcome/opl-handoff",
@@ -479,7 +479,7 @@
       {
         "surface_id": "domain_handler_export.pending_family_tasks",
         "source_ref": "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py::_paper_mission_start_or_resume_task",
-        "required_default_task_kind": "paper_mission/start_or_resume",
+        "required_default_task_kind": "domain_route/start-or-resume",
         "legacy_task_kind_allowed": false,
         "legacy_task_kind_allowed_only_when": {
           "task_kind": "stage_outcome/opl-handoff",

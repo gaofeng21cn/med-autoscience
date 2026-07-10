@@ -219,8 +219,8 @@ def test_stage_knowledge_packet_reports_stage_specific_missing_reasons(tmp_path)
         workspace_root=workspace_root,
     )
 
-    assert scout_packet["status"] == "ready"
-    assert scout_packet["missing_reasons"] == []
+    assert scout_packet["status"] == "missing"
+    assert scout_packet["missing_reasons"] == ["missing_ref:workspace_literature"]
     assert review_packet["status"] == "missing"
     assert set(review_packet["missing_reasons"]) == {
         "missing_ref:evidence_ledger",
@@ -564,7 +564,7 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
     ]
 
 
-def test_publication_route_memory_inventory_projects_body_free_receipts_across_paper_lines(tmp_path) -> None:
+def test_publication_route_memory_inventory_projects_domain_cards_without_generic_receipts(tmp_path) -> None:
     inventory_module = importlib.import_module(
         "med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_inventory"
     )
@@ -636,55 +636,28 @@ def test_publication_route_memory_inventory_projects_body_free_receipts_across_p
 
     inventory = inventory_module.build_publication_route_memory_inventory(workspace_root=workspace_root)
 
-    receipt_inventory = inventory["opl_aion_receipt_inventory"]
-    assert receipt_inventory["body_included"] is False
-    assert receipt_inventory["consumer"] == "OPL/Aion"
-    assert receipt_inventory["receipt_count"] == 3
-    by_ref = {receipt["ref"]: receipt for receipt in receipt_inventory["receipts"]}
-    seed_receipt = next(receipt for receipt in by_ref.values() if receipt["receipt_kind"] == "migration_receipt")
-    accepted_seed_refs = {
-        ref["memory_id"]: ref
-        for ref in seed_receipt["accepted_refs"]
+    assert "opl_aion_receipt_inventory" not in inventory
+    assert inventory["body_included"] is False
+    cards_by_id = {card["memory_id"]: card for card in inventory["cards"]}
+    assert "publication_route_memory_seed__external_validation_rescue" in cards_by_id
+    assert "publication_route_memory_seed__negative_result_stoploss" in cards_by_id
+    assert cards_by_id["publication_route_memory_writeback__s1-route-back-lesson"][
+        "source_receipt_ref"
+    ] == first_receipt["receipt_ref"]
+    assert cards_by_id["publication_route_memory_writeback__s2-review-lesson"][
+        "source_receipt_ref"
+    ] == second_receipt["receipt_ref"]
+    assert all("prose_summary" not in card for card in inventory["cards"])
+    assert inventory["opl_transport"] == {
+        "memory_lifecycle_owner_ref": (
+            "one-person-lab:src/modules/workspace/workspace-artifact-lifecycle.ts"
+        ),
+        "receipt_ledger_owner_ref": (
+            "one-person-lab:src/modules/ledger/memory-artifact-lifecycle-evidence-ledger.ts"
+        ),
+        "mas_locates_or_groups_generic_receipts": False,
+        "mas_materializes_operator_workbench": False,
     }
-    assert len(accepted_seed_refs) >= 9
-    assert accepted_seed_refs["publication_route_memory_seed__external_validation_rescue"] == {
-        "memory_id": "publication_route_memory_seed__external_validation_rescue",
-        "reason": "",
-        "status": "accepted",
-    }
-    assert accepted_seed_refs["publication_route_memory_seed__negative_result_stoploss"] == {
-        "memory_id": "publication_route_memory_seed__negative_result_stoploss",
-        "reason": "",
-        "status": "accepted",
-    }
-    first_projection = by_ref[first_receipt["receipt_refs"][1]]
-    assert first_projection["receipt_kind"] == "writeback_receipt"
-    assert first_projection["study_id"] == "S1"
-    assert first_projection["stage"] == "decision"
-    assert first_projection["receipt_status"] == "applied"
-    assert first_projection["freshness"]["exists"] is True
-    assert first_projection["accepted_refs"] == [
-        {
-            "write_id": "s1-route-back-lesson",
-            "memory_id": "publication_route_memory_writeback__s1-route-back-lesson",
-            "destination": "workspace_research_memory_proposal",
-            "owner_target": "workspace_memory_owner",
-            "reason": "",
-            "status": "accepted",
-        }
-    ]
-    assert first_projection["rejected_refs"] == [
-        {
-            "write_id": "s1-local-claim",
-            "destination": "workspace_research_memory_proposal",
-            "owner_target": "workspace_memory_owner",
-            "reason": "study_specific_claim_not_workspace_memory",
-            "status": "rejected",
-        }
-    ]
-    second_projection = by_ref[second_receipt["receipt_refs"][1]]
-    assert second_projection["study_id"] == "S2"
-    assert second_projection["accepted_refs"][0]["memory_id"] == "publication_route_memory_writeback__s2-review-lesson"
     rendered = json.dumps(inventory, ensure_ascii=False)
     assert "Route back before rebuilding claims" not in rendered
     assert "Keep response evidence scoped" not in rendered

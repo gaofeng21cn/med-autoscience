@@ -118,7 +118,7 @@ def _provider_hosted_guarded_apply_task(
         *[dict(ref) for ref in owner_source_refs],
     ]
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="paper_autonomy/guarded-apply",
+        task_kind="domain_autonomy/guarded-apply",
         study_id=target,
         reason="real_paper_line_owner_receipt_or_stable_typed_blocker_pending",
         evidence_refs=source_refs,
@@ -129,7 +129,7 @@ def _provider_hosted_guarded_apply_task(
         "task_id": dedupe_key,
         "domain_id": "medautoscience",
         "task_id": dedupe_key,
-        "task_kind": "paper_autonomy/guarded-apply",
+        "task_kind": "domain_autonomy/guarded-apply",
         "priority": 30,
         "source": "mas-domain-handler-export",
         "requires_approval": False,

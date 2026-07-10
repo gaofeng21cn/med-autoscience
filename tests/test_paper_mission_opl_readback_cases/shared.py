@@ -41,7 +41,7 @@ def _opl_runtime_task_payload() -> dict[str, object]:
             "task": {
                 "task_id": "frt-stage-route",
                 "domain_id": "medautoscience",
-                "task_kind": "paper_mission/stage-route",
+                "task_kind": "domain_route/stage-route",
                 "payload": {
                     "study_id": "002-dm-china-us-mortality-attribution",
                     "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
@@ -306,7 +306,7 @@ def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object
     successor = {
         "task_id": "frt-successor",
         "domain_id": "medautoscience",
-        "task_kind": "paper_mission/stage-route",
+        "task_kind": "domain_route/stage-route",
         "payload": {
             "study_id": "002-dm-china-us-mortality-attribution",
             "paper_mission_transaction_ref": "paper-mission-transaction::dm002",

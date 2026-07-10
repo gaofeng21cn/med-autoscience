@@ -21,6 +21,43 @@ _module_reexport(_family_lifecycle_surfaces)
 _build_backend_deconstruction_lane = mainline_program_surfaces.build_backend_deconstruction_lane
 
 
+def _mainline_snapshot(
+    mainline_payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = (
+        dict(mainline_payload)
+        if mainline_payload is not None
+        else mainline_status.read_mainline_status()
+    )
+    current_stage = dict(payload.get("current_stage") or {})
+    current_program_phase = dict(payload.get("current_program_phase") or {})
+    return {
+        "program_id": _non_empty_text(payload.get("program_id")),
+        "current_stage_id": _non_empty_text(current_stage.get("id")),
+        "current_stage_status": _non_empty_text(current_stage.get("status")),
+        "current_stage_summary": _non_empty_text(current_stage.get("summary")),
+        "current_program_phase_id": _non_empty_text(current_program_phase.get("id")),
+        "current_program_phase_status": _non_empty_text(
+            current_program_phase.get("status")
+        ),
+        "current_program_phase_summary": _non_empty_text(
+            current_program_phase.get("summary")
+        ),
+        "next_focus": list(_normalized_strings(payload.get("next_focus") or [])),
+        "explicitly_not_now": list(
+            _normalized_strings(payload.get("explicitly_not_now") or [])
+        ),
+        "single_project_boundary": _validate_single_project_boundary(
+            _single_project_boundary_payload(payload.get("single_project_boundary")),
+            context="mainline_snapshot.single_project_boundary",
+        ),
+        "capability_owner_boundary": _validate_capability_owner_boundary(
+            _capability_owner_boundary_payload(payload.get("capability_owner_boundary")),
+            context="mainline_snapshot.capability_owner_boundary",
+        ),
+    }
+
+
 def _build_phase5_platform_target(mainline_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
     payload = dict(mainline_payload) if mainline_payload is not None else mainline_status.read_mainline_status()
     source = payload.get("platform_target")

@@ -507,6 +507,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_agent_discover_parser.add_argument("--repo-root")
     display_pack_agent_discover_parser.add_argument("--paper-root")
     display_pack_agent_discover_parser.add_argument("--include-templates", action="store_true")
+    display_pack_agent_discover_parser.add_argument("--opl-descriptor-output-dir")
 
     display_pack_agent_orchestrate_parser = subparsers.add_parser("display-pack-agent-orchestrate")
     display_pack_agent_orchestrate_parser.add_argument("--repo-root")

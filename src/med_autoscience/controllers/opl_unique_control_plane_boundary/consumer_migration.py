@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from .functional_followthrough_gaps import (
@@ -16,6 +17,7 @@ from .generated_caller_retirement import (
 from .consumer_migration_inventory import (
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
+    build_source_morphology,
 )
 
 SCHEMA_VERSION = 1
@@ -605,7 +607,10 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
         "test_lane_harness",
     ],
 }
-def build_functional_consumer_boundary() -> dict[str, Any]:
+def build_functional_consumer_boundary(
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
     classification_counts: dict[str, int] = {}
     for item in FUNCTIONAL_MODULE_INVENTORY:
         classification = str(item["classification"])
@@ -615,9 +620,82 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         for item in FUNCTIONAL_MODULE_INVENTORY
         if item["classification"] == "domain_authority_refs"
     ]
+    source_morphology = build_source_morphology(repo_root=repo_root)
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
+        source_morphology=source_morphology,
     )
+    source_purity_clean = (
+        source_morphology["source_truth_available"] is True
+        and int(source_morphology["source_purity_gap_count"]) == 0
+    )
+    standard_agent_purity = {
+        **STANDARD_AGENT_PURITY,
+        "status": (
+            "standard_agent_source_shape_landed"
+            if source_purity_clean
+            else "standard_agent_source_shape_residue_or_scan_gap"
+        ),
+        "active_private_generic_residue_count": source_morphology[
+            "active_private_generic_residue_count"
+        ],
+        "active_private_generic_residue_module_ids": list(
+            source_morphology["active_private_generic_residue_module_ids"]
+        ),
+        "active_private_generic_residues": [
+            dict(item) for item in source_morphology["active_private_generic_residues"]
+        ],
+        "source_morphology": source_morphology,
+        "functional_structure_gap_count": functional_followthrough_gap_summary[
+            "functional_structure_gap_count"
+        ],
+        "source_purity_cutover_status": functional_followthrough_gap_summary[
+            "source_purity_cutover_status"
+        ],
+        "repo_local_wrapper_tail_count": functional_followthrough_gap_summary[
+            "repo_local_wrapper_tail_count"
+        ],
+        "repo_local_wrapper_tail_module_ids": list(
+            functional_followthrough_gap_summary["repo_local_wrapper_tail_module_ids"]
+        ),
+    }
+    standard_agent_purity_guard = {
+        **STANDARD_AGENT_PURITY_GUARD,
+        "status": (
+            "standard_agent_purity_cutover_guard"
+            if source_purity_clean
+            else "standard_agent_purity_source_morphology_gap"
+        ),
+        "source_purity_cutover_status": standard_agent_purity[
+            "source_purity_cutover_status"
+        ],
+        "repo_local_wrapper_tail_count": standard_agent_purity[
+            "repo_local_wrapper_tail_count"
+        ],
+        "repo_local_wrapper_tail_module_ids": list(
+            standard_agent_purity["repo_local_wrapper_tail_module_ids"]
+        ),
+        "proof_items": [
+            (
+                "standard_agent_purity.active_private_generic_residue_count="
+                f"{standard_agent_purity['active_private_generic_residue_count']}"
+            ),
+            "standard_agent_purity.default_caller_count=0",
+            "standard_agent_purity.retired_alias_residue_refs=[]",
+            (
+                "standard_agent_purity.default_caller_readiness_status="
+                "opl_generated_default_caller_ready"
+            ),
+            (
+                "standard_agent_purity.source_purity_cutover_status="
+                f"{standard_agent_purity['source_purity_cutover_status']}"
+            ),
+            (
+                "standard_agent_purity.domain_projection_policy="
+                "refs_receipts_blockers_only_no_body_verdict_or_blob"
+            ),
+        ],
+    }
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -641,7 +719,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             else value
             for key, value in GENERATED_DEFAULT_CALLER_BOUNDARY.items()
         },
-        "standard_agent_purity": dict(STANDARD_AGENT_PURITY),
+        "standard_agent_purity": standard_agent_purity,
         "minimal_authority_function_manifest": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]
             if isinstance(value, list)
@@ -667,7 +745,9 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "functional_structure_gap_count": functional_followthrough_gap_summary[
                 "functional_structure_gap_count"
             ],
-            "active_private_generic_residue_count": 0,
+            "active_private_generic_residue_count": functional_followthrough_gap_summary[
+                "active_private_generic_residue_count"
+            ],
             "repo_local_wrapper_tail_count": functional_followthrough_gap_summary[
                 "repo_local_wrapper_tail_count"
             ],
@@ -785,7 +865,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                 "state_chain_completion_is_publication_ready": False,
             },
         },
-        "standard_agent_purity_guard": dict(STANDARD_AGENT_PURITY_GUARD),
+        "standard_agent_purity_guard": standard_agent_purity_guard,
         "standard_agent_purity_guard_scope": [
             "cli_default",
             "mcp_default",
@@ -815,6 +895,7 @@ def build_consumer_migration_contract(
     *,
     adapter_id: str | None = None,
     manager: str | None = None,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     manager_key = str(manager or "").strip().lower()
     replacement_active = manager_key in {"opl", "opl_provider_runtime_manager"} or adapter_id == "opl_family_runtime_provider"
@@ -864,7 +945,9 @@ def build_consumer_migration_contract(
                 else "required_before_retirement"
             ),
         },
-        "functional_consumer_boundary": build_functional_consumer_boundary(),
+        "functional_consumer_boundary": build_functional_consumer_boundary(
+            repo_root=repo_root
+        ),
         "mas_domain_authority_after_migration": list(MAS_DOMAIN_AUTHORITY_AFTER_MIGRATION),
         "retirement_proof_required": list(RETIREMENT_PROOF_REQUIRED),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
@@ -879,9 +962,14 @@ def attach_consumer_migration_contract(
     *,
     adapter_id: str | None = None,
     manager: str | None = None,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     result = dict(payload)
-    contract = build_consumer_migration_contract(adapter_id=adapter_id, manager=manager)
+    contract = build_consumer_migration_contract(
+        adapter_id=adapter_id,
+        manager=manager,
+        repo_root=repo_root,
+    )
     result["active_path_role"] = contract["active_path_role"]
     result["consumer_migration"] = contract
     result["replacement_owner"] = REPLACEMENT_OWNER

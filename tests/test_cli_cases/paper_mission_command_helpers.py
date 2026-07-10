@@ -124,7 +124,7 @@ def _write_fake_opl_stage_route_runtime(
                 return {{
                     'task_id': {task_id!r},
                     'domain_id': 'medautoscience',
-                    'task_kind': 'paper_mission/stage-route',
+                    'task_kind': 'domain_route/stage-route',
                     'status': 'running',
                     'payload': payload,
                 }}

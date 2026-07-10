@@ -111,7 +111,7 @@
           "const": "med-autoscience"
         },
         "stage_id": {
-          "const": "paper_autonomy/guarded-apply"
+          "const": "domain_autonomy/guarded-apply"
         },
         "next_required_delta": {
           "const": "domain_owner_receipt_quality_gate_or_typed_blocker_required"
@@ -167,7 +167,7 @@
               "const": "owner_payload_item"
             },
             "stage_id": {
-              "const": "paper_autonomy/guarded-apply"
+              "const": "domain_autonomy/guarded-apply"
             },
             "task_or_study_ref": {
               "type": "string",

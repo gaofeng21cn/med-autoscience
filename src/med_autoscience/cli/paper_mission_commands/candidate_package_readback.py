@@ -18,7 +18,7 @@ from med_autoscience.cli.paper_mission_commands.candidate_package_outputs import
 from med_autoscience.cli.paper_mission_commands.command_metadata import (
     PAPER_MISSION_CONTRACT_REF,
     PAPER_MISSION_CONTRACT_VERSION,
-    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     action_intent as _action_intent,
     mutation_policy as _mutation_policy,
 )
@@ -118,8 +118,8 @@ def consume_candidate_missing_readback(
         "forbidden_authority_writes": list(CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "dispatch_plan": {
-            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+            "domain_handler_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "candidate_package_missing_no_write",
             "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
         },

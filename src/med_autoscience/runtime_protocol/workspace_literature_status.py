@@ -1,154 +1,46 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from med_autoscience.literature_records import LiteratureRecord
-from med_autoscience.workspace_paths import literature_root
 
-
-WORKSPACE_LITERATURE_SCHEMA_VERSION = 1
+WORKSPACE_LITERATURE_SCHEMA_VERSION = 2
+OPL_CONNECT_OWNER_REF = "one-person-lab:src/modules/connect/opl-connect-scientific.ts"
+OPL_SOURCE_INTAKE_OWNER_REF = (
+    "one-person-lab:src/modules/workspace/workspace-source-material.ts"
+)
+OPL_SOURCE_INGEST_COMMAND = "opl workspace source ingest"
 
 
 def workspace_literature_status(*, workspace_root: Path) -> dict[str, object]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    root = _workspace_literature_root(resolved_workspace_root)
-    registry_path = _registry_path(resolved_workspace_root)
-    references_bib_path = _references_bib_path(resolved_workspace_root)
-    coverage_report_path = _coverage_path(resolved_workspace_root)
-    registry_records = _registry_records(registry_path)
-    bibliography_text = references_bib_path.read_text(encoding="utf-8") if references_bib_path.exists() else ""
-    coverage = (
-        json.loads(coverage_report_path.read_text(encoding="utf-8"))
-        if coverage_report_path.exists()
-        else _coverage_payload(registry_records)
-    )
     return {
         "schema_version": WORKSPACE_LITERATURE_SCHEMA_VERSION,
+        "surface_kind": "mas_literature_source_refs",
+        "status": "opl_managed",
         "workspace_root": str(resolved_workspace_root),
-        "workspace_literature_root": str(root),
-        "workspace_literature_exists": root.exists(),
-        "registry_path": str(registry_path),
-        "references_bib_path": str(references_bib_path),
-        "coverage_report_path": str(coverage_report_path),
-        "record_count": len(registry_records),
-        "references_bib_entry_count": _bibliography_entry_count(bibliography_text),
-        "coverage": coverage if isinstance(coverage, dict) else _coverage_payload(registry_records),
-    }
-
-
-def _workspace_literature_root(workspace_root: Path) -> Path:
-    return literature_root(workspace_root)
-
-
-def _registry_path(workspace_root: Path) -> Path:
-    return _workspace_literature_root(workspace_root) / "registry.jsonl"
-
-
-def _references_bib_path(workspace_root: Path) -> Path:
-    return _workspace_literature_root(workspace_root) / "references.bib"
-
-
-def _coverage_path(workspace_root: Path) -> Path:
-    return _workspace_literature_root(workspace_root) / "coverage" / "latest.json"
-
-
-def _registry_records(path: Path) -> list[LiteratureRecord]:
-    if not path.exists():
-        return []
-    records: list[LiteratureRecord] = []
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        records.append(_normalize_record(json.loads(line)))
-    return records
-
-
-def _normalize_record(raw_record: object) -> LiteratureRecord:
-    if not isinstance(raw_record, dict):
-        raise ValueError("literature record must be a mapping")
-    source_priority = raw_record.get("source_priority")
-    if not isinstance(source_priority, int):
-        raise ValueError("source_priority must be an integer")
-    return LiteratureRecord(
-        record_id=_require_nonempty_str(raw_record.get("record_id"), field="record_id"),
-        title=_require_nonempty_str(raw_record.get("title"), field="title"),
-        authors=_require_str_tuple(raw_record.get("authors"), field="authors"),
-        year=_optional_int(raw_record.get("year"), field="year"),
-        journal=_optional_str(raw_record.get("journal")),
-        doi=_optional_str(raw_record.get("doi")),
-        pmid=_optional_str(raw_record.get("pmid")),
-        pmcid=_optional_str(raw_record.get("pmcid")),
-        arxiv_id=_optional_str(raw_record.get("arxiv_id")),
-        abstract=_optional_str(raw_record.get("abstract")),
-        full_text_availability=_require_nonempty_str(
-            raw_record.get("full_text_availability"),
-            field="full_text_availability",
-        ),
-        source_priority=source_priority,
-        citation_payload=_require_dict(raw_record.get("citation_payload"), field="citation_payload"),
-        local_asset_paths=_require_str_tuple(raw_record.get("local_asset_paths"), field="local_asset_paths"),
-        relevance_role=_require_nonempty_str(raw_record.get("relevance_role"), field="relevance_role"),
-        claim_support_scope=_require_str_tuple(raw_record.get("claim_support_scope"), field="claim_support_scope"),
-    )
-
-
-def _require_nonempty_str(value: object, *, field: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{field} must be a non-empty string")
-    return value.strip()
-
-
-def _optional_str(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    return text or None
-
-
-def _optional_int(value: object, *, field: str) -> int | None:
-    if value is None:
-        return None
-    if not isinstance(value, int):
-        raise ValueError(f"{field} must be an integer or null")
-    return value
-
-
-def _require_str_tuple(value: object, *, field: str) -> tuple[str, ...]:
-    if not isinstance(value, (list, tuple)):
-        raise ValueError(f"{field} must be a list of strings")
-    items: list[str] = []
-    for item in value:
-        if not isinstance(item, str) or not item.strip():
-            raise ValueError(f"{field} must contain non-empty strings")
-        items.append(item.strip())
-    return tuple(items)
-
-
-def _require_dict(value: object, *, field: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{field} must be a mapping")
-    return dict(value)
-
-
-def _bibliography_entry_count(text: str) -> int:
-    if not text.strip():
-        return 0
-    return text.count("\n@") + (1 if text.lstrip().startswith("@") else 0)
-
-
-def _coverage_payload(records: list[LiteratureRecord]) -> dict[str, object]:
-    return {
-        "schema_version": WORKSPACE_LITERATURE_SCHEMA_VERSION,
-        "record_count": len(records),
-        "records_with_doi": sum(1 for record in records if record.doi),
-        "records_with_pmid": sum(1 for record in records if record.pmid),
-        "records_by_primary_source": {
-            "pubmed": sum(1 for record in records if record.primary_source == "pubmed"),
-            "imported": sum(1 for record in records if record.primary_source != "pubmed"),
+        "workspace_literature_exists": False,
+        "workspace_literature_root": None,
+        "registry_path": None,
+        "references_bib_path": None,
+        "coverage_report_path": None,
+        "record_count": 0,
+        "references_bib_entry_count": 0,
+        "coverage": {
+            "status": "opl_connect_or_workspace_receipt_required",
+            "high_priority_missing": [],
         },
-        "high_priority_missing": [],
+        "opl_owner_refs": {
+            "scientific_connector": OPL_CONNECT_OWNER_REF,
+            "source_intake": OPL_SOURCE_INTAKE_OWNER_REF,
+            "source_ingest_command": OPL_SOURCE_INGEST_COMMAND,
+        },
+        "authority_boundary": {
+            "transport_owner": "one-person-lab",
+            "domain_semantics_owner": "MedAutoScience",
+            "mas_writes_generic_source_registry": False,
+            "mas_materializes_workspace_bibtex": False,
+            "mas_materializes_workspace_coverage": False,
+        },
     }
 
 

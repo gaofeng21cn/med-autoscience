@@ -16,6 +16,9 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     legacy_owner_callable_adapter_diagnostics,
     with_owner_callable_adapter_projection,
 )
+from med_autoscience.controllers.opl_execution_boundary import (
+    first_trusted_opl_execution_authorization,
+)
 from med_autoscience.controllers.domain_action_request_materializer import (
     current_action_selection,
     current_owner_callable_adapters as current_owner_callable_adapters_part,
@@ -42,7 +45,6 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
     owner_callable_search_discipline,
 )
-from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control.owner_callable_registry import owner_callable_for_action
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -55,7 +57,6 @@ CONSUMER_LATEST_RELATIVE_PATH = materializer_core.CONSUMER_LATEST_RELATIVE_PATH
 CONSUMER_HISTORY_RELATIVE_PATH = materializer_core.CONSUMER_HISTORY_RELATIVE_PATH
 OWNER_CALLABLE_ADAPTER_KIND = materializer_core.OWNER_CALLABLE_ADAPTER_KIND
 TARGET_RUNTIME_OWNER = transition_projection_boundary.TARGET_RUNTIME_OWNER
-SUPPORTED_MODE = "developer_apply_safe"
 READINESS_ACTION_TYPE = readiness_dispatch_enrichment.READINESS_ACTION_TYPE
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
@@ -145,10 +146,6 @@ def _required_output_pending(
     )
 
 
-def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
-    return materializer_core.github_block_reason(developer_mode_payload, supported_mode=SUPPORTED_MODE)
-
-
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
     return materializer_core.owner_from_action(action, action_type)
 
@@ -219,7 +216,6 @@ def _owner_callable_dispatch(
     next_executable_owner: str,
     required_output_surface: str,
     apply: bool,
-    developer_mode_payload: Mapping[str, Any],
     scan_payload: Mapping[str, Any],
     generated_at: str,
 ) -> dict[str, Any]:
@@ -341,7 +337,12 @@ def _owner_callable_dispatch(
     owner_route_attempt_envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(
         dispatch=dispatch_shell
     )
-    execution_ready_dispatch_requested = developer_mode_payload.get("dry_run_executor_dispatch") is True
+    opl_execution_authorization = first_trusted_opl_execution_authorization(
+        action.get("opl_execution_authorization"),
+        prompt_contract.get("opl_execution_authorization"),
+        owner_route.get("opl_execution_authorization"),
+        _mapping(owner_route.get("source_refs")).get("opl_execution_authorization"),
+    )
     if is_mas_foreground_owner_callable:
         return owner_callable_dispatch_payload.mas_foreground_owner_callable_dispatch_payload(
             profile=profile,
@@ -358,7 +359,6 @@ def _owner_callable_dispatch(
             typed_closeout_contract=typed_closeout_contract,
             owner_route_attempt_envelope=owner_route_attempt_envelope,
             prompt_contract=prompt_contract,
-            developer_mode_payload=developer_mode_payload,
             readiness_dispatch=readiness_dispatch,
             evidence_gap_projection=evidence_gap_projection,
             progress_first_closeout_admission=closeout_admission,
@@ -372,16 +372,15 @@ def _owner_callable_dispatch(
         )
     dispatch_status = (
         "ready"
-        if (apply or execution_ready_dispatch_requested)
-        and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
-        and developer_mode_payload.get("safe_actions_enabled") is True
+        if (apply or opl_execution_authorization is not None)
+        and opl_execution_authorization is not None
         and owner_route_attempt_envelope.get("dispatchable") is True
         and owner_route_allows_action
         else "dry_run" if not apply else "blocked"
     )
     blocked_reason = _owner_callable_dispatch_blocked_reason(
         dispatch_status=dispatch_status,
-        developer_mode_payload=developer_mode_payload,
+        opl_execution_authorization=opl_execution_authorization,
         action=action,
         action_type=action_type,
         next_executable_owner=next_executable_owner,
@@ -431,7 +430,6 @@ def _owner_callable_dispatch(
         typed_closeout_contract=typed_closeout_contract,
         owner_route_attempt_envelope=owner_route_attempt_envelope,
         prompt_contract=prompt_contract,
-        developer_mode_payload=developer_mode_payload,
         readiness_dispatch=readiness_dispatch,
         evidence_gap_projection=evidence_gap_projection,
         progress_first_closeout_admission=closeout_admission,
@@ -528,7 +526,7 @@ def _owner_callable_surface_from_next_safe_action(payload: Mapping[str, Any]) ->
 def _owner_callable_dispatch_blocked_reason(
     *,
     dispatch_status: str,
-    developer_mode_payload: Mapping[str, Any],
+    opl_execution_authorization: Mapping[str, Any] | None,
     action: Mapping[str, Any],
     action_type: str,
     next_executable_owner: str,
@@ -537,8 +535,6 @@ def _owner_callable_dispatch_blocked_reason(
 ) -> str | None:
     if dispatch_status != "blocked":
         return None
-    if reason := _github_block_reason(developer_mode_payload):
-        return reason
     if owner_route_attempt_envelope.get("dispatchable") is not True:
         return "owner_route_currentness_basis_missing"
     if owner_route_part.route_allows_action(
@@ -549,7 +545,11 @@ def _owner_callable_dispatch_blocked_reason(
         },
         owner_route=owner_route,
     ):
-        return None
+        return (
+            "opl_execution_authorization_required"
+            if opl_execution_authorization is None
+            else None
+        )
     return "owner_route_next_owner_mismatch"
 
 
@@ -557,8 +557,6 @@ def _request_task(
     *,
     profile: WorkspaceProfile,
     action: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
-    apply: bool,
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
     action_type = _text(action.get("action_type")) or "unknown_action"
@@ -566,9 +564,6 @@ def _request_task(
     task = supervisor_request_packets.request_task(
         action=action_payload,
         schema_version=SCHEMA_VERSION,
-        developer_mode_payload=developer_mode_payload,
-        apply=apply,
-        supported_mode=SUPPORTED_MODE,
         packet_path=_request_packet_path(profile, study_id, action_type),
         scan_latest_path=_scan_latest_path(profile),
         forbidden_surfaces=FORBIDDEN_SURFACES,
@@ -774,7 +769,6 @@ def current_owner_callable_adapters(
         mode=mode,
         apply=apply,
         generated_at=_utc_now(),
-        supported_mode=SUPPORTED_MODE,
         dispatch_ready_for_execution=dispatch_ready_for_execution,
         read_json_object=request_refresh.read_json_object,
         scan_latest_path=_scan_latest_path,
@@ -799,13 +793,6 @@ def materialize_domain_action_requests(
     dispatch_ready_for_execution: bool = False,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
-    developer_mode = resolve_developer_supervisor_mode(
-        profile=profile,
-        requested_mode=mode,
-        apply_safe_actions=apply,
-        scheduler_owner="external_queue_consumer",
-    )
-    developer_mode_payload = developer_mode.to_dict()
     scan_payload = request_refresh.read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = _selected_actions(
@@ -818,8 +805,6 @@ def materialize_domain_action_requests(
             _request_task(
                 profile=profile,
                 action=action,
-                developer_mode_payload=developer_mode_payload,
-                apply=apply,
             )
         )
         for action in selected_request_actions
@@ -839,16 +824,6 @@ def materialize_domain_action_requests(
                     _text(action.get("action_type")) or "unknown_action",
                 ),
                 apply=apply,
-                developer_mode_payload=(
-                    {
-                        **developer_mode_payload,
-                        "mode": SUPPORTED_MODE,
-                        "safe_actions_enabled": True,
-                        "dry_run_executor_dispatch": True,
-                    }
-                    if dispatch_ready_for_execution and not apply
-                    else developer_mode_payload
-                ),
                 scan_payload=scan_payload,
                 generated_at=generated_at,
             )
@@ -876,7 +851,7 @@ def materialize_domain_action_requests(
     ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
         profile=profile,
         study_ids=resolved_study_ids,
-        apply=apply,
+        apply=False,
     )
     written_files = [
         refresh["request_path"]
@@ -893,10 +868,13 @@ def materialize_domain_action_requests(
         "dry_run": not apply,
         "requested_studies": list(resolved_study_ids),
         "requested_mode": mode,
-        "effective_mode": developer_mode.mode,
-        "github_gate": dict(developer_mode.github_user_gate),
-        "developer_supervisor_mode": developer_mode_payload,
-        "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
+        "effective_mode": "opl_execution_authorization",
+        "execution_authorization_owner": "one-person-lab",
+        "execution_authorization_contract_ref": (
+            "one-person-lab:contracts/opl-framework/stage-run-kernel-contract.json"
+            "#execution_authorization_policy"
+        ),
+        "apply_allowed": False,
         "apply_writes_domain_intent_projection_only": True,
         "apply_writes_disabled_reason": "opl_domain_progress_transition_runtime_owns_durable_carrier",
         "mas_local_dispatch_carrier_persistence": "forbidden",

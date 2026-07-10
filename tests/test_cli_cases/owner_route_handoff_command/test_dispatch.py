@@ -116,7 +116,7 @@ def test_domain_handler_dispatch_executes_paper_repair_work_unit_inside_mas_owne
         {
             "task_id": "paper-task-001",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",
@@ -193,7 +193,7 @@ def test_domain_handler_dispatch_routes_quality_repair_batch_callable_inside_mas
         {
             "task_id": "paper-task-quality-batch",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",
@@ -287,7 +287,7 @@ def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_d
         {
             "task_id": "paper-task-quality-batch-blocked",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -371,7 +371,7 @@ def test_domain_handler_dispatch_prefers_runtime_binding_quest_id_for_quality_re
         {
             "task_id": "paper-task-quality-batch-canonical-quest",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -413,7 +413,7 @@ def test_domain_handler_dispatch_fail_fast_blocks_unsupported_embedded_callable(
         {
             "task_id": "paper-task-unsupported-callable",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",
@@ -457,7 +457,7 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
     task = {
         "task_id": "paper-task-ai-reviewer-callable",
         "domain_id": "medautoscience",
-        "task_kind": "paper_autonomy/repair-recheck",
+        "task_kind": "domain_autonomy/repair-recheck",
         "source_fingerprint": "reviewer-fp",
         "payload": {
             "profile": str(profile_path),
@@ -490,7 +490,7 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
             "version": "mas-family-domain-handler.v1",
             "accepted": False,
             "task_id": "paper-task-ai-reviewer-callable",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "source_fingerprint": "reviewer-fp",
             "dispatch": {
                 "action_type": "paper_repair_executor_dispatch",
@@ -536,7 +536,7 @@ def test_domain_handler_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_
         {
             "task_id": "paper-ai-reviewer-001",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/ai-reviewer-recheck",
+            "task_kind": "domain_autonomy/ai-reviewer-recheck",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
         },
     )
@@ -567,7 +567,7 @@ def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_c
         {
             "task_id": "aftercare-analysis",
             "domain_id": "medautoscience",
-            "task_kind": "publication_aftercare/analysis-queue-progress",
+            "task_kind": "domain_route/analysis-queue-progress",
             "source_fingerprint": "analysis-fp",
             "payload": {"profile": str(profile_path), "study_id": "DM002"},
         },
@@ -577,7 +577,7 @@ def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_c
         {
             "task_id": "aftercare-reviewer",
             "domain_id": "medautoscience",
-            "task_kind": "publication_aftercare/reviewer-refresh",
+            "task_kind": "domain_route/reviewer-refresh",
             "source_fingerprint": "reviewer-fp",
             "payload": {"profile": str(profile_path), "study_id": "DM002"},
         },

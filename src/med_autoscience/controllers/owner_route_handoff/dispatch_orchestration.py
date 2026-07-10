@@ -9,6 +9,10 @@ from typing import Any, Mapping
 import yaml
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+    canonical_domain_task_kind,
+)
 
 from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
@@ -265,7 +269,7 @@ def _execute_ai_reviewer_recheck(
         "trusted_opl_execution_authorization_present": _trusted_opl_execution_authorization(
             authorization
         ),
-        "replacement_owner_path": "paper_autonomy/repair-recheck",
+        "replacement_owner_path": "domain_autonomy/repair-recheck",
     }
 
 
@@ -544,7 +548,10 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
         return _dispatch_error(generated_at=generated_at, reason="invalid_task", detail=str(exc))
     task_id = _text(task.get("task_id")) or "unknown_task"
     domain_id = _text(task.get("domain_id")) or "medautoscience"
-    task_kind = _text(task.get("task_kind")) or "unknown"
+    source_task_kind = _text(task.get("task_kind")) or "unknown"
+    task_kind = canonical_domain_task_kind(source_task_kind) or "unknown"
+    if task_kind != source_task_kind:
+        task = {**task, "task_kind": task_kind}
     if domain_id != "medautoscience":
         return _dispatch_error(
             generated_at=generated_at,
@@ -593,6 +600,9 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
         study_id=study_id,
         source_fingerprint=source_fingerprint,
     )
+    if task_kind != source_task_kind:
+        receipt["legacy_task_kind"] = source_task_kind
+        receipt["task_kind_normalized_by"] = "contracts/domain_route_profile.json"
     receipt = _apply_dispatch_action(
         receipt=receipt,
         action_type=action_type,
@@ -670,7 +680,7 @@ def _retired_task_kind_receipt(
         "migration_diagnostic_only": True,
         "ordinary_schedulable": False,
         "active_caller_class": "diagnostic_only",
-        "replacement_task_kind": "paper_mission/start_or_resume",
+        "replacement_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
         "diagnostic_role": "retired_default_paper_dispatch",
         "authority_boundary": authority_boundary_payload(),
         "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(

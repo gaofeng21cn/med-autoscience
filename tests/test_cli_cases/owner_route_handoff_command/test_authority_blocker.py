@@ -62,7 +62,7 @@ def test_domain_handler_dispatch_records_quality_repair_authority_gate_as_stable
         {
             "task_id": "paper-task-quality-batch-authority-blocked",
             "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/repair-recheck",
+            "task_kind": "domain_autonomy/repair-recheck",
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "001-risk",

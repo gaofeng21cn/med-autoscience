@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-STAGE_OUTCOME_TASK_KIND = "paper_mission/stage-outcome"
+STAGE_OUTCOME_TASK_KIND = "domain_route/stage-outcome"
 STAGE_OUTCOME_SURFACE = "paper_mission_stage_outcome"
 
 

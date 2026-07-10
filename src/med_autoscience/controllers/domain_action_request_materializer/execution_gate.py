@@ -3,17 +3,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.opl_execution_boundary import (
+    OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+    trusted_opl_execution_authorization,
+)
 
-SUPERVISOR_GATE_REASONS = frozenset(
-    {
-        "developer_apply_safe_required",
-        "developer_supervisor_disabled_by_user_config",
-        "developer_apply_safe_not_allowed_by_user_config",
-        "opl_family_user_config_invalid",
-        "github_cli_unavailable",
-        "github_user_lookup_failed",
-        "github_user_requires_pull_request_route",
-    }
+
+OPL_EXECUTION_AUTHORIZATION_CONTRACT_REF = (
+    "one-person-lab:contracts/opl-framework/stage-run-kernel-contract.json"
+    "#execution_authorization_policy"
+)
+OPL_EXECUTION_AUTHORIZATION_LEDGER_REF = (
+    "one-person-lab:src/modules/stagecraft/"
+    "stage-run-execution-authorization-ledger.ts"
 )
 
 
@@ -21,54 +23,50 @@ def projection(
     *,
     dispatch_status: str,
     blocked_reason: str | None,
-    developer_mode_payload: Mapping[str, Any],
-    supported_mode: str,
+    opl_execution_authorization: Mapping[str, Any] | None,
     evidence_gap_projection: Mapping[str, Any] | None = None,
+    authorization_required: bool = True,
 ) -> dict[str, Any]:
-    supervisor_reason = developer_supervisor_gate_reason(blocked_reason)
+    authorization = trusted_opl_execution_authorization(opl_execution_authorization)
+    missing_authorization = authorization_required and authorization is None
     evidence_gap_gate = _evidence_gap_gate(evidence_gap_projection)
-    developer_mode_gate = {
-        "gate_kind": "developer_supervisor",
-        "blocked": dispatch_status == "blocked" and supervisor_reason is not None,
-        "reason": supervisor_reason,
-        "requested_mode": _text(developer_mode_payload.get("requested_mode")),
-        "effective_mode": _text(developer_mode_payload.get("mode")),
-        "required_mode": supported_mode,
-        "safe_actions_enabled": developer_mode_payload.get("safe_actions_enabled") is True,
-        "authority_gate": dict(_mapping(developer_mode_payload.get("authority_gate"))),
-        "github_user_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
-        "repo_write_policy": dict(_mapping(developer_mode_payload.get("repo_write_policy"))),
-    }
-    if developer_mode_gate["blocked"] is True:
-        return developer_mode_gate
+    blocked = dispatch_status == "blocked" or missing_authorization or evidence_gap_gate["blocked"]
+    reason = blocked_reason
+    if reason is None and missing_authorization:
+        reason = OPL_EXECUTION_AUTHORIZATION_BLOCKER
+    if reason is None and evidence_gap_gate["blocked"]:
+        reason = "evidence_gap_decision_required"
     return {
-        "gate_kind": "execution_authority",
-        "blocked": dispatch_status == "blocked",
-        "reason": blocked_reason,
-        "developer_supervisor_gate": developer_mode_gate,
+        "gate_kind": "execution_authorization",
+        "blocked": blocked,
+        "reason": reason,
+        "authorization_required": authorization_required,
+        "authorization_present": authorization is not None,
+        "authorization": dict(authorization or {}),
+        "contract_ref": OPL_EXECUTION_AUTHORIZATION_CONTRACT_REF,
+        "ledger_ref": OPL_EXECUTION_AUTHORIZATION_LEDGER_REF,
         "evidence_gap_gate": evidence_gap_gate,
+        "authority_boundary": {
+            "authorization_owner": "one-person-lab",
+            "mas_can_define_developer_identity_policy": False,
+            "mas_can_define_repo_write_policy": False,
+            "mas_can_authorize_provider_admission": False,
+            "mas_can_validate_domain_preconditions": True,
+        },
     }
 
 
 def provider_admission_effect(
     *,
     dispatch_status: str,
-    blocked_reason: str | None,
+    opl_execution_authorization: Mapping[str, Any] | None,
+    authorization_required: bool = True,
 ) -> str | None:
-    if dispatch_status == "blocked" and developer_supervisor_gate_reason(blocked_reason) is not None:
-        return "not_admitted_until_execution_gate_clears"
+    if authorization_required and trusted_opl_execution_authorization(opl_execution_authorization) is None:
+        return "not_admitted_until_opl_execution_authorization"
+    if dispatch_status == "blocked":
+        return "not_admitted_until_domain_preconditions_clear"
     return None
-
-
-def developer_supervisor_gate_reason(reason: str | None) -> str | None:
-    if reason in SUPERVISOR_GATE_REASONS:
-        return reason
-    return None
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -91,3 +89,11 @@ def _evidence_gap_gate(value: Mapping[str, Any] | None) -> dict[str, Any]:
         "current_action_can_continue": summary.get("current_action_can_continue") is True,
         "forbidden_claims": list(summary.get("forbidden_claims") or []),
     }
+
+
+__all__ = [
+    "OPL_EXECUTION_AUTHORIZATION_CONTRACT_REF",
+    "OPL_EXECUTION_AUTHORIZATION_LEDGER_REF",
+    "projection",
+    "provider_admission_effect",
+]

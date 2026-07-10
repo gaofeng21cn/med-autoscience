@@ -123,14 +123,14 @@ def test_publication_aftercare_plan_projects_aris_analysis_queue_and_reviewer_re
     assert result["body_included"] is False
     assert result["analysis_queue_entry"]["status"] == "ready"
     assert result["analysis_queue_entry"]["recommended_task_kind"] == (
-        "publication_aftercare/analysis-queue-progress"
+        "domain_route/analysis-queue-progress"
     )
     assert any("algorithm_research/aris/final_method_proposal.md" in ref for ref in result["analysis_queue_entry"]["research_pipeline_refs"])
     assert any("review_loop_summary.md" in ref for ref in result["analysis_queue_entry"]["auto_review_loop_refs"])
     assert "analysis-queue:dm002/reviewer-repair" in result["analysis_queue_entry"]["experiment_queue_refs"]
     assert result["reviewer_refresh_entry"]["status"] == "ready"
     assert result["reviewer_refresh_entry"]["reviewer_refresh_policy"]["separate_invocation_required"] is True
-    assert result["reviewer_refresh_entry"]["recommended_task_kind"] == "publication_aftercare/reviewer-refresh"
+    assert result["reviewer_refresh_entry"]["recommended_task_kind"] == "domain_route/reviewer-refresh"
     assert result["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert result["owner_route_task_policy"]["quality_gate_bypass_allowed"] is False
     assert result["owner_route_task_policy"]["direct_publication_eval_write_allowed"] is False
@@ -262,8 +262,8 @@ def test_publication_aftercare_pending_tasks_are_runtime_owner_only(tmp_path: Pa
     )
 
     assert [task["task_kind"] for task in tasks] == [
-        "publication_aftercare/analysis-queue-progress",
-        "publication_aftercare/reviewer-refresh",
+        "domain_route/analysis-queue-progress",
+        "domain_route/reviewer-refresh",
     ]
     assert all(task["dispatch_owner"] == "med-autoscience" for task in tasks)
     assert all(task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only" for task in tasks)

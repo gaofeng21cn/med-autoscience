@@ -1,0 +1,73 @@
+{
+  "agent_id": "mas",
+  "authority_boundary": {
+    "can_authorize_publication_ready": false,
+    "can_authorize_quality_verdict": false,
+    "can_create_human_gate": false,
+    "can_create_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_mutate_artifact_body": false,
+    "can_write_current_owner_delta": false,
+    "can_write_domain_truth": false,
+    "can_write_stage_current_pointer": false,
+    "can_write_stage_terminal_state": false,
+    "projection_is_authority": false,
+    "provider_completion_is_domain_progress": false
+  },
+  "authority_refs": [
+    "src/med_autoscience/controllers/current_work_unit/contract.py#AUTHORITY_BOUNDARY",
+    "contracts/domain_descriptor.json#/authority_boundary",
+    "contracts/owner_receipt_contract.json"
+  ],
+  "domain_display_extension": {
+    "field": "domain_display",
+    "interpretation": "opaque_domain_owned_display_payload",
+    "opl_may_probe_fields": false
+  },
+  "domain_id": "medautoscience",
+  "field_mapping": {
+    "action_type": "current_work_unit.action_type",
+    "current_owner": "current_work_unit.owner",
+    "currentness_basis": "current_work_unit.currentness_basis",
+    "source_refs": [
+      "current_work_unit.input_refs",
+      "current_work_unit.acceptance_refs"
+    ],
+    "stage_id": "current_work_unit.stage_id",
+    "status": "current_work_unit.status",
+    "work_unit_fingerprint": "current_work_unit.work_unit_fingerprint",
+    "work_unit_id": "current_work_unit.work_unit_id"
+  },
+  "generic_fields": [
+    "domain_id",
+    "work_unit_id",
+    "work_unit_fingerprint",
+    "status",
+    "current_owner",
+    "stage_id",
+    "action_type",
+    "currentness_basis",
+    "source_refs",
+    "authority_boundary"
+  ],
+  "host_owner": "one-person-lab",
+  "legacy_domain_ids": [
+    "med-autoscience"
+  ],
+  "profile_id": "medautoscience.current_work_unit.profile.v1",
+  "projection_owner": "MedAutoScience",
+  "projection_surface_kind": "opl_domain_current_work_unit_profile_projection",
+  "schema_version": 1,
+  "source_paths": [
+    "src/med_autoscience/controllers/current_work_unit/projection.py",
+    "src/med_autoscience/controllers/current_work_unit/opl_profile.py",
+    "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
+    "src/med_autoscience/controllers/product_entry/entry_runtime.py"
+  ],
+  "surface_kind": "opl_domain_current_work_unit_profile",
+  "surface_kinds": {
+    "current_work_unit": "opl_domain_current_work_unit_profile_projection",
+    "domain_display": "mas_workspace_domain_display",
+    "domain_projection": "opl_domain_projection"
+  }
+}

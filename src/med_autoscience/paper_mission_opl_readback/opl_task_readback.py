@@ -27,7 +27,7 @@ from med_autoscience.paper_mission_opl_readback.route_identity import (
 )
 
 
-OPL_STAGE_ROUTE_TASK_KIND = "paper_mission/stage-route"
+OPL_STAGE_ROUTE_TASK_KIND = "domain_route/stage-route"
 OPL_DOMAIN_ID = "medautoscience"
 
 

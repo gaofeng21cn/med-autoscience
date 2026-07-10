@@ -7,7 +7,7 @@ from typing import Any
 from med_autoscience.cli.paper_mission_commands.command_metadata import (
     PAPER_MISSION_CONTRACT_REF,
     PAPER_MISSION_CONTRACT_VERSION,
-    PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     action_intent as _action_intent,
     validate_with_contract_if_available as _validate_with_contract_if_available,
 )
@@ -663,8 +663,8 @@ def build_materialized_mission_readback_if_available(
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "contract_validation": validation,
         "dispatch_plan": {
-            "default_action_intent": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
-            "domain_handler_task_kind": PAPER_MISSION_START_OR_RESUME_TASK_KIND,
+            "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+            "domain_handler_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "materialized_mission_readback_no_write",
             "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
             "opl_consumes": "paper_mission_transaction.opl_route_command",

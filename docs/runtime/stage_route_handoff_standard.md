@@ -103,6 +103,10 @@ route 之间的调度由 OPL 负责：
 
 ## Handoff Packet 规则
 
+OPL-facing canonical route contract 固定由 `contracts/domain_route_profile.json` 提供。MAS active producer 只输出 `domain_route/stage-route`、`domain_route/stage-outcome`、`domain_route/analysis-queue-progress`、`domain_route/reviewer-refresh` 与 `domain_autonomy/*` task kind；legacy `paper_mission/*`、`paper_autonomy/*`、`publication_aftercare/*` 只能在该 profile 的 normalization table、历史 evidence 或兼容输入出现。OPL intake 只消费 `agent_id`、`domain_id`、owner ids、`status` / `wait_kind` / `command_kind`、route / attempt identity、`domain_route_*_ref`、source refs、receipt labels 与 authority boundary，不读取 paper/study payload 作为框架语义。
+
+terminal sync 的 primary discriminator 是 `status`：`accepted_for_provider_projection` 才可形成 runtime request；`typed_wait + typed_blocker_authority` 等待 typed-blocker / lineage refs；`typed_wait + human_gate_authority` 等待 human/owner-decision refs；`terminal_no_runtime + mission_complete + complete_mission` 是 no-runtime terminal。所有路径均禁止 OPL 写 domain truth、quality verdict、owner receipt、typed blocker、human gate、current package、artifact body，或把 provider / queue observation 升级成 domain progress / ready claim。
+
 允许输出：
 
 - `domain_route_ref`
@@ -169,7 +173,7 @@ Mission-first non-advancing route-back 的自动升级口径固定为 contract p
 
 同一签名第一次 route-back 可以作为 owner handoff；第二次仍没有 owner receipt、stable typed blocker、human gate、route-back evidence、canonical paper/artifact delta、AI reviewer / publication gate delta、successor work unit 或 `CarryForwardRiskReceipt` 时，必须升级到 MAS-owned Codex executor stage：`paper_mission_semantic_progress_executor`。该 stage 是 MAS domain stage type，默认 executor 是 Codex CLI；OPL 只负责 transport、queue、attempt、StageRun 和 refs-only projection。升级后的 stop condition 不能是“状态解释清楚”或“transport 已修复”，只能是 mission delta、typed owner blocker、human gate、带 successor 的 route-back、carry-forward risk receipt 或 repair-lane proposal。
 
-MAS `paper-mission drive` 与 OPL `paper_mission/stage-route` request 必须同时携带 `mas_owned_executor_stage` packet。OPL 可以运输该 packet、展示 next stage 和停止同义 redrive，但不能把 packet 本身写成 owner receipt、typed blocker、human gate、paper delta、provider running 或 readiness 证据；这些输出仍必须由 MAS-owned executor stage 后续物化。
+MAS `paper-mission drive` 与 OPL `domain_route/stage-route` request 必须同时携带 `mas_owned_executor_stage` packet。OPL 可以运输该 packet、展示 next stage 和停止同义 redrive，但不能把 packet 本身写成 owner receipt、typed blocker、human gate、paper delta、provider running 或 readiness 证据；这些输出仍必须由 MAS-owned executor stage 后续物化。
 
 当 `paper-mission drive` 已物化非 authority `owner_decision_packet`、`paper_facing_candidate_delta`、`owner_consumption_request` 和 governed consumption ledger，但 OPL live readback 仍是 `waiting_for_opl_runtime_live_readback` 时，MAS 不得继续把停止原因只写成 runtime pending。读面必须暴露 `mas_owned_executor_delta_ready` checkpoint、produced output refs、`mas_owned_executor_stage` 和 `forbidden_next_action=synonymous_route_back_redrive`，使下一步回到 MAS-owned executor / owner consumption，而不是等待同义 OPL redrive。该 checkpoint 仍不写 owner receipt、typed blocker、human gate、paper body、publication/controller authority、runtime queue 或 provider attempt；它只证明 foreground executor 已产出可消费候选。
 

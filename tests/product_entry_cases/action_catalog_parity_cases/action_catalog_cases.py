@@ -211,7 +211,7 @@ def test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool(tmp_pat
     assert domain_handler_dispatch["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
     assert domain_handler_dispatch["effect"] == "mutating"
     assert "Boundary for OPL typed task consumption" in domain_handler_dispatch["summary"]
-    assert "paper_mission/start_or_resume" in domain_handler_dispatch["summary"]
+    assert "domain_route/start-or-resume" in domain_handler_dispatch["summary"]
     assert "non-authority" in domain_handler_dispatch["summary"]
     assert "legacy owner-callable dispatch is tombstoned" in domain_handler_dispatch["summary"]
     assert "does not create owner receipts" in domain_handler_dispatch["summary"]

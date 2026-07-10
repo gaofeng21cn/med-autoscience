@@ -14,6 +14,9 @@ from med_autoscience.controllers.domain_action_request_materializer import (
 from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
+from med_autoscience.controllers.opl_execution_boundary import (
+    first_trusted_opl_execution_authorization,
+)
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
@@ -41,7 +44,6 @@ def mas_foreground_owner_callable_dispatch_payload(
     typed_closeout_contract: Mapping[str, Any],
     owner_route_attempt_envelope: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
     readiness_dispatch: Mapping[str, Any],
     evidence_gap_projection: Mapping[str, Any],
     progress_first_closeout_admission: Mapping[str, Any],
@@ -65,21 +67,12 @@ def mas_foreground_owner_callable_dispatch_payload(
         owner_route=owner_route,
         idempotency_key=idempotency_key,
         repeat_key=repeat_key,
-        dispatch_status=(
-            "ready"
-            if (
-                developer_mode_payload.get("dry_run_executor_dispatch") is True
-                or developer_mode_payload.get("safe_actions_enabled") is True
-            )
-            and materializer_core.text(developer_mode_payload.get("mode")) == "developer_apply_safe"
-            else "dry_run"
-        ),
+        dispatch_status="dry_run",
         blocked_reason=None,
         repeat_guard={"repeat_suppressed": False, "why_not_applied": None},
         typed_closeout_contract=typed_closeout_contract,
         owner_route_attempt_envelope=owner_route_attempt_envelope,
         prompt_contract=prompt_contract,
-        developer_mode_payload=developer_mode_payload,
         readiness_dispatch=readiness_dispatch,
         evidence_gap_projection=evidence_gap_projection,
         progress_first_closeout_admission=progress_first_closeout_admission,
@@ -137,7 +130,6 @@ def owner_callable_dispatch_payload(
     typed_closeout_contract: Mapping[str, Any],
     owner_route_attempt_envelope: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
     readiness_dispatch: Mapping[str, Any],
     evidence_gap_projection: Mapping[str, Any],
     progress_first_closeout_admission: Mapping[str, Any],
@@ -148,6 +140,15 @@ def owner_callable_dispatch_payload(
     source_action_ref: SourceActionRef,
     scan_latest_path: ScanLatestPath,
 ) -> dict[str, Any]:
+    opl_execution_authorization = first_trusted_opl_execution_authorization(
+        action.get("opl_execution_authorization"),
+        prompt_contract.get("opl_execution_authorization"),
+        owner_route.get("opl_execution_authorization"),
+        materializer_core.mapping(owner_route.get("source_refs")).get(
+            "opl_execution_authorization"
+        ),
+    )
+    authorization_required = target_runtime_owner == "one-person-lab"
     adapter_contract = _owner_callable_adapter_contract(
         action_type=action_type,
         next_executable_owner=next_executable_owner,
@@ -203,9 +204,9 @@ def owner_callable_dispatch_payload(
         "execution_gate": execution_gate.projection(
             dispatch_status=dispatch_status,
             blocked_reason=blocked_reason,
-            developer_mode_payload=developer_mode_payload,
-            supported_mode="developer_apply_safe",
+            opl_execution_authorization=opl_execution_authorization,
             evidence_gap_projection=evidence_gap_projection,
+            authorization_required=authorization_required,
         ),
         "evidence_gap_decisions": list(evidence_gap_projection.get("evidence_gap_decisions") or []),
         "evidence_gap_decision_summary": dict(mapping(evidence_gap_projection.get("evidence_gap_decision_summary"))),
@@ -229,8 +230,10 @@ def owner_callable_dispatch_payload(
         ),
         "provider_admission_effect": execution_gate.provider_admission_effect(
             dispatch_status=dispatch_status,
-            blocked_reason=blocked_reason,
+            opl_execution_authorization=opl_execution_authorization,
+            authorization_required=authorization_required,
         ),
+        "opl_execution_authorization": dict(opl_execution_authorization or {}),
         "opl_transition_runtime_postcondition": transition_projection_boundary.runtime_postcondition(),
         "repeat_suppressed": bool(repeat_guard["repeat_suppressed"]),
         "why_not_applied": repeat_guard["why_not_applied"],

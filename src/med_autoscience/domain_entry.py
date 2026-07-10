@@ -271,6 +271,7 @@ def _dispatch_display_pack_command(command: str, request: Mapping[str, Any]) -> 
             repo_root=repo_root if repo_root is not None else None,
             paper_root=paper_root if paper_root is not None else None,
             include_templates=_bool_value(request.get("include_templates")),
+            opl_descriptor_output_dir=request.get("opl_descriptor_output_dir"),
         )
     if command == "display-pack-orchestrate":
         figure_request = request.get("figure_request")

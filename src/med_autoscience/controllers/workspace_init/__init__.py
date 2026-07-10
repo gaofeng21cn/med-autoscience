@@ -10,7 +10,6 @@ import subprocess
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
-from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.controllers.workspace_agents_template import render_workspace_agents
 from med_autoscience.controllers.workspace_git_boundary import (
     ensure_workspace_git,
@@ -634,8 +633,6 @@ def _rendered_files(
         ),
     ]
     for item in portfolio_memory_controller.render_portfolio_memory_files(workspace_root=workspace_root):
-        files.append(RenderedFile(path=item.path, content=item.content))
-    for item in workspace_literature_controller.render_workspace_literature_files(workspace_root=workspace_root):
         files.append(RenderedFile(path=item.path, content=item.content))
     return files
 

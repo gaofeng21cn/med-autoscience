@@ -3,7 +3,7 @@
   "contract_id": "display-pack-contract.v2",
   "owner": "MedAutoScience",
   "purpose": "Machine-readable Display Pack v2 descriptor boundary for MAS medical display packs, paper-facing quality refs, and the OPL Pack OS handoff tail.",
-  "machine_boundary": "This contract declares the required descriptor fields and authority boundaries for MAS Display Pack v2. The validator lives in med_autoscience.display_pack_v2_contract. It does not claim that MAS owns a generic OPL Pack OS.",
+  "machine_boundary": "This contract declares the required descriptor fields and authority boundaries for MAS Display Pack v2. MAS converts this domain descriptor into the generic OPL Pack OS descriptor before handoff; OPL does not interpret Display Pack v2 fields or own MAS publication authority.",
   "source_module": "src/med_autoscience/display_pack_v2_contract.py",
   "pack_descriptor": {
     "surface_kind": "display_pack_v2_pack_descriptor",
@@ -105,7 +105,7 @@
   "opl_handoff": {
     "surface_kind": "display_pack_v2_opl_pack_os_handoff",
     "status": "handoff_tail",
-    "tail_status": "opl_pack_os_substrate_landed_external",
+    "tail_status": "mas_generic_pack_descriptor_adapter_landed",
     "target_owner": "OPL Pack OS",
     "target_capabilities": [
       "generic_pack_install",
@@ -121,28 +121,42 @@
       "display_pack_toml_loader",
       "template_toml_loader",
       "local_dir_git_repo_python_package_sources",
+      "generic_opl_pack_descriptor_adapter",
+      "generic_opl_pack_descriptor_materialization",
       "display_pack_lock_refs",
       "publication_figure_quality_refs",
       "submission_manifest_ref_preservation"
     ],
     "external_opl_consumer": {
-      "status": "landed_in_opl_repo",
+      "status": "generic_descriptor_consumption",
       "owner_repo": "one-person-lab",
-      "surface": "opl pack os mas-display-smoke",
-      "command": "opl pack os mas-display-smoke --contract <mas_repo>/contracts/display-pack-contract.v2.json --json",
+      "surface": "opl pack os inspect --descriptor <path>",
+      "command": "opl pack os inspect --descriptor <mas_descriptor_path> --json",
       "verification_refs": [
+        "src/med_autoscience/display_pack_opl_adapter.py",
+        "contracts/display_pack_opl_adapter.json",
         "one-person-lab:src/pack-os.ts",
         "one-person-lab:src/pack-os-contract.ts",
         "one-person-lab:contracts/opl-framework/pack-os-contract.json",
         "one-person-lab:tests/src/pack-os.test.ts",
         "one-person-lab:tests/src/cli/cases/pack-os-command-surface.test.ts"
       ],
-      "boundary": "OPL can consume this MAS Display Pack v2 contract and emit a generic pack lock/audit smoke receipt. This consumer preserves MAS authority boundaries and does not land publication authority inside MAS."
+      "boundary": "OPL consumes only the generic descriptor emitted by the MAS adapter. OPL does not parse Display Pack v2, build a MAS-specific descriptor, or acquire publication authority."
     },
-    "handoff_rule": "MAS exposes refs and boundaries for OPL-owned Pack OS consumers. OPL repo has landed generic Pack OS install, registry, cache, distribution, lock, validation, and MAS Display Pack smoke surfaces; MAS still does not own or close generic Pack OS inside this repository.",
+    "generic_descriptor_adapter": {
+      "status": "landed",
+      "source_ref": "src/med_autoscience/display_pack_opl_adapter.py",
+      "contract_ref": "contracts/display_pack_opl_adapter.json",
+      "domain_action": "display-pack-capability-discover",
+      "materialization_argument": "opl_descriptor_output_dir",
+      "output_field": "opl_pack_descriptor_refs",
+      "target_contract_ref": "one-person-lab:contracts/opl-framework/pack-os-contract.json#descriptor_contract",
+      "descriptor_media_type": "application/vnd.opl.pack.descriptor.v1+json"
+    },
+    "handoff_rule": "MAS normalizes Display Pack v2 into a generic OPL Pack OS descriptor. OPL consumes that descriptor through generic inspect/install/cache/distribute/lock/validate surfaces and never retains a MAS-specific conversion path.",
     "forbidden_claims": [
       "MAS owns generic OPL Pack OS",
-      "Display Pack v2 contract closes generic Pack OS inside MAS",
+      "OPL parses Display Pack v2 or builds a MAS-specific descriptor",
       "OPL Pack OS can write MAS publication truth",
       "OPL Pack OS can authorize MAS publication readiness"
     ],
@@ -156,8 +170,7 @@
         "opl pack os cache",
         "opl pack os distribute",
         "opl pack os lock",
-        "opl pack os validate",
-        "opl pack os mas-display-smoke"
+        "opl pack os validate"
       ],
       "verification_refs": [
         "one-person-lab:src/pack-os.ts",
@@ -166,7 +179,7 @@
         "one-person-lab:tests/src/pack-os.test.ts",
         "one-person-lab:tests/src/cli/cases/pack-os-command-surface.test.ts"
       ],
-      "boundary": "Generic install, registry, cache, distribute, lock, validate, and MAS display smoke surfaces are landed in the OPL repo. MAS only references these external OPL-owned surfaces and still does not own generic Pack OS or publication authority."
+      "boundary": "Generic inspect, install, registry, cache, distribute, lock, and validate surfaces are OPL-owned. MAS owns the Display Pack v2 to generic descriptor conversion and retains publication authority."
     }
   },
   "verification": {

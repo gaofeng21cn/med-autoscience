@@ -10,30 +10,14 @@ from .paper_orchestra_operator import render_paper_orchestra_operator_projection
 from .shared import (
     _bool_label,
     _check_status_label,
-    _gate_clearing_followthrough_preview,
     _non_empty_text,
     _operator_verdict_label,
-    _quality_repair_followthrough_preview,
-    _quality_review_followthrough_preview,
-    _quality_review_loop_preview,
     _render_capability_owner_boundary_markdown_lines,
     _render_single_project_boundary_markdown_lines,
-    _same_line_route_truth_preview,
     _start_mode_label,
     _surface_kind_label,
     _user_interaction_mode_label,
 )
-from .workspace_attention import (
-    _autonomy_soak_focus,
-    _gate_clearing_followthrough_focus,
-    _operator_status_summary,
-    _quality_execution_focus,
-    _quality_repair_followthrough_focus,
-    _quality_review_followthrough_focus,
-    _same_line_route_focus,
-)
-
-
 def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     workspace_locator = dict(payload.get("workspace_locator") or {})
     repo_mainline = dict(payload.get("repo_mainline") or {})
@@ -205,7 +189,6 @@ def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
     lines.extend(_render_opl_current_control_state_handoff_dashboard_lines(workspace_opl_current_control_state_handoff_dashboard))
-    lines.extend(_workspace_attention_preview_lines(payload.get("workspace_attention_queue_preview") or []))
     lines.extend(_status_phase2_user_loop_lines(phase2_user_product_loop))
     lines.extend(_status_guardrail_lines(product_entry_guardrails))
     lines.extend(_status_phase3_clearance_lines(phase3_clearance_lane))
@@ -371,58 +354,6 @@ def _workspace_medical_paper_ops_health_lines(state: Mapping[str, Any]) -> list[
             f"{study.get('overall_status') or 'unknown'}；"
             f"ops drilldown `{next_action.get('summary') or 'none'}`"
         )
-    return lines
-
-
-def _workspace_attention_preview_lines(items: object) -> list[str]:
-    lines: list[str] = []
-    for item in items if isinstance(items, list) else []:
-        if isinstance(item, dict):
-            lines.extend(_workspace_attention_item_lines(item))
-    return lines
-
-
-def _workspace_attention_item_lines(item: Mapping[str, Any]) -> list[str]:
-    lines = [
-        f"- 当前关注项: {item.get('title') or '未命名关注项'}",
-        f"- 处理命令: `{item.get('recommended_command') or 'none'}`",
-    ]
-    lines.extend(_workspace_attention_supporting_lines(item))
-    operator_status_card = dict(item.get("operator_status_card") or {})
-    if operator_status_card.get("handling_state"):
-        lines.append(f"- 处理状态: `{operator_status_card.get('handling_state')}`")
-    if operator_status_card.get("user_visible_verdict"):
-        lines.append(f"- 当前处理结论: {operator_status_card.get('user_visible_verdict')}")
-    if operator_status_card.get("next_confirmation_signal"):
-        lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
-    return lines
-
-
-def _workspace_attention_supporting_lines(item: Mapping[str, Any]) -> list[str]:
-    lines: list[str] = []
-    summary_fields = (
-        ("autonomy_contract", "自治合同"),
-        ("autonomy_soak_status", "自治 Proof / Soak"),
-        ("quality_closure_truth", "质量闭环"),
-        ("quality_execution_lane", "质量执行线"),
-    )
-    for key, label in summary_fields:
-        payload = dict(item.get(key) or {})
-        if payload.get("summary"):
-            lines.append(f"- {label}: {payload.get('summary')}")
-    preview_fields = (
-        (_same_line_route_truth_preview(item.get("same_line_route_truth")), "同线路由"),
-        (_quality_review_loop_preview(item.get("quality_review_loop")), "质量评审闭环"),
-        (_quality_review_followthrough_preview(item.get("quality_review_followthrough")), "质量复评跟进"),
-        (_quality_repair_followthrough_preview(item.get("quality_repair_followthrough")), "quality-repair 跟进"),
-        (_gate_clearing_followthrough_preview(item.get("gate_clearing_followthrough")), "gate-clearing 跟进"),
-    )
-    for preview, label in preview_fields:
-        if preview:
-            lines.append(f"- {label}: {preview}")
-    restore_point = dict(dict(item.get("autonomy_contract") or {}).get("restore_point") or {})
-    if restore_point.get("summary"):
-        lines.append(f"- 恢复点: {restore_point.get('summary')}")
     return lines
 
 

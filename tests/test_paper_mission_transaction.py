@@ -106,14 +106,17 @@ def test_contract_declares_terminalizer_boundary() -> None:
         "opl_route_command"
     ]["forbidden_runtime_claims"]
     assert contract["opl_runtime_carrier"]["surface_kind"] == (
-        "mas_domain_progress_transition_request"
+        "opl_domain_route_runtime_request"
     )
     assert contract["opl_runtime_carrier"]["target_runtime_kind"] == (
-        "DomainProgressTransitionRuntime"
+        "domain_route/stage-route"
     )
     assert contract["opl_runtime_carrier"]["request_only_flags"][
-        "provider_admission_requires_opl_runtime_result"
-    ] is True
+        "writes_runtime_queue"
+    ] is False
+    assert contract["opl_runtime_carrier"]["domain_route_profile_ref"] == (
+        "contracts/domain_route_profile.json"
+    )
     assert "stage_run_identity" in contract["opl_runtime_carrier"][
         "forbidden_runtime_fields"
     ]

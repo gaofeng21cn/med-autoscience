@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-GUARDED_APPLY_STAGE_ID = "paper_autonomy/guarded-apply"
+GUARDED_APPLY_STAGE_ID = "domain_autonomy/guarded-apply"
 GUARDED_APPLY_DESIRED_DELTA = "domain_owner_receipt_quality_gate_or_typed_blocker_required"
 GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES = (
     "domain_owner_receipt_ref",
@@ -180,7 +180,7 @@ def guarded_apply_identity_typed_blocker(value: Mapping[str, Any] | None) -> dic
     return {
         "blocker_id": "current_owner_delta_identity_missing_or_invalid",
         "owner": "med-autoscience",
-        "reason": "paper_autonomy/guarded-apply requires a live OPL current_owner_delta identity before MAS can answer.",
+        "reason": "domain_autonomy/guarded-apply requires a live OPL current_owner_delta identity before MAS can answer.",
         "required_owner_surface": "OPL current_owner_delta / MAS guarded-apply owner-answer work unit",
         "write_permitted": False,
         "current_owner_delta_validation": validation,

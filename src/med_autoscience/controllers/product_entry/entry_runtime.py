@@ -9,6 +9,7 @@ from . import program_surfaces as _program_surfaces
 from . import program_runtime_surfaces as _program_runtime_surfaces
 from . import workspace_surfaces as _workspace_surfaces
 from . import manifest_surfaces as _manifest_surfaces
+from .workspace_cockpit.cockpit_payload import build_workspace_domain_projection
 from med_autoscience.study_task_intake import task_intake_overrides_auto_manual_finish
 
 def _module_reexport(module) -> None:
@@ -99,6 +100,9 @@ def build_product_entry(
             "study_id": resolved_study_id,
             "study_root": str(resolved_study_root),
         },
+        "domain_projection": build_workspace_domain_projection(
+            study_progress_payloads=[study_payload]
+        ),
         "domain_authority_handoff_contract": {
             "runtime_owner": "one-person-lab",
             "domain_owner": TARGET_DOMAIN_ID,

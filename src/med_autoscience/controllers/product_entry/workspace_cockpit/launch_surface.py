@@ -124,7 +124,9 @@ def launch_study(
             f"{_command_prefix(profile_ref)} study progress --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)} --format json"
         ),
-        "cockpit": _command(profile_ref, "workspace-cockpit", "--profile", _profile_arg(profile_ref)),
+        "workbench": _json_surface_command(
+            f"opl app workbench --agent med-autoscience --profile {_profile_arg(profile_ref)}"
+        ),
         "owner_route_handoff": _json_surface_command(
             _paper_mission_drive_command(profile_ref, study_id=resolved_study_id)
         ),

@@ -92,7 +92,7 @@ def test_live_stage_run_progress_evidence_answers_owner_delta_missing_with_typed
     assert answer["source_observation"] == "current_owner_delta_owner_answer_missing=true"
     assert answer["answers_missing_owner_answer"] is True
     assert answer["current_owner"] == "med-autoscience"
-    assert answer["stage_id"] == "paper_autonomy/guarded-apply"
+    assert answer["stage_id"] == "domain_autonomy/guarded-apply"
     assert answer["next_required_delta"] == (
         "domain_owner_receipt_quality_gate_or_typed_blocker_required"
     )
@@ -120,7 +120,7 @@ def test_live_stage_run_progress_evidence_answers_owner_delta_missing_with_typed
             "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:"
             "owner-answer-or-typed-blocker"
         ),
-        "stage_id": "paper_autonomy/guarded-apply",
+        "stage_id": "domain_autonomy/guarded-apply",
         "task_or_study_ref": "medautoscience:frt_dfb2a46c1e1286b88bd02ce6",
         "lineage_ref": "sat_19c64e81217e5b7f8531abc6",
         "current_owner_delta_id": (

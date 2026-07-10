@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any, Callable
 
-from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.owner_callable_adapter_projection import (
     with_owner_callable_adapter_projection,
@@ -25,7 +24,6 @@ def current_owner_callable_adapters(
     mode: str,
     apply: bool,
     generated_at: str,
-    supported_mode: str,
     dispatch_ready_for_execution: bool,
     read_json_object: ReadJsonObject,
     scan_latest_path: ScanPath,
@@ -37,13 +35,6 @@ def current_owner_callable_adapters(
     required_output_surface: Callable[[Mapping[str, Any], str], str],
     text: Callable[[object], str | None],
 ) -> dict[str, Any]:
-    developer_mode = resolve_developer_supervisor_mode(
-        profile=profile,
-        requested_mode=mode,
-        apply_safe_actions=apply,
-        scheduler_owner="external_queue_consumer",
-    )
-    developer_mode_payload = developer_mode.to_dict()
     scan_payload = read_json_object(scan_latest_path(profile)) or {}
     resolved_study_ids = resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = selected_actions(
@@ -65,14 +56,6 @@ def current_owner_callable_adapters(
                 text(action.get("action_type")) or "unknown_action",
             ),
             apply=apply,
-            developer_mode_payload=(
-                _developer_mode_payload_for_dry_run_execution(
-                    developer_mode_payload,
-                    supported_mode=supported_mode,
-                )
-                if dispatch_ready_for_execution and not apply
-                else developer_mode_payload
-            ),
             scan_payload=scan_payload,
             generated_at=generated_at,
         )
@@ -103,9 +86,9 @@ def current_owner_callable_adapters(
         "dry_run": not apply,
         "requested_studies": list(resolved_study_ids),
         "requested_mode": mode,
-        "effective_mode": developer_mode.mode,
-        "developer_supervisor_mode": developer_mode_payload,
-        "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
+        "effective_mode": "opl_execution_authorization",
+        "apply_allowed": False,
+        "execution_authorization_owner": "one-person-lab",
         "adapter_kind": "opl_authorized_owner_callable_adapter",
         "target_runtime_owner": "one-person-lab",
         "dispatch_ready_for_execution_preview": False,
@@ -149,19 +132,6 @@ def current_owner_callable_adapters(
         "owner_callable_adapters": dispatches,
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in dispatches),
     })
-
-
-def _developer_mode_payload_for_dry_run_execution(
-    developer_mode_payload: Mapping[str, Any],
-    *,
-    supported_mode: str,
-) -> dict[str, Any]:
-    return {
-        **dict(developer_mode_payload),
-        "mode": supported_mode,
-        "safe_actions_enabled": True,
-        "dry_run_executor_dispatch": True,
-    }
 
 
 def _transition_projection_dispatch(

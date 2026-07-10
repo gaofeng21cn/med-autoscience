@@ -77,12 +77,14 @@ def build_study_reference_context(
     )
     combined_records = [*startup_records, *reference_records]
     if combined_records:
-        workspace_literature_controller.sync_workspace_literature(
+        workspace_source_intake = workspace_literature_controller.sync_workspace_literature(
             workspace_root=resolved_workspace_root,
             records=combined_records,
         )
     else:
-        workspace_literature_controller.init_workspace_literature(workspace_root=resolved_workspace_root)
+        workspace_source_intake = workspace_literature_controller.init_workspace_literature(
+            workspace_root=resolved_workspace_root
+        )
     workspace_status = workspace_literature_controller.workspace_literature_status(workspace_root=resolved_workspace_root)
 
     selections_by_id: dict[str, dict[str, str]] = {}
@@ -141,6 +143,7 @@ def build_study_reference_context(
         "study_root": str(resolved_study_root),
         "workspace_root": str(resolved_workspace_root),
         "workspace_registry_path": workspace_status["registry_path"],
+        "workspace_source_intake_request": workspace_source_intake,
         "record_count": len(records),
         "selected_record_ids": selected_record_ids,
         "mandatory_anchor_record_ids": mandatory_anchor_record_ids,

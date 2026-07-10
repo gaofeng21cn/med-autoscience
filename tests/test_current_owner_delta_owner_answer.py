@@ -11,8 +11,8 @@ def _fresh_guarded_apply_delta(**overrides: object) -> dict[str, object]:
         "domain": "medautoscience",
         "domain_id": "medautoscience",
         "task_or_study_ref": "medautoscience:frt_dfb2a46c1e1286b88bd02ce6",
-        "stage_ref": "paper_autonomy/guarded-apply",
-        "stage_id": "paper_autonomy/guarded-apply",
+        "stage_ref": "domain_autonomy/guarded-apply",
+        "stage_id": "domain_autonomy/guarded-apply",
         "lineage_ref": "sat_19c64e81217e5b7f8531abc6",
         "source_fingerprint": (
             "owner_delta_first:med-autoscience:medautoscience:paper-autonomy-guarded-apply:"
@@ -67,7 +67,7 @@ def test_materializes_current_owner_delta_bound_typed_blocker_and_opl_payloads()
         "mas-stage-typed-blocker:medautoscience:"
         "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker:"
         "frt_dfb2a46c1e1286b88bd02ce6:sat_19c64e81217e5b7f8531abc6:"
-        "paper_autonomy-guarded-apply:owner-answer-required"
+        "domain_autonomy-guarded-apply:owner-answer-required"
     )
     assert typed_blocker["current_owner_delta_id"] == (
         "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker"
@@ -105,12 +105,14 @@ def test_materializes_current_owner_delta_bound_typed_blocker_and_opl_payloads()
     assert stage_record["decision"] == "typed_blocker"
     assert stage_record["owner_answer_kind"] == "typed_blocker"
     assert stage_record["owner_answer_ref"] == typed_blocker["typed_blocker_ref"]
-    assert stage_record["stage_run_id"] == "app-stage-run:medautoscience:paper-autonomy-guarded-apply"
+    assert stage_record["stage_run_id"] == (
+        "app-stage-run:medautoscience:domain-autonomy-guarded-apply"
+    )
     assert stage_record["study_id"] == "frt_dfb2a46c1e1286b88bd02ce6"
     assert stage_record["domain_context"] == {
         "domain_id": "medautoscience",
         "study_id": "frt_dfb2a46c1e1286b88bd02ce6",
-        "stage_id": "paper_autonomy/guarded-apply",
+        "stage_id": "domain_autonomy/guarded-apply",
     }
     assert stage_record["stage_attempt_id"] == "sat_19c64e81217e5b7f8531abc6"
     assert stage_record["owner_answer_stage_run_id"] == stage_record["stage_run_id"]

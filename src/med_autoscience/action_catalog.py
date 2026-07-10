@@ -8,6 +8,9 @@ from med_autoscience.authority_operation_command_catalog import (
     product_entry_description_modes_text,
 )
 from med_autoscience.evidence_gap_abi import evidence_gap_abi_ref
+from med_autoscience.domain_route_profile import (
+    DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
+)
 from med_autoscience.research_integrity.action_catalog_specs import (
     RESEARCH_INTEGRITY_MCP_INPUT_SCHEMAS,
     research_integrity_action_specs,
@@ -40,6 +43,7 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
             "repo_root": {"type": "string"},
             "paper_root": {"type": "string"},
             "include_templates": {"type": "boolean"},
+            "opl_descriptor_output_dir": {"type": "string"},
         },
     },
     "display_pack_figure_plan": {
@@ -591,7 +595,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "title": "Dispatch MAS domain-handler task",
             "summary": (
                 "Boundary for OPL typed task consumption. Ordinary paper execution uses "
-                "paper_mission/start_or_resume and may materialize non-authority "
+                f"{DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND} and may materialize non-authority "
                 "submission milestone candidate packages plus consumption ledgers; legacy "
                 "owner-callable dispatch is tombstoned and can only return "
                 "diagnostic/fail-closed readback. This action does not create owner "
