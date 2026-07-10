@@ -697,8 +697,8 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         "domain_authority_refs_retirement_gates": domain_authority_refs_retirement_gates,
         "domain_authority_refs_index_role": {
             "classification": "domain_authority_refs",
-            "current_mas_role": "domain_authority_receipt_and_locator_ref_index",
-            "authority": "refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "current_mas_role": "body_free_state_index_source_adapter",
+            "authority": "body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "owner": REPLACEMENT_OWNER,
             "provenance_role": "domain_authority_ref_locator_index",
             "body_policy": "refs_receipts_blockers_only",

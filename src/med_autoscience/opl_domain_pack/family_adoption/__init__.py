@@ -52,7 +52,7 @@ FAMILY_STAGE_CONTROL_PLANE_KIND = "family_stage_control_plane"
 DOMAIN_MEMORY_DESCRIPTOR_KIND = "family_domain_memory_ref"
 SOURCE_CONTRACT_REF = "contracts/opl-framework/family-contract-adoption.json"
 DOMAIN_AUTHORITY_REFS_CONTRACT_REF = (
-    "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
+    "med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract"
 )
 STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"

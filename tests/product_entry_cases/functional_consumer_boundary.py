@@ -217,7 +217,6 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "domain_diagnostic_report_loop_shell" not in by_id
     assert by_id["domain_authority_refs_index"]["code_paths"] == [
         "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
-        "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
         "src/med_autoscience/opl_domain_pack/",
         "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
     ]
@@ -281,7 +280,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
 
     lifecycle_role = boundary["domain_authority_refs_index_role"]
     assert lifecycle_role["classification"] == "domain_authority_refs"
-    assert lifecycle_role["current_mas_role"] == "domain_authority_receipt_and_locator_ref_index"
+    assert lifecycle_role["current_mas_role"] == "body_free_state_index_source_adapter"
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False
     assert lifecycle_role["mas_consumes_opl_current_control_state_refs"] is True
     assert lifecycle_role["mas_may_write_domain_truth"] is False

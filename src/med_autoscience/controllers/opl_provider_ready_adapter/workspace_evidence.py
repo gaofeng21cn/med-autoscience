@@ -79,8 +79,8 @@ def _workspace_root_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
             runtime_artifacts_root / "opl_family_domain_handler" / "dispatch_receipts",
         ),
         _ref(
-            "domain_authority_refs_index",
-            runtime_artifacts_root / "domain_authority_refs.sqlite",
+            "state_index_source_adapter",
+            runtime_artifacts_root / "opl_state_index_source_adapter" / "authority_refs_source.json",
         ),
     ]
 

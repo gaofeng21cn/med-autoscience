@@ -23,7 +23,7 @@ def build_opl_lifecycle_inventory_surface() -> dict[str, Any]:
                 "lifecycle_refs_sqlite_index",
                 (
                     "Retired MAS lifecycle refs adapter is physically absent; MAS now exports "
-                    "domain_authority_refs_index refs only, and OPL owns the generic "
+                    "a body-free StateIndex source adapter, and OPL owns the generic "
                     "persistence/lifecycle replacement contract."
                 ),
                 "lift_to_opl_framework",

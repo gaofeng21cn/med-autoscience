@@ -24,7 +24,6 @@ def record_paper_progress_transition_ref(
     idempotency_key: str,
     intent: Mapping[str, Any],
     recorded_at: str,
-    db_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_quest_root = Path(quest_root).expanduser().resolve()
@@ -61,7 +60,6 @@ def record_paper_progress_transition_ref(
             study_root=resolved_study_root,
             quest_root=resolved_quest_root,
             receipt=conflict,
-            db_path=db_path,
         )
         return conflict
 
@@ -85,7 +83,6 @@ def record_paper_progress_transition_ref(
             study_root=resolved_study_root,
             quest_root=resolved_quest_root,
             receipt=receipt,
-            db_path=db_path,
         )
         return receipt
 
@@ -107,7 +104,6 @@ def record_paper_progress_transition_ref(
         study_root=resolved_study_root,
         quest_root=resolved_quest_root,
         receipt=receipt,
-        db_path=db_path,
     )
     return receipt
 
@@ -211,14 +207,12 @@ def _index_receipt(
     study_root: Path,
     quest_root: Path,
     receipt: Mapping[str, Any],
-    db_path: Path | None,
 ) -> None:
     opl_state_index_source_adapter.emit_paper_progress_transition_source(
         study_root=study_root,
         quest_root=quest_root,
         receipt=receipt,
         receipt_path=transition_refs_path(study_root),
-        db_path=db_path,
     )
 
 

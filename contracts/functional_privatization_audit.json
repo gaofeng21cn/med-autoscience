@@ -92,10 +92,10 @@
       "surface_kind": "mas_declarative_pack_compiler_input"
     },
     "domain_authority_refs_index_role": {
-      "authority": "refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+        "authority": "body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
       "body_policy": "refs_receipts_blockers_only",
       "classification": "domain_authority_refs",
-      "current_mas_role": "domain_authority_receipt_and_locator_ref_index",
+        "current_mas_role": "body_free_state_index_source_adapter",
       "forbidden_mas_roles": [
         "generic_persistence_engine",
         "generic_lifecycle_engine",
@@ -119,7 +119,7 @@
           "opl_queue_attempt_retry_dead_letter",
           "opl_generic_transition_runner"
         ],
-        "mas_allowed_role_until_replacement": "domain_authority_refs_index_refs_only",
+        "mas_allowed_role_until_replacement": "body_free_state_index_source_adapter",
         "owner": "one-person-lab",
         "required_before_mas_generic_owner_claim": true
       }
@@ -129,7 +129,7 @@
         "can_emit_generic_owner_verdict": false,
         "can_emit_paper_closure_verdict": false,
         "classification": "domain_authority_refs",
-        "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
+        "current_ref_status": "body_free_state_index_source_adapter_no_local_persistence",
         "delete_or_tombstone_after": [
           "domain_authority_refs_replaced_by_opl_generated_ref_index",
           "owner_receipt_ref_parity_proven",
@@ -151,7 +151,7 @@
           "generic_runtime_lifecycle_owner",
           "paper_closure_verdict"
         ],
-        "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner"
+        "retirement_gate_status": "local_index_retired_body_free_source_adapter_active"
       },
       {
         "can_emit_generic_owner_verdict": false,
@@ -314,7 +314,7 @@
         {
           "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
           ],
           "closure_status": "closed",
@@ -390,7 +390,7 @@
         {
           "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "workbench_portal_generic_shell.read_model_materializer_boundary"
           ],
           "closure_status": "closed",
@@ -589,11 +589,10 @@
         "classification": "domain_authority_refs",
         "code_paths": [
           "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
-          "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
           "src/med_autoscience/opl_domain_pack/",
           "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py"
         ],
-        "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
+        "current_ref_status": "body_free_state_index_source_adapter_no_local_persistence",
         "domain_ref_consumers": [
           "owner-route handoff domain authority refs",
           "paper work-unit and dispatch owner receipt refs",
@@ -609,7 +608,7 @@
           "owner_receipt",
           "progress_projection"
         ],
-        "migration_action": "declare_domain_authority_refs_index_and_consume_opl_current_control_state",
+        "migration_action": "emit_body_free_state_index_source_refs_and_consume_opl_current_control_state",
         "migration_class": "refs_only_domain_adapter",
         "module_id": "domain_authority_refs_index",
         "opl_expected_primitives": [
@@ -641,7 +640,7 @@
           "can_emit_generic_owner_verdict": false,
           "can_emit_paper_closure_verdict": false,
           "classification": "domain_authority_refs",
-          "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
+          "current_ref_status": "body_free_state_index_source_adapter_no_local_persistence",
           "delete_or_tombstone_after": [
             "domain_authority_refs_replaced_by_opl_generated_ref_index",
             "owner_receipt_ref_parity_proven",
@@ -663,7 +662,7 @@
             "generic_runtime_lifecycle_owner",
             "paper_closure_verdict"
           ],
-          "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner"
+          "retirement_gate_status": "local_index_retired_body_free_source_adapter_active"
         }
       },
       {
@@ -782,7 +781,7 @@
         "owner": "one-person-lab",
         "proof_refs": [
           "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-          "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
+          "opl_state_index_source_adapter.source_adapter_contract"
         ],
         "provenance_boundary": {
           "body_policy": "workspace_refs_sizes_receipts_blockers_only",
@@ -943,7 +942,7 @@
         "owner": "med-autoscience",
         "proof_refs": [
           "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-          "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"
+          "opl_state_index_source_adapter.source_adapter_contract"
         ],
         "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
         "retirement_gate": {
@@ -2423,7 +2422,7 @@
       {
         "closure_proof_refs": [
           "functional_module_inventory.domain_authority_refs",
-          "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+          "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
           "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
         ],
         "closure_status": "closed",
@@ -2499,7 +2498,7 @@
       {
         "closure_proof_refs": [
           "functional_module_inventory.domain_authority_refs",
-          "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+          "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
           "workbench_portal_generic_shell.read_model_materializer_boundary"
         ],
         "closure_status": "closed",
@@ -2708,7 +2707,6 @@
       "direct_or_hosted_generated_surface_production_consumption_ref",
       "production_generated_surface_consumption_ref",
       "physical_retirement_owner_decision_ref",
-      "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
       "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
       "long_soak_negative_conformance_ref"
     ],

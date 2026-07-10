@@ -53,7 +53,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "opl_provider_liveness_and_stale_attempt_detection",
         "rationale": "Durable OPL liveness is safer than an in-memory daemon store, but stale domain receipts can still stall production if not reconciled.",
-        "required_guard_surface": "OPL current_control_state/domain_authority_refs_index",
+        "required_guard_surface": "OPL current_control_state/state_index_source_adapter",
     },
     "crash_recovery_auto_resume": {
         "classification": "production_risk",
@@ -102,7 +102,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": False,
         "production_path": "retired_gitops_lifecycle",
         "rationale": "Runtime lifecycle is OPL-owned; MAS keeps only domain authority refs and restore-proof provenance. MDS quest Git is not a production goal.",
-        "required_guard_surface": "domain_authority_refs_index/restore provenance",
+        "required_guard_surface": "state_index_source_adapter/restore provenance",
     },
     "memory_lesson_store": {
         "classification": "production_risk",

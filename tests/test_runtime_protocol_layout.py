@@ -57,9 +57,6 @@ def test_workspace_runtime_layout_derives_quest_and_startup_payload_paths(tmp_pa
     assert layout.archives_root == tmp_path / "workspace" / "runtime" / "archives"
     assert layout.restore_index_root == tmp_path / "workspace" / "runtime" / "restore_index"
     assert layout.runtime_artifacts_root == tmp_path / "workspace" / "runtime" / "artifacts"
-    assert layout.domain_authority_refs_index_path == (
-        tmp_path / "workspace" / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
-    )
     assert layout.bin_root == tmp_path / "workspace" / "ops" / "mas" / "bin"
     assert layout.quest_root("study-001") == layout.quests_root / "study-001"
     assert layout.startup_payload_root("study-001") == layout.startup_payloads_root / "study-001"

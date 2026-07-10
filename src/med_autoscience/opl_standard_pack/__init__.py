@@ -817,7 +817,7 @@ def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> 
         "source_refs": [
             "contracts/functional_privatization_audit.json#/functional_consumer_boundary",
             "contracts/authority_kernel_inventory.json",
-            "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces/domain_diagnostic_obligation_actuator",
+            "contracts/runtime/mas-runtime-surface-retirement-inventory.json#/surfaces",
             "tests/standard_agent_purity_helpers.py",
             "tests/test_adapter_retirement_boundary.py",
             "tests/test_authority_kernel_inventory.py",
@@ -845,7 +845,6 @@ def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> 
             "direct_or_hosted_generated_surface_production_consumption_ref",
             "production_generated_surface_consumption_ref",
             "physical_retirement_owner_decision_ref",
-            "domain_diagnostic_obligation_actuator_no_active_caller_or_owner_retirement_decision_ref",
             "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
             "long_soak_negative_conformance_ref",
         ],

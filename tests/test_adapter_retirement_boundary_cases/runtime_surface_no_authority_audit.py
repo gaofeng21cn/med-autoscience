@@ -61,3 +61,40 @@ def test_runtime_surface_retirement_guard_rejects_resurrection_and_authority() -
         "domain_diagnostic_obligation_actuator",
         "mas_runtime_authority_not_false",
     ) in reasons
+
+
+def test_runtime_surface_retirement_guard_keeps_domain_authority_and_opl_ownership() -> None:
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    inventory = copy.deepcopy(_inventory())
+    inventory["authority_boundary"]["mas_retains"].remove("typed_blocker")
+    inventory["authority_boundary"]["opl_owns"].remove("state_index")
+
+    reasons = {
+        item["reason"]
+        for item in retirement.validate_runtime_surface_retirement_inventory(inventory)
+    }
+
+    assert "mas_retains_mismatch" in reasons
+    assert "opl_owns_mismatch" in reasons
+
+
+def test_runtime_surface_retirement_guard_keeps_stage_outcome_contract() -> None:
+    retirement = importlib.import_module(
+        "med_autoscience.runtime_protocol.runtime_surface_retirement"
+    )
+    inventory = copy.deepcopy(_inventory())
+    stage_outcome = next(
+        surface
+        for surface in inventory["surfaces"]
+        if surface["surface_id"] == "stage_outcome_authority"
+    )
+    stage_outcome["replacement_ref"] = "opl:unbound-runtime"
+
+    violations = retirement.validate_runtime_surface_retirement_inventory(inventory)
+
+    assert {
+        "surface_id": "stage_outcome_authority",
+        "reason": "retained_surface_contract_mismatch",
+    } in violations

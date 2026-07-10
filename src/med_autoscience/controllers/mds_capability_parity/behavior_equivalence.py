@@ -138,7 +138,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MAS no longer projects worker/session truth; it consumes OPL current_control_state and exposes only domain receipts/blockers.",
         "default_user_impact": "Live/no-live truth is fail-closed in OPL, while MAS progress remains tied to owner receipt, typed blocker, or domain verdict.",
-        "mas_contract": "OPL current_control_state determines live status; MAS domain_authority_refs_index, owner receipts, typed blockers, and publication gate determine domain progress.",
+        "mas_contract": "OPL current_control_state determines live status; MAS body-free StateIndex source refs, owner receipts, typed blockers, and publication gate determine domain progress.",
         "recommended_operator_action": "use_opl_provider_stage_runtime",
     },
     {
@@ -256,10 +256,10 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "GitOps state management",
         "equivalence_class": "not_equivalent_retired",
         "mds_behavior": {"root_git": True, "quest_git": True, "diff_log_reader": True},
-        "mas_behavior": {"root_git": False, "quest_git": False, "domain_authority_refs_index": True},
+        "mas_behavior": {"root_git": False, "quest_git": False, "state_index_source_adapter": True},
         "behavior_difference": "MAS intentionally retired workspace root Git and quest Git as runtime lifecycle owners.",
         "default_user_impact": "Existing papers use domain authority refs / restore-proof provenance, not MDS GitOps behavior.",
-        "mas_contract": "domain_authority_refs.sqlite, restore index and migration ledger own MAS refs/provenance; OPL owns runtime lifecycle.",
+        "mas_contract": "Body-free StateIndex source refs, restore index, and migration ledger preserve MAS provenance; OPL owns runtime lifecycle and persistence.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
     {

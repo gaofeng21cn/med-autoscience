@@ -160,7 +160,7 @@
       "tests/test_paper_recovery_provider_admission_state.py::test_same_identity_live_readback_promotes_request_to_provider_admission",
       "tests/test_paper_recovery_provider_admission_state.py::test_cross_identity_live_readback_remains_request_pending",
       "tests/test_paper_recovery_provider_admission_state.py::test_bare_event_outbox_or_stagerun_fragments_do_not_authorize_admission",
-      "tests/test_paper_progress_transition_runtime_completion_audit.py::test_transition_runtime_completion_audit_matches_replay_status_open_tails"
+      "tests/test_paper_progress_transition_runtime_completion_audit.py::test_completion_audit_keeps_replay_and_live_evidence_separate"
     ],
     "replay_proves": [
       "same-identity OPL-shaped readback consumes transition_request_pending in provider-admission projection logic",

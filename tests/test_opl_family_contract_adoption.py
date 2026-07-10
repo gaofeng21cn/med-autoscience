@@ -174,9 +174,12 @@ def test_mas_persistence_lifecycle_owner_route_projection_is_refs_payload_only()
         "lifecycle": "opl_family_lifecycle_contract.v1",
         "owner_route": "opl_family_owner_route_contract.v1",
     }
-    assert "runtime/artifacts/domain_authority_refs.sqlite" in projection["source_surfaces"]
-    assert "owner_route_receipts" in projection["sqlite_tables"]
-    assert "surface_refs" in projection["sqlite_tables"]
+    assert (
+        "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+        in projection["source_surfaces"]
+    )
+    assert "owner_route_receipts" in projection["source_families"]
+    assert "stage_artifact_delta_refs" in projection["source_families"]
     assert projection["authority_boundary"] == (
         "OPL may discover and index MAS refs/payload; MAS keeps study, publication, AI reviewer, and paper package authority"
     )

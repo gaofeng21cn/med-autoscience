@@ -189,22 +189,18 @@ def materialize_study_macro_state_snapshot(
     *,
     study_root: Path,
     snapshot: Mapping[str, Any],
-    db_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     snapshot_path = resolved_study_root / SNAPSHOT_RELATIVE_PATH
     payload = _snapshot_payload(snapshot)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    result: dict[str, Any] = {
+    return {
         "surface": "study_macro_state_materialization",
         "snapshot_path": str(snapshot_path.resolve()),
         "index": None,
         "index_status": "file_authority_only",
     }
-    if db_path is not None:
-        result["ignored_db_path"] = str(Path(db_path).expanduser().resolve())
-    return result
 
 
 def _state(

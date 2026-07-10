@@ -207,13 +207,11 @@ def persist_scan_domain_routes_payload(
     payload: dict[str, Any],
     studies: list[dict[str, Any]],
     action_queue: list[dict[str, Any]],
-    profile: Any,
     latest_path: Path,
     history_path: Path,
     generated_at: str,
     resolved_study_ids: tuple[str, ...],
     opl_state_index_source_adapter: Any,
-    study_root_for_id: Callable[[str], Path],
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_json_line: Callable[[Path, Mapping[str, Any]], None],
     text: Callable[[object], str | None],
@@ -231,10 +229,8 @@ def persist_scan_domain_routes_payload(
         if not owner_route:
             continue
         try:
-            study_root = Path(text(study.get("study_root")) or study_root_for_id(text(study.get("study_id")) or ""))
             study["owner_route_authority_ref_index"] = (
                 opl_state_index_source_adapter.emit_owner_route_receipt_source(
-                    study_root=study_root,
                     receipt=owner_route,
                     receipt_path=latest_path,
                 )

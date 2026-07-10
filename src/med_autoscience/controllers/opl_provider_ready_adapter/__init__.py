@@ -230,7 +230,9 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
             "dispatch_receipts": "runtime/artifacts/opl_family_domain_handler/dispatch_receipts",
-            "domain_authority_refs_index": "runtime/artifacts/domain_authority_refs.sqlite",
+            "state_index_source_adapter": (
+                "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
+            ),
         },
     }
 

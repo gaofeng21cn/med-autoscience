@@ -4,9 +4,6 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from med_autoscience.runtime_protocol.domain_authority_refs_index import SQLITE_GITIGNORE_PATTERNS
-
-
 WORKSPACE_GITIGNORE_ENTRIES = (
     ".DS_Store",
     "ops/medautoscience/.venv/",
@@ -53,7 +50,11 @@ WORKSPACE_GITIGNORE_ENTRIES = (
     "ops/med-deepscientist/styles/frontiers_word_templates/**",
     "tmp/",
     ".tmp/",
-    *SQLITE_GITIGNORE_PATTERNS,
+    "*.sqlite",
+    "*.sqlite-wal",
+    "*.sqlite-shm",
+    "*.db-wal",
+    "*.db-shm",
     "inbox/**",
     "!inbox/README.md",
     "storage_audit/",

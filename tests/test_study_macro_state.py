@@ -470,7 +470,6 @@ def test_controller_stop_truth_conflict_takes_priority_over_stale_active_run() -
 def test_materialize_study_macro_state_writes_file_authority_without_runtime_index(tmp_path: Path) -> None:
     module = _module()
     study_root = tmp_path / "studies" / "001-risk"
-    db_path = tmp_path / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     state = _derive(
         study_id="001-risk",
         status={
@@ -481,19 +480,17 @@ def test_materialize_study_macro_state_writes_file_authority_without_runtime_ind
         },
     )
 
-    result = module.materialize_study_macro_state_snapshot(study_root=study_root, snapshot=state, db_path=db_path)
+    result = module.materialize_study_macro_state_snapshot(study_root=study_root, snapshot=state)
 
     snapshot_path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
     assert result["snapshot_path"] == str(snapshot_path.resolve())
     assert result["index"] is None
     assert result["index_status"] == "file_authority_only"
-    assert result["ignored_db_path"] == str(db_path.resolve())
     persisted = json.loads(snapshot_path.read_text(encoding="utf-8"))
     assert persisted == {
         **state,
         "snapshot_id": state["source_fingerprint"],
     }
-    assert not db_path.exists()
 
 
 def test_macro_state_uses_short_primary_enums_and_conditions_for_detail() -> None:

@@ -38,7 +38,7 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
             "domain-handler/product-entry projections consume domain authority refs only",
             "workspace maintenance records archive/source/artifact locator refs only",
         ],
-        "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner",
+        "retirement_gate_status": "local_index_retired_body_free_source_adapter_active",
         "delete_or_tombstone_after": [
             "domain_authority_refs_replaced_by_opl_generated_ref_index",
             "owner_receipt_ref_parity_proven",
@@ -219,7 +219,6 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
             "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
-            "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
             "src/med_autoscience/opl_domain_pack/",
             "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py",
         ],
@@ -228,7 +227,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "paper work-unit and dispatch owner receipt refs",
             "domain-handler/product-entry domain authority refs projections",
         ],
-        "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
+        "current_ref_status": "body_free_state_index_source_adapter_no_local_persistence",
         "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
         "provenance_boundary": {
             "surface_role": "domain_authority_receipt_locator_and_ref_index",
@@ -243,7 +242,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             ],
             "generic_owner_claim_allowed": False,
         },
-        "migration_action": "declare_domain_authority_refs_index_and_consume_opl_current_control_state",
+        "migration_action": "emit_body_free_state_index_source_refs_and_consume_opl_current_control_state",
         "retention_reason": (
             "MAS can index paper-line owner receipts, typed blockers, and locators as domain authority refs; "
             "generic persistence, runtime lifecycle indexing, restore/retention, queue, and receipt ledger ownership stay in OPL."
@@ -351,7 +350,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "does_not_claim_generic_cleanup_policy_owner": True,
             "does_not_touch_publication_or_package_authority": True,
         },
-        "proof_refs": ["contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough", "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"],
+        "proof_refs": ["contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough", "opl_state_index_source_adapter.source_adapter_contract"],
     },
     {
         "module_id": "workspace_source_intake_shell",
@@ -403,7 +402,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "opl_expected_primitives": ["opl_generic_artifact_lifecycle", "opl_artifact_locator", "opl_restore_retention_receipt_shell"],
         "mas_domain_authority_refs": ["artifact_authority", "current_package_authority"],
         "authority_boundary": "opl_owns_lifecycle_shell_mas_authorizes_artifact_mutation",
-        "proof_refs": ["contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough", "domain_authority_refs_index_contract.opl_artifact_lifecycle_storage_audit_shell"],
+        "proof_refs": ["contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough", "opl_state_index_source_adapter.source_adapter_contract"],
     },
     {
         "module_id": "workbench_portal_generic_shell",

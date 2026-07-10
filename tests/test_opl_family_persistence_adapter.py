@@ -11,15 +11,15 @@ from tests.standard_agent_purity_helpers import (
 from tests.study_runtime_test_helpers import make_profile
 
 
-def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_source_adapter_manifest(tmp_path: Path) -> None:
-    refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
+def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path: Path) -> None:
+    source_adapter = importlib.import_module(
+        "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+    )
     adoption_module = importlib.import_module("med_autoscience.opl_domain_pack.family_adoption")
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
-    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
-    db_path = refs_index.workspace_authority_refs_index_path(workspace_root)
+    manifest_path = workspace_root / source_adapter.STATE_INDEX_SOURCE_ADAPTER_REF
     owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
-    dispatch_receipt_path = quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json"
     owner_receipt = {
         "surface": "domain_route_owner_route",
         "study_id": "001-risk",
@@ -32,35 +32,17 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
         "allowed_actions": ["runtime-redrive"],
         "source_refs": {"progress_projection": "studies/001-risk/progress_projection.json"},
     }
-    dispatch_receipt = {
-        "surface": "stage_outcome_authority_receipt",
-        "dispatch_id": "dispatch-001",
-        "study_id": "001-risk",
-        "quest_id": "quest-001",
-        "created_at": "2026-05-06T00:01:00+00:00",
-        "owner_route": owner_receipt,
-        "status": "dispatched",
-    }
-    for path, payload in (
-        (owner_receipt_path, owner_receipt),
-        (dispatch_receipt_path, dispatch_receipt),
-    ):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    owner_receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    owner_receipt_path.write_text(
+        json.dumps(owner_receipt, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
-    refs_index.record_owner_route_receipt(
-        study_root=study_root,
+    source_adapter.emit_owner_route_receipt_source(
         receipt=owner_receipt,
         receipt_path=owner_receipt_path,
-        db_path=db_path,
     )
-    refs_index.record_dispatch_receipt(
-        quest_root=quest_root,
-        receipt=dispatch_receipt,
-        receipt_path=dispatch_receipt_path,
-        db_path=db_path,
-    )
-    assert not db_path.exists()
+    assert not manifest_path.exists()
 
     surface = adoption_module.build_opl_family_adoption_surface(
         workspace_root=workspace_root,
@@ -88,7 +70,7 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sou
     assert "legacy_sqlite_refs_index" not in surface["refs"]
     assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert surface["refs"]["domain_authority_refs_contract"] == (
-        "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
+        "med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract"
     )
     assert surface["refs"]["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
     assert surface["refs"]["authority_boundary"]["opl_role"] == "OPL stage-runtime discovery and indexing only"
@@ -123,7 +105,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["surface_kind"] == "mas_opl_family_domain_authority_refs_adoption"
     assert adoption["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert adoption["refs"]["domain_authority_refs_contract"] == (
-        "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
+        "med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract"
     )
     assert adoption["refs"]["state_index_source_adapter"]["workspace_relative_path"] == (
         "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"
@@ -211,8 +193,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "OPL current_control_state provider/stage runtime"
     ]["allowed_mas_role"] == "domain_intent_refs_and_typed_blocker_adapter"
     assert code_path_roles[
-        "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py"
-    ]["current_role"] == "refs_only_domain_authority_refs_index"
+        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py"
+    ]["current_role"] == "body_free_state_index_source_adapter"
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["opl_provider_attempt_history"] == "transport_receipt_only"
     assert provider["truth_source_precedence"]["paper_progress_requires_mas_artifact_delta_or_gate_owner"] is True
@@ -226,7 +208,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         item for item in inventory["framework_generic"] if item["item_id"] == "lifecycle_refs_sqlite_index"
     )
     assert "Retired MAS lifecycle refs adapter is physically absent" in lifecycle_index["summary"]
-    assert "domain_authority_refs_index refs only" in lifecycle_index["summary"]
+    assert "body-free StateIndex source adapter" in lifecycle_index["summary"]
     assert "generic persistence/lifecycle replacement contract" in lifecycle_index["summary"]
     assert {item["item_id"] for item in inventory["framework_generic"]} == {
         "provider_stage_attempt",
@@ -267,7 +249,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
     )
     assert (
-        "domain_authority_refs_index refs-only replacement for retired lifecycle refs adapter"
+        "body-free StateIndex source adapter for retired lifecycle refs adapter"
         in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
     )
     default_slots = standard_skeleton["default_new_surface_slots"]

@@ -37,6 +37,60 @@ FORBIDDEN_RESURRECTED_SURFACE_IDS = frozenset(
         "mas_generic_quest_materializer",
     }
 )
+REQUIRED_MAS_RETAINS = frozenset(
+    {
+        "medical_truth",
+        "publication_quality",
+        "artifact_mutation_authority",
+        "source_readiness",
+        "stage_outcome_authority",
+        "owner_receipt",
+        "typed_blocker",
+    }
+)
+REQUIRED_OPL_OWNS = frozenset(
+    {
+        "queue",
+        "attempt",
+        "retry",
+        "lifecycle",
+        "state_index",
+        "observability",
+        "workbench_shell",
+    }
+)
+REQUIRED_RETAINED_SURFACES = {
+    "stage_outcome_authority": (
+        "retained_domain_authority_adapter",
+        "owner_callable_policy_and_typed_blocker_adapter",
+        "opl:domain-progress-transition-runtime",
+    ),
+    "runtime_health_kernel": (
+        "retained_read_only_projection",
+        "body_free_diagnostic_projection",
+        "opl:observability-readback",
+    ),
+    "progress_portal_study_workbench_overview_action_projection": (
+        "retained_read_only_projection",
+        "body_free_workbench_source_projection",
+        "opl:hosted-workbench-shell",
+    ),
+    "agent_tool_arsenal_scientific_capability_registry": (
+        "retained_read_only_projection",
+        "declarative_capability_metadata_projection",
+        "opl:capability-runtime",
+    ),
+    "runtime_lifecycle_payload_retention": (
+        "retained_opl_authorized_adapter",
+        "authorized_maintenance_callable_adapter",
+        "opl:lifecycle-retention",
+    ),
+    "runtime_storage_maintenance": (
+        "retained_opl_authorized_adapter",
+        "authorized_storage_maintenance_adapter",
+        "opl:storage-maintenance-and-restore",
+    ),
+}
 
 
 def audit_runtime_surface_retirement_inventory(
@@ -83,6 +137,18 @@ def validate_runtime_surface_retirement_inventory(
         violations.append(_violation("<inventory>", "schema_ref_mismatch"))
     if inventory.get("generic_runtime_owner") != GENERIC_RUNTIME_OWNER:
         violations.append(_violation("<inventory>", "generic_runtime_owner_mismatch"))
+    authority_boundary = inventory.get("authority_boundary")
+    if not isinstance(authority_boundary, Mapping):
+        violations.append(_violation("<inventory>", "authority_boundary_not_object"))
+    else:
+        if not _matches_exact_strings(
+            authority_boundary.get("mas_retains"), REQUIRED_MAS_RETAINS
+        ):
+            violations.append(_violation("<inventory>", "mas_retains_mismatch"))
+        if not _matches_exact_strings(
+            authority_boundary.get("opl_owns"), REQUIRED_OPL_OWNS
+        ):
+            violations.append(_violation("<inventory>", "opl_owns_mismatch"))
 
     raw_surfaces = inventory.get("surfaces")
     if not isinstance(raw_surfaces, list):
@@ -130,6 +196,26 @@ def validate_runtime_surface_retirement_inventory(
                 violations.append(_violation(surface_id, "retained_surface_missing_replacement"))
         for path in truthy_authority_flags(raw_surface):
             violations.append(_violation(surface_id, f"forbidden_authority_flag:{path}"))
+    retained = {
+        item["surface_id"]: item
+        for item in raw_surfaces
+        if isinstance(item, Mapping)
+        and _text(item.get("surface_id")) is not None
+        and item.get("disposition") != "physically_retired"
+    }
+    if set(retained) != set(REQUIRED_RETAINED_SURFACES):
+        violations.append(_violation("<inventory>", "retained_surface_set_mismatch"))
+    for surface_id, expected in REQUIRED_RETAINED_SURFACES.items():
+        surface = retained.get(surface_id)
+        if surface is None:
+            continue
+        actual = (
+            surface.get("disposition"),
+            surface.get("retained_mas_role"),
+            surface.get("replacement_ref"),
+        )
+        if actual != expected:
+            violations.append(_violation(surface_id, "retained_surface_contract_mismatch"))
     return violations
 
 
@@ -146,6 +232,15 @@ def _text(value: object) -> str | None:
     return None
 
 
+def _matches_exact_strings(value: object, expected: frozenset[str]) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) == len(expected)
+        and all(isinstance(item, str) for item in value)
+        and set(value) == expected
+    )
+
+
 def _violation(surface_id: str, reason: str) -> dict[str, str]:
     return {"surface_id": surface_id, "reason": reason}
 
@@ -153,6 +248,9 @@ def _violation(surface_id: str, reason: str) -> dict[str, str]:
 __all__ = [
     "ALLOWED_DISPOSITIONS",
     "FORBIDDEN_RESURRECTED_SURFACE_IDS",
+    "REQUIRED_MAS_RETAINS",
+    "REQUIRED_OPL_OWNS",
+    "REQUIRED_RETAINED_SURFACES",
     "audit_runtime_surface_retirement_inventory",
     "validate_runtime_surface_retirement_inventory",
 ]

@@ -172,7 +172,7 @@
     "generic_sqlite_compact_can_index_refs": true,
     "generic_sqlite_compact_can_compact_dataset_body": false,
     "generic_sqlite_compact_can_store_dataset_body": false,
-    "domain_authority_refs_sqlite_role": "refs_only_domain_authority_index_adapter",
+    "state_index_source_adapter_role": "body_free_domain_authority_ref_adapter",
     "manifest_refs_rebuildable_projection": true,
     "allowed_sqlite_payload_roles": [
       "ref",

@@ -189,10 +189,10 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert "workspace_local_watch_service_wrappers" not in inventory_by_id
     assert "domain_diagnostic_report_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["migration_action"] == (
-        "declare_domain_authority_refs_index_and_consume_opl_current_control_state"
+        "emit_body_free_state_index_source_refs_and_consume_opl_current_control_state"
     )
     assert inventory_by_id["domain_authority_refs_index"]["current_ref_status"] == (
-        "domain_authority_refs_index_no_runtime_lifecycle_owner"
+        "body_free_state_index_source_adapter_no_local_persistence"
     )
     assert inventory_by_id["publication_quality_verdict"]["migration_action"] == "authority_stays_in_mas"
     assert inventory_by_id["publication_quality_verdict"]["classification"] == "minimal_authority_function"

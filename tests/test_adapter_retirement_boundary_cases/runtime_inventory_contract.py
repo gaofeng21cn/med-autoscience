@@ -41,6 +41,12 @@ def assert_runtime_like_surfaces_have_machine_readable_opl_migration_inventory()
         if surface["disposition"] != "physically_retired"
     } == RETAINED_TAILS
     assert all(surface["mas_runtime_authority"] is False for surface in surfaces.values())
+    assert set(inventory["authority_boundary"]["mas_retains"]) == set(
+        retirement.REQUIRED_MAS_RETAINS
+    )
+    assert set(inventory["authority_boundary"]["opl_owns"]) == set(
+        retirement.REQUIRED_OPL_OWNS
+    )
 
 
 def test_runtime_retirement_inventory_schema_is_closed_and_machine_readable() -> None:
@@ -51,4 +57,26 @@ def test_runtime_retirement_inventory_schema_is_closed_and_machine_readable() ->
     assert schema["$defs"]["surface"]["additionalProperties"] is False
     assert schema["$defs"]["surface"]["properties"]["mas_runtime_authority"] == {
         "const": False
+    }
+    authority = schema["properties"]["authority_boundary"]["properties"]
+    assert set(authority["mas_retains"]["items"]["enum"]) == {
+        "medical_truth",
+        "publication_quality",
+        "artifact_mutation_authority",
+        "source_readiness",
+        "stage_outcome_authority",
+        "owner_receipt",
+        "typed_blocker",
+    }
+    assert set(authority["opl_owns"]["items"]["enum"]) == {
+        "queue",
+        "attempt",
+        "retry",
+        "lifecycle",
+        "state_index",
+        "observability",
+        "workbench_shell",
+    }
+    assert schema["properties"]["surfaces"]["contains"]["properties"]["surface_id"] == {
+        "const": "stage_outcome_authority"
     }

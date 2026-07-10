@@ -678,28 +678,20 @@
       "payload"
     ],
     "source_surfaces": [
-      "runtime/artifacts/domain_authority_refs.sqlite",
+      "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
       "study_macro_state/latest.json",
       "domain_route_owner_route",
       "domain_route_dispatch_receipt",
-      "surface_refs",
       "domain_diagnostic_report/latest.json",
       "controller_decisions/latest.json"
     ],
-    "sqlite_tables": [
-      "lineage_nodes",
-      "lineage_edges",
-      "workspace_allocations",
-      "runtime_snapshots",
-      "snapshot_file_refs",
-      "revision_diffs",
-      "canvas_projection",
-      "study_macro_state_snapshots",
+    "source_families": [
+      "authority_ref_metadata",
+      "archive_refs",
       "owner_route_receipts",
       "dispatch_receipts",
-      "surface_refs",
-      "archive_refs",
-      "report_index"
+      "paper_progress_transition_refs",
+      "stage_artifact_delta_refs"
     ],
     "maps_to_opl_contracts": {
       "persistence": "opl_family_persistence_contract.v1",

@@ -114,7 +114,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain",
         ],
         "functional_structure_gap": False,
@@ -175,7 +175,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
-            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "domain_authority_refs_index_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "workbench_portal_generic_shell.read_model_materializer_boundary",
         ],
         "functional_structure_gap": False,
@@ -237,7 +237,7 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
         "opl_queue_attempt_retry_dead_letter",
         "opl_generic_transition_runner",
     ],
-    "mas_allowed_role_until_replacement": "domain_authority_refs_index_refs_only",
+    "mas_allowed_role_until_replacement": "body_free_state_index_source_adapter",
 }
 
 PRIVATE_SURFACE_RETIREMENT_GATE_CHECKLIST = {

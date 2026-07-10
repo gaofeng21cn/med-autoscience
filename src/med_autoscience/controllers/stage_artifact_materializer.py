@@ -294,7 +294,6 @@ def _materialize_stage(
             quest_root=workspace_root / "runtime" / "quests" / str(study_id),
             receipt=receipt,
             receipt_path=study_root / receipt_ref,
-            db_path=opl_state_index_source_adapter.workspace_authority_refs_index_path(workspace_root),
         )
     else:
         index_result = None

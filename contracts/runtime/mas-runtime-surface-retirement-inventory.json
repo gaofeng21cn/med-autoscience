@@ -9,6 +9,7 @@
       "publication_quality",
       "artifact_mutation_authority",
       "source_readiness",
+      "stage_outcome_authority",
       "owner_receipt",
       "typed_blocker"
     ],

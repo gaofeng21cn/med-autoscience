@@ -76,8 +76,8 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "domain_dispatch_receipt_adapter",
     },
     {
-        "path": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
-        "current_role": "refs_only_domain_authority_refs_index",
+        "path": "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+        "current_role": "body_free_state_index_source_adapter",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "owner_receipt_and_locator_ref_index",
     },
