@@ -15,6 +15,14 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import (
 SCHEMA_VERSION = 2
 SURFACE_KIND = "artifact_lifecycle_report"
 OPL_WORKSPACE_INDEX = Path("workspace_index.json")
+RECEIPT_REF_SAMPLE_LIMIT = 50
+_RECEIPT_REF_FAMILY_KEYS = (
+    "artifact_lifecycle_receipt_refs",
+    "artifact_authority_receipt_refs",
+    "cleanup_receipt_refs",
+    "restore_proof_refs",
+    "retention_receipt_refs",
+)
 
 
 def run_lifecycle_operations_report(
@@ -172,7 +180,7 @@ def _project_projection(
         ],
         "opl_owner_surface_ref": lifecycle["opl_owner_surface_ref"],
         "lifecycle_status": lifecycle["lifecycle_status"],
-        "refs": dict(lifecycle["refs"]),
+        "refs": _bounded_lifecycle_refs(lifecycle["refs"]),
         "authority_boundary": dict(lifecycle["authority_boundary"]),
     }
 
@@ -220,12 +228,32 @@ def _relative_ref(path: Path, root: Path) -> str:
         return str(path)
 
 
+def _bounded_lifecycle_refs(refs: Mapping[str, Any]) -> dict[str, Any]:
+    projection = dict(refs)
+    for key in _RECEIPT_REF_FAMILY_KEYS:
+        raw_values = refs.get(key)
+        values = (
+            list(dict.fromkeys(text for value in raw_values if (text := _text(value))))
+            if isinstance(raw_values, list)
+            else []
+        )
+        count_key = key.removesuffix("_refs") + "_ref_count"
+        truncated_key = f"{key}_truncated"
+        declared_count = refs.get(count_key)
+        count = declared_count if isinstance(declared_count, int) and declared_count >= 0 else len(values)
+        projection[key] = values[:RECEIPT_REF_SAMPLE_LIMIT]
+        projection[count_key] = max(count, len(values))
+        projection[truncated_key] = bool(refs.get(truncated_key)) or len(values) > RECEIPT_REF_SAMPLE_LIMIT
+    return projection
+
+
 def _text(value: object) -> str | None:
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 __all__ = [
     "OPL_ARTIFACT_LIFECYCLE_INDEX",
+    "RECEIPT_REF_SAMPLE_LIMIT",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "render_lifecycle_operations_report_markdown",

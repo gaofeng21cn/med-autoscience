@@ -883,7 +883,6 @@
         "code_paths": [
           "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
           "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
-          "src/med_autoscience/controllers/artifact_retention_operations_plan.py",
           "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py"
         ],
         "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
