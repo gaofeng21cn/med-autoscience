@@ -61,6 +61,10 @@ LIDOCAINEQ_REFERENCE_DEVICE_SIZES: dict[str, tuple[float, float]] = {
     "waterfall_response": (5.3, 3.4),
 }
 
+REGISTRY_GALLERY_CASES_FIXTURE_REF = Path("fixtures/registry_gallery_cases.json")
+REGISTRY_GALLERY_CASES_FIXTURE_ID = "fenggaolab.org.medical-display-core.registry-gallery-cases.v1"
+REGISTRY_GALLERY_CASES_FIXTURE_STATE = "active_fictional_refs_only_gallery_preview"
+
 
 MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     "cohort_flow_figure": {
@@ -249,137 +253,6 @@ MANUAL_GALLERY_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
     },
 }
 GALLERY_R_DISPLAY_PAYLOADS: dict[str, dict[str, Any]] = {
-    "dot_range_summary_panel": {
-        "schema_version": 1,
-        "preview_only": True,
-        "authority": False,
-        "publication_ready": False,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": "Gallery-F2",
-        "template_id": "dot_range_summary_panel",
-        "title": "BMI-stratified phenotype prevalence",
-        "caption": (
-            "Fictional descriptive Gallery preview only. Percentages use synthetic available-record "
-            "denominators and carry no study or publication authority."
-        ),
-        "x_label": "Participants with measure-defined phenotype (%)",
-        "y_label": "BMI category",
-        "size_scale_label": "Available n",
-        "rows": [
-            {"bmi_category": "18.5-22.9", "measure": "Elevated waist", "positive_n": 31, "available_n": 120, "percent": 25.8},
-            {"bmi_category": "23.0-24.9", "measure": "Elevated waist", "positive_n": 48, "available_n": 110, "percent": 43.6},
-            {"bmi_category": "25.0-29.9", "measure": "Elevated waist", "positive_n": 76, "available_n": 105, "percent": 72.4},
-            {"bmi_category": ">=30.0", "measure": "Elevated waist", "positive_n": 72, "available_n": 82, "percent": 87.8},
-            {"bmi_category": "18.5-22.9", "measure": "Elevated WHR", "positive_n": 27, "available_n": 118, "percent": 22.9},
-            {"bmi_category": "23.0-24.9", "measure": "Elevated WHR", "positive_n": 43, "available_n": 108, "percent": 39.8},
-            {"bmi_category": "25.0-29.9", "measure": "Elevated WHR", "positive_n": 69, "available_n": 101, "percent": 68.3},
-            {"bmi_category": ">=30.0", "measure": "Elevated WHR", "positive_n": 66, "available_n": 80, "percent": 82.5},
-        ],
-        "render_context": {"layout_override": {"output_width_in": 8.4, "output_height_in": 4.3}},
-    },
-    "availability_bar_panel": {
-        "schema_version": 1,
-        "preview_only": True,
-        "authority": False,
-        "publication_ready": False,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": "Gallery-F3",
-        "template_id": "availability_bar_panel",
-        "title": "Availability of registry phenotype measures",
-        "caption": (
-            "Fictional descriptive Gallery preview only. Availability values and denominators are "
-            "synthetic and carry no study or publication authority."
-        ),
-        "x_label": "Available participants (%)",
-        "y_label": "Registry measure",
-        "rows": [
-            {"measure": "BMI", "available_n": 512, "denominator_n": 520, "percent": 98.5},
-            {"measure": "Waist circumference", "available_n": 468, "denominator_n": 520, "percent": 90.0},
-            {"measure": "Waist-to-hip ratio", "available_n": 431, "denominator_n": 520, "percent": 82.9},
-            {"measure": "PHQ-9", "available_n": 394, "denominator_n": 520, "percent": 75.8},
-            {"measure": "GAD-7", "available_n": 381, "denominator_n": 520, "percent": 73.3},
-        ],
-        "render_context": {"layout_override": {"output_width_in": 7.2, "output_height_in": 3.8}},
-    },
-    "adult_multidimensional_phenotype_heatmap": {
-        "schema_version": 1,
-        "preview_only": True,
-        "authority": False,
-        "publication_ready": False,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": "Gallery-F4",
-        "template_id": "adult_multidimensional_phenotype_heatmap",
-        "title": "Adult multidimensional phenotype profile",
-        "caption": (
-            "Fictional descriptive Gallery preview only. Medians and denominators are synthetic; "
-            "within-feature colors carry no study or publication authority."
-        ),
-        "x_label": "BMI category",
-        "y_label": "Phenotype feature",
-        "heatmap_scale_label": "Within-feature relative level",
-        "cells": [
-            {"bmi_category": "18.5-22.9", "feature": "Waist circumference", "unit": "cm", "median": 78.0, "available_n": 96},
-            {"bmi_category": "18.5-22.9", "feature": "Waist-to-hip ratio", "unit": "ratio", "median": 0.83, "available_n": 96},
-            {"bmi_category": "18.5-22.9", "feature": "PHQ-9", "unit": "score", "median": 4.0, "available_n": 96},
-            {"bmi_category": "23.0-24.9", "feature": "Waist circumference", "unit": "cm", "median": 84.0, "available_n": 95},
-            {"bmi_category": "23.0-24.9", "feature": "Waist-to-hip ratio", "unit": "ratio", "median": 0.88, "available_n": 95},
-            {"bmi_category": "23.0-24.9", "feature": "PHQ-9", "unit": "score", "median": 5.0, "available_n": 95},
-            {"bmi_category": "25.0-29.9", "feature": "Waist circumference", "unit": "cm", "median": 92.0, "available_n": 94},
-            {"bmi_category": "25.0-29.9", "feature": "Waist-to-hip ratio", "unit": "ratio", "median": 0.94, "available_n": 94},
-            {"bmi_category": "25.0-29.9", "feature": "PHQ-9", "unit": "score", "median": 6.0, "available_n": 94},
-            {"bmi_category": ">=30.0", "feature": "Waist circumference", "unit": "cm", "median": 101.0, "available_n": 93},
-            {"bmi_category": ">=30.0", "feature": "Waist-to-hip ratio", "unit": "ratio", "median": 1.01, "available_n": 93},
-            {"bmi_category": ">=30.0", "feature": "PHQ-9", "unit": "score", "median": 7.0, "available_n": 93},
-        ],
-        "render_context": {"layout_override": {"output_width_in": 7.2, "output_height_in": 4.2}},
-    },
-    "xiangya_psychobehavioral_overlap_heatmap": {
-        "schema_version": 1,
-        "preview_only": True,
-        "authority": False,
-        "publication_ready": False,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": "Gallery-F5",
-        "template_id": "xiangya_psychobehavioral_overlap_heatmap",
-        "title": "Psychobehavioral symptom overlap",
-        "caption": (
-            "Fictional descriptive Gallery preview only. Counts and row percentages are synthetic "
-            "and carry no study or publication authority."
-        ),
-        "x_label": "GAD-7 status",
-        "y_label": "PHQ-9 status",
-        "heatmap_scale_label": "Row percentage (%)",
-        "cells": [
-            {"phq9_status": "Below threshold", "gad7_status": "Below threshold", "count": 242, "row_percent": 78.1},
-            {"phq9_status": "Below threshold", "gad7_status": "Above threshold", "count": 68, "row_percent": 21.9},
-            {"phq9_status": "Above threshold", "gad7_status": "Below threshold", "count": 51, "row_percent": 43.6},
-            {"phq9_status": "Above threshold", "gad7_status": "Above threshold", "count": 66, "row_percent": 56.4},
-        ],
-        "render_context": {"layout_override": {"output_width_in": 4.6, "output_height_in": 2.8}},
-    },
-    "adult_bmi_waist_central_adiposity_bar": {
-        "schema_version": 1,
-        "preview_only": True,
-        "authority": False,
-        "publication_ready": False,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": "Gallery-F6",
-        "template_id": "adult_bmi_waist_central_adiposity_bar",
-        "title": "Central adiposity across adult BMI categories",
-        "caption": (
-            "Fictional descriptive Gallery preview only. Central-adiposity percentages and "
-            "denominators are synthetic and carry no study or publication authority."
-        ),
-        "x_label": "BMI category",
-        "y_label": "Central adiposity prevalence (%)",
-        "rows": [
-            {"bmi_category": "18.5-22.9", "central_obesity_percent": 18.6, "available_n": 118, "central_obesity_n": 22},
-            {"bmi_category": "23.0-24.9", "central_obesity_percent": 38.2, "available_n": 110, "central_obesity_n": 42},
-            {"bmi_category": "25.0-29.9", "central_obesity_percent": 69.5, "available_n": 105, "central_obesity_n": 73},
-            {"bmi_category": ">=30.0", "central_obesity_percent": 88.8, "available_n": 80, "central_obesity_n": 71},
-        ],
-        "render_context": {"layout_override": {"output_width_in": 5.8, "output_height_in": 3.4}},
-    },
     "phenotype_gap_structure_figure": {
         "display_id": "Figure2",
         "template_id": "phenotype_gap_structure_figure",
@@ -645,75 +518,75 @@ def _style_context_for(template_id: str) -> dict[str, Any]:
     }
 
 
-def _generic_r_gallery_payload(record: TemplateRecord) -> dict[str, Any]:
-    return {
-        "schema_version": 1,
-        "source_data_digest": "gallery-synthetic-preview",
-        "display_id": record.template_id,
-        "template_id": record.template_id,
-        "title": record.display_name,
-        "caption": "Synthetic gallery preview payload for local visual inspection only.",
-        "x_label": "X axis",
-        "y_label": "Y axis",
-        "series": [
-            {
-                "label": "Model",
-                "x": [0, 0.05, 0.14, 0.28, 0.48, 0.72, 1],
-                "y": [0, 0.36, 0.58, 0.74, 0.86, 0.95, 1],
-                "panel_label": "A",
-                "panel_id": "A",
-            },
-            {
-                "label": "Comparator",
-                "x": [0, 0.10, 0.25, 0.45, 0.66, 0.84, 1],
-                "y": [0, 0.30, 0.49, 0.66, 0.79, 0.90, 1],
-                "panel_label": "A",
-                "panel_id": "A",
-            },
-        ],
-        "decision_series": [
-            {
-                "label": "Model",
-                "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60],
-                "y": [0.22, 0.20, 0.17, 0.13, 0.09, 0.05, 0.02],
-                "panel_label": "A",
-            },
-            {
-                "label": "Treat all",
-                "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60],
-                "y": [0.18, 0.15, 0.10, 0.05, 0.00, -0.05, -0.10],
-                "panel_label": "A",
-            },
-        ],
-        "bars": [
-            {"label": "Low", "value": 0.18, "panel_label": "B"},
-            {"label": "Intermediate", "value": 0.36, "panel_label": "B"},
-            {"label": "High", "value": 0.62, "panel_label": "B"},
-        ],
-        "points": [
-            {"x": -1.2, "y": 0.8, "group": "Group A"},
-            {"x": -0.8, "y": 0.5, "group": "Group A"},
-            {"x": 0.9, "y": -0.4, "group": "Group B"},
-            {"x": 1.3, "y": -0.7, "group": "Group B"},
-        ],
-        "rows": [
-            {"label": "Feature A", "estimate": 1.4, "lower": 1.1, "upper": 1.8, "value": 0.42},
-            {"label": "Feature B", "estimate": 0.8, "lower": 0.6, "upper": 1.0, "value": 0.25},
-            {"label": "Feature C", "estimate": 1.2, "lower": 0.9, "upper": 1.6, "value": 0.31},
-        ],
-        "row_order": [{"label": "Feature A"}, {"label": "Feature B"}, {"label": "Feature C"}],
-        "column_order": [{"label": "Group A"}, {"label": "Group B"}],
-        "cells": [
-            {"x": "Group A", "y": "Feature A", "value": 0.72},
-            {"x": "Group B", "y": "Feature A", "value": -0.24},
-            {"x": "Group A", "y": "Feature B", "value": -0.11},
-            {"x": "Group B", "y": "Feature B", "value": 0.58},
-            {"x": "Group A", "y": "Feature C", "value": 0.33},
-            {"x": "Group B", "y": "Feature C", "value": -0.45},
-        ],
-        "reference_line": {"label": "Reference", "x": [0, 1], "y": [0, 1]},
-        "reference_value": 1.0,
+def _load_registry_gallery_case_payloads(
+    pack_root: Path,
+    *,
+    expected_template_ids: set[str],
+) -> dict[str, dict[str, Any]]:
+    fixture_path = pack_root / REGISTRY_GALLERY_CASES_FIXTURE_REF
+    if not fixture_path.is_file():
+        raise FileNotFoundError(f"bound display pack is missing required Gallery fixture: {fixture_path}")
+    try:
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{fixture_path} must contain valid JSON") from exc
+    if not isinstance(fixture, dict):
+        raise ValueError(f"{fixture_path} must contain a top-level object")
+    if fixture.get("schema_version") != 1:
+        raise ValueError(f"{fixture_path} schema_version must be 1")
+    if fixture.get("fixture_id") != REGISTRY_GALLERY_CASES_FIXTURE_ID:
+        raise ValueError(f"{fixture_path} fixture_id must be {REGISTRY_GALLERY_CASES_FIXTURE_ID!r}")
+    if fixture.get("state") != REGISTRY_GALLERY_CASES_FIXTURE_STATE:
+        raise ValueError(f"{fixture_path} state must be {REGISTRY_GALLERY_CASES_FIXTURE_STATE!r}")
+    authority_boundary = fixture.get("authority_boundary")
+    expected_boundary = {
+        "authority": False,
+        "publication_ready": False,
+        "can_write_study_truth": False,
+        "can_sign_owner_receipt": False,
     }
+    if not isinstance(authority_boundary, dict) or any(
+        authority_boundary.get(key) is not expected
+        for key, expected in expected_boundary.items()
+    ):
+        raise ValueError(f"{fixture_path} authority_boundary must remain refs-only and no-authority")
+    cases = fixture.get("cases")
+    if not isinstance(cases, dict):
+        raise ValueError(f"{fixture_path} cases must be an object")
+    case_ids = set(cases)
+    if case_ids != expected_template_ids:
+        raise ValueError(
+            f"{fixture_path} case ids must exactly match bound pack Gallery payload gaps: "
+            f"expected={sorted(expected_template_ids)!r}, actual={sorted(case_ids)!r}"
+        )
+
+    payloads: dict[str, dict[str, Any]] = {}
+    for template_id in sorted(expected_template_ids):
+        case = cases[template_id]
+        if not isinstance(case, dict):
+            raise ValueError(f"{fixture_path} cases[{template_id!r}] must be an object")
+        if not isinstance(case.get("figure_purpose"), str) or not case["figure_purpose"].strip():
+            raise ValueError(f"{fixture_path} cases[{template_id!r}].figure_purpose must be non-empty")
+        if not isinstance(case.get("heatmap"), bool):
+            raise ValueError(f"{fixture_path} cases[{template_id!r}].heatmap must be a bool")
+        payload = case.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError(f"{fixture_path} cases[{template_id!r}].payload must be an object")
+        expected_fields = {
+            "schema_version": 1,
+            "template_id": template_id,
+            "preview_only": True,
+            "authority": False,
+            "publication_ready": False,
+            "source_data_digest": "gallery-synthetic-preview",
+        }
+        for key, expected in expected_fields.items():
+            if payload.get(key) != expected:
+                raise ValueError(
+                    f"{fixture_path} cases[{template_id!r}].payload.{key} must be {expected!r}"
+                )
+        payloads[template_id] = json.loads(json.dumps(payload))
+    return payloads
 
 
 def _apply_reference_device_sizes(payloads: dict[str, dict[str, Any]]) -> None:
@@ -733,7 +606,11 @@ def _apply_reference_device_sizes(payloads: dict[str, dict[str, Any]]) -> None:
         layout_override.setdefault("output_height_in", height)
 
 
-def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, Any]]:
+def _load_seed_r_payloads(
+    records: list[TemplateRecord],
+    *,
+    pack_root: Path,
+) -> dict[str, dict[str, Any]]:
     payloads: dict[str, dict[str, Any]] = {
         key: json.loads(json.dumps(value))
         for key, value in MANUAL_GALLERY_DISPLAY_PAYLOADS.items()
@@ -754,11 +631,18 @@ def _load_seed_r_payloads(records: list[TemplateRecord]) -> dict[str, dict[str, 
         key: json.loads(json.dumps(value))
         for key, value in LIDOCAINEQ_R_DISPLAY_PAYLOADS.items()
     })
-    for record in records:
-        if record.renderer_family != "r_ggplot2":
-            continue
-        if record.template_id not in payloads:
-            payloads[record.template_id] = _generic_r_gallery_payload(record)
+    r_template_ids = {
+        record.template_id
+        for record in records
+        if record.renderer_family == "r_ggplot2"
+    }
+    required_pack_payload_ids = r_template_ids - set(payloads)
+    payloads.update(
+        _load_registry_gallery_case_payloads(
+            pack_root,
+            expected_template_ids=required_pack_payload_ids,
+        )
+    )
     _apply_reference_device_sizes(payloads)
     return payloads
 

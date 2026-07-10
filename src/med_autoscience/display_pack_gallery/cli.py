@@ -78,7 +78,7 @@ def _render_records(
     force_render: bool,
     package_only: bool,
 ) -> tuple[dict[str, RenderedAsset], dict[str, RenderedAsset]]:
-    seed_r_payloads = _load_seed_r_payloads(records)
+    seed_r_payloads = _load_seed_r_payloads(records, pack_root=paths.PACK_ROOT)
     fixture_payloads = _load_python_payload_fixtures()
     rendered: dict[str, RenderedAsset] = {}
     visible_template_ids = {record.template_id for record in gallery_visual_records(records)}

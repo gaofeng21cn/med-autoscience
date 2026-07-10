@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import sys
 
+import pytest
+
 from med_autoscience.display_pack_canonical_catalog import load_canonical_template_catalog
 from med_autoscience.display_pack_gallery_catalog import (
     ai_adaptation_policy,
@@ -21,7 +23,11 @@ from med_autoscience.display_pack_gallery_catalog import (
     visual_gallery_records,
 )
 from med_autoscience.display_pack_gallery.quality import build_quality_audit_markdown
-from med_autoscience.display_pack_gallery.payloads import _load_seed_r_payloads
+from med_autoscience.display_pack_gallery.payloads import (
+    GALLERY_R_DISPLAY_PAYLOADS,
+    REGISTRY_GALLERY_CASES_FIXTURE_REF,
+    _load_seed_r_payloads,
+)
 from med_autoscience.display_pack_gallery.rendering import _gallery_dependency_environment_for
 from med_autoscience.display_pack_gallery.status_writer import build_gallery_status_markdown
 from med_autoscience.display_pack_gallery.html import _render_html
@@ -33,6 +39,16 @@ from med_autoscience.display_pack_paths import core_medical_display_pack_root
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACK_ROOT = core_medical_display_pack_root(REPO_ROOT)
 TEMPLATE_ROOT = PACK_ROOT / "templates"
+
+
+def _registry_gallery_fixture_payload() -> dict[str, object]:
+    return json.loads((PACK_ROOT / REGISTRY_GALLERY_CASES_FIXTURE_REF).read_text(encoding="utf-8"))
+
+
+def _write_registry_gallery_fixture(pack_root: Path, payload: dict[str, object]) -> None:
+    fixture_path = pack_root / REGISTRY_GALLERY_CASES_FIXTURE_REF
+    fixture_path.parent.mkdir(parents=True, exist_ok=True)
+    fixture_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_canonical_template_catalog_maps_full_template_inventory() -> None:
@@ -162,7 +178,14 @@ def test_gallery_family_ontology_exposes_canonical_wording_without_alias_noise()
 def test_default_gallery_r_templates_have_runtime_seed_payloads_without_generic_fallback() -> None:
     records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
     gallery_records = gallery_display_records(records)
-    seed_payloads = _load_seed_r_payloads(records)
+    seed_payloads = _load_seed_r_payloads(records, pack_root=PACK_ROOT)
+    fixture = _registry_gallery_fixture_payload()
+    fixture_cases = fixture["cases"]
+    assert isinstance(fixture_cases, dict)
+    fixture_payloads = {
+        template_id: case["payload"]
+        for template_id, case in fixture_cases.items()
+    }
 
     assert len(gallery_records) == 43
     assert {
@@ -180,61 +203,59 @@ def test_default_gallery_r_templates_have_runtime_seed_payloads_without_generic_
         if seed_payloads[record.template_id].get("caption")
         == "Synthetic gallery preview payload for local visual inspection only."
     } == set()
-    expected_row_fields = {
-        "dot_range_summary_panel": {
-            "bmi_category",
-            "measure",
-            "positive_n",
-            "available_n",
-            "percent",
-        },
-        "availability_bar_panel": {
-            "measure",
-            "available_n",
-            "denominator_n",
-            "percent",
-        },
-        "adult_multidimensional_phenotype_heatmap": {
-            "bmi_category",
-            "feature",
-            "unit",
-            "median",
-            "available_n",
-        },
-        "xiangya_psychobehavioral_overlap_heatmap": {
-            "phq9_status",
-            "gad7_status",
-            "count",
-            "row_percent",
-        },
-        "adult_bmi_waist_central_adiposity_bar": {
-            "bmi_category",
-            "central_obesity_percent",
-            "available_n",
-            "central_obesity_n",
-        },
-    }
-    for template_id, expected_fields in expected_row_fields.items():
-        item_key = (
-            "cells"
-            if template_id.endswith("heatmap")
-            else "rows"
-        )
-        assert expected_fields <= set(seed_payloads[template_id][item_key][0])
-        assert seed_payloads[template_id]["source_data_digest"] == "gallery-synthetic-preview"
-        assert seed_payloads[template_id]["preview_only"] is True
-        assert seed_payloads[template_id]["authority"] is False
-        assert seed_payloads[template_id]["publication_ready"] is False
-    expected_device_sizes = {
-        "dot_range_summary_panel": (8.4, 4.3),
-        "availability_bar_panel": (7.2, 3.8),
-        "adult_multidimensional_phenotype_heatmap": (7.2, 4.2),
-        "xiangya_psychobehavioral_overlap_heatmap": (4.6, 2.8),
-        "adult_bmi_waist_central_adiposity_bar": (5.8, 3.4),
-    }
-    for template_id, (width, height) in expected_device_sizes.items():
-        layout = seed_payloads[template_id]["render_context"]["layout_override"]
-        assert (layout["output_width_in"], layout["output_height_in"]) == (width, height)
+    assert len(fixture_payloads) == 5
+    assert set(fixture_payloads).isdisjoint(GALLERY_R_DISPLAY_PAYLOADS)
+    for template_id, payload in fixture_payloads.items():
+        assert seed_payloads[template_id] == payload
+        assert payload["source_data_digest"] == "gallery-synthetic-preview"
+        assert payload["preview_only"] is True
+        assert payload["authority"] is False
+        assert payload["publication_ready"] is False
+
+
+def test_registry_gallery_fixture_is_required_from_bound_pack(tmp_path: Path) -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+
+    with pytest.raises(FileNotFoundError, match="missing required Gallery fixture"):
+        _load_seed_r_payloads(records, pack_root=tmp_path)
+
+
+def test_registry_gallery_fixture_case_inventory_must_match_payload_gaps(tmp_path: Path) -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    fixture = _registry_gallery_fixture_payload()
+    cases = fixture["cases"]
+    assert isinstance(cases, dict)
+    cases.pop(sorted(cases)[0])
+    _write_registry_gallery_fixture(tmp_path, fixture)
+
+    with pytest.raises(ValueError, match="case ids must exactly match"):
+        _load_seed_r_payloads(records, pack_root=tmp_path)
+
+
+def test_registry_gallery_fixture_rejects_authority_drift(tmp_path: Path) -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    fixture = _registry_gallery_fixture_payload()
+    cases = fixture["cases"]
+    assert isinstance(cases, dict)
+    first_case = cases[sorted(cases)[0]]
+    assert isinstance(first_case, dict)
+    payload = first_case["payload"]
+    assert isinstance(payload, dict)
+    payload["authority"] = True
+    _write_registry_gallery_fixture(tmp_path, fixture)
+
+    with pytest.raises(ValueError, match="payload.authority must be False"):
+        _load_seed_r_payloads(records, pack_root=tmp_path)
+
+
+def test_registry_gallery_fixture_rejects_invalid_json(tmp_path: Path) -> None:
+    records = read_template_records(PACK_ROOT, TEMPLATE_ROOT)
+    fixture_path = tmp_path / REGISTRY_GALLERY_CASES_FIXTURE_REF
+    fixture_path.parent.mkdir(parents=True)
+    fixture_path.write_text("{\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must contain valid JSON"):
+        _load_seed_r_payloads(records, pack_root=tmp_path)
 
 
 def test_gallery_dependency_environment_requires_explicit_prepared_run_context(
@@ -478,7 +499,7 @@ def test_gallery_manifest_dry_readback_reserves_family_policy_metadata() -> None
     assert cohort_flow_dependency["render_contract"]["checked_in_renderer_is_generated_fallback"] is False
     assert cohort_flow_dependency["render_contract"]["checked_in_renderer_uses_ggconsort"] is True
     assert cohort_flow_dependency["render_contract"]["checked_in_renderer_ref"] == (
-        "templates/cohort_flow_figure/render.R"
+        "rlib/medicaldisplaycore/cohort_flow_renderer.R"
     )
     assert set(design_inventory) == {"submission_graphical_abstract"}
     assert set(table_preview_inventory) == {"table1_baseline_characteristics"}
