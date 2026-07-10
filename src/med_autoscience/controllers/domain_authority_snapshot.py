@@ -41,7 +41,6 @@ BASE_ALLOWED_ACTIONS = (
     "probe_runtime_liveness",
     "reconcile_control_plane",
     "reconcile_truth",
-    "reconcile_runtime_health",
     "open_monitoring_entry",
     "record_user_decision",
 )

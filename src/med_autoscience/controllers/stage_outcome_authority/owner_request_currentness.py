@@ -67,16 +67,14 @@ def _request_route_matches_current_values(
     request_route: Mapping[str, Any],
     current_values: Mapping[str, str],
 ) -> bool:
-    request_basis = owner_route_attempt_protocol.currentness_basis(request_route)
-    compared = 0
+    request_basis = owner_route_attempt_protocol.normalize_currentness_sources(request_route)
     for key, current_value in current_values.items():
         request_value = _text(request_basis.get(key))
         if request_value is None:
-            continue
-        compared += 1
+            return False
         if request_value != current_value:
             return False
-    return compared > 0
+    return True
 
 
 def _canonical_next_action_values(current_study: Mapping[str, Any]) -> dict[str, str]:
@@ -84,14 +82,18 @@ def _canonical_next_action_values(current_study: Mapping[str, Any]) -> dict[str,
     if _text(payload.get("surface_kind")) != "mas_next_action_envelope":
         return {}
     basis = _mapping(payload.get("currentness_basis"))
-    values = {
-        "work_unit_id": _text(payload.get("work_unit_id")),
-        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
-        or _text(payload.get("action_fingerprint")),
-        "source_eval_id": _text(payload.get("source_eval_id"))
-        or _text(basis.get("source_eval_id")),
+    values = owner_route_attempt_protocol.normalize_currentness_sources(payload, basis)
+    return {
+        name: text
+        for name, value in values.items()
+        if (
+            name.endswith("_id")
+            or "fingerprint" in name
+            or "eval" in name
+            or name.endswith("_epoch")
+        )
+        and (text := _text(value)) is not None
     }
-    return {name: value for name, value in values.items() if value}
 
 
 def _mapping(value: object) -> dict[str, Any]:

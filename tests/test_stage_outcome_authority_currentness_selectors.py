@@ -3,6 +3,7 @@ from __future__ import annotations
 from med_autoscience.controllers.stage_outcome_authority import (
     consumed_transition_currentness,
     fresh_progress_owner_actions,
+    owner_request_currentness,
     owner_route_selection,
     persisted_dispatches,
     scan_route_currentness,
@@ -18,6 +19,49 @@ STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
 ACTION_TYPE = "run_quality_repair_batch"
 WORK_UNIT_ID = "medical_prose_write_repair"
 WORK_UNIT_FINGERPRINT = "publication-blockers::0915410f804b3697"
+
+
+def test_owner_request_route_requires_every_canonical_currentness_field() -> None:
+    identity = {
+        "work_unit_id": WORK_UNIT_ID,
+        "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
+        "source_eval_id": "publication-eval::current",
+        "action_fingerprint": "sha256:action-current",
+        "truth_epoch": "truth::current",
+        "runtime_health_epoch": "runtime-health::current",
+        "route_epoch": "route::current",
+    }
+    current_study = {
+        "next_action": {
+            "surface_kind": "mas_next_action_envelope",
+            "currentness_basis": identity,
+        }
+    }
+
+    assert owner_request_currentness.route_basis_matches_current_study(
+        request_route={"source_refs": {"owner_route_currentness_basis": identity}},
+        current_study=current_study,
+        consumed_transition_route={},
+    )
+    for missing_key in identity:
+        incomplete = {key: value for key, value in identity.items() if key != missing_key}
+        assert not owner_request_currentness.route_basis_matches_current_study(
+            request_route={"source_refs": {"owner_route_currentness_basis": incomplete}},
+            current_study=current_study,
+            consumed_transition_route={},
+        )
+    assert not owner_request_currentness.route_basis_matches_current_study(
+        request_route={
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    **identity,
+                    "runtime_health_epoch": "runtime-health::stale",
+                }
+            }
+        },
+        current_study=current_study,
+        consumed_transition_route={},
+    )
 
 
 def test_owner_action_dispatch_requires_source_eval_when_current_route_has_eval() -> None:

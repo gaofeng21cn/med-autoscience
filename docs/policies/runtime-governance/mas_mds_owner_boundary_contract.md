@@ -17,10 +17,10 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 | risk_id | 风险 | 必须保持的 owner |
 | --- | --- | --- |
-| `entry_projection_as_authority` | `study_progress`、`workspace-cockpit`、`product-entry-status`、MCP、product-entry manifest 自己解释下一步 | `StudyTruthKernel`、`RuntimeHealthKernel`、`publication_eval/latest.json`、`controller_decisions/latest.json` |
+| `entry_projection_as_authority` | read model、status projection 或 transport surface 自己解释下一步 | `StageOutcome`、`NextActionEnvelope`、`publication_eval/latest.json`、`controller_decisions/latest.json` |
 | `mds_oracle_as_quality_owner` | MDS `paper_contract_health`、coverage、prompt stage wording 或 artifact state 被读成医学质量 ready | MAS AI reviewer-backed `publication_eval/latest.json` 与 Quality OS |
 | `observability_as_control` | rubric score、trajectory replay、feedback analytics、OAR projection 直接驱动 finalize/submission | MAS controller decision 与 publication authority |
-| `runtime_status_double_parse` | 多个 controller 局部解析 live worker、active run、recovery action | RuntimeHealthKernel 与 control-plane fact resolver |
+| `runtime_status_double_parse` | MAS controller 局部解析 live worker、active run 或 recovery action | OPL current-control / StageRun / Observability readback |
 
 ## Owner Matrix
 
