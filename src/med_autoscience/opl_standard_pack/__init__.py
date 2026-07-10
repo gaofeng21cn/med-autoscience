@@ -429,6 +429,7 @@ def _pack_compiler_input() -> dict[str, Any]:
         "surface_kind": "opl_domain_pack_compiler_input",
         "schema_version": 1,
         "domain_id": TARGET_DOMAIN_ID,
+        "canonical_agent_id": "mas",
         "domain_pack_owner": TARGET_DOMAIN_ID,
         "canonical_semantic_pack_root": "agent/",
         "canonical_semantic_pack_role": (

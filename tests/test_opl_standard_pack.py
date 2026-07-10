@@ -8,4 +8,5 @@ from tests.test_opl_standard_pack_cases.generated_interface_cases import (
 )
 from tests.test_opl_standard_pack_cases.stage_contract_cases import (
     test_opl_standard_pack_declares_single_ordinary_default_stage,
+    test_pack_compiler_input_declares_canonical_agent_identity,
 )

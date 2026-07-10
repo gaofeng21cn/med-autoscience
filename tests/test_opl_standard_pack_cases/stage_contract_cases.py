@@ -12,6 +12,14 @@ def _read_contract(name: str) -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts" / f"{name}.json").read_text(encoding="utf-8"))
 
 
+def test_pack_compiler_input_declares_canonical_agent_identity() -> None:
+    generated = build_standard_pack()["pack_compiler_input"]
+    materialized = _read_contract("pack_compiler_input")
+
+    assert generated["canonical_agent_id"] == materialized["canonical_agent_id"] == "mas"
+    assert generated["domain_id"] == materialized["domain_id"] == "med-autoscience"
+
+
 def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
     generated = build_standard_pack()
     profile = _read_contract("golden_path_profile")
