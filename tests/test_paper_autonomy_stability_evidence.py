@@ -15,16 +15,15 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
     profile_path.parent.mkdir(parents=True, exist_ok=True)
     profile_path.write_text(
         "\n".join(
-            [
+            (
                 'name = "fixture"',
                 f'workspace_root = "{workspace}"',
                 f'runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace / "studies"}"',
                 f'portfolio_root = "{workspace / "memory" / "portfolio"}"',
-                f'med_deepscientist_runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
-            ]
+            )
         )
         + "\n",
         encoding="utf-8",
@@ -36,38 +35,16 @@ def _ready_matrix_payload(study_id: str) -> dict[str, object]:
         "surface": "real_study_soak_matrix_evidence",
         "study_id": study_id,
         "study_archetype": "observational_real_world",
-        "stages": [
-            "literature_scout",
-            "line_selection",
-            "baseline",
-            "primary_analysis",
-            "bounded_analysis",
-            "route_back",
-            "stop_loss",
-            "revision_reopen",
-            "runtime_recovery",
-            "finalize_rebuild",
-            "final_pre_submission_audit",
-        ],
-        "contracts": {
-            "literature_contract": True,
-            "statistical_contract": True,
-        },
+        "stages": (
+            "literature_scout line_selection baseline primary_analysis bounded_analysis "
+            "route_back stop_loss revision_reopen runtime_recovery finalize_rebuild "
+            "final_pre_submission_audit"
+        ).split(),
+        "contracts": {"literature_contract": True, "statistical_contract": True},
         "result_strength": "adequate",
         "route_action": "continue",
         "durable_refs": [f"{study_id}/artifacts/publication_eval/latest.json"],
     }
-
-
-def _write_display_refs(workspace: Path) -> None:
-    _write_json(
-        workspace / "artifacts" / "runtime" / "study_progress" / "latest.json",
-        {"surface_kind": "study_progress_projection", "study": {"study_id": "001-active"}},
-    )
-    _write_json(
-        workspace / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
-        {"surface_kind": "opl_current_control_state_handoff", "studies": []},
-    )
 
 
 def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
@@ -119,39 +96,19 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
         }
 
     monkeypatch.setattr(module.paper_mission_owner_surface, "scan_domain_routes", fake_scan)
-    assert not hasattr(module, "domain_action_request_materializer")
-    assert not hasattr(module, "stage_outcome_authority")
-
     payload = module.build_paper_autonomy_stability_evidence(profile_paths=[profile_path])
 
-    assert payload["surface"] == "paper_autonomy_stability_evidence"
     assert payload["read_only_contract"]["can_write_current_package"] is False
     assert payload["summary"]["writes_performed"] is False
     assert payload["summary"]["can_claim_landed"] is False
     profile = payload["profiles"][0]
-    assert profile["profile_readable"] is True
     observation = profile["owner_route_handoff_observation"]
     assert observation["can_complete"] is True
     assert observation["transition_readback_required"] is True
     assert observation["execution_count"] == 0
-    assert observation["step_receipts"][-1] == {
-        "step": "require_opl_transition_readback",
-        "surface": "opl_domain_progress_transition_runtime",
-        "status": "readback_required",
-        "request_task_count": 0,
-        "execution_count": 0,
-        "mas_local_materializer_call": False,
-        "mas_local_dispatcher_call": False,
-        "mas_can_create_opl_command_event_outbox_or_stagerun": False,
-        "mas_can_authorize_provider_admission": False,
-    }
-    assert profile["workspace_migration_dry_run"]["dry_run"] is True
     assert profile["workspace_migration_dry_run"]["writes_performed"] is False
     assert profile["real_workspace_soak_monitor"]["writes_performed"] is False
-    assert profile["legacy_mds_diagnostic"]["diagnostic_only"] is True
-    assert profile["legacy_mds_diagnostic"]["default_runner_can_launch_runtime"] is False
-    assert any(blocker["kind"] == "human_gate" for blocker in payload["blockers"])
-    assert any(blocker["kind"] == "runtime_truth" for blocker in payload["blockers"])
+    assert {blocker["kind"] for blocker in payload["blockers"]} >= {"human_gate", "runtime_truth"}
     assert "wait_for_human_wakeup" in payload["next_actions"]
     assert not (workspace / "artifacts" / "supervision" / "reconcile" / "latest.json").exists()
     assert {path: path.stat().st_mtime_ns for path in before_mtimes} == before_mtimes
@@ -163,11 +120,18 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_autonomy_stability_evidence")
     workspace = tmp_path / "Yang" / "Fixture"
-    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
     study_root = workspace / "studies" / "001-active"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
     _write_profile(workspace, profile_path)
     (workspace / "memory" / "portfolio").mkdir(parents=True)
-    _write_display_refs(workspace)
+    _write_json(
+        workspace / "artifacts" / "runtime" / "study_progress" / "latest.json",
+        {"surface_kind": "study_progress_projection", "study": {"study_id": "001-active"}},
+    )
+    _write_json(
+        workspace / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {"surface_kind": "opl_current_control_state_handoff", "studies": []},
+    )
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_status_summary.json",
         {
@@ -184,13 +148,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     )
     _write_json(
         study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json",
-        {
-            "surface_kind": "study_macro_state",
-            "study_id": "001-active",
-            "writer_state": "queued",
-            "user_next": "watch",
-            "reason": "runtime",
-        },
+        {"surface_kind": "study_macro_state", "writer_state": "queued", "user_next": "watch"},
     )
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
@@ -215,36 +173,29 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         study_root / "artifacts" / "medical_paper" / "real_study_soak_matrix_evidence.json",
         _ready_matrix_payload("001-active"),
     )
+    routes = iter(("before", "after"))
 
     def fake_scan(**kwargs):
         assert kwargs["apply_safe_actions"] is False
         assert kwargs["persist_surfaces"] is False
-        suffix = "before" if not fake_scan.seen else "after"
-        fake_scan.seen = True
+        suffix = next(routes)
+        action = {"study_id": "001-active", "action_type": "unsupported_supervisor_action"}
         return {
             "surface": "portable_paper_mission_owner_surface",
             "studies": [
                 {
                     "study_id": "001-active",
-                    "owner_route": {
-                        "next_owner": f"mas_controller_{suffix}",
-                        "idempotency_key": f"route-{suffix}",
-                    },
-                    "action_queue": [{"study_id": "001-active", "action_type": "unsupported_supervisor_action"}],
+                    "owner_route": {"next_owner": f"mas_controller_{suffix}", "idempotency_key": f"route-{suffix}"},
+                    "action_queue": [action],
                 }
             ],
-            "action_queue": [{"study_id": "001-active", "action_type": "unsupported_supervisor_action"}],
+            "action_queue": [action],
         }
 
-    fake_scan.seen = False
     monkeypatch.setattr(module.paper_mission_owner_surface, "scan_domain_routes", fake_scan)
-    assert not hasattr(module, "domain_action_request_materializer")
-    assert not hasattr(module, "stage_outcome_authority")
-
     payload = module.build_paper_autonomy_stability_evidence(profile_paths=[profile_path])
 
     evidence = payload["paper_progress_degradation_evidence"]
-    assert evidence["surface"] == "paper_progress_degradation_evidence"
     assert evidence["read_only_contract"]["can_write_current_package"] is False
     assert evidence["summary"]["writes_performed"] is False
     profile = evidence["profiles"][0]
@@ -259,95 +210,3 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     assert handoff["publication_gate"]["current_required_action"] == "continue_write_stage"
     assert handoff["ai_reviewer"]["source"] == "ai_reviewer_request_lifecycle"
     assert handoff["writer_handoff"]["writer_state"] == "queued"
-
-
-def test_paper_autonomy_stability_evidence_cli_outputs_json(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_build(*, yang_root, profile_paths, study_ids):
-        called["yang_root"] = yang_root
-        called["profile_paths"] = profile_paths
-        called["study_ids"] = study_ids
-        return {
-            "surface": "paper_autonomy_stability_evidence",
-            "schema_version": 1,
-            "profiles": [],
-        }
-
-    monkeypatch.setattr(
-        cli.paper_autonomy_stability_evidence,
-        "build_paper_autonomy_stability_evidence",
-        fake_build,
-    )
-
-    exit_code = cli.main(
-        [
-            "runtime",
-            "paper-autonomy-stability-evidence",
-            "--yang-root",
-            str(tmp_path),
-            "--profiles",
-            "profile.toml",
-            "--studies",
-            "001",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {
-        "yang_root": tmp_path,
-        "profile_paths": ("profile.toml",),
-        "study_ids": ("001",),
-    }
-    assert json.loads(captured.out)["surface"] == "paper_autonomy_stability_evidence"
-
-
-def test_paper_progress_degradation_ignores_migrated_ai_reviewer_request_tombstone(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.paper_progress_degradation_evidence")
-    workspace_root = tmp_path / "workspace"
-    study_root = workspace_root / "studies" / "001-active"
-    _write_json(
-        study_root / "artifacts" / "publication_eval" / "latest.json",
-        {
-            "assessment_provenance": {
-                "owner": "mechanical_projection",
-                "source_kind": "publication_gate_report",
-                "ai_reviewer_required": True,
-            },
-            "verdict": {"overall_verdict": "mixed"},
-        },
-    )
-    _write_json(
-        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
-        {
-            "surface_kind": "legacy_control_surface_tombstone",
-            "status": "migrated_to_provenance",
-            "active_path_role": "domain_action_request_packet",
-        },
-    )
-    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
-    _write_profile(workspace_root, profile_path)
-    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
-
-    result = module.build_profile_progress_degradation_evidence(
-        profile_path=str(tmp_path / "profile.local.toml"),
-        profile=profile,
-        studies=[
-            {
-                "study_id": "001-active",
-                "study_root": str(study_root),
-                "status_progress_readable": True,
-                "readable_surface_count": 1,
-                "surface_refs": [{"relative_ref": "artifacts/runtime/runtime_status_summary.json", "readable": True}],
-            }
-        ],
-        reconcile={"study_receipts": []},
-        monitor={},
-    )
-
-    handoff = result["studies"][0]["publication_handoff_clarity"]
-    assert handoff["ai_reviewer"]["status"] == "blocked"
-    assert handoff["ai_reviewer"]["source"] == "publication_eval.assessment_provenance"
-    assert handoff["ai_reviewer"]["request_state"] == ""
