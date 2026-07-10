@@ -218,6 +218,87 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["supervisor_phase"] == "bundle_stage_ready"
     assert report["bundle_tasks_downstream_only"] is False
     assert report["phase_owner"] == "publication_gate"
+
+
+def test_run_controller_syncs_missing_draft_handoff_and_rebuilds_current_state(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        submission_checklist={
+            "overall_status": "display_materialized_slice_handoff_not_submission_ready",
+            "blocking_items": [{"key": "placeholder_heavy_branch_local_draft"}],
+            "handoff_ready": True,
+        },
+    )
+    draft_handoff_deliveries = iter(
+        [
+            {
+                "applicable": True,
+                "status": "missing",
+                "delivery_manifest_path": None,
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+            },
+        ]
+    )
+    state_build_roots: list[Path] = []
+    sync_calls: list[tuple[Path, str, str]] = []
+    real_build_gate_state = module.supervisor_and_cli.build_gate_state
+
+    def tracking_build_gate_state(root: Path):
+        state_build_roots.append(root)
+        return real_build_gate_state(root)
+
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+    ) -> dict[str, object]:
+        sync_calls.append((paper_root, stage, publication_profile))
+        return {"stage": stage, "publication_profile": publication_profile}
+
+    monkeypatch.setattr(module.supervisor_and_cli, "build_gate_state", tracking_build_gate_state)
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: next(draft_handoff_deliveries),
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": False,
+            "status": "not_applicable",
+        },
+    )
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [(quest_root / "paper", "draft_handoff", "general_medical_journal")]
+    assert state_build_roots == [quest_root, quest_root]
+    assert result["draft_handoff_delivery_required"] is True
+    assert result["draft_handoff_delivery_status"] == "current"
+    assert result["draft_handoff_delivery_manifest_path"] == (
+        "/tmp/studies/002/manuscript/delivery_manifest.json"
+    )
+    assert result["draft_handoff_delivery_sync"] == {
+        "stage": "draft_handoff",
+        "publication_profile": "general_medical_journal",
+    }
+
+
 def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_stale(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
