@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from med_autoscience.display_pack_gallery_catalog import (
+    TABLE_PREVIEW_GALLERY_TEMPLATE_IDS,
     gallery_display_records,
     gallery_visual_records,
     read_template_records,
@@ -24,7 +25,6 @@ from med_autoscience.display_pack_gallery.pdf import _export_pdf
 from med_autoscience.display_pack_gallery.quality import build_quality_audit_markdown
 from med_autoscience.display_pack_gallery.reference_writer import _write_reference
 from med_autoscience.display_pack_gallery.rendering import (
-    R_GALLERY_PREVIEW_TEMPLATE_IDS,
     _existing_python_template_asset,
     _existing_r_template_asset,
     _render_python_template,
@@ -83,7 +83,7 @@ def _render_records(
     rendered: dict[str, RenderedAsset] = {}
     visible_template_ids = {record.template_id for record in gallery_visual_records(records)}
     for record in records:
-        if record.template_id not in visible_template_ids and record.template_id not in R_GALLERY_PREVIEW_TEMPLATE_IDS:
+        if record.template_id not in visible_template_ids and record.template_id not in TABLE_PREVIEW_GALLERY_TEMPLATE_IDS:
             rendered[record.template_id] = RenderedAsset(
                 status="not_default",
                 reason="hidden_from_default_gallery_or_non_visual_inventory",
@@ -140,7 +140,7 @@ def _render_records(
                 status="policy_violation",
                 reason="python_evidence_templates_are_not_retained_without_documented_advantage_proof",
             )
-        elif record.template_id in R_GALLERY_PREVIEW_TEMPLATE_IDS:
+        elif record.template_id in TABLE_PREVIEW_GALLERY_TEMPLATE_IDS:
             if package_only:
                 rendered[record.template_id] = _existing_r_template_asset(
                     record,

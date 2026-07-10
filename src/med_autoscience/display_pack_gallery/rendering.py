@@ -32,9 +32,6 @@ from med_autoscience.display_pack_gallery.dependency_run_context import (
 )
 from med_autoscience.display_pack_dependency_environment import apply_dependency_run_context
 
-R_GALLERY_PREVIEW_TEMPLATE_IDS: set[str] = {"table1_baseline_characteristics"}
-
-
 def _r_renderer_source_paths(record: TemplateRecord) -> list[Path]:
     rlib_root = paths.PACK_ROOT / "rlib" / "medicaldisplaycore"
     return [

@@ -19,6 +19,7 @@ from med_autoscience.medical_figure_family_catalog import load_medical_figure_fa
 CORE_MEDICAL_FIGURE_FAMILY_CATALOG_REF = "contracts/medical-figure-family-catalog/"
 FIGURE_FAMILY_POLICY_SOURCE = "medical_figure_family_catalog"
 GALLERY_TEMPLATE_FAMILY_SOURCE = "display_pack_canonical_template_catalog"
+TABLE_PREVIEW_GALLERY_TEMPLATE_IDS = frozenset({"table1_baseline_characteristics"})
 
 
 @dataclass(frozen=True)
@@ -143,7 +144,7 @@ def gallery_display_records(records: list[TemplateRecord]) -> list[TemplateRecor
 def design_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [
         record
-        for record in non_visual_canonical_records(records)
+        for record in canonical_records(records)
         if record.kind == "illustration_shell"
         and record.analysis_responsibility == "illustration_shell"
     ]
@@ -152,7 +153,7 @@ def design_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord
 def reporting_flow_gallery_records(records: list[TemplateRecord]) -> list[TemplateRecord]:
     return [
         record
-        for record in non_visual_canonical_records(records)
+        for record in canonical_records(records)
         if record.kind == "illustration_shell"
         and record.analysis_responsibility == "validated_summary_required"
     ]
@@ -162,7 +163,7 @@ def table_preview_gallery_records(records: list[TemplateRecord]) -> list[Templat
     return [
         record
         for record in non_visual_canonical_records(records)
-        if record.kind == "table_shell"
+        if record.template_id in TABLE_PREVIEW_GALLERY_TEMPLATE_IDS
     ]
 
 
@@ -179,7 +180,7 @@ def non_visual_canonical_records(records: list[TemplateRecord]) -> list[Template
     return [
         record
         for record in canonical_records(records)
-        if record.kind != "evidence_figure"
+        if record.kind == "table_shell"
     ]
 
 
