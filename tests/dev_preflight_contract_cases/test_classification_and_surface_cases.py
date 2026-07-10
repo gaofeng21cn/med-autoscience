@@ -50,8 +50,8 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "contracts/runtime/mas-root-cause-depth-gate.json",
             "src/med_autoscience/profiles.py",
             "profiles/workspace.profile.template.toml",
-            "src/med_autoscience/controllers/study_outer_loop.py",
-            "src/med_autoscience/controllers/study_runtime_decision.py",
+            "src/med_autoscience/controllers/study_outer_loop/__init__.py",
+            "src/med_autoscience/controllers/study_runtime_decision/__init__.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
             "tests/test_profiles.py",
@@ -265,13 +265,11 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
-            "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
+            "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
-            "src/med_autoscience/mcp_server/__init__.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
             "src/med_autoscience/controllers/study_progress/projection_quality_surfaces.py",
             "src/med_autoscience/controllers/study_progress/projection_runtime_surfaces.py",
@@ -279,9 +277,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/study_delivery_sync/sync_cli.py",
             "tests/test_autonomy_state_surface.py",
             "tests/test_artifact_lifecycle_inventory.py",
-            "tests/test_artifact_lifecycle_operations_report.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
-            "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
         ]
     )
 
@@ -291,27 +286,12 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_cli_parser_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(["src/med_autoscience/cli/parser.py"])
-
-    assert result.matched_categories == ("cli_parser_surface",)
-    assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh "
-        "tests/test_study_runtime_execution_evidence_adoption_cases/"
-        "test_standard_agent_purity_boundary.py -q",
-    ]
-
-
 def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
-            "src/med_autoscience/cli/current_owner_delta_owner_answer_commands.py",
             "tests/test_owner_answer_candidate_intake.py",
         ]
     )
@@ -329,17 +309,14 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/study_interventions.py",
-            "src/med_autoscience/cli/study_owner_gate_commands.py",
             "tests/test_study_interventions.py",
-            "tests/test_cli_cases/domain_action_request_materializer_command.py",
         ]
     )
 
     assert result.matched_categories == ("study_owner_gate_decision_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_study_interventions.py "
-        "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
+        "scripts/run-pytest-clean.sh tests/test_study_interventions.py -q",
     ]
 
 
@@ -455,8 +432,6 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
-            "src/med_autoscience/controllers/workspace_init.py",
-            "tests/test_workspace_init.py",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )
@@ -475,7 +450,7 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
             "Makefile",
             "scripts/verify.sh",
             "src/med_autoscience/dev_preflight.py",
-            "src/med_autoscience/dev_preflight_contract.py",
+            "src/med_autoscience/dev_preflight_contract/__init__.py",
             "tests/test_editable_shared_bootstrap.py",
             "tests/test_dev_preflight.py",
             "tests/test_dev_preflight_contract.py",
@@ -544,7 +519,6 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "agent/stages/manuscript_authoring.policy.md",
             "agent/stages/review_and_quality_gate.policy.md",
             "contracts/action_catalog.json",
-            "contracts/agent_tool_arsenal.json",
             "contracts/authority_kernel_inventory.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
@@ -590,7 +564,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
         [
             "contracts/opl-framework/family-contract-adoption.json",
             "contracts/progress_first_safety_envelope.json",
-            "src/med_autoscience/external_learning_adoption_closure.py",
+            "src/med_autoscience/external_learning_adoption_closure/__init__.py",
             "src/med_autoscience/external_learning_authoring_advisory.py",
             "src/med_autoscience/external_learning_progress_workers.py",
             "src/med_autoscience/external_learning_review_advisory.py",

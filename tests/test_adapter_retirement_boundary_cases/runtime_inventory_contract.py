@@ -11,7 +11,7 @@ SCHEMA_PATH = REPO_ROOT / "contracts/runtime/mas-runtime-surface-retirement.sche
 RETAINED_TAILS = {
     "stage_outcome_authority",
     "progress_portal_study_workbench_overview_action_projection",
-    "agent_tool_arsenal_scientific_capability_registry",
+    "scientific_capability_registry_metadata",
 }
 
 
