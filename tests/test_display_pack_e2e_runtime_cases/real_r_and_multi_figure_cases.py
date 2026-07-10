@@ -38,10 +38,18 @@ def test_materialize_display_pack_publication_manifest_runs_real_core_r_subproce
     assert figure["renderer_family"] == "r_ggplot2"
     assert figure["execution_mode"] == "subprocess"
     assert render_result["execution_mode"] == "subprocess"
-    assert render_result["entrypoint"] == "Rscript render.R --request {request_json}"
-    assert render_result["argv"][0] == "Rscript"
-    assert render_result["argv"][1] == "render.R"
-    assert render_result["argv"][2] == "--request"
+    assert render_result["entrypoint"] == (
+        "Rscript ../../render.R --template roc_curve_binary --mode {render_mode} --request {request_json}"
+    )
+    assert render_result["argv"][:7] == [
+        "Rscript",
+        "../../render.R",
+        "--template",
+        "roc_curve_binary",
+        "--mode",
+        "final",
+        "--request",
+    ]
     assert Path(render_result["cwd"]).name == "roc_curve_binary"
     assert Path(render_result["request_path"]).exists()
     assert Path(render_result["stdout_path"]).exists()
@@ -70,9 +78,9 @@ def test_materialize_display_pack_publication_manifest_runs_real_core_r_subproce
         if item["full_template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
     )
     assert locked_template["execution_mode"] == "subprocess"
-    assert locked_template["entrypoint"] == "Rscript render.R --request {request_json}"
-    assert locked_template["render_script_path"].endswith("templates/roc_curve_binary/render.R")
-    assert len(locked_template["render_script_sha256"]) == 64
+    assert locked_template["entrypoint"] == render_result["entrypoint"]
+    assert locked_template["render_script_path"] is None
+    assert locked_template["render_script_sha256"] is None
 
 
 def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsort_exact_path(
@@ -134,10 +142,18 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
     assert figure["dependency_environment"] == dependency_environment
     assert render_result["execution_mode"] == "subprocess"
     assert render_result["renderer_family"] == "r_ggplot2"
-    assert render_result["entrypoint"] == "Rscript render.R --request {request_json}"
-    assert render_result["argv"][0] == "Rscript"
-    assert render_result["argv"][1] == "render.R"
-    assert render_result["argv"][2] == "--request"
+    assert render_result["entrypoint"] == (
+        "Rscript ../../render.R --template cohort_flow_figure --mode {render_mode} --request {request_json}"
+    )
+    assert render_result["argv"][:7] == [
+        "Rscript",
+        "../../render.R",
+        "--template",
+        "cohort_flow_figure",
+        "--mode",
+        "final",
+        "--request",
+    ]
     assert Path(render_result["cwd"]).name == "cohort_flow_figure"
     assert render_result["returncode"] == 0
     assert render_result["dependency_environment"] == dependency_environment
@@ -201,9 +217,9 @@ def test_materialize_display_pack_publication_manifest_runs_cohort_flow_ggconsor
         if item["full_template_id"] == "fenggaolab.org.medical-display-core::cohort_flow_figure"
     )
     assert locked_template["execution_mode"] == "subprocess"
-    assert locked_template["entrypoint"] == "Rscript render.R --request {request_json}"
-    assert locked_template["render_script_path"].endswith("templates/cohort_flow_figure/render.R")
-    assert len(locked_template["render_script_sha256"]) == 64
+    assert locked_template["entrypoint"] == render_result["entrypoint"]
+    assert locked_template["render_script_path"] is None
+    assert locked_template["render_script_sha256"] is None
 
 
 def test_display_pack_publication_manifest_auto_consumes_prepared_dependency_environment_for_cohort_flow(
@@ -465,7 +481,7 @@ def test_materialize_display_pack_publication_manifest_keeps_obesity_cohort_flow
     assert figure["deterministic_qc"]["status"] == "pass"
     layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
     assert layout_sidecar["metrics"]["uses_ggconsort"] is True
-    assert layout_sidecar["metrics"]["step_detail_render_policy"] == "visible_when_present"
+    assert layout_sidecar["metrics"]["step_detail_render_policy"] == "metadata_only_not_drawn"
     assert (
         layout_sidecar["metrics"]["step_detail_truncation_policy"]
         == "no_ellipsis_truncation_complete_wrapped_text"

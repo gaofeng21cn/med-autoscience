@@ -118,7 +118,7 @@ def _visual_audit_findings_from_sidecar(
         {
             "figure_id": figure_id,
             "observed_issue": (
-                "Dense DPCC transition heatmap lacks an explicit sparse cell-label policy; "
+                "Dense transition heatmap lacks an explicit sparse cell-label policy; "
                 "paper PDF scaling can make cell text overlap."
             ),
             "paper_facing_impact": (

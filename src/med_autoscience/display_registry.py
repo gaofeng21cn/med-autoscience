@@ -337,8 +337,9 @@ def list_evidence_figure_specs() -> tuple[EvidenceFigureSpec, ...]:
 
 
 def list_materializable_evidence_figure_specs() -> tuple[EvidenceFigureSpec, ...]:
+    active_by_id = {item.template_id: item for item in list_evidence_figure_specs()}
     return (
-        *list_evidence_figure_specs(),
+        *(active_by_id[template_id] for template_id in _EVIDENCE_TEMPLATE_ORDER),
         *_LIVE_PUBLICATION_EVIDENCE_FIGURES_BY_ID.values(),
     )
 

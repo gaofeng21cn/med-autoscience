@@ -341,7 +341,7 @@ def _build_paper_surface_readmes(
             - Routed by: `paper/figures/figure_catalog.json`
             - Current figure ids: {figure_id_line}
 
-            Every authoritative figure render for the active paper line lives here. Any unreferenced stale generated files are pruned during `materialize-display-surface`; use the catalog rather than guessing by filename age.
+            Every authoritative figure render for the active paper line lives here. Any unreferenced stale generated files are pruned during display surface materialization; use the catalog rather than guessing by filename age.
             """
         ),
         paper_root / "tables" / "README.md": textwrap.dedent(
@@ -363,7 +363,7 @@ def _build_paper_surface_readmes(
             - Routed by: `paper/tables/table_catalog.json`
             - Current table ids: {table_id_line}
 
-            Every authoritative table render for the active paper line lives here. Any unreferenced stale generated files are pruned during `materialize-display-surface`; use the catalog rather than guessing by filename age.
+            Every authoritative table render for the active paper line lives here. Any unreferenced stale generated files are pruned during display surface materialization; use the catalog rather than guessing by filename age.
             """
         ),
     }

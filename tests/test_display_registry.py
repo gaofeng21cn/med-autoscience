@@ -67,6 +67,15 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
         item.input_schema_id
         for item in display_registry.list_materializable_evidence_figure_specs()
     }
+    active_template_ids = {
+        item.template_id
+        for item in display_registry.list_evidence_figure_specs()
+    }
+    materializable_ids = {
+        item.template_id
+        for item in display_registry.list_materializable_evidence_figure_specs()
+    }
+    workspace_materializable_ids = active_template_ids & materializable_ids
     current_qc_profiles = {
         item.layout_qc_profile
         for item in display_registry.list_materializable_evidence_figure_specs()
@@ -82,6 +91,16 @@ def test_current_materialization_surface_excludes_retired_python_evidence_schema
     generic_output_profiles = {"publication_result_display", "publication_table_shell"}
 
     assert set(_VALIDATOR_BY_SCHEMA_ID) <= current_schema_ids
+    assert len(active_template_ids) == 43
+    assert len(materializable_ids) == 40
+    assert len(workspace_materializable_ids) == 38
+    assert active_template_ids - workspace_materializable_ids == {
+        _full_id("adult_bmi_waist_central_adiposity_bar"),
+        _full_id("adult_multidimensional_phenotype_heatmap"),
+        _full_id("availability_bar_panel"),
+        _full_id("dot_range_summary_panel"),
+        _full_id("xiangya_psychobehavioral_overlap_heatmap"),
+    }
     assert {
         "stratified_mismatch_matrix_inputs_v1",
         "transition_support_matrix_inputs_v1",

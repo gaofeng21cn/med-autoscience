@@ -143,7 +143,7 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
     monkeypatch,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
-    paper_root = build_display_surface_workspace(tmp_path)
+    paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)
     write_default_publication_display_contracts(paper_root)
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     reporting_contract = (
@@ -208,10 +208,20 @@ def test_materialize_display_surface_restores_contract_backed_and_shell_mapped_f
         },
     )
     dump_json(
+        paper_root / "figures" / "Figure2.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "Figure2",
+            "display_kind": "figure",
+            "requirement_key": "roc_curve_binary",
+            "catalog_id": "F2",
+        },
+    )
+    dump_json(
         paper_root / "figures" / "figure3_non_gtr_extension.shell.json",
         {
             "schema_version": 1,
-            "source_contract_path": "paper/medical_reporting_contract.json",
+            "source_contract_path": "paper/figures/figure3_non_gtr_extension.contract.json",
             "display_id": "figure3_non_gtr_extension",
             "display_kind": "figure",
             "requirement_key": "binary_calibration_decision_curve_panel",

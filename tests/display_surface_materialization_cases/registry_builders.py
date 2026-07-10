@@ -8,7 +8,7 @@ def _short_id(template_id: str) -> str:
 
 
 def _current_evidence_template_ids(*, include_extended_evidence: bool) -> tuple[str, ...]:
-    registered_specs = display_registry.list_evidence_figure_specs()
+    registered_specs = display_registry.list_materializable_evidence_figure_specs()
     registered_by_id = {spec.template_id: spec for spec in registered_specs}
     missing_base_owners = [
         template_id
@@ -18,11 +18,9 @@ def _current_evidence_template_ids(*, include_extended_evidence: bool) -> tuple[
     if missing_base_owners:
         raise AssertionError(f"base evidence template owners are missing: {missing_base_owners}")
 
-    base_owner_ids = set(display_registry._EVIDENCE_TEMPLATE_ORDER)
     template_ids = tuple(
-        _short_id(spec.template_id)
-        for spec in registered_specs
-        if spec.template_id in base_owner_ids
+        _short_id(registered_by_id[template_id].template_id)
+        for template_id in display_registry._EVIDENCE_TEMPLATE_ORDER
     )
     return template_ids if include_extended_evidence else template_ids[:5]
 

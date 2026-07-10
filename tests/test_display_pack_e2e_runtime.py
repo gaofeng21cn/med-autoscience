@@ -433,7 +433,7 @@ def _install_fake_ggconsort_package(tmp_path: Path) -> Path:
                 "Package: ggconsort",
                 "Type: Package",
                 "Title: Offline MAS Test Double for ggconsort",
-                "Version: 0.0.0.9000",
+                "Version: 0.1.0",
                 "Description: Minimal namespace used by MAS dependency run-context tests.",
                 "License: MIT",
                 "Encoding: UTF-8",
@@ -447,6 +447,7 @@ def _install_fake_ggconsort_package(tmp_path: Path) -> Path:
         "\n".join(
             (
                 "export(cohort_start)",
+                "export(create_consort_data)",
                 "export(cohort_define)",
                 "export(cohort_label)",
                 "export(consort_box_add)",
@@ -461,12 +462,29 @@ def _install_fake_ggconsort_package(tmp_path: Path) -> Path:
     (package_root / "R" / "ggconsort.R").write_text(
         """
 cohort_start <- function(data, name) {
-  result <- data.frame(x = numeric(0), y = numeric(0), label = character(0), stringsAsFactors = FALSE)
+  result <- data.frame(
+    type = character(0),
+    name = character(0),
+    box_x = numeric(0),
+    box_y = numeric(0),
+    label = character(0),
+    start = character(0),
+    end = character(0),
+    x = numeric(0),
+    y = numeric(0),
+    xend = numeric(0),
+    yend = numeric(0),
+    stringsAsFactors = FALSE
+  )
   attr(result, "name") <- name
   attr(result, "cohort_names") <- c(".full")
   attr(result, "labels") <- list()
   attr(result, "arrows") <- list()
   result
+}
+
+create_consort_data <- function(consort) {
+  consort
 }
 
 cohort_define <- function(consort, ...) {
@@ -488,13 +506,42 @@ cohort_label <- function(consort, ...) {
 consort_box_add <- function(consort, id, x, y, label) {
   rbind(
     consort,
-    data.frame(x = as.numeric(x), y = as.numeric(y), label = as.character(label), stringsAsFactors = FALSE)
+    data.frame(
+      type = "box",
+      name = as.character(id),
+      box_x = as.numeric(x),
+      box_y = as.numeric(y),
+      label = as.character(label),
+      start = NA_character_,
+      end = NA_character_,
+      x = NA_real_,
+      y = NA_real_,
+      xend = NA_real_,
+      yend = NA_real_,
+      stringsAsFactors = FALSE
+    )
   )
 }
 
 consort_arrow_add <- function(consort, ...) {
-  attr(consort, "arrows") <- c(attr(consort, "arrows"), list(list(...)))
-  consort
+  args <- list(...)
+  rbind(
+    consort,
+    data.frame(
+      type = "arrow",
+      name = NA_character_,
+      box_x = NA_real_,
+      box_y = NA_real_,
+      label = NA_character_,
+      start = as.character(if (is.null(args$start)) NA else args$start),
+      end = as.character(if (is.null(args$end)) NA else args$end),
+      x = as.numeric(if (is.null(args$start_x)) NA else args$start_x),
+      y = as.numeric(if (is.null(args$start_y)) NA else args$start_y),
+      xend = as.numeric(if (is.null(args$end_x)) NA else args$end_x),
+      yend = as.numeric(if (is.null(args$end_y)) NA else args$end_y),
+      stringsAsFactors = FALSE
+    )
+  )
 }
 
 geom_consort <- function(...) {

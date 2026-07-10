@@ -36,7 +36,6 @@ DISPLAY_HEAVY_FILES = {
     "tests/display_deg_golden_regression_cases/test_multiomic_spatial_and_trajectory_golden.py",
     "tests/test_display_layout_qc.py",
     "tests/test_display_surface_materialization.py",
-    "tests/test_display_surface_materialization_cli.py",
     "tests/test_medical_startup_contract_support.py",
     "tests/test_submission_minimal_display_surface.py",
 }
