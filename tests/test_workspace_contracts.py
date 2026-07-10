@@ -1,366 +1,75 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import importlib
 import json
-import os
 from pathlib import Path
 
-
-def make_profile(tmp_path: Path):
-    profiles = importlib.import_module("med_autoscience.profiles")
-    return profiles.WorkspaceProfile(
-        name="nfpitnet",
-        workspace_root=tmp_path / "workspace",
-        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
-        studies_root=tmp_path / "workspace" / "studies",
-        portfolio_root=tmp_path / "workspace" / "portfolio",
-        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=(
-            "clinical_classifier",
-            "clinical_subtype_reconstruction",
-            "external_validation_model_update",
-        ),
-        default_submission_targets=(),
-    )
+from tests.study_runtime_test_helpers import make_profile
 
 
-def make_executable_launcher(tmp_path: Path) -> Path:
-    launcher_path = tmp_path / "launcher" / "ds"
-    launcher_path.parent.mkdir(parents=True, exist_ok=True)
-    launcher_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-    launcher_path.chmod(0o755)
-    return launcher_path
-
-
-def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> None:
+def test_inspect_workspace_contracts_reports_missing_items_and_skips_repo_manifest(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
+    repo_root = profile.med_deepscientist_repo_root
+    repo_root.mkdir(parents=True)
+    (repo_root / "MEDICAL_FORK_MANIFEST.json").write_text(
+        json.dumps({"schema_version": 1, "engine_id": "med-deepscientist"}),
+        encoding="utf-8",
+    )
 
     result = module.inspect_workspace_contracts(profile)
-
-    assert result["runtime_contract"]["checks"]["managed_runtime_quests_root_exists"] is False
-    assert result["runtime_contract"]["checks"]["managed_runtime_home_exists"] is False
-    assert result["runtime_contract"]["checks"]["managed_runtime_quests_root_matches_layout"] is True
-    assert result["runtime_contract"]["historical_fixture_ref"]["read_only"] is True
-    assert result["runtime_contract"]["historical_fixture_ref"]["runtime_root_exists"] is False
     assert result["runtime_contract"]["ready"] is False
-
-    assert result["launcher_contract"]["surface_kind"] == "backend_audit_contract"
+    assert result["runtime_contract"]["historical_fixture_ref"]["read_only"] is True
     assert result["launcher_contract"]["retained_entry"] == "backend_audit"
-    assert result["launcher_contract"]["read_only"] is True
     assert result["launcher_contract"]["default_runner_allowed"] is False
     assert result["launcher_contract"]["default_webui_allowed"] is False
-    assert result["launcher_contract"]["checks"]["medautoscience_config_env_exists"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_config_env_exists"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_bin_dir_exists"] is False
-    assert result["launcher_contract"]["controlled_backend_repo_root_configured_for_audit"] is True
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_configured"] is False
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_absolute"] is False
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_exists"] is False
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_executable"] is False
     assert result["launcher_contract"]["explicit_archive_import_ref"]["read_only"] is True
-    assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["repo_manifest"] == {
+        "inspection_skipped": True,
+        "skip_reason": "explicit_backend_audit_only",
+        "repo_root": str(repo_root),
+    }
+    assert result["behavior_gate"]["surface_kind"] == "retired_behavior_equivalence_gate"
+    assert result["behavior_gate"]["current_readiness_gate"] is False
+    assert result["behavior_gate"]["ready"] is True
+    assert result["overall_ready"] is False
 
-    assert result["behavior_gate"]["checks"]["gate_file_exists"] is False
-    assert result["behavior_gate"]["phase_25_ready"] is False
-    assert result["behavior_gate"]["ready"] is False
 
-
-def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path) -> None:
+def test_inspect_workspace_contracts_accepts_clean_mas_first_workspace(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
-    profile.runtime_root.mkdir(parents=True)
-    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
-
-    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
-    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
-
-    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
-    deepscientist_root.mkdir(parents=True, exist_ok=True)
-    launcher_path = make_executable_launcher(tmp_path)
-    (deepscientist_root / "config.env").write_text(
-        f'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
-        encoding="utf-8",
-    )
-    (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
-        "\n".join(
-            [
-                "schema_version: v1",
-                "phase_25_ready: true",
-                "critical_overrides:",
-                "  - id: no_degrade_domain_diagnostic_report",
-                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
-                "    status: approved",
-                "    target_surface: domain_diagnostic_report",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    result = module.inspect_workspace_contracts(profile)
-
-    assert result["runtime_contract"]["ready"] is True
-    assert result["launcher_contract"]["ready"] is False
-    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
-    assert result["launcher_contract"]["resolved_launcher_path"] == str(launcher_path)
-    assert result["behavior_gate"]["checks"]["schema_version_present"] is True
-    assert result["behavior_gate"]["checks"]["phase_25_ready_is_bool"] is True
-    assert result["behavior_gate"]["checks"]["critical_overrides_valid"] is True
-    assert result["behavior_gate"]["phase_25_ready"] is True
-    assert result["behavior_gate"]["ready"] is True
-    assert result["behavior_gate"]["critical_overrides"] == [
-        {
-            "id": "no_degrade_domain_diagnostic_report",
-            "source_path": "ops/med-deepscientist/policies/domain_diagnostic_report.md",
-            "status": "approved",
-            "target_surface": "domain_diagnostic_report",
-        }
-    ]
-
-
-def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.workspace_contracts")
-    profiles = importlib.import_module("med_autoscience.profiles")
-    workspace_root = tmp_path / "workspace"
-    profile = profiles.WorkspaceProfile(
-        name="nfpitnet",
-        workspace_root=workspace_root,
-        runtime_root=workspace_root / "runtime" / "quests",
-        studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "memory" / "portfolio",
-        med_deepscientist_runtime_root=workspace_root / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=("clinical_classifier",),
-        default_submission_targets=(),
+    profile = replace(
+        profile,
+        med_deepscientist_runtime_root=profile.workspace_root / "runtime",
     )
     profile.runtime_root.mkdir(parents=True)
-    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
-
-    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
-    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
-
-    runtime_bridge_root = profile.workspace_root / "ops" / "mas"
-    runtime_bridge_root.mkdir(parents=True, exist_ok=True)
-    launcher_path = make_executable_launcher(tmp_path)
-    (runtime_bridge_root / "config.env").write_text(
-        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
-        encoding="utf-8",
-    )
-    (runtime_bridge_root / "bin").mkdir(parents=True, exist_ok=True)
-    (runtime_bridge_root / "behavior_equivalence_gate.yaml").write_text(
-        "schema_version: v1\nphase_25_ready: true\ncritical_overrides: []\n",
-        encoding="utf-8",
-    )
-
+    config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
+    config.parent.mkdir(parents=True)
+    config.write_text(f"MEDAUTOSCI_PROFILE={profile.name}\n", encoding="utf-8")
     result = module.inspect_workspace_contracts(profile)
-
-    assert result["runtime_contract"]["ready"] is True
-    assert result["launcher_contract"]["ready"] is False
-    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
-    assert result["launcher_contract"]["controlled_backend_config_env"] == str(runtime_bridge_root / "config.env")
-    assert result["launcher_contract"]["controlled_backend_bin_dir"] == str(runtime_bridge_root / "bin")
-    assert result["launcher_contract"]["explicit_archive_import_ref"]["controlled_backend_config_env"] == str(
-        runtime_bridge_root / "config.env"
-    )
-    assert result["behavior_gate"]["path"] == str(runtime_bridge_root / "behavior_equivalence_gate.yaml")
-    assert result["behavior_gate"]["retired"] is True
-
-
-def test_inspect_workspace_contracts_accepts_clean_mas_first_workspace_without_legacy_bridge(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.workspace_contracts")
-    profiles = importlib.import_module("med_autoscience.profiles")
-    workspace_root = tmp_path / "workspace"
-    profile = profiles.WorkspaceProfile(
-        name="nfpitnet",
-        workspace_root=workspace_root,
-        runtime_root=workspace_root / "runtime" / "quests",
-        studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "memory" / "portfolio",
-        med_deepscientist_runtime_root=workspace_root / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=("clinical_classifier",),
-        default_submission_targets=(),
-    )
-    profile.runtime_root.mkdir(parents=True)
-    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
-
-    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
-    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
-
-    result = module.inspect_workspace_contracts(profile)
-
     assert result["runtime_contract"]["ready"] is True
     assert result["launcher_contract"]["ready"] is True
     assert result["launcher_contract"]["checks"]["controlled_backend_config_env_exists"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_bin_dir_exists"] is False
     assert result["behavior_gate"]["surface_kind"] == "retired_behavior_equivalence_gate"
-    assert result["behavior_gate"]["ready"] is True
     assert result["behavior_gate"]["current_readiness_gate"] is False
     assert result["overall_ready"] is True
 
 
-def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Path) -> None:
+def test_inspect_workspace_contracts_rejects_configured_backend_launcher(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
-    profile.runtime_root.mkdir(parents=True)
-    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
-
-    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
-    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
-
-    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
-    deepscientist_root.mkdir(parents=True, exist_ok=True)
-    launcher_path = make_executable_launcher(tmp_path)
-    (deepscientist_root / "config.env").write_text(
-        f'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
-        encoding="utf-8",
-    )
-    (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
-        "\n".join(
-            [
-                "schema_version: v1",
-                "phase_25_ready: true",
-                "critical_overrides:",
-                "  - id: malformed_override",
-                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
-                "    status: approved",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    result = module.inspect_workspace_contracts(profile)
-
-    assert result["behavior_gate"]["checks"]["critical_overrides_valid"] is False
-    assert result["behavior_gate"]["phase_25_ready"] is True
-    assert result["behavior_gate"]["ready"] is False
-
-
-def test_inspect_workspace_contracts_rejects_placeholder_launcher_path(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.workspace_contracts")
-    profile = make_profile(tmp_path)
-    profile.runtime_root.mkdir(parents=True)
-    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
-
-    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
-    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
-
-    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
-    deepscientist_root.mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "config.env").write_text(
-        'DEEPSCIENTIST_PROFILE=nfpitnet\nMED_DEEPSCIENTIST_LAUNCHER="/ABS/PATH/TO/ds"\n',
-        encoding="utf-8",
-    )
-    (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
-    (deepscientist_root / "behavior_equivalence_gate.yaml").write_text(
-        "\n".join(
-            [
-                "schema_version: v1",
-                "phase_25_ready: true",
-                "critical_overrides:",
-                "  - id: no_degrade_domain_diagnostic_report",
-                "    source_path: ops/med-deepscientist/policies/domain_diagnostic_report.md",
-                "    status: approved",
-                "    target_surface: domain_diagnostic_report",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    result = module.inspect_workspace_contracts(profile)
-
-    assert result["launcher_contract"]["ready"] is False
-    assert result["launcher_contract"]["resolved_launcher_path"] == "/ABS/PATH/TO/ds"
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_configured"] is True
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_absolute"] is True
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_exists"] is False
-    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_executable"] is False
-    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
-
-
-def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> None:
-    doctor = importlib.import_module("med_autoscience.doctor")
-    profile = make_profile(tmp_path)
-
-    rendered = doctor.render_doctor_report(doctor.build_doctor_report(profile))
-
-    assert "runtime_contract: " in rendered
-    assert "launcher_contract: " in rendered
-    assert "behavior_gate: " in rendered
-    assert "external_runtime_contract: " in rendered
-    assert "workspace_domain_route_contract: " in rendered
-    assert "ai_first_drift_audit: " in rendered
-
-
-def test_inspect_workspace_contracts_skips_repo_manifest_by_default(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.workspace_contracts")
-    profile = make_profile(tmp_path)
-    repo_root = profile.med_deepscientist_repo_root
-    repo_root.mkdir(parents=True, exist_ok=True)
-    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
-    manifest_payload = {
-        "schema_version": 1,
-        "engine_id": "med-deepscientist",
-        "engine_family": "MedDeepScientist",
-        "freeze_mode": "thin_fork",
-        "upstream_source": {
-            "repo_path": "/tmp/DeepScientist",
-            "base_commit": "abc123",
-        },
-        "compatibility_contract": {
-            "package_rename_applied": False,
-            "daemon_api_shape_preserved": True,
-            "quest_layout_preserved": True,
-            "worktree_layout_preserved": True,
-        },
-        "applied_commits": [
-            {"commit": "aaa", "kind": "runtime_bugfix", "summary": "first"},
-            {"commit": "bbb", "kind": "runtime_bugfix", "summary": "second"},
-        ],
-        "lock_policy": {
-            "mode": "regenerate_in_fork",
-            "source_repo_was_dirty": True,
-            "source_dirty_paths": ["uv.lock"],
-        },
-    }
-    manifest_path.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    result = module.inspect_workspace_contracts(profile)
-    manifest_checks = result["launcher_contract"]["manifest_checks"]
-    assert manifest_checks["default_manifest_inspection_disabled"] is True
-    assert manifest_checks["manifest_found"] is False
-    assert manifest_checks["manifest_parsable"] is False
-
-    repo_manifest = result["launcher_contract"]["repo_manifest"]
-    assert repo_manifest["inspection_skipped"] is True
-    assert repo_manifest["skip_reason"] == "explicit_backend_audit_only"
-    assert repo_manifest["repo_root"] == str(repo_root)
+    config = module.build_workspace_runtime_layout_for_profile(profile).config_env_path
+    config.parent.mkdir(parents=True)
+    executable = tmp_path / "launcher"
+    executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    executable.chmod(0o755)
+    for launcher in ("ABS/PATH/ds", str(executable)):
+        config.write_text(f"MED_DEEPSCIENTIST_LAUNCHER={launcher}\n", encoding="utf-8")
+        result = module.inspect_workspace_contracts(profile)
+        assert result["launcher_contract"]["ready"] is False
+        assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]

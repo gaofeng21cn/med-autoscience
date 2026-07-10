@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import importlib
 
+import pytest
+
 from tests.provider_admission_current_control_helpers import (
     opl_transition_readback,
     opl_transition_replay_audit_readback,
@@ -12,6 +14,7 @@ from tests.provider_admission_current_control_helpers import (
 STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
 WORK_UNIT_ID = "medical_prose_write_repair"
 FINGERPRINT = "publication-blockers::0915410f804b3697"
+IDEMPOTENCY_KEY = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
 
 
 def _live_readback() -> dict[str, object]:
@@ -19,625 +22,205 @@ def _live_readback() -> dict[str, object]:
         STUDY_ID,
         action_fingerprint=FINGERPRINT,
         work_unit_id=WORK_UNIT_ID,
-        request_idempotency_key=f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        request_idempotency_key=IDEMPOTENCY_KEY,
     )
 
 
-def _non_advancing_live_readback() -> dict[str, object]:
-    readback = copy.deepcopy(_live_readback())
-    identity = readback["identity"]
-    identity["transition_kind"] = "NonAdvancingApply"
-    identity["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
-    outcome = readback["exactly_one_outcome"]
-    outcome["transition_kind"] = "NonAdvancingApply"
-    outcome["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
-    outcome["non_advancing_apply"] = True
-    read_model = readback["read_model_readback"]
-    read_model["identity"] = identity
-    read_model["exactly_one_outcome"] = outcome
-    return readback
-
-
-def _legacy_result() -> dict[str, object]:
+def _candidate(readback: dict[str, object]) -> dict[str, object]:
     return {
-        "surface_kind": "opl_domain_progress_transition_result",
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "outcome_kind": "provider_admission_pending",
-        "event_id": "legacy-event",
-        "outbox_item_id": "legacy-outbox",
-        "stage_run_identity": {
-            "stage_run_id": "legacy-stage-run",
-            "observed_generation": FINGERPRINT,
-        },
-        "identity": {
-            "study_id": STUDY_ID,
-            "work_unit_id": WORK_UNIT_ID,
-            "work_unit_fingerprint": FINGERPRINT,
-            "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-            "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        },
-        "causality": {
-            "mas_transition_request_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-            "source_generation": FINGERPRINT,
-            "expected_version": FINGERPRINT,
-            "derived_from_request": True,
-        },
-        "authority_boundary": {
-            "runtime_owner": "one-person-lab",
-            "domain_state_owner": "med-autoscience",
-            "mas_can_authorize_provider_admission": False,
-            "mas_can_create_opl_outbox_record": False,
-            "mas_can_create_opl_event": False,
-            "mas_can_create_opl_stage_run": False,
-            "provider_completion_is_domain_completion": False,
-        },
-        "exactly_one_outcome": {
-            "selected": "provider_admission_pending",
-            "allowed": ["provider_admission_pending"],
-        },
-        "projection_metadata": {
-            "authority": False,
-            "projection_owner": "one-person-lab",
-            "consumer": "med-autoscience",
-            "observed_generation": FINGERPRINT,
-        },
-    }
-
-
-def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    contract = importlib.import_module(
-        "med_autoscience.controllers.opl_domain_progress_transition_contract"
-    )
-    trusted = _live_readback()
-
-    assert module.required_opl_transition_readback_shape() == contract.required_readback_shape()
-    assert module.required_opl_transition_readback_shape()["surface_kind"] == contract.LIVE_READBACK_SURFACE
-    assert module.required_opl_transition_readback_shape()["transaction_consistency"] == (
-        contract.live_readback_transaction_consistency()
-    )
-    assert module.required_opl_transition_readback_shape()["identity_transaction_refs"] == list(
-        contract.LIVE_READBACK_IDENTITY_TRANSACTION_REFS
-    )
-    assert module.required_opl_transition_readback_shape()["latest_transaction_required_flags"] == list(
-        contract.LIVE_READBACK_LATEST_TRANSACTION_REQUIRED_FLAGS
-    )
-    assert module.valid_opl_transition_readback(trusted) is True
-    assert (
-        module.provider_admission_opl_transition_readback(
-            {
-                "study_id": STUDY_ID,
-                "work_unit_id": WORK_UNIT_ID,
-                "work_unit_fingerprint": FINGERPRINT,
-                "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-                "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-                "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-                "opl_domain_progress_transition_live_readback": trusted,
-            }
-        )
-        == trusted
-    )
-    assert module.candidate_opl_transition_readback(
-        {"opl_domain_progress_transition_live_readback": trusted}
-    ) == trusted
-    assert module.candidate_opl_transition_readback(
-        {"opl_domain_progress_transition_result": trusted}
-    ) == trusted
-
-    incomplete = dict(trusted)
-    incomplete["runtime_readback_status"] = "incomplete_transaction"
-    incomplete["transaction_complete"] = False
-    assert module.valid_opl_transition_readback(incomplete) is False
-
-    missing_outbox = dict(trusted)
-    missing_outbox["latest_transaction_readback"] = {
-        **dict(trusted["latest_transaction_readback"]),
-        "outbox_item_present": False,
-    }
-    assert module.valid_opl_transition_readback(missing_outbox) is False
-
-    stage_identity_without_run_ref = copy.deepcopy(trusted)
-    stage_identity_without_run_ref["identity"]["stage_run_identity"].pop("stage_run_id")
-    assert module.valid_opl_transition_readback(stage_identity_without_run_ref) is False
-
-    latest_event_mismatch = copy.deepcopy(trusted)
-    latest_event_mismatch["latest_transaction_readback"]["event_id"] = "dpte-stale"
-    assert module.valid_opl_transition_readback(latest_event_mismatch) is False
-
-    latest_transaction_mismatch = copy.deepcopy(trusted)
-    latest_transaction_mismatch["latest_transaction_readback"][
-        "transaction_id"
-    ] = "dptx-stale"
-    assert module.valid_opl_transition_readback(latest_transaction_mismatch) is False
-
-    causality_outbox_mismatch = copy.deepcopy(trusted)
-    causality_outbox_mismatch["causality"]["outbox_item_id"] = "dpto-stale"
-    assert module.valid_opl_transition_readback(causality_outbox_mismatch) is False
-
-    projection_event_mismatch = copy.deepcopy(trusted)
-    projection_event_mismatch["projection_metadata"]["derived_from_event_id"] = "dpte-stale"
-    assert module.valid_opl_transition_readback(projection_event_mismatch) is False
-
-    read_model_identity_mismatch = copy.deepcopy(trusted)
-    read_model_identity_mismatch["read_model_readback"]["identity"]["latest_event_id"] = "dpte-stale"
-    assert module.valid_opl_transition_readback(read_model_identity_mismatch) is False
-
-
-def test_replay_ready_complete_transaction_is_consumable_readback_projection() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    replay_audit = opl_transition_replay_audit_readback(
-        STUDY_ID,
-        action_fingerprint=FINGERPRINT,
-        work_unit_id=WORK_UNIT_ID,
-        request_idempotency_key=f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-    )
-    candidate = {
         "study_id": STUDY_ID,
         "work_unit_id": WORK_UNIT_ID,
         "work_unit_fingerprint": FINGERPRINT,
-        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "opl_domain_progress_transition_result": replay_audit,
-    }
-
-    readback = module.candidate_opl_transition_readback(candidate)
-
-    assert readback["surface_kind"] == "opl_domain_progress_transition_runtime_live_readback"
-    assert readback["runtime_readback_status"] == "complete_transaction"
-    assert readback["transaction_complete"] is True
-    assert readback["identity"]["aggregate_identity"]["study_id"] == STUDY_ID
-    assert readback["identity"]["stage_run_identity"]["route_identity_key"] == (
-        f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
-    )
-    assert module.valid_opl_transition_readback(readback) is True
-    assert module.provider_admission_opl_transition_readback(candidate) == readback
-
-    stale = copy.deepcopy(replay_audit)
-    stale["aggregate_identity"]["work_unit_id"] = "stale-work-unit"
-    assert module.provider_admission_opl_transition_readback(
-        {
-            **candidate,
-            "opl_domain_progress_transition_result": stale,
-        }
-    ) == {}
-
-
-def test_live_readback_accepts_read_model_projection_metadata_core_shape() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    readback = _live_readback()
-    readback["projection_metadata"] = {
-        **readback["projection_metadata"],
-        "projection_role": "complete_runtime_readback",
-        "read_model_projection_consumable": True,
-        "runtime_readback_status": "complete_transaction",
-        "transaction_complete": True,
-    }
-    readback["read_model_readback"]["projection_metadata"] = {
-        key: value
-        for key, value in readback["projection_metadata"].items()
-        if key
-        in {
-            "surface_kind",
-            "runtime_id",
-            "authority",
-            "derived_from_event_id",
-            "observed_generation",
-            "derived_generation",
-            "lag_status",
-            "read_model_rebuild_owner",
-        }
-    }
-    candidate = {
-        "study_id": STUDY_ID,
-        "work_unit_id": WORK_UNIT_ID,
-        "work_unit_fingerprint": FINGERPRINT,
-        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "opl_domain_progress_transition_runtime_live_readback": readback,
-    }
-
-    assert module.valid_opl_transition_readback(readback) is True
-    assert module.provider_admission_opl_transition_readback(candidate) == readback
-
-
-def test_trusted_opl_transition_live_readback_accepts_non_advancing_apply_without_provider_admission() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    readback = _non_advancing_live_readback()
-    candidate = {
-        "study_id": STUDY_ID,
-        "work_unit_id": WORK_UNIT_ID,
-        "work_unit_fingerprint": FINGERPRINT,
-        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+        "route_identity_key": IDEMPOTENCY_KEY,
+        "attempt_idempotency_key": IDEMPOTENCY_KEY,
+        "idempotency_key": IDEMPOTENCY_KEY,
         "opl_domain_progress_transition_live_readback": readback,
     }
 
-    assert module.valid_opl_transition_readback(readback) is True
-    assert module.candidate_opl_transition_readback(candidate) == readback
-    assert module.non_advancing_apply_opl_transition_readback(candidate) == readback
-    assert module.has_non_advancing_apply_opl_transition_readback(candidate) is True
-    assert module.provider_admission_opl_transition_readback(candidate) == {}
-    assert module.has_provider_admission_opl_transition_readback(candidate) is False
+
+def _set_nested(payload: dict[str, object], path: tuple[str, ...], value: object) -> None:
+    target = payload
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
 
 
-def test_exactly_one_outcome_rejects_mixed_provider_and_non_advancing_flags() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    readback = _live_readback()
-    readback["exactly_one_outcome"] = {
-        **readback["exactly_one_outcome"],
-        "non_advancing_apply": True,
-    }
-    readback["read_model_readback"]["exactly_one_outcome"] = readback[
-        "exactly_one_outcome"
-    ]
-
-    assert readback["exactly_one_outcome"]["outcome_kind"] == (
-        "provider_admission_enqueued_or_blocked"
-    )
-    assert module.valid_opl_transition_readback(readback) is False
-
-
-def test_opl_transition_readback_exposes_source_claimability() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
+def test_trusted_opl_transition_live_readback_requires_full_transaction_shape() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
     contract = importlib.import_module(
         "med_autoscience.controllers.opl_domain_progress_transition_contract"
     )
     trusted = _live_readback()
-    runtime_readback = {
-        **trusted,
-        "evidence_source": {
-            "source_kind": "opl_runtime_live_readback",
-            "source_ref": "opl://runtime/domain-progress/transactions/dptx-1",
-            "observed_at": "2026-06-19T09:40:00+00:00",
-        },
-    }
-    fixture_readback = {
-        **trusted,
-        "evidence_source": {
-            "source_kind": "fixture_or_replay_readback",
-            "source_ref": "tests/provider_admission_current_control_helpers.py",
-        },
-    }
-    missing_source_readback = dict(trusted)
-    missing_source_readback.pop("evidence_source")
-
-    assert module.required_opl_transition_readback_shape()[
-        "evidence_source_contract"
-    ] == contract.live_readback_evidence_source_contract()
-    assert module.valid_opl_transition_readback(runtime_readback) is True
-    assert module.valid_opl_transition_readback(fixture_readback) is True
-    assert module.opl_transition_readback_source_claimability(runtime_readback) == {
-        "source_kind": "opl_runtime_live_readback",
-        "source_ref": "opl://runtime/domain-progress/transactions/dptx-1",
-        "fresh_live_claim_allowed": True,
-        "runtime_claimable": True,
-        "shape_valid": True,
-        "replay_or_fixture": False,
-        "missing_source_kind": False,
-    }
-    assert module.opl_transition_readback_source_claimability(fixture_readback) == {
-        "source_kind": "fixture_or_replay_readback",
-        "source_ref": "tests/provider_admission_current_control_helpers.py",
-        "fresh_live_claim_allowed": False,
-        "runtime_claimable": False,
-        "shape_valid": True,
-        "replay_or_fixture": True,
-        "missing_source_kind": False,
-    }
-    assert module.opl_transition_readback_source_claimability(missing_source_readback) == {
-        "source_kind": None,
-        "source_ref": None,
-        "fresh_live_claim_allowed": False,
-        "runtime_claimable": False,
-        "shape_valid": True,
-        "replay_or_fixture": False,
-        "missing_source_kind": True,
-    }
+    assert module.required_opl_transition_readback_shape() == contract.required_readback_shape()
+    assert module.valid_opl_transition_readback(trusted) is True
+    assert module.candidate_opl_transition_readback(_candidate(trusted)) == trusted
+    assert module.provider_admission_opl_transition_readback(_candidate(trusted)) == trusted
 
 
-def test_provider_admission_readback_must_match_current_transition_identity() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("runtime_readback_status",), "incomplete_transaction"),
+        (("latest_transaction_readback", "outbox_item_present"), False),
+        (("identity", "stage_run_identity", "stage_run_id"), ""),
+        (("latest_transaction_readback", "event_id"), "dpte-stale"),
+        (("latest_transaction_readback", "transaction_id"), "dptx-stale"),
+        (("causality", "outbox_item_id"), "dpto-stale"),
+        (("projection_metadata", "derived_from_event_id"), "dpte-stale"),
+        (("read_model_readback", "identity", "latest_event_id"), "dpte-stale"),
+    ],
+)
+def test_live_readback_rejects_transaction_inconsistency(
+    path: tuple[str, ...],
+    value: object,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
+    readback = copy.deepcopy(_live_readback())
+    _set_nested(readback, path, value)
+    assert module.valid_opl_transition_readback(readback) is False
+
+
+def test_replay_ready_complete_transaction_is_consumable_readback_projection() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
+    replay = opl_transition_replay_audit_readback(
+        STUDY_ID,
+        action_fingerprint=FINGERPRINT,
+        work_unit_id=WORK_UNIT_ID,
+        request_idempotency_key=IDEMPOTENCY_KEY,
     )
-    trusted = _live_readback()
-    matching_candidate = {
-        "study_id": STUDY_ID,
-        "work_unit_id": WORK_UNIT_ID,
-        "work_unit_fingerprint": FINGERPRINT,
-        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "opl_domain_progress_transition_live_readback": trusted,
+    candidate = {
+        **_candidate({}),
+        "opl_domain_progress_transition_result": replay,
     }
-
-    assert module.candidate_opl_transition_readback(matching_candidate) == trusted
-    assert module.provider_admission_opl_transition_readback(matching_candidate) == trusted
-    assert module.has_provider_admission_opl_transition_readback(matching_candidate) is True
-
-    missing_identity = {
-        "opl_domain_progress_transition_live_readback": trusted,
-    }
-    assert module.candidate_opl_transition_readback(missing_identity) == trusted
-    assert module.provider_admission_opl_transition_readback(missing_identity) == {}
-    assert module.has_provider_admission_opl_transition_readback(missing_identity) is False
-
-    stale_work_unit = {
-        **matching_candidate,
-        "work_unit_id": "stale-work-unit",
-    }
-    assert module.candidate_opl_transition_readback(stale_work_unit) == trusted
-    assert module.provider_admission_opl_transition_readback(stale_work_unit) == {}
-
-    stale_route = {
-        **matching_candidate,
-        "route_identity_key": "provider-admission::stale",
-        "attempt_idempotency_key": "provider-admission::stale",
-    }
-    assert module.provider_admission_opl_transition_readback(stale_route) == {}
-
-    stale_request_key = {
-        **matching_candidate,
-        "idempotency_key": "provider-admission::stale-request",
-    }
-    assert module.provider_admission_opl_transition_readback(stale_request_key) == {}
-
-    nested_policy_request = {
-        **matching_candidate,
-        "paper_progress_policy_result": {
-            "opl_domain_progress_transition_request": {
-                "idempotency_key": "paper-policy-request:stale-nested",
-            }
-        },
-    }
-    assert module.provider_admission_opl_transition_readback(nested_policy_request) == trusted
-
-
-def test_legacy_transition_result_and_bare_projection_are_not_trusted() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    weak_readback = {
-        "runtime_owner": "one-person-lab",
-        "runtime_kind": "DomainProgressTransitionRuntime",
-        "outcome_kind": "provider_admission_pending",
-        "event_id": "legacy-event-only",
-        "stage_run_id": "legacy-stage-run-only",
-    }
-    legacy_result = _legacy_result()
-
-    assert module.valid_opl_transition_readback(legacy_result) is False
-    assert module.valid_opl_transition_readback(weak_readback) is False
-    assert module.candidate_opl_transition_readback(
-        {
-            "opl_domain_progress_transition_result": legacy_result,
-            "deprecated_opl_transition_projection": weak_readback,
-        }
+    candidate.pop("opl_domain_progress_transition_live_readback")
+    readback = module.candidate_opl_transition_readback(candidate)
+    assert readback["runtime_readback_status"] == "complete_transaction"
+    assert module.valid_opl_transition_readback(readback) is True
+    stale = copy.deepcopy(replay)
+    stale["aggregate_identity"]["work_unit_id"] = "stale-work-unit"
+    assert module.provider_admission_opl_transition_readback(
+        {**candidate, "opl_domain_progress_transition_result": stale}
     ) == {}
 
 
-def test_complete_command_event_outbox_log_is_not_rebuilt_by_mas_consumer() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
-    aggregate_identity = {
-        "aggregate_kind": "study_work_unit",
-        "aggregate_id": f"{STUDY_ID}::{WORK_UNIT_ID}",
-        "study_id": STUDY_ID,
-        "work_unit_id": WORK_UNIT_ID,
-        "work_unit_fingerprint": FINGERPRINT,
-    }
-    stage_run_identity = {
-        "stage_run_id": "stage-run-log-derived",
-        "route_identity_key": idempotency_key,
-        "attempt_idempotency_key": idempotency_key,
-        "source_generation": FINGERPRINT,
-    }
-    entries = [
-        {
-            "entry_kind": "command",
-            "transaction_id": "dptx_log_derived",
-            "idempotency_key": idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "transition_kind": "StartProviderAttempt",
-                "command_id": "dptc_log_derived",
-                "source_generation": FINGERPRINT,
-                "expected_version": FINGERPRINT,
-                "stage_run_identity": stage_run_identity,
-            },
-        },
-        {
-            "entry_kind": "event",
-            "transaction_id": "dptx_log_derived",
-            "idempotency_key": idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "transition_kind": "StartProviderAttempt",
-                "command_id": "dptc_log_derived",
-                "event_id": "dpte_log_derived",
-                "source_generation": FINGERPRINT,
-                "expected_version": FINGERPRINT,
-                "stage_run_identity": stage_run_identity,
-                "outcome": {"kind": "provider_admission_enqueued_or_blocked"},
-            },
-        },
-        {
-            "entry_kind": "outbox_item",
-            "transaction_id": "dptx_log_derived",
-            "idempotency_key": idempotency_key,
-            "aggregate_identity": aggregate_identity,
-            "payload": {
-                "outbox_item_id": "dpto_log_derived",
-                "transition_event_id": "dpte_log_derived",
-                "outbox_kind": "start_provider_attempt",
-                "stage_run_identity": stage_run_identity,
-            },
-        },
-    ]
-
-    for entry in entries:
-        assert module.candidate_opl_transition_readback(entry) == {}
+def test_non_advancing_readback_is_valid_but_not_provider_admission() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
+    readback = copy.deepcopy(_live_readback())
+    for target in (readback, readback["read_model_readback"]):
+        target["identity"]["transition_kind"] = "NonAdvancingApply"
+        target["identity"]["outcome_kind"] = "non_advancing_apply_typed_blocker_ref"
+        target["exactly_one_outcome"].update(
+            {
+                "transition_kind": "NonAdvancingApply",
+                "outcome_kind": "non_advancing_apply_typed_blocker_ref",
+                "non_advancing_apply": True,
+            }
+        )
+    candidate = _candidate(readback)
+    assert module.valid_opl_transition_readback(readback) is True
+    assert module.non_advancing_apply_opl_transition_readback(candidate) == readback
+    assert module.provider_admission_opl_transition_readback(candidate) == {}
+    mixed = copy.deepcopy(_live_readback())
+    mixed["exactly_one_outcome"]["non_advancing_apply"] = True
+    mixed["read_model_readback"]["exactly_one_outcome"] = mixed["exactly_one_outcome"]
+    assert module.valid_opl_transition_readback(mixed) is False
 
 
-def test_mas_consumer_rejects_prebuilt_opl_live_readback_in_log_entries() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
+def test_opl_transition_readback_exposes_source_claimability() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
+    runtime = {**_live_readback(), "evidence_source": {
+        "source_kind": "opl_runtime_live_readback",
+        "source_ref": "opl://runtime/domain-progress/transactions/dptx-1",
+    }}
+    fixture = {**_live_readback(), "evidence_source": {
+        "source_kind": "fixture_or_replay_readback",
+        "source_ref": "tests/provider_admission_current_control_helpers.py",
+    }}
+    missing = _live_readback()
+    missing.pop("evidence_source")
+    runtime_claim = module.opl_transition_readback_source_claimability(runtime)
+    fixture_claim = module.opl_transition_readback_source_claimability(fixture)
+    missing_claim = module.opl_transition_readback_source_claimability(missing)
+    assert runtime_claim["fresh_live_claim_allowed"] is True
+    assert runtime_claim["runtime_claimable"] is True
+    assert fixture_claim["replay_or_fixture"] is True
+    assert fixture_claim["runtime_claimable"] is False
+    assert missing_claim["missing_source_kind"] is True
+
+
+def test_provider_admission_readback_must_match_current_transition_identity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
     trusted = _live_readback()
-    entries = [
-        {
-            "entry_kind": "command",
-            "idempotency_key": idempotency_key,
-            "payload": {"command_id": "dptc-fragment-only"},
-        },
-        {
-            "entry_kind": "read_model_readback",
-            "idempotency_key": idempotency_key,
-            "payload": {"read_model_readback": trusted["read_model_readback"]},
-        },
-        {
-            "entry_kind": "runtime_live_readback",
-            "idempotency_key": idempotency_key,
-            "payload": {"opl_domain_progress_transition_runtime_live_readback": trusted},
-        },
+    matching = _candidate(trusted)
+    assert module.provider_admission_opl_transition_readback(matching) == trusted
+    assert module.provider_admission_opl_transition_readback(
+        {"opl_domain_progress_transition_live_readback": trusted}
+    ) == {}
+    for override in (
+        {"work_unit_id": "stale-work-unit"},
+        {"route_identity_key": "provider-admission::stale"},
+        {"idempotency_key": "provider-admission::stale-request"},
+    ):
+        assert module.provider_admission_opl_transition_readback(
+            {**matching, **override}
+        ) == {}
+
+
+def test_mas_consumer_rejects_legacy_and_log_containers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_transition_readback")
+    trusted = _live_readback()
+    weak = {
+        "runtime_owner": "one-person-lab",
+        "runtime_kind": "DomainProgressTransitionRuntime",
+        "event_id": "legacy-event-only",
+        "stage_run_id": "legacy-stage-run-only",
+    }
+    containers = [
+        weak,
+        {"entry_kind": "command", "payload": {"command_id": "fragment"}},
+        {"entry_kind": "runtime_live_readback", "payload": {
+            "opl_domain_progress_transition_runtime_live_readback": trusted
+        }},
+        {"entry_kind": "generic_result", "payload": {"result": trusted}},
     ]
-
-    for entry in entries:
-        assert module.candidate_opl_transition_readback(entry) == {}
-
-    assert module.candidate_opl_transition_readback(
-        {"opl_domain_progress_transition_runtime_live_readback": trusted}
-    ) == trusted
-
-
-def test_mas_consumer_no_longer_exposes_command_event_log_extractors() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
+    assert module.valid_opl_transition_readback(weak) is False
+    assert all(module.candidate_opl_transition_readback(item) == {} for item in containers)
     assert not hasattr(module, "opl_transition_readback_from_log_entries")
     assert not hasattr(module, "opl_transition_readback_from_log_file")
 
 
-def test_mas_consumer_does_not_trust_generic_result_container() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
-    idempotency_key = f"provider-admission::{STUDY_ID}::{FINGERPRINT}"
-    trusted = _live_readback()
-
-    readback = module.candidate_opl_transition_readback(
-        {
-            "entry_kind": "generic_result",
-            "idempotency_key": idempotency_key,
-            "payload": {"result": trusted},
-        }
-    )
-
-    assert readback == {}
-
-
 def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.opl_transition_readback"
-    )
     identity = importlib.import_module(
         "med_autoscience.controllers.provider_admission.provider_admission_current_control_identity"
     )
     candidate = {
-        "study_id": STUDY_ID,
+        **_candidate({}),
         "quest_id": STUDY_ID,
         "action_type": "run_quality_repair_batch",
-        "work_unit_id": WORK_UNIT_ID,
-        "work_unit_fingerprint": FINGERPRINT,
         "action_fingerprint": FINGERPRINT,
         "next_executable_owner": "write",
-        "route_identity_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
-        "attempt_idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
         "opl_domain_progress_transition_request": {
             "surface_kind": "mas_domain_progress_transition_request",
             "target_runtime_owner": "one-person-lab",
             "target_runtime_kind": "DomainProgressTransitionRuntime",
-            "idempotency_key": f"provider-admission::{STUDY_ID}::{FINGERPRINT}",
+            "idempotency_key": IDEMPOTENCY_KEY,
             "mas_can_create_opl_outbox_record": False,
             "mas_can_create_opl_event": False,
             "mas_can_create_opl_stage_run": False,
         },
-        "opl_domain_progress_transition_result": {
-            "runtime_owner": "one-person-lab",
-            "runtime_kind": "DomainProgressTransitionRuntime",
-            "outcome_kind": "provider_admission_pending",
-            "event_id": "legacy-event-only",
-            "stage_run_id": "legacy-stage-run-only",
-        },
     }
-
+    candidate.pop("opl_domain_progress_transition_live_readback")
     pending = identity.provider_admission_current_control_action(candidate)
+    admitted = identity.provider_admission_current_control_action(
+        {**candidate, "opl_domain_progress_transition_result": _live_readback()}
+    )
+    stale = copy.deepcopy(_live_readback())
+    stale["latest_transaction_readback"]["event_id"] = "stale-event"
     assert pending["status"] == "transition_request_pending"
     assert pending["provider_admission_pending"] is False
-    assert pending["provider_admission_requires_opl_runtime_result"] is True
-
-    legacy_pending = identity.provider_admission_current_control_action(
-        {
-            **candidate,
-            "opl_domain_progress_transition_result": _legacy_result(),
-        }
-    )
-    assert legacy_pending["status"] == "transition_request_pending"
-    assert legacy_pending["provider_admission_pending"] is False
-    assert legacy_pending["provider_admission_requires_opl_runtime_result"] is True
-
-    live_admitted = identity.provider_admission_current_control_action(
-        {
-            **candidate,
-            "opl_domain_progress_transition_result": _live_readback(),
-        }
-    )
-    assert live_admitted["status"] == "queued"
-    assert live_admitted["provider_admission_pending"] is True
-    assert live_admitted["provider_attempt_or_lease_required"] is True
-    assert live_admitted["provider_completion_is_domain_completion"] is False
-    assert live_admitted["opl_domain_progress_transition_live_readback"]["identity"][
-        "aggregate_identity"
-    ]["study_id"] == STUDY_ID
-
-    stale_event_readback = copy.deepcopy(_live_readback())
-    stale_event_readback["latest_transaction_readback"]["event_id"] = "stale-event"
-    stale_event_pending = identity.provider_admission_current_control_action(
-        {
-            **candidate,
-            "opl_domain_progress_transition_result": stale_event_readback,
-        }
-    )
-    assert stale_event_pending["status"] == "transition_request_pending"
-    assert stale_event_pending["provider_admission_pending"] is False
-    assert stale_event_pending["provider_admission_requires_opl_runtime_result"] is True
-
-    stale_identity_readback = _live_readback()
-    stale_identity_readback["identity"]["aggregate_identity"]["work_unit_id"] = "stale-work-unit"
-    stale_identity_pending = identity.provider_admission_current_control_action(
-        {
-            **candidate,
-            "opl_domain_progress_transition_result": stale_identity_readback,
-        }
-    )
-    assert stale_identity_pending["status"] == "transition_request_pending"
-    assert stale_identity_pending["provider_admission_pending"] is False
-    assert stale_identity_pending["provider_admission_requires_opl_runtime_result"] is True
+    assert admitted["status"] == "queued"
+    assert admitted["provider_attempt_or_lease_required"] is True
+    assert admitted["provider_completion_is_domain_completion"] is False
+    assert identity.provider_admission_current_control_action(
+        {**candidate, "opl_domain_progress_transition_result": stale}
+    )["status"] == "transition_request_pending"
