@@ -35,6 +35,7 @@
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "hosted_ordinary_path_consumption": "contracts/hosted_ordinary_path_consumption.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
+    "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
     "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "stage_control_plane": "contracts/stage_control_plane.json"
   },

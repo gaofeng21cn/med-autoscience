@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
+
+from .functional_followthrough_gaps import (
+    PHYSICAL_RETIREMENT_DECISION_REF,
+    PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
+    build_private_surface_physical_retirement_decision_readback,
+    physical_retirement_authorized,
+)
 
 
 PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS = (
@@ -387,12 +394,69 @@ def _domain_authority_refs_retirement_gate(module_id: str, current_ref_status: s
 
 def _default_caller_deletion_bridge_exit_gate(
     item: dict[str, object],
+    *,
+    physical_retirement_decision: object,
 ) -> dict[str, object]:
     module_id = str(item["module_id"])
     classification = str(item["classification"])
     domain_authority_refs = list(item.get("mas_domain_authority_refs", []))
     current_surface_refs = list(item.get("current_surface_refs", []))
     is_authority = classification == "minimal_authority_function"
+    decision_mapping = (
+        physical_retirement_decision
+        if isinstance(physical_retirement_decision, Mapping)
+        else {}
+    )
+    decision_readback = build_private_surface_physical_retirement_decision_readback(
+        physical_retirement_decision
+    )
+    scope = decision_mapping.get("scope")
+    deleted_path_scopes = (
+        scope.get("deleted_path_scopes") if isinstance(scope, Mapping) else []
+    )
+    if not isinstance(deleted_path_scopes, Sequence) or isinstance(
+        deleted_path_scopes, (str, bytes)
+    ):
+        deleted_path_scopes = []
+    matched_deleted_path_scope_ids: list[str] = []
+    for deleted_path_scope in deleted_path_scopes:
+        if not isinstance(deleted_path_scope, Mapping):
+            continue
+        surface_ids = deleted_path_scope.get("surface_ids")
+        scope_id = deleted_path_scope.get("scope_id")
+        if (
+            isinstance(surface_ids, Sequence)
+            and not isinstance(surface_ids, (str, bytes))
+            and module_id in surface_ids
+            and isinstance(scope_id, str)
+            and scope_id.strip()
+        ):
+            matched_deleted_path_scope_ids.append(scope_id.strip())
+    decision_authorized = decision_readback["physical_delete_authorized"] is True
+    physical_delete_authorized = (
+        not is_authority
+        and bool(matched_deleted_path_scope_ids)
+        and decision_authorized
+    )
+    deleted_path_scope_ids = (
+        matched_deleted_path_scope_ids if physical_delete_authorized else []
+    )
+    gate_evidence = decision_mapping.get("gate_evidence")
+    provenance = (
+        gate_evidence.get("provenance") if isinstance(gate_evidence, Mapping) else {}
+    )
+    provenance_refs = (
+        provenance.get("refs") if isinstance(provenance, Mapping) else []
+    )
+    if not isinstance(provenance_refs, Sequence) or isinstance(
+        provenance_refs, (str, bytes)
+    ):
+        provenance_refs = []
+    owner_decision_refs = (
+        list(decision_readback["owner_decision_refs"])
+        if physical_delete_authorized
+        else []
+    )
     return {
         "surface_kind": "mas_default_caller_deletion_domain_ref_exit_gate",
         "gate_id": f"mas.default_caller_deletion.{module_id}.domain_ref_exit.v1",
@@ -401,42 +465,56 @@ def _default_caller_deletion_bridge_exit_gate(
         "current_status": (
             "mas_domain_authority_refs_active"
             if is_authority
-            else "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete"
+            else (
+                "physical_retirement_authorized_for_exact_migration_scope"
+                if physical_delete_authorized
+                else "physical_retirement_decision_missing_or_not_authorized"
+            )
         ),
-        "required_before_retire": [] if is_authority else [
-            "domain_authority_refs_preserved",
-            "no_forbidden_write_proof_recorded",
-            "explicit_owner_receipt_authorizes_physical_delete",
-        ],
+        "required_before_retire": (
+            []
+            if physical_delete_authorized or is_authority
+            else ["valid_domain_owner_physical_retirement_decision"]
+        ),
         "current_surface_refs": current_surface_refs,
         "mas_domain_authority_refs": domain_authority_refs,
         "default_caller_deletion_evidence_scope": (
-            "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization"
+            "migration_decision_exact_deleted_paths_only"
+            if physical_delete_authorized
+            else "missing_or_invalid_migration_decision"
         ),
-        "typed_blocker_refs": [
-            (
-                "typed-blocker:mas/default-caller-deletion/"
-                f"{module_id}/physical-delete-requires-explicit-owner-receipt"
-            )
-        ],
+        "authorized_deleted_path_scope_ids": deleted_path_scope_ids,
+        "owner_decision_refs": owner_decision_refs,
+        "owner_decision_result_shape": "physical_delete_authorization_ref",
+        "physical_delete_authorization_refs": owner_decision_refs,
+        "typed_blocker_refs": [],
         "no_forbidden_write_refs": [
             f"no-forbidden-write:mas/default-caller-deletion/{module_id}/refs-only-boundary"
         ],
         "no_forbidden_write_evidence_refs": [
             f"no-forbidden-write:mas/default-caller-deletion/{module_id}/refs-only-boundary"
         ],
-        "provenance_refs": current_surface_refs,
-        "domain_repo_physical_delete_authorized": False,
-        "physical_delete_authorized_by_refs": False,
+        "provenance_refs": (
+            [PHYSICAL_RETIREMENT_DECISION_REF, *provenance_refs]
+            if physical_delete_authorized
+            else []
+        ),
+        "domain_repo_physical_delete_authorized": physical_delete_authorized,
+        "physical_delete_authorized_by_refs": physical_delete_authorized,
         "mas_can_write_generic_runtime": False,
         "mas_can_own_generated_default_caller": False,
         "opl_can_write_study_truth": False,
         "opl_can_declare_publication_quality_or_export_verdict": False,
         "opl_can_issue_mas_owner_receipt": False,
+        "authority_boundary": dict(decision_readback["authority_boundary"]),
     }
 
 
-def _module_with_retirement_gate(item: dict[str, object]) -> dict[str, object]:
+def _module_with_retirement_gate(
+    item: dict[str, object],
+    *,
+    physical_retirement_decision: object,
+) -> dict[str, object]:
     module_id = str(item["module_id"])
     result = dict(item)
     if item["classification"] == "domain_authority_refs":
@@ -445,7 +523,30 @@ def _module_with_retirement_gate(item: dict[str, object]) -> dict[str, object]:
             str(item["current_ref_status"]),
         )
     if module_id in DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS:
-        result["bridge_exit_gate"] = _default_caller_deletion_bridge_exit_gate(result)
+        result["bridge_exit_gate"] = _default_caller_deletion_bridge_exit_gate(
+            result,
+            physical_retirement_decision=physical_retirement_decision,
+        )
+    latest_thinning_evidence = result.get("latest_thinning_evidence")
+    if isinstance(latest_thinning_evidence, Mapping):
+        latest_thinning_evidence = dict(latest_thinning_evidence)
+        decision_authorized = physical_retirement_authorized(
+            physical_retirement_decision
+        )
+        if module_id == "workbench_portal_generic_shell":
+            materializer_boundary = latest_thinning_evidence.get(
+                "read_model_materializer_boundary"
+            )
+            if isinstance(materializer_boundary, Mapping):
+                latest_thinning_evidence["read_model_materializer_boundary"] = {
+                    **materializer_boundary,
+                    "domain_repo_physical_delete_authorized": decision_authorized,
+                }
+        elif module_id == "paper_mission_owner_surface_materialize_dispatch_shell":
+            latest_thinning_evidence["domain_repo_physical_delete_authorized"] = (
+                decision_authorized
+            )
+        result["latest_thinning_evidence"] = latest_thinning_evidence
     return result
 
 
@@ -701,7 +802,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                     "local_http_service_owner",
                     "runtime_control_owner",
                 ],
-                "domain_repo_physical_delete_authorized": True,
+                "domain_repo_physical_delete_authorized": False,
+                "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
                 "retention_reason": (
                     "The MAS-local materializer is retired; MAS retains only domain refs consumed by OPL-hosted projection surfaces; "
                     "it is not a workspace helper, service wrapper, or runtime control owner."
@@ -785,6 +887,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 "request_packet_ref_by_action_type",
             ],
             "domain_repo_physical_delete_authorized": False,
+            "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
             "does_not_write": [
                 "study_truth",
                 "publication_eval/latest.json",
@@ -946,9 +1049,20 @@ _FUNCTIONAL_MODULE_INVENTORY = (
     },
 )
 
-FUNCTIONAL_MODULE_INVENTORY = tuple(
-    _module_with_retirement_gate(dict(item)) for item in _FUNCTIONAL_MODULE_INVENTORY
-)
+def build_functional_module_inventory(
+    *,
+    physical_retirement_decision: object = PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
+) -> tuple[dict[str, object], ...]:
+    return tuple(
+        _module_with_retirement_gate(
+            dict(item),
+            physical_retirement_decision=physical_retirement_decision,
+        )
+        for item in _FUNCTIONAL_MODULE_INVENTORY
+    )
+
+
+FUNCTIONAL_MODULE_INVENTORY = build_functional_module_inventory()
 
 
 __all__ = [
@@ -957,5 +1071,6 @@ __all__ = [
     "DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE",
     "PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS",
     "RETIRED_PRIVATE_GENERIC_PATHS",
+    "build_functional_module_inventory",
     "build_source_morphology",
 ]

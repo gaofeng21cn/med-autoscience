@@ -198,6 +198,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert inventory_by_id["publication_quality_verdict"]["classification"] == "minimal_authority_function"
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
+    assert "workspace_domain_projection" not in payload
     substrate = payload["opl_substrate_adapter"]
     assert substrate["surface_kind"] == "mas_opl_generic_substrate_adapter"
     assert substrate["mode"] == "opaque_index_only_refs"

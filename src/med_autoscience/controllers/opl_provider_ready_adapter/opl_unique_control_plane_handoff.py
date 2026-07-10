@@ -5,6 +5,11 @@ from typing import Any
 from med_autoscience.controllers.opl_unique_control_plane_boundary.generated_caller_retirement import (
     build_generated_default_caller_boundary,
 )
+from med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps import (
+    PHYSICAL_RETIREMENT_DECISION_REF,
+    PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
+    build_private_surface_physical_retirement_decision_readback,
+)
 
 
 TARGET_DOMAIN_ID = "medautoscience"
@@ -101,6 +106,7 @@ _STANDARD_AGENT_PURITY = {
         "workbench_portal_generic_shell",
     ],
     "domain_repo_physical_delete_authorized": False,
+    "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
     "default_caller_count": 0,
     "runtime_package_residue_count": 0,
     "retired_alias_residue_refs": [],
@@ -130,7 +136,13 @@ _STANDARD_AGENT_PURITY = {
 }
 
 
-def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
+def build_opl_unique_control_plane_handoff(
+    *,
+    physical_retirement_decision: object = PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
+) -> dict[str, Any]:
+    decision_readback = build_private_surface_physical_retirement_decision_readback(
+        physical_retirement_decision
+    )
     return {
         "surface_kind": "mas_opl_unique_control_plane_handoff",
         "version": "mas-opl-unique-control-plane-handoff.v1",
@@ -139,7 +151,12 @@ def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
         "generic_runtime_owner": OPL_OWNER,
         "domain_owner": DOMAIN_OWNER,
         "domain_intent_adapter_role": "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff",
-        "standard_agent_purity": dict(_STANDARD_AGENT_PURITY),
+        "standard_agent_purity": {
+            **_STANDARD_AGENT_PURITY,
+            "domain_repo_physical_delete_authorized": (
+                decision_readback["physical_delete_authorized"] is True
+            ),
+        },
         "active_domain_allowed_actions": list(_ALLOWED_DOMAIN_ACTIONS),
         "forbidden_mas_roles": list(_FORBIDDEN_MAS_ROLES),
         "opl_replacement_surfaces": list(_OPL_REPLACEMENT_SURFACES),

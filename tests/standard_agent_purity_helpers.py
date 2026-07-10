@@ -15,6 +15,7 @@ STANDARD_AGENT_BOUNDARY_KEYS = {
     "declarative_pack_compiler_input",
     "generated_surface_handoff",
     "generated_default_caller_boundary",
+    "physical_retirement_decision",
     "standard_agent_purity",
     "minimal_authority_function_manifest",
     "functional_surface_classification",
@@ -70,7 +71,16 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
         "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
-    assert purity["domain_repo_physical_delete_authorized"] is False
+    decision = boundary["physical_retirement_decision"]
+    assert isinstance(decision, Mapping)
+    assert decision["surface_kind"] == (
+        "mas_private_surface_physical_retirement_decision_readback"
+    )
+    assert decision["physical_delete_authorized"] is True
+    assert decision["authority_boundary"]["is_runtime_owner_receipt"] is False
+    assert decision["authority_boundary"]["can_claim_domain_ready"] is False
+    assert purity["domain_repo_physical_delete_authorized"] is True
+    assert purity["physical_retirement_decision_ref"] == decision["canonical_ref"]
     assert purity["default_caller_readiness_status"] == "opl_generated_default_caller_ready"
     assert purity["default_runtime_owner"] == "one-person-lab"
     assert purity["generated_surface_owner"] == "one-person-lab"
@@ -103,7 +113,8 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
         "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
-    assert guard["domain_repo_physical_delete_authorized"] is False
+    assert guard["domain_repo_physical_delete_authorized"] is True
+    assert guard["physical_retirement_decision_ref"] == decision["canonical_ref"]
 
     summary = boundary["functional_module_inventory_summary"]
     assert isinstance(summary, Mapping)
@@ -129,7 +140,11 @@ def assert_standard_agent_purity_handoff(handoff: Mapping[str, object]) -> None:
         "paper_mission_owner_surface_materialize_dispatch_shell",
         "workbench_portal_generic_shell",
     }
-    assert purity["domain_repo_physical_delete_authorized"] is False
+    assert purity["domain_repo_physical_delete_authorized"] is True
+    assert purity["physical_retirement_decision_ref"] == (
+        "contracts/private_functional_surface_policy.json"
+        "#/migration_only_physical_retirement_decision"
+    )
     assert purity["default_runtime_owner"] == "one-person-lab"
     assert purity["generated_surface_owner"] == "one-person-lab"
     assert purity["domain_owner"] == "med-autoscience"

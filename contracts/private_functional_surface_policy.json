@@ -97,7 +97,7 @@
       "publication_ready",
       "domain_ready",
       "production_ready",
-      "physical_delete_authorized",
+      "unscoped_physical_delete_authorized",
       "100_percent_complete_without_live_proof"
     ],
     "required_fields": [
@@ -115,6 +115,197 @@
     "owner_receipt_signer",
     "medical_helper_implementation"
   ],
+  "migration_only_physical_retirement_decision": {
+    "authority_boundary": {
+      "can_claim_domain_ready": false,
+      "can_claim_production_ready": false,
+      "can_claim_publication_ready": false,
+      "is_owner_acceptance_receipt": false,
+      "is_quality_or_export_receipt": false,
+      "is_runtime_owner_receipt": false,
+      "migration_only": true
+    },
+    "authorization": {
+      "applies_only_to_exact_deleted_paths": true,
+      "authority_basis": "repository_maintainer_directive",
+      "physical_delete_authorized": true
+    },
+    "canonical_ref": "contracts/private_functional_surface_policy.json#/migration_only_physical_retirement_decision",
+    "decision_id": "mas.private-surface-retirement.2026-07-10.v1",
+    "decision_kind": "migration_only_repo_source_physical_retirement",
+    "gate_evidence": {
+      "no_active_caller": {
+        "refs": [
+          "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+          "tests/standard_agent_purity_helpers.py"
+        ],
+        "status": "satisfied"
+      },
+      "no_forbidden_write": {
+        "refs": [
+          "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary",
+          "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary",
+          "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
+        ],
+        "status": "satisfied"
+      },
+      "provenance": {
+        "refs": [
+          "git:753239240761ca1430471d25e2731658f092e001..7ed2e5a3b4da21158547db68cf029e317b93a743#deleted-paths",
+          "contracts/runtime/mas-runtime-surface-retirement-inventory.json"
+        ],
+        "status": "satisfied"
+      },
+      "replacement_parity": {
+        "refs": [
+          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/wrapper-ready",
+          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/direct-entry-parity-aligned",
+          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/issues-zero"
+        ],
+        "status": "aligned"
+      }
+    },
+    "owner": "med-autoscience",
+    "owner_decision_refs": [
+      "contracts/private_functional_surface_policy.json#/migration_only_physical_retirement_decision"
+    ],
+    "schema_version": 1,
+    "scope": {
+      "deleted_path_count": 93,
+      "deleted_path_scopes": [
+        {
+          "deleted_paths": [
+            "src/med_autoscience/controllers/product_entry/attention_projection.py",
+            "src/med_autoscience/controllers/product_entry/automation_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/boundary_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/command_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/entry_runtime.py",
+            "src/med_autoscience/controllers/product_entry/family_lifecycle_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
+            "src/med_autoscience/controllers/product_entry/guarded_workflow_steps.py",
+            "src/med_autoscience/controllers/product_entry/human_status_view.py",
+            "src/med_autoscience/controllers/product_entry/manifest_projection_compaction.py",
+            "src/med_autoscience/controllers/product_entry/manifest_rendering.py",
+            "src/med_autoscience/controllers/product_entry/manifest_shell_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/manifest_status_surface.py",
+            "src/med_autoscience/controllers/product_entry/manifest_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/paper_orchestra_operator.py",
+            "src/med_autoscience/controllers/product_entry/program_runtime_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/program_surfaces.py",
+            "src/med_autoscience/controllers/product_entry/shared.py",
+            "src/med_autoscience/controllers/product_entry/shared_base.py",
+            "src/med_autoscience/controllers/product_entry/shared_labels.py",
+            "src/med_autoscience/controllers/product_entry/workspace_attention.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/attention_hub.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_ai.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_common.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_header.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_medical.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_queue.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_sections.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_studies.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/command_assembly.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/health_cards.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/launch_surface.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/progress_projection.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/readiness_and_delivery.py",
+            "src/med_autoscience/controllers/product_entry/workspace_cockpit/state_and_study_items.py",
+            "src/med_autoscience/controllers/product_entry/workspace_surfaces.py",
+            "tests/product_entry_cases/__init__.py",
+            "tests/product_entry_cases/action_catalog_parity.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/action_catalog_cases.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/memory_and_skeleton_cases.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/shared.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/stage_descriptor_cases.py",
+            "tests/product_entry_cases/attention_queue_and_cockpit_base.py",
+            "tests/product_entry_cases/authority_operation_manifest.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_ai_first_operations.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_autonomy_runtime_control.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_cross_study_completion.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_gate_clearing_followthrough.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness_v2_actions.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_product_entry_medical_paper_readiness.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_projection_error_isolation.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
+            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_workspace_medical_paper_ops_health.py",
+            "tests/product_entry_cases/delivery_inspection_visibility.py",
+            "tests/product_entry_cases/entry_status_focus_cases.py",
+            "tests/product_entry_cases/functional_closure_projection.py",
+            "tests/product_entry_cases/functional_consumer_boundary.py",
+            "tests/product_entry_cases/manifest_launch_and_task_intake.py",
+            "tests/product_entry_cases/manifest_launch_and_task_intake_cases/launch_study_surfaces.py",
+            "tests/product_entry_cases/manifest_launch_and_task_intake_cases/test_explicit_wakeup.py",
+            "tests/product_entry_cases/open_auto_research_projection.py",
+            "tests/product_entry_cases/opl_current_control_state_handoff_projection.py",
+            "tests/product_entry_cases/paper_orchestra_operator_projection.py",
+            "tests/product_entry_cases/product_entry_builder_cases.py",
+            "tests/product_entry_cases/product_entry_markdown_and_skill_catalog.py",
+            "tests/product_entry_cases/product_entry_markdown_preview_cases.py",
+            "tests/product_entry_cases/product_entry_preflight_and_task_submission.py",
+            "tests/product_entry_cases/product_entry_supervision_and_boundary_cases.py",
+            "tests/product_entry_cases/product_entry_task_submission_cases.py",
+            "tests/product_entry_cases/repo_shell_and_handoff_templates.py",
+            "tests/product_entry_cases/repo_shell_entry_assertions.py",
+            "tests/product_entry_cases/repo_shell_phase_assertions.py",
+            "tests/product_entry_cases/repo_shell_preflight_assertions.py",
+            "tests/product_entry_cases/repo_shell_runtime_assertions.py",
+            "tests/product_entry_cases/shared.py",
+            "tests/product_entry_cases/shared_base.py",
+            "tests/product_entry_cases/transition_spec_descriptor.py",
+            "tests/test_product_entry.py"
+          ],
+          "scope_id": "workbench_and_product_entry_private_shell",
+          "surface_ids": [
+            "workbench_portal_generic_shell",
+            "generic_cli_mcp_product_wrappers"
+          ]
+        },
+        {
+          "deleted_paths": [
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/markdown.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/operational_summary.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/scan_policy.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/study_projection.py"
+          ],
+          "scope_id": "artifact_lifecycle_private_render_and_scan_shell",
+          "surface_ids": [
+            "artifact_lifecycle_storage_audit_shell"
+          ]
+        },
+        {
+          "deleted_paths": [
+            "src/med_autoscience/controllers/paper_mission_owner_surface/repo_write_policy.py",
+            "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py"
+          ],
+          "scope_id": "paper_mission_private_write_policy_shell",
+          "surface_ids": [
+            "paper_mission_owner_surface_materialize_dispatch_shell"
+          ]
+        },
+        {
+          "deleted_paths": [
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/study_progress/opl_current_control_state_handoff/mode_fields.py",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "scope_id": "unique_control_plane_canary_and_mode_shell",
+          "surface_ids": [
+            "generic_daemon_or_scheduler_lifecycle"
+          ]
+        }
+      ],
+      "evaluated_candidate_ref": "git:7ed2e5a3b4da21158547db68cf029e317b93a743",
+      "source_migration_base_ref": "git:753239240761ca1430471d25e2731658f092e001"
+    },
+    "state": "authorized_and_applied_for_exact_scope",
+    "surface_kind": "mas_private_surface_physical_retirement_decision"
+  },
   "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
   "requires_ai_first_record": true,
   "runtime_enforcement_status": "contract_validator_landed",

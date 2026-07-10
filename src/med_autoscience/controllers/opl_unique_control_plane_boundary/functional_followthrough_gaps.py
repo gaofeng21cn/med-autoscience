@@ -14,6 +14,291 @@ SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS = (
     "paper_mission_owner_surface_materialize_dispatch_shell",
     "workbench_portal_generic_shell",
 )
+
+PHYSICAL_RETIREMENT_DECISION_REF = (
+    "contracts/private_functional_surface_policy.json"
+    "#/migration_only_physical_retirement_decision"
+)
+_RETIRED_PRODUCT_ENTRY_SOURCE_PATHS = tuple(
+    f"src/med_autoscience/controllers/product_entry/{relative_path}"
+    for relative_path in (
+        "attention_projection.py",
+        "automation_surfaces.py",
+        "boundary_surfaces.py",
+        "command_surfaces.py",
+        "entry_runtime.py",
+        "family_lifecycle_surfaces.py",
+        "generated_status_projection.py",
+        "guarded_workflow_steps.py",
+        "human_status_view.py",
+        "manifest_projection_compaction.py",
+        "manifest_rendering.py",
+        "manifest_shell_surfaces.py",
+        "manifest_status_surface.py",
+        "manifest_surfaces.py",
+        "paper_orchestra_operator.py",
+        "program_runtime_surfaces.py",
+        "program_surfaces.py",
+        "shared.py",
+        "shared_base.py",
+        "shared_labels.py",
+        "workspace_attention.py",
+        "workspace_cockpit/attention_hub.py",
+        "workspace_cockpit/cockpit_markdown.py",
+        "workspace_cockpit/cockpit_markdown_ai.py",
+        "workspace_cockpit/cockpit_markdown_common.py",
+        "workspace_cockpit/cockpit_markdown_header.py",
+        "workspace_cockpit/cockpit_markdown_medical.py",
+        "workspace_cockpit/cockpit_markdown_queue.py",
+        "workspace_cockpit/cockpit_markdown_sections.py",
+        "workspace_cockpit/cockpit_markdown_studies.py",
+        "workspace_cockpit/cockpit_payload.py",
+        "workspace_cockpit/command_assembly.py",
+        "workspace_cockpit/health_cards.py",
+        "workspace_cockpit/launch_surface.py",
+        "workspace_cockpit/progress_projection.py",
+        "workspace_cockpit/readiness_and_delivery.py",
+        "workspace_cockpit/state_and_study_items.py",
+        "workspace_surfaces.py",
+    )
+)
+_RETIRED_PRODUCT_ENTRY_TEST_PATHS = tuple(
+    f"tests/product_entry_cases/{relative_path}"
+    for relative_path in (
+        "__init__.py",
+        "action_catalog_parity.py",
+        "action_catalog_parity_cases/action_catalog_cases.py",
+        "action_catalog_parity_cases/memory_and_skeleton_cases.py",
+        "action_catalog_parity_cases/provider_cases.py",
+        "action_catalog_parity_cases/shared.py",
+        "action_catalog_parity_cases/stage_descriptor_cases.py",
+        "attention_queue_and_cockpit_base.py",
+        "authority_operation_manifest.py",
+        "cockpit_status_and_entry_status_focus_cases/test_ai_first_operations.py",
+        "cockpit_status_and_entry_status_focus_cases/test_autonomy_runtime_control.py",
+        "cockpit_status_and_entry_status_focus_cases/test_cross_study_completion.py",
+        "cockpit_status_and_entry_status_focus_cases/test_gate_clearing_followthrough.py",
+        "cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness_v2_actions.py",
+        "cockpit_status_and_entry_status_focus_cases/test_product_entry_medical_paper_readiness.py",
+        "cockpit_status_and_entry_status_focus_cases/test_projection_error_isolation.py",
+        "cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
+        "cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
+        "cockpit_status_and_entry_status_focus_cases/test_workspace_medical_paper_ops_health.py",
+        "delivery_inspection_visibility.py",
+        "entry_status_focus_cases.py",
+        "functional_closure_projection.py",
+        "functional_consumer_boundary.py",
+        "manifest_launch_and_task_intake.py",
+        "manifest_launch_and_task_intake_cases/launch_study_surfaces.py",
+        "manifest_launch_and_task_intake_cases/test_explicit_wakeup.py",
+        "open_auto_research_projection.py",
+        "opl_current_control_state_handoff_projection.py",
+        "paper_orchestra_operator_projection.py",
+        "product_entry_builder_cases.py",
+        "product_entry_markdown_and_skill_catalog.py",
+        "product_entry_markdown_preview_cases.py",
+        "product_entry_preflight_and_task_submission.py",
+        "product_entry_supervision_and_boundary_cases.py",
+        "product_entry_task_submission_cases.py",
+        "repo_shell_and_handoff_templates.py",
+        "repo_shell_entry_assertions.py",
+        "repo_shell_phase_assertions.py",
+        "repo_shell_preflight_assertions.py",
+        "repo_shell_runtime_assertions.py",
+        "shared.py",
+        "shared_base.py",
+        "transition_spec_descriptor.py",
+    )
+)
+_PHYSICAL_RETIREMENT_DELETED_PATH_SCOPES = (
+    {
+        "scope_id": "workbench_and_product_entry_private_shell",
+        "surface_ids": [
+            "workbench_portal_generic_shell",
+            "generic_cli_mcp_product_wrappers",
+        ],
+        "deleted_paths": [
+            *_RETIRED_PRODUCT_ENTRY_SOURCE_PATHS,
+            *_RETIRED_PRODUCT_ENTRY_TEST_PATHS,
+            "tests/test_product_entry.py",
+        ],
+    },
+    {
+        "scope_id": "artifact_lifecycle_private_render_and_scan_shell",
+        "surface_ids": ["artifact_lifecycle_storage_audit_shell"],
+        "deleted_paths": [
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/markdown.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/operational_summary.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/scan_policy.py",
+            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/study_projection.py",
+        ],
+    },
+    {
+        "scope_id": "paper_mission_private_write_policy_shell",
+        "surface_ids": ["paper_mission_owner_surface_materialize_dispatch_shell"],
+        "deleted_paths": [
+            (
+                "src/med_autoscience/controllers/paper_mission_owner_surface/repo_"
+                "write_policy.py"
+            ),
+            "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py",
+        ],
+    },
+    {
+        "scope_id": "unique_control_plane_canary_and_mode_shell",
+        "surface_ids": ["generic_daemon_or_scheduler_lifecycle"],
+        "deleted_paths": [
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/study_progress/opl_current_control_state_handoff/mode_fields.py",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py",
+            "tests/test_unique_control_plane_canary_registry.py",
+        ],
+    },
+)
+PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION = {
+    "surface_kind": "mas_private_surface_physical_retirement_decision",
+    "schema_version": 1,
+    "decision_id": "mas.private-surface-retirement.2026-07-10.v1",
+    "decision_kind": "migration_only_repo_source_physical_retirement",
+    "owner": "med-autoscience",
+    "state": "authorized_and_applied_for_exact_scope",
+    "canonical_ref": PHYSICAL_RETIREMENT_DECISION_REF,
+    "owner_decision_refs": [PHYSICAL_RETIREMENT_DECISION_REF],
+    "scope": {
+        "source_migration_base_ref": (
+            "git:753239240761ca1430471d25e2731658f092e001"
+        ),
+        "evaluated_candidate_ref": (
+            "git:7ed2e5a3b4da21158547db68cf029e317b93a743"
+        ),
+        "deleted_path_count": sum(
+            len(scope["deleted_paths"])
+            for scope in _PHYSICAL_RETIREMENT_DELETED_PATH_SCOPES
+        ),
+        "deleted_path_scopes": [
+            {
+                "scope_id": scope["scope_id"],
+                "surface_ids": list(scope["surface_ids"]),
+                "deleted_paths": list(scope["deleted_paths"]),
+            }
+            for scope in _PHYSICAL_RETIREMENT_DELETED_PATH_SCOPES
+        ],
+    },
+    "authorization": {
+        "authority_basis": "repository_maintainer_directive",
+        "applies_only_to_exact_deleted_paths": True,
+        "physical_delete_authorized": True,
+    },
+    "gate_evidence": {
+        "replacement_parity": {
+            "status": "aligned",
+            "refs": [
+                "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/wrapper-ready",
+                "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/direct-entry-parity-aligned",
+                "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/issues-zero",
+            ],
+        },
+        "no_active_caller": {
+            "status": "satisfied",
+            "refs": [
+                "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+                "tests/standard_agent_purity_helpers.py",
+            ],
+        },
+        "no_forbidden_write": {
+            "status": "satisfied",
+            "refs": [
+                "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary",
+                "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary",
+                "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary",
+            ],
+        },
+        "provenance": {
+            "status": "satisfied",
+            "refs": [
+                "git:753239240761ca1430471d25e2731658f092e001..7ed2e5a3b4da21158547db68cf029e317b93a743#deleted-paths",
+                "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+            ],
+        },
+    },
+    "authority_boundary": {
+        "migration_only": True,
+        "is_runtime_owner_receipt": False,
+        "is_quality_or_export_receipt": False,
+        "is_owner_acceptance_receipt": False,
+        "can_claim_domain_ready": False,
+        "can_claim_production_ready": False,
+        "can_claim_publication_ready": False,
+    },
+}
+_FAIL_CLOSED_PHYSICAL_RETIREMENT_AUTHORITY_BOUNDARY = {
+    "migration_only": True,
+    "is_runtime_owner_receipt": False,
+    "is_quality_or_export_receipt": False,
+    "is_owner_acceptance_receipt": False,
+    "can_claim_domain_ready": False,
+    "can_claim_production_ready": False,
+    "can_claim_publication_ready": False,
+}
+
+
+def physical_retirement_authorized(decision: object) -> bool:
+    if not isinstance(decision, Mapping):
+        return False
+    authorization = decision.get("authorization")
+    return (
+        decision == PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+        and isinstance(authorization, Mapping)
+        and authorization.get("physical_delete_authorized") is True
+        and authorization.get("applies_only_to_exact_deleted_paths") is True
+        and isinstance(authorization.get("authority_basis"), str)
+        and bool(str(authorization["authority_basis"]).strip())
+    )
+
+
+def build_private_surface_physical_retirement_decision_readback(
+    decision: object,
+) -> dict[str, Any]:
+    decision_mapping = decision if isinstance(decision, Mapping) else {}
+    authorized = physical_retirement_authorized(decision_mapping)
+    authority_boundary = (
+        decision_mapping.get("authority_boundary")
+        if authorized
+        else _FAIL_CLOSED_PHYSICAL_RETIREMENT_AUTHORITY_BOUNDARY
+    )
+    owner_decision_refs = decision_mapping.get("owner_decision_refs")
+    if not isinstance(owner_decision_refs, Sequence) or isinstance(
+        owner_decision_refs, (str, bytes)
+    ):
+        owner_decision_refs = []
+    normalized_owner_decision_refs = [
+        str(ref).strip() for ref in owner_decision_refs if str(ref).strip()
+    ]
+    return {
+        "surface_kind": "mas_private_surface_physical_retirement_decision_readback",
+        "schema_version": 1,
+        "decision_id": decision_mapping.get("decision_id"),
+        "owner": decision_mapping.get("owner") or "med-autoscience",
+        "state": (
+            decision_mapping.get("state")
+            if authorized
+            else "missing_or_invalid_physical_retirement_decision"
+        ),
+        "canonical_ref": PHYSICAL_RETIREMENT_DECISION_REF,
+        "owner_decision_refs": (
+            normalized_owner_decision_refs if authorized else []
+        ),
+        "physical_delete_authorized": authorized,
+        "authority_boundary": dict(authority_boundary),
+    }
+
+
+PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION_READBACK = (
+    build_private_surface_physical_retirement_decision_readback(
+        PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+    )
+)
 MEMORY_ARTIFACT_LIFECYCLE_TYPED_BLOCKER_REFS = (
     "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:03e1b65c724fc91f",
     "mas-artifact-lifecycle-typed-blocker:medautoscience:canonical-regeneration-required-before-projection-removal:0a79716a4521d4e7",
@@ -130,13 +415,17 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
             "opl_unique_control_plane_handoff.standard_agent_purity",
             "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
             "workbench_portal_generic_shell.retired_local_materializer_boundary",
+            PHYSICAL_RETIREMENT_DECISION_REF,
         ],
         "functional_structure_gap": False,
         "former_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
-        "physical_delete_authorized": False,
+        "physical_delete_authorized": physical_retirement_authorized(
+            PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+        ),
+        "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
         "delete_or_tombstone_after": [
             "OPL generated/default caller parity remains green",
-            "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
+            "MAS migration-only retirement decision authorizes the exact deleted path scope",
             "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
             "tombstone/provenance proof exists before physical deletion",
         ],
@@ -177,13 +466,17 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
             "functional_module_inventory.domain_authority_refs",
             "state_index_source_adapter_role.body_free_state_index_source_adapter_not_generic_runtime_lifecycle_engine",
             "workbench_portal_generic_shell.read_model_materializer_boundary",
+            PHYSICAL_RETIREMENT_DECISION_REF,
         ],
         "functional_structure_gap": False,
         "former_wrapper_tail_module_ids": [
             "workbench_portal_generic_shell",
             "paper_mission_owner_surface_materialize_dispatch_shell",
         ],
-        "physical_delete_authorized": False,
+        "physical_delete_authorized": physical_retirement_authorized(
+            PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+        ),
+        "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
         "delete_or_tombstone_after": [
             "body-free owner refs and typed blockers remain available",
             "generic locator/index/projection responsibility has an OPL primitive replacement",
@@ -316,7 +609,7 @@ PRIVATE_SURFACE_RETIREMENT_GATE_POLICY = {
         "publication_ready",
         "domain_ready",
         "production_ready",
-        "physical_delete_authorized",
+        "unscoped_physical_delete_authorized",
         "100_percent_complete_without_live_proof",
     ],
     "required_fields": [
@@ -440,8 +733,36 @@ def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
     source_morphology: Mapping[str, Any],
+    physical_delete_authorized: bool | None = None,
 ) -> dict[str, Any]:
-    closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
+    if physical_delete_authorized is None:
+        physical_delete_authorized = physical_retirement_authorized(
+            PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+        )
+    else:
+        physical_delete_authorized = physical_delete_authorized is True
+    closure_gates = [
+        {
+            **item,
+            "physical_delete_authorized": physical_delete_authorized,
+        }
+        if "physical_delete_authorized" in item
+        else dict(item)
+        for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES
+    ]
+    if not physical_delete_authorized:
+        closure_gates = [
+            {
+                **item,
+                "closure_status": (
+                    "physical_retirement_decision_missing_or_not_authorized"
+                ),
+                "functional_structure_gap": True,
+            }
+            if item.get("physical_retirement_decision_ref")
+            else item
+            for item in closure_gates
+        ]
     source_purity_gap_count = int(source_morphology.get("source_purity_gap_count") or 0)
     if source_purity_gap_count:
         closure_gates = [
@@ -501,7 +822,8 @@ def build_functional_followthrough_gap_summary(
         "default_caller_readiness_status": "opl_generated_default_caller_ready",
         "source_purity_cutover_status": source_purity_cutover_status,
         "source_morphology_ref": "standard_agent_purity.source_morphology",
-        "domain_repo_physical_delete_authorized": False,
+        "domain_repo_physical_delete_authorized": physical_delete_authorized,
+        "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
         "remaining_gap_classification": (
             REMAINING_GAP_CLASSIFICATION
             if remaining_items_are_evidence_gates

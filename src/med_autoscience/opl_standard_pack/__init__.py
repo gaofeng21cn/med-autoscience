@@ -11,6 +11,7 @@ from med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migr
     build_functional_consumer_boundary,
 )
 from med_autoscience.controllers.opl_unique_control_plane_boundary.functional_followthrough_gaps import (
+    PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
     PRIVATE_SURFACE_RETIREMENT_DISPOSITION_MATRIX,
     PRIVATE_SURFACE_RETIREMENT_GATE_POLICY,
 )
@@ -166,6 +167,9 @@ def _domain_descriptor() -> dict[str, Any]:
             "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
             "generated_surface_handoff": "contracts/generated_surface_handoff.json",
             "functional_privatization_audit": "contracts/functional_privatization_audit.json",
+            "private_functional_surface_policy": (
+                "contracts/private_functional_surface_policy.json"
+            ),
             "domain_route_profile": "contracts/domain_route_profile.json",
             "domain_projection_profile": "contracts/domain_projection_profile.json",
             "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
@@ -812,6 +816,7 @@ def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> 
     purity = functional_boundary["standard_agent_purity"]
     guard = functional_boundary["standard_agent_purity_guard"]
     summary = functional_boundary["functional_module_inventory_summary"]
+    decision_readback = functional_boundary["physical_retirement_decision"]
     return {
         "surface_kind": "mas_physical_source_morphology_scan",
         "schema_version": 1,
@@ -857,14 +862,16 @@ def _physical_source_morphology_scan(functional_boundary: Mapping[str, Any]) -> 
         "does_not_close": [
             "direct_or_hosted_generated_surface_production_consumption_ref",
             "production_generated_surface_consumption_ref",
-            "physical_retirement_owner_decision_ref",
             "real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref",
             "long_soak_negative_conformance_ref",
         ],
         "completion_boundary": {
             "scan_proof_repo_backed": True,
             "production_consumption_proven": False,
-            "physical_retirement_owner_decision_present": False,
+            "physical_retirement_owner_decision_present": (
+                decision_readback.get("physical_delete_authorized") is True
+                and bool(decision_readback.get("owner_decision_refs"))
+            ),
             "live_owner_or_stable_blocker_scaleout_complete": False,
             "provider_or_operator_long_soak_complete": False,
             "completion_claim_authorized": False,
@@ -896,6 +903,9 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
             "minimal_authority_function",
         ],
         "functional_consumer_boundary": dict(functional_boundary),
+        "physical_retirement_decision": _json_ready(
+            functional_boundary["physical_retirement_decision"]
+        ),
         "privatized_functional_module_audit": {
             "surface_kind": "mas_privatized_functional_module_audit",
             "audit_id": "mas.privatized_functional_module_audit.v1",
@@ -974,6 +984,9 @@ def _private_functional_surface_policy() -> dict[str, Any]:
         "classification_required_for_private_surfaces": True,
         "mas_private_surface_retirement_gate_policy": _json_ready(
             PRIVATE_SURFACE_RETIREMENT_GATE_POLICY
+        ),
+        "migration_only_physical_retirement_decision": _json_ready(
+            PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
         ),
         "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
         "independent_executor_reviewer_agent_policy": INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,

@@ -6,8 +6,11 @@ from typing import Any
 from .functional_followthrough_gaps import (
     FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS,
     OPL_REPLACEMENT_EXPECTATION_AUDIT,
+    PHYSICAL_RETIREMENT_DECISION_REF,
+    PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION,
     REMAINING_GAP_CLASSIFICATION,
     SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS,
+    build_private_surface_physical_retirement_decision_readback,
     build_functional_followthrough_gap_summary,
 )
 from .generated_surface_handoff import build_generated_surface_handoff
@@ -17,6 +20,7 @@ from .generated_caller_retirement import (
 from .consumer_migration_inventory import (
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
+    build_functional_module_inventory,
     build_source_morphology,
 )
 
@@ -33,6 +37,7 @@ REPLACEMENT_OWNER_SURFACE = "opl_provider_runtime_manager"
 REPLACEMENT_STATE = "opl_replacement_contract_active"
 RETIREMENT_STATE = "retired_runtime_tombstone_requires_standard_agent_purity_guard"
 LOCAL_TOMBSTONE_RETIREMENT_STATE = "local_legacy_history_tombstone_provenance_only"
+_DEFAULT_PHYSICAL_RETIREMENT_DECISION = object()
 
 MAS_DOMAIN_AUTHORITY_AFTER_MIGRATION = (
     "paper_progress_slo_semantics",
@@ -341,6 +346,7 @@ STANDARD_AGENT_PURITY = {
     "repo_local_wrapper_tail_module_ids": [],
     "former_repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
     "domain_repo_physical_delete_authorized": False,
+    "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
     "runtime_package_residue_count": 0,
     "retired_alias_residue_refs": [],
     "history_detail_in_default_read_model": False,
@@ -373,6 +379,7 @@ STANDARD_AGENT_PURITY_GUARD = {
     "repo_local_wrapper_tail_module_ids": [],
     "former_repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
     "domain_repo_physical_delete_authorized": False,
+    "physical_retirement_decision_ref": PHYSICAL_RETIREMENT_DECISION_REF,
     "runtime_package_residue_count": 0,
     "retired_alias_residue_refs": [],
     "proof_items": [
@@ -610,20 +617,35 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
 def build_functional_consumer_boundary(
     *,
     repo_root: Path | None = None,
+    physical_retirement_decision: object = _DEFAULT_PHYSICAL_RETIREMENT_DECISION,
 ) -> dict[str, Any]:
+    if physical_retirement_decision is _DEFAULT_PHYSICAL_RETIREMENT_DECISION:
+        physical_retirement_decision = PRIVATE_SURFACE_PHYSICAL_RETIREMENT_DECISION
+    physical_retirement_decision_readback = (
+        build_private_surface_physical_retirement_decision_readback(
+            physical_retirement_decision
+        )
+    )
+    physical_delete_authorized = (
+        physical_retirement_decision_readback["physical_delete_authorized"] is True
+    )
+    functional_module_inventory = build_functional_module_inventory(
+        physical_retirement_decision=physical_retirement_decision
+    )
     classification_counts: dict[str, int] = {}
-    for item in FUNCTIONAL_MODULE_INVENTORY:
+    for item in functional_module_inventory:
         classification = str(item["classification"])
         classification_counts[classification] = classification_counts.get(classification, 0) + 1
     domain_authority_refs_retirement_gates = [
         dict(item["retirement_gate"])
-        for item in FUNCTIONAL_MODULE_INVENTORY
+        for item in functional_module_inventory
         if item["classification"] == "domain_authority_refs"
     ]
     source_morphology = build_source_morphology(repo_root=repo_root)
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
         source_morphology=source_morphology,
+        physical_delete_authorized=physical_delete_authorized,
     )
     source_purity_clean = (
         source_morphology["source_truth_available"] is True
@@ -658,13 +680,18 @@ def build_functional_consumer_boundary(
         "repo_local_wrapper_tail_module_ids": list(
             functional_followthrough_gap_summary["repo_local_wrapper_tail_module_ids"]
         ),
+        "domain_repo_physical_delete_authorized": physical_delete_authorized,
     }
     standard_agent_purity_guard = {
         **STANDARD_AGENT_PURITY_GUARD,
         "status": (
-            "standard_agent_purity_cutover_guard"
-            if source_purity_clean
-            else "standard_agent_purity_source_morphology_gap"
+            "standard_agent_purity_source_morphology_gap"
+            if not source_purity_clean
+            else (
+                "standard_agent_purity_cutover_guard"
+                if physical_delete_authorized
+                else "standard_agent_purity_physical_retirement_decision_gap"
+            )
         ),
         "source_purity_cutover_status": standard_agent_purity[
             "source_purity_cutover_status"
@@ -675,6 +702,7 @@ def build_functional_consumer_boundary(
         "repo_local_wrapper_tail_module_ids": list(
             standard_agent_purity["repo_local_wrapper_tail_module_ids"]
         ),
+        "domain_repo_physical_delete_authorized": physical_delete_authorized,
         "proof_items": [
             (
                 "standard_agent_purity.active_private_generic_residue_count="
@@ -719,6 +747,12 @@ def build_functional_consumer_boundary(
             else value
             for key, value in GENERATED_DEFAULT_CALLER_BOUNDARY.items()
         },
+        "physical_retirement_decision": {
+            key: [dict(item) if isinstance(item, dict) else item for item in value]
+            if isinstance(value, list)
+            else value
+            for key, value in physical_retirement_decision_readback.items()
+        },
         "standard_agent_purity": standard_agent_purity,
         "minimal_authority_function_manifest": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]
@@ -734,10 +768,10 @@ def build_functional_consumer_boundary(
                 key: list(value) if isinstance(value, list) else value
                 for key, value in item.items()
             }
-            for item in FUNCTIONAL_MODULE_INVENTORY
+            for item in functional_module_inventory
         ],
         "functional_module_inventory_summary": {
-            "total_count": len(FUNCTIONAL_MODULE_INVENTORY),
+            "total_count": len(functional_module_inventory),
             "classification_counts": classification_counts,
             "long_term_opl_owned_replacement_count": 0,
             "retire_tombstone_classification_count": 0,
