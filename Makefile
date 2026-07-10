@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
 
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
@@ -33,6 +33,10 @@ test-smoke:
 
 test-regression:
 	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden"
+
+test-ci-preflight:
+	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
+	scripts/run-python-clean.sh -m med_autoscience.dev_preflight --base-ref "$${BASE_REF}"
 
 test-fast:
 	scripts/run-pytest-clean.sh $(FAST_TESTS) -q

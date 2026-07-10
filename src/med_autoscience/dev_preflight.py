@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 import shlex
 import subprocess
+import sys
 
 from med_autoscience import dev_preflight_contract
 
@@ -193,3 +195,16 @@ def run_ci_preflight(*, base_ref: str, repo_root: Path) -> PreflightResult:
             ok=ok,
         )
     return run_preflight(changed_files=changed_files, repo_root=repo_root, input_mode="ci-base_ref")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run the MAS repository change-aware preflight.")
+    parser.add_argument("--base-ref", required=True)
+    args = parser.parse_args(argv)
+    result = run_ci_preflight(base_ref=args.base_ref, repo_root=Path.cwd())
+    sys.stdout.write(render_preflight_text(result))
+    return 0 if result.ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

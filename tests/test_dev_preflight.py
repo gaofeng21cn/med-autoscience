@@ -310,6 +310,8 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-smoke:" in makefile
     assert "test-regression:" in makefile
     assert "test-ci-preflight:" in makefile
+    assert "-m med_autoscience.dev_preflight --base-ref" in makefile
+    assert "med_autoscience.cli" not in makefile
     assert (
         "test-family:\n"
         "\tscripts/run-pytest-clean.sh tests/test_family_shared_release.py "
