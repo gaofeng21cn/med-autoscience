@@ -185,27 +185,6 @@ def test_legacy_next_action_cleanup_restores_typed_blocker_action_from_paper_fac
     assert action["required_delta_kind"] == "typed_blocker_resolution_owner_action"
 
 
-def test_paper_recovery_accepts_typed_blocker_resolution_owner_action() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.paper_recovery_state.successor_owner_resolution"
-    )
-
-    action = {
-        "surface_kind": "current_executable_owner_action",
-        "source": "paper_mission_typed_blocker_resolution",
-        "authority": "study_progress.current_executable_owner_action",
-        "required_delta_kind": "typed_blocker_resolution_owner_action",
-        "next_owner": "mas_authority_kernel",
-        "action_type": "classify_quality_blockers_or_materialize_degraded_handoff_gate",
-        "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
-        "work_unit_fingerprint": "133c677b0fd92c0a91ae075b",
-    }
-
-    assert module.current_executable_owner_action(
-        {"current_executable_owner_action": action}
-    ) == action
-
-
 def test_current_owner_action_projects_submission_authority_owner_gate_surface() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress.canonical_owner_action_projection"

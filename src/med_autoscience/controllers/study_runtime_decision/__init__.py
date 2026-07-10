@@ -9,7 +9,6 @@ _PART_MODULES = (
     "manual_finish_dominance",
     "runtime_events",
     "supervisor_state_overrides",
-    "runtime_health_dominance",
     "domain_status_authority",
 )
 

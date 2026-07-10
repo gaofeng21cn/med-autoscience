@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import hashlib
-import json
 import re
 from pathlib import Path
 from typing import Any, Mapping
@@ -16,8 +14,8 @@ from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
 from med_autoscience.display_pack_agent import display_pack_capability_discover
-from med_autoscience.paper_mission_domain import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
 from med_autoscience.domain_entry_contract import domain_entry_handler_target
+from med_autoscience.paper_mission_domain import DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -27,13 +25,9 @@ from ..domain_handler_export.paper_mission_task_shaping import (
     paper_mission_consumption_route_handoff_task as _paper_mission_consumption_route_handoff_task,
     paper_mission_start_or_resume_task as _paper_mission_start_or_resume_task,
 )
-from ..domain_action_request_materializer import currentness_identity
+from .. import opl_domain_progress_transition_contract
 from ..study_domain_transition_table import family_transition_spec
-from .accepted_owner_gate_route_back import accepted_owner_gate_route_back_action
 from .authority_boundary import authority_boundary_payload
-from med_autoscience.controllers.domain_dispatch_evidence_payload import (
-    build_domain_dispatch_evidence_record_payload,
-)
 from .domain_handler_functional_closure import build_domain_handler_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
@@ -44,17 +38,8 @@ from .export_study_projection import (
 )
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_source_refs import owner_controller_decision_refs
-from .opl_supervisor_decision_request_tasks import opl_supervisor_decision_request_task
-from .supervisor_typed_blocker_resolution import (
-    current_supervisor_decision as _current_supervisor_decision,
-    supervisor_stop_decision_matches_current_work_unit as _supervisor_stop_decision_matches_current_work_unit,
-    supervisor_stop_decision_resolution_shapes as _supervisor_stop_decision_resolution_shapes,
-)
 from .substrate_adapter import build_opl_substrate_adapter_projection
 from .task_kinds import ALLOWED_TASK_KINDS, RETIRED_DIAGNOSTIC_TASK_KINDS
-from med_autoscience.controllers.study_progress.paper_autonomy_supervisor_decision import (
-    provider_admission_supervisor_gate,
-)
 
 
 def _now_iso() -> str:
@@ -326,48 +311,16 @@ def _pending_family_tasks(
             study=study,
             current_progress=current_progress,
         )
-        ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
-        if ordinary_task_blocker and not current_owner_action:
-            resolution_ref = _current_typed_blocker_owner_resolution_ref(
+        if current_owner_action or _stage_outcome_blocks_legacy_tasks(current_progress):
+            continue
+        tasks.extend(
+            _paper_autonomy_tasks(
                 study=study,
-                current_progress=current_progress,
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,
             )
-            if resolution_ref is not None:
-                supervisor_request_task = opl_supervisor_decision_request_task(
-                    resolution_task=resolution_ref,
-                    current_progress=current_progress,
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                )
-                if supervisor_request_task is not None:
-                    tasks.append(supervisor_request_task)
-                continue
-            continue
-        current_work_unit = mapping(current_progress.get("current_work_unit"))
-        current_execution_envelope = _export_current_execution_envelope(
-            study=study,
-            current_progress=current_progress,
         )
-        legacy_route_tasks_blocked = _legacy_route_tasks_blocked_by_current_owner_action(
-            current_owner_action=current_owner_action,
-            current_work_unit=current_work_unit,
-            current_execution_envelope=current_execution_envelope,
-        )
-        if not legacy_route_tasks_blocked:
-            tasks.extend(
-                _paper_autonomy_tasks(
-                    study=study,
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                )
-            )
-        if ordinary_task_blocker or legacy_route_tasks_blocked:
-            continue
         tasks.extend(
             publication_aftercare.build_publication_aftercare_pending_tasks(
                 profile_name=profile.name,
@@ -382,316 +335,15 @@ def _pending_family_tasks(
     )
 
 
-def _ordinary_pending_tasks_blocker(*, current_progress: Mapping[str, Any]) -> Mapping[str, Any]:
-    current_work_unit = mapping(current_progress.get("current_work_unit"))
-    work_unit_status = text(current_work_unit.get("status"))
-    if _ordinary_pending_tasks_blocked_status(work_unit_status):
-        return {
-            "blocked": True,
-            "source": "current_work_unit",
-            "state_kind": work_unit_status,
-        }
-    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
-    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
-        current_execution_envelope.get("execution_state_kind")
-    )
-    if _ordinary_pending_tasks_blocked_status(envelope_state):
-        return {
-            "blocked": True,
-            "source": "current_execution_envelope",
-            "state_kind": envelope_state,
-        }
-    return {}
-
-
-def _legacy_route_tasks_blocked_by_current_owner_action(
-    *,
-    current_owner_action: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    current_execution_envelope: Mapping[str, Any],
-) -> bool:
-    work_unit_status = text(current_work_unit.get("status"))
-    if work_unit_status == "executable_owner_action":
-        return True
-    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
-        current_execution_envelope.get("execution_state_kind")
-    )
-    return envelope_state == "executable_owner_action" and bool(current_owner_action or current_work_unit)
-
-
-def _ordinary_pending_tasks_blocked_status(status: str | None) -> bool:
-    return status in {
+def _stage_outcome_blocks_legacy_tasks(current_progress: Mapping[str, Any]) -> bool:
+    stage_closure = mapping(current_progress.get("stage_closure"))
+    outcome = mapping(stage_closure.get("outcome"))
+    return text(outcome.get("kind")) in {
         "typed_blocker",
-        "running_provider_attempt",
-        "blocked_current_work_unit",
-        "blocked_typed_owner",
-        "parked",
-    }
-
-
-def _current_typed_blocker_owner_resolution_ref(
-    *,
-    study: Mapping[str, Any],
-    current_progress: Mapping[str, Any],
-    profile: WorkspaceProfile,
-    profile_ref: Path,
-    study_id: str,
-) -> dict[str, Any] | None:
-    current_work_unit = mapping(current_progress.get("current_work_unit"))
-    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
-    if text(current_work_unit.get("status")) != "typed_blocker":
-        return None
-    typed_blocker = _current_typed_blocker(
-        current_work_unit=current_work_unit,
-        current_execution_envelope=current_execution_envelope,
-    )
-    supervisor_decision = _current_supervisor_decision(current_progress)
-    owner = _current_owner_for_resolution(
-        current_work_unit=current_work_unit,
-        current_execution_envelope=current_execution_envelope,
-    )
-    if not _typed_blocker_owner_resolution_supported(
-        owner=owner,
-        typed_blocker=typed_blocker,
-        current_work_unit=current_work_unit,
-        supervisor_decision=supervisor_decision,
-    ):
-        return None
-    required_owner = _required_owner_for_typed_blocker_resolution(owner)
-    reason = "current_work_unit_typed_blocker_owner_resolution"
-    source_fingerprint = _fingerprint(
-        {
-            "profile": profile.name,
-            "study_id": study_id,
-            "reason": reason,
-            "current_work_unit": dict(current_work_unit),
-            "typed_blocker": dict(typed_blocker),
-            "supervisor_decision_id": text(supervisor_decision.get("decision_id")),
-        }
-    )
-    source_refs = _typed_blocker_source_refs(
-        study=study,
-        current_work_unit=current_work_unit,
-        typed_blocker=typed_blocker,
-        supervisor_decision=supervisor_decision,
-        profile=profile,
-        study_id=study_id,
-    )
-    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_autonomy/supervisor-decision",
-        study_id=study_id,
-        reason=reason,
-        evidence_refs=source_refs,
-        source_fingerprint=source_fingerprint,
-        profile_name=profile.name,
-    )
-    return {
-        "domain_id": "mas",
-        "ref_kind": "typed_blocker_owner_resolution_ref",
-        "task_kind": "domain_autonomy/supervisor-decision",
-        "recommended_task_kind": "domain_autonomy/supervisor-decision",
-        "source": "mas-domain-handler-export",
-        "dedupe_key": f"mas:{profile.name}:{study_id}:current-typed-blocker:{source_fingerprint}",
-        "source_fingerprint": source_fingerprint,
-        "domain_truth_owner": "med-autoscience",
-        "queue_owner": "one-person-lab",
-        "dispatch_owner": "one-person-lab",
-        "reason": reason,
-        "source_refs": source_refs,
-        "domain_dispatch_evidence_record_payload": evidence_record_payload,
-        "payload": {
-            "profile": str(profile_ref),
-            "study_id": study_id,
-            "source_fingerprint": source_fingerprint,
-            "continuation_reason": reason,
-            "current_work_unit": dict(current_work_unit),
-            "current_execution_envelope": dict(current_execution_envelope),
-            "typed_blocker": dict(typed_blocker),
-            **(
-                {
-                    "paper_autonomy_supervisor_decision": dict(supervisor_decision),
-                    "paper_autonomy_obligation": dict(
-                        mapping(supervisor_decision.get("paper_autonomy_obligation"))
-                    ),
-                }
-                if supervisor_decision
-                else {}
-            ),
-            "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
-            "required_owner_action": {
-                "owner": required_owner,
-                "action_type": text(current_work_unit.get("action_type")),
-                "work_unit_id": text(current_work_unit.get("work_unit_id")),
-                "work_unit_fingerprint": (
-                    text(current_work_unit.get("work_unit_fingerprint"))
-                    or text(current_work_unit.get("action_fingerprint"))
-                ),
-                "accepted_resolution_shapes": _typed_blocker_resolution_shapes(
-                    owner=required_owner,
-                    typed_blocker=typed_blocker,
-                    current_work_unit=current_work_unit,
-                    supervisor_decision=supervisor_decision,
-                ),
-            },
-        },
-    }
-
-
-def _typed_blocker_owner_resolution_supported(
-    *,
-    owner: str | None,
-    typed_blocker: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    supervisor_decision: Mapping[str, Any],
-) -> bool:
-    if _supervisor_stop_decision_matches_current_work_unit(
-        supervisor_decision=supervisor_decision,
-        current_work_unit=current_work_unit,
-    ):
-        return False
-    if _canonical_owner(owner) == "one-person-lab":
-        return True
-    if _canonical_owner(owner) != "MedAutoScience":
-        return False
-    return _typed_blocker_identity(typed_blocker) == "no_selected_dispatch_for_requested_action_types"
-
-
-def _required_owner_for_typed_blocker_resolution(owner: str | None) -> str | None:
-    if _canonical_owner(owner) == "one-person-lab":
-        return "one-person-lab"
-    return owner
-
-
-def _typed_blocker_resolution_shapes(
-    *,
-    owner: str | None,
-    typed_blocker: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    supervisor_decision: Mapping[str, Any],
-) -> list[str]:
-    shapes: list[str] = []
-    if _supervisor_stop_decision_matches_current_work_unit(
-        supervisor_decision=supervisor_decision,
-        current_work_unit=current_work_unit,
-    ):
-        shapes.extend(_supervisor_stop_decision_resolution_shapes(
-            current_work_unit=current_work_unit,
-            supervisor_decision=supervisor_decision,
-        ))
-    if (
-        _canonical_owner(owner) == "MedAutoScience"
-        and _typed_blocker_identity(typed_blocker) == "no_selected_dispatch_for_requested_action_types"
-    ):
-        shapes.extend(
-            [
-                "current_selected_mas_dispatch",
-                "accepted_owner_receipt_for_materialized_gate_artifact",
-            ]
-        )
-    for shape in (
-        "matching_provider_attempt_or_lease_binding",
-        "matching_terminal_closeout_receipt",
-        "identity_different_successor_owner_action",
-        "stable_typed_blocker",
         "human_gate",
-    ):
-        if shape not in shapes:
-            shapes.append(shape)
-    return shapes
-
-
-def _canonical_owner(owner: str | None) -> str | None:
-    normalized = text(owner)
-    if normalized in {"one-person-lab", "opl", "OPL"}:
-        return "one-person-lab"
-    if normalized in {"MedAutoScience", "med-autoscience", "medautosci", "mas"}:
-        return "MedAutoScience"
-    return normalized
-
-
-def _typed_blocker_identity(typed_blocker: Mapping[str, Any]) -> str | None:
-    return (
-        text(typed_blocker.get("blocker_id"))
-        or text(typed_blocker.get("blocker_type"))
-        or text(typed_blocker.get("reason"))
-        or text(typed_blocker.get("blocked_reason"))
-    )
-
-
-def _current_owner_for_resolution(
-    *,
-    current_work_unit: Mapping[str, Any],
-    current_execution_envelope: Mapping[str, Any],
-) -> str | None:
-    return (
-        text(current_work_unit.get("owner"))
-        or text(mapping(current_work_unit.get("state")).get("owner"))
-        or text(current_execution_envelope.get("owner"))
-        or text(mapping(current_execution_envelope.get("typed_blocker")).get("owner"))
-    )
-
-
-def _current_typed_blocker(
-    *,
-    current_work_unit: Mapping[str, Any],
-    current_execution_envelope: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    work_unit_state = mapping(current_work_unit.get("state"))
-    return (
-        mapping(work_unit_state.get("typed_blocker"))
-        or mapping(current_work_unit.get("typed_blocker"))
-        or mapping(current_execution_envelope.get("typed_blocker"))
-    )
-
-
-def _typed_blocker_source_refs(
-    *,
-    study: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    typed_blocker: Mapping[str, Any],
-    supervisor_decision: Mapping[str, Any],
-    profile: WorkspaceProfile,
-    study_id: str,
-) -> list[dict[str, Any]]:
-    study_root = Path(text(study.get("study_root")) or profile.studies_root / study_id)
-    refs: list[dict[str, Any]] = [
-        {
-            "role": "current_work_unit",
-            "ref": "study_progress.current_work_unit",
-            "exists": True,
-            "status": text(current_work_unit.get("status")),
-            "owner": text(current_work_unit.get("owner")),
-            "action_type": text(current_work_unit.get("action_type")),
-            "work_unit_id": text(current_work_unit.get("work_unit_id")),
-            "work_unit_fingerprint": (
-                text(current_work_unit.get("work_unit_fingerprint"))
-                or text(current_work_unit.get("action_fingerprint"))
-            ),
-        }
-    ]
-    typed_blocker_ref = text(typed_blocker.get("source_ref")) or text(current_work_unit.get("source_ref"))
-    if typed_blocker_ref is not None:
-        refs.append(
-            {
-                "role": "typed_blocker",
-                "ref": typed_blocker_ref,
-                "exists": (profile.workspace_root / typed_blocker_ref).exists()
-                or (study_root / typed_blocker_ref).exists(),
-            }
-        )
-    if supervisor_decision:
-        refs.append(
-            {
-                "role": "paper_autonomy_supervisor_decision",
-                "ref": text(supervisor_decision.get("decision_id"))
-                or text(supervisor_decision.get("paper_autonomy_obligation_ref"))
-                or "study_progress.paper_recovery_state.supervisor_decision",
-                "exists": True,
-                "decision": text(supervisor_decision.get("decision")),
-                "identity_match": supervisor_decision.get("identity_match") is True,
-            }
-        )
-    return refs
+        "owner_receipt",
+        "terminal",
+    }
 
 
 def _fresh_study_progress(
@@ -729,110 +381,11 @@ def _export_current_owner_action(
     study: Mapping[str, Any],
     current_progress: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    if _supervisor_decision_blocks_owner_action(current_progress):
+    del study
+    next_action = mapping(current_progress.get("next_action"))
+    if not opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
         return {}
-    current_work_unit = mapping(current_progress.get("current_work_unit"))
-    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
-    owner_gate_action = accepted_owner_gate_route_back_action(
-        current_progress=current_progress,
-        current_work_unit=current_work_unit,
-    )
-    if owner_gate_action:
-        return owner_gate_action
-    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
-        current_execution_envelope.get("execution_state_kind")
-    )
-    if _ordinary_pending_tasks_blocked_status(text(current_work_unit.get("status"))) or (
-        _ordinary_pending_tasks_blocked_status(envelope_state)
-    ):
-        return {}
-    progress_action = mapping(current_progress.get("current_executable_owner_action"))
-    if progress_action:
-        projection_action = mapping(study.get("current_owner_action"))
-        if text(progress_action.get("action_type")) == text(projection_action.get("action_type")):
-            return _merge_projection_owner_action_identity(
-                progress_action=progress_action,
-                projection_action=projection_action,
-            )
-        return progress_action
-    projection_action = mapping(study.get("current_owner_action"))
-    if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
-        return {}
-    return projection_action
-
-
-def _supervisor_decision_blocks_owner_action(current_progress: Mapping[str, Any]) -> bool:
-    return provider_admission_supervisor_gate(current_progress).get("blocked") is True
-
-
-def _export_current_execution_envelope(
-    *,
-    study: Mapping[str, Any],
-    current_progress: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    progress_envelope = mapping(current_progress.get("current_execution_envelope"))
-    if progress_envelope:
-        return progress_envelope
-    projection_action = mapping(study.get("current_owner_action"))
-    if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
-        return {}
-    return {
-        "state_kind": "blocked_current_work_unit",
-        "owner": "med-autoscience",
-        "next_work_unit": None,
-        "typed_blocker": {
-            "blocker_type": "canonical_current_work_unit_required",
-            "owner": "med-autoscience",
-            "source": "domain_handler_export.current_control_action_queue_guard",
-        },
-    }
-
-
-def _merge_projection_owner_action_identity(
-    *,
-    progress_action: Mapping[str, Any],
-    projection_action: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    if not projection_action:
-        return progress_action
-    merged = dict(progress_action)
-    for key in (
-        "surface_key",
-        "target_surface",
-        "target_surface_specificity",
-        "next_action",
-        "source_ref",
-        "owner_route",
-        "owner_route_currentness_basis",
-        "source_fingerprint",
-        "work_unit_fingerprint",
-    ):
-        value = projection_action.get(key)
-        current_value = merged.get(key)
-        if value is not None and (
-            current_value is None
-            or (
-                key
-                in {
-                    "target_surface",
-                    "next_action",
-                    "owner_route",
-                    "owner_route_currentness_basis",
-                }
-                and not mapping(current_value)
-            )
-        ):
-            merged[key] = value
-    owner_route = mapping(merged.get("owner_route"))
-    currentness_basis = mapping(merged.get("owner_route_currentness_basis"))
-    if owner_route and currentness_basis:
-        merged["owner_route"] = currentness_identity.normalize_owner_route_currentness(
-            owner_route,
-            currentness_basis,
-        )
-    if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
-        merged["source"] = text(projection_action.get("source")) or text(merged.get("source"))
-    return merged
+    return next_action
 
 
 def _guarded_apply_targets(studies: list[Mapping[str, Any]]) -> tuple[str, ...]:
@@ -897,7 +450,7 @@ def _paper_autonomy_tasks(
             continue
         tasks.append(
             {
-                "domain_id": "mas",
+                "domain_id": "medautoscience",
                 "task_kind": "domain_autonomy/repair-recheck",
                 "priority": 40,
                 "source": "mas-domain-handler-export",
@@ -940,10 +493,6 @@ def _aggregate_domain_refs(studies: list[Mapping[str, Any]]) -> list[dict[str, A
             if isinstance(ref, dict) and ref.get("exists") is True:
                 refs.append(ref)
     return refs[:50]
-
-
-def _fingerprint(value: object) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
 
 
 def _slug(value: str) -> str:

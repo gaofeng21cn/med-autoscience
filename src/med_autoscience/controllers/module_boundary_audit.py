@@ -187,7 +187,6 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "layer": "domain_authority_refs",
         "owner": "MedAutoScience",
         "repo_targets": [
-            "src/med_autoscience/controllers/runtime_health_kernel.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
         ],

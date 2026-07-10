@@ -15,10 +15,10 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
-from med_autoscience.controllers.provider_admission.provider_admission_boundaries import (
-    domain_progress_transition_request_transport_fields,
+from med_autoscience.controllers.opl_domain_progress_transition_contract import (
+    mas_request_transport_fields as domain_progress_transition_request_transport_fields,
 )
-from med_autoscience.controllers.domain_action_request_materializer import currentness_identity
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
@@ -396,7 +396,7 @@ def build_ai_reviewer_record_worker_handoff(
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
     source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = currentness_identity.owner_route_basis(owner_route)
+    currentness_basis = owner_route_attempt_protocol.currentness_basis(owner_route)
     work_unit_id = (
         _text(source_refs.get("work_unit_id"))
         or _text(production_request.get("request_kind"))

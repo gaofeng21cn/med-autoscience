@@ -282,17 +282,6 @@
         "historical_pointer_tombstone"
       ]
     },
-    "lineage_retention_drilldown": {
-      "surface_kind": "opl_stage_lineage_retention_drilldown",
-      "implementation_ref": "src/med_autoscience/controllers/opl_stage_lineage_retention.py",
-      "projection_refs": [
-        "stage_kernel_projection.lineage_retention",
-        "mas_opl_runtime_workbench_projection.stage_operating_layer.lineage_retention"
-      ],
-      "unified_event_model": "stage_attempt_manifest_receipt_current_pointer",
-      "cleanup_authorized": false,
-      "cleanup_authorized_by_projection": false
-    },
     "workbench_cross_domain_soak": {
       "surface_kind": "mas_opl_stage_kernel_cross_domain_soak_projection",
       "implementation_ref": "opl_app_workbench_shell_readback",

@@ -5,9 +5,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.current_work_unit.terminal_closeout_currentness import (
-    OPL_RUNTIME_TERMINAL_BLOCKERS,
-)
 from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     LIVE_READBACK_PROVIDER_ADMISSION_OUTCOME,
@@ -46,6 +43,15 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
+    }
+)
+OPL_RUNTIME_TERMINAL_BLOCKERS = frozenset(
+    {
+        "domain_closeout_provided_incomplete_user_stage_log",
+        "medical_prose_review_request_rehydrate_required",
+        "non_advancing_apply",
+        "stage_packet_not_current_selected_dispatch",
+        "typed_closeout_packet_required",
     }
 )
 LIVE_ATTEMPT_SUPERSEDED_NEXT_OWNERS = frozenset(

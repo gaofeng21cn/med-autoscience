@@ -130,50 +130,6 @@ def test_publication_route_memory_inventory_delegates_generic_receipt_evidence_t
     assert "REJECTED_MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered
 
 
-def test_artifact_lifecycle_retention_plan_projects_mutation_restore_and_retention_body_free_refs(
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
-    artifacts = [
-        {
-            "path": str(tmp_path / "studies" / "001" / "paper" / "source" / "manuscript.md"),
-            "workspace_relative_path": "studies/001/paper/source/manuscript.md",
-            "role": "canonical_source",
-            "lifecycle": "active_authority",
-            "cleanup_candidate_action": "keep-online",
-            "cleanup_blockers": [],
-        },
-        {
-            "path": str(tmp_path / "studies" / "001" / "manuscript" / "current_package" / "paper.pdf"),
-            "workspace_relative_path": "studies/001/manuscript/current_package/paper.pdf",
-            "role": "derived_projection",
-            "lifecycle": "rebuildable_projection",
-            "cleanup_candidate_action": "rebuildable",
-            "cleanup_blockers": [],
-        },
-        {
-            "path": str(tmp_path / "ops" / "runtime" / "quests" / "001" / ".ds" / "cold_archive" / "payload.tar.gz"),
-            "workspace_relative_path": "ops/runtime/quests/001/.ds/cold_archive/payload.tar.gz",
-            "role": "cold_archive",
-            "lifecycle": "archived_restore_candidate",
-            "cleanup_candidate_action": "restore-gated",
-            "cleanup_blockers": [],
-        },
-    ]
-
-    plan = module.build_artifact_retention_operations_plan(workspace_root=tmp_path, artifacts=artifacts)
-    packets = [operation["body_free_evidence_packet"] for operation in plan["operations"]]
-
-    assert {packet["role"] for packet in packets} == {
-        "artifact_retention_receipt_ref",
-        "artifact_mutation_receipt_ref",
-        "artifact_restore_receipt_ref",
-    }
-    for packet in packets:
-        _assert_body_free_packet(packet, role=packet["role"], owner="MedAutoScience")
-    assert all(packet["no_forbidden_write_proof"]["artifact_body_write_performed"] is False for packet in packets)
-
-
 def test_human_gate_resume_receipt_consumption_includes_body_free_resume_ref(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_transition_receipt_consumption")
     study_root = tmp_path / "workspace" / "studies" / "002-human-gate"

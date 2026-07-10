@@ -7,9 +7,6 @@ from med_autoscience.controllers.opl_transition_readback import (
     candidate_opl_transition_readback,
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.provider_admission.provider_admission_closeout_semantics import (
-    is_anti_loop_stop_loss_closeout,
-)
 
 from ..opl_current_control_state_handoff_values import (
     _observability_mapping,
@@ -17,6 +14,37 @@ from ..opl_current_control_state_handoff_values import (
     _work_unit_identity,
 )
 from ..shared_base import _non_empty_text
+
+
+ANTI_LOOP_BUDGET_EXHAUSTED = "anti_loop_budget_exhausted"
+REPEAT_SUPPRESSED_TYPED_BLOCKER_OUTCOMES = frozenset(
+    {"repeat_suppressed_with_typed_blocker", "typed_blocker_anti_loop_budget_exhausted"}
+)
+
+
+def is_anti_loop_stop_loss_closeout(closeout: Mapping[str, Any]) -> bool:
+    typed_blocker = _observability_mapping(closeout.get("typed_blocker"))
+    anti_loop_budget = _observability_mapping(typed_blocker.get("anti_loop_budget"))
+    paper_stage_log = _observability_mapping(closeout.get("paper_stage_log"))
+    next_forced_delta = _observability_mapping(paper_stage_log.get("next_forced_delta"))
+    values = (
+        closeout.get("blocked_reason"),
+        closeout.get("typed_blocker_reason"),
+        closeout.get("outcome"),
+        closeout.get("status"),
+        typed_blocker.get("blocker_kind"),
+        typed_blocker.get("reason"),
+        anti_loop_budget.get("status"),
+        paper_stage_log.get("outcome"),
+        next_forced_delta.get("reason"),
+    )
+    return any(
+        (text := _non_empty_text(value)) in REPEAT_SUPPRESSED_TYPED_BLOCKER_OUTCOMES
+        or text == ANTI_LOOP_BUDGET_EXHAUSTED
+        or text == "exhausted" and bool(anti_loop_budget)
+        or bool(text and ANTI_LOOP_BUDGET_EXHAUSTED in text)
+        for value in values
+    )
 
 
 def _stage_ref_items(value: object) -> list[str]:

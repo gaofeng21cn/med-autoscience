@@ -49,60 +49,6 @@ def merge_previous_unscanned_study_handoff(
     )
 
 
-def merge_current_execution_envelopes(
-    *,
-    previous_payload: Mapping[str, Any] | None,
-    output_studies: list[dict[str, Any]],
-    scanned_studies: list[dict[str, Any]],
-    retain_unscanned_studies: bool = True,
-) -> dict[str, Any]:
-    scanned_ids = {
-        study_id
-        for study in scanned_studies
-        if (study_id := _text(study.get("study_id"))) is not None
-    }
-    envelopes: dict[str, Any] = {}
-    if retain_unscanned_studies and scanned_ids:
-        previous_envelopes = _mapping(_mapping(previous_payload).get("current_execution_envelopes"))
-        envelopes.update(
-            {
-                study_id: dict(envelope)
-                for key, envelope in previous_envelopes.items()
-                if (study_id := _text(key)) is not None
-                and study_id not in scanned_ids
-                and isinstance(envelope, Mapping)
-            }
-        )
-    for study in output_studies:
-        study_id = _text(study.get("study_id"))
-        if study_id is None:
-            continue
-        envelope = study.get("current_execution_envelope")
-        if not isinstance(envelope, Mapping):
-            continue
-        if (
-            retain_unscanned_studies
-            and study_id not in scanned_ids
-            and _previous_envelope_precedes_retained_study_envelope(
-                previous_envelope=_mapping(envelopes.get(study_id)),
-                retained_envelope=envelope,
-            )
-        ):
-            continue
-        envelopes[study_id] = dict(envelope)
-    return envelopes
-
-
-def _previous_envelope_precedes_retained_study_envelope(
-    *,
-    previous_envelope: Mapping[str, Any],
-    retained_envelope: Mapping[str, Any],
-) -> bool:
-    return _text(previous_envelope.get("state_kind")) == "running_provider_attempt" and _text(
-        retained_envelope.get("state_kind")
-    ) != "running_provider_attempt"
-
-
 def previous_action_ids(previous_payload: Mapping[str, Any] | None) -> set[str]:
     return {
         action_id
@@ -149,16 +95,13 @@ def build_scan_domain_routes_payload(
     two_layer_ai_repair_policy: Mapping[str, Any],
     studies: list[dict[str, Any]],
     action_queue: list[dict[str, Any]],
-    current_execution_envelopes: Mapping[str, Any],
     queue_history: Mapping[str, Any],
     workspace_daemon_lifecycle: Mapping[str, Any],
     provider_readiness: Mapping[str, Any] | None,
     latest_path: Path,
     history_path: Path,
-    provider_admission_candidates: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     readiness = dict(provider_readiness or {})
-    candidates = list(provider_admission_candidates or [])
     return {
         "surface": "opl_current_control_state_handoff",
         "schema_version": schema_version,
@@ -189,12 +132,6 @@ def build_scan_domain_routes_payload(
         "two_layer_ai_repair_policy": dict(two_layer_ai_repair_policy),
         "studies": studies,
         "action_queue": action_queue,
-        "current_execution_envelopes": dict(current_execution_envelopes),
-        "current_execution_evidence": {
-            "action_queue": action_queue,
-        },
-        "provider_admission_pending_count": len(candidates),
-        "provider_admission_candidates": candidates,
         "queue_history": dict(queue_history),
         "workspace_daemon_lifecycle": dict(workspace_daemon_lifecycle),
         "provider_readiness": readiness or None,
@@ -291,26 +228,6 @@ def merge_persistent_current_control_payload(
     scanned_actions = [dict(item) for item in payload.get("action_queue") or [] if isinstance(item, Mapping)]
     if retained_actions:
         merged["action_queue"] = [*retained_actions, *scanned_actions]
-    merged["current_execution_envelopes"] = merge_current_execution_envelopes(
-        previous_payload=previous,
-        output_studies=[dict(item) for item in merged.get("studies") or [] if isinstance(item, Mapping)],
-        scanned_studies=[{"study_id": study_id} for study_id in scanned_ids],
-        retain_unscanned_studies=True,
-    )
-    retained_candidates = [
-        dict(item)
-        for item in previous.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-        and (study_id := _text(item.get("study_id"))) is not None
-        and study_id not in scanned_ids
-    ]
-    scanned_candidates = [
-        dict(item)
-        for item in payload.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ]
-    merged["provider_admission_candidates"] = [*retained_candidates, *scanned_candidates]
-    merged["provider_admission_pending_count"] = len(merged["provider_admission_candidates"])
     return merged
 
 
@@ -335,7 +252,6 @@ __all__ = [
     "build_scan_domain_routes_payload",
     "attach_scan_delta",
     "merge_persistent_current_control_payload",
-    "merge_current_execution_envelopes",
     "merge_previous_unscanned_study_handoff",
     "persist_scan_domain_routes_payload",
     "previous_action_ids",

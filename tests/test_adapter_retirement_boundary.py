@@ -8,8 +8,6 @@ from tests.test_adapter_retirement_boundary_cases.owner_callable_adapter_wire im
     test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire,
     test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker,
     test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in,
-    test_current_owner_callable_readers_do_not_consume_legacy_latest_wire,
-    test_legacy_latest_readers_consume_canonical_owner_callable_receipt_first,
 )
 from tests.test_adapter_retirement_boundary_cases.owner_callable_projection import (
     test_materializer_local_carrier_persistence_api_is_physically_retired,
@@ -17,8 +15,6 @@ from tests.test_adapter_retirement_boundary_cases.owner_callable_projection impo
     test_transition_request_counts_are_canonical_not_legacy_adapter_counts,
     test_owner_callable_projection_requires_canonical_transition_request_surface,
     test_public_owner_callable_adapter_reader_is_not_active_carrier,
-    test_materializer_canonical_projection_preserves_strong_identity_without_legacy_body,
-    test_domain_diagnostic_same_tick_admission_consumes_only_canonical_transition_requests,
     test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_aliases,
     test_domain_owner_controller_refresh_public_wrapper_is_retired,
     test_retired_domain_owner_refresh_controller_command_is_not_active_cli_surface,

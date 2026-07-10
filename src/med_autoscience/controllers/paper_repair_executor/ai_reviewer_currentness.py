@@ -5,9 +5,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import runtime_health_kernel
-
-
 def runtime_health_epoch_for_ai_reviewer_route(
     *,
     study_root: Path,
@@ -51,7 +48,6 @@ def runtime_health_epoch_for_ai_reviewer_route(
 
 def _runtime_health_epoch_from_study_surfaces(*, study_root: Path) -> str | None:
     for path in (
-        runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root),
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
         study_root / "artifacts" / "runtime" / "runtime_status_summary.json",
     ):

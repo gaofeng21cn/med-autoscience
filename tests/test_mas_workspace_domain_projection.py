@@ -1,83 +1,67 @@
 from __future__ import annotations
 
-import json
-
-from med_autoscience.controllers.current_work_unit.workspace_projection import (
-    build_workspace_domain_projection,
+from med_autoscience.domain_projection_profile import (
+    build_domain_next_action_projection,
+    build_domain_projection_profile,
 )
 
 
-def test_workspace_domain_projection_exposes_mas_refs_without_operator_aggregation() -> None:
-    projection = build_workspace_domain_projection(
-        study_progress_payloads=[
-            {
-                "study_id": "study-001",
-                "quest_id": "quest-001",
-                "current_work_unit": {
-                    "status": "executable_owner_action",
-                    "owner": "medical_writer",
-                    "stage_id": "manuscript_authoring",
-                    "action_type": "write_revision",
-                    "work_unit_id": "revise-results",
-                    "work_unit_fingerprint": "sha256:work-unit",
-                    "input_refs": ["mas:paper/results.md"],
-                    "acceptance_refs": ["mas:review/latest.json"],
-                    "currentness_basis": {"derived_from_event_id": "event-001"},
-                },
-                "current_owner_delta": {"next_owner": "medical_writer"},
-                "publication_eval": {"status": "revision_required"},
-                "current_blockers": ["claim_evidence_gap", ""],
-                "recommended_command": "must-not-leak",
-            }
-        ]
+def _next_action() -> dict[str, object]:
+    return {
+        "surface_kind": "mas_next_action_envelope",
+        "action_kind": "owner_action",
+        "owner": "medical_writer",
+        "stage_id": "manuscript_authoring",
+        "action_type": "write_revision",
+        "work_unit_id": "revise-results",
+        "work_unit_fingerprint": "sha256:work-unit",
+        "required_input_refs": ["mas:paper/results.md"],
+        "diagnostic_refs": ["mas:review/latest.json"],
+    }
+
+
+def test_domain_projection_profile_uses_canonical_next_action_identity() -> None:
+    profile = build_domain_projection_profile()
+
+    assert profile["profile_id"] == "medautoscience.next_action.profile.v1"
+    assert profile["projection_surface_kind"] == (
+        "opl_domain_next_action_profile_projection"
+    )
+    assert profile["field_mapping"]["work_unit_id"] == "next_action.work_unit_id"
+    assert profile["field_mapping"]["current_owner"] == "next_action.owner"
+    assert profile["authority_boundary"]["projection_is_authority"] is False
+    assert profile["authority_boundary"]["can_write_domain_truth"] is False
+
+
+def test_domain_next_action_projection_exposes_refs_without_authority() -> None:
+    projection = build_domain_next_action_projection(
+        _next_action(),
+        domain_display={"study_id": "study-001", "current_blockers": ["claim_gap"]},
     )
 
-    assert projection["surface_kind"] == "opl_domain_projection"
-    assert projection["domain_id"] == "medautoscience"
-    assert projection["projection_role"] == "registry_driven_domain_current_work_units"
-    current = projection["current_work_units"][0]
-    assert current["surface_kind"] == "opl_domain_current_work_unit_profile_projection"
-    assert current["work_unit_id"] == "revise-results"
-    assert current["current_owner"] == "medical_writer"
-    assert current["stage_id"] == "manuscript_authoring"
-    assert current["source_refs"] == [
+    assert projection["surface_kind"] == "opl_domain_next_action_profile_projection"
+    assert projection["work_unit_id"] == "revise-results"
+    assert projection["work_unit_fingerprint"] == "sha256:work-unit"
+    assert projection["current_owner"] == "medical_writer"
+    assert projection["source_refs"] == [
         "mas:paper/results.md",
         "mas:review/latest.json",
     ]
-    assert current["authority_boundary"]["can_write_current_owner_delta"] is False
-    assert current["domain_display"] == {
-        "study_id": "study-001",
-        "quest_id": "quest-001",
-        "current_owner_delta": {"next_owner": "medical_writer"},
-        "publication_eval": {"status": "revision_required"},
-        "current_blockers": ["claim_evidence_gap"],
+    assert projection["authority_boundary"] == {
+        "projection_is_authority": False,
+        "can_write_domain_truth": False,
+        "can_write_current_owner_delta": False,
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_terminal_state": False,
+        "can_create_owner_receipt": False,
+        "can_create_typed_blocker": False,
+        "can_create_human_gate": False,
+        "can_mutate_artifact_body": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_ready": False,
+        "provider_completion_is_domain_progress": False,
     }
     assert projection["domain_display"] == {
-        "surface_kind": "mas_workspace_domain_display",
-        "opaque_to_opl": True,
-        "studies": [
-        {
-            "study_id": "study-001",
-            "quest_id": "quest-001",
-            "current_owner_delta": {"next_owner": "medical_writer"},
-            "publication_eval": {"status": "revision_required"},
-            "current_blockers": ["claim_evidence_gap"],
-        }
-        ],
+        "study_id": "study-001",
+        "current_blockers": ["claim_gap"],
     }
-    assert projection["opl_hosted_projection"] == {
-        "owner": "one-person-lab",
-        "operator_projection_ref": (
-            "one-person-lab:src/modules/console/runtime-tray-app-operator-drilldown.ts"
-        ),
-        "current_owner_delta_ref": (
-            "one-person-lab:src/modules/ledger/current-owner-delta-parts/projection.ts"
-        ),
-        "mas_materializes_workspace_cockpit": False,
-        "mas_aggregates_operator_attention": False,
-        "mas_generates_operator_commands": False,
-    }
-    rendered = json.dumps(projection, ensure_ascii=False)
-    assert "must-not-leak" not in rendered
-    assert "attention_queue" not in projection
-    assert "commands" not in projection

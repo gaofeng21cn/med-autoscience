@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
-from . import accepted_owner_gate_decision
+from . import fresh_progress_owner_actions
 from . import terminal_stall_handoff
 
 
@@ -39,12 +39,12 @@ def diagnostic(
         return _stall_diagnostic(status="missing", blocking=False, handoff_allowed=False)
     current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
     if not current_stall:
-        if accepted_owner_gate_decision.dispatch_matches_progress(
+        if fresh_progress_owner_actions.dispatch_matches_fresh_progress_current_owner_action(
             progress=_mapping(fresh_progress),
             dispatch=dispatch,
         ):
             return _stall_diagnostic(
-                status="accepted_owner_gate_decision_bypass",
+                status="canonical_next_action_bypass",
                 blocking=False,
                 handoff_allowed=True,
                 dispatch_stall=dispatch_stall,

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from ..shared import _mapping_copy
-from ..provider_admission_sync import sync_progress_first_owner_action_admission
 
 
 def sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -17,6 +16,5 @@ def sync_study_macro_state_from_user_visible_projection(payload: dict[str, Any])
 
 
 __all__ = [
-    "sync_progress_first_owner_action_admission",
     "sync_study_macro_state_from_user_visible_projection",
 ]

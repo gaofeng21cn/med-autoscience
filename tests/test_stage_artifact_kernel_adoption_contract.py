@@ -181,15 +181,12 @@ def test_operating_layer_landed_surfaces_are_read_only_and_projected() -> None:
     assert set(surfaces) == {
         "semantic_receipt_validation",
         "promotion_runtime_audit",
-        "lineage_retention_drilldown",
         "workbench_cross_domain_soak",
     }
     assert surfaces["semantic_receipt_validation"]["receipt_body_read"] is False
     assert surfaces["semantic_receipt_validation"]["ready_claims_allowed"] is False
     assert surfaces["promotion_runtime_audit"]["read_only"] is True
     assert surfaces["promotion_runtime_audit"]["writes_current_pointer"] is False
-    assert surfaces["lineage_retention_drilldown"]["cleanup_authorized"] is False
-    assert surfaces["lineage_retention_drilldown"]["cleanup_authorized_by_projection"] is False
     assert surfaces["workbench_cross_domain_soak"]["required_domain_lanes"] == [
         "MAS",
         "MAG",

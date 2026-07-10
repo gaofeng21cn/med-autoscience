@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.domain_action_request_materializer import FORBIDDEN_SURFACES
+from med_autoscience.controllers.owner_callable_action_policy import FORBIDDEN_SURFACES
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.runtime_control import repeat_suppression
 

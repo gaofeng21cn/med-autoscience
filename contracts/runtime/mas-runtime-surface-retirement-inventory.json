@@ -130,10 +130,10 @@
     },
     {
       "surface_id": "runtime_health_kernel",
-      "disposition": "retained_read_only_projection",
+      "disposition": "physically_retired",
       "replacement_ref": "opl:observability-readback",
-      "tombstone_ref": null,
-      "retained_mas_role": "body_free_diagnostic_projection",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#runtime_health_kernel",
+      "retained_mas_role": "none",
       "mas_runtime_authority": false
     },
     {
@@ -154,18 +154,18 @@
     },
     {
       "surface_id": "runtime_lifecycle_payload_retention",
-      "disposition": "retained_opl_authorized_adapter",
+      "disposition": "physically_retired",
       "replacement_ref": "opl:lifecycle-retention",
-      "tombstone_ref": null,
-      "retained_mas_role": "authorized_maintenance_callable_adapter",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#runtime_lifecycle_payload_retention",
+      "retained_mas_role": "none",
       "mas_runtime_authority": false
     },
     {
       "surface_id": "runtime_storage_maintenance",
-      "disposition": "retained_opl_authorized_adapter",
+      "disposition": "physically_retired",
       "replacement_ref": "opl:storage-maintenance-and-restore",
-      "tombstone_ref": null,
-      "retained_mas_role": "authorized_storage_maintenance_adapter",
+      "tombstone_ref": "human_doc:mas-private-surface-retirement#runtime_storage_maintenance",
+      "retained_mas_role": "none",
       "mas_runtime_authority": false
     }
   ]

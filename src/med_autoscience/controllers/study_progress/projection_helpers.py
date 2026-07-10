@@ -34,9 +34,6 @@ def _refresh_existing_projection_batch_followthroughs(
     )
 
 
-_sync_progress_first_owner_action_admission = (
-    _existing_projection_refresh.sync_progress_first_owner_action_admission
-)
 
 
 _current_redrive_top_level_next_action = _existing_projection_refresh.current_redrive_top_level_next_action
@@ -65,5 +62,4 @@ __all__ = [
     "_refresh_existing_projection_batch_followthroughs",
     "_refresh_existing_projection_user_visible_status",
     "_stage_artifact_index_projection",
-    "_sync_progress_first_owner_action_admission",
 ]

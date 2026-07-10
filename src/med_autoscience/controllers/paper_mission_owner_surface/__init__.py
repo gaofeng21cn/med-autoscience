@@ -5,18 +5,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import current_execution_envelope, domain_status_projection
+from med_autoscience.controllers import domain_status_projection
 from med_autoscience.controllers.paper_mission_owner_surface import action_projection, artifact_freshness
 from med_autoscience.controllers.paper_mission_owner_surface import ai_reviewer, canonical_inputs
 from med_autoscience.controllers.paper_mission_owner_surface import block_state as block_state_part, completion_evidence
 from med_autoscience.controllers.paper_mission_owner_surface import current_controller_followthrough, current_truth_owner
-from med_autoscience.controllers.paper_mission_owner_surface import current_owner_action_identity
 from med_autoscience.controllers.paper_mission_owner_surface import owner_callable_receipts, domain_authority_handoff
 from med_autoscience.controllers.paper_mission_owner_surface import evidence_adoption
 from med_autoscience.controllers.paper_mission_owner_surface import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.paper_mission_owner_surface import lifecycle_projection, opl_provider_attempts
 from med_autoscience.controllers.paper_mission_owner_surface import parked_truth, paper_progress_stall_projection, path_utils
-from med_autoscience.controllers.paper_mission_owner_surface import projection_errors, provider_admission_projection
+from med_autoscience.controllers.paper_mission_owner_surface import projection_errors
 from med_autoscience.controllers.paper_mission_owner_surface import provider_readiness_runtime_health
 from med_autoscience.controllers.paper_mission_owner_surface import publication_gate_actions, queue_slo
 from med_autoscience.controllers.paper_mission_owner_surface import request_packets
@@ -782,26 +781,10 @@ def _study_projection(
         ),
     )
     runtime_health = provider_attempt_projection["runtime_health"]
-    current_work_unit_payload: dict[str, Any] = {}
-    execution_envelope: dict[str, Any] = {}
-    execution_evidence = current_execution_envelope.build_current_execution_evidence(
-        action_queue=actions,
-        runtime_health=runtime_health,
-        no_op=_mapping(repeat_guard),
-        extra={
-            "owner_route": owner_route,
-            "domain_authority_handoff": domain_handoff,
-        },
-    )
     stage_artifact_projection_fields = stage_artifact_owner_actions.projection_fields(
         progress_payload,
         actions=actions,
     )
-    current_executable_owner_action = _mapping(stage_artifact_projection_fields.get("current_executable_owner_action"))
-    if not current_executable_owner_action:
-        current_executable_owner_action = current_owner_action_identity.current_executable_owner_action_from_current_work_unit(
-            current_work_unit_payload
-        )
     return {
         "study_id": study_id,
         "handoff_generated_at": generated_at,
@@ -824,11 +807,6 @@ def _study_projection(
             if key != "current_executable_owner_action"
         },
         "runtime_health": runtime_health,
-        "legacy_execution_projection_boundary": current_owner_action_identity.legacy_execution_projection_boundary(),
-        "current_work_unit": current_work_unit_payload,
-        "current_executable_owner_action": current_executable_owner_action or None,
-        "current_execution_envelope": execution_envelope,
-        "current_execution_evidence": execution_evidence,
         "meaningful_artifact_delta": artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
         "artifact_delta": artifact_freshness.artifact_delta(progress_payload),
         "gate_specificity": _gate_specificity_status(gate_specificity),
@@ -934,24 +912,9 @@ def scan_domain_routes(
         "previous_action_count": len(previous_action_ids),
         **queue_slo_payload,
     }
-    current_execution_envelopes = scan_output.merge_current_execution_envelopes(
-        previous_payload=previous_payload,
-        output_studies=output_studies,
-        scanned_studies=studies,
-        retain_unscanned_studies=persist_surfaces and retain_unscanned_studies,
-    )
     workspace_daemon_lifecycle = workspace_daemon.workspace_daemon_lifecycle(
         profile=profile,
         developer_mode=developer_mode,
-    )
-    provider_admission_candidates = provider_admission_projection.candidates_from_current_control(
-        studies=output_studies,
-        action_queue=action_queue,
-        current_control_ref=str(latest_path),
-    )
-    provider_admission_projection.attach_candidates(
-        studies=output_studies,
-        candidates=provider_admission_candidates,
     )
     payload = scan_output.build_scan_domain_routes_payload(
         schema_version=SCHEMA_VERSION,
@@ -962,13 +925,11 @@ def scan_domain_routes(
         two_layer_ai_repair_policy=_two_layer_ai_repair_policy_payload(),
         studies=output_studies,
         action_queue=action_queue,
-        current_execution_envelopes=current_execution_envelopes,
         queue_history=queue_history,
         workspace_daemon_lifecycle=workspace_daemon_lifecycle,
         provider_readiness=provider_readiness,
         latest_path=latest_path,
         history_path=history_path,
-        provider_admission_candidates=provider_admission_candidates,
     )
     if persist_surfaces:
         scan_output.persist_scan_domain_routes_payload(

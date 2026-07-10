@@ -9,9 +9,7 @@ from med_autoscience.controllers import opl_domain_progress_transition_contract 
 from med_autoscience.controllers.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
-from med_autoscience.controllers.domain_action_request_materializer.currentness_identity import (
-    normalize_currentness_sources,
-)
+from med_autoscience.runtime_control.owner_route_attempt_protocol import normalize_currentness_sources
 
 SURFACE_KIND = "paper_progress_policy_adapter_result"
 SCHEMA_VERSION = 1

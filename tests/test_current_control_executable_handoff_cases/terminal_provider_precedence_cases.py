@@ -4,7 +4,7 @@ import importlib
 import json
 import os
 
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.opl_transition_readback_helpers import opl_transition_readback
 
 
 def test_newer_terminal_typed_closeout_discovery_outranks_stale_provider_admission_handoff(

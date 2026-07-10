@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
-
 from med_autoscience.controllers.stage_outcome_authority import (
     consumed_transition_currentness,
     fresh_progress_owner_actions,
@@ -13,7 +11,7 @@ from med_autoscience.controllers.stage_outcome_authority import (
 from tests.stage_outcome_authority_helpers import opl_execution_authorization
 from tests.stage_outcome_authority_helpers import write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.opl_transition_readback_helpers import opl_transition_readback
 
 
 STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -114,55 +112,6 @@ def test_fresh_progress_current_owner_action_requires_shared_fingerprint() -> No
         progress=progress,
         action=action,
         dispatch=dispatch_with_fingerprint,
-    )
-
-
-def test_paper_recovery_successor_dispatch_uses_current_successor_surface() -> None:
-    progress = {
-        "study_id": STUDY_ID,
-        "paper_recovery_state": {
-            "phase": "owner_action_ready",
-            "next_safe_action": {
-                "kind": "run_mas_owner_callable",
-                "owner": "write",
-                "owner_callable": {
-                    "action_type": ACTION_TYPE,
-                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
-                },
-            },
-            "current_authority": {
-                "obligation": {
-                    "action_type": ACTION_TYPE,
-                    "work_unit_id": WORK_UNIT_ID,
-                    "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
-                },
-            },
-        },
-    }
-    dispatch = {
-        "study_id": STUDY_ID,
-        "action_type": ACTION_TYPE,
-        "next_executable_owner": "write",
-        "owner_route": {
-            "next_owner": "write",
-            "allowed_actions": [ACTION_TYPE],
-            "source_refs": {
-                "work_unit_id": WORK_UNIT_ID,
-                "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
-            },
-        },
-    }
-
-    assert fresh_progress_owner_actions.dispatch_matches_paper_recovery_successor(
-        progress=progress,
-        dispatch=dispatch,
-    )
-    assert (
-        importlib.util.find_spec(
-            "med_autoscience.controllers.domain_action_request_materializer."
-            "paper_recovery_owner_callable"
-        )
-        is None
     )
 
 

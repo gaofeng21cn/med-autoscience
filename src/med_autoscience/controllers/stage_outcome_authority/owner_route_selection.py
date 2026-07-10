@@ -7,7 +7,6 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
-from . import accepted_owner_gate_decision
 from . import consumed_transition_owner_routes
 from . import current_writer_handoff
 from . import fresh_progress_owner_actions
@@ -104,27 +103,6 @@ def execution_owner_route(
         and owner_route_block_reason(dispatch=dispatch, current_route=publication_bridge_route) is None
     ):
         return publication_bridge_route, "bridged_publication_owner_materialization"
-    accepted_gate_route = accepted_owner_gate_decision.dispatch_owner_route_for_progress(
-        fresh_progress,
-        dispatch,
-    )
-    if accepted_gate_route:
-        accepted_gate_block_reason = owner_route_block_reason(
-            dispatch=dispatch,
-            current_route=accepted_gate_route,
-        )
-        if accepted_gate_block_reason is None or (
-            accepted_gate_block_reason == "owner_route_missing"
-            and owner_route_part.route_allows_action(
-                action=dispatch,
-                owner_route=accepted_gate_route,
-            )
-            and owner_route_attempt_protocol.route_protocol_dispatchable(
-                accepted_gate_route,
-                action_type=_text(dispatch.get("action_type")),
-            )
-        ):
-            return accepted_gate_route, "accepted_owner_gate_decision"
     if not _consumed_transition_owner_route(scan_payload=scan_payload, study_id=study_id) and (
         fresh_progress_route := _fresh_progress_current_owner_action_route(
             fresh_progress=fresh_progress,

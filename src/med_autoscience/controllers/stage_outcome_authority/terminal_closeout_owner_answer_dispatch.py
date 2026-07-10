@@ -7,7 +7,6 @@ from med_autoscience.controllers.stage_route_currentness_identity import (
     currentness_identities_match,
 )
 
-from . import progress_blocking_selection
 from . import terminal_closeout_owner_answer_identity
 
 
@@ -31,13 +30,8 @@ def terminal_closeout_owner_answer_dispatches_only(
 
 
 def terminal_closeout_owner_answer_required(progress: Mapping[str, Any]) -> bool:
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    return (
-        state_kind == "typed_blocker"
-        and progress_blocking_selection.fresh_progress_typed_blocker_reason(envelope)
-        == "terminal_closeout_owner_answer_required"
-    )
+    blocker = _stage_outcome_blocker(progress)
+    return _text(blocker.get("blocker_type")) == "terminal_closeout_owner_answer_required"
 
 
 def dispatch_matches_terminal_closeout_owner_answer(
@@ -48,8 +42,7 @@ def dispatch_matches_terminal_closeout_owner_answer(
 ) -> bool:
     if not terminal_closeout_owner_answer_required(progress):
         return False
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    blocker = _mapping(envelope.get("typed_blocker"))
+    blocker = _stage_outcome_blocker(progress)
     action_type = _text(blocker.get("action_type"))
     if action_type is not None and _text(dispatch.get("action_type")) != action_type:
         return False
@@ -78,8 +71,7 @@ def _terminal_closeout_owner_answer_ref_matches_dispatch(
     progress: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> bool:
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    blocker = _mapping(envelope.get("typed_blocker"))
+    blocker = _stage_outcome_blocker(progress)
     closeout_refs = [
         ref
         for ref in (
@@ -102,6 +94,14 @@ def _terminal_closeout_owner_answer_ref_matches_dispatch(
         for closeout_ref in closeout_refs
         for dispatch_ref in dispatch_ref_values
     )
+
+
+def _stage_outcome_blocker(progress: Mapping[str, Any]) -> dict[str, Any]:
+    stage_closure = _mapping(progress.get("stage_closure"))
+    outcome = _mapping(stage_closure.get("outcome"))
+    if _text(outcome.get("kind")) != "typed_blocker":
+        return {}
+    return _mapping(outcome.get("typed_blocker")) or outcome
 
 
 def _refs_match(left: object, right: object) -> bool:

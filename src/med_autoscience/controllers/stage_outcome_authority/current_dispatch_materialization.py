@@ -82,12 +82,9 @@ def _superseded_by_current_mas_owner_callable(
 ) -> bool:
     if not progress or text(dispatch.get("surface")) != "mas_domain_progress_transition_request_projection":
         return False
-    current_action = _mapping(progress.get("current_executable_owner_action"))
-    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_action = _mapping(progress.get("next_action"))
     if not _mas_owner_callable_action_is_current(
-        progress=progress,
         current_action=current_action,
-        current_work_unit=current_work_unit,
         text=text,
     ):
         return False
@@ -101,24 +98,16 @@ def _superseded_by_current_mas_owner_callable(
 
 def _mas_owner_callable_action_is_current(
     *,
-    progress: Mapping[str, Any],
     current_action: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
     text: Callable[[object], str | None],
 ) -> bool:
-    target_surface = _mapping(current_action.get("target_surface"))
-    if text(target_surface.get("ref_kind")) != "mas_owner_callable":
+    if text(current_action.get("surface_kind")) != "mas_next_action_envelope":
         return False
-    if text(current_action.get("status")) not in {"ready", "executable_owner_action"}:
-        return False
-    paper_recovery_state = _mapping(progress.get("paper_recovery_state"))
-    next_safe_action = _mapping(paper_recovery_state.get("next_safe_action"))
-    if text(next_safe_action.get("kind")) not in {None, "run_mas_owner_callable"}:
+    if text(current_action.get("action_type")) is None:
         return False
     if any(_flag(current_action, key) for key in _OPL_TRANSITION_FLAGS):
         return False
-    work_unit_state = _mapping(current_work_unit.get("state"))
-    return not any(_flag(work_unit_state, key) for key in _OPL_TRANSITION_FLAGS)
+    return True
 
 
 def _same_owner_action_identity(

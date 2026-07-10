@@ -59,11 +59,8 @@
     "local_state_index_persistence": "absent",
     "required_retained_surface_ids": [
       "stage_outcome_authority",
-      "runtime_health_kernel",
       "progress_portal_study_workbench_overview_action_projection",
-      "agent_tool_arsenal_scientific_capability_registry",
-      "runtime_lifecycle_payload_retention",
-      "runtime_storage_maintenance"
+      "agent_tool_arsenal_scientific_capability_registry"
     ]
   },
   "live_runtime_readiness": {

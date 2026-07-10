@@ -139,7 +139,6 @@
       "kind": "focused_mas_durable_autonomy_closeout_gate",
       "paths": [
         "tests/test_autonomy_ai_doctor.py",
-        "tests/test_runtime_health_kernel.py",
         "tests/test_opl_unique_control_plane_boundary.py",
         "tests/test_paper_mission_owner_surface.py",
         "tests/test_opl_runtime_contract.py",

@@ -8,8 +8,8 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
 from med_autoscience.controllers.owner_callable_closeout_contract import owner_callable_typed_closeout_contract
-from med_autoscience.controllers.provider_admission.provider_admission_boundaries import (
-    domain_progress_transition_request_transport_fields,
+from med_autoscience.controllers.opl_domain_progress_transition_contract import (
+    mas_request_transport_fields as domain_progress_transition_request_transport_fields,
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.profiles import WorkspaceProfile

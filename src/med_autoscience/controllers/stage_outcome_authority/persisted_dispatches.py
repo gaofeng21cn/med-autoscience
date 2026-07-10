@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from . import accepted_owner_gate_decision
 from . import consumer_dispatch_readback
 from . import consumed_owner_callable_dispatch_filter
 from . import consumed_writer_handoff_filter
@@ -201,9 +200,6 @@ def _explicit_dispatch_current_authority(
             fresh_progress=fresh_progress,
         )
         or scan_route_current
-        or accepted_owner_gate_decision.dispatch_matches_study_progress(
-            profile=profile, study_id=study_id, dispatch=dispatch
-        )
         or _fresh_progress_owner_action_selectable(
             current_study=current_study,
             progress=progress_for_selectors,
@@ -316,12 +312,6 @@ def selected_dispatches(
         progress=fresh_progress,
         dispatches=consumer_dispatches,
     )
-    paper_recovery_successor_dispatches = _paper_recovery_successor_dispatches(
-        progress=fresh_progress,
-        dispatches=consumer_dispatches,
-    )
-    if paper_recovery_successor_dispatches:
-        stage_native_next_action = None
     effective_action_types = action_types
     current_dispatches = runtime_current_dispatch_selection.current_dispatches_only(
         dispatches=consumer_dispatches,
@@ -330,12 +320,6 @@ def selected_dispatches(
     )
     requested = set(effective_action_types)
     if not effective_action_types:
-        if paper_recovery_successor_dispatches:
-            return [
-                payload
-                for payload in paper_recovery_successor_dispatches
-                if _text(payload.get("action_type")) in supported_action_types
-            ]
         selected = [
             payload
             for payload in current_dispatches
@@ -345,14 +329,6 @@ def selected_dispatches(
             (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
             for index, payload in enumerate(selected)
         }
-        for payload in paper_recovery_successor_dispatches:
-            if _text(payload.get("action_type")) not in supported_action_types:
-                continue
-            key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
-            if key in selected_by_key:
-                continue
-            selected_by_key[key] = len(selected)
-            selected.append(payload)
         for payload in consumed_owner_callable_dispatch_filter.without_consumed_owner_callable_adapters(
             profile=profile,
             study_id=study_id,
@@ -392,10 +368,6 @@ def selected_dispatches(
                     action_type=action_type,
                     dispatch=payload,
                     fresh_progress=fresh_progress,
-                )
-                and not accepted_owner_gate_decision.dispatch_matches_progress(
-                    progress=fresh_progress,
-                    dispatch=payload,
                 )
                 and not _fresh_progress_owner_action_selectable(
                     current_study=current_study,
@@ -463,10 +435,6 @@ def selected_dispatches(
                 current_study=current_study,
                 fresh_progress=fresh_progress,
             )
-        if accepted_owner_gate_selected := accepted_owner_gate_decision.dispatches_only(
-            progress=fresh_progress, dispatches=selected
-        ):
-            return accepted_owner_gate_selected
         if runtime_current_selected:
             return runtime_current_selected
         if current_selected:
@@ -609,10 +577,6 @@ def selected_dispatches(
         if stage_native_missing_proof_selected and action_types:
             return stage_native_missing_proof_selected
         return []
-    if accepted_owner_gate_selected := accepted_owner_gate_decision.dispatches_only(
-        progress=fresh_progress, dispatches=selected
-    ):
-        return accepted_owner_gate_selected
     if runtime_current_selected:
         return runtime_current_selected
     current_selected = _selected_dispatches_only(
@@ -662,9 +626,6 @@ _with_consumed_transition_owner_route = (
 )
 _fresh_progress_owner_action_selectable = (
     persisted_dispatch_selection.fresh_progress_owner_action_selectable
-)
-_paper_recovery_successor_dispatches = (
-    persisted_dispatch_selection.paper_recovery_successor_dispatches
 )
 _current_control_authority_present = (
     persisted_dispatch_selection.current_control_authority_present

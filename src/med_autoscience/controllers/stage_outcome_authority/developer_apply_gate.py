@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.domain_action_request_materializer import SUPPORTED_MODE
+SUPPORTED_MODE = "developer_apply_safe"
 
 
 def blocked(developer_mode_payload: Mapping[str, Any]) -> bool:

@@ -7,7 +7,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from ..domain_action_request_materializer import CONSUMER_LATEST_RELATIVE_PATH
+from .persisted_dispatches import CONSUMER_LATEST_RELATIVE_PATH
 from .execution_surfaces import (
     ACCEPTED_EXECUTION_LATEST_SURFACES,
     ACCEPTED_EXECUTION_SURFACES,

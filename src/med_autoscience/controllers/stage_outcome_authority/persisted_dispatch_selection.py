@@ -7,7 +7,6 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
-from . import accepted_owner_gate_decision
 from . import current_writer_handoff
 from . import fresh_progress_owner_actions
 from . import opl_execution_preflight
@@ -55,12 +54,6 @@ def selected_dispatches_only(
         if scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload(
             scan_payload=scan_route_currentness.scan_latest_payload(profile),
             study_id=study_id,
-            dispatch=dispatch,
-        ):
-            selected.append(dispatch)
-            continue
-        if accepted_owner_gate_decision.dispatch_matches_progress(
-            progress=fresh_progress,
             dispatch=dispatch,
         ):
             selected.append(dispatch)
@@ -240,11 +233,6 @@ def dispatch_selectable_despite_blocking_progress(
         dispatch=dispatch,
     ):
         return True
-    if accepted_owner_gate_decision.dispatch_matches_progress(
-        progress=fresh_progress,
-        dispatch=dispatch,
-    ):
-        return True
     if fresh_progress_owner_action_selectable(
         current_study=current_study,
         progress=fresh_progress,
@@ -294,28 +282,8 @@ def fresh_progress_owner_action_selectable(
     )
 
 
-def paper_recovery_successor_dispatches(
-    *,
-    progress: Mapping[str, Any],
-    dispatches: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    return [
-        dispatch
-        for dispatch in dispatches
-        if fresh_progress_owner_actions.dispatch_matches_paper_recovery_successor(
-            progress=progress,
-            dispatch=dispatch,
-        )
-    ]
-
-
 def current_control_authority_present(current_study: Mapping[str, Any]) -> bool:
-    return bool(
-        owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
-        or _mapping(current_study.get("current_work_unit"))
-        or current_study.get("action_queue")
-        or current_study.get("running_provider_attempt") is True
-    )
+    return bool(owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route"))))
 
 
 def terminal_closeout_owner_answer_dispatches_only(

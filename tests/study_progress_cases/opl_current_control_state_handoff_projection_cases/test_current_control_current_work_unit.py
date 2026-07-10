@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.opl_transition_readback_helpers import opl_transition_readback
 
 from .. import shared as _shared
 

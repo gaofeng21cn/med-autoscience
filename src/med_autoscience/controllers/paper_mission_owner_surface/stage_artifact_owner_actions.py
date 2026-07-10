@@ -232,56 +232,19 @@ def action_queue_with_terminal_publication_handoff(
     decorate_action: Callable[..., dict[str, Any]],
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    if _has_accepted_repair_progress_followup_action(actions):
-        return actions
-    if _has_owner_receipt_consumption_successor_action(actions=actions, progress=progress):
-        return actions
-    repair = readiness_blocker_repair_action(
-        progress=progress,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if repair is not None:
-        return [decorate_action(study_id=study_id, quest_id=quest_id, action=repair)]
-    followup = typed_blocker_followup_action(progress)
-    if followup is not None:
-        return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
-    if _stage_kernel_readiness_answer_without_followup(progress):
-        return []
-    if _has_current_controller_action(actions):
-        return actions
-    action = terminal_publication_handoff_action(progress)
-    if action is None:
-        return actions
-    return [decorate_action(study_id=study_id, quest_id=quest_id, action=action)]
+    del progress, study_id, quest_id, decorate_action, publication_eval_payload
+    return actions
 
 
 def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
     stage_artifact_index = _mapping(progress.get("stage_artifact_index"))
-    current_action = _mapping(progress.get("current_executable_owner_action"))
+    next_action = _mapping(progress.get("next_action"))
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
-    if _has_accepted_repair_progress_followup_action(actions or []):
-        return result
-    if _has_owner_receipt_consumption_successor_action(
-        actions=list(actions or []),
-        progress=progress,
-    ):
-        return result
-    repair_action = _readiness_repair_action_from_actions(actions or [])
-    if repair_action is not None:
-        result["current_executable_owner_action"] = _projection_action_from_repair(repair_action)
-        return result
-    followup = typed_blocker_followup_action(progress)
-    if followup is not None:
-        result["current_executable_owner_action"] = _projection_action_from_followup(followup)
-        return result
-    if _stage_kernel_readiness_answer_without_followup(progress):
-        return result
-    if _has_current_controller_action(actions or []):
-        return result
-    if _text(current_action.get("surface_kind")) == "current_executable_owner_action":
-        result["current_executable_owner_action"] = current_action
+    if _text(next_action.get("surface_kind")) == "mas_next_action_envelope":
+        result["next_action"] = next_action
+    del actions
     return result
 
 
@@ -307,37 +270,6 @@ def _has_accepted_repair_progress_followup_action(actions: list[Mapping[str, Any
         if _mapping(payload.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
             return True
     return False
-
-
-def _has_owner_receipt_consumption_successor_action(
-    *,
-    actions: list[Mapping[str, Any]],
-    progress: Mapping[str, Any],
-) -> bool:
-    if not _owner_receipt_consumption_current(progress):
-        return False
-    return any(_action_is_owner_receipt_consumption_successor(action) for action in actions)
-
-
-def _owner_receipt_consumption_current(progress: Mapping[str, Any]) -> bool:
-    recovery = _mapping(progress.get("paper_recovery_state"))
-    next_safe_action = _mapping(recovery.get("next_safe_action"))
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    current_state = _mapping(current_work_unit.get("state"))
-    contract = _mapping(current_work_unit.get("required_output_contract"))
-    return (
-        (
-            _text(recovery.get("phase")) == "owner_receipt_recorded"
-            and _text(next_safe_action.get("kind")) == "consume_owner_receipt"
-        )
-        or (
-            _text(current_work_unit.get("status")) == "owner_receipt_recorded"
-            and (
-                _text(current_state.get("next_safe_action_kind")) == "consume_owner_receipt"
-                or contract.get("owner_receipt_consumed") is True
-            )
-        )
-    )
 
 
 def _action_is_owner_receipt_consumption_successor(action: Mapping[str, Any]) -> bool:

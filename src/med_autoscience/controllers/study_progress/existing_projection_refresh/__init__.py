@@ -4,150 +4,33 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.paper_recovery_state import build_paper_recovery_state
-from med_autoscience.controllers.paper_recovery_state.successor_owner_resolution import (
-    paper_recovery_successor_consumed_by_gate_followthrough,
-)
-from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
 
-from ..canonical_owner_action_projection import build_canonical_owner_action_projection
-from ..current_owner_action_projection_reconcile import (
-    current_execution_evidence_actions,
-    current_execution_envelope_actions,
-    current_control_typed_blocker_successor_action,
-    reconcile_current_owner_action_projection,
-)
-from ..current_control_executable_handoff import (
-    current_control_executable_currentness_handoff,
-    current_control_executable_owner_action,
-)
 from ..delivery_inspection import attach_delivery_inspection_projection
-from .current_control_helpers import (
-    _apply_current_control_currentness_to_existing_projection,
-    _current_control_handoff_is_typed_blocker,
-    _current_control_typed_blocker_for_successor_check,
-    _handoff_has_bound_running_provider_attempt,
-    _provider_admission_action_supersedes_request_action,
-    _running_handoff_conflicts_current_surface,
-    _sync_handoff_provider_admission_fields,
-)
 from ..opl_current_control_state_handoff import (
     merge_live_attempt_observability_into_handoff,
-    opl_current_control_state_study_handoff_projection,
     opl_current_control_state_live_attempt_handoff_projection,
-    refresh_handoff_with_terminal_closeout_candidates,
+    opl_current_control_state_study_handoff_projection,
 )
 from ..operator_view import _study_command_surfaces
-from ..opl_supervisor_decision_readback import (
-    attach_opl_supervisor_decision_readback,
-)
-from ..provider_admission_currentness import (
-    active_provider_control as _handoff_is_active_provider_control,
-    current_control_provider_admission_action as _current_control_provider_admission_action,
-    with_provider_admission_executable_currentness as _with_provider_admission_executable_currentness,
-)
-from ..progress_first_monitoring import build_progress_first_monitoring_summary
-from ..projection_payload_assembly.current_execution_surfaces import (
-    refresh_current_execution_surfaces,
-)
-from ..projection_payload_assembly.progress_delta import progress_delta_metrics
-from ..projection_payload_assembly.paper_recovery_visibility import (
-    apply_paper_recovery_state_user_visible_status,
-)
 from ..progression import _domain_transition_route_repair
-from ..provider_admission_projection import provider_admission_projection_fields
-from ..provider_admission_sync import sync_progress_first_owner_action_admission
+from ..projection_payload_assembly.progress_delta import progress_delta_metrics
 from ..publication_runtime_followthrough import (
     _gate_clearing_batch_followthrough,
     _quality_repair_batch_followthrough,
 )
 from ..repair_progress_projection import build_repair_progress_projection
-from ..projection_payload_assembly.running_provider_status import (
-    apply_running_provider_attempt_top_level_status,
-)
 from ..shared import _mapping_copy, _non_empty_text, _route_repair_summary
 from ..user_visible_projection import build_user_visible_projection
 
 
 def refresh_existing_projection_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    redrive_next_action = current_redrive_top_level_next_action(payload)
-    if redrive_next_action is not None:
-        updated = dict(payload)
-        updated["user_visible_projection"] = build_user_visible_projection(updated)
-        updated["next_system_action"] = redrive_next_action
-        status_contract = _mapping_copy(updated.get("status_narration_contract"))
-        if status_contract:
-            status_contract["next_step"] = redrive_next_action
-            updated["status_narration_contract"] = status_contract
-        return updated
-    return payload
-
-
-def _merge_live_current_control_handoff(
-    handoff: dict[str, Any] | None,
-    live_handoff: dict[str, Any] | None,
-) -> dict[str, Any] | None:
-    if live_handoff is None:
-        return handoff
-    if handoff is None:
-        return live_handoff
-    if not _same_handoff_current_identity(handoff, live_handoff):
-        return handoff
-    merged = dict(handoff)
-    for key in (
-        "generated_at",
-        "quest_status",
-        "runtime_health",
-        "provider_admission_pending_count",
-        "transition_request_pending_count",
-        "provider_admission_candidates",
-        "transition_request_candidates",
-        "provider_admission_identity",
-        "provider_admission_terminal_closeout_consumed",
-        "opl_domain_progress_transition_live_readback",
-        "opl_domain_progress_transition_runtime_live_readback",
-        "opl_domain_progress_transition_result",
-    ):
-        if key in live_handoff:
-            merged[key] = live_handoff[key]
-    live_actions = live_handoff.get("action_queue")
-    if isinstance(live_actions, list) and live_actions:
-        merged["action_queue"] = [dict(item) for item in live_actions if isinstance(item, Mapping)]
-    return merged
-
-
-def _same_handoff_current_identity(
-    handoff: Mapping[str, Any],
-    live_handoff: Mapping[str, Any],
-) -> bool:
-    for key in ("study_id", "action_type"):
-        left = _non_empty_text(handoff.get(key))
-        right = _non_empty_text(live_handoff.get(key))
-        if left is not None and right is not None and left != right:
-            return False
-    left_work_unit = _non_empty_text(handoff.get("work_unit_id")) or _non_empty_text(
-        handoff.get("next_work_unit")
-    )
-    right_work_unit = _non_empty_text(live_handoff.get("work_unit_id")) or _non_empty_text(
-        live_handoff.get("next_work_unit")
-    )
-    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
-        return False
-    left_fingerprint = _non_empty_text(handoff.get("work_unit_fingerprint")) or _non_empty_text(
-        handoff.get("action_fingerprint")
-    )
-    right_fingerprint = _non_empty_text(live_handoff.get("work_unit_fingerprint")) or _non_empty_text(
-        live_handoff.get("action_fingerprint")
-    )
-    if (
-        left_fingerprint is not None
-        and right_fingerprint is not None
-        and left_fingerprint != right_fingerprint
-    ):
-        return False
-    return True
+    updated = dict(payload)
+    if next_action := current_redrive_top_level_next_action(updated):
+        updated["next_system_action"] = next_action
+    updated["user_visible_projection"] = build_user_visible_projection(updated)
+    return updated
 
 
 def refresh_existing_projection_batch_followthroughs(
@@ -160,37 +43,30 @@ def refresh_existing_projection_batch_followthroughs(
     study_root: Path,
     publication_eval_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    del profile_ref
     updated = dict(payload)
-    study_commands = _study_command_surfaces(
-        profile=profile,
-        study_id=study_id,
-        profile_ref=profile_ref,
-    )
+    commands = _study_command_surfaces(profile=profile, study_id=study_id, profile_ref=None)
+    eval_ids = current_gate_clearing_eval_ids(status=status)
     updated["gate_clearing_batch_followthrough"] = _gate_clearing_batch_followthrough(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
-        current_eval_ids=current_gate_clearing_eval_ids(status=status),
+        current_eval_ids=eval_ids,
     )
     updated["quality_repair_batch_followthrough"] = _quality_repair_batch_followthrough(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
-        current_eval_ids=current_gate_clearing_eval_ids(status=status),
-        recommended_command=study_commands.get("quality_repair_batch"),
+        current_eval_ids=eval_ids,
+        recommended_command=commands.get("quality_repair_batch"),
     )
-    return refresh_existing_projection_repair_progress(
-        payload=updated,
-        study_root=study_root,
-    )
+    return refresh_existing_projection_repair_progress(payload=updated, study_root=study_root)
 
 
 def refresh_existing_projection_repair_progress(
-    *,
-    payload: dict[str, Any],
-    study_root: Path,
+    *, payload: dict[str, Any], study_root: Path
 ) -> dict[str, Any]:
     updated = dict(payload)
-    repair_progress = build_repair_progress_projection(study_root=study_root)
-    updated["repair_progress_projection"] = repair_progress
+    repair = build_repair_progress_projection(study_root=study_root)
+    updated["repair_progress_projection"] = repair
     updated.update(
         progress_delta_metrics(
             quality_repair_batch_followthrough=_mapping_copy(
@@ -203,7 +79,7 @@ def refresh_existing_projection_repair_progress(
                 updated.get("opl_current_control_state_handoff")
             ),
             runtime_efficiency=_mapping_copy(updated.get("runtime_efficiency")),
-            repair_progress_projection=repair_progress,
+            repair_progress_projection=repair,
         )
     )
     return updated
@@ -222,255 +98,28 @@ def refresh_existing_projection_current_owner_surfaces(
     updated = dict(payload)
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
-    updated = attach_opl_supervisor_decision_readback(updated, profile=profile)
     study_id = _non_empty_text(updated.get("study_id")) or _non_empty_text(status.get("study_id")) or ""
-    live_current_control_handoff = opl_current_control_state_study_handoff_projection(
-        profile=profile,
-        study_id=study_id,
-    )
+    handoff = opl_current_control_state_study_handoff_projection(profile=profile, study_id=study_id)
     handoff = merge_live_attempt_observability_into_handoff(
-        handoff=_merge_live_current_control_handoff(
-            _optional_mapping(updated.get("opl_current_control_state_handoff")),
-            live_current_control_handoff,
-        ),
+        handoff=handoff,
         live_attempt_handoff=opl_current_control_state_live_attempt_handoff_projection(
             profile=profile,
             study_id=study_id,
             runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
         ),
     )
-    if handoff is not None:
-        updated["opl_current_control_state_handoff"] = handoff
-    else:
-        updated["opl_current_control_state_handoff"] = None
-        handoff = {}
-    handoff = _refresh_existing_handoff_with_terminal_closeout(
-        profile=profile,
-        payload=updated,
-        handoff=handoff,
-        study_root=study_root,
-    )
-    updated["opl_current_control_state_handoff"] = handoff if handoff else None
-    updated = _sync_handoff_provider_admission_fields(updated, handoff=handoff)
-    if _mapping_copy(updated.get("provider_admission_terminal_closeout_consumed")):
-        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-        updated = sync_progress_first_owner_action_admission(updated)
-        updated = sync_current_execution_evidence(updated, handoff=handoff)
-        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-        updated = apply_paper_recovery_state_user_visible_status(updated)
-        updated["user_visible_projection"] = build_user_visible_projection(updated)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    if _handoff_has_bound_running_provider_attempt(handoff) and not _running_handoff_conflicts_current_surface(
-        payload=updated,
-        handoff=handoff,
+    updated["opl_current_control_state_handoff"] = handoff or None
+    for legacy_field in (
+        "current_work_unit",
+        "current_execution_envelope",
+        "current_executable_owner_action",
+        "paper_recovery_state",
+        "provider_admission_candidates",
+        "provider_admission_pending_count",
+        "transition_request_candidates",
+        "transition_request_pending_count",
     ):
-        runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot")) or _mapping_copy(
-            status.get("runtime_health_snapshot")
-        )
-        updated = refresh_current_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-        )
-        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-        updated.update(
-            provider_admission_projection_fields(
-                payload=updated,
-                handoff=handoff,
-                study_root=study_root,
-            )
-        )
-        updated = sync_progress_first_owner_action_admission(updated)
-        updated = apply_running_provider_attempt_top_level_status(updated)
-        updated = sync_current_execution_evidence(updated, handoff=handoff, action_queue=[])
-        updated["paper_recovery_state"] = _paper_recovery_state_unless_successor_current(updated)
-        updated = apply_paper_recovery_state_user_visible_status(updated)
-        updated["user_visible_projection"] = build_user_visible_projection(updated)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    if (
-        _payload_typed_blocker_without_current_action(updated)
-        and not _mapping_copy(updated.get("current_executable_owner_action"))
-        and not current_control_executable_owner_action(handoff)
-        and not _handoff_is_active_provider_control(handoff)
-        and not _current_control_handoff_is_typed_blocker(handoff)
-    ):
-        updated = _typed_blocker_stop_projection(updated, source_payload=updated)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    current_control_executable_action = current_control_executable_owner_action(handoff)
-    if _handoff_is_active_provider_control(handoff):
-        provider_admission_action = _current_control_provider_admission_action(handoff)
-        if provider_admission_action is not None and _provider_admission_action_supersedes_request_action(
-            provider_admission_action,
-            request_action=current_control_executable_action,
-        ):
-            current_control_executable_action = provider_admission_action
-        elif current_control_executable_action is None:
-            current_control_executable_action = provider_admission_action
-    currentness_handoff = current_control_executable_currentness_handoff(
-        handoff,
-        current_control_executable_action=current_control_executable_action,
-    )
-    currentness_handoff = _with_provider_admission_executable_currentness(
-        currentness_handoff,
-        current_action=current_control_executable_action,
-    )
-    updated = _apply_current_control_currentness_to_existing_projection(updated, handoff=currentness_handoff)
-    if _non_empty_text(_mapping_copy(current_control_executable_action).get("source")) == (
-        "opl_current_control_state.provider_admission_candidates"
-    ):
-        runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot")) or _mapping_copy(
-            status.get("runtime_health_snapshot")
-        )
-        updated = refresh_current_execution_surfaces(
-            payload=updated,
-            status=status,
-            handoff=currentness_handoff,
-            runtime_health_snapshot=runtime_health_snapshot,
-        )
-        updated.update(
-            provider_admission_projection_fields(
-                payload=updated,
-                handoff=currentness_handoff,
-                study_root=study_root,
-            )
-        )
-        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-        updated = sync_progress_first_owner_action_admission(updated)
-        updated = sync_current_execution_evidence(updated, handoff=currentness_handoff)
-        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-        updated = apply_paper_recovery_state_user_visible_status(updated)
-        updated["user_visible_projection"] = build_user_visible_projection(updated)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    typed_blocker_successor_action = current_control_executable_action
-    if _current_control_handoff_is_typed_blocker(handoff) and not current_control_typed_blocker_successor_action(
-        typed_blocker_successor_action,
-        typed_blocker=_current_control_typed_blocker_for_successor_check(handoff),
-        progress=updated,
-    ):
-        updated["current_executable_owner_action"] = None
-        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-        updated.update(
-            provider_admission_projection_fields(
-                payload=updated,
-                handoff=currentness_handoff,
-                study_root=study_root,
-            )
-        )
-        updated["owner_action_admission"] = {
-            "admission_pending": False,
-            "reason": "current_control_typed_blocker",
-        }
-        updated = _sync_owner_action_admission_into_monitoring(updated)
-        updated = sync_current_execution_evidence(updated, handoff=currentness_handoff)
-        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-        updated = refresh_paper_recovery_successor_surfaces(
-            payload=updated,
-            status=status,
-            handoff=currentness_handoff,
-            study_root=study_root,
-        )
-        if not _mapping_copy(payload.get("current_executable_owner_action")):
-            updated = _typed_blocker_stop_projection(updated, source_payload=payload)
-        updated = apply_paper_recovery_state_user_visible_status(updated)
-        updated["user_visible_projection"] = build_user_visible_projection(updated)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    current_action = typed_blocker_successor_action
-    if current_action is None and not _handoff_is_active_provider_control(handoff):
-        updated.update(
-            provider_admission_projection_fields(
-                payload=updated,
-                handoff=currentness_handoff,
-                study_root=study_root,
-            )
-        )
-        updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-        updated = _refresh_current_owner_surfaces_from_existing_action(
-            payload=updated,
-            status=status,
-            handoff=currentness_handoff,
-        )
-        if _payload_typed_blocker_without_current_action(payload) and not _mapping_copy(
-            payload.get("current_executable_owner_action")
-        ):
-            updated = _typed_blocker_stop_projection(updated, source_payload=payload)
-        if _mapping_copy(updated.get("current_executable_owner_action")) or _mapping_copy(
-            updated.get("progress_first_monitoring_summary")
-        ):
-            updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-            updated = sync_progress_first_owner_action_admission(updated)
-        updated = sync_current_execution_evidence(updated, handoff=currentness_handoff)
-        return attach_delivery_inspection_projection_fn(
-            updated,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_root=study_root,
-        )
-    if current_action is not None:
-        updated["current_executable_owner_action"] = current_action
-        updated = reconcile_current_owner_action_projection(updated)
-    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
-    envelope_actions = current_execution_envelope_actions(
-        handoff=currentness_handoff,
-        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
-        paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
-    )
-    updated["current_work_unit"] = {}
-    updated["current_execution_envelope"] = {}
-    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-    updated.update(
-        provider_admission_projection_fields(
-            payload=updated,
-            handoff=currentness_handoff,
-            study_root=study_root,
-        )
-    )
-    updated = sync_progress_first_owner_action_admission(updated)
-    updated = apply_running_provider_attempt_top_level_status(updated)
-    updated = sync_current_execution_evidence(
-        updated,
-        handoff=currentness_handoff,
-        action_queue=envelope_actions,
-    )
-    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-    updated = refresh_paper_recovery_successor_surfaces(
-        payload=updated,
-        status=status,
-        handoff=currentness_handoff,
-        study_root=study_root,
-    )
-    updated = _refresh_current_owner_surfaces_from_existing_action(
-        payload=updated,
-        status=status,
-        handoff=currentness_handoff,
-    )
-    updated["paper_recovery_state"] = _paper_recovery_state_unless_successor_current(updated)
-    updated = apply_paper_recovery_state_user_visible_status(updated)
+        updated.pop(legacy_field, None)
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return attach_delivery_inspection_projection_fn(
         updated,
@@ -478,269 +127,6 @@ def refresh_existing_projection_current_owner_surfaces(
         profile_ref=profile_ref,
         study_root=study_root,
     )
-
-
-def _refresh_existing_handoff_with_terminal_closeout(
-    *,
-    profile: WorkspaceProfile,
-    payload: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-    study_root: Path,
-) -> dict[str, Any]:
-    study_id = _non_empty_text(payload.get("study_id"))
-    if study_id is None:
-        return dict(handoff)
-    candidates = [
-        dict(item)
-        for item in payload.get("transition_request_candidates") or []
-        if isinstance(item, Mapping)
-    ]
-    if not candidates:
-        candidate_payload = dict(payload)
-        for key in (
-            "provider_admission_terminal_closeout_consumed",
-            "paper_autonomy_supervisor_decision",
-            "provider_admission_blocked_by_supervisor_decision",
-        ):
-            candidate_payload.pop(key, None)
-        fields = provider_admission_projection_fields(
-            payload=candidate_payload,
-            handoff=handoff,
-            study_root=study_root,
-        )
-        candidates = [
-            dict(item)
-            for item in fields.get("transition_request_candidates") or []
-            if isinstance(item, Mapping)
-        ]
-    if not candidates:
-        return dict(handoff)
-    refreshed = refresh_handoff_with_terminal_closeout_candidates(
-        profile=profile,
-        study_id=study_id,
-        handoff=handoff,
-        candidates=candidates,
-    )
-    return dict(refreshed or handoff)
-
-
-def _paper_recovery_state_unless_successor_current(payload: Mapping[str, Any]) -> dict[str, Any]:
-    recovery = _mapping_copy(payload.get("paper_recovery_state"))
-    if _non_empty_text(recovery.get("phase")) == "owner_action_ready":
-        current_action = build_canonical_owner_action_projection(payload)
-        if _non_empty_text(_mapping_copy(current_action).get("source")) == (
-            "paper_recovery_state.next_safe_action.successor_owner_action"
-        ) and not paper_recovery_successor_consumed_by_gate_followthrough(
-            payload,
-            recovery=recovery,
-            current_action=_mapping_copy(current_action),
-        ):
-            return recovery
-    return build_paper_recovery_state(payload)
-
-
-def _sync_owner_action_admission_into_monitoring(payload: dict[str, Any]) -> dict[str, Any]:
-    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
-    admission = _mapping_copy(payload.get("owner_action_admission"))
-    if not monitoring or not admission:
-        return payload
-    updated = dict(payload)
-    monitoring["owner_action_admission"] = admission
-    updated["progress_first_monitoring_summary"] = monitoring
-    return updated
-
-
-def _typed_blocker_stop_projection(
-    payload: dict[str, Any],
-    *,
-    source_payload: Mapping[str, Any],
-) -> dict[str, Any]:
-    updated = dict(payload)
-    recovery = build_paper_recovery_state(updated)
-    if _paper_recovery_supersedes_typed_blocker_stop(recovery):
-        updated["paper_recovery_state"] = recovery
-        updated["current_executable_owner_action"] = build_canonical_owner_action_projection(updated)
-        updated["current_work_unit"] = {}
-        updated["current_execution_envelope"] = {}
-        updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-        updated = _sync_owner_action_admission_into_monitoring(updated)
-        updated = sync_current_execution_evidence(updated, handoff={})
-        return updated
-    if _mapping_copy(source_payload.get("current_work_unit")):
-        updated["current_work_unit"] = _mapping_copy(source_payload.get("current_work_unit"))
-    if _mapping_copy(source_payload.get("current_execution_envelope")):
-        updated["current_execution_envelope"] = _mapping_copy(
-            source_payload.get("current_execution_envelope")
-        )
-    updated["current_executable_owner_action"] = None
-    updated.update(
-        {
-            "provider_admission_pending_count": 0,
-            "provider_admission_candidates": [],
-            "transition_request_pending_count": 0,
-            "transition_request_candidates": [],
-        }
-    )
-    updated["owner_action_admission"] = {
-        "admission_pending": False,
-        "reason": "current_control_typed_blocker",
-    }
-    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-    updated = _sync_owner_action_admission_into_monitoring(updated)
-    updated = sync_current_execution_evidence(updated, handoff={})
-    updated["paper_recovery_state"] = build_paper_recovery_state(updated)
-    return updated
-
-
-def _paper_recovery_supersedes_typed_blocker_stop(recovery: Mapping[str, Any]) -> bool:
-    phase = _non_empty_text(recovery.get("phase"))
-    next_action = _mapping_copy(recovery.get("next_safe_action"))
-    if phase == "owner_receipt_recorded":
-        return _non_empty_text(next_action.get("kind")) == "consume_owner_receipt"
-    return phase == "owner_action_ready" and _non_empty_text(next_action.get("kind")) in {
-        "materialize_successor_owner_action",
-        "run_mas_owner_callable",
-        "materialize_mas_transition_request_or_owner_callable",
-    }
-
-
-def _payload_typed_blocker_without_current_action(payload: Mapping[str, Any]) -> bool:
-    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
-    execution = _mapping_copy(payload.get("current_execution_envelope"))
-    if _mapping_copy(payload.get("current_executable_owner_action")):
-        return False
-    return _non_empty_text(current_work_unit.get("status")) in {
-        "typed_blocker",
-        "blocked_current_work_unit",
-    } or _non_empty_text(execution.get("state_kind")) == "typed_blocker"
-
-
-def refresh_paper_recovery_successor_surfaces(
-    *,
-    payload: dict[str, Any],
-    status: dict[str, Any],
-    handoff: Mapping[str, Any],
-    study_root: Path,
-) -> dict[str, Any]:
-    current_control_executable_action = current_control_executable_owner_action(handoff)
-    if current_control_executable_action:
-        return payload
-    if _repair_progress_gate_followup_current(payload):
-        return payload
-    recovery_payload = dict(payload)
-    current_action = build_canonical_owner_action_projection(recovery_payload)
-    if _non_empty_text(_mapping_copy(current_action).get("source")) != (
-        "paper_recovery_state.next_safe_action.successor_owner_action"
-    ):
-        recovery_payload["paper_recovery_state"] = build_paper_recovery_state(recovery_payload)
-        current_action = build_canonical_owner_action_projection(recovery_payload)
-    if _non_empty_text(_mapping_copy(current_action).get("source")) != (
-        "paper_recovery_state.next_safe_action.successor_owner_action"
-    ):
-        return payload
-    runtime_health_snapshot = _mapping_copy(payload.get("runtime_health_snapshot")) or _mapping_copy(
-        status.get("runtime_health_snapshot")
-    )
-    updated = refresh_current_execution_surfaces(
-        payload={**payload, "current_executable_owner_action": current_action},
-        status=status,
-        handoff=handoff,
-        runtime_health_snapshot=runtime_health_snapshot,
-    )
-    updated.update(
-        provider_admission_projection_fields(
-            payload=updated,
-            handoff=handoff,
-            study_root=study_root,
-        )
-    )
-    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
-    updated = sync_progress_first_owner_action_admission(updated)
-    updated = sync_current_execution_evidence(updated, handoff=handoff)
-    updated["paper_recovery_state"] = _mapping_copy(
-        recovery_payload.get("paper_recovery_state")
-    ) or build_paper_recovery_state(updated)
-    updated = apply_paper_recovery_state_user_visible_status(updated)
-    return updated
-
-
-def _refresh_current_owner_surfaces_from_existing_action(
-    *,
-    payload: dict[str, Any],
-    status: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-) -> dict[str, Any]:
-    current_action = _mapping_copy(payload.get("current_executable_owner_action"))
-    if not _repair_progress_owner_followup_action(current_action):
-        return payload
-    updated = dict(payload)
-    updated["current_work_unit"] = {}
-    updated["current_execution_envelope"] = {}
-    return updated
-
-
-def _repair_progress_owner_followup_action(action: Mapping[str, Any] | None) -> bool:
-    payload = _mapping_copy(action)
-    if _non_empty_text(payload.get("source")) != "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return False
-    return (
-        _non_empty_text(payload.get("action_type")) == "run_gate_clearing_batch"
-        and _non_empty_text(payload.get("work_unit_id")) == "publication_gate_replay"
-    )
-
-
-def _repair_progress_gate_followup_current(payload: Mapping[str, Any]) -> bool:
-    action = _mapping_copy(payload.get("current_executable_owner_action"))
-    if _non_empty_text(action.get("source")) != "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return False
-    if _non_empty_text(action.get("action_type")) != "run_gate_clearing_batch":
-        return False
-    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
-    if repair_progress.get("paper_delta_observed") is not True:
-        return False
-    if repair_progress.get("accepted_owner_receipt") is not True:
-        return False
-    if repair_progress.get("gate_replay_done") is not True:
-        return False
-    current = _mapping_copy(payload.get("current_work_unit"))
-    if _non_empty_text(current.get("status")) != "executable_owner_action":
-        return False
-    return (
-        _non_empty_text(current.get("action_type")) == "run_gate_clearing_batch"
-        and _non_empty_text(current.get("work_unit_id")) == "publication_gate_replay"
-    )
-
-
-def _optional_mapping(value: object) -> dict[str, Any] | None:
-    return dict(value) if isinstance(value, Mapping) else None
-
-
-def sync_current_execution_evidence(
-    payload: dict[str, Any],
-    *,
-    handoff: Mapping[str, Any],
-    action_queue: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    updated = dict(payload)
-    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
-    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
-    evidence_actions = (
-        action_queue
-        if action_queue is not None
-        else current_execution_evidence_actions(
-            handoff=handoff,
-            current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
-            paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
-        )
-    )
-    updated["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
-        action_queue=evidence_actions,
-        runtime_health=runtime_health_snapshot,
-        extra={
-            "opl_current_control_state_handoff": dict(handoff) if handoff else None,
-        },
-    )
-    return updated
 
 
 def current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None:
@@ -752,50 +138,41 @@ def current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None
         "route_back_same_line",
     }:
         return None
-    macro_state = _mapping_copy(payload.get("study_macro_state"))
-    if _non_empty_text(macro_state.get("writer_state")) == "live":
+    if _non_empty_text(_mapping_copy(payload.get("study_macro_state")).get("writer_state")) == "live":
         return None
-    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
-    route_repair = _domain_transition_route_repair(payload)
+    intervention = _mapping_copy(payload.get("intervention_lane"))
     next_work_unit = _mapping_copy(transition.get("next_work_unit"))
     return (
-        _non_empty_text(intervention_lane.get("route_summary"))
-        or _non_empty_text(intervention_lane.get("summary"))
-        or _route_repair_summary(route_repair)
+        _non_empty_text(intervention.get("route_summary"))
+        or _non_empty_text(intervention.get("summary"))
+        or _route_repair_summary(_domain_transition_route_repair(payload))
         or _non_empty_text(next_work_unit.get("unit_id"))
     )
 
 
 def current_gate_clearing_eval_ids(
-    *,
-    status: Mapping[str, Any],
-    next_forced_delta: Mapping[str, Any] | None = None,
+    *, status: Mapping[str, Any], next_forced_delta: Mapping[str, Any] | None = None
 ) -> list[str]:
-    eval_ids: list[str] = []
-
-    def add(value: object) -> None:
-        text = _non_empty_text(value)
-        if text is not None and text not in eval_ids:
-            eval_ids.append(text)
-
+    values: list[object] = []
     transition = _mapping_copy(status.get("domain_transition"))
     completion = _mapping_copy(transition.get("completion_receipt_consumption"))
-    add(completion.get("eval_id"))
-    add(completion.get("source_eval_id"))
-    completion_basis = _mapping_copy(completion.get("owner_route_currentness_basis"))
-    add(completion_basis.get("source_eval_id"))
-    transition_refs = _mapping_copy(transition.get("source_refs"))
-    add(transition_refs.get("source_eval_id"))
+    values.extend((completion.get("eval_id"), completion.get("source_eval_id")))
+    values.append(_mapping_copy(completion.get("owner_route_currentness_basis")).get("source_eval_id"))
+    values.append(_mapping_copy(transition.get("source_refs")).get("source_eval_id"))
     if next_forced_delta is not None:
         delta = _mapping_copy(next_forced_delta)
-        add(delta.get("eval_id"))
-        add(delta.get("source_eval_id"))
         owner_action = _mapping_copy(delta.get("owner_action"))
-        add(owner_action.get("eval_id"))
-        add(owner_action.get("source_eval_id"))
         ticket_refs = _mapping_copy(_mapping_copy(delta.get("current_owner_ticket")).get("source_refs"))
-        add(ticket_refs.get("source_eval_id"))
-    return eval_ids
+        values.extend(
+            (
+                delta.get("eval_id"),
+                delta.get("source_eval_id"),
+                owner_action.get("eval_id"),
+                owner_action.get("source_eval_id"),
+                ticket_refs.get("source_eval_id"),
+            )
+        )
+    return list(dict.fromkeys(text for value in values if (text := _non_empty_text(value))))
 
 
 def stage_artifact_index_projection(
@@ -807,9 +184,7 @@ def stage_artifact_index_projection(
 ) -> dict[str, Any] | None:
     del profile
     payload = build_stage_artifact_index_fn(study_id=study_id, study_root=study_root)
-    if not isinstance(payload, dict):
-        return None
-    if _non_empty_text(payload.get("surface_kind")) != "stage_artifact_index":
+    if not isinstance(payload, dict) or payload.get("surface_kind") != "stage_artifact_index":
         return None
     return dict(payload)
 
@@ -822,5 +197,4 @@ __all__ = [
     "refresh_existing_projection_repair_progress",
     "refresh_existing_projection_user_visible_status",
     "stage_artifact_index_projection",
-    "sync_progress_first_owner_action_admission",
 ]

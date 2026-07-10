@@ -271,7 +271,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
-            "src/med_autoscience/controllers/provider_admission/managed_wakeup.py",
+            "src/med_autoscience/mcp_server/__init__.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
             "src/med_autoscience/controllers/study_progress/projection_quality_surfaces.py",
             "src/med_autoscience/controllers/study_progress/projection_runtime_surfaces.py",
@@ -280,6 +280,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_autonomy_state_surface.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
+            "tests/test_cli_cases/owner_route_handoff_command/test_export.py",
+            "tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py",
         ]
     )
 
@@ -289,12 +291,27 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_matches_cli_parser_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["src/med_autoscience/cli/parser.py"])
+
+    assert result.matched_categories == ("cli_parser_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh "
+        "tests/test_study_runtime_execution_evidence_adoption_cases/"
+        "test_standard_agent_purity_boundary.py -q",
+    ]
+
+
 def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/owner_answer_candidate_intake.py",
+            "src/med_autoscience/cli/current_owner_delta_owner_answer_commands.py",
             "tests/test_owner_answer_candidate_intake.py",
         ]
     )
@@ -312,14 +329,17 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     result = module.classify_changed_files(
         [
             "src/med_autoscience/controllers/study_interventions.py",
+            "src/med_autoscience/cli/study_owner_gate_commands.py",
             "tests/test_study_interventions.py",
+            "tests/test_cli_cases/domain_action_request_materializer_command.py",
         ]
     )
 
     assert result.matched_categories == ("study_owner_gate_decision_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_study_interventions.py -q",
+        "scripts/run-pytest-clean.sh tests/test_study_interventions.py "
+        "tests/test_cli_cases/domain_action_request_materializer_command.py -q",
     ]
 
 
@@ -337,21 +357,11 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
             "docs/runtime/designs/" + "paper_progress_" + "transition_kernel_target.md",
             "docs/status.md",
             "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_current_control.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_current_control_actions.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_current_control_arbiter.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_current_control_identity.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_transition_request.py",
-            "src/med_autoscience/controllers/provider_admission/provider_admission_report.py",
             "src/med_autoscience/controllers/opl_transition_readback.py",
-            "src/med_autoscience/controllers/paper_recovery_state/provider_admission_state.py",
             "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
             "tests/test_opl_domain_progress_transition_runtime_contract.py",
+            "tests/test_opl_transition_readback_contract.py",
             "tests/test_paper_progress_policy_adapter.py",
-            "tests/test_paper_recovery_provider_admission_state.py",
-            "tests/test_provider_admission_current_control_cases/test_current_control_action_identity_cases.py",
-            "tests/test_provider_admission_current_control_cases/test_current_control_arbiter_cases.py",
         ]
     )
 
@@ -365,13 +375,11 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_paper_progress_policy_adapter.py "
-        "tests/test_provider_admission_current_control_cases "
-        "-q"
+        "tests/test_opl_transition_readback_contract.py -q"
     ) in planned_commands
     assert (
         "scripts/run-pytest-clean.sh "
-        "tests/test_opl_domain_progress_transition_runtime_contract.py "
-        "tests/test_paper_recovery_provider_admission_state.py -q"
+        "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
     ) in planned_commands
 
 
@@ -447,6 +455,8 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
+            "src/med_autoscience/controllers/workspace_init.py",
+            "tests/test_workspace_init.py",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )
@@ -534,6 +544,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "agent/stages/manuscript_authoring.policy.md",
             "agent/stages/review_and_quality_gate.policy.md",
             "contracts/action_catalog.json",
+            "contracts/agent_tool_arsenal.json",
             "contracts/authority_kernel_inventory.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
@@ -696,72 +707,6 @@ def test_classify_changed_files_matches_stage_kernel_pack_contract_surface() -> 
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_domain_action_materializer_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(
-        [
-            "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_action_request_materializer/publication_owner_materialization.py",
-            "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py",
-            (
-                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
-                "artifacts/controller/gate_replay_requests/latest.json"
-            ),
-            (
-                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
-                "artifacts/controller/repair_execution_evidence/latest.json"
-            ),
-            (
-                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
-                "artifacts/controller/repair_execution_receipts/latest.json"
-            ),
-            (
-                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
-                "artifacts/controller_decisions/latest.json"
-            ),
-            (
-                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
-                "artifacts/runtime/runtime_status_summary.json"
-            ),
-            "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/study.yaml",
-        ]
-    )
-
-    assert result.matched_categories == ("domain_action_materializer_surface",)
-    assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == [
-        (
-            "scripts/run-pytest-clean.sh "
-            "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py -q"
-        ),
-        "scripts/run-pytest-clean.sh tests/test_domain_action_request_materializer.py -q",
-    ]
-
-
-def test_classify_changed_files_matches_paper_autonomy_supervisor_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(
-        [
-            "contracts/paper_autonomy_supervisor_contract.json",
-            "src/med_autoscience/controllers/paper_autonomy_supervisor.py",
-            "tests/test_paper_autonomy_supervisor.py",
-            "tests/test_paper_autonomy_supervisor_contract.py",
-        ]
-    )
-
-    assert result.matched_categories == ("paper_autonomy_supervisor_surface",)
-    assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == [
-        (
-            "scripts/run-pytest-clean.sh "
-            "tests/test_paper_autonomy_supervisor.py "
-            "tests/test_paper_autonomy_supervisor_contract.py -q"
-        ),
-    ]
-
-
 def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -771,6 +716,7 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
             "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
+            "tests/test_opl_standard_pack.py",
         ]
     )
 
@@ -778,6 +724,7 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "scripts/run-pytest-clean.sh tests/test_mas_production_acceptance.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack.py -q",
     ]
 
 

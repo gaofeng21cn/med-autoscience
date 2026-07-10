@@ -9,7 +9,6 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .runtime_events import *  # noqa: F403
     from .domain_transition_status import *  # noqa: F403
     from .quest_status_decisions import *  # noqa: F403
-    from .runtime_health_dominance import *  # noqa: F403
     from .status_projection_shell import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
 

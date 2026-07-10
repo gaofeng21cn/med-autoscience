@@ -65,11 +65,6 @@ REQUIRED_RETAINED_SURFACES = {
         "owner_callable_policy_and_typed_blocker_adapter",
         "opl:domain-progress-transition-runtime",
     ),
-    "runtime_health_kernel": (
-        "retained_read_only_projection",
-        "body_free_diagnostic_projection",
-        "opl:observability-readback",
-    ),
     "progress_portal_study_workbench_overview_action_projection": (
         "retained_read_only_projection",
         "body_free_workbench_source_projection",
@@ -79,16 +74,6 @@ REQUIRED_RETAINED_SURFACES = {
         "retained_read_only_projection",
         "declarative_capability_metadata_projection",
         "opl:capability-runtime",
-    ),
-    "runtime_lifecycle_payload_retention": (
-        "retained_opl_authorized_adapter",
-        "authorized_maintenance_callable_adapter",
-        "opl:lifecycle-retention",
-    ),
-    "runtime_storage_maintenance": (
-        "retained_opl_authorized_adapter",
-        "authorized_storage_maintenance_adapter",
-        "opl:storage-maintenance-and-restore",
     ),
 }
 REQUIRED_RETIRED_SURFACES = {
@@ -150,6 +135,21 @@ REQUIRED_RETIRED_SURFACES = {
     "owner_callable_adapter_receipt_latest_wire_projection": (
         "opl:stage-run-closeout-binding",
         "human_doc:mas-private-surface-retirement#default_executor_execution_latest_wire_projection",
+        "none",
+    ),
+    "runtime_health_kernel": (
+        "opl:observability-readback",
+        "human_doc:mas-private-surface-retirement#runtime_health_kernel",
+        "none",
+    ),
+    "runtime_lifecycle_payload_retention": (
+        "opl:lifecycle-retention",
+        "human_doc:mas-private-surface-retirement#runtime_lifecycle_payload_retention",
+        "none",
+    ),
+    "runtime_storage_maintenance": (
+        "opl:storage-maintenance-and-restore",
+        "human_doc:mas-private-surface-retirement#runtime_storage_maintenance",
         "none",
     ),
 }

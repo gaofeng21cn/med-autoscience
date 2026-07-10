@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.owner_route_handoff import current_dispatch_identity
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 
 def matching_provider_admission_identity(
@@ -19,7 +19,7 @@ def matching_provider_admission_identity(
         if _text(candidate.get("action_type")) != action_type:
             continue
         candidate_work_unit = _text(candidate.get("work_unit_id"))
-        if work_unit_id is not None and not current_dispatch_identity.work_unit_ids_equivalent_for_action(
+        if work_unit_id is not None and not _work_unit_ids_equivalent_for_action(
             action_type=action_type,
             left=candidate_work_unit,
             right=work_unit_id,
@@ -34,6 +34,19 @@ def matching_provider_admission_identity(
             continue
         return dict(candidate)
     return None
+
+
+def _work_unit_ids_equivalent_for_action(
+    *,
+    action_type: str | None,
+    left: str | None,
+    right: str | None,
+) -> bool:
+    return left == right or (
+        action_type == "run_gate_clearing_batch"
+        and left in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+        and right in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    )
 
 
 def current_provider_admission_supersedes_consumed_receipt(

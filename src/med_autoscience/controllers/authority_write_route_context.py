@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.next_action_envelope import FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL
-from med_autoscience.controllers import domain_authority_snapshot, runtime_health_kernel, study_truth_kernel
+from med_autoscience.controllers import domain_authority_snapshot, study_truth_kernel
 from med_autoscience.runtime_status_summary import read_runtime_status_summary
 from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
@@ -17,10 +17,7 @@ def route_context_from_study_authority_surfaces(*, study_root: Path) -> dict[str
         study_root=resolved_study_root,
         status_payload=status_payload,
     ) or _read_json_object(resolved_study_root / "artifacts" / "truth" / "latest.json")
-    runtime_health_snapshot = _derived_runtime_health_snapshot(
-        study_root=resolved_study_root,
-        status_payload=status_payload,
-    ) or _read_json_object(resolved_study_root / "artifacts" / "runtime" / "health" / "latest.json")
+    runtime_health_snapshot = _runtime_health_readback(study_root=resolved_study_root)
     publication_eval = _read_json_object(
         resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
     )
@@ -119,21 +116,21 @@ def _derived_truth_snapshot(*, study_root: Path, status_payload: dict[str, Any])
     return snapshot if snapshot.get("truth_epoch") else {}
 
 
-def _derived_runtime_health_snapshot(*, study_root: Path, status_payload: dict[str, Any]) -> dict[str, Any]:
-    runtime_summary = _read_runtime_status_summary(study_root=study_root)
-    if not runtime_summary:
-        return {}
-    study_id = _text(runtime_summary.get("study_id")) or study_root.name
-    quest_id = _text(runtime_summary.get("quest_id")) or study_id
-    recorded_at = _text(runtime_summary.get("generated_at")) or "1970-01-01T00:00:00+00:00"
-    snapshot = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        status_payload=status_payload,
-        recorded_at=recorded_at,
-    )
-    return snapshot if snapshot.get("runtime_health_epoch") else {}
+def _runtime_health_readback(*, study_root: Path) -> dict[str, Any]:
+    for path in (
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        study_root / "artifacts" / "runtime" / "runtime_status_summary.json",
+    ):
+        payload = _read_json_object(path)
+        snapshot = payload.get("runtime_health_snapshot")
+        if isinstance(snapshot, dict) and snapshot.get("authority") is not True:
+            return dict(snapshot)
+        if payload.get("surface_kind") in {
+            "opl_runtime_health_observability_readback",
+            "opl_runtime_health_route_reconciler_readback",
+        } and payload.get("authority") is not True:
+            return payload
+    return {}
 
 
 def _gate_clear_delivery_route_context(*, study_root: Path) -> dict[str, Any] | None:

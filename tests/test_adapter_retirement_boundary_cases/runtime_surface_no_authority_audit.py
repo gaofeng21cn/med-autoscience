@@ -24,8 +24,8 @@ def test_runtime_surface_retirement_no_authority_audit_blocks_active_caller_regr
     assert audit["status"] == "passed"
     assert audit["inventory_contract_valid"] is True
     assert audit["repo_no_authority_guard_satisfied"] is True
-    assert audit["retired_surface_count"] == 12
-    assert audit["retained_tail_count"] == 6
+    assert audit["retired_surface_count"] == 15
+    assert audit["retained_tail_count"] == 3
     assert audit["physical_delete_allowed"] is False
     assert audit["live_runtime_readiness_claim_allowed"] is False
     assert audit["completion_claim_allowed"] is False

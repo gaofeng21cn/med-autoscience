@@ -4,12 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.controllers.current_work_unit import (
-    paper_recovery_projection,
-)
-from med_autoscience.controllers.current_work_unit.paper_recovery_successor import (
-    paper_recovery_successor_action_ready,
-)
 
 from . import consumed_transition_owner_routes
 from . import stage_artifact_publication_handoff_currentness
@@ -32,21 +26,6 @@ def fresh_progress_current_owner_action_route(
         ):
             return route
     return None
-
-
-def dispatch_matches_paper_recovery_successor(
-    *,
-    progress: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> bool:
-    action = paper_recovery_projection.paper_recovery_successor_action(progress)
-    if not paper_recovery_successor_action_ready(_mapping(action)):
-        return False
-    return current_owner_action_identity_matches_dispatch(
-        progress=progress,
-        action=action,
-        dispatch=dispatch,
-    )
 
 
 def dispatch_matches_fresh_progress_current_owner_action(
@@ -74,23 +53,14 @@ def fresh_progress_owner_action_selectable(
     return dispatch_matches_fresh_progress_current_owner_action(
         progress=progress,
         dispatch=dispatch,
-    ) or dispatch_matches_paper_recovery_successor(
-        progress=progress,
-        dispatch=dispatch,
     )
 
 
 def fresh_progress_current_owner_actions(progress: Mapping[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    current_action = _mapping(progress.get("current_executable_owner_action"))
+    current_action = _mapping(progress.get("next_action"))
     if action_type_from_owner_action(current_action) is not None:
         actions.append(current_action)
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    if (
-        _text(current_work_unit.get("status")) == "executable_owner_action"
-        and action_type_from_owner_action(current_work_unit) is not None
-    ):
-        actions.append(current_work_unit)
     return actions
 
 
@@ -273,7 +243,6 @@ def _first_text(value: object) -> str | None:
 __all__ = [
     "action_type_from_owner_action",
     "dispatch_matches_fresh_progress_current_owner_action",
-    "dispatch_matches_paper_recovery_successor",
     "dispatch_source_eval_id",
     "dispatch_work_unit_id",
     "dispatch_work_unit_fingerprint_values",

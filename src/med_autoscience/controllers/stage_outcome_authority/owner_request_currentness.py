@@ -52,35 +52,10 @@ def route_basis_matches_current_study(
     current_study: Mapping[str, Any],
     consumed_transition_route: Mapping[str, Any],
 ) -> bool:
-    current_owner_action_values = _current_owner_action_values(current_study)
-    if current_owner_action_values:
-        return _request_route_matches_current_values(
-            request_route=request_route,
-            current_values=current_owner_action_values,
-        )
-    transition = _mapping(current_study.get("domain_transition"))
-    completion = _mapping(transition.get("completion_receipt_consumption"))
-    next_work_unit = _mapping(transition.get("next_work_unit"))
-    current_basis = owner_route_attempt_protocol.currentness_basis(consumed_transition_route)
-    current_values = {
-        "source_eval_id": _text(completion.get("eval_id"))
-        or _text(transition.get("source_eval_id"))
-        or _text(transition.get("publication_eval_id"))
-        or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
-        or _text(_mapping(current_study.get("publication_eval")).get("eval_id"))
-        or _text(current_basis.get("source_eval_id")),
-        "work_unit_id": _text(next_work_unit.get("unit_id"))
-        or _text(next_work_unit.get("work_unit_id"))
-        or _text(completion.get("work_unit_id"))
-        or _text(current_basis.get("work_unit_id")),
-        "work_unit_fingerprint": _text(transition.get("work_unit_fingerprint"))
-        or _text(next_work_unit.get("fingerprint"))
-        or _text(completion.get("work_unit_fingerprint"))
-        or _text(current_basis.get("work_unit_fingerprint")),
-    }
-    current_values = {key: value for key, value in current_values.items() if value}
+    del consumed_transition_route
+    current_values = _canonical_next_action_values(current_study)
     if not current_values:
-        return True
+        return False
     return _request_route_matches_current_values(
         request_route=request_route,
         current_values=current_values,
@@ -104,22 +79,19 @@ def _request_route_matches_current_values(
     return compared > 0
 
 
-def _current_owner_action_values(current_study: Mapping[str, Any]) -> dict[str, str]:
-    for key in ("current_work_unit", "current_executable_owner_action"):
-        payload = _mapping(current_study.get(key))
-        values = {
-            "work_unit_id": _text(payload.get("work_unit_id"))
-            or _text(_mapping(payload.get("next_work_unit")).get("unit_id")),
-            "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
-            or _text(payload.get("action_fingerprint"))
-            or _text(payload.get("source_fingerprint")),
-            "source_eval_id": _text(payload.get("source_eval_id"))
-            or _text(_mapping(payload.get("currentness_basis")).get("source_eval_id")),
-        }
-        values = {name: value for name, value in values.items() if value}
-        if values:
-            return values
-    return {}
+def _canonical_next_action_values(current_study: Mapping[str, Any]) -> dict[str, str]:
+    payload = _mapping(current_study.get("next_action"))
+    if _text(payload.get("surface_kind")) != "mas_next_action_envelope":
+        return {}
+    basis = _mapping(payload.get("currentness_basis"))
+    values = {
+        "work_unit_id": _text(payload.get("work_unit_id")),
+        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
+        or _text(payload.get("action_fingerprint")),
+        "source_eval_id": _text(payload.get("source_eval_id"))
+        or _text(basis.get("source_eval_id")),
+    }
+    return {name: value for name, value in values.items() if value}
 
 
 def _mapping(value: object) -> dict[str, Any]:

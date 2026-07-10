@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .. import shared as _shared
-from tests.provider_admission_current_control_helpers import opl_transition_readback
+from tests.opl_transition_readback_helpers import opl_transition_readback
 
 
 def _module_reexport(module) -> None:

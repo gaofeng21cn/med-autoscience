@@ -5,8 +5,8 @@ from typing import Any
 
 import med_autoscience.controllers.autonomy_ai_doctor as autonomy_ai_doctor
 import med_autoscience.controllers.open_auto_research_projection as open_auto_research_projection
-import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
+from med_autoscience.runtime_status_summary import stable_runtime_status_summary_path
 
 
 def build_projection_refs(
@@ -119,9 +119,7 @@ def build_projection_refs(
             (submission_hygiene_truth.get("refs") or {}).get("submission_manifest_path")
         ),
         "study_truth_snapshot_path": str(study_truth_kernel.truth_snapshot_path(study_root=study_root)),
-        "runtime_health_snapshot_path": str(
-            runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root)
-        ),
+        "runtime_health_snapshot_path": str(stable_runtime_status_summary_path(study_root=study_root)),
         "promotion_gate_path": (
             evaluation_module_surface["promotion_gate_ref"] if evaluation_module_surface is not None else None
         ),

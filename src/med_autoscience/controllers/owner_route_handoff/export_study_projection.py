@@ -9,7 +9,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption.owner_call
     latest_owner_callable_receipt_payload,
 )
 
-from ..domain_action_request_materializer import current_writer_handoff
+from . import current_quality_repair_writer_handoff
 from ..owner_callable_action_policy import SUPPORTED_ACTION_TYPES
 from .export_study_projection_common import (
     stage_outcome_opl_handoff_task_boundary,
@@ -19,7 +19,6 @@ from .export_study_projection_common import (
     workspace_relative,
 )
 from .export_study_projection_repair_followup import (
-    provider_admission_owner_action_record,
     repair_progress_followup_owner_action_record,
 )
 from .export_study_projection_surfaces import (
@@ -103,10 +102,6 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     repair_progress_followup_owner_action = repair_progress_followup_owner_action_record(
         study_root=study_root,
     )
-    provider_admission_owner_action = provider_admission_owner_action_record(
-        study_root=study_root,
-        current_repair_followup=repair_progress_followup_owner_action,
-    )
     paper_mission_owner_surface_repair_action = paper_mission_owner_surface_readiness_repair_owner_action_record(
         study_root=study_root,
         profile=profile,
@@ -118,7 +113,6 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     current_owner_action = (
         current_writer_owner_action
-        or provider_admission_owner_action
         or repair_progress_followup_owner_action
         or paper_mission_owner_surface_repair_action
         or current_control_owner_action
@@ -307,7 +301,7 @@ def current_writer_handoff_owner_action_record(
     study_root: Path,
     profile: WorkspaceProfile,
 ) -> dict[str, Any] | None:
-    action = current_writer_handoff.current_quality_repair_writer_handoff_action(
+    action = current_quality_repair_writer_handoff.current_quality_repair_writer_handoff_action(
         profile=profile,
         study_id=study_root.name,
     )

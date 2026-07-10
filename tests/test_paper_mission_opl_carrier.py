@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from med_autoscience.controllers.domain_action_request_materializer.transition_request_projection import (
-    domain_progress_transition_request_projection,
-)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
     validate_paper_mission_opl_runtime_carrier,
@@ -136,38 +133,3 @@ def test_paper_mission_opl_carrier_rejects_aggregate_identity_mismatch() -> None
         match="aggregate_identity work_unit_fingerprint must match carrier",
     ):
         validate_paper_mission_opl_runtime_carrier(carrier)
-
-
-def test_transition_projection_consumes_paper_mission_carrier_as_pending_request() -> None:
-    carrier = paper_mission_opl_runtime_carrier(_transaction("typed_blocker"))
-
-    records = domain_progress_transition_request_projection(
-        [
-            {
-                "opl_runtime_carrier": carrier,
-                "dispatch_status": "transition_request_pending",
-            }
-        ]
-    )
-
-    assert len(records) == 1
-    record = records[0]
-    assert record["paper_mission_transaction_ref"] == carrier[
-        "paper_mission_transaction_ref"
-    ]
-    assert record["stage_terminal_decision_ref"] == carrier[
-        "stage_terminal_decision_ref"
-    ]
-    assert record["opl_route_command_ref"] == carrier["opl_route_command_ref"]
-    assert record["paper_mission_opl_route_command"]["command_kind"] == (
-        "stop_with_typed_blocker"
-    )
-    assert record["paper_mission_opl_runtime_carrier_ref"]["carrier_status"] == (
-        "waiting_for_opl_runtime_live_readback"
-    )
-    assert record["provider_admission_pending"] is False
-    assert record["provider_admission_requires_opl_runtime_result"] is True
-    assert record["provider_completion_is_domain_completion"] is False
-    assert record["mas_creates_opl_outbox"] is False
-    assert record["mas_creates_opl_event"] is False
-    assert record["mas_creates_opl_stage_run"] is False

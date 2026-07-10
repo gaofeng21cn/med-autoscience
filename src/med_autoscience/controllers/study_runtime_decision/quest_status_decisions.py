@@ -40,9 +40,6 @@ from med_autoscience.controllers.study_runtime_decision.runtime_events.pending_i
     _stopped_invalid_blocking_auto_resume_allowed,
     _task_intake_override_allows_stopped_auto_resume,
 )
-from med_autoscience.controllers.study_runtime_decision.runtime_health_dominance import (
-    _runtime_health_requires_explicit_resume,
-)
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
     StudyRuntimeQuestStatus,
@@ -122,17 +119,6 @@ def _apply_live_quest_status_decision(
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
-        )
-        return finalize_result()
-    if _runtime_health_requires_explicit_resume(
-        status=result,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-    ):
-        result.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
         )
         return finalize_result()
     if (

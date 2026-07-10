@@ -10,11 +10,8 @@ INVENTORY_PATH = REPO_ROOT / "contracts/runtime/mas-runtime-surface-retirement-i
 SCHEMA_PATH = REPO_ROOT / "contracts/runtime/mas-runtime-surface-retirement.schema.json"
 RETAINED_TAILS = {
     "stage_outcome_authority",
-    "runtime_health_kernel",
     "progress_portal_study_workbench_overview_action_projection",
-    "scientific_capability_registry_metadata",
-    "runtime_lifecycle_payload_retention",
-    "runtime_storage_maintenance",
+    "agent_tool_arsenal_scientific_capability_registry",
 }
 
 

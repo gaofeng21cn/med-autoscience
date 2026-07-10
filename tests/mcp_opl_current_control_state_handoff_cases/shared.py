@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from tests.study_runtime_test_helpers import make_profile
-from tests.provider_admission_current_control_helpers import (
+from tests.opl_transition_readback_helpers import (
     opl_transition_readback,
     opl_transition_replay_audit_readback,
 )

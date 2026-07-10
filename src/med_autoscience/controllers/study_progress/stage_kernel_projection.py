@@ -4,9 +4,6 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .shared import _mapping_copy, _non_empty_text
-from med_autoscience.controllers.opl_stage_lineage_retention import (
-    stage_lineage_retention_drilldown,
-)
 from med_autoscience.controllers.opl_stage_promotion_runtime import (
     promotion_audit_from_stage_projection,
 )
@@ -84,12 +81,6 @@ def stage_kernel_projection_from_artifact_index(
             artifact_classification=artifact_classification,
             semantic_validation=semantic_validation,
             consumability=consumability,
-            current_pointer=current_pointer,
-            physical_kernel=physical_kernel,
-        ),
-        "lineage_retention": _lineage_retention_projection(
-            selected_stage=selected_stage,
-            artifact_classification=artifact_classification,
             current_pointer=current_pointer,
             physical_kernel=physical_kernel,
         ),
@@ -300,25 +291,6 @@ def _promotion_projection(
             artifact_classification=artifact_classification,
             semantic_validation=semantic_validation,
             consumability=consumability,
-            current_pointer=current_pointer,
-            physical_kernel=physical_kernel,
-        )
-    )
-
-
-def _lineage_retention_projection(
-    *,
-    selected_stage: Mapping[str, Any],
-    artifact_classification: Mapping[str, Any],
-    current_pointer: Mapping[str, Any],
-    physical_kernel: Mapping[str, Any],
-) -> dict[str, Any]:
-    return stage_lineage_retention_drilldown(
-        stage_projection=_stage_kernel_drilldown_source(
-            selected_stage=selected_stage,
-            artifact_classification=artifact_classification,
-            semantic_validation=_mapping_copy(artifact_classification.get("semantic_validation")),
-            consumability=_mapping_copy(artifact_classification.get("consumability")),
             current_pointer=current_pointer,
             physical_kernel=physical_kernel,
         )

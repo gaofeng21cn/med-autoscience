@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_authority_snapshot
-from med_autoscience.controllers import runtime_health_kernel
 
 
 def refresh_status(
@@ -52,15 +51,10 @@ def refresh_status_runtime_health_from_provider_readiness(
     status["supervisor_tick_audit"] = supervisor_tick
     if proof_ref := _opl_lifecycle_proof_ref(readiness):
         status["opl_lifecycle_proof_ref"] = proof_ref
-    runtime_health = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        status_payload=status,
-        recorded_at=recorded_at,
-    )
-    status["runtime_health_snapshot"] = runtime_health
-    status["runtime_health_epoch"] = runtime_health.get("runtime_health_epoch")
+    runtime_health = _mapping(readiness.get("runtime_health_snapshot"))
+    if runtime_health and runtime_health.get("authority") is not True:
+        status["runtime_health_snapshot"] = runtime_health
+        status["runtime_health_epoch"] = runtime_health.get("runtime_health_epoch")
     status["authority_snapshot"] = domain_authority_snapshot.build_authority_snapshot(status)
     return status
 

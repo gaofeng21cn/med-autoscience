@@ -5,7 +5,7 @@ import importlib
 
 import pytest
 
-from tests.provider_admission_current_control_helpers import (
+from tests.opl_transition_readback_helpers import (
     opl_transition_readback,
     opl_transition_replay_audit_readback,
 )
@@ -134,7 +134,7 @@ def test_opl_transition_readback_exposes_source_claimability() -> None:
     }}
     fixture = {**_live_readback(), "evidence_source": {
         "source_kind": "fixture_or_replay_readback",
-        "source_ref": "tests/provider_admission_current_control_helpers.py",
+        "source_ref": "tests/opl_transition_readback_helpers.py",
     }}
     missing = _live_readback()
     missing.pop("evidence_source")
@@ -187,40 +187,3 @@ def test_mas_consumer_rejects_legacy_and_log_containers() -> None:
     assert all(module.candidate_opl_transition_readback(item) == {} for item in containers)
     assert not hasattr(module, "opl_transition_readback_from_log_entries")
     assert not hasattr(module, "opl_transition_readback_from_log_file")
-
-
-def test_provider_admission_requires_trusted_opl_readback_not_weak_projection() -> None:
-    identity = importlib.import_module(
-        "med_autoscience.controllers.provider_admission.provider_admission_current_control_identity"
-    )
-    candidate = {
-        **_candidate({}),
-        "quest_id": STUDY_ID,
-        "action_type": "run_quality_repair_batch",
-        "action_fingerprint": FINGERPRINT,
-        "next_executable_owner": "write",
-        "opl_domain_progress_transition_request": {
-            "surface_kind": "mas_domain_progress_transition_request",
-            "target_runtime_owner": "one-person-lab",
-            "target_runtime_kind": "DomainProgressTransitionRuntime",
-            "idempotency_key": IDEMPOTENCY_KEY,
-            "mas_can_create_opl_outbox_record": False,
-            "mas_can_create_opl_event": False,
-            "mas_can_create_opl_stage_run": False,
-        },
-    }
-    candidate.pop("opl_domain_progress_transition_live_readback")
-    pending = identity.provider_admission_current_control_action(candidate)
-    admitted = identity.provider_admission_current_control_action(
-        {**candidate, "opl_domain_progress_transition_result": _live_readback()}
-    )
-    stale = copy.deepcopy(_live_readback())
-    stale["latest_transaction_readback"]["event_id"] = "stale-event"
-    assert pending["status"] == "transition_request_pending"
-    assert pending["provider_admission_pending"] is False
-    assert admitted["status"] == "queued"
-    assert admitted["provider_attempt_or_lease_required"] is True
-    assert admitted["provider_completion_is_domain_completion"] is False
-    assert identity.provider_admission_current_control_action(
-        {**candidate, "opl_domain_progress_transition_result": stale}
-    )["status"] == "transition_request_pending"

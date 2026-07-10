@@ -15,10 +15,6 @@ from med_autoscience.controllers.study_runtime_decision.runtime_events.runtime_s
     _record_runtime_event,
     _sync_runtime_summary_if_needed,
 )
-from med_autoscience.controllers.study_runtime_decision.runtime_health_dominance import (
-    _record_runtime_health_dominance,
-    _record_runtime_recovery_lifecycle_if_required,
-)
 from .read_model_projection_assembly import (
     attach_status_read_model_projections,
 )
@@ -45,16 +41,8 @@ def finalize_status_projection_shell(
     """Attach refs-only runtime/read-model projections after MAS has chosen the decision."""
     if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
         router._record_quest_runtime_audits(status=status, quest_runtime=quest_runtime)
-    _record_runtime_recovery_lifecycle_if_required(status)
     _record_execution_owner_guard(status=status, quest_root=quest_root)
     _record_supervisor_tick_audit(status=status, study_root=study_root)
-    _record_runtime_health_dominance(
-        status=status,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        recorded_at=router._utc_now(),
-    )
     if not status.should_refresh_startup_hydration_for_runtime_hold():
         status.extras.pop("runtime_escalation_ref", None)
     else:

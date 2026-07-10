@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.domain_action_request_materializer import current_action_selection
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -27,7 +26,7 @@ def consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[st
     completion = _mapping(transition.get("completion_receipt_consumption"))
     if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
         return {}
-    route = current_action_selection.domain_transition_owner_route_for_study(current_study)
+    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     if gate_replay_route(route):
         return route
     if _text(transition.get("controller_action")) is None:

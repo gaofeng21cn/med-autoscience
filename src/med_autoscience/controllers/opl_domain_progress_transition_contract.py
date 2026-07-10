@@ -674,6 +674,26 @@ def mas_request_authority_boundary(value: object = None) -> dict[str, Any]:
     }
 
 
+def mas_request_transport_fields(value: object = None) -> dict[str, Any]:
+    return {
+        "authority_boundary": mas_request_authority_boundary(value),
+        "stage_transition_authority_boundary": {
+            "producer_kind": "runtime_provider",
+            "intent_kind": "provider_observation",
+            "stage_transition_authority": RUNTIME_OWNER,
+            "intent_can_write_stage_current_pointer": False,
+            "intent_can_write_stage_run_terminal_state": False,
+            "intent_can_publish_current_owner_delta": False,
+            "intent_can_write_domain_truth": False,
+            "intent_can_create_owner_receipt": False,
+            "intent_can_create_typed_blocker": False,
+            "provider_completion_counts_as_stage_transition": False,
+            "read_model_update_counts_as_stage_transition": False,
+        },
+        "provider_completion_is_domain_completion": False,
+    }
+
+
 def request_forbidden_runtime_fields() -> list[str]:
     return list(FORBIDDEN_MAS_REQUEST_RUNTIME_FIELDS)
 
