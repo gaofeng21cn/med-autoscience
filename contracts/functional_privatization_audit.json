@@ -1003,7 +1003,8 @@
         },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+          "src/med_autoscience/domain_projection_profile.py",
+          "src/med_autoscience/controllers/next_action_envelope.py",
           "src/med_autoscience/controllers/study_launch_projection.py",
           "src/med_autoscience/controllers/study_task_submission.py"
         ],
@@ -1029,7 +1030,8 @@
           "does_not_claim_opl_default_caller": true,
           "does_not_touch_publication_or_package_authority": true,
           "domain_projection_sources": [
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/domain_projection_profile.py",
+            "src/med_autoscience/controllers/next_action_envelope.py",
             "src/med_autoscience/controllers/study_launch_projection.py",
             "src/med_autoscience/controllers/study_task_submission.py"
           ],
@@ -1174,7 +1176,7 @@
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/controllers/paper_mission_owner_surface/",
-          "src/med_autoscience/controllers/domain_action_request_materializer/",
+          "src/med_autoscience/controllers/next_action_envelope.py",
           "src/med_autoscience/controllers/stage_outcome_authority.py",
           "src/med_autoscience/controllers/owner_callable_action_policy.py",
           "src/med_autoscience/reviewer_revision_feedbackops_dispatch.py",
@@ -1223,7 +1225,7 @@
           ],
           "status": "owner_callable_action_policy_single_source_landed",
           "thin_entrypoints": [
-            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/next_action_envelope.py",
             "src/med_autoscience/controllers/stage_outcome_authority.py"
           ]
         },
@@ -1247,7 +1249,9 @@
         ],
         "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
         "retired_code_paths": [
-          "src/med_autoscience/controllers/domain_route_reconcile.py"
+          "src/med_autoscience/controllers/domain_route_reconcile.py",
+          "src/med_autoscience/controllers/domain_action_request_materializer.py",
+          "src/med_autoscience/controllers/domain_action_request_materializer/"
         ]
       },
       {
@@ -1314,7 +1318,8 @@
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/domain_entry.py",
-          "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+          "src/med_autoscience/domain_projection_profile.py",
+          "src/med_autoscience/controllers/next_action_envelope.py",
           "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
           "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
           "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
@@ -1762,7 +1767,8 @@
         {
           "current_paths": [
             "contracts/domain_projection_profile.json",
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
+            "src/med_autoscience/domain_projection_profile.py",
+            "src/med_autoscience/controllers/next_action_envelope.py"
           ],
           "current_role": "domain_projection_profile_and_refs_source",
           "surface_id": "product_entry",
@@ -1781,7 +1787,7 @@
         {
           "current_paths": [
             "src/med_autoscience/controllers/study_progress/",
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
+            "src/med_autoscience/controllers/next_action_envelope.py"
           ],
           "current_role": "domain_truth_refs_status_projection_source",
           "surface_id": "status",
@@ -1789,7 +1795,8 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py"
+            "src/med_autoscience/domain_projection_profile.py",
+            "src/med_autoscience/controllers/next_action_envelope.py"
           ],
           "current_role": "domain_refs_workbench_projection_source",
           "surface_id": "workbench",
@@ -1797,7 +1804,8 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+            "src/med_autoscience/domain_projection_profile.py",
+            "src/med_autoscience/controllers/next_action_envelope.py",
             "src/med_autoscience/controllers/study_launch_projection.py",
             "src/med_autoscience/controllers/study_task_submission.py"
           ],
@@ -2396,6 +2404,9 @@
         "active_private_generic_residue_module_ids": [],
         "active_private_generic_residues": [],
         "retired_private_generic_paths": [
+          "src/med_autoscience/controllers/current_work_unit/workspace_projection.py",
+          "src/med_autoscience/controllers/domain_action_request_materializer.py",
+          "src/med_autoscience/controllers/domain_action_request_materializer/",
           "src/med_autoscience/controllers/artifact_lifecycle_operations_report/scan_policy.py",
           "src/med_autoscience/controllers/artifact_lifecycle_operations_report/operational_summary.py",
           "src/med_autoscience/controllers/artifact_lifecycle_operations_report/study_projection.py",
@@ -2420,38 +2431,6 @@
         "scanned_source_paths": [
           "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
           "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/__init__.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/ai_reviewer_record_handoff.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_action_authority.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_action_queue.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_action_selection.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_action_selection_predicates.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_owner_callable_adapters.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_typed_blocker_transition_barrier.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/current_writer_handoff.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/currentness_identity.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/domain_transition_current_actions.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/evidence_gap_decision.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/execution_gate.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/fresh_progress_arbitration.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/fresh_progress_current_action.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/fresh_progress_domain_transition_projection.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/fresh_progress_identity.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/legacy_next_action_retirement_guard.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/materializer_core.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/owner_callable_dispatch_payload.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/owner_callable_prompt.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/owner_route_currentness_projection.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/publication_owner_materialization.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/readiness_dispatch_enrichment.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/repair_progress_currentness.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/request_refresh.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/request_task_projection.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/supervisor_request_packets.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/transition_projection_boundary.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/transition_request_projection.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/transition_request_record_fields.py",
-          "src/med_autoscience/controllers/domain_action_request_materializer/writer_handoff_preservation.py",
           "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_inventory.py",
           "src/med_autoscience/controllers/workspace_literature.py"
         ],
