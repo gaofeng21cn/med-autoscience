@@ -180,6 +180,61 @@ def test_default_gallery_r_templates_have_runtime_seed_payloads_without_generic_
         if seed_payloads[record.template_id].get("caption")
         == "Synthetic gallery preview payload for local visual inspection only."
     } == set()
+    expected_row_fields = {
+        "dot_range_summary_panel": {
+            "bmi_category",
+            "measure",
+            "positive_n",
+            "available_n",
+            "percent",
+        },
+        "availability_bar_panel": {
+            "measure",
+            "available_n",
+            "denominator_n",
+            "percent",
+        },
+        "adult_multidimensional_phenotype_heatmap": {
+            "bmi_category",
+            "feature",
+            "unit",
+            "median",
+            "available_n",
+        },
+        "xiangya_psychobehavioral_overlap_heatmap": {
+            "phq9_status",
+            "gad7_status",
+            "count",
+            "row_percent",
+        },
+        "adult_bmi_waist_central_adiposity_bar": {
+            "bmi_category",
+            "central_obesity_percent",
+            "available_n",
+            "central_obesity_n",
+        },
+    }
+    for template_id, expected_fields in expected_row_fields.items():
+        item_key = (
+            "cells"
+            if template_id.endswith("heatmap")
+            else "rows"
+        )
+        assert expected_fields <= set(seed_payloads[template_id][item_key][0])
+        assert seed_payloads[template_id]["source_data_digest"] == "gallery-synthetic-preview"
+        assert seed_payloads[template_id]["preview_only"] is True
+        assert seed_payloads[template_id]["authority"] is False
+        assert seed_payloads[template_id]["publication_ready"] is False
+    expected_device_sizes = {
+        "dot_range_summary_panel": (8.4, 4.3),
+        "availability_bar_panel": (7.2, 3.8),
+        "adult_multidimensional_phenotype_heatmap": (7.2, 4.2),
+        "xiangya_psychobehavioral_overlap_heatmap": (4.6, 2.8),
+        "adult_bmi_waist_central_adiposity_bar": (5.8, 3.4),
+    }
+    for template_id, (width, height) in expected_device_sizes.items():
+        layout = seed_payloads[template_id]["render_context"]["layout_override"]
+        assert (layout["output_width_in"], layout["output_height_in"]) == (width, height)
 
 
 def test_gallery_dependency_environment_requires_explicit_prepared_run_context(

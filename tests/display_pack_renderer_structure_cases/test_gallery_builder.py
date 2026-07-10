@@ -220,6 +220,13 @@ def test_gallery_r_renderers_apply_opl_dependency_run_context(monkeypatch, tmp_p
     ]
     assert CORE_PACK_ROOT / "render.R" in rendering._r_renderer_source_paths(record)
     assert record.template_dir / "render.R" not in rendering._r_renderer_source_paths(record)
+    assert (
+        CORE_PACK_ROOT
+        / "rlib"
+        / "medicaldisplaycore"
+        / "evidence_renderer_parts"
+        / "data_frames.R"
+    ) in rendering._r_renderer_source_paths(record)
     assert {call["request"]["short_template_id"] for call in calls} == {
         "alluvial_transition",
         "table1_baseline_characteristics",

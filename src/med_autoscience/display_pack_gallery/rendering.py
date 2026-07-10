@@ -58,7 +58,7 @@ def _r_renderer_source_paths(record: TemplateRecord) -> list[Path]:
     source_paths = [
         record.template_dir / "template.toml",
         paths.PACK_ROOT / "renderer_dependency_profile.json",
-        *sorted(rlib_root.glob("*.R")),
+        *sorted(rlib_root.rglob("*.R")),
     ]
     if record.renderer_family == "r_ggplot2":
         source_paths.insert(0, _r_renderer_entrypoint_source(record))
